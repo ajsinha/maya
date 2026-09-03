@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 320" width="1180" height="320" role="img" aria-label="MAYA — Model and AI Lifecycle Assurance">
+  <title>MAYA — Model &amp; AI Lifecycle Assurance</title>
+  <g transform="translate(24,24)"><rect width="272" height="272" rx="56" ry="56" fill="#A51C30"/>
+    <g transform="scale(0.53125)">
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="12"/>
+  <path d="M256 127 L385 256 L256 385 L127 256 Z" fill="none" stroke="#FFFFFF"
+        stroke-width="32" stroke-linejoin="round"/>
+  <circle cx="256" cy="127" r="17" fill="#FFFFFF"/>
+  <circle cx="385" cy="256" r="17" fill="#FFFFFF"/>
+  <circle cx="256" cy="385" r="17" fill="#FFFFFF"/>
+  <circle cx="127" cy="256" r="17" fill="#FFFFFF"/>
+    </g></g>
+  <text x="356" y="150" font-family="Georgia, &apos;Times New Roman&apos;, serif" font-size="112" letter-spacing="8" fill="#1C1C1E">MAYA</text>
+  <text x="360" y="200" font-family="Calibri, &apos;Segoe UI&apos;, Helvetica, Arial, sans-serif" font-size="32" letter-spacing="1.5" fill="#A51C30">Model &amp; AI Lifecycle Assurance</text>
+  <line x1="360" y1="228" x2="560" y2="228" stroke="#D8D4CF" stroke-width="3"/>
+  <text x="360" y="276" font-family="Georgia, &apos;Times New Roman&apos;, serif" font-size="34" font-style="italic" fill="#4A4F57">Evidence, not assertion.</text>
+</svg>

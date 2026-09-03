@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="MAYA mark — a square inscribed in a circle">
+  <title>MAYA</title>
+  <desc>A square inscribed in a circle: a simplified representation of something it can never quite be. The gap is the model error; the four points are where model and world agree.</desc>
+  <rect width="512" height="512" rx="104" ry="104" fill="#A51C30"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="12"/>
+  <path d="M256 127 L385 256 L256 385 L127 256 Z" fill="none" stroke="#FFFFFF"
+        stroke-width="32" stroke-linejoin="round"/>
+  <circle cx="256" cy="127" r="17" fill="#FFFFFF"/>
+  <circle cx="385" cy="256" r="17" fill="#FFFFFF"/>
+  <circle cx="256" cy="385" r="17" fill="#FFFFFF"/>
+  <circle cx="127" cy="256" r="17" fill="#FFFFFF"/>
+</svg>
