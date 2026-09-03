@@ -1,0 +1,1709 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1.05in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage[hidelinks,breaklinks]{hyperref}
+\usepackage{cleveref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\theoremstyle{definition}
+\newtheorem{observation}[theorem]{Observation}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\Cat}[1]{\mathbf{#1}}
+\newcommand{\Stoch}{\Cat{Stoch}}
+\newcommand{\Para}{\mathbf{Para}}
+\newcommand{\Sign}{\mathsf{Sign}}
+\newcommand{\Sen}{\mathsf{Sen}}
+\newcommand{\Mod}{\mathsf{Mod}}
+\newcommand{\Set}{\mathbf{Set}}
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\ie}{\emph{i.e.}\ }
+\newcommand{\eg}{\emph{e.g.}\ }
+\newcommand{\defn}[1]{\emph{#1}}
+
+% ---- expository environments ---------------------------------------------
+\definecolor{plainbg}{RGB}{246,246,244}
+\definecolor{plainbar}{RGB}{120,120,130}
+\definecolor{exbg}{RGB}{247,244,239}
+\definecolor{exbar}{RGB}{150,120,70}
+
+\newtcolorbox{plain}{
+  enhanced, breakable, sharp corners, boxrule=0pt, frame hidden,
+  colback=plainbg, borderline west={2pt}{0pt}{plainbar},
+  left=10pt, right=8pt, top=6pt, bottom=6pt,
+  before skip=8pt, after skip=8pt,
+  fontupper=\small
+}
+\newtcolorbox{worked}[1][]{
+  enhanced, breakable, sharp corners, boxrule=0pt, frame hidden,
+  colback=exbg, borderline west={2pt}{0pt}{exbar},
+  left=10pt, right=8pt, top=6pt, bottom=6pt,
+  before skip=8pt, after skip=8pt,
+  fontupper=\small, #1
+}
+\newcommand{\pt}{\textbf{In plain terms.}\ }
+\newcommand{\wk}[1]{\textbf{Worked example: #1}\par\smallskip}
+
+\title{\bfseries Models as Parametric Kernels,\\ Governance as Verified Automation:\\[4pt]
+{\large A Mathematical Foundation for Heterogeneous Model Estates\\
+and a Criterion for Where AI May Do the Work}}
+
+\author{Ashutosh Sinha\\[2pt]
+{\normalsize\itshape Independent Researcher}\\[2pt]
+{\normalsize\ttfamily ajsinha@gmail.com}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Large regulated organisations operate thousands of quantitative artefacts that inform or make
+consequential decisions: closed-form valuation formulae, market-calibrated stochastic models,
+statistically estimated scorecards, machine-learned classifiers, online-adaptive systems,
+foundation-model applications, third-party black boxes, expert-judgment rating schemes, and
+deterministic rule sets. Supervisory regimes require that these be identified, classified by
+materiality, validated, monitored, and documented as a single population. Yet the software
+systems built to discharge that obligation divide sharply into governance tools that record
+assertions \emph{about} artefacts without access to them, and engineering platforms that manage
+artefacts without any representation of materiality, approved use, independent challenge, or
+remediation. We argue that this division is not an accident of product strategy but a symptom of
+a missing foundation: the field has no formal answer to the question \emph{what is a model?} that
+is simultaneously general enough to cover the population and structured enough to support
+composition, substitution, extension, and plural normative interpretation.
+
+We propose such a foundation. A model is a morphism in $\Para(\Stoch)$: a parameter object
+together with a Markov kernel consuming parameters and input to produce output. We show that the
+familiar informal taxonomy of model kinds is recovered not as a partition of objects but as a
+classification of \emph{how the parameter object is inhabited}, which dissolves the recurring
+difficulty that many governed artefacts are never trained. We prove that no aggregate risk
+assignment can be compositional, and identify the obstruction precisely as the comonoid copy map
+--- shared dependency --- thereby giving formal content to a longstanding but informally stated
+supervisory expectation. We model artefact kinds as fibres of a fibration and normative regimes as
+institutions in the sense of Goguen and Burstall, obtaining conservative-extension guarantees for
+both, and we show that the institutional satisfaction condition yields a falsifiable consistency
+test for regulatory scope determinations. Finally we show that assurance evidence forms an
+annotated derivation structure over a commutative semiring, so that questions of sufficiency,
+minimal justification, confidence, cost, classification, admissibility, and currency are one
+computation evaluated in different semirings.
+
+The contribution is conceptual and integrative rather than deep: each mathematical instrument is
+borrowed, and we are explicit about which. What is new is their assembly into a coherent theory of
+a domain that presently has none, together with five results that this assembly makes available.
+We state the limitations candidly, including the absence of an implementation study, and identify
+what would falsify the account.
+\end{abstract}
+
+\medskip
+\noindent\textbf{Keywords:} model governance; categorical probability; Markov categories;
+institutions; provenance semirings; assume--guarantee contracts; fibrations; model risk.
+
+\section{Introduction}
+
+\subsection{The domain}
+
+Consider the population of quantitative artefacts operated by a large financial institution. It
+includes a Black--Scholes implementation whose parameters come from financial theory and are never
+estimated from data; a stochastic volatility surface re-solved against market quotes every
+morning; a logistic scorecard refitted annually on a historical sample; a gradient-boosted
+classifier retrained weekly on transaction streams; an adaptive threshold that updates itself
+continuously in production; a retrieval-augmented language model drafting regulatory narratives; a
+third-party credit score whose internals are contractually unavailable; a country-risk rating
+scheme whose weights are set by a committee; and several thousand rule sets and spreadsheets.
+
+These artefacts have essentially nothing in common at the level of implementation. Yet they are
+subject to a single normative obligation. Supervisory guidance requires an institution to maintain
+an inventory of them, classify each by materiality, subject each to independent challenge
+proportionate to that classification, monitor performance, document design and limitations,
+control change, and assess risk both individually and \emph{in aggregate}, accounting for
+``interactions and dependencies among models; reliance on common assumptions, data, or
+methodologies.'' Different jurisdictions define the governed population differently: one recent
+regime narrows it to complex quantitative methods applying statistical, economic or financial
+theory, explicitly excluding deterministic rules and, remarkably, generative systems; another
+defines it broadly enough to include expert-judgment inputs and qualitative outputs. An
+institution operating in both must satisfy a narrow and a broad scope simultaneously over one
+population.
+
+\subsection{Four pathologies}
+
+Systems built for this task exhibit four recurring pathologies, each of which we will argue is a
+consequence of an absent formalism rather than of poor engineering.
+
+\paragraph{P1: The training assumption.} Tooling descended from machine learning practice presumes
+a pipeline $\text{train} \to \text{register} \to \text{deploy}$. Artefacts that are not trained ---
+which are the majority --- are represented as degenerate cases, with mandatory fields left empty
+and evidence requirements that are category errors. Asking a closed-form pricer for its training
+dataset is not a missing value; it is a type error, and a system that cannot say so will accumulate
+meaningless records.
+
+\paragraph{P2: Schema rigidity.} When artefact kind is a column, an enumeration, or a table, each
+new kind requires a schema migration touching every module. The predictable consequence is that new
+kinds are never added and the inventory silently excludes them --- precisely the artefacts most
+likely to be novel and therefore least understood.
+
+\paragraph{P3: Scope as a boolean.} When regulatory applicability is modelled as an attribute rather
+than as a distinct logic, overlapping regimes cannot be represented without conflict, and every
+regulatory revision forces re-architecture. This is not hypothetical: a fifteen-year-old
+supervisory letter that anchored an entire industry's practice was superseded in 2026 with a
+materially different definition of the governed population.
+
+\paragraph{P4: Evidence as assertion.} Governance records state that an artefact was validated.
+Nothing in the record establishes that the artefact described is the artefact executing. The claim
+is unfalsifiable, which is the opposite of what assurance requires.
+
+\subsection{Contributions}
+
+We give a mathematical foundation addressing all four. Concretely:
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item \Cref{sec:models} defines a model as a morphism in $\Para(\Stoch)$ and shows that the
+      standard informal taxonomy is recovered as a classification of \emph{fitting morphisms}
+      $\varphi \colon D \to P$ into the parameter object (\Cref{prop:classification}). This
+      dissolves P1: training is one way of inhabiting a parameter object, not part of the
+      definition of a model.
+\item \Cref{sec:composition} proves that no aggregate risk assignment can be compositional
+      (\Cref{thm:noncomp}), and identifies the obstruction as the comonoid copy map. This gives
+      formal content to the supervisory expectation regarding interactions and common dependencies,
+      and explains why Markov categories --- which make copying explicit --- are the right ambient
+      setting rather than Cartesian ones, which hide it.
+\item \Cref{sec:observation} treats artefacts that cannot be opened, combining assume--guarantee
+      contracts, sound abstraction in the sense of abstract interpretation, and a
+      \emph{probe-relative} weakening of the Yoneda principle. We obtain a soundness criterion for
+      summary documents (\Cref{prop:sound}) and a formal semantics for version increments
+      (\Cref{prop:version}).
+\item \Cref{sec:indexing} models artefact kinds as fibres of a fibration and proves a conservative
+      extension property (\Cref{prop:conservative}), addressing P2.
+\item \Cref{sec:regimes} models normative regimes as institutions and shows that the satisfaction
+      condition yields a falsifiable consistency test for scope determinations
+      (\Cref{prop:stability}), addressing P3.
+\item \Cref{sec:evidence} presents assurance evidence as an annotated derivation structure over a
+      commutative semiring, so that seven distinct governance questions are one computation
+      evaluated in different semirings (\Cref{prop:semiring}), addressing P4.
+\item \Cref{sec:order,sec:time} treat risk classification as a monotone map between lattices adjoint
+      to control intensity, and give a characterisation of causally admissible training assemblies
+      over a bitemporal store (\Cref{prop:pit}).
+\item \Cref{sec:automation} draws a consequence we did not anticipate and now regard as the most
+      practically significant: several of the constructions above are \emph{decision procedures}, and a
+      decision procedure is what makes machine-generated output safe to accept
+      (\Cref{prop:automation}). We show that verifying a machine-generated citation reduces to a Boolean
+      evaluation over the existing derivation structure (\Cref{prop:citation}), identify which
+      governance tasks are oracle-backed and which constitutively cannot be
+      (\Cref{obs:constitutive}), and show that a governing system may use governed models without
+      circularity provided generation crosses the strata and acceptance does not.
+\end{enumerate}
+
+\Cref{sec:laws} observes that every result above can be stated as an executable law and enforced by
+property-based testing, which we regard as the practical criterion separating a foundation from an
+ornament. \Cref{sec:example} works a small but complete example. \Cref{sec:related,sec:limits}
+situate the account and state candidly what it does not establish.
+
+\subsection{How to read this paper}
+
+The mathematics is elementary but the vocabulary is not evenly distributed across the audiences this
+work is addressed to. Every formal statement is therefore followed by two things: a shaded
+\emph{plain terms} gloss that says what the statement means in ordinary language, and, where it earns
+one, a \emph{worked example} drawn from banking. A reader who wants the argument without the notation
+can follow the shaded material alone and lose nothing essential. A reader who wants only the
+mathematics can skip it.
+
+\subsection{What is borrowed and what is new}
+
+We are explicit, because the value of an integrative paper depends on it. Markov categories are due
+to Fritz and collaborators; the $\Para$ construction to Fong, Spivak and Tuyeras, and its
+elaboration to Cruttwell, Gavranovi\'c, Lehner, Wilson and co-workers; assume--guarantee contract
+algebra to Benveniste and collaborators; institutions to Goguen and Burstall; provenance semirings
+to Green, Karvounarakis and Tannen; sound abstraction to Cousot and Cousot; well-behaved lenses to
+Foster and collaborators; sheaf-theoretic consistency measures to Robinson. None of these is our
+contribution.
+
+What we claim is new: (i) the identification of $\Para(\Stoch)$ as the right ambient setting for a
+\emph{governed population} of heterogeneous artefacts, and the resulting reading of the trainability
+taxonomy; (ii) \Cref{thm:noncomp} and its diagnosis of the copy map as the obstruction; (iii) the
+application of institution theory to plural regulatory scope over a shared inventory, with the
+satisfaction condition repurposed as a consistency test; (iv) the application of semiring provenance
+to assurance evidence rather than to query answers, and the resulting collapse of seven governance
+questions into one; (v) the probe-relative treatment of artefact identity and its use as a semantics
+for version increments; and (vi) the oracle analysis of \Cref{sec:automation}, including
+\Cref{prop:citation} and the constitutivity argument of \Cref{obs:constitutive}.
+
+\section{Models as parametric kernels}\label{sec:models}
+
+\subsection{Ambient setting}
+
+We work in a Markov category: a symmetric monoidal category $(\mathcal{C}, \otimes, I)$ in which the
+unit $I$ is terminal and every object $X$ carries a commutative comonoid structure
+$\mathrm{copy}_X \colon X \to X \otimes X$, $\mathrm{del}_X \colon X \to I$, compatible with the
+monoidal product, with $\mathrm{del}$ natural. Morphisms behave as Markov kernels; the canonical
+example is $\Stoch$, the Kleisli category of the Giry monad on measurable spaces, whose morphisms
+$X \to Y$ are probability kernels. A morphism $f$ is \defn{deterministic} when
+$\mathrm{copy}_Y \circ f = (f \otimes f) \circ \mathrm{copy}_X$.
+
+Two structural features earn their place immediately. Terminality of $I$ (semicartesianness) says
+every morphism may be discarded --- outputs need not be used, which is what makes an artefact's
+\emph{exposure} a meaningful separate quantity. Explicit copying says an output may be consumed by
+several downstream artefacts --- which, as \Cref{sec:composition} shows, is exactly the structure
+responsible for non-compositional aggregate risk. A Cartesian category has both properties
+implicitly and therefore cannot make either visible.
+
+\subsection{Definition}
+
+\begin{definition}[Model]\label{def:model}
+Let $\mathcal{C}$ be a Markov category. A \defn{model} is a morphism in $\Para(\mathcal{C})$: a pair
+$(P, f)$ consisting of a \defn{parameter object} $P \in \mathcal{C}$ and a kernel
+\[
+  f \colon P \otimes X \longrightarrow Y ,
+\]
+where $X$ is the \defn{input object} and $Y$ the \defn{output object}. Composition of
+$(P,f) \colon X \to Y$ and $(Q,g) \colon Y \to Z$ is $(Q \otimes P,\; g \circ (\mathrm{id}_Q \otimes f))$.
+\end{definition}
+\begin{plain}
+\pt A model is a machine with \emph{dials}. $X$ is what you feed in, $Y$ is what comes out, and $P$
+is the set of dials that determine how the machine behaves. The definition insists on keeping the
+dials separate from the machinery, because that separation is where all the leverage is.
+
+The word \emph{kernel} means the output is allowed to be random: feed in the same input twice and you
+may get different answers. That covers a language model sampling text. Ordinary deterministic
+behaviour is the special case where the randomness happens to be trivial.
+
+The composition rule says: if you plug one machine into another, the combined machine's dials are
+\emph{both} sets of dials together. Nothing is lost or absorbed.
+\end{plain}
+
+\begin{worked}
+\wk{two artefacts that look nothing alike}
+A \textbf{Black--Scholes option pricer} takes a spot price, strike, tenor, rate and volatility, and
+returns a price. Its formula comes from theory. There are no dials to set --- $P$ is empty. Feed it
+the same inputs and you get the same price forever.
+
+A \textbf{SABR volatility surface} takes a strike and tenor and returns an implied volatility. But
+before it can do that, four parameters must be solved for against this morning's market quotes.
+Those four numbers are $P$, and they are different every day.
+
+Same shape, completely different operational reality --- and the difference lives entirely in $P$.
+\end{worked}
+
+
+\begin{definition}[Fitting morphism]\label{def:fitting}
+A \defn{fitting morphism} for a model $(P,f)$ is a morphism $\varphi \colon D \to P$ in
+$\mathcal{C}$, where $D$ is an object of \defn{fitting evidence}. A model is \defn{accompanied} when
+a fitting morphism is available to the governing party, and \defn{opaque} otherwise.
+\end{definition}
+\begin{plain}
+\pt The \emph{fitting morphism} is the procedure that sets the dials. $D$ is whatever the procedure
+consumes: a historical sample, this morning's market quotes, a committee's opinions, a prompt and a
+document corpus.
+
+The key move --- and the one that departs from received practice --- is that \emph{setting the dials
+is not part of being a model}. It is a separate arrow. Some models have one. Some do not. Some have
+one that belongs to a vendor and that you will never see.
+
+``Opaque'' is the precise term for a bought-in model: the dials exist, somebody set them, and you
+cannot inspect either.
+\end{plain}
+
+
+\Cref{def:fitting} is where the account departs from received practice. Estimation, calibration,
+training, elicitation and configuration are not different \emph{kinds of model}; they are different
+fitting morphisms into the parameter object of one kind of thing.
+
+\subsection{The trainability classification}
+
+\begin{proposition}[Classification]\label{prop:classification}
+The informal taxonomy of governed artefact kinds is recovered as a classification of the pair
+$(P, \varphi)$, as follows.
+\begin{center}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Class} & \textbf{Parameter object $P$} & \textbf{Fitting morphism $\varphi$} & \textbf{Determinism of $f$}\\
+\midrule
+Analytic          & $P \cong I$ (terminal)      & none required               & deterministic \\
+Calibrated        & calibration parameters      & solver on an instrument set & deterministic given $P$ \\
+Estimated         & coefficients                & estimator on a sample       & often deterministic \\
+Learned           & weights, hyperparameters    & training algorithm          & varies \\
+Adaptive          & time-indexed $P(t)$         & $\varphi$ is itself a process& non-stationary \\
+Foundation-based  & weights, prompt, corpus, tools & configuration and retrieval & stochastic \\
+Opaque            & inaccessible                & external, unavailable       & unknown \\
+Elicited          & weights or thresholds       & elicitation protocol        & deterministic given $P$ \\
+Authored          & rule set                    & policy authoring            & deterministic \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{proposition}
+
+\begin{proof}
+Each row is a specification of $(P, \varphi)$ within \Cref{def:model,def:fitting}; that the rows are
+exhaustive of current practice is an empirical claim about the domain, not a mathematical one, and
+we make it as such. The two extremal cases are the mathematically interesting ones. \emph{Analytic}
+is the case $P \cong I$: since $I$ is terminal, $I \otimes X \cong X$ and the model is a bare kernel
+$X \to Y$, with the fitting problem vacuous. \emph{Opaque} is the case in which $P$ exists but
+neither $P$ nor $\varphi$ is available to the observer, so that the only accessible datum is the
+composite $f(p, -)$ for the vendor's fixed $p$; that composite is an ordinary morphism $X \to Y$,
+which is precisely why behavioural evidence is the only evidence obtainable. \end{proof}
+
+\begin{plain}
+\pt Practitioners argue endlessly about whether a pricer ``is a model'', whether a rule set counts,
+whether a chatbot belongs in the inventory. The table says the argument is misconceived. These are
+not nine different kinds of thing. They are one kind of thing, distinguished by \emph{how the dials
+get set}.
+
+The two ends of the table are worth dwelling on. At the top, the dials do not exist, so asking about
+them is meaningless. At the bottom of the opaque row, the dials exist but are behind a contract, so
+asking about them is futile. Everything else is in between.
+\end{plain}
+
+\begin{worked}
+\wk{three artefacts through the same lens}
+\textbf{An SA-CCR counterparty exposure calculator.} The formula is prescribed by regulation.
+$P \cong I$. There is no dataset, no estimator, no retraining schedule. What you must evidence is
+that the implementation computes what the regulation says --- a test suite against reference values,
+not a validation sample. Any system demanding a ``training set'' here is asking a meaningless
+question, and will get a meaningless answer typed into a mandatory field.
+
+\textbf{A small-business PD scorecard.} $P$ is forty-two coefficients. $\varphi$ is a logistic
+regression run on eight years of originations. Evidence: the sample, its representativeness, the
+estimator, out-of-time performance, calibration.
+
+\textbf{A bought-in bureau score.} $P$ exists --- somebody at the bureau fitted it --- but neither
+$P$ nor $\varphi$ is available. Demanding development documentation is futile. What you can do,
+and what the mathematics says is the \emph{only} thing you can do, is watch the composite: compare
+its outputs against your own realised defaults. That is not a compromise forced by commercial
+reality. It is what the structure permits.
+\end{worked}
+
+\begin{remark}
+\Cref{prop:classification} is the resolution of pathology P1. There is no ``untrained model'' and no
+``degenerate case''; there is a model whose parameter object is terminal. The design consequence is
+that evidence requirements are indexed by the classification rather than assumed uniform ---
+formalised in \Cref{sec:indexing}.
+\end{remark}
+
+\begin{proposition}[Parameter accumulation]\label{prop:accum}
+For composable models $(P,f) \colon X \to Y$ and $(Q,g) \colon Y \to Z$, the composite has parameter
+object $Q \otimes P$. Consequently, in any finite network the composite parameter object is the
+tensor of the parameter objects of all constituents reachable from the inputs.
+\end{proposition}
+
+\begin{proof}
+Immediate from composition in $\Para(\mathcal{C})$ and induction on network size. \end{proof}
+
+\begin{corollary}[Change closure]
+Any change to the inhabitant of a constituent parameter object changes the inhabitant of the
+composite parameter object. Hence recalibration of an upstream artefact is, formally, a change event
+for every downstream artefact.
+\end{corollary}
+
+This corollary is worth pausing on: it is routinely violated in practice, where a curve is
+recalibrated daily and the dozens of valuation and capital artefacts consuming it are held to be
+unchanged.
+\begin{plain}
+\pt If you build something out of other things, you inherit \emph{all} of their dials. A valuation
+chain four models deep has the dials of all four. So when somebody turns a dial anywhere upstream,
+the thing at the end of the chain has genuinely changed --- even though nobody edited it.
+\end{plain}
+
+\begin{worked}
+\wk{the daily recalibration nobody calls a change}
+At 6:30 each morning a bank's discount curve is re-solved against market instruments. Its parameter
+set changes. Downstream sit a swaption pricer, an XVA engine, a VaR engine, a capital calculator and
+a capital plan.
+
+By \Cref{prop:accum}, every one of those artefacts has had its parameter object change. Formally,
+each has changed. Operationally, the bank's change-management process records nothing: curves are
+``market data'', not a model change.
+
+Both readings are defensible, but they must be reconciled explicitly rather than by silence. The
+usual resolution is to distinguish routine recalibration \emph{within a declared tolerance} --- which
+is governed by monitoring --- from recalibration outside it, which is a change event. The formalism
+does not choose for you; it forces you to notice that a choice is being made, and to write down the
+tolerance.
+\end{worked}
+
+\subsection{Output type}
+
+Models producing point estimates and models producing predictive distributions differ in the object
+$Y$, not in kind. In a \emph{representable} Markov category, kernels $X \to Y$ correspond to
+deterministic morphisms $X \to \mathcal{P}Y$ into a distribution object; a point predictor is then
+the deterministic section obtained by post-composing with a summary statistic. This is what permits
+calibration assessment, interval-based monitoring and proper scoring rules to be defined once,
+generically, rather than per artefact family.
+
+\section{Composition and the impossibility of compositional risk}\label{sec:composition}
+
+\subsection{Networks as string diagrams}
+
+$\Para(\mathcal{C})$ is symmetric monoidal, so a network of models is a string diagram built from
+generators by sequential composition, parallel composition, copying and discarding. Type-correctness
+of a wiring is decidable, and the transitive downstream closure of a node --- what practitioners call
+the blast radius of a change --- is a graph-theoretic property of the diagram rather than a report
+maintained beside it.
+
+\subsection{Aggregate risk}
+
+Supervisory guidance asks that risk be assessed ``both individually and in aggregate,'' where
+aggregate risk ``reflects interactions and dependencies among models; reliance on common assumptions,
+data, or methodologies.'' We now show this expectation has a precise formal content: it asserts the
+failure of compositionality.
+
+\begin{definition}[Risk assignment]
+Let $R$ be a join-semilattice. A \defn{risk assignment} is a function $\rho$ from morphisms of
+$\Para(\mathcal{C})$ to $R$. It is \defn{compositional} if for all composable $f,g$ and all $f,h$,
+\[
+  \rho(g \circ f) = \rho(g) \sqcup \rho(f), \qquad \rho(f \otimes h) = \rho(f) \sqcup \rho(h).
+\]
+\end{definition}
+
+Compositionality is the assumption implicitly made whenever an aggregate is computed as the maximum
+or join of constituent ratings --- which is standard practice.
+
+\begin{definition}[Failure semantics and fragility]
+Fix a network $N$ with generator set $G(N)$ and output ports $\mathrm{out}(N)$. For $S \subseteq G(N)$
+let $\mathrm{corr}(N,S) \subseteq \mathrm{out}(N)$ be the set of output ports reachable in the
+diagram from some generator in $S$. The \defn{fragility} of $N$ is
+$\mathrm{frag}(N) = \max_{g \in G(N)} |\mathrm{corr}(N,\{g\})|$.
+A risk assignment $\rho$ is \defn{fragility-sensitive} if for networks $N, N'$ with
+$\mathrm{frag}(N) > \mathrm{frag}(N')$ we have $\rho(N) \sqsupset \rho(N')$ whenever the multisets
+$\{\!\{\rho(g) : g \in G(N)\}\!\}$ and $\{\!\{\rho(g') : g' \in G(N')\}\!\}$ coincide.
+\end{definition}
+
+\begin{theorem}[No compositional risk assignment]\label{thm:noncomp}
+Let $R$ be a join-semilattice with at least two elements. No risk assignment is both compositional
+and fragility-sensitive.
+\end{theorem}
+
+\begin{proof}
+Let $a \sqsubset b$ in $R$. Take generators $A, A' \colon X \to Y$ with
+$\rho(A) = \rho(A') = a$, and $B, C \colon Y \to Z$ with $\rho(B) = \rho(C) = b$; $A$ and $A'$ are
+distinct generators of equal risk (\eg two independently constructed curve models).
+
+Let $N_1$ be the network in which the output of $A$ is copied and fed to both $B$ and $C$; that is,
+$N_1 = (B \otimes C) \circ \mathrm{copy}_Y \circ A$, with two output ports. Let $N_2$ be the network
+$(B \circ A) \otimes (C \circ A')$, again with two output ports.
+
+The multisets of constituent risks coincide: both are $\{\!\{a, b, b\}\!\}$. But
+$\mathrm{corr}(N_1, \{A\}) = \mathrm{out}(N_1)$, so $\mathrm{frag}(N_1) = 2$, whereas every generator
+of $N_2$ reaches exactly one output port, so $\mathrm{frag}(N_2) = 1$.
+
+Now suppose $\rho$ is compositional. Then $\rho(N_1) = a \sqcup b \sqcup b = a \sqcup b$ and likewise
+$\rho(N_2) = a \sqcup b$, so $\rho(N_1) = \rho(N_2)$. This contradicts fragility-sensitivity, which
+requires $\rho(N_1) \sqsupset \rho(N_2)$. \end{proof}
+
+\begin{plain}
+\pt Two banks each run one curve model and two pricers. Bank A uses a single curve to feed both
+pricers. Bank B built two curves independently, one for each pricer.
+
+Rate their models individually and you get identical answers: same curve rating, same two pricer
+ratings. So any method that computes the total from the individual ratings gives both banks the same
+answer.
+
+But Bank A has a single point of failure and Bank B does not. If the curve is wrong at Bank A, both
+valuations are wrong. At Bank B, one is. The banks are plainly not equally exposed --- and the
+standard method cannot see the difference, because the difference is not in any of the parts.
+
+That is the whole theorem: \emph{you cannot get the risk of the whole by combining the risks of the
+parts, because the risk of the whole partly lives in the wiring.}
+\end{plain}
+
+\begin{worked}
+\wk{why this is not a toy}
+At a real institution the shared node is not hypothetical. A single USD discount curve typically
+feeds swaption and swap pricers, the CDS and tranche pricers, the XVA engine, the VaR and expected
+shortfall engines, the FRTB standardised sensitivities, prudent valuation, and --- through the RWA
+engine --- the capital plan and the regulatory submission.
+
+Rate each of those individually and you might reasonably conclude the portfolio is well controlled:
+each is validated, each is monitored, each is within tolerance. Every constituent is green.
+
+Yet an error in curve construction propagates to every one of them simultaneously, in the same
+direction, and the errors do not offset --- they compound, because the downstream artefacts all
+consume the same wrong number. This is exactly the concentration that the supervisory language about
+``reliance on common assumptions, data, or methodologies'' is pointing at, and exactly what a
+maximum-of-components rating is structurally incapable of representing.
+
+The practical output is a number: report the join of the component risks, report the composite risk,
+and attribute the difference to the specific shared curve. That difference is the interaction
+premium of \Cref{cor:lax}, and it is what tells a committee that the estate's real exposure is
+concentrated in one artefact that nobody has flagged, because individually it looks fine.
+\end{worked}
+
+\begin{remark}[The obstruction is the copy map]\label{rem:copy}
+The two networks differ in exactly one respect: $N_1$ uses $\mathrm{copy}_Y$ and $N_2$ does not.
+Shared dependency \emph{is} the comonoid copy map. In a Cartesian category copying is implicit and
+structurally invisible, so the distinction between $N_1$ and $N_2$ cannot be expressed at the level
+of the algebra; this is a concrete reason to prefer a Markov category as the ambient setting even
+when the artefacts under management are deterministic.
+\end{remark}
+
+\begin{corollary}[Laxity is necessary]\label{cor:lax}
+Any fragility-sensitive risk assignment is at best \emph{lax} monoidal:
+$\rho(g \circ f) \sqsupseteq \rho(g) \sqcup \rho(f)$, with the discrepancy attributable to shared
+constituents. We call $\rho(N) \ominus \bigsqcup_{g \in G(N)} \rho(g)$ the \defn{interaction premium}.
+\end{corollary}
+
+The practical reading of \Cref{cor:lax} is that a governance system should report the join of
+constituent risks \emph{and} the composite risk, and should attribute the difference. Attribution
+proceeds by the sources of shared dependency admitted by the diagram: common parameter objects
+(\Cref{prop:accum}), common inputs, common fitting evidence $D$, and common methodology. To our
+knowledge no deployed system computes this quantity, though every relevant supervisory regime asks
+for it in prose.
+
+\section{Specifying artefacts one cannot open}\label{sec:observation}
+
+A substantial fraction of a governed population is opaque in the sense of \Cref{def:fitting}. Three
+complementary instruments apply, answering different questions.
+
+\subsection{Contracts}
+
+A \defn{contract} is a pair $\mathcal{K} = (A, G)$ of an assumption on the environment and a
+guarantee on behaviour conditional on the assumption. Contract algebra supplies refinement
+$\mathcal{K}' \preceq \mathcal{K}$ (weaker assumption, stronger guarantee), composition, conjunction,
+and a quotient $\mathcal{K}/\mathcal{K}_1$ giving the obligation of a missing component.
+
+The mapping into the domain is exact, and clarifies a term that supervisory texts use without
+definition. The \emph{operating boundary} of a model --- the region over which its performance is
+expected to be acceptable --- is the assumption $A$: input domain, population definition, regime,
+freshness of upstream inputs. The performance envelope --- discrimination, calibration, fairness,
+latency bounds --- is the guarantee $G$. Two consequences follow. First, use outside the operating
+boundary is a contract violation, checkable at execution time; when $A$ fails, $G$ is void, which is
+a considerably stronger statement than ``the input looked unusual.'' Second, substitutability
+becomes a proof obligation: replacing an artefact by another is admissible exactly when the
+replacement's contract refines the incumbent's. Under the standard variance discipline this requires
+contravariance in inputs and covariance in outputs.
+
+\begin{plain}
+\pt A contract is a promise with a precondition: \emph{if} you use me within these limits, \emph{then}
+I will perform this well. Outside the limits I promise nothing --- and that is a much stronger and
+more useful statement than ``results may be unreliable''.
+
+The refinement rule answers ``can version B replace version A?'' precisely: B must accept everything A
+accepted (or more) and promise everything A promised (or more). That is checkable, so replacing a
+production model becomes a proof obligation rather than a judgement call in a meeting.
+
+The quotient operation is the one people find surprising: given what you need overall and what you
+already have, it computes the specification of the missing piece. A validation gap becomes a
+requirements document, automatically.
+\end{plain}
+
+\begin{worked}
+\wk{an operating boundary that mattered}
+A small-business PD scorecard is fitted on 2014--2019 data. Its assumption $A$ records, among other
+things, ``non-recessionary conditions; unemployment below 8\%''. Its guarantee $G$ records a
+discrimination floor and a calibration test.
+
+In April 2020, unemployment moves outside that range. Under the usual arrangement, nothing happens:
+the model keeps scoring, performance degrades over the following quarters, and the degradation is
+noticed at the next scheduled validation --- perhaps nine months later, after several thousand
+decisions.
+
+Under a contract, the assumption is machine-checked on every call. The moment inputs fall outside
+$A$, the guarantee $G$ is formally void. The system can flag, refer to a human, or refuse, according
+to policy set in advance --- and the count of boundary violations is a live number on the model's
+page rather than a discovery made retrospectively.
+
+Note what the formalism contributes here. It does not tell you the model is wrong. It tells you the
+model has stopped promising anything, which is a different and more actionable fact.
+\end{worked}
+
+\subsection{Summaries as sound abstractions}
+
+Documents that stand in for artefacts --- summary cards, risk statements, disclosed limitations ---
+are abstractions, and abstract interpretation says what makes an abstraction trustworthy. Let
+$(\mathcal{B}, \sqsubseteq)$ be a lattice of behaviours and $(\mathcal{S}, \sqsubseteq)$ a lattice of
+summaries, with $\alpha \colon \mathcal{B} \to \mathcal{S}$ and $\gamma \colon \mathcal{S} \to
+\mathcal{B}$ forming a Galois connection $\alpha \dashv \gamma$.
+
+\begin{proposition}[Summary soundness]\label{prop:sound}
+A summary $s$ of behaviour $b$ is \defn{sound} iff $b \sqsubseteq \gamma(s)$, equivalently
+$\alpha(b) \sqsubseteq s$. A sound summary may overstate the set of admissible behaviours --- and
+hence overstate risk --- but never excludes behaviour the artefact exhibits.
+\end{proposition}
+
+\begin{proof}
+Immediate from the Galois connection. \end{proof}
+
+\Cref{prop:sound} gives a testable criterion where practice offers only editorial judgement: a
+summary stating a discrimination floor is unsound if the artefact falls below it on any slice within
+its operating boundary, and the violation is detectable by replay. It also answers, principledly, the
+perennial question of how much detail a summary should contain: enough to remain sound at the
+required precision, and no more.
+
+\begin{plain}
+\pt A summary of a model is allowed to be pessimistic. It is not allowed to be flattering.
+
+If the model card says ``discrimination at least 0.82'' and the model achieves 0.79 anywhere inside
+its declared operating boundary, the card has understated the risk --- and that is a defect you can
+detect mechanically by replaying the data, rather than a matter of editorial taste.
+
+The same criterion settles the perennial argument about documentation length. A summary needs
+whatever detail is required to stay honest at the precision claimed. Adding detail beyond that is
+optional; removing detail that makes it dishonest is not.
+\end{plain}
+
+\begin{worked}
+\wk{the model card that read well and was wrong}
+A card reports overall AUC of 0.84 and states no fairness concern. Both statements are true of the
+portfolio in aggregate.
+
+Sliced by the declared operating boundary, however, the thin-file segment --- 11\% of volume, and
+inside the declared population --- shows AUC 0.71 and an adverse impact ratio of 0.78. The card's
+claims are unsound: there exist in-boundary behaviours the summary excludes.
+
+The point is not that a human reviewer should have caught it. The point is that
+\emph{$b \sqsubseteq \gamma(s)$ is a machine-checkable condition}, and a system that stores the
+evaluation data alongside the card can check every quantitative claim on every recompile.
+\end{worked}
+
+\subsection{Identity relative to a probe set}
+
+The Yoneda lemma expresses that an object is determined by its relationships to all others --- an
+artefact is what it does. The totality of probes is unavailable, so we weaken it explicitly.
+
+\begin{definition}[Probe-relative equivalence]
+Let $\Pi$ be a finite set of probes, each a pair of an input and a property assertion. Versions
+$v_1, v_2$ are $\Pi$-equivalent, $v_1 \equiv_\Pi v_2$, when their responses agree on every probe in
+$\Pi$ within declared tolerance.
+\end{definition}
+
+\begin{proposition}[Version semantics]\label{prop:version}
+Write $\Sigma(v) = (P, X, Y, \varphi)$ for the signature of a version. Then the three standard
+version increments have the following formal content:
+\begin{align*}
+\text{\textsc{patch}} &: \quad \Sigma(v') = \Sigma(v) \ \text{ and } \ v' \equiv_\Pi v ,\\
+\text{\textsc{minor}} &: \quad \Sigma(v') = \Sigma(v) \ \text{ with a different inhabitant of } P ,\\
+\text{\textsc{major}} &: \quad \Sigma(v') \neq \Sigma(v) .
+\end{align*}
+Moreover $\equiv_\Pi$ refines monotonically in $\Pi$: if $\Pi \subseteq \Pi'$ then
+$\equiv_{\Pi'} \,\subseteq\, \equiv_{\Pi}$, with equality of the artefacts in the limit of a
+separating probe set.
+\end{proposition}
+
+The monotonicity clause is the honest part, and it is the part that is systematically elided in
+practice. A claim of behavioural equivalence is exactly as strong as the probe set is rich; a
+governance system should therefore record $\Pi$ with every such claim, measure its coverage, and
+treat an impoverished probe set as a deficiency rather than as a silent assumption.
+
+\begin{plain}
+\pt You know two versions behave the same only to the extent that you actually tested them. That
+sounds obvious, and it is; what is not obvious is that most version-numbering schemes quietly assume
+otherwise.
+
+A ``patch'' release is supposed to mean ``nothing observable changed''. Here that becomes a claim
+with a witness attached: nothing changed \emph{with respect to this named set of tests}. If the test
+set is thin, the claim is thin, and the system should say so rather than let the version number imply
+more than was checked.
+
+The Yoneda lemma is the limiting statement --- test everything and the notion of ``behaves the same''
+becomes genuine identity. We can never reach the limit, so we record how far along it we got.
+\end{plain}
+
+\begin{worked}
+\wk{a patch release that was not one}
+A team refactors a scorecard's implementation from a hand-rolled scoring loop to a vectorised one and
+labels it 3.2.1 --- a patch, no behavioural change. The regression suite is 400 rows sampled from
+recent applications, and it passes exactly.
+
+What the suite does not contain is any application with a missing DSCR. The old implementation
+imputed the median before scoring; the new one propagates the null and the downstream binning maps it
+to the worst band. For roughly 2\% of applications the score moves by 40 points, all in one
+direction.
+
+The version number asserted equivalence. The probe set could not support the assertion, and nothing
+in the process required anyone to notice the gap between the two. Recording $\Pi$, measuring its
+coverage against the declared input domain, and treating thin coverage as a finding is the
+difference between a claim and a wish.
+\end{worked}
+
+\section{Indexing artefact kinds}\label{sec:indexing}
+
+Almost every structure in the domain is a family indexed by something else: versions by artefact,
+calibrations by version, deployments by environment, inventories by legal entity, and --- critically
+--- evidence requirements by artefact kind. The mathematics of indexed families is the fibration.
+
+Let $p \colon \mathcal{E} \to \mathcal{B}$ be a fibration, $\mathcal{B}$ the category of artefact
+kinds, and the fibre $\mathcal{E}_c$ over kind $c$ the structure required of artefacts of that kind:
+an evidence schema, a lifecycle, a default monitoring set, a document set, a contract template.
+Equivalently, by the Grothendieck construction, an indexed family
+$\mathcal{B}^{\mathrm{op}} \to \Cat{Cat}$.
+
+\begin{proposition}[Conservative extension]\label{prop:conservative}
+Let $p \colon \mathcal{E} \to \mathcal{B}$ be a fibration and let $\mathcal{B}^{+}$ extend
+$\mathcal{B}$ by a new object $c$ equipped with a chosen fibre $\mathcal{E}_c$, with no new morphisms
+into or out of existing objects. Let $p^{+} \colon \mathcal{E}^{+} \to \mathcal{B}^{+}$ be the
+resulting fibration. Then the canonical inclusion $\mathcal{E} \hookrightarrow \mathcal{E}^{+}$ is
+full and faithful, commutes with the projections, and satisfies $\mathcal{E}^{+}_b = \mathcal{E}_b$
+for every $b \in \mathcal{B}$. Consequently no judgement expressible over $\mathcal{B}$ is altered by
+the extension.
+\end{proposition}
+
+\begin{proof}
+By construction $\mathcal{E}^{+}$ is the coproduct $\mathcal{E} + \mathcal{E}_c$ over
+$\mathcal{B}^{+} = \mathcal{B} + \{c\}$; fullness, faithfulness and fibrewise identity are immediate,
+and the cartesian liftings over $\mathcal{B}$ are unchanged since no morphisms were added. \end{proof}
+
+\Cref{prop:conservative} is the resolution of pathology P2, and it is what licenses the claim that
+artefact kinds not yet invented are accommodated: supporting a new kind means supplying a fibre, and
+supplying a fibre disturbs nothing. The engineering counterpart is a plugin boundary rather than a
+schema column, with the totality of each fibre --- that it supplies every required component ---
+checkable at load time.
+
+\begin{plain}
+\pt Think of a filing cabinet where each drawer holds one kind of artefact, and each drawer comes
+with its own set of forms: what must be filled in, who signs it, what gets checked, how often.
+
+The bad design writes the list of drawers into the cabinet's frame, so adding a drawer means
+rebuilding the cabinet. The good design makes drawers independent, so adding one is just adding one.
+The proposition is the guarantee that adding a drawer cannot disturb the contents of any existing
+drawer --- which is what lets you promise to support kinds of artefact that do not exist yet.
+\end{plain}
+
+\begin{worked}
+\wk{adding a kind nobody anticipated}
+Suppose a bank begins using a quantum annealer for portfolio construction. It is not trained, not
+calibrated against market instruments, and not rule-based. Its parameters are an objective encoding
+and an annealing schedule; its outputs are stochastic and non-reproducible in the ordinary sense; the
+sensible evidence is distribution of solution quality against classical baselines, and stability
+across runs.
+
+Under a schema that encodes kind as an enumeration, this requires a migration: a new enum value, new
+nullable columns for annealing parameters, changes to every validation screen that switches on kind,
+and a release. In practice this costs a quarter, so it does not happen, and the annealer is recorded
+as ``Other'' with its real characteristics in a free-text field --- which is to say, it is outside
+governance while appearing to be inside it.
+
+Under a fibration it is a package: an evidence schema, a lifecycle, a metric set, document templates,
+a contract template. Nothing existing is touched, and the metadata form the user sees is generated
+from the new schema. \Cref{prop:conservative} is the guarantee that this is safe, not merely
+convenient.
+\end{worked}
+
+\section{Plural normative context}\label{sec:regimes}
+
+\subsection{The problem}
+
+The same artefact may be outside the governed population of one regime, inside that of a second,
+classified high-risk by a third, and a financial-reporting key control under a fourth,
+simultaneously. These are not four values of one attribute. They are four logical systems, each with
+its own vocabulary, its own sentences, and its own notion of what makes a sentence true of an
+inventory state.
+
+\subsection{Institutions}
+
+An \defn{institution} $\mathcal{I} = (\Sign, \Sen, \Mod, \models)$ consists of a category $\Sign$ of
+signatures, a functor $\Sen \colon \Sign \to \Set$ of sentences, a functor
+$\Mod \colon \Sign^{\mathrm{op}} \to \Cat{Cat}$ of models, and a satisfaction relation
+$\models_\Sigma\, \subseteq |\Mod(\Sigma)| \times \Sen(\Sigma)$, subject to the \defn{satisfaction
+condition}: for every signature morphism $\sigma \colon \Sigma \to \Sigma'$, every
+$M' \in |\Mod(\Sigma')|$ and every $\phi \in \Sen(\Sigma)$,
+\[
+  M' \models_{\Sigma'} \Sen(\sigma)(\phi)
+  \quad\Longleftrightarrow\quad
+  \Mod(\sigma)(M') \models_{\Sigma} \phi .
+\]
+Informally: truth is invariant under change of notation.
+
+The interpretation is direct. A signature is the vocabulary a regime employs --- complexity,
+exposure, purpose, application of statistical or economic theory, intended purpose, affected natural
+persons. A sentence is a normative statement in that vocabulary, of which the primary one is
+membership of the governed population. A model is the state of an inventory record as seen through
+that vocabulary. Satisfaction is compliance. A comorphism relates a regime institution to the core
+institution of the inventory itself.
+
+\begin{proposition}[Determination stability]\label{prop:stability}
+Let $\varrho = (\Phi, \alpha, \beta) \colon \mathcal{I} \to \mathcal{I}'$ be an institution
+comorphism from a regime institution $\mathcal{I}$ to the core inventory institution $\mathcal{I}'$.
+Then for every core state $M' \in |\Mod'(\Phi(\Sigma))|$ and regime sentence $\phi \in \Sen(\Sigma)$,
+\[
+  M' \models'_{\Phi(\Sigma)} \alpha_\Sigma(\phi)
+  \quad\Longleftrightarrow\quad
+  \beta_\Sigma(M') \models_\Sigma \phi .
+\]
+Hence a determination computed on the core inventory using the translated obligation agrees with the
+determination computed natively in the regime's own vocabulary.
+\end{proposition}
+
+\begin{proof}
+This is the defining condition of an institution comorphism. \end{proof}
+
+\begin{corollary}[Falsifiable encoding test]\label{cor:falsify}
+Any observed disagreement between the two sides of \Cref{prop:stability} witnesses a defect in the
+encoding $(\Phi, \alpha, \beta)$ rather than a genuine normative conflict. The condition is therefore
+a mechanically checkable property of a regime encoding.
+\end{corollary}
+
+\Cref{cor:falsify} is, we think, the practically significant observation of this section. Scope
+determinations are among the most consequential and least examined judgements in the domain: whether
+an artefact is inside a governed population determines whether any control applies to it at all.
+Encoding regimes as institutions converts the question ``is this determination defensible?'' from a
+matter of professional opinion into a derivation --- sentence, evaluated facts, failing conjunct,
+citation --- accompanied by a consistency property that can be tested against generated inventory
+states.
+
+\begin{plain}
+\pt Different regulators use different words for overlapping ideas, and mean different things by the
+same words. An institution is a way of writing down ``a regulator's language'', and a comorphism is a
+dictionary between that language and yours.
+
+The satisfaction condition is the demand that the dictionary be honest: translating a question and
+then answering it must give the same answer as answering it in the original language. That sounds
+like a technicality. It is actually the only mechanical check anyone has on whether a regulatory
+encoding is faithful, and it catches precisely the errors that produce a scope determination you
+cannot defend when asked.
+\end{plain}
+
+\begin{worked}
+\wk{one artefact, four different answers, all correct}
+Consider a retrieval-augmented language model that drafts adverse-action explanation letters for
+declined credit applications.
+
+Under the 2026 US guidance it is \emph{out of scope}: the definition covers complex quantitative
+methods applying statistical, economic or financial theory, and explicitly excludes generative
+systems. The determination is not ``no'' --- it is a derivation whose failing conjunct is the
+generative-AI exclusion, with a footnote citation.
+
+Under the UK regime it is \emph{in scope}: that definition admits qualitative outputs and
+expert-judgment inputs, and this artefact produces exactly that.
+
+Under the EU AI Act it is high-risk --- not because of what it is, but because of what it is used
+for: it participates in a creditworthiness decision affecting a natural person.
+
+Under consumer-credit law it carries a further, quite specific obligation: the letter must state the
+actual principal reasons the application was declined.
+
+Four regimes, four different answers, none of them in conflict --- because they are answers to four
+different questions asked in four different languages. Modelled as a boolean ``in scope'', this
+situation is unrepresentable and the system will force a wrong answer. Modelled as institutions, each
+answer is separately derived, separately citable, and separately testable.
+\end{worked}
+
+\begin{remark}
+The resolution of pathology P3 is then: admitting a new regime is exhibiting an institution and a
+comorphism. The core vocabulary, its schema, and every existing determination are untouched, by the
+same argument as \Cref{prop:conservative}. This is not a hypothetical benefit. During the preparation
+of this work the principal United States supervisory guidance in this domain, in force since 2011,
+was superseded by a revision that narrowed the definition of the governed population and excluded
+generative systems from it. Under a boolean or enumerated encoding of scope, that revision is a
+migration; under an institutional encoding it is a module.
+\end{remark}
+
+\section{Evidence over a semiring}\label{sec:evidence}
+
+\subsection{Structure}
+
+Assurance evidence forms a directed acyclic derivation structure: a fitting evidence object supports
+a fitting run, which together with code and environment supports an artefact, which supports test
+outcomes, which support a validation conclusion, which supports an authorisation, which supports a
+deployment. Governance claims --- \emph{this version is validated for this use} --- are derived from
+base evidence by conjunction (joint dependence) and disjunction (alternative derivations).
+
+Annotate each base evidence item with an element of a commutative semiring
+$K = (K, \oplus, \otimes, 0, 1)$ and propagate with $\otimes$ for joint dependence and $\oplus$ for
+alternatives. This is exactly the setting of provenance semirings.
+
+\begin{proposition}[One computation, many questions]\label{prop:semiring}
+Let $\mathbb{N}[X]$ be the semiring of polynomials with natural coefficients over evidence
+identifiers $X$, and let a claim's derivation be evaluated in $\mathbb{N}[X]$. For any commutative
+semiring $K$ and valuation $\nu \colon X \to K$ there is a unique semiring homomorphism
+$h_\nu \colon \mathbb{N}[X] \to K$ with $h_\nu \circ \iota = \nu$, and the evaluation of the claim in
+$K$ equals $h_\nu$ applied to its $\mathbb{N}[X]$ evaluation.
+\end{proposition}
+
+\begin{proof}
+$\mathbb{N}[X]$ is the free commutative semiring on $X$; this is the universality result of Green,
+Karvounarakis and Tannen, restated. \end{proof}
+
+\subsection{Seven questions, one engine}
+
+The consequence for the domain is that governance questions previously treated as distinct features
+are one computation under different valuations:
+
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Semiring} & \textbf{$\oplus$, $\otimes$} & \textbf{Governance question answered} \\
+\midrule
+$\mathbb{B}$ & $\vee$, $\wedge$ & Is the claim supported at all? \\
+$\mathbb{N}$ & $+$, $\times$ & How many independent derivations corroborate it? \\
+$\mathrm{Why}(X)$ & $\cup$, pairwise $\cup$ & Which minimal evidence sets suffice? \\
+$\mathbb{N}[X]$ & $+$, $\times$ & Exactly how was it derived? \\
+$([0,1], \max, \times)$ & $\max$, $\times$ & With what confidence? \\
+$(\mathbb{R}^{+}\!\cup\!\{\infty\}, \min, +)$ & $\min$, $+$ & At what least cost can a gap be closed? \\
+security lattice & $\sqcap$, $\sqcup$ & What classification does the conclusion inherit? \\
+$(2^{\mathrm{Regimes}}, \cap, \cup)$ & $\cap$, $\cup$ & For which regimes is the evidence admissible? \\
+$(\mathrm{Time}, \max, \max)$ & $\max$, $\max$ & As of when is the claim current? \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The last two deserve comment. Regime admissibility is not decorative: evidence produced under one
+regime's methodology is not automatically admissible under another's, and a system that cannot
+express this will over-claim. Currency, evaluated in the $\max$--$\max$ semiring, yields a definition
+of \emph{staleness} that requires no heuristic: a derived document is stale exactly when the currency
+of its supporting evidence exceeds its own compile time.
+
+\begin{plain}
+\pt A semiring is just ``a way of doing arithmetic'' --- something that plays the role of plus and
+something that plays the role of times.
+
+The insight is that tracking evidence has a fixed \emph{shape}: this claim rests on that test AND
+that approval; this requirement can be met by this route OR that route. ANDs and ORs. If you keep the
+shape and swap the arithmetic, you get a completely different answer to a completely different
+question, from the same computation.
+
+Use true/false arithmetic and you learn whether the claim holds. Use probabilities and you learn how
+confident you should be. Use ``smallest cost'' arithmetic and you learn the cheapest way to fix a
+gap. Use sets-of-evidence and you learn what to put in front of an examiner. Nine features, one
+implementation --- and because they share a computation, they cannot contradict each other.
+\end{plain}
+
+\begin{worked}
+\wk{one claim, five questions}
+Take the claim \emph{version 3.2.1 is authorised for use in small-business origination}. Its
+derivation: three test results and a reproducibility check support a validation report, which
+together with either a committee approval or a delegated approval supports the authorisation.
+
+\begin{itemize}[leftmargin=1.4em,itemsep=1pt,topsep=3pt]
+\item \textbf{Boolean:} \texttt{true}. The gate opens.
+\item \textbf{Why-provenance:} $\{\{\mathrm{VR}, \mathrm{APPR}_{\mathrm{cmte}}\},
+      \{\mathrm{VR}, \mathrm{APPR}_{\mathrm{deleg}}\}\}$ --- two minimal routes. This is literally the
+      answer to ``what would you show an examiner?''
+\item \textbf{Trust $([0,1],\max,\times)$:} $0.91$. One of the three tests was run on a stale sample
+      and carries reduced trust, which propagates automatically.
+\item \textbf{Tropical $(\min,+)$:} $0$ today. Had the validation report been missing, it would return
+      $14.5$ --- the person-days on the cheapest path to closing the gap. That is a resourcing number
+      generated from the evidence structure rather than estimated in a meeting.
+\item \textbf{Currency $(\max,\max)$:} \texttt{2026-08-11}. Compare against the model development
+      document compiled on 2026-08-04 and the document is provably stale, with the specific superseding
+      evidence identified.
+\end{itemize}
+
+Nobody wrote five features. Somebody wrote one traversal and five valuations, of about twenty lines
+each.
+\end{worked}
+
+\subsection{Consistency of independently produced evidence}
+
+Provenance records how a claim was derived but not whether independently produced evidence is
+mutually consistent. Treating evidence as a presheaf over the structure of an artefact --- its
+components, slices and time windows --- the question ``do local assessments assemble into a global
+claim?'' is the gluing condition of a sheaf, and the extent of failure is measurable as a consistency
+radius. Two validators assessing overlapping slices and reporting incompatible results on the overlap
+constitute a detectable defect that no per-slice check can see. This gives \emph{effective challenge}
+--- the domain's term for competent independent scrutiny --- a global rather than merely additive
+character.
+
+\section{The order structure of risk}\label{sec:order}
+
+Classification of artefacts by risk is universally implemented as arithmetic on scores. It is more
+faithfully modelled as a monotone map between lattices.
+
+Let $M$ be a materiality lattice generated by a quantitative exposure chain joined with a qualitative
+purpose order, and $C$ a complexity lattice, a product over its declared components (data quality,
+methodology, implementation integrity, intensity of use, interpretability, transparency, potential
+for bias). Let $T$ be a finite chain of tiers.
+
+\begin{proposition}[Monotone classification]\label{prop:monotone}
+Let $\tau \colon M \times C \to T$ be monotone. Then increasing exposure, criticality of purpose, or
+complexity never lowers the assigned tier.
+\end{proposition}
+
+Trivial as mathematics; consequential as an assurance property, since it is exactly the guarantee an
+examiner seeks and exactly what an unconstrained scoring formula fails to provide.
+
+\begin{plain}
+\pt Two things drive how much scrutiny a model deserves: how much is riding on it, and how hard it is
+to get right. Most systems multiply these into a score and threshold the score, which quietly allows
+a very complex model with modest exposure to land in the same bucket as a simple model with enormous
+exposure --- and, worse, allows the tier to \emph{fall} when a number moves the wrong way.
+
+Keeping the two dimensions separate and requiring the classification to be monotone gives a guarantee
+you can state to a regulator in one sentence: \emph{nothing we can learn about a model that makes it
+more consequential or more complicated will ever move it into a lighter control regime.} An
+unconstrained scoring formula cannot make that promise, and typically cannot even be checked.
+\end{plain}
+
+\begin{proposition}[Control adequacy]\label{prop:galois}
+Let $\mathrm{Ctrl}$ be a lattice of control sets ordered by strictness, and let
+$\mathrm{req} \colon T \to \mathrm{Ctrl}$ and $\mathrm{sup} \colon \mathrm{Ctrl} \to T$ form a Galois
+connection, $\mathrm{req}(t) \sqsubseteq c \iff t \sqsubseteq \mathrm{sup}(c)$. Then the statements
+``the applied controls meet the tier's requirements'' and ``the tier is within what those controls can
+defend'' are the same statement.
+\end{proposition}
+
+The adjunction is doing real work. It means a control deficiency and an inflated classification are
+one defect viewed from two sides, and that a single definition answers both ``what must be done for
+an artefact at this tier?'' and ``given what was actually done, what tier can this artefact
+legitimately claim?''
+
+\begin{plain}
+\pt There are two questions people ask about controls, and they are usually answered by two different
+teams from two different documents.
+
+\emph{``This is a Tier 1 model --- what do we have to do?''} and \emph{``Here is what we actually
+did --- is that good enough?''}
+
+The adjunction says these are the same question. Write down one mapping and both answers follow, and
+they cannot drift apart. It also means a control gap and an over-optimistic tier are not two problems
+but one, seen from either end --- which is why chasing them separately never converges.
+\end{plain}
+
+\section{Time}\label{sec:time}
+
+\subsection{Bitemporality and causal admissibility}
+
+Fitting evidence assembled from historical records carries two independent time coordinates: the
+\emph{valid time} at which a fact held in the world, and the \emph{transaction time} at which the
+recording system learned it. Conflating them produces look-ahead leakage, which is the dominant
+silent failure mode in the domain: an artefact fitted on facts that had not yet been recorded when
+the decision was taken will assess well and perform badly, and the discrepancy will be attributed to
+degradation rather than to leakage.
+
+\begin{definition}[Causal admissibility]
+Let $\mathcal{F}$ be a bitemporal store of facts, each carrying $(t_v, t_\tau)$. An assembly of
+fitting evidence for a decision at label time $t_L$, constructed at system time $t_A$, is
+\defn{causally admissible} if it is a function only of facts in the down-set
+$\{\, \psi \in \mathcal{F} : t_v(\psi) \le t_L \ \wedge\ t_\tau(\psi) \le t_A \,\}$.
+\end{definition}
+
+\begin{proposition}[Characterisation]\label{prop:pit}
+An assembly is causally admissible if and only if, for every feature $\phi$ and every row, the value
+used is
+\[
+  \phi\big(e, t_L, t_A\big)
+  \;=\;
+  \text{the value of } \phi \text{ for } e \text{ at }
+  \max\{\, (t_v, t_\tau) : t_v \le t_L \ \wedge\ t_\tau \le t_A \,\}
+\]
+under the lexicographic order on $(t_v, t_\tau)$.
+\end{proposition}
+
+\begin{proof}
+($\Leftarrow$) Each value is by construction a function of a fact in the down-set, and the assembly is
+a function of these. ($\Rightarrow$) Suppose some value is not the maximal admissible one. Either it
+uses a fact outside the down-set, contradicting admissibility, or it uses a strictly earlier
+admissible fact, in which case the assembly is not a function of the down-set alone but of an
+arbitrary choice within it, and admissibility fails to determine it. \end{proof}
+
+\begin{plain}
+\pt Every fact has two dates: when it was true, and when you found out. Ignore the second and you
+will build training sets containing information that did not exist at the moment the decision was
+made. The resulting model looks excellent in testing --- it has been shown the answers --- and
+performs badly in production.
+
+This is the single most common serious defect in model development, it is invisible to every standard
+performance metric, and it is almost always misdiagnosed afterwards as ``the model degraded''.
+
+The condition above is just: \emph{use the most recent fact that was both true by the decision date
+and known by the assembly date}. Simple to state, easy to get wrong in SQL, and --- crucially ---
+checkable by a machine that recomputes it independently rather than trusting whoever wrote the query.
+\end{plain}
+
+\begin{worked}
+\wk{the filed accounts that were restated}
+A borrower files 2026 Q1 accounts dated 31 March. They land in the warehouse on 20 May. The bank
+declines an application on 15 June. In August the borrower restates those accounts downward.
+
+A training set assembled on 1 September, naively, joins on the accounts \emph{as they now stand} ---
+the restated figures. The model therefore learns from a version of the borrower's finances that did
+not exist on 15 June, and that in this case is worse, and therefore correlates suspiciously well with
+the decline. The model will show excellent discrimination in backtesting and will underperform in
+production, and the post-mortem will blame drift.
+
+The correct assembly uses the figures with valid time on or before 15 June \emph{and} transaction
+time on or before the assembly cut --- the original filing, not the restatement.
+
+Note the second thing bitemporality gives you. Because both clocks are recorded, the system can also
+answer the question that arises when the restatement lands: \emph{which historical training sets,
+model versions and credit decisions used the superseded figures?} With one clock, that question is
+unanswerable.
+\end{worked}
+
+\Cref{prop:pit} matters because it is \emph{mechanically verifiable}. A governance system need not
+trust the author of an assembly query; it can independently recompute a stratified sample under the
+characterisation and assert agreement. The distinction between the two clocks additionally allows a
+restatement --- ``we discovered we were wrong'' --- to be distinguished from a genuine change in the
+world, and the affected assemblies, versions and historical decisions identified exactly.
+
+\subsection{Obligations}
+
+Normative obligations are temporal statements with deadlines and are naturally expressed in metric
+temporal logic, \eg
+\[
+  \mathbf{G}\big(\, \mathrm{tier} = 1 \;\rightarrow\; \mathbf{F}_{[0,\,365\mathrm{d}]}\ \mathrm{validated} \,\big),
+  \qquad
+  \mathbf{G}\big(\, \mathrm{overlay\ active} \;\rightarrow\; \mathbf{F}_{[0,\,90\mathrm{d}]}\ (\mathrm{reviewed} \vee \mathrm{expired}) \,\big).
+\]
+Runtime monitors for such formulae are synthesisable by standard constructions, so an obligation
+engine is a compiler rather than a scheduler with special cases. A thin deontic layer distinguishing
+obligation, permission and prohibition permits detection of normative contradiction --- the
+simultaneous obligation and prohibition of the same proposition --- before it reaches users, which
+arises more often than one would hope when several regimes apply at once.
+
+\begin{plain}
+\pt Governance deadlines are statements of the form ``whenever this becomes true, that must happen
+within so long''. Written in this notation they can be compiled directly into monitors, so the
+obligation engine is a translator rather than a scheduler full of special cases. Adding an obligation
+is adding a line, not a code change.
+
+The deontic layer keeps ``must'', ``may'' and ``must not'' distinct --- which matters because when
+several regimes apply at once they occasionally demand contradictory things, and it is considerably
+better to discover that when the policy is written than when a user is blocked by it.
+\end{plain}
+
+\subsection{Documents as lenses}
+
+The relation between an evidence structure and a derived document is bidirectional: generated
+sections are computed from evidence, while narrative sections are authored and must survive
+regeneration. This is a well-behaved asymmetric lens with $\mathrm{get} \colon E \to D$ and
+$\mathrm{put} \colon E \times D \to E$ satisfying the standard laws. \textsc{GetPut} guarantees that
+regenerating an unedited document produces no spurious change; \textsc{PutGet} guarantees that an
+author's edit is not silently discarded. Staleness is then exactly the failure of
+$\mathrm{get}(e') = d$ for current evidence $e'$, and the difference $\mathrm{get}(e') \ominus d$
+identifies what changed.
+
+\begin{plain}
+\pt A document about a model has two kinds of content: numbers and tables generated from evidence,
+and prose written by a person. Regenerate carelessly and you destroy the prose; never regenerate and
+the numbers go stale.
+
+A lens is the standard tool for exactly this. Its laws are two promises: regenerating a document
+nobody edited changes nothing (so you get no spurious diffs and no churn), and an edit a person made
+is not silently thrown away on the next regeneration.
+
+And staleness stops being a judgement. A document is stale precisely when regenerating it would
+produce different generated content --- and the difference tells the author exactly what to look at.
+\end{plain}
+
+\section{Laws as the criterion of seriousness}\label{sec:laws}
+
+A foundation that is documented but unenforced decays into ornament within a small number of
+releases, and thereafter misleads. We therefore propose a discipline: each result above is restated
+as an executable law and checked by property-based testing against generated inputs, with failure
+treated as a build failure. \Cref{tab:laws} lists a representative set.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{0.30\textwidth}p{0.28\textwidth}p{0.34\textwidth}@{}}
+\toprule
+\textbf{Law} & \textbf{Source} & \textbf{Test strategy} \\
+\midrule
+Determinism flag is correct & \Cref{sec:models} & Repeated sandboxed execution, differential comparison \\
+Parameter accumulation & \Cref{prop:accum} & Generated networks; assert composite parameter closure \\
+Risk is lax, never strict & \Cref{cor:lax} & Generated networks including the $N_1/N_2$ witness \\
+Contract refinement on substitution & \Cref{sec:observation} & Refinement checker at substitution time \\
+Summary soundness & \Cref{prop:sound} & Replay in-boundary data against every quantitative claim \\
+Fibre totality & \Cref{prop:conservative} & Load-time validation of the kind registry \\
+Satisfaction condition & \Cref{prop:stability} & Generated inventory states $\times$ regime obligations \\
+Provenance homomorphism & \Cref{prop:semiring} & Differential evaluation across all semirings \\
+Classification monotonicity & \Cref{prop:monotone} & Generated lattice pairs \\
+Control adequacy adjunction & \Cref{prop:galois} & Exhaustive check over the finite chain \\
+Causal admissibility & \Cref{prop:pit} & Independent recomputation; adversarial leakage injection \\
+Lens laws & \Cref{sec:time} & Round-trip tests per document template \\
+\bottomrule
+\end{tabular}
+\caption{Results restated as executable laws.}\label{tab:laws}
+\end{table}
+
+The adversarial entry deserves emphasis. A verifier for causal admissibility that silently ceases to
+detect leakage is a catastrophic and invisible regression; it must therefore be tested by injecting
+leakage that it is required to catch, not by examples it is known to pass.
+
+\section{Automation and its oracles}\label{sec:automation}
+
+The constructions of \Cref{sec:observation,sec:regimes,sec:evidence} were introduced to secure governance
+properties. They have a second use, which was not the design intent and which we think is the most
+practically consequential consequence of the whole account: several of them are \emph{decision
+procedures}, and a decision procedure is exactly what makes machine-generated output safe to accept.
+
+This matters now because large language models and tool-using agents are being introduced into
+governance workflows at speed, and the prevailing control --- ``a competent human reviews the output''
+--- is weak, expensive, and degrades precisely when the output is fluent. A formal substrate offers a
+better answer for a substantial fraction of the work.
+
+\subsection{Verified automation}
+
+\begin{definition}[Oracle]\label{def:oracle}
+Let $T$ be a task whose outputs lie in a set $O$. An \defn{oracle} for $T$ is a decidable predicate
+$\mathsf{ok}_T \colon O \to \mathbb{B}$, computable from the formal structure and from data independent
+of the output, such that $\mathsf{ok}_T(o)$ holds only if $o$ is correct for $T$. A task is
+\defn{oracle-backed} when such a predicate exists.
+\end{definition}
+
+\begin{definition}[Verified automation]
+Given a task $T$ with oracle $\mathsf{ok}_T$ and an arbitrary generator $g$ --- a heuristic procedure of
+any kind, including a stochastic one --- \defn{verified automation} of $T$ is the composite that
+computes $g(x)$ and accepts it iff $\mathsf{ok}_T(g(x))$.
+\end{definition}
+
+\begin{proposition}[Automation admissibility]\label{prop:automation}
+If $T$ is oracle-backed, the soundness of verified automation is independent of the generator: no
+incorrect output is accepted, whatever $g$ is. The generator's error rate determines throughput, not
+correctness. If $T$ is not oracle-backed, the correctness of the output is exactly the correctness of
+the generator.
+\end{proposition}
+
+\begin{proof}
+Immediate. In the first case acceptance implies $\mathsf{ok}_T$, which implies correctness by
+\Cref{def:oracle}; the rejected fraction is $1 - \Pr[\mathsf{ok}_T(g(x))]$, a throughput quantity. In
+the second there is nothing between $g$ and acceptance. \end{proof}
+
+\begin{plain}
+\pt If you can \emph{check} an answer, it does not matter very much who or what produced it. A wrong
+answer is caught and discarded; the only cost is wasted effort. If you cannot check the answer, then
+trusting the answer is trusting the producer, and no amount of process changes that.
+
+So the useful question about automating a governance task is not ``is the model good enough?'' It is
+``do I have a check?'' That question has a definite answer, and \Cref{tab:oracles} gives it for the
+tasks this paper equips.
+\end{plain}
+
+\subsection{Which governance tasks are oracle-backed}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{0.34\textwidth}p{0.36\textwidth}p{0.24\textwidth}@{}}
+\toprule
+\textbf{Task} & \textbf{Oracle} & \textbf{Source} \\
+\midrule
+Encode a regulatory regime & The satisfaction condition holds for the proposed comorphism & \Cref{prop:stability} \\
+Assert two versions behave alike & $\equiv_\Pi$ evaluated on the declared probe set & \Cref{prop:version} \\
+Substitute one version for another & Contract refinement $\mathcal{K}' \preceq \mathcal{K}$ & \Cref{sec:observation} \\
+Re-express an artefact in another representation & $\equiv_\Pi$ plus numerical tolerance & \Cref{prop:version} \\
+Claim documentary support for an assertion & Boolean evaluation of the claim's derivation under the cited set & \Cref{prop:citation} \\
+Assemble fitting evidence without leakage & Causal admissibility & \Cref{prop:pit} \\
+Propose a remediation plan & \emph{None needed} --- the plan is computed in the tropical semiring & \Cref{sec:evidence} \\
+Propose a probe & The probe executes and discriminates, or it does not & --- \\
+Propose a query & The query parses, type-checks and returns, or it does not & --- \\
+\bottomrule
+\end{tabular}
+\caption{Oracle-backed governance tasks and the construction that supplies the oracle.}\label{tab:oracles}
+\end{table}
+
+The first row deserves emphasis because it inverts an apparent weakness. \Cref{sec:regimes} makes
+regulatory extension cheap in principle, but encoding a forty-page supervisory statement into a
+signature and a set of sentences is expensive expert work, and that cost is the practical objection to
+the whole approach. It is also a task language models are unusually well suited to. And the output is
+checkable: a proposed encoding either satisfies \Cref{prop:stability} against generated inventory states
+or it does not. Generation is cheap, verification is mechanical, and the expert's role changes from
+authoring to adjudicating an encoding that has already passed a consistency test.
+
+\subsection{Grounding verification is a semiring computation}
+
+The dominant failure mode of machine-generated governance text is the unsupported assertion. The
+standard mitigation --- retrieval-augmented generation with citations --- typically leaves the question
+``does this citation actually support this claim?'' to a further model, which is to say unanswered. Over
+an annotated derivation structure it is a computation.
+
+\begin{proposition}[Citation soundness]\label{prop:citation}
+Let $c$ be a claim with derivation $d_c$ over evidence identifiers $X$, and let $S \subseteq X$ be a
+cited set. Define $\nu_S \colon X \to \mathbb{B}$ by $\nu_S(x) = \top$ iff $x \in S$. Then $S$ supports
+$c$ if and only if the evaluation of $d_c$ in $\mathbb{B}$ under $\nu_S$ is $\top$; equivalently, iff
+$S$ contains some element of $\mathrm{Why}(d_c)$.
+\end{proposition}
+
+\begin{proof}
+By \Cref{prop:semiring}, evaluation in $\mathbb{B}$ under $\nu_S$ is $h_{\nu_S}$ applied to the
+$\mathbb{N}[X]$ evaluation of $d_c$. A polynomial evaluates to $\top$ under $\nu_S$ exactly when some
+monomial has all its variables in $S$, and the monomials of the $\mathbb{N}[X]$ evaluation are precisely
+the elements of $\mathrm{Why}(d_c)$. \end{proof}
+
+\begin{plain}
+\pt A generated sentence must come with the identifiers of the evidence it rests on. Checking it is then
+a matter of switching on exactly those identifiers and asking whether the claim still follows. If it
+does, the citation is genuine. If it does not, the sentence is rejected --- not flagged for review,
+rejected.
+
+The point is that no judgement is involved. Elsewhere, ``is this citation relevant?'' is itself a
+fallible model call. Here it is a Boolean evaluation over a structure that already exists for other
+reasons.
+\end{plain}
+
+\begin{worked}
+\wk{a drafted paragraph, checked}
+A drafting assistant produces: \emph{``Version 3.2.1 was approved for small-business origination
+following independent validation, which found discrimination within tolerance on all monitored
+slices.''} It cites $S = \{\mathrm{VR}_{v2}, \mathrm{APPR}_{\mathrm{cmte}}\}$.
+
+The claim \emph{approved for this use} has derivation
+$(T_1 \cdot T_2 \cdot T_3 \cdot \mathrm{REP}) \cdot \mathrm{VR}_{v2} \cdot
+(\mathrm{APPR}_{\mathrm{cmte}} + \mathrm{APPR}_{\mathrm{deleg}})$. Under $\nu_S$ the test-result factors
+are $\bot$, so the product is $\bot$: the cited set does \emph{not} support the claim as stated. The
+citation is incomplete, and the sentence is rejected with the missing identifiers named.
+
+Note also the second clause --- \emph{``on all monitored slices''}. That is a quantified claim whose
+truth is not in the derivation at all; it is a statement about the slice set. It has no supporting
+monomial, and is therefore rejected as unsupported rather than published as plausible. This is the
+class of sentence that human review reliably misses, because it reads exactly like the rest.
+\end{worked}
+
+\subsection{The tasks that admit no oracle}
+
+\begin{observation}\label{obs:constitutive}
+Let $q = f(\Phi)$ be a derived governance quantity defined as the application of a versioned rule $f$ to
+a fact set $\Phi$ --- a risk classification, a control requirement, a scope determination. Then there is
+no automation question about computing $q$: evaluating $f$ is deterministic and requires no generator.
+The automation question arises only for (i) supplying $\Phi$, and (ii) proposing $f$.
+\end{observation}
+
+Task (i) is oracle-backed whenever facts are sourced from systems of record, since the oracle is
+reconciliation against the source. Task (ii) is a normative choice: $f$ \emph{constitutes} the standard,
+so there is no independent specification against which a proposed $f$ could be checked. It is exactly
+the kind of question that a person with authority is supposed to answer, and it is not made better by
+being answered faster.
+
+\begin{plain}
+\pt This reframes the question people usually ask. ``Should we let a model assign risk tiers?'' is
+malformed. Assigning a tier is not a generation task at all --- it is arithmetic on a rule everyone has
+agreed to, and a spreadsheet could do it.
+
+The real questions are: where do the facts come from (checkable), and who chose the rule (a decision
+with accountability attached). Automating the second is not risky-but-tempting; it is a category error,
+because there is nothing for the automation to be checked against.
+\end{plain}
+
+The same argument applies to concluding a validation, granting an approval, and accepting residual risk.
+These are not weakly-checkable tasks that we conservatively withhold from automation. They are tasks
+with no notion of correctness independent of the authority exercising them, and \Cref{prop:automation}
+therefore has nothing to offer.
+
+\subsection{Stratification: is a governing system that uses governed models circular?}
+
+If machine assistance is admitted into a system that governs machines, one should ask whether the
+account is well-founded.
+
+It is, and the reason is stratification rather than good intentions. Let $\mathcal{G}$ denote the
+governing machinery --- the classification map $\tau$, the evidence structure, the institutions, the
+lifecycle categories. Let $\mathcal{A}$ denote the governed population. An assistant is registered as an
+element of $\mathcal{A}$: it has a parameter object (weights, prompt, corpus, tools), a fitting morphism
+(configuration), a contract, a classification, and evidence. None of $\mathcal{G}$ is an element of
+$\mathcal{A}$, and no construction in this paper requires a fixed point.
+
+One dependency does cross the strata and is worth naming rather than hiding. If an assistant drafts a
+regime encoding (\Cref{tab:oracles}, first row), then part of $\mathcal{G}$ has been produced with help
+from an element of $\mathcal{A}$. The resolution is that the dependency is \emph{mediated by an oracle}
+which is itself not machine-produced: the satisfaction condition is a property of institutions, proved
+in \Cref{prop:stability} and evaluated mechanically. Generation may cross the strata; acceptance may
+not.
+
+\begin{plain}
+\pt A system that governs models, using models it governs, sounds like it should collapse. It does not,
+provided one rule holds: \emph{a machine may propose anything and decide nothing.} The proposing lives
+in the governed layer; the deciding lives in the governing layer; and where the two touch, a theorem
+sits between them.
+\end{plain}
+
+\section{A worked example}\label{sec:example}
+
+Consider a minimal estate of five artefacts. $A$ is a discount curve constructed by solving against
+market instruments: parameter object the calibration set, fitting morphism a solver, deterministic
+given parameters. $B$ is a swaption pricer consuming the curve and a volatility surface. $C$ is a
+valuation-adjustment engine consuming the curve and the pricer's output. $S$ is a statistically
+estimated scorecard on an unrelated portfolio. $L$ is a foundation-model application drafting
+narrative from $C$'s output and a document corpus.
+
+\paragraph{Signatures.} $A$ is analytic in $X$ but calibrated in $P$: $P_A$ is inhabited daily by
+$\varphi_A$. $S$ has $P_S$ inhabited annually. $L$ has $P_L = (\text{weights}, \text{prompt},
+\text{corpus}, \text{tools})$ inhabited by configuration; its kernel is genuinely stochastic, so its
+determinism flag is false and its reproducibility evidence must pin the random source.
+
+\paragraph{Composition and aggregate risk.} The network copies $A$'s output to both $B$ and $C$. By
+\Cref{prop:accum} the composite has parameter object $P_C \otimes P_B \otimes P_A \otimes P_A$ --- a
+shared factor. By \Cref{thm:noncomp} and \Cref{rem:copy}, the aggregate risk of $\{A,B,C\}$ strictly
+exceeds the join of their individual risks, and the interaction premium is attributable to the shared
+$P_A$. Recalibrating $A$ is, by the corollary to \Cref{prop:accum}, a change event for $B$, $C$ and
+$L$. The scorecard $S$ shares nothing and contributes no premium.
+
+\paragraph{Plural scope.} Under a narrow regime, $A$, $B$, $C$ and $S$ are in the governed population
+and $L$ is excluded as generative. Under a broad regime all five are included, $L$ by virtue of a
+definition admitting qualitative outputs. Under a product-safety regime, $S$ alone is high-risk
+because it concerns natural persons. \Cref{prop:stability} guarantees that each determination is
+stable under the vocabulary in which it is evaluated, and \Cref{cor:falsify} makes a defective
+encoding detectable. Crucially, $L$'s exclusion from one population is recorded as a derivation with
+a failing conjunct and a citation, not as an absent row.
+
+\paragraph{Evidence.} The claim \emph{$C$ is authorised for its declared use} is derived from
+$C$'s test outcomes, which depend on $B$'s and $A$'s current calibrations. Evaluated in
+$\mathrm{Why}(X)$ it returns the minimal evidence sets an examiner must be shown; in the
+$\max$--$\max$ semiring it returns the currency of the oldest supporting item, which --- since $A$
+recalibrates daily --- immediately exposes any document whose figures predate the current
+calibration. Evaluated in the security lattice it propagates $S$'s personal-data classification into
+every derived artefact, without bespoke code.
+
+\paragraph{Observation.} $L$ is treated by contract: its assumption is the availability and
+provenance of the corpus, its guarantee is grounding and citation fidelity rather than accuracy in a
+statistical sense. A third-party artefact substituted for $S$ would be opaque in the sense of
+\Cref{def:fitting}; only behavioural evidence would be obtainable, and its summary would be assessed
+for soundness by \Cref{prop:sound} rather than for completeness of development documentation, which
+is unobtainable.
+
+\paragraph{Automation.} Four tasks in this example are oracle-backed and may therefore be generated by
+any procedure whatever, including a stochastic one. The regime encodings for all three regulators are
+checkable by \Cref{prop:stability}. A drafted paragraph describing $C$'s authorisation is checkable by
+\Cref{prop:citation}. A re-expression of $S$ in a portable representation is checkable by $\equiv_\Pi$.
+A remediation plan for $L$'s missing evaluation evidence is not generated at all --- it is computed in
+the tropical semiring.
+
+Two tasks are not oracle-backed and are not automation questions: what tier $C$ should occupy, and
+whether $L$'s residual risk is acceptable. By \Cref{obs:constitutive} the first is arithmetic on an
+agreed rule and the second is an exercise of authority. Neither is improved by a generator.
+
+The point of the example is that a single formal apparatus handles five artefacts that share no
+implementation technology, no fitting procedure, no output type, and no regulatory classification ---
+and then tells us, without further argument, which of the work of governing them a machine may do.
+
+\section{Related work}\label{sec:related}
+
+\paragraph{Categorical foundations for learning.} The $\Para$ construction and its use in
+gradient-based learning is due to Fong, Spivak and Tuyeras and elaborated by Cruttwell and
+collaborators; lenses supply the reverse pass. Our use of $\Para$ is orthogonal: we are not concerned
+with how parameters are optimised but with the fact that a parameter object exists and may be
+inhabited by procedures other than optimisation. Markov categories are due to Fritz and collaborators;
+representability, comparison of statistical experiments, and zero-one laws in that setting supply the
+technical background we draw on in \Cref{sec:models}.
+
+\paragraph{Compositional systems and contracts.} Assume--guarantee contract algebra is due to
+Benveniste and collaborators in the setting of cyber-physical system design; algebraic treatments of
+refinement, composition and quotient have been developed subsequently. We import the algebra
+unchanged and observe that operating boundaries and performance envelopes, terms used informally
+throughout the model governance literature, are exactly assumptions and guarantees.
+
+\paragraph{Data provenance.} Semiring provenance is due to Green, Karvounarakis and Tannen, with
+extensions to Datalog and description logics. Existing applications are to query answering and
+database annotation. Our application is to assurance evidence, where the derivations are governance
+inferences rather than relational operations and the semirings of interest include classification
+lattices and regime-admissibility sets.
+
+\paragraph{Specification over multiple logics.} Institution theory is due to Goguen and Burstall and
+has been applied to heterogeneous algebraic specification, hybrid logics and modelling-language
+semantics. We are not aware of prior application to overlapping normative regimes over a shared asset
+inventory, nor of the use of the satisfaction condition as a consistency test for regulatory
+encodings.
+
+\paragraph{Machine learning metadata and documentation.} Practical systems for model metadata,
+lineage tracking and registries address a subset of this territory but assume a homogeneous
+population of learned artefacts. Documentation proposals --- model cards, datasheets, system cards ---
+specify \emph{what} a summary should contain; \Cref{prop:sound} contributes a criterion for
+\emph{when} a summary is trustworthy that is independent of its contents.
+
+\paragraph{Formal methods for machine learning.} Abstract interpretation has been applied to neural
+network verification, yielding sound over-approximations of network behaviour. We use the same
+soundness notion at a different altitude: not to certify an artefact's behaviour but to certify that
+a governance summary does not understate it.
+
+\paragraph{Language models, agents, and verified generation.} The pattern of pairing an unreliable
+generator with a cheap checker is old --- it is the generate-and-test structure of search, and the
+guess-and-verify structure of certifying algorithms --- and has been revived for neural program
+synthesis, where a candidate program is accepted only if it passes a specification or test suite.
+Retrieval-augmented generation addresses grounding by supplying sources, but the question of whether a
+retrieved source \emph{supports} a generated claim is generally answered by a further model call or by
+lexical overlap. \Cref{prop:citation} is a small observation with a useful consequence: over an
+annotated derivation structure that question is a Boolean evaluation, not an inference. Work on
+governance frameworks for generative and agentic systems in regulated settings is emerging rapidly;
+it is largely procedural, and \Cref{sec:automation} is intended as a complement --- a criterion for
+\emph{which} procedures need a human in them, derived from the structure rather than from caution.
+
+\paragraph{Model risk regulation.} The supervisory literature states the requirements this paper
+formalises but offers no formal apparatus, which is appropriate to its purpose. We take the prose
+seriously as a specification and observe that at least one of its central claims --- concerning
+aggregate risk and common dependencies --- has genuine mathematical content
+(\Cref{thm:noncomp}) that has not, to our knowledge, been previously identified.
+
+\section{Limitations and falsification}\label{sec:limits}
+
+\paragraph{No implementation study.} The account is conceptual. We have not demonstrated that a
+system built on it is easier to construct, extend or operate than one built without it. That is the
+principal missing evidence, and we regard a longitudinal implementation study --- particularly of the
+extension claims of \Cref{prop:conservative} and \Cref{prop:stability} under real regulatory change
+--- as the natural sequel.
+
+\paragraph{Expressiveness.} $\Para(\Stoch)$ accommodates the population we have described, but
+stateful and interactive artefacts --- simulation engines carrying internal state across invocations,
+agentic systems that take actions and observe consequences --- are handled only by absorbing state
+into the input object, which is faithful but inelegant. A treatment in terms of coalgebra or open
+games may be more natural, and we do not claim to have settled the question.
+
+\paragraph{Formalising normative text is lossy and contestable.} Encoding a regime as an institution
+requires committing to a reading of regulatory prose that is deliberately open-textured. The encoding
+is a claim about the regulation, not the regulation, and different institutions may reasonably encode
+the same text differently. What the formalism supplies is that the claim is explicit, citable and
+testable for internal consistency --- not that it is correct. We regard this as an improvement on
+prose in a spreadsheet, but it is not a resolution of legal interpretation.
+
+\paragraph{Cost of abstraction.} The apparatus imposes a comprehension cost on practitioners in a
+domain where mathematical sophistication is unevenly distributed. We have argued that each instrument
+earns this cost by delivering a property that would otherwise be hand-built or hand-checked; that
+argument is falsifiable, and a demonstration that any of the six delivers no property not obtainable
+more cheaply would properly remove it.
+
+\paragraph{Oracles are necessary, not sufficient.} \Cref{prop:automation} guarantees that no incorrect
+output is \emph{accepted}; it says nothing about what an unchecked output does to the humans around it.
+There is a documented human-factors risk we can identify but not dissolve: machine-drafted governance
+text is fluent, fluency reads as quality, and reviewers of polished artefacts find fewer defects than
+reviewers of rough ones. An oracle that covers the citations of a document does not cover its
+rhetorical effect on the person attesting to it. We regard measuring reviewer edit distance --- and
+treating a reviewer who changes nothing as a signal rather than a success --- as a partial mitigation
+and not a solution.
+
+\paragraph{The oracle boundary may be drawn too conveniently.} \Cref{obs:constitutive} classifies the
+decisions that matter most as admitting no oracle, which is a comfortable conclusion for anyone who
+would prefer humans to retain them. We believe the argument is sound --- a rule that constitutes a
+standard cannot be checked against that standard --- but note that it is exactly the sort of argument
+whose conclusion should be scrutinised in proportion to how much one likes it.
+
+\paragraph{What would falsify the account.} Three things. First, an artefact class in the domain that
+cannot be presented as a $(P, \varphi)$ pair without distortion. Second, a fragility-sensitive
+aggregate risk measure that is nonetheless compositional --- which \Cref{thm:noncomp} forbids, so a
+purported example would indicate an error in our failure semantics rather than in the theorem.
+Third, an oracle-backed task on which verified automation nonetheless produced worse outcomes than
+manual work, which would indicate that \Cref{prop:automation} abstracts away something load-bearing ---
+most plausibly the tacit knowledge a person acquires \emph{by} doing the task, which the composite
+discards. Fourth, and most likely, a demonstration that practitioners cannot use the derivations the
+formalism produces --- that a scope determination presented as a failing conjunct with a citation is no more
+defensible in practice than a flag with a comment. The third is an empirical question about human
+factors and we cannot settle it from the armchair.
+
+\section{Conclusion}\label{sec:conclusion}
+
+The management of heterogeneous model estates is treated as an engineering problem with a
+compliance flavour. We have argued that it is better understood as a problem with a missing
+foundation, and that the pathologies practitioners encounter --- the training assumption, schema
+rigidity, scope as a boolean, evidence as assertion --- are consequences of that absence rather than
+of insufficient effort.
+
+The foundation we propose is modest in its ingredients and, we hope, not modest in its consequences.
+Defining a model as a parametric kernel makes artefacts that are never trained first-class rather than
+degenerate. Working in a Markov category rather than a Cartesian one makes shared dependency visible,
+and visible enough to prove that aggregate risk cannot be compositional --- giving formal content to a
+supervisory expectation that has been stated in prose for fifteen years and implemented, so far as we
+can determine, nowhere. Indexing artefact kinds as fibres and normative regimes as institutions turns
+the two most common causes of re-architecture into module additions with conservative-extension
+guarantees. Annotating evidence over a semiring collapses seven governance questions into one
+computation. And restating each result as an executable law is what prevents the whole apparatus from
+becoming decoration.
+
+There is a further consequence that we did not set out to find. Having built the structure for
+governance reasons, we discovered that it answers a question nobody asked it: \emph{where may a machine
+do this work?} The criterion is not the model's capability, nor the task's sensitivity, but whether the
+structure supplies a decision procedure. Where it does --- encoding a regulation, asserting behavioural
+equivalence, substituting a version, citing evidence for a claim --- generation is free, because
+acceptance is checked. Where it does not, and in particular where the output would \emph{constitute}
+the standard rather than answer to it, there is nothing for automation to be checked against, and the
+question is not one of risk appetite but of category.
+
+We suspect this generalises. Wherever an organisation is deciding how much of a judgement-laden process
+to hand to a language model, the useful first question is not how good the model is. It is: what, in
+this domain, could ever tell us that the answer was wrong?
+
+None of the mathematics is new. What we suggest is that a domain currently served by two families of
+tools that each solve half the problem is not waiting for a better product, but for a definition ---
+and that the definition, once written down, turns out to pay for itself twice.
+
+
+\begin{thebibliography}{99}
+\small
+
+\bibitem{fritz2020} T.~Fritz. A synthetic approach to Markov kernels, conditional independence and
+theorems on sufficient statistics. \emph{Advances in Mathematics}, 370, 2020.
+
+\bibitem{fritz2023rep} T.~Fritz, T.~Gonda, P.~Perrone, E.~F.~Rischel. Representable Markov categories
+and comparison of statistical experiments in categorical probability. \emph{Theoretical Computer
+Science}, 961, 2023.
+
+\bibitem{fritz2019} T.~Fritz, E.~F.~Rischel. Infinite products and zero-one laws in categorical
+probability. \emph{Compositionality}, 2, 2020.
+
+\bibitem{fst2019} B.~Fong, D.~I.~Spivak, R.~Tuyeras. Backprop as functor: a compositional perspective
+on supervised learning. \emph{LICS}, 2019.
+
+\bibitem{cruttwell2022} G.~S.~H.~Cruttwell, B.~Gavranovi\'c, N.~Ghani, P.~Wilson, F.~Zanasi.
+Categorical foundations of gradient-based learning. \emph{ESOP}, 2022.
+
+\bibitem{benveniste2018} A.~Benveniste, B.~Caillaud, D.~Nickovic, R.~Passerone, J.-B.~Raclet,
+P.~Reinkemeier, A.~Sangiovanni-Vincentelli, W.~Damm, T.~A.~Henzinger, K.~G.~Larsen. Contracts for
+system design. \emph{Foundations and Trends in Electronic Design Automation}, 12(2--3), 2018.
+
+\bibitem{incer2022} I.~Incer. \emph{The Algebra of Contracts}. Ph.D. thesis, University of California,
+Berkeley, 2022.
+
+\bibitem{green2007} T.~J.~Green, G.~Karvounarakis, V.~Tannen. Provenance semirings. \emph{PODS}, 2007.
+
+\bibitem{cheney2009} J.~Cheney, L.~Chiticariu, W.-C.~Tan. Provenance in databases: why, how, and where.
+\emph{Foundations and Trends in Databases}, 1(4), 2009.
+
+\bibitem{goguen1992} J.~A.~Goguen, R.~M.~Burstall. Institutions: abstract model theory for
+specification and programming. \emph{Journal of the ACM}, 39(1), 1992.
+
+\bibitem{diaconescu2008} R.~Diaconescu. \emph{Institution-independent Model Theory}. Birkh\"auser, 2008.
+
+\bibitem{cousot1977} P.~Cousot, R.~Cousot. Abstract interpretation: a unified lattice model for static
+analysis of programs by construction or approximation of fixpoints. \emph{POPL}, 1977.
+
+\bibitem{gehr2018} T.~Gehr, M.~Mirman, D.~Drachsler-Cohen, P.~Tsankov, S.~Chaudhuri, M.~Vechev. AI2:
+safety and robustness certification of neural networks with abstract interpretation. \emph{IEEE S\&P},
+2018.
+
+\bibitem{foster2007} J.~N.~Foster, M.~B.~Greenwald, J.~T.~Moore, B.~C.~Pierce, A.~Schmitt.
+Combinators for bidirectional tree transformations: a linguistic approach to the view-update problem.
+\emph{ACM TOPLAS}, 29(3), 2007.
+
+\bibitem{robinson2017} M.~Robinson. Sheaves are the canonical data structure for sensor integration.
+\emph{Information Fusion}, 36, 2017.
+
+\bibitem{baez2020} J.~C.~Baez, J.~Master. Open Petri nets. \emph{Mathematical Structures in Computer
+Science}, 30(3), 2020.
+
+\bibitem{snodgrass2000} R.~T.~Snodgrass. \emph{Developing Time-Oriented Database Applications in SQL}.
+Morgan Kaufmann, 2000.
+
+\bibitem{koymans1990} R.~Koymans. Specifying real-time properties with metric temporal logic.
+\emph{Real-Time Systems}, 2(4), 1990.
+
+\bibitem{bauer2011} A.~Bauer, M.~Leucker, C.~Schallhart. Runtime verification for LTL and TLTL.
+\emph{ACM TOSEM}, 20(4), 2011.
+
+\bibitem{mitchell2019} M.~Mitchell, S.~Wu, A.~Zaldivar, P.~Barnes, L.~Vasserman, B.~Hutchinson,
+E.~Spitzer, I.~D.~Raji, T.~Gebru. Model cards for model reporting. \emph{FAT*}, 2019.
+
+\bibitem{gebru2021} T.~Gebru, J.~Morgenstern, B.~Vecchione, J.~W.~Vaughan, H.~Wallach, H.~Daum\'e III,
+K.~Crawford. Datasheets for datasets. \emph{Communications of the ACM}, 64(12), 2021.
+
+\bibitem{nist2023} National Institute of Standards and Technology. \emph{Artificial Intelligence Risk
+Management Framework (AI RMF 1.0)}. NIST AI 100-1, 2023.
+
+\bibitem{nist600} National Institute of Standards and Technology. \emph{Artificial Intelligence Risk
+Management Framework: Generative Artificial Intelligence Profile}. NIST AI 600-1, 2024.
+
+\bibitem{sr262} Board of Governors of the Federal Reserve System, Federal Deposit Insurance
+Corporation, Office of the Comptroller of the Currency. \emph{Supervisory Guidance on Model Risk
+Management}. SR 26-2 / OCC Bulletin 2026-13, 17 April 2026.
+
+\bibitem{ss123} Prudential Regulation Authority, Bank of England. \emph{Model Risk Management
+Principles for Banks}. Supervisory Statement SS1/23, May 2023 (amended April 2026).
+
+\bibitem{euaiact} European Parliament and Council. \emph{Regulation (EU) 2024/1689 laying down
+harmonised rules on artificial intelligence}, 2024.
+
+\end{thebibliography}
+
+\end{document}
