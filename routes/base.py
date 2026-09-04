@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from core.assist import AssistError
 from core.baseline import BaselineError
 from core.regimes import RegimeError
+from core.scheduler import SchedulerError
 from core.authz import AuthzError
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
@@ -87,6 +88,8 @@ STATUS: Dict[str, int] = {
     # regimes
     "no_regime": 404, "incomplete_translation": 422,
     "satisfaction_condition_failed": 422,
+    # scheduler
+    "unknown_job": 422,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -153,7 +156,7 @@ class Routes:
             return fn()
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
-                RegimeError) as exc:
+                RegimeError, SchedulerError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

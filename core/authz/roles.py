@@ -36,6 +36,7 @@ MODEL_DEVELOPER = {
     # on something you cannot read is a permission set nobody can reason about.
     "warrant:read", "monitor:read", "document:read", "overlay:read",
     "assist:read", "assist:generate", "baseline:read", "regime:read",
+    "scheduler:read",
 }
 MODEL_OWNER = MODEL_DEVELOPER | {
     "model:register", "model:retire", "risk:assess",
@@ -74,8 +75,14 @@ MODEL_RISK_MANAGER = VALIDATOR | {
 AUDITOR = READ_PERMISSIONS | {"finding:raise"}
 # The batch runner: it evaluates monitors on a schedule and can do nothing else.
 OPERATOR = {"model:read", "warrant:read", "evidence:read",
-            "monitor:read", "monitor:evaluate"}
-SERVICE = {"model:read", "warrant:read", "warrant:execute", "monitor:evaluate"}
+            "monitor:read", "monitor:evaluate",
+            # The operator runs the schedule. Every job is idempotent and derives
+            # its own work, so this is an operational act and not a governance one.
+            "scheduler:read", "scheduler:run"}
+SERVICE = {"model:read", "warrant:read", "warrant:execute", "monitor:evaluate",
+           # Read alongside run: acting on something you cannot read back is a
+           # permission set nobody can reason about.
+           "scheduler:run", "scheduler:read"}
 
 ROLES: Dict[str, Set[str]] = {
     "model_developer": MODEL_DEVELOPER,
