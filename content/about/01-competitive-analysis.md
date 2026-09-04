@@ -176,9 +176,10 @@ marketing rather than analysis.
   cycle, no escalation when an item ages. OpenPages and SAS have two decades of
   that, and of regulatory report templates.
 - **Telemetry ingestion.** Monitors, drift, delayed labels and breach-to-finding
-  are built, but scored rows are passed in rather than collected: there is no
-  streaming ingestion, no sampling strategy and no scheduler. Arize and Fiddler
-  do that part properly today and MAYA does not do it at all.
+  are built, and the scheduler records when a monitor has stopped running — but
+  scored rows are passed in rather than collected. No streaming ingestion, no
+  sampling strategy, no reference-window management. Arize and Fiddler do that
+  part properly today and MAYA does not do it at all.
 - **Scale.** The design targets a large estate; it has not been run against one.
 - **Ecosystem.** Databricks and Domino arrive with connectors, an installed base
   and a support organisation.

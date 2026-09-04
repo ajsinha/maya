@@ -24,7 +24,7 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled")
+                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok")
 
 
 class Repository:
@@ -266,3 +266,7 @@ class DebtRepository(Repository):
         return [self._decode(r) for r in self.db.query(
             f"SELECT * FROM {self.TABLE} WHERE model_id = :m AND status = 'open' "
             "ORDER BY expires_at", {"m": model_id})]
+
+
+class ScheduledRunRepository(Repository):
+    TABLE, JSON, ORDER = "scheduled_run", ("outcome",), "ran_at"
