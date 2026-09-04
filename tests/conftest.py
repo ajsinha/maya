@@ -27,3 +27,72 @@ def write_yaml(tmp_path):
         p.write_text(body)
         return str(p)
     return _write
+
+
+@pytest.fixture
+def store():
+    from core.store import Store
+    return Store("sqlite:///:memory:")
+
+
+@pytest.fixture
+def evidence(store):
+    from core.evidence import EvidenceEngine
+    return EvidenceEngine(store)
+
+
+@pytest.fixture
+def registry(store, evidence):
+    from core.registry import ModelRegistry
+    return ModelRegistry(store, evidence)
+
+
+@pytest.fixture
+def tiering():
+    from core.risk import TieringEngine
+    return TieringEngine(
+        {"negligible": 0, "low": 1e6, "moderate": 5e7, "material": 5e8, "critical": 5e9},
+        {"commercial": 1, "risk_management": 2, "financial_reporting": 3,
+         "regulatory_capital": 4},
+        {1: 12, 2: 18, 3: 24, 4: 36})
+
+
+KERNEL = {"parameter_kind": "estimated_coefficients", "fit_procedure": "estimate",
+          "input_schema": [{"name": "dscr", "dtype": "float", "minimum": -5, "maximum": 20}],
+          "output_schema": [{"name": "pd_12m", "dtype": "float"}]}
+CONTRACT = {"assumptions": [{"key": "dscr", "minimum": -5, "maximum": 20}],
+            "guarantees": [{"key": "gini", "minimum": 0.42}],
+            "on_boundary_violation": "reject"}
+URN = "maya://model/credit.pd.smallbiz"
+
+
+@pytest.fixture
+def kernel_spec():
+    import copy
+    return copy.deepcopy(KERNEL)
+
+
+@pytest.fixture
+def contract_spec():
+    import copy
+    return copy.deepcopy(CONTRACT)
+
+
+@pytest.fixture
+def a_model(registry):
+    registry.register(URN, "SB PD", "credit.pd.scorecard", "credit",
+                      "person/j.okafor", "LE-US-01", "12m PD at origination")
+    registry.set_tier(registry.get(URN)["id"], 1)
+    return registry.get(URN)
+
+
+@pytest.fixture
+def approved_version(registry, a_model, kernel_spec, contract_spec):
+    registry.create_version(URN, "3.2.1", kernel_spec, contract_spec, artifact_digest="sha256:abc")
+    return registry.approve_version(URN, "3.2.1")
+
+
+@pytest.fixture
+def hooks(store, registry, evidence):
+    from core.hooks import HookService
+    return HookService(store, registry, evidence, jitter_pct=0)
