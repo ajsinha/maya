@@ -760,3 +760,9 @@ structure looks the way it does.
 - Robinson, sheaf-theoretic data fusion and the consistency radius (§9.3)
 - Allen's interval algebra; Snodgrass, bitemporal data management (§11.1)
 - Koymans, metric temporal logic; Bauer, Leucker & Schallhart, runtime verification (§11.2)
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

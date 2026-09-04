@@ -25,3 +25,9 @@ templates, hook flavours, connectors).
 - **−** Class-specific data lives in JSONB, so it is less queryable than columns. Mitigated by GIN indexes,
   JSON path queries, and promoting genuinely cross-class attributes into columns when they stabilise.
 - **−** Plugin loading is a supply-chain surface. Mitigated by signed packages and an allow-list.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

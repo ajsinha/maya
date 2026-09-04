@@ -28,3 +28,9 @@ status, gate eligibility and obligations are computed server-side and rendered.
 - **−** Interactions are less fluid than a modern SPA. Acceptable: this is a review-and-decide tool, not a
   design canvas. The one genuinely interactive surface (the dependency graph) uses Cytoscape.js directly.
 - **−** More server round trips. Mitigated by fragment-level caching and keyset pagination.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

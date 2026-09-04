@@ -765,3 +765,9 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | Examiner request turnaround | 2–4 weeks | < 1 day |
 | Overlay reliance (% of ECL from PMAs) | untracked | tracked, trending down |
 | Developer NPS for the governance experience | negative | > +20 |
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

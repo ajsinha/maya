@@ -25,3 +25,9 @@ signing and revocation. Workers and sandboxes are separate processes but not sep
 - **−** A single bad deploy affects all governance functions. Mitigated by blue/green and canary.
 - Future extraction of a context (e.g. the feature platform) remains possible because the boundaries are
   already explicit.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

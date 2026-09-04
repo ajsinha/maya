@@ -24,3 +24,9 @@ ingests internal, open-source and vendor artifacts, and holds credentials to the
 - **−** Some teams must convert models to ONNX to reach production. This is friction we accept, and it is
   friction with an independent benefit.
 - **−** Sandbox infrastructure has real operational cost. Justified by the impact of the alternative.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -327,6 +327,30 @@ boundaries, the front-end/backend contract, CI gates and six concurrent workstre
 [10 — Roadmap](docs/10-roadmap.md) sets out the seven phases, with Phase 1 (inventory and evidence spine)
 as the MVP.
 
+## Licence
+
+Copyright © 2026 **Ashutosh Sinha** <ajsinha@gmail.com>. All rights reserved.
+
+| Scope | Licence |
+|---|---|
+| Everything except `docs/research/` — specification, architecture, design, data model, protocols, source code, tooling, decks, brand assets | **Proprietary, All Rights Reserved** — see [LICENSE](LICENSE) |
+| `docs/research/` — the paper and the article | **[CC BY-NC-ND 4.0](docs/research/LICENSE)** — share with attribution; no commercial use, no derivatives |
+
+`MAYA`, the MAYA mark, "Model & AI Lifecycle Assurance" and "Evidence, not assertion." are used as
+trademarks of the Author. Access to this repository grants no licence to use them.
+
+Legal notices, third-party attributions, the treatment of quoted regulation, and the AI-assistance
+disclosure are recorded in [NOTICE](NOTICE).
+
+> **Not legal, regulatory or financial advice.** These are engineering and research documents produced
+> in a personal capacity. Any encoding of a regulation here is a *claim about* that regulation, not the
+> regulation. Regulatory obligations depend on jurisdiction, entity and facts, and change over time.
+> Obtain qualified professional advice before acting. See [NOTICE §4](NOTICE).
+
+Licensing enquiries and permission requests: **ajsinha@gmail.com**
+
+---
+
 ## Contributing
 
 Read [00 — Mathematical Foundations](docs/00-mathematical-foundations.md) before proposing changes to
@@ -334,3 +358,9 @@ Read [00 — Mathematical Foundations](docs/00-mathematical-foundations.md) befo
 abstractions must pass the **rent test**: an abstraction earns its place only if it delivers a property we
 would otherwise have to hand-build, hand-check or hand-migrate — and only if that property is stated as an
 executable law.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

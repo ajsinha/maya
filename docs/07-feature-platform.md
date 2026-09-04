@@ -349,3 +349,9 @@ The economics of a feature store are determined by reuse. MAYA optimises for it:
 - **Popularity and quality signals** — how many models use it, quality assertion pass rate, drift stability, owner responsiveness.
 - **Provenance display** — where it comes from and what it costs to compute, so a developer can see that a "cheap" feature depends on a six-hour upstream job.
 - **Recommendations** — "models solving similar problems also use…", derived from contract co-occurrence.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

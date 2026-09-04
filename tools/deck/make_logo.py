@@ -1,3 +1,8 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+"""
 """Render the MAYA logo lockup to PNG.
 
 The SVG in assets/logo/ is the source of truth for web and Markdown. This exists

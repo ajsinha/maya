@@ -16,3 +16,9 @@ Format: context → decision → consequences. Status is one of `proposed`, `acc
 | [008](ADR-008-server-rendered-ui.md) | Server-rendered Jinja2 + Bootstrap + jQuery, no SPA | accepted |
 | [009](ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading and a format policy | accepted |
 | [010](ADR-010-laws-as-tests.md) | The sixteen laws enforced by property-based tests in CI | accepted |
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

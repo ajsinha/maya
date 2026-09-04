@@ -26,3 +26,9 @@ Split by **data gravity**, with five rules:
 - **−** Two consistency models. Mitigated by the outbox pattern, idempotent writers and nightly reconciliation.
 - **−** Operational surface is larger: Spark expertise required. Mitigated by confining Spark to the data
   plane and using `delta-rs` for small reads and writes.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

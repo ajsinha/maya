@@ -25,3 +25,9 @@ machine-checked evidence.
 - **−** Property tests are slower than unit tests and can be flaky if generators are poorly bounded.
   Mitigated by bounded strategies, fixed seeds in CI, and a nightly deep run with wider generation.
 - **−** Writing good generators requires skill. Accepted as a deliberate investment.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

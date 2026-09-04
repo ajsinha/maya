@@ -1,3 +1,8 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+"""
 # -*- coding: utf-8 -*-
 """MAYA — Detailed System Design deck. Harvard-Crimson theme (see theme.py)."""
 import os
@@ -1006,6 +1011,9 @@ para(tf, "Ashutosh Sinha", size=18, color=WHITE, bold=True, first=True, space_af
 para(tf, "Independent Researcher   ·   ajsinha@gmail.com", size=12, color=RGBColor(0xF2,0xD8,0xDC), space_after=14)
 para(tf, "Full document: docs/14-detailed-design.md   ·   Architecture: docs/04-architecture.md   ·   Adversarial review: docs/11-adversarial-review.md",
      size=10.5, color=RGBColor(0xE8,0xC4,0xCA), line=1.3)
+para(tf, "© 2026 Ashutosh Sinha. All rights reserved. Proprietary and confidential — see LICENSE and NOTICE. "
+         "Not legal, regulatory or financial advice.",
+     size=8.5, color=RGBColor(0xD8,0xA0,0xAC), space_before=10, line=1.25)
 
 import sys
 prs.save(sys.argv[1] if len(sys.argv) > 1 else "MAYA-System-Design.pptx")

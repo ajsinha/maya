@@ -213,3 +213,9 @@ system validators route around.
 **Recommendation: build**, while integrating rather than replacing — MLflow/Unity Catalog stays as a
 training substrate, the enterprise GRC platform stays as the enterprise issue register, and ML
 observability tools stay as optional metric producers. MAYA is the system of record that binds them.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

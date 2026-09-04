@@ -316,3 +316,9 @@ MAYA feature that operates it, so a control-testing exercise becomes a query rat
 
 **Recovery objectives:** control plane RTO 4 h / RPO 15 min; hook plane RTO 15 min / RPO 0; audit log RPO 0
 (synchronous replication).
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -27,3 +27,9 @@ will never host.
   Accepted, and made explicit rather than hidden.
 - **−** Clients must implement verification correctly. Mitigated by shipping SDKs that do it, and by
   refusing telemetry from unverified clients.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*
