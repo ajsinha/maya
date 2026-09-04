@@ -944,6 +944,36 @@ CREATE TABLE document (
     created_at       timestamptz NOT NULL DEFAULT now()
 );
 
+-- The compiled document above and the filed one below are different things.
+-- One MAYA generated from the register; one a person wrote and somebody else
+-- accepted. Conflating them would make the register unable to say which.
+CREATE TABLE attachment (
+    id               text PRIMARY KEY,
+    model_id         text NOT NULL REFERENCES model(id),
+    model_version_id text REFERENCES model_version(id),  -- null = filed at model level
+    kind             text NOT NULL,      -- model_development_document | validation_report | ...
+    title            text NOT NULL,
+    filename         text NOT NULL,
+    media_type       text NOT NULL,
+    digest           text NOT NULL,      -- sha256 of the bytes; the storage key
+    size_bytes       bigint NOT NULL,
+    text_indexed     boolean NOT NULL DEFAULT false,   -- can we actually read it?
+    state            text NOT NULL DEFAULT 'attached', -- attached|accepted|rejected|superseded
+    note             text NOT NULL DEFAULT '',
+    attached_by      text NOT NULL,
+    attached_at      timestamptz NOT NULL DEFAULT now(),
+    reviewed_by      text,               -- never equal to attached_by; enforced in the register
+    reviewed_at      timestamptz,
+    review_note      text NOT NULL DEFAULT '',
+    supersedes       text REFERENCES attachment(id),
+    superseded_by    text REFERENCES attachment(id)
+);
+
+-- Bytes are content-addressed on the filesystem under data/attachments, fanned
+-- out by the first two hex characters of the digest. The same file attached to
+-- forty models is one object with forty rows pointing at it, and a read
+-- re-hashes before returning: what was accepted is what is served.
+
 CREATE TABLE policy (
     key            text NOT NULL,
     version        integer NOT NULL,

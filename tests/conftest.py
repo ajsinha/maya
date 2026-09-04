@@ -385,3 +385,12 @@ def scheduler(db, evidence, registry, lifecycle, findings, monitoring, overlays,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=compiler))
+
+
+@pytest.fixture
+def attachments(db, tmp_path, registry, evidence):
+    from core.attachments import AttachmentRegister, DocumentStore
+    from db import AttachmentRepository
+    return AttachmentRegister(AttachmentRepository(db),
+                              DocumentStore(tmp_path / "attachments"),
+                              registry, evidence)

@@ -318,6 +318,44 @@ def regimes(ctx: Dict[str, Any]) -> Rendered:
     return text, _cite(ctx["evidence"], "regime_activated", "tier_assigned")
 
 
+def attachments(ctx: Dict[str, Any]) -> Rendered:
+    """The documents somebody wrote, as opposed to the ones MAYA compiled.
+
+    A compiled document states what the register knows. This section states what
+    the humans filed, whether a second person accepted it, and — deliberately —
+    what was rejected. A documentation section that lists only the papers that
+    passed makes a review look tidier than it was.
+    """
+    filed = ctx.get("attachments") or []
+    if not filed:
+        return None, []
+    rows = "\n".join(
+        f"| {a['title']} | `{a['kind']}` | {_state(a)} | `{a['digest'][7:19]}…` |"
+        for a in filed)
+    status = ctx.get("attachment_status") or {}
+    rejected = status.get("rejected") or 0
+    tail = (f"\n\n{rejected} document{'s' if rejected != 1 else ''} "
+            f"{'were' if rejected != 1 else 'was'} rejected and remain"
+            f"{'' if rejected != 1 else 's'} in the register."
+            if rejected else "")
+    return (f"Documents filed against this model, stored by digest. What was "
+            f"accepted is what is served: the store re-verifies the hash on the "
+            f"way out.\n\n"
+            f"| Document | Kind | State | Digest |\n|---|---|---|---|\n{rows}\n"
+            f"{tail}\n"), \
+        _cite(ctx["evidence"], "document_attached", "document_accepted",
+              "document_rejected")
+
+
+def _state(row: Dict[str, Any]) -> str:
+    """Accepted by whom — because 'accepted' without a name is not a control."""
+    if row["state"] == "accepted":
+        return f"accepted by {row['reviewed_by']}"
+    if row["state"] == "rejected":
+        return f"rejected — {row['review_note']}"
+    return "awaiting review"
+
+
 def provenance(ctx: Dict[str, Any]) -> Rendered:
     nodes = ctx["evidence"]
     chain = ctx.get("chain") or {}

@@ -238,6 +238,9 @@ maya/
 ├── docs/
 │   ├── lens.py                 # get / put, staleness, lens laws
 │   └── templates/              # MDD, validation report, model card, Annex IV, AI-BOM
+├── attachments/                # The documents people wrote, as against the compiled ones
+│   ├── store.py                # Content-addressed bytes; re-hashed on read
+│   └── register.py             # Version-level filing, segregated review, supersession
 ├── warrants/                      # Descriptor issuance, signing, revocation, composite warrants
 ├── ai/                         # Machine assistance — a bounded context, not a layer
 │   ├── capabilities.py         # each registered as a T5 model in MAYA's own inventory

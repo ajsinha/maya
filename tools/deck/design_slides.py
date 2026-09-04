@@ -503,6 +503,49 @@ runs(tf, [("Why this exists. ", CRIMSON, True),
            "red, and the programme dies by month seven. Debt is a tracked burn-down with a board-approved expiry — ", INK, False),
           ("never rendered in the same colour as a breach.", INK, True)], size=11, first=True, space_after=0, line=1.24)
 
+sl, y = content("Documentation — two kinds, held apart", "Governance \u00b7 documentation")
+tf = txt(sl, ML, y, CW * 0.47, 0.35)
+para(tf, "Compiled \u2014 what the register knows", size=12.5, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=0)
+h = code(sl, ML, y + 0.42, CW * 0.47, [
+ "gen = [lens.render(ctx) for lens in template]",
+ "doc.stale = ev.digest != prev.evidence_digest",
+ "# a lens that cannot fill its section says so,",
+ "# so a gap in the evidence is visible, not blank",
+], fs=9.5)
+tf = txt(sl, ML, y + 0.42 + h + 0.26, CW * 0.47, 1.6)
+para(tf, "Four kinds, fifteen lenses. Every section records the evidence it rested on, so "
+         "citation soundness is a Boolean evaluation rather than a claim. Staleness is computed "
+         "from the chain head at compile time, never remembered.",
+     size=10.5, color=SLATE, first=True, space_after=0, line=1.24)
+
+x = ML + CW * 0.53
+tf = txt(sl, x, y, CW * 0.47, 0.35)
+para(tf, "Attached \u2014 what a person wrote", size=12.5, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=0)
+h2 = code(sl, x, y + 0.42, CW * 0.47, [
+ "digest, size = store.put(bytes)   # sha256 IS the key",
+ "version_id = current_version(urn) # not the model",
+ "...",
+ "refuse_if(actor == row.attached_by, \"self_review\")",
+ "refuse_if(not accept and not note, \"reason_required\")",
+], fs=9.5)
+tf = txt(sl, x, y + 0.42 + h2 + 0.26, CW * 0.47, 1.6)
+para(tf, "Filed against the version it describes, because an MDD describes the coefficients it "
+         "printed \u2014 not their replacement. Re-hashed on read: what was accepted is what is served.",
+     size=10.5, color=SLATE, first=True, space_after=0, line=1.24)
+
+rect(sl, ML, y + 3.62, CW, 0.98, fill=PARCH)
+rect(sl, ML, y + 3.62, 0.045, 0.98, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, y + 3.76, CW - 0.5, 0.8)
+runs(tf, [("Why both. ", CRIMSON, True),
+          ("A platform that only compiles cannot hold the paper the quant actually wrote; one that only "
+           "stores files is a share drive with a database in front. Held apart, the register can say which "
+           "is which \u2014 and ", INK, False),
+          ("a rejected document stays on file with its reason", INK, True),
+          (", because the papers that did not pass are the ones a supervisor asks about.", INK, False)],
+     size=11, first=True, space_after=0, line=1.24)
+
 # ============================================================ CH 4
 divider("4", "Data and Features", "Point-in-time correctness, version-namespaced serving, monitoring at scale.",
         ["The PIT assembly", "Three-layer verification", "Online store namespacing", "Monitoring pipeline"])

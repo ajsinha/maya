@@ -65,6 +65,7 @@ data:
   # Nothing under data/ is committed. It is runtime state: the control-plane
   # database, the artifact store, and the Delta Lake root.
   dir: ./data
+  attachments: "${data.dir}/attachments"
   artifacts: "${data.dir}/artifacts"
 
   # SQLite lives here by default. Switch database.url to PostgreSQL and this

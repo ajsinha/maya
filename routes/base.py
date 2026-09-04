@@ -23,6 +23,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
+from core.attachments import AttachmentError
 from core.baseline import BaselineError
 from core.regimes import RegimeError
 from core.scheduler import SchedulerError
@@ -69,6 +70,15 @@ STATUS: Dict[str, int] = {
     "grammar_violation": 422,
     # documents
     "unknown_document_kind": 422, "no_document": 404,
+    # attached documents
+    "title_required": 422, "empty_document": 422,
+    "document_too_large": 413, "bad_digest": 422,
+    "self_review": 403, "already_reviewed": 409,
+    "already_attached": 409, "already_superseded": 409,
+    "no_version_to_attach_to": 409, "no_attachment": 404,
+    "no_version_for_document": 404,
+    "no_such_attachment": 404, "document_missing": 404,
+    "document_corrupt": 500,
     # overlays
     "unknown_direction": 422, "rationale_required": 422,
     "window_too_long": 422, "unknown_closure": 422,
@@ -156,7 +166,7 @@ class Routes:
             return fn()
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
-                RegimeError, SchedulerError) as exc:
+                RegimeError, SchedulerError, AttachmentError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

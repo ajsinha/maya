@@ -479,7 +479,7 @@ Detailed protocol in [06 — Warrants and Execution](06-warrants-and-execution.m
 | FR-DOC-006 | **Collaborative narrative editing** with comments, suggestions, review states and version history. | S | — |
 | FR-DOC-007 | **AI drafting assistant** that proposes narrative from evidence — with every generated claim carrying an evidence citation, an explicit "AI-drafted, human-approved" provenance flag, and mandatory human sign-off. Governed as a T5 model in MAYA itself. | S | Self-referential governance |
 | FR-DOC-008 | **Document repository** with full-text + semantic search, retention, and legal hold. | M | — |
-| FR-DOC-009 | **Attachment of external evidence** (vendor documents, committee minutes, emails) with hashing and provenance. | M | — |
+| FR-DOC-009 | **Attachment of external evidence** (vendor documents, committee minutes, emails) with hashing and provenance. Filed against the *version* described; content-addressed and re-verified on read; accepted by somebody other than whoever filed it. | M | — |
 | FR-DOC-010 | **Export packs**: assemble a signed, complete evidence bundle for a model/portfolio/date for examiners or auditors. | M | Examiner journey |
 
 ### 6.12 Module: Reporting, Dashboards & Risk Appetite (`FR-RPT`)

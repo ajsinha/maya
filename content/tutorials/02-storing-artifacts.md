@@ -118,6 +118,52 @@ equivalent of the feature-store failure that
 [feature contracts](/help/feature-contracts) exist to prevent — which is why the
 corpus is pinned by revision too.
 
+## Documents are stored, and stored differently
+
+The artifact is the thing that runs. The **document** is the thing somebody
+wrote about it, and MAYA does store those bytes rather than a reference to them.
+
+The difference is deliberate. An artifact can be huge, is already held by
+whatever built it, and is reached through a URI the engine resolves; MAYA holds
+the digest so it can check that what ran is what was approved. A document is
+small, has no other custodian that treats it as evidence, and is the thing a
+supervisor asks to see. Keeping only a link to it would put the evidence on
+somebody else's share drive.
+
+So documents go into a content-addressed store under `data/attachments`, keyed by
+the SHA-256 of their bytes:
+
+```bash
+curl -u j.okafor:… -X POST http://localhost:5006/api/v1/attachments \
+  -F urn="maya://model/credit.pd.smallbiz" \
+  -F kind=model_development_document \
+  -F title="SB PD — Model Development Document" \
+  -F file=@mdd.md
+```
+
+With no `semver`, it lands on the **current version**, because a development
+document describes the coefficients it printed rather than their replacement.
+Pass `model_level=true` for something genuinely about the model — a board paper —
+and you have to pass it deliberately.
+
+The response carries the digest. That digest is the storage key, which means the
+same file attached to forty models is one stored object, a byte cannot change
+without becoming a different document, and a read re-hashes before returning.
+What an approver accepted is what a reader later fetches — checked, not assumed.
+
+Filing is not accepting. Somebody holding `document:review` — and never the
+person who filed it — has to accept it:
+
+```bash
+curl -u a.mehta:… -X POST \
+  http://localhost:5006/api/v1/attachments/$ID/review \
+  -H 'Content-Type: application/json' \
+  -d '{"accept": true, "note": "back-testing section complete"}'
+```
+
+See [Documents on file](/help/attached-documents) for supersession, rejection and
+what the platform can and cannot read.
+
 ## What is never stored
 
 Personal data never goes inline into the evidence chain. Law L-18: an evidence

@@ -14,7 +14,8 @@ is the pair of hand-written files under db/schema/, applied idempotently.
 from db.database import Database, DeltaPaths
 from db.delta_store import DeltaStore
 from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
-                             AttestationRepository, BreachRepository, CapabilityRepository,
+                             AttachmentRepository, AttestationRepository, BreachRepository,
+                             CapabilityRepository,
                              ContractRepository,
                              DebtRepository, DocumentRepository, EvidenceRepository,
                              FeatureRepository,
@@ -40,4 +41,4 @@ __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepositor
            "ObservationRepository", "BreachRepository", "DocumentRepository", "OverlayRepository",
            "MeasurementRepository", "CapabilityRepository",
            "GenerationRepository", "ImportRepository",
-           "DebtRepository", "ScheduledRunRepository"]
+           "DebtRepository", "ScheduledRunRepository", "AttachmentRepository"]

@@ -33,12 +33,13 @@ class ContextBuilder:
 
     def __init__(self, registry, evidence, risk_repo=None, features=None,
                  validation=None, findings=None, monitoring=None, lifecycle=None,
-                 warrants=None, overlays=None, regimes=None):
+                 warrants=None, overlays=None, regimes=None, attachments=None):
         self.registry, self.evidence = registry, evidence
         self.risk_repo, self.features = risk_repo, features
         self.validation, self.findings = validation, findings
         self.monitoring, self.lifecycle, self.warrants = monitoring, lifecycle, warrants
         self.overlays, self.regimes = overlays, regimes
+        self.attachments = attachments
 
     def __call__(self, urn: str) -> Dict[str, Any]:
         model = self.registry.require(urn)
@@ -71,6 +72,10 @@ class ContextBuilder:
             lambda: self.warrants.grants_for(urn), "warrants", default=[])
         ctx["overlays"] = self._optional(
             lambda: self.overlays.status(model["id"]), "overlays", default={})
+        ctx["attachments"] = self._optional(
+            lambda: self.attachments.for_model(model["id"]), "attachments", default=[])
+        ctx["attachment_status"] = self._optional(
+            lambda: self.attachments.status(model["id"]), "attachment status", default={})
         # Regime determinations read the same context, so this is computed last
         # from what the rest of it found.
         ctx["regimes"] = self._optional(

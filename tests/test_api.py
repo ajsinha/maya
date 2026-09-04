@@ -26,6 +26,7 @@ app: {{name: MAYA, version: "0.1.0", tagline: "Model & AI Lifecycle Assurance",
 server: {{host: 0.0.0.0, port: 5006}}
 database: {{url: "sqlite:///{tmp_path}/data/sqlite/maya.db"}}
 data: {{dir: "{tmp_path}/data", artifacts: "{tmp_path}/data/artifacts",
+        attachments: "{tmp_path}/data/attachments",
         delta: {{dir: "{tmp_path}/data/delta", features: "{tmp_path}/data/delta/features",
                 snapshots: "{tmp_path}/data/delta/snapshots",
                 telemetry: "{tmp_path}/data/delta/telemetry",
@@ -1274,3 +1275,92 @@ class TestSchedulerApi:
     def test_the_loop_is_off_unless_configured_on(self, client, people):
         body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
         assert body["loop_running"] is False
+
+
+# =========================================================== attached documents
+class TestAttachedDocuments:
+    """Uploading a document is the one place the API takes bytes rather than
+    JSON, and the one place a second person's signature is on a file."""
+
+    MDD = "# SB PD — Model Development Document\n\nLogistic regression.\n".encode()
+
+    def _upload(self, client, auth, data=None, **fields):
+        form = {"urn": URN, "kind": "model_development_document",
+                "title": "SB PD MDD", **fields}
+        return client.post("/api/v1/attachments", auth=auth, data=form,
+                           files={"file": ("mdd.md", data or self.MDD,
+                                           "text/markdown")})
+
+    def test_an_owner_can_file_a_document(self, registered, people):
+        r = self._upload(registered, people["j.okafor"])
+        assert r.status_code == 201, r.text
+        assert r.json()["state"] == "attached"
+        assert r.json()["digest"].startswith("sha256:")
+
+    def test_a_validator_may_not_file_one(self, registered, people):
+        """Filing and accepting are different duties, held by different people."""
+        assert self._upload(registered, people["a.mehta"]).status_code == 403
+
+    def test_the_author_cannot_accept_their_own(self, registered, people):
+        """Two independent lines. The role check already stops an owner, who
+        holds no review permission; this asserts the register refuses even a
+        principal whose role would otherwise let them through."""
+        admin = ("admin", "admin123")
+        attachment = self._upload(registered, admin).json()
+        r = registered.post(f"/api/v1/attachments/{attachment['id']}/review",
+                            auth=admin, json={"accept": True})
+        assert r.status_code == 403 and r.json()["error"] == "self_review"
+
+    def test_an_owner_holds_no_review_permission_at_all(self, registered, people):
+        attachment = self._upload(registered, people["j.okafor"]).json()
+        r = registered.post(f"/api/v1/attachments/{attachment['id']}/review",
+                            auth=people["j.okafor"], json={"accept": True})
+        assert r.status_code == 403 and r.json()["error"] == "forbidden"
+
+    def test_a_reviewer_can_accept_it(self, registered, people):
+        attachment = self._upload(registered, people["j.okafor"]).json()
+        r = registered.post(f"/api/v1/attachments/{attachment['id']}/review",
+                            auth=people["a.mehta"],
+                            json={"accept": True, "note": "complete"})
+        assert r.status_code == 200 and r.json()["state"] == "accepted"
+
+    def test_rejecting_without_a_reason_is_refused(self, registered, people):
+        attachment = self._upload(registered, people["j.okafor"]).json()
+        r = registered.post(f"/api/v1/attachments/{attachment['id']}/review",
+                            auth=people["a.mehta"], json={"accept": False})
+        assert r.status_code == 422 and r.json()["error"] == "reason_required"
+
+    def test_the_bytes_come_back_unchanged(self, registered, people):
+        attachment = self._upload(registered, people["j.okafor"]).json()
+        r = registered.get(f"/api/v1/attachments/{attachment['id']}/content")
+        assert r.status_code == 200 and r.content == self.MDD
+        assert "mdd.md" in r.headers["content-disposition"]
+
+    def test_the_register_reports_what_is_on_file(self, registered, people):
+        self._upload(registered, people["j.okafor"])
+        body = registered.get(f"/api/v1/attachments?urn={URN}").json()
+        assert body["attached"] == 1 and body["awaiting_review"] == 1
+        assert body["attachments"][0]["title"] == "SB PD MDD"
+
+    def test_an_unknown_kind_is_refused_with_the_list(self, registered, people):
+        r = self._upload(registered, people["j.okafor"], kind="vibes")
+        assert r.status_code == 422 and r.json()["error"] == "unknown_kind"
+
+    def test_the_kinds_are_published_with_what_they_mean(self, registered):
+        kinds = registered.get("/api/v1/attachment-kinds").json()["kinds"]
+        assert any(k["kind"] == "validation_report" and k["means"] for k in kinds)
+
+    def test_a_rejected_document_is_still_in_the_history(self, registered, people):
+        attachment = self._upload(registered, people["j.okafor"]).json()
+        registered.post(f"/api/v1/attachments/{attachment['id']}/review",
+                        auth=people["a.mehta"],
+                        json={"accept": False, "note": "no back-testing"})
+        history = registered.get(
+            f"/api/v1/attachments?urn={URN}&history=true").json()["attachments"]
+        assert [a["state"] for a in history] == ["rejected"]
+
+    def test_the_model_page_shows_the_register(self, registered, people):
+        self._upload(registered, people["j.okafor"])
+        _login(registered)
+        page = registered.get(f"/model/{NAME}").text
+        assert "SB PD MDD" in page and "awaiting review" in page
