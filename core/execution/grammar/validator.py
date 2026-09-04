@@ -154,12 +154,14 @@ class GrammarValidator:
         outputs = doc["data"].get("outputs") or []
 
         found = [
+            rules.check_trainability_class(klass),
             rules.check_descriptor_only(runtime, verb),
             rules.check_verb_against_class(verb, klass),
             rules.check_generative(verb, runtime),
             rules.check_fit_output(verb, outputs),
             rules.check_determinism(doc["operation"], runtime),
-            rules.check_parameter_source(verb, doc.get("parameters") or {}),
+            rules.check_parameter_source(verb, doc.get("parameters") or {},
+                                        (doc.get("parameters") or {}).get("kind")),
             rules.check_outcomes(verb, inputs),
         ]
         problems = [p for p in found if p is not None]

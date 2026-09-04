@@ -138,6 +138,19 @@ BINDINGS: Tuple[str, ...] = tuple(BINDING_KEYS)
 BITEMPORAL_BINDINGS: FrozenSet[str] = frozenset(
     {"feature_namespace", "featureset", "dataset_snapshot"})
 
+# Bindings a FIT must bound in both clocks. A dataset_snapshot is already
+# bounded by construction -- it is a fixed set of rows pinned at a Delta version
+# -- so it needs no as_of or window on the warrant. The other two are live
+# sources, and a read of one without bounds is "everything we know now".
+BOUNDED_FOR_FITTING: FrozenSet[str] = frozenset(
+    {"feature_namespace", "featureset"})
+
+# The closed set of trainability classes. Checked at validation because the
+# validator is what gates a warrant: the JSON Schema carries the same pattern
+# and is not what runs, so a class of `"T6 "` -- one trailing space -- turned
+# "fitting a vendor black box is a type error" into an admitted warrant.
+TRAINABILITY_CLASSES: Tuple[str, ...] = tuple(f"T{i}" for i in range(9))
+
 SINKS: Tuple[str, ...] = ("response", "delta_table", "stream", "artifact",
                           "parameter_object", "evidence")
 

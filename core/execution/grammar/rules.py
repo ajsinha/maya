@@ -23,10 +23,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple
 
-from core.execution.grammar.vocabulary import (BACKTEST, BITEMPORAL_BINDINGS, FIT,
+from core.execution.grammar.vocabulary import (BACKTEST, BITEMPORAL_BINDINGS,
+                                               BOUNDED_FOR_FITTING, FIT,
                                                GENERATE, MONITOR, OPTIMISE,
                                                PARAMETER_SOURCE_KEYS,
                                                PARAMETER_SOURCES, SCORE, SIMULATE,
+                                               TRAINABILITY_CLASSES,
                                                STOCHASTIC_RUNTIMES,
                                                UNFITTED_SOURCES, VERBS)
 
@@ -141,7 +143,28 @@ def check_fit_output(verb: str, outputs: List[Dict[str, Any]]) -> Optional[Probl
     return None
 
 
-def check_parameter_source(verb: str, parameters: Dict[str, Any]) -> Optional[Problem]:
+def check_trainability_class(klass: str) -> Optional[Problem]:
+    """The class has to be one of the nine before any law can reason about it.
+
+    It was read and never checked. Every rule that branches on it -- L-W1 above
+    among them -- compares against literals, so an unrecognised value simply
+    matched nothing and every such law passed. `"T6 "` with a trailing space,
+    or `"t6"`, turned "fitting a vendor black box is a type error" into an
+    admitted fit warrant. The JSON Schema carries the right pattern and is not
+    what gates a warrant.
+    """
+    if klass in TRAINABILITY_CLASSES:
+        return None
+    return Problem(
+        "L-W1", "subject.trainability_class",
+        f"'{klass}' is not a trainability class, so no law that reasons about "
+        f"the class can apply to this warrant",
+        f"use one of {', '.join(TRAINABILITY_CLASSES)}; the class is derived "
+        f"from how the parameter object is inhabited and is never free text")
+
+
+def check_parameter_source(verb: str, parameters: Dict[str, Any],
+                           kind: Optional[str] = None) -> Optional[Problem]:
     """L-W8. Every run must say which point in P it is running at.
 
     Training does not change the kernel; it inhabits the parameter object. So a
@@ -153,7 +176,20 @@ def check_parameter_source(verb: str, parameters: Dict[str, Any]) -> Optional[Pr
     if source is None:
         # A terminal parameter object has nothing to bind: T0 carries its
         # constants in the kernel, and there is no point in P to name.
-        return None
+        #
+        # But the exemption has to be CHECKED rather than assumed. It was not,
+        # so the law was bypassed by leaving the field out: a `learned_weights`
+        # scoring warrant that declined to say which point of P it ran at was
+        # admitted, which is the exact thing this law exists to refuse.
+        if kind in (None, "none"):
+            return None
+        return Problem(
+            "L-W8", "parameters.source",
+            f"this version's parameter object is '{kind}', so a run has to name "
+            f"the point of P it is at, and this warrant omits it entirely",
+            "add parameters.source with a binding; only a terminal ('none') "
+            "parameter object may leave it out, because only that has no point "
+            "to name")
     if source not in PARAMETER_SOURCES:
         return Problem(
             "L-W8", "parameters.source",
@@ -195,9 +231,16 @@ def check_featureset_bounds(verb: str, inputs: List[Dict[str, Any]]) -> List[Pro
         return []
     problems = []
     for i, binding in enumerate(inputs):
-        if binding.get("binding") != "featureset":
+        # Not featuresets only. A fit from a bare feature namespace is a read of
+        # an entire namespace with both clocks unbounded -- "everything we know
+        # now" -- which is precisely what this law's own docstring says it
+        # exists to refuse, and it was admitted because the loop skipped it.
+        if binding.get("binding") not in BOUNDED_FOR_FITTING:
             continue
-        if not binding.get("as_of"):
+        # `is None` and not falsiness, for the same reason as the window bounds
+        # below: 1970-01-01 is a real instant. The fix for that bug landed on
+        # the window three lines down and not on the line above it.
+        if binding.get("as_of") is None:
             problems.append(Problem(
                 "L-W9", f"data.inputs[{i}].as_of",
                 "a featureset read for fitting must say as of when it is read; "

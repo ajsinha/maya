@@ -85,8 +85,25 @@ class DeltaStore:
         eligible = df[(df[VALID_TIME] <= valid_before) & (df[INGEST_TIME] <= known_before)]
         if eligible.empty:
             return eligible
-        ordered = eligible.sort_values([VALID_TIME, INGEST_TIME])
-        return ordered.groupby(ENTITY, as_index=False).last()
+        ordered = eligible.sort_values([VALID_TIME, INGEST_TIME], kind="stable")
+        # The last ROW per entity, not the last non-null value per column.
+        #
+        # `groupby().last()` does the second, and the difference is a defect
+        # rather than a subtlety: a restatement that WITHDRAWS a figure -- sets
+        # it null, which is a legitimate correction -- had the superseded value
+        # resurrected and welded onto the withdrawal's timestamps. The row
+        # returned then asserted that the old figure was known at a moment when
+        # it had already been retracted: a bitemporal state that never existed,
+        # produced by the function whose docstring calls itself the
+        # point-in-time rule.
+        #
+        # It also made the two point-in-time paths disagree by construction.
+        # `core/features/assembly.py` verifies an assembly by recomputing it
+        # through here, so a routine withdrawal made the independent verifier
+        # report a violation against a correct assembly -- which is how a
+        # verifier stops being believed.
+        return (ordered.drop_duplicates(subset=[ENTITY], keep="last")
+                       .reset_index(drop=True))
 
     def vacuum_horizon_days(self, retention_days: int) -> int:
         """Retention is a governance decision held in configuration, not here."""
