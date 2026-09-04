@@ -9,7 +9,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from fastapi.testclient import TestClient
+
 from core.config import PropertiesConfigurator  # noqa: E402
+from tests.api_helpers import quorum_approve  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -75,6 +78,19 @@ CONTRACT = {"assumptions": [{"key": "dscr", "minimum": -5, "maximum": 20}],
             "guarantees": [{"key": "gini", "minimum": 0.42}],
             "on_boundary_violation": "reject"}
 URN = "maya://model/credit.pd.smallbiz"
+# The same model addressed by name rather than by urn, which is what the
+# route paths take.
+NAME = "credit.pd.smallbiz"
+
+# Duties are separated in the fixtures because they are separated in the
+# system. One account cannot walk the whole path: the person who creates a
+# version may not approve it, promote it, or conclude its validation.
+PEOPLE = {
+    "d.raman":  (["model_developer"],    "dev-pw"),
+    "j.okafor": (["model_owner"],        "owner-pw"),
+    "a.mehta":  (["validator"],          "val-pw"),
+    "s.iqbal":  (["model_risk_manager"], "mrm-pw"),
+}
 
 
 @pytest.fixture
@@ -492,3 +508,77 @@ def policies(db, evidence):
 def summary(registry, findings, monitoring, overlays, debts):
     from core.estate import EstateSummary
     return EstateSummary(registry, findings, monitoring, overlays, debts)
+
+# ---------------------------------------------------------------------------
+# The application itself. These three drive every HTTP and page test, and live
+# here rather than in one test module because the API suite is split by subject
+# and all of the parts need them.
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    cfg_file = tmp_path / "application.yaml"
+    cfg_file.write_text(f"""
+app: {{name: MAYA, version: "0.1.0", tagline: "Model & AI Lifecycle Assurance",
+       slogan: "Evidence, not assertion."}}
+server: {{host: 0.0.0.0, port: 5006}}
+database: {{url: "sqlite:///{tmp_path}/data/sqlite/maya.db"}}
+data: {{dir: "{tmp_path}/data", artifacts: "{tmp_path}/data/artifacts",
+        attachments: "{tmp_path}/data/attachments",
+        delta: {{dir: "{tmp_path}/data/delta", features: "{tmp_path}/data/delta/features",
+                snapshots: "{tmp_path}/data/delta/snapshots",
+                telemetry: "{tmp_path}/data/delta/telemetry",
+                monitoring: "{tmp_path}/data/delta/monitoring"}}}}
+risk:
+  exposure_bands: {{negligible: 0, low: 1000000, moderate: 50000000,
+                   material: 500000000, critical: 5000000000}}
+  purpose_ranks: {{commercial: 1, risk_management: 2, financial_reporting: 3,
+                  regulatory_capital: 4}}
+  review_months: {{1: 12, 2: 18, 3: 24, 4: 36}}
+warrants: {{jitter_pct: 0, signing_key_id: test-key,
+         ttl_seconds: {{1: 60, 2: 300, 3: 3600, 4: 3600}},
+         grace_seconds: {{1: 0, 2: 0, 3: 900, 4: 900}}}}
+execution: {{captive: {{enabled: true, max_seconds: 5}}}}
+logging: {{level: WARNING}}
+""")
+    PropertiesConfigurator.reset()
+    from run_maya_web import create_app
+    app = create_app(PropertiesConfigurator(str(cfg_file), reload_interval=0))
+    with TestClient(app) as c:
+        # Every API endpoint now requires an authenticated principal. The
+        # bootstrap administrator is created on first start from configuration;
+        # tests that care about authorisation override these credentials.
+        c.auth = ("admin", "admin123")
+        yield c
+
+
+@pytest.fixture
+def people(client):
+    """Create one principal per duty and return their credentials."""
+    for username, (roles, password) in PEOPLE.items():
+        r = client.post("/api/v1/principals", json={
+            "username": username, "display_name": username, "roles": roles,
+            "password": password})
+        assert r.status_code == 201, r.text
+    return {u: (u, pw) for u, (roles, pw) in PEOPLE.items()}
+
+
+@pytest.fixture
+def registered(client, people):
+    """A model taken through the whole governed path by four different people."""
+    owner, dev, mrm = people["j.okafor"], people["d.raman"], people["s.iqbal"]
+    client.post("/api/v1/models", auth=owner, json={
+        "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+        "domain": "credit", "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+        "purpose": "12-month PD at origination"})
+    client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
+                json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+    client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
+                      "artifact_digest": "sha256:abc"})
+    quorum_approve(client, people)
+    client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
+               json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})
+    client.post("/api/v1/warrants", auth=owner, json={
+        "urn": f"{URN}#champion", "environment": "prod",
+        "principal": "svc/origination", "declared_use": "origination_decision"})
+    return client
