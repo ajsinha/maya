@@ -229,3 +229,63 @@ class TestRegimeSection:
     def test_an_annex_iv_pack_requires_the_regime_section(self):
         required = {l.key for l in TEMPLATES[ANNEX_IV] if l.required}
         assert "regimes" in required
+
+
+class TestADocumentCitesItsVersions:
+    """A fully governed model compiled fifteen sections with two citations.
+
+    The context builder and the staleness check both asked for evidence under
+    the MODEL's id, and `version_created`, `version_approved`,
+    `validation_opened`, `validation_concluded`, `test_result_recorded` and
+    `parameter_set_recorded` are all recorded against the VERSION. So the
+    sections a reader most needs — Classification, Methodology, Assumptions,
+    Validation — rendered as *filled* while citing nothing, and
+    `verify_citations` passed vacuously because there was nothing to dangle.
+    """
+
+    def _governed(self, registry, evidence, approved_version):
+        """A version taken through the ordinary path, so its evidence exists."""
+        from tests.conftest import URN
+        version = registry.version(URN, "3.2.1")
+        evidence.append("validation_concluded", "version", version["id"],
+                        {"outcome": "approved"}, actor="person/a.mehta")
+        evidence.append("test_result_recorded", "version", version["id"],
+                        {"test": "discrimination.gini", "value": 0.61},
+                        actor="person/a.mehta")
+        return version
+
+    def test_version_scoped_evidence_reaches_the_document(
+            self, compiler, registry, evidence, approved_version):
+        from tests.conftest import URN
+        self._governed(registry, evidence, approved_version)
+        doc = compiler.compile("model_development_document", URN,
+                               actor="person/a.mehta")
+        assert doc["citations"], "a document that cites nothing is not evidence"
+        # Citations are evidence ids; resolve them to see what was actually cited.
+        cited = {n["id"]: n["kind"] for n in evidence.repo.many()}
+        kinds = {cited.get(c) for c in doc["citations"]}
+        assert kinds & {"validation_concluded", "test_result_recorded",
+                        "version_created", "version_approved"}, kinds
+
+    def test_the_document_records_which_subjects_it_was_built_from(
+            self, compiler, registry, evidence, approved_version):
+        from tests.conftest import URN
+        version = self._governed(registry, evidence, approved_version)
+        doc = compiler.compile("model_development_document", URN,
+                               actor="person/a.mehta")
+        assert version["id"] in doc["subjects"]
+
+    def test_something_recorded_against_a_version_makes_it_stale(
+            self, compiler, registry, evidence, approved_version):
+        """Staleness read the model's id alone, so a new version taken through a
+        full quorum approval left the document reporting that nothing had been
+        recorded since it was compiled — and the worklist derives the
+        stale-document item from this, so it never reached anybody."""
+        from tests.conftest import URN
+        version = self._governed(registry, evidence, approved_version)
+        doc = compiler.compile("model_development_document", URN,
+                               actor="person/a.mehta")
+        assert compiler.staleness(doc["id"])["stale"] is False
+        evidence.append("version_approved", "version", version["id"],
+                        {"semver": "3.2.1"}, actor="person/s.iqbal")
+        assert compiler.staleness(doc["id"])["stale"] is True

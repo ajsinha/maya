@@ -124,6 +124,74 @@ def is_container(sh):
     return False
 
 
+def table_height(sh):
+    """A table's REAL height: the sum of its row heights.
+
+    PowerPoint treats a row height as a MINIMUM and grows the row to fit its
+    text, so the graphic frame's declared height is a floor rather than a
+    measurement. `theme.table()` compounds it by applying padding plus one text
+    line as its own per-row floor, which makes any row height below about a
+    third of an inch inoperative -- so an author's mental `rows x row_h` is
+    always short, and any row that wraps widens the gap further.
+
+    This is the measurement the audit did not take. `GraphicFrame` has no text
+    frame, so the loop that measures everything skipped every table before it
+    got anywhere -- and excluded them as collision TARGETS too. Three decks hold
+    twelve, sixty-two and twenty-eight tables, and seven collisions were sitting
+    behind that one `continue`.
+    """
+    if not getattr(sh, "has_table", False):
+        return None
+    total = 0.0
+    for row in sh.table.rows:
+        total += (row.height or 0) / EMU
+    return total or None
+
+
+def is_opaque(sh):
+    """A solid-filled shape drawn over something hides it completely.
+
+    This is the worst of the deck defects and the least visible: it does not
+    crowd the reader, it DELETES a row from the page, so the slide looks clean
+    until somebody goes looking for content that is not there.
+    """
+    try:
+        return sh.fill.type == 1                      # 1 == solid
+    except Exception:
+        return False
+
+
+def covers(a, b):
+    """Whether rectangle b covers most of what rectangle a actually occupies.
+
+    For a text shape the box is usually taller than the text in it -- a caption
+    given 1.25" of room may use 0.6" -- so measuring the BOX reports a shape as
+    hidden when nothing of it is. What matters is whether the ink is covered, so
+    a text shape is measured by its text extent and everything else by its box.
+    """
+    sh_a, aL, aT, aW, aH = a
+    _, bL, bT, bW, bH = b
+    if getattr(sh_a, "has_text_frame", False) and sh_a.text_frame.text.strip():
+        aH = min(aH, text_extent(sh_a))
+    if aW <= 0 or aH <= 0:
+        return False
+    wide = min(aL + aW, bL + bW) - max(aL, bL)
+    tall = min(aT + aH, bT + bH) - max(aT, bT)
+    if wide <= 0 or tall <= 0:
+        return False
+    return (wide * tall) / (aW * aH) > 0.30
+
+
+def describe(sh):
+    """Enough to find the shape in the generator: its text, or what it is."""
+    if getattr(sh, "has_table", False):
+        first = sh.table.cell(0, 0).text.strip().replace("\n", " ")[:28]
+        return f"table({len(sh.table.rows)}x{len(sh.table.columns)}, {first!r})"
+    if getattr(sh, "has_text_frame", False) and sh.text_frame.text.strip():
+        return repr(sh.text_frame.text.strip().replace("\n", " ")[:40])
+    return f"<{sh.shape_type}>"
+
+
 def enclosing(sh, L, T, W, H, boxes):
     """The smallest visible container this shape sits inside, if any."""
     best = None
@@ -155,9 +223,45 @@ def main():
                 continue
             L, T = sh.left / EMU, sh.top / EMU
             W, H = (sh.width or 0) / EMU, (sh.height or 0) / EMU
+            # A table's frame height is a floor, not a measurement: PowerPoint
+            # grows each row to fit. Measure the rows and carry THAT, so a table
+            # is a first-class box like everything else.
+            real = table_height(sh)
+            if real is not None:
+                if real > H + 0.02:
+                    issues.append(
+                        f"S{idx:02d} TABLE TALLER THAN ITS FRAME  "
+                        f"rows {real:.2f}\" frame {H:.2f}\"")
+                H = max(H, real)
             boxes.append((sh, L, T, W, H))
             if L < -0.02 or T < -0.02 or L + W > SW + 0.02 or T + H > SH + 0.02:
                 issues.append(f"S{idx:02d} OFF-SLIDE    ({L:.2f},{T:.2f}) {W:.2f}x{H:.2f}")
+
+        # ---------------------------------------------------------- geometry
+        # Two checks that are not text-driven, and therefore could not exist in
+        # a loop that skipped anything without a text frame. Between them they
+        # catch the seven collisions this audit reported as clean.
+        for i, a in enumerate(boxes):
+            sh_a, aL, aT, aW, aH = a
+            for b in boxes[i + 1:]:
+                sh_b, bL, bT, bW, bH = b
+                if aW < 0.2 or aH < 0.2 or bW < 0.2 or bH < 0.2:
+                    continue          # accent bars and rules
+                # b is drawn AFTER a, so an opaque b hides whatever a holds.
+                if is_opaque(sh_b) and covers(a, b) and not covers(b, a):
+                    issues.append(
+                        f"S{idx:02d} HIDDEN BEHIND AN OPAQUE SHAPE  "
+                        f"{describe(sh_a)} is covered by {describe(sh_b)}")
+                    continue
+                # A table overlapping anything drawn after it is text over text.
+                if getattr(sh_a, "has_table", False):
+                    overlap = min(aT + aH, bT + bH) - max(aT, bT)
+                    share = min(aL + aW, bL + bW) - max(aL, bL)
+                    if overlap > 0.04 and share > 0.25 * min(aW, bW):
+                        issues.append(
+                            f"S{idx:02d} PRINTS OVER A TABLE  "
+                            f"{describe(sh_b)} overlaps a table by "
+                            f"{overlap:.2f}\"")
 
         for sh, L, T, W, H in boxes:
             if not sh.has_text_frame or not sh.text_frame.text.strip():

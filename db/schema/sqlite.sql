@@ -691,6 +691,11 @@ CREATE TABLE IF NOT EXISTS document (
     citations        TEXT NOT NULL DEFAULT '[]',
     coverage         TEXT NOT NULL DEFAULT '{}',
     digest           TEXT NOT NULL,
+    -- The subjects this document was compiled FROM: the model and each of its
+    -- versions. Staleness is measured against the same set, because measuring
+    -- it against the model alone meant a new version taken through a full
+    -- quorum approval left the document reporting that nothing had happened.
+    subjects         TEXT NOT NULL DEFAULT '[]',
     evidence_head    INTEGER NOT NULL DEFAULT 0,
     status           TEXT NOT NULL DEFAULT 'compiled',
     compiled_at      REAL NOT NULL,

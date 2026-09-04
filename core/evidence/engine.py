@@ -14,7 +14,8 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, List, Optional, Set, Tuple, TypeVar
+from typing import (Any, Callable, Dict, Generic, List, Optional, Sequence,
+                    Set, Tuple, TypeVar)
 
 from core.evidence.semirings import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST,
                                      WHY, MAX_TERMS, Semiring)
@@ -179,6 +180,24 @@ class EvidenceEngine:
 
     def for_subject(self, subject_id: str) -> List[Dict[str, Any]]:
         return self.repo.many(subject_id=subject_id)
+
+    def for_subjects(self, subject_ids: Sequence[str]) -> List[Dict[str, Any]]:
+        """Everything recorded against any of these subjects, in chain order.
+
+        A model's record is not held under one id. The model carries its
+        registration, tiering, findings and warrants; each VERSION carries its
+        creation, approval, validation episodes, test results, parameter sets
+        and telemetry. Anything that asked only for the model's own id — as the
+        document compiler did — saw the first list and none of the second, and
+        the sections that matter most to a reader are built from the second.
+        """
+        seen, out = set(), []
+        for subject_id in subject_ids:
+            if not subject_id or subject_id in seen:
+                continue
+            seen.add(subject_id)
+            out.extend(self.repo.many(subject_id=subject_id))
+        return sorted(out, key=lambda n: n["seq"])
 
     # ------------------------------------------------------------ evaluate
     def evaluate(self, claim: str, derivations: Dict[str, Derivation], semiring: Semiring,

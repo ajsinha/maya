@@ -120,6 +120,16 @@ deliberately left outside the platform's boundary.
   the volatility one. Everything else is still recorded rather than produced —
   the engine that fitted it is wherever you run models, and MAYA refuses the
   result unless a warrant it issued authorised the run.
+- **Point-in-time correctness is now enforced rather than reported.** The
+  leakage screen used to flag every continuous feature by construction — every
+  value distinct means every bucket holds one label, whatever its relationship
+  to the label — so `pit_verified` was false for essentially every real
+  training set, and it gated nothing. Both halves are fixed: a repeating column
+  is screened for purity and a continuous one for perfect separation, and a fit
+  is **refused** on a snapshot the verifier rejected. The admissibility rule
+  bounds ingest by `min(label_ts, as_of)`, so a value carried backwards by
+  alignment can no longer enter a training row on the grounds that it was known
+  before the set was built.
 - **A policy can tighten a gate and cannot loosen one.** The checks written in
   the registry are the floor, and a rule runs in addition to them. Loosening a
   gate still costs a release — deliberately, because a mistyped rule that

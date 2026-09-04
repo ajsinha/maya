@@ -335,7 +335,7 @@ class BreachRepository(Repository):
 
 class DocumentRepository(Repository):
     TABLE, ORDER = "document", "compiled_at"
-    JSON = ("sections", "citations", "coverage")
+    JSON = ("sections", "citations", "coverage", "subjects")
 
 
 class OverlayRepository(Repository):

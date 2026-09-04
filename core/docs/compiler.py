@@ -89,6 +89,9 @@ class DocumentCompiler:
             },
             "digest": canonical_digest({"kind": kind, "urn": urn,
                                         "sections": sections}),
+            # The subjects this document was built from, so staleness can be
+            # measured against the same set rather than against the model alone.
+            "subjects": [model["id"], *(v["id"] for v in ctx.get("versions") or [])],
             "evidence_head": head, "status": "compiled",
             "compiled_at": time.time(), "compiled_by": actor,
         }
@@ -119,7 +122,14 @@ class DocumentCompiler:
         cannot be stale without the platform being able to say so.
         """
         doc = self.require(document_id)
-        since = [n for n in self.evidence.for_subject(doc["model_id"])
+        # Across the model and its versions, for the same reason the compiler
+        # gathers them: staleness read the model's id alone, so creating a new
+        # version and taking it through a full quorum approval left the document
+        # reporting "nothing has been recorded since it was compiled". The
+        # worklist derives the stale-document item from this, so the item never
+        # appeared on anybody's dashboard either.
+        subjects = doc.get("subjects") or [doc["model_id"]]
+        since = [n for n in self.evidence.for_subjects(subjects)
                  if n["seq"] > doc["evidence_head"]
                  and n["kind"] != "document_compiled"]
         return {
