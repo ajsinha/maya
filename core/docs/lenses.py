@@ -288,6 +288,36 @@ def overlays(ctx: Dict[str, Any]) -> Rendered:
                        "overlay_renewed", "overlay_measured")
 
 
+def regimes(ctx: Dict[str, Any]) -> Rendered:
+    determinations = (ctx.get("regimes") or {}).get("regimes") or []
+    if not determinations:
+        return None, []
+    rows = "\n".join(
+        f"| {d['title']} | {d['authority']} | {d['satisfied']}/"
+        f"{d['satisfied'] + d['unmet']} | "
+        + ("**satisfied**" if d["compliant"] else "**not satisfied**") + " |"
+        for d in determinations)
+    text = ("Each supervisor is evaluated in its own vocabulary rather than "
+            "against a merged checklist, because regimes disagree about what "
+            "words mean and flattening them is how a scope determination becomes "
+            "indefensible.\n\n"
+            "| Regime | Authority | Obligations met | |\n|---|---|---|---|\n"
+            + rows + "\n")
+    for d in determinations:
+        unmet = [o for o in d["obligations"] if not o["satisfied"]]
+        if not unmet:
+            continue
+        text += (f"\n**{d['title']} — outstanding**\n\n"
+                 + "\n".join(f"- {o['text']} *({o['citation']})*" for o in unmet)
+                 + "\n")
+    if (ctx.get("regimes") or {}).get("disagreement"):
+        text += ("\nThe activated regimes **disagree** about this model. That is a "
+                 "fact about the estate rather than a defect: in scope for one "
+                 "supervisor and out of scope for another is something somebody "
+                 "needs to know.\n")
+    return text, _cite(ctx["evidence"], "regime_activated", "tier_assigned")
+
+
 def provenance(ctx: Dict[str, Any]) -> Rendered:
     nodes = ctx["evidence"]
     chain = ctx.get("chain") or {}

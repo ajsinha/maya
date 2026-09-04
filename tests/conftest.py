@@ -294,10 +294,13 @@ def performance_monitor(monitors, a_model):
 # --------------------------------------------------------------------- documents
 @pytest.fixture
 def doc_context(registry, evidence, repos, features, validation, findings,
-                monitoring, lifecycle, warrants, overlays):
+                monitoring, lifecycle, warrants, overlays, regimes):
     from core.docs import ContextBuilder
+    for key in ("sr-26-2", "ss1-23", "eu-ai-act"):
+        regimes.activate(key)
     return ContextBuilder(registry, evidence, repos["risk"], features, validation,
-                          findings, monitoring, lifecycle, warrants, overlays)
+                          findings, monitoring, lifecycle, warrants, overlays,
+                          regimes)
 
 
 @pytest.fixture
@@ -345,3 +348,10 @@ def baseline(db, debts, registry, evidence, doc_context):
     from db import ImportRepository
     return BaselineImporter(ImportRepository(db), debts, registry, evidence,
                             doc_context)
+
+
+# ----------------------------------------------------------------------- regimes
+@pytest.fixture
+def regimes(evidence):
+    from core.regimes import RegimeEngine
+    return RegimeEngine(evidence)

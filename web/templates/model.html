@@ -205,6 +205,26 @@
       </div></div>
 
 
+    <div class="card mb-3"><div class="card-header">Supervisory regimes</div>
+      <div class="card-body p-0"><table class="table maya mb-0">
+        <tbody>
+        {% for r in regimes.regimes %}
+          <tr><td class="small">{{ r.regime }}
+                <div class="text-muted">{{ r.authority }}</div></td>
+              <td class="text-end small">
+                {% if r.compliant %}<span class="evidence-ok">satisfied</span>
+                {% else %}<span class="evidence-bad">{{ r.unmet }} unmet</span>{% endif %}
+                <div class="text-muted">{{ r.satisfied }}/{{ r.satisfied + r.unmet }}</div></td></tr>
+        {% else %}
+          <tr><td class="text-muted small p-3">No regimes activated.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% if regimes.disagreement %}
+        <div class="card-body py-2 small text-muted border-top">
+          The regimes disagree about this model &mdash; a fact about the estate
+          rather than a defect.</div>
+      {% endif %}</div>
+
     <div class="card mb-3"><div class="card-header">
         Findings
         {% if finding_summary.blocking %}

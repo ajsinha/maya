@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 14. This section is the authoritative record of what
+*Last updated after milestone 15. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -38,7 +38,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Documentation compiler** (`core/docs/`) | **Complete** | Four document kinds compiled from the register and the evidence graph by twelve lenses. Every section records the evidence it rested on, so citation soundness is a Boolean evaluation rather than a claim. Staleness is *computed* from the chain head at compile time, not remembered. A lens that cannot fill its section says so in the document, so a gap in the model's evidence is visible rather than blank. Rendered through the same markdown pipeline as the help system |
 | ✅ | **Monitoring** (`core/monitoring/`) | **Complete** | Four monitor kinds, each admitting only the tests that can answer it, checked at definition time. Delayed labels are first-class: a performance monitor must declare its outcome window, maturity is decided per row, and evaluation over an immature cohort is refused with the date it becomes measurable. A breach raises a finding, escalating with persistence; recovery closes the breach and deliberately leaves the finding open |
 | ✅ | **Overlay register** (`core/overlays/`) | **Complete** | Four adjustment kinds, each time-boxed; the proposer may not approve and the owner may not renew; renewal is refused without a measurement for the period. Persistence, materiality relative to the model's own output, and trend are computed — and an overlay renewed past its limit raises a finding, because at that point it is an unversioned model change. Aggregate magnitude answers the question a risk committee asks and rarely gets. Appears in every compiled document |
-| ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
+| ✅ | **Regime engine** (`core/regimes/`) | **Complete** | Three regimes encoded as institutions — SR 26-2, PRA SS1/23, EU AI Act — each with its own signature, obligations in that vocabulary, and a translation into the core. The satisfaction condition (truth invariant under change of notation) is *checked* against probe states spanning the corners, and a regime whose encoding fails it cannot be activated. Determinations are derivations: every verdict carries the terms it read and the citation it rests on. Regimes that disagree are reported as disagreeing rather than merged. Adding a supervisor is a signature, some sentences and a translation |
 | ✅ | **Authorisation** (`core/authz/`) | **Complete** | Eight roles across three lines of defence, refused incompatible pairs, entity and domain scope that filters listings as well as detail pages, and segregation of duties read from the evidence chain rather than a second who-did-what table. HTTP Basic for services against the same principal register; PBKDF2 with a short verification cache that shortens the key derivation and never the decision |
 | ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Six-state record machine: draft → submitted → approved → attested, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
 | ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (17 runtimes) × what is asked of it (10 verbs) × where its data comes from (11 bindings). Seven admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Ten worked examples spanning QuantLib pricing and calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet and a VaR backtest, all validated on every test run |
@@ -64,6 +64,12 @@ resolution fail closed → close it with an independent verifier and evidence, a
 watch service resume. Any recorded result can be replayed and compared on its
 digest, which catches a threshold moved after the fact as readily as a changed
 number.
+
+### Every planned component is now built
+
+The roadmap's components are complete. What remains is not in the plan's
+component list and is recorded below: operational surface, scale, and the parts
+deliberately left outside the platform's boundary.
 
 ### Honest gaps
 

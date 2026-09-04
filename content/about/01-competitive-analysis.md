@@ -91,6 +91,15 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Several supervisors at once, without flattening them.** Each regime is encoded
+as an institution with its own vocabulary, and its translation into the core is
+checked against the satisfaction condition — truth invariant under change of
+notation — before it can be activated. Regimes that disagree about a model are
+reported as disagreeing, because in scope for one and out for another is a fact
+somebody needs. Adding a supervisor is a signature, some sentences and a
+translation; the schema, the API and the interface do not move. Everywhere else,
+a new regulator is a new column set and a migration.
+
 **A cold start that does not kill the programme.** An existing estate imports
 into a `baselined` state carrying explicit, dated debt for what it lacks —
 computed from the register rather than declared, so nobody under-declares — and

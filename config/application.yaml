@@ -147,6 +147,14 @@ overlays:
   max_days: 180
   renewal_limit: 2
 
+regimes:
+  # Supervisory regimes to activate at startup. Each is an institution: its own
+  # vocabulary, its own obligations, and a translation into the platform's core
+  # terms. A regime is refused activation unless its translation passes the
+  # satisfaction condition, because an encoding whose truth does not survive
+  # translation produces determinations nobody can defend.
+  active: [sr-26-2, ss1-23, eu-ai-act]
+
 content:
   # Help and about pages are markdown files rendered at request time. They live
   # in the repository rather than the database so that a change to what the
