@@ -65,16 +65,76 @@ execution:
 Nothing else changes. External engines are unaffected, because they were never
 using it.
 
-## What the captive engine is not
+## What it implements
 
-It runs registered Python callables. It does not load ONNX, PMML, a container,
-a spreadsheet or a pricing library, and there is no sandbox.
+Three of the grammar's seventeen runtimes, and it is precise about which:
 
-It is a reference implementation of the **protocol**, not of artifact execution.
-Running a real estate means a real engine — one with the runtimes, the isolation
-and the capacity your models actually need. The point of the captive engine is
-that a fresh deployment demonstrates the whole governed path end to end without
-anyone building that first.
+| Runtime | What it does |
+|---|---|
+| `python.callable` | a callable bound to a version in process, for development |
+| `descriptor_only` | the same, and the *correct* case for it — MAYA holds the governance, the engine supplies the model |
+| `onnx` | loads and runs an ONNX graph through onnxruntime |
+| `pmml` | evaluates the `RegressionModel` and `Scorecard` subset **natively, without a JVM** |
+
+```bash
+GET /api/v1/engine
+# → {"captive_engine": true,
+#    "runtimes": [{"runtime": "onnx", "usable": true},
+#                 {"runtime": "pmml", "usable": true}, …]}
+```
+
+A warrant naming a runtime it does not implement is refused **by name**, listing
+what it does have — not by failing three layers down inside an artifact loader.
+The refusal distinguishes two cases that need different actions: a runtime this
+engine never implemented (route the warrant elsewhere) and one it implements
+whose dependency is missing (install the package).
+
+### PMML without a JVM
+
+Every mature PMML library embeds one. That is a heavy dependency for a governance
+platform, and it puts a second runtime between the digest we verified and the
+number we return.
+
+So the two element types covering most of a bank's PMML estate are evaluated
+directly: `RegressionModel` — the logistic and linear scorecards credit risk has
+run for forty years — and `Scorecard`, the points-based form. Both are arithmetic
+over coefficients held in the XML, and the coefficients *are* the deliverable: a
+scorecard's whole appeal is that you can read it.
+
+Anything else is refused by name. A partial implementation that silently
+mis-evaluates a tree ensemble would be far worse than one that says it only does
+regressions.
+
+## The artifact digest is verified before anything runs
+
+```json
+{"error": "artifact_mismatch",
+ "detail": "sb.pmml does not match the digest in the warrant
+            (expected sha256:9f2c1a…, found sha256:4e8a17…)",
+ "remediation": "the artifact has changed since it was approved; do not run it
+                 and raise a security incident"}
+```
+
+This is the point at which the whole chain — registry, warrant, signature —
+either does or does not describe the bytes about to run. An engine that skips it
+makes every link before it decorative.
+
+A version therefore records **both** an `artifact_digest` and an `artifact_uri`.
+The digest says *what* should be there; the URI says where to look. A digest with
+no location cannot be fetched; a location with no digest cannot be checked.
+
+Artifacts are read from a configured directory and a path resolving outside it is
+refused. A warrant is a document from elsewhere, and treating a path inside it as
+trustworthy is how a governance system becomes a file-read primitive.
+
+## What it is still not
+
+There is no sandbox, no container runtime, no resource isolation and no
+quantitative library. Running a real estate means a real engine — one with the
+runtimes, the isolation and the capacity your models actually need. The point of
+the captive engine is that a fresh deployment demonstrates the whole governed
+path end to end, against real ONNX and PMML artifacts, without anyone building
+that first.
 
 ## Writing your own engine
 

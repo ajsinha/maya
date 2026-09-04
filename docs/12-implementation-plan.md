@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 17. This section is the authoritative record of what
+*Last updated after milestone 18. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -95,9 +95,9 @@ deliberately left outside the platform's boundary.
   principals are provisioned by hand.
 - **No policy engine.** Lifecycle guards are hard-coded checks in the registry
   rather than versioned Rego, so gates cannot yet be changed without a release.
-- **The captive engine runs registered Python callables only.** It does not load
-  ONNX, PMML or a container, and there is no sandbox — so it is a reference
-  implementation of the *protocol*, not of artifact execution.
+- **The captive engine has no sandbox.** It loads ONNX and PMML artifacts in
+  process with no isolation, no resource limits beyond a timeout, and no
+  container runtime. Running an untrusted artifact through it would be unwise.
 - **No Delta time-travel on reads yet.** `DeltaStore` supports `as_of_version`,
   but assemblies pin a namespace rather than a table version, so restatement
   handling is not implemented.
@@ -110,10 +110,9 @@ deliberately left outside the platform's boundary.
 - **File size, not total size.** The governing rule is that no Python source file
   exceeds 1,500 code lines; every file is well inside it, and the packages are
   split by responsibility rather than by length.
-- **The captive engine implements one runtime.** The grammar describes
-  seventeen; the bundled engine runs registered Python callables and nothing
-  else. It is a reference implementation of the *protocol*, not of artifact
-  execution, and a real estate needs a real engine.
+- **The captive engine implements three runtimes of seventeen.** No QuantLib, no
+  container, no spreadsheet, no SQL, no LLM. Each is refused by name; a real
+  estate needs a real engine for the rest.
 
 ## 1. Engineering principles
 
