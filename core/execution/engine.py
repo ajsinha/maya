@@ -25,7 +25,12 @@ from typing import Any, Callable, Dict, List, Optional
 from core.domain.contracts import Bound, Contract
 from core.execution.runtimes import (CallableRuntime, Invocation, OnnxRuntime,
                                      PmmlRuntime, RuntimeRegistry)
+from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
+                                    describe as describe_sandbox)
 from core.execution.warrants import WarrantError, WarrantService
+
+# Runtimes that load an artifact from disk, and therefore run isolated.
+SANDBOXED_RUNTIMES = frozenset({"onnx", "pmml"})
 
 
 @dataclass
@@ -51,15 +56,21 @@ class CaptiveEngine:
 
     def __init__(self, warrants: WarrantService, max_seconds: float = 30.0,
                  artifact_dir: Optional[Path] = None,
-                 runtimes: Optional[RuntimeRegistry] = None):
+                 runtimes: Optional[RuntimeRegistry] = None,
+                 sandbox: Optional[Sandbox] = None):
         self.warrants = warrants
         self.max_seconds = max_seconds
+        self.artifact_dir = Path(artifact_dir) if artifact_dir else None
         self._callables = CallableRuntime()
         self.runtimes = runtimes or RuntimeRegistry([
             self._callables,
-            OnnxRuntime(artifact_dir),
-            PmmlRuntime(artifact_dir),
+            OnnxRuntime(self.artifact_dir),
+            PmmlRuntime(self.artifact_dir),
         ])
+        # Artifacts run in a child with limits from the warrant. Bound callables
+        # cannot: you cannot isolate a function handed to you in your own address
+        # space, which is one more reason not to use them for anything real.
+        self.sandbox = sandbox or SubprocessSandbox()
         self._revoked_locally: set = set()
 
     def register_runtime(self, version_id: str, fn: Callable[[Dict[str, Any]], Any]) -> None:
@@ -69,6 +80,16 @@ class CaptiveEngine:
     def implements(self) -> list:
         """What this engine can run, and why it cannot run the rest."""
         return self.runtimes.describe()
+
+    def isolation(self) -> Dict[str, Any]:
+        """What the sandbox protects against, and what it does not."""
+        return describe_sandbox(self.sandbox)
+
+    def _sandboxed(self, warrant: Dict[str, Any]) -> bool:
+        """Artifact-backed runtimes are isolated; bound callables cannot be."""
+        runtime = (warrant.get("realisation") or {}).get("runtime")
+        bound = self._callables.is_bound(warrant.get("subject", {}).get("version_id"))
+        return runtime in SANDBOXED_RUNTIMES and not bound
 
     def note_revocation(self, descriptor_id: str) -> None:
         """The revocation floor: honoured regardless of grace state."""
@@ -107,7 +128,11 @@ class CaptiveEngine:
         # is checked without touching an artifact, which is the order that makes
         # a refusal cheap and stops an artifact loading on an authorisation that
         # was never valid.
-        prediction = self.runtimes.invoke(Invocation(warrant, inputs))
+        if self._sandboxed(warrant):
+            prediction = self.sandbox.run(warrant, inputs, self.artifact_dir,
+                                          Limits.of(warrant))
+        else:
+            prediction = self.runtimes.invoke(Invocation(warrant, inputs))
         return ExecutionResult(
             descriptor_id=warrant["warrant_id"],
             model_urn=warrant["subject"]["model_urn"],

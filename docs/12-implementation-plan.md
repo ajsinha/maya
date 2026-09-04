@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 18. This section is the authoritative record of what
+*Last updated after milestone 19. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -46,6 +46,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Machine assistance** (`core/assist/`) | **Complete** | Capabilities registered at Tier A (a named oracle checks the output) or Tier B (every claim cites evidence); Tier C is deliberately not registrable. Five oracles, each backed by machinery that exists for another reason. The grounding gate *removes* unsupported claims rather than flagging them, and keeps them for the reviewer. Nothing is evidence until a person attests it, and never the person who asked. Edit distance and a mandatory review sample detect automation bias |
 | ✅ | **Scheduler** (`core/scheduler/`) | **Complete** | Five idempotent jobs turning computed conditions into recorded consequences: a lapsed attestation and a stalled monitor each raise a finding, overlays past their window close, baseline debt reconciles, and a missed remediation window is recorded as its own finding rather than by rewriting the original. A run is an ordinary authenticated call — cron, a CronJob or a person produce identical results — with an in-process loop offered as a convenience and off by default. One failing job does not stop the others, and the scheduler reports its own health on `/health/ready` |
 | ✅ | **Estate view & worklist** (`core/estate/`) | **Complete** | Outstanding work derived from the register rather than assigned — no task table, so it cannot go stale, disagree with the register, or accumulate orphans. Filtered to what a principal holds the permission and scope to do, and for attestation to their own role's signature. Estate summary aggregates governance, assurance, adjustments and baseline debt, with debt kept apart from breach |
+| ✅ | **Engine isolation** (`core/execution/sandbox.py`) | **Complete** | Artifact-backed runtimes (ONNX, PMML) load and run in a child process with CPU and address-space limits read from the warrant's `constraints.resources`. The memory budget is additive to the interpreter's own footprint, and the runtime's dependencies are imported *before* the limit is applied, so a library's import cost is never charged to the model's budget. The boundary is published rather than implied: `describe()` states what it protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact. That needs a container or a VM, and saying so is better than implying an isolation the process model does not provide. Bound callables run in process by construction and are named as such |
 | ✅ | **Baseline import** (`core/baseline/`) | **Complete** | Closes adversarial finding C-5, judged the single most likely cause of total failure. Imported models enter a `baselined` lifecycle state — governed going forward, mutable so their debt can be closed — carrying explicit dated debt for each of eleven gaps *computed from the register rather than declared*, so an importer cannot under-declare. Debt closes by itself when the evidence arrives, making the burn-down a measurement rather than a self-report, and expires into a finding at its board-approved date. Debt and breach are reported separately everywhere. One bad row does not stop the batch |
 
 ### What is genuinely working
@@ -95,9 +96,6 @@ deliberately left outside the platform's boundary.
   principals are provisioned by hand.
 - **No policy engine.** Lifecycle guards are hard-coded checks in the registry
   rather than versioned Rego, so gates cannot yet be changed without a release.
-- **The captive engine has no sandbox.** It loads ONNX and PMML artifacts in
-  process with no isolation, no resource limits beyond a timeout, and no
-  container runtime. Running an untrusted artifact through it would be unwise.
 - **No Delta time-travel on reads yet.** `DeltaStore` supports `as_of_version`,
   but assemblies pin a namespace rather than a table version, so restatement
   handling is not implemented.

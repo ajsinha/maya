@@ -127,14 +127,43 @@ Artifacts are read from a configured directory and a path resolving outside it i
 refused. A warrant is a document from elsewhere, and treating a path inside it as
 trustworthy is how a governance system becomes a file-read primitive.
 
+## Isolation, and exactly how far it goes
+
+Artifact-backed runtimes — ONNX and PMML — do not run in the web process. Each
+invocation happens in a child process carrying two limits taken from the
+warrant's `constraints.resources`: a CPU limit and an address-space limit. A
+model that loops forever is killed at its wall clock; one that allocates without
+bound gets a `MemoryError` reported home as a refusal rather than an outage.
+
+Two details in that are deliberate, and both were found by making the tests fail.
+
+The runtime's own dependencies are imported **before** the limit is applied. The
+warrant author budgeted for the model, not for the cost of importing a scoring
+library, and charging the library's footprint to the model's budget made a
+perfectly ordinary artifact fail as though it were greedy.
+
+The memory limit is **additive to the interpreter's current footprint** rather
+than absolute, for the same reason.
+
+The boundary is published rather than implied. `GET /api/v1/engine` reports what
+this isolation protects against — a runaway loop, an allocation storm, a hard
+crash that would otherwise take the platform with it — and what it does not:
+
+> A hostile artifact. A child process shares the filesystem, the network and the
+> user. Real isolation for untrusted code is a container or a virtual machine.
+
+Saying that plainly is better than a name like "sandbox" implying a guarantee the
+process model does not provide. Runtimes bound as callables cannot be isolated at
+all — they are functions the host registered — and the engine names them as
+running in process rather than quietly treating them as protected.
+
 ## What it is still not
 
-There is no sandbox, no container runtime, no resource isolation and no
-quantitative library. Running a real estate means a real engine — one with the
-runtimes, the isolation and the capacity your models actually need. The point of
-the captive engine is that a fresh deployment demonstrates the whole governed
-path end to end, against real ONNX and PMML artifacts, without anyone building
-that first.
+There is no container runtime and no quantitative library. Running a real estate
+means a real engine — one with the runtimes, the isolation and the capacity your
+models actually need. The point of the captive engine is that a fresh deployment
+demonstrates the whole governed path end to end, against real ONNX and PMML
+artifacts, without anyone building that first.
 
 ## Writing your own engine
 

@@ -135,6 +135,12 @@ execution:
     # the warrant before anything is loaded. The engine implements three of the
     # grammar's seventeen runtimes -- registered callables, ONNX, and the
     # regression and scorecard subset of PMML -- and refuses the rest by name.
+    #
+    # Artifact-backed runtimes run in a child process with CPU and memory limits
+    # taken from the warrant's constraints.resources. That protects against a
+    # runaway or crashing artifact; it does NOT protect against a hostile one,
+    # which needs a container or a VM. Bound callables cannot be isolated at all.
+    sandbox: subprocess          # or "none", deliberately and visibly
 
 lifecycle:
   attestation:
