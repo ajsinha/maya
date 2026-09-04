@@ -261,3 +261,17 @@ content:
 logging:
   level: INFO
   format: "%(asctime)s %(levelname)-7s %(name)s | %(message)s"
+
+# Machine assistance. Which model MAYA may ask for a draft.
+#
+# `mock` is the default and is not a placeholder for testing -- it exercises the
+# entire governed path (capability gating, oracles, the grounding gate,
+# attestation, automation-bias sampling) without calling anything, because none
+# of that ever depended on the sentence being real.
+#
+# Every other provider refuses by name until the deployment has answered four
+# questions that are not code: whether this instance may reach the internet at
+# all, what of the register may leave the institution, how a non-deterministic
+# model's output is made reproducible, and who pays. See core/assist/providers.
+assist:
+  provider: mock

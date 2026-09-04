@@ -9,14 +9,23 @@ Organised on one question — can a human check the output more cheaply than
 produce it? Tier A has an oracle and the check is the control; Tier B grounds
 every claim in evidence and a person approves; Tier C is a person using a chat
 window and is deliberately not registrable here.
+
+MAYA can now *ask* as well as record. `providers` holds one working provider —
+a deterministic mock — and three that refuse by name, because a stub returning
+plausible prose into a governance register is worse than no provider at all.
+`DraftingService` joins a provider to the gate, and fixes what a model may cite
+BEFORE it is asked, so a fabricated citation has nowhere to land.
 """
 from core.assist import grounding, oracles
 from core.assist.capabilities import CapabilityRegistry
 from core.assist.common import (AUTONOMY, TIER_A, TIER_B, TIER_MEANING, TIERS,
                                 AssistError)
+from core.assist import providers
+from core.assist.drafting import DraftingService
 from core.assist.generations import GenerationLog
 from core.assist.oracles import ORACLES, Oracle, Verdict
 
-__all__ = ["CapabilityRegistry", "GenerationLog", "AssistError", "grounding",
+__all__ = ["CapabilityRegistry", "GenerationLog", "DraftingService",
+           "providers", "AssistError", "grounding",
            "oracles", "ORACLES", "Oracle", "Verdict", "TIERS", "TIER_A", "TIER_B",
            "TIER_MEANING", "AUTONOMY"]

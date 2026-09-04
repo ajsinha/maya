@@ -91,10 +91,18 @@ deliberately left outside the platform's boundary.
 
 ### Honest gaps
 
-- **MAYA does not call a language model.** It records what one produced, gates
-  it, holds it until a person signs, and measures whether that person is still
-  reading. Generation happens wherever you run models — the same boundary the
-  platform draws everywhere else.
+- **MAYA can call a language model, and one provider works.** `mock` drafts
+  deterministically from the evidence it was handed and is the default; the
+  three remote providers **refuse by name**, because a stub returning plausible
+  prose into a governance register is worse than no provider — the first reader
+  would have no way to tell. The mock is not a stand-in for the path: what a
+  model may cite is fixed from the register *before* it is asked, so the
+  capability gate, the oracle, the grounding gate, attestation and the
+  automation-bias sample all run for real, and only the sentence is fake —
+  which is the part the platform was never going to trust. Wiring a remote
+  provider needs four answers that are not code: whether the instance may reach
+  the internet, what of the register may leave the institution, how a
+  non-deterministic model is made reproducible, and who pays.
 - **No document rendering beyond markdown.** No PDF, no house template, no
   signature page, no export pack. Turning the compiled markdown into a firm's
   document standard is deliberately outside what the platform tries to own.
