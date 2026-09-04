@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from core.domain import (FitProcedure, OutputKind, ParameterKind, ParameterObject,
                          ParametricKernel)
 from core.evidence import EvidenceEngine
+from core.ports import LifecycleGate
 from core.registry.catalogue import ModelCatalogue
 from core.registry.common import RegistryError
 from core.registry.specs import schema_of
@@ -33,8 +34,9 @@ class VersionService:
     """Creates and approves immutable model versions."""
 
     def __init__(self, versions: VersionRepository, catalogue: ModelCatalogue,
-                 evidence: EvidenceEngine):
+                 evidence: EvidenceEngine, gate: Optional[LifecycleGate] = None):
         self.versions, self.catalogue, self.evidence = versions, catalogue, evidence
+        self.gate = gate
 
     @staticmethod
     def kernel_of(spec: Dict[str, Any], artifact_digest: Optional[str]) -> ParametricKernel:
@@ -53,6 +55,10 @@ class VersionService:
                artifact_digest: Optional[str] = None,
                actor: str = "system") -> Dict[str, Any]:
         m = self.catalogue.require(urn)
+        # A new version IS a change to the model. Adding one to an attested
+        # record without an amendment is how the record quietly stops describing
+        # what runs.
+        self._check_open(m)
         if self.versions.one(model_id=m["id"], semver=semver):
             raise RegistryError(
                 f"version {semver} already exists for {urn}; versions are immutable")
@@ -74,6 +80,13 @@ class VersionService:
                              {"semver": semver, "digest": row["manifest_digest"],
                               "trainability_class": row["trainability_class"]}, actor=actor)
         return row
+
+    def _check_open(self, model: Dict[str, Any]) -> None:
+        if self.gate is None:
+            return
+        allowed, why = self.gate.may_mutate(model["id"])
+        if not allowed:
+            raise RegistryError(f"cannot add a version to {model['urn']}: {why}")
 
     def list(self, urn: str) -> List[Dict[str, Any]]:
         return self.versions.many(model_id=self.catalogue.require(urn)["id"])

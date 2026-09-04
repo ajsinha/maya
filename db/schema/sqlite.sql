@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS model (
     legal_entity  TEXT NOT NULL,
     purpose       TEXT NOT NULL,
     origin        TEXT NOT NULL DEFAULT 'internal',
-    status        TEXT NOT NULL DEFAULT 'proposed',
+    status        TEXT NOT NULL DEFAULT 'draft',
     tier          INTEGER,
     attributes    TEXT NOT NULL DEFAULT '{}',
     created_at    REAL NOT NULL,
@@ -307,3 +307,61 @@ CREATE TABLE IF NOT EXISTS principal (
 );
 
 CREATE INDEX IF NOT EXISTS ix_principal_status ON principal (status);
+
+-- --------------------------------------------------------------------------
+-- Lifecycle: amendments and attestation
+-- --------------------------------------------------------------------------
+-- A model record moves draft -> submitted -> approved -> attested. An attested
+-- record is IMMUTABLE: no field changes and no new versions until an amendment
+-- is opened, which returns it to a mutable state and must itself be attested
+-- before the model is back in force.
+--
+-- Attestation is a quorum, not a signature. Each required role signs, and the
+-- model becomes attested only when every one of them has. A single decline ends
+-- it. That is what makes attestation a committee act rather than a button.
+--
+-- Nothing is ever deleted here. Retirement is a state; the deletion of a model
+-- is an administrator-only act that still leaves its evidence behind.
+
+CREATE TABLE IF NOT EXISTS amendment (
+    id          TEXT PRIMARY KEY,
+    model_id    TEXT NOT NULL,
+    reference   TEXT NOT NULL,
+    reason      TEXT NOT NULL,
+    scope       TEXT NOT NULL DEFAULT '[]',
+    status      TEXT NOT NULL DEFAULT 'open',
+    opened_by   TEXT NOT NULL,
+    opened_at   REAL NOT NULL,
+    closed_at   REAL,
+    closed_by   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_amendment_model ON amendment (model_id, status);
+
+CREATE TABLE IF NOT EXISTS attestation (
+    id             TEXT PRIMARY KEY,
+    model_id       TEXT NOT NULL,
+    amendment_id   TEXT,
+    kind           TEXT NOT NULL DEFAULT 'initial',
+    required_roles TEXT NOT NULL DEFAULT '[]',
+    status         TEXT NOT NULL DEFAULT 'open',
+    statement      TEXT NOT NULL DEFAULT '',
+    opened_by      TEXT NOT NULL,
+    opened_at      REAL NOT NULL,
+    completed_at   REAL,
+    expires_at     REAL
+);
+
+CREATE INDEX IF NOT EXISTS ix_attestation_model ON attestation (model_id, status);
+
+CREATE TABLE IF NOT EXISTS attestation_signature (
+    id             TEXT PRIMARY KEY,
+    attestation_id TEXT NOT NULL,
+    principal      TEXT NOT NULL,
+    role           TEXT NOT NULL,
+    decision       TEXT NOT NULL,
+    statement      TEXT NOT NULL DEFAULT '',
+    signed_at      REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_signature_attestation ON attestation_signature (attestation_id);

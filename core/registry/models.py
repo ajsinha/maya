@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
-from core.ports import BlockingSource
+from core.ports import BlockingSource, LifecycleGate
 from core.registry.aliases import AliasService
 from core.registry.catalogue import ModelCatalogue
 from core.registry.common import RegistryError
@@ -32,12 +32,27 @@ class ModelRegistry:
 
     def __init__(self, models: ModelRepository, versions: VersionRepository,
                  aliases: AliasRepository, history: AliasHistoryRepository,
-                 evidence: EvidenceEngine, blocking: Optional[BlockingSource] = None):
-        self.catalogue = ModelCatalogue(models, evidence)
-        self.version_service = VersionService(versions, self.catalogue, evidence)
+                 evidence: EvidenceEngine, blocking: Optional[BlockingSource] = None,
+                 gate: Optional[LifecycleGate] = None):
+        self.catalogue = ModelCatalogue(models, evidence, gate)
+        self.version_service = VersionService(versions, self.catalogue, evidence, gate)
         self.alias_service = AliasService(aliases, history, self.catalogue,
                                           self.version_service, evidence, blocking)
         self.evidence = evidence
+
+    def attach_gate(self, gate: LifecycleGate) -> None:
+        """Wire the lifecycle gate after construction.
+
+        The lifecycle service needs the registry, and the registry needs the
+        gate, so one of the two has to be connected second. Doing it explicitly
+        beats a lazy import or a circular constructor.
+        """
+        self.catalogue.gate = gate
+        self.version_service.gate = gate
+
+    def update(self, urn: str, fields: Dict[str, Any],
+               actor: str = "system") -> Dict[str, Any]:
+        return self.catalogue.update(urn, fields, actor)
 
     def attach_blocking(self, blocking: BlockingSource) -> None:
         """Wire the gate after construction.

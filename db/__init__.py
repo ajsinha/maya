@@ -13,11 +13,12 @@ is the pair of hand-written files under db/schema/, applied idempotently.
 """
 from db.database import Database, DeltaPaths
 from db.delta_store import DeltaStore
-from db.repositories import (AliasHistoryRepository, AliasRepository, ContractRepository,
+from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
+                             AttestationRepository, ContractRepository,
                              EvidenceRepository, FeatureRepository, FeatureViewRepository,
                              FeatureViewVersionRepository, FindingRepository,
                              WarrantRepository, ModelRepository, PrincipalRepository, Repository, RiskRepository,
-                             SnapshotRepository, TestResultRepository,
+                             SignatureRepository, SnapshotRepository, TestResultRepository,
                              ValidationRepository, VersionRepository)
 
 __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepository",
@@ -25,4 +26,5 @@ __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepositor
            "EvidenceRepository", "RiskRepository", "WarrantRepository", "FeatureRepository",
            "FeatureViewRepository", "FeatureViewVersionRepository", "ContractRepository",
            "SnapshotRepository", "ValidationRepository",
-           "TestResultRepository", "FindingRepository", "PrincipalRepository"]
+           "TestResultRepository", "FindingRepository", "PrincipalRepository", "AmendmentRepository",
+           "AttestationRepository", "SignatureRepository"]
