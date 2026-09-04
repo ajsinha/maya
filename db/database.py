@@ -11,14 +11,21 @@ import secrets
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import create_engine, text
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.engine import Engine
 
 from core.log import get_logger
 
 logger = get_logger(__name__)
+
+# The connection a transaction() is running on, if any. A ContextVar
+# rather than a thread local so it is correct under async as well.
+_CONNECTION: ContextVar = ContextVar("maya_db_connection", default=None)
 SCHEMA_DIR = Path(__file__).resolve().parent / "schema"
 
 
@@ -61,9 +68,24 @@ class Database:
 
     def __init__(self, url: str = "sqlite:///data/sqlite/maya.db", echo: bool = False):
         self.url = url
+        options: Dict[str, Any] = {}
         if url.startswith("sqlite:///") and ":memory:" not in url:
             Path(url[len("sqlite:///"):]).parent.mkdir(parents=True, exist_ok=True)
-        self.engine: Engine = create_engine(url, echo=echo, future=True)
+        if ":memory:" in url:
+            # An in-memory SQLite database belongs to its CONNECTION, so the
+            # default pool hands every caller a different, empty database. That
+            # is not a smaller version of production -- it is a topology in
+            # which two callers can never contend for anything, and it is why a
+            # read-then-write race in the evidence chain survived a suite of
+            # eighteen hundred tests.
+            #
+            # StaticPool keeps one connection, so `:memory:` means ONE database
+            # the way a file or a Postgres server does. Tests that need genuine
+            # parallel connections use a file-backed URL; see
+            # tests/test_concurrency.py.
+            options = {"poolclass": StaticPool,
+                       "connect_args": {"check_same_thread": False}}
+        self.engine: Engine = create_engine(url, echo=echo, future=True, **options)
         self.dialect = self.engine.dialect.name
         self.apply_schema()
 
@@ -87,12 +109,45 @@ class Database:
                 conn.execute(text(stmt))
         logger.info("schema applied from %s (%s)", path.name, self.dialect)
 
+    # ------------------------------------------------------------- transaction
+    @contextmanager
+    def transaction(self):
+        """Run several statements on one connection, committed or rolled back
+        together.
+
+        Without this there was no way to make a read and a write atomic, because
+        every statement opened its own connection: `execute` began a transaction
+        and ended it, and `query` opened a second one that could not see inside
+        the first. Anything shaped read-then-write was therefore a race, and the
+        evidence chain is exactly that shape -- read the head, insert head+1.
+
+        Re-entrant. A nested call joins the transaction already running rather
+        than opening a second one and deadlocking against it, so a service can
+        wrap a whole governance act without knowing what its collaborators do.
+        """
+        existing = _CONNECTION.get()
+        if existing is not None:
+            yield existing
+            return
+        with self.engine.begin() as conn:
+            token = _CONNECTION.set(conn)
+            try:
+                yield conn
+            finally:
+                _CONNECTION.reset(token)
+
     # ------------------------------------------------------------------ access
     def execute(self, sql: str, params: Optional[Dict[str, Any]] = None) -> int:
+        conn = _CONNECTION.get()
+        if conn is not None:
+            return conn.execute(text(sql), params or {}).rowcount
         with self.engine.begin() as conn:
             return conn.execute(text(sql), params or {}).rowcount
 
     def query(self, sql: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        conn = _CONNECTION.get()
+        if conn is not None:
+            return [dict(r) for r in conn.execute(text(sql), params or {}).mappings()]
         with self.engine.connect() as conn:
             return [dict(r) for r in conn.execute(text(sql), params or {}).mappings()]
 
