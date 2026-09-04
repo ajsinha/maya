@@ -24,7 +24,7 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking", "matured")
+                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled")
 
 
 class Repository:
@@ -244,3 +244,12 @@ class OverlayRepository(Repository):
 
 class MeasurementRepository(Repository):
     TABLE, ORDER = "overlay_measurement", "measured_at"
+
+
+class CapabilityRepository(Repository):
+    TABLE, ORDER = "ai_capability", "created_at"
+
+
+class GenerationRepository(Repository):
+    TABLE, ORDER = "ai_generation", "created_at"
+    JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
