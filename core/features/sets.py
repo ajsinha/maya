@@ -95,7 +95,8 @@ class FeaturesetRegistry:
                "label_slot": label_slot,
                "outcome_window_days": outcome_window_days,
                "grain": grain or f"one row per {entity}",
-               "composes": list(composes or []),
+               "composes": self._stamp(composes),
+               "definition_version": 1,
                "operations": list(operations or []),
                "defaults": policy.check(defaults),
                "ephemeral": int(ephemeral),
@@ -115,6 +116,50 @@ class FeaturesetRegistry:
                               "slots": sorted(normalised), "label": label_slot},
                              actor=actor)
         return self.sets.one(id=row["id"])
+
+    # -------------------------------------------------------------- composition
+    def _stamp(self, composes: Optional[Sequence[Any]]) -> List[Dict[str, Any]]:
+        """Record which DEFINITION of each parent this was composed against.
+
+        Deliberately the same construction as a feature's, because "a
+        combination of featuresets is a featureset" has to mean the same thing
+        one level up or it means nothing. Without the stamp a parent whose
+        policy is changed silently changes every child that inherits from it --
+        a stable identifier over moving contents, which is adversarial finding
+        C-2 wearing its fourth costume.
+        """
+        out = []
+        for parent in composes or []:
+            spec = {"name": parent} if isinstance(parent, str) else dict(parent)
+            row = self.sets.one(name=spec.get("name"))
+            if row is None:
+                raise FeatureError(
+                    f"cannot compose from '{spec.get('name')}': no such featureset")
+            spec.setdefault("definition_version",
+                            row.get("definition_version") or 1)
+            out.append(spec)
+        return out
+
+    def drift(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parents whose definition has moved since this featureset composed them.
+
+        Reported rather than raised, for the same reason as a feature's: a child
+        whose parent has moved is a thing to be told about. Refusing the read
+        would take the schema away from whoever most needs to look at it.
+        """
+        moved = []
+        for parent in row.get("composes") or []:
+            spec = {"name": parent} if isinstance(parent, str) else parent
+            current = self.sets.one(name=spec.get("name"))
+            if current is None:
+                continue
+            was = spec.get("definition_version")
+            now = current.get("definition_version") or 1
+            if was is not None and now != was:
+                moved.append({"parent": spec["name"], "composed_against": was,
+                              "now_at": now,
+                              "sealed": bool(current.get("sealed_at"))})
+        return moved
 
     @staticmethod
     def _slot(name: str, spec: Any) -> Dict[str, Any]:
@@ -167,6 +212,7 @@ class FeaturesetRegistry:
             "lifetime": self.lifecycle.remaining(row),
             "sealed": bool(row.get("sealed_at")),
             "policy": policy.explain(row, self._parents(row), request),
+            "drift": self.drift(row),
         }
 
     # --------------------------------------------------------------- lifecycle
@@ -192,9 +238,16 @@ class FeaturesetRegistry:
         row = self.require(name)
         self.lifecycle.refuse_if_sealed(row, "have its policy changed")
         checked = policy.check(defaults)
-        self.sets.set({"defaults": checked}, id=row["id"])
+        # This is a definition change, not a note in the margin: a child that
+        # inherits from this featureset resolves its retrieval behaviour through
+        # here, so the children stamped against the old definition have to be
+        # able to find out.
+        version = (row.get("definition_version") or 1) + 1
+        self.sets.set({"defaults": checked, "definition_version": version},
+                      id=row["id"])
         self.evidence.append("featureset_policy_set", "featureset", row["id"],
-                             {"name": name, "policy": checked}, actor=actor)
+                             {"name": name, "policy": checked,
+                              "definition_version": version}, actor=actor)
         return self.sets.one(id=row["id"])
 
     def destroy(self, name: str, why: str = "expired",

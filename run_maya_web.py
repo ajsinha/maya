@@ -36,7 +36,7 @@ from core.lifecycle import (AmendmentService, AttestationService,
 from core.execution import WarrantError, WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
 from core.attachments import AttachmentRegister, DocumentStore
-from core.parameters import ParameterRegister
+from core.parameters import FittingService, ParameterRegister
 from core.baseline import BaselineImporter, DebtRegister
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
@@ -300,6 +300,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
             warrants, cfg.get_float("execution.captive.max_seconds", 30.0),
             artifact_dir=Path(cfg.get("data.artifacts", str(ROOT / "data" / "artifacts"))),
             sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox())
+        # Fitting needs an engine to run the estimator in, so it is wired here
+        # rather than beside the register: an instance with the captive engine
+        # switched off can still record a fit performed elsewhere, and cannot
+        # perform one itself. That is the honest shape of the dependency.
+        ctx["fitting"] = FittingService(
+            ctx["engine"], warrants, parameters, features,
+            SnapshotRepository(db), DeltaStore(delta.root), evidence)
     return ctx
 
 

@@ -39,7 +39,9 @@ class TrainingSetBuilder:
     def build(self, name: str, spine: List[Dict[str, Any]], views: List[Dict[str, Any]],
               as_of: float, valid_time_bound: bool = True,
               transaction_time_bound: bool = True,
-              actor: str = "system") -> Dict[str, Any]:
+              actor: str = "system",
+              featureset: Optional[str] = None,
+              featureset_version: Optional[int] = None) -> Dict[str, Any]:
         req = AssemblyRequest(spine, views, as_of, valid_time_bound, transaction_time_bound)
         gate = static_check(req)
         if not gate.passed:
@@ -51,7 +53,8 @@ class TrainingSetBuilder:
         if report.leakage:
             report.passed = False
             report.detail += f"; suspected label leakage in {', '.join(report.leakage)}"
-        return self._persist(name, rows, as_of, report, actor)
+        return self._persist(name, rows, as_of, report, actor,
+                             featureset, featureset_version)
 
     # ------------------------------------------------------------------- join
     def _join(self, spine: List[Dict[str, Any]], views: List[Dict[str, Any]],
@@ -98,7 +101,9 @@ class TrainingSetBuilder:
 
     # ---------------------------------------------------------------- persist
     def _persist(self, name: str, rows: List[Dict[str, Any]], as_of: float,
-                 report, actor: str) -> Dict[str, Any]:
+                 report, actor: str,
+                 featureset: Optional[str] = None,
+                 featureset_version: Optional[int] = None) -> Dict[str, Any]:
         table = f"snapshots/{name}"
         # The pins the assembly actually read, recorded so a replay reads the
         # same bytes rather than the same paths.
@@ -106,6 +111,11 @@ class TrainingSetBuilder:
                "delta_version": self.delta.write(table, rows, mode="overwrite"),
                "row_count": len(rows), "as_of": as_of,
                "pit_verified": int(report.passed), "pit_report": report.as_dict(),
+               # Stored, not returned-and-forgotten. A fit warrant pins the
+               # snapshot, so "which schema did these columns come from" has to
+               # survive reading the row back rather than only being known to
+               # whoever happened to call the assembler.
+               "featureset": featureset, "featureset_version": featureset_version,
                "digest": canonical_digest({"name": name, "as_of": as_of, "rows": len(rows)}),
                "created_at": time.time()}
         self.snapshots.add(row)

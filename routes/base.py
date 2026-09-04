@@ -109,6 +109,18 @@ STATUS: Dict[str, int] = {
     # right answer given the same remedy; repeating the key here silently
     # overwrote the earlier entry with an identical value and hid the sharing.
     "policy_refused": 403,
+    # fitting a parameter object
+    # A refusal here almost always names something the caller can put right in
+    # the featureset or the warrant, so the status separates "you asked for
+    # something incoherent" from "the data will not support it".
+    "window_required": 422, "window_inverted": 422,
+    "no_snapshot": 404, "snapshot_storage_missing": 410,
+    "snapshot_not_from_a_featureset": 409, "snapshot_is_empty": 409,
+    "wrong_verb": 409, "unknown_family": 422, "fit_underspecified": 422,
+    "target_is_a_regressor": 422, "no_rows": 422, "too_few_rows": 422,
+    "column_missing": 422, "value_not_numeric": 422,
+    "not_identified": 422, "collinear_regressors": 422,
+    "series_is_constant": 422, "fit_did_not_converge": 422,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,

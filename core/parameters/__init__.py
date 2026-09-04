@@ -12,7 +12,8 @@ with different evidence behind it, and each governed to a different depth.
 from core.parameters.common import (CALIBRATED, DECLARED, FITTED,
                                     PROVENANCE, PROVENANCE_MEANING, STATES,
                                     ParameterError)
+from core.parameters.fitting import FittingService
 from core.parameters.register import ParameterRegister
 
-__all__ = ["ParameterRegister", "ParameterError", "PROVENANCE",
+__all__ = ["ParameterRegister", "FittingService", "ParameterError", "PROVENANCE",
            "PROVENANCE_MEANING", "STATES", "FITTED", "CALIBRATED", "DECLARED"]

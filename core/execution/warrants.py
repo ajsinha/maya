@@ -214,6 +214,20 @@ class WarrantService:
     def grants_for(self, urn: str) -> List[Dict[str, Any]]:
         return self.grants.of_model(urn)
 
+    def entitlement(self, urn: str, environment: str, principal: str,
+                    declared_use: str) -> Dict[str, Any]:
+        """The standing grant a descriptor for this call would be minted from.
+
+        A resolved descriptor is not stored, so anything that has to record
+        *which authority* an act was performed under records the grant. Public
+        because recording that is not this service's own business: a fit records
+        it against the parameter set it produced, and the register checks it
+        there.
+        """
+        model = self._model(urn, model_urn(parse_urn(urn)[0]))
+        self._check_not_blocked(model)
+        return self._grant(model, environment, principal, declared_use)
+
     def get(self, grant_id: str) -> Optional[Dict[str, Any]]:
         """The standing entitlement behind an issued warrant, or None.
 
