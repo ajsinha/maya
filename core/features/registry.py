@@ -136,6 +136,10 @@ class FeatureRegistry:
         return self._derived().compute(name, rows)
 
     # ------------------------------------------------------------- featuresets
+    def preview_featureset(self, *a, **kw) -> Dict[str, Any]:
+        """What a featureset would resolve to, declaring nothing."""
+        return self.sets.preview(*a, **kw)
+
     def define_featureset(self, *a, **kw) -> Dict[str, Any]:
         return self._sets().define(*a, **kw)
 

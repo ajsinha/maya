@@ -799,3 +799,85 @@ class TestTheUploadFormIsOnThePage:
         login(registered)
         body = registered.get("/features").text
         assert '"/api/v1/feature-views/" + encodeURIComponent(view) + "/data"' in body
+
+
+class TestComposingAFeaturesetFromTheInterface:
+    """Composition, inheritance and overrides are the centre of this design, and
+    the form offered a comma-separated box for parents and a JSON textarea for
+    slots — with no way to express an operation at all. The two things the
+    design is *for* were the two hardest things to do in the interface.
+    """
+
+    def _parent(self, client, auth, name="core_set"):
+        for slot in ("dscr", "turnover"):
+            client.post("/api/v1/features", auth=auth, json={
+                "name": slot, "entity": "borrower_id", "dtype": "numeric",
+                "description": slot, "owner": "person/j.okafor"})
+        client.post("/api/v1/featuresets", auth=auth, json={
+            "name": name, "entity": "borrower_id",
+            "slots": {"dscr": "numeric", "turnover": "numeric"}})
+        return name
+
+    def test_a_preview_resolves_without_declaring_anything(self, registered,
+                                                           people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev)
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "slots": {"spend": "numeric"}, "composes": [{"name": parent}]})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert set(body["slots"]) == {"dscr", "turnover", "spend"}
+        assert body["declared_slots"] == ["spend"]
+        assert body["inherited_slots"] == ["dscr", "turnover"]
+        # and nothing was created
+        assert registered.get("/api/v1/featuresets", auth=dev).json()
+
+    def test_a_preview_shows_what_an_override_changes(self, registered, people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "override_parent")
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "override", "name": "dscr",
+                            "value": {"dtype": "integer"}}]})
+        body = r.json()
+        assert body["slots"]["dscr"]["dtype"] == "integer"
+        assert "dscr" in body["declared_slots"], (
+            "an overridden slot is this set's own decision, not the parent's")
+
+    def test_a_preview_shows_what_a_drop_removes(self, registered, people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "drop_parent")
+        body = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "drop", "name": "turnover"}]}).json()
+        assert set(body["slots"]) == {"dscr"}
+
+    def test_a_preview_refuses_exactly_what_declaring_would(self, registered,
+                                                            people):
+        """A preview that accepted more than the real thing would be worse than
+        none: somebody would design against it and be refused at the last step."""
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "strict_parent")
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "drop", "name": "not_a_slot"}]})
+        assert r.status_code == 409, "dropping what is not there is a no-op, refused"
+
+    def test_an_unknown_parent_is_refused_in_the_preview_too(self, registered,
+                                                             people):
+        r = registered.post("/api/v1/featuresets/preview",
+                            auth=people["d.raman"],
+                            json={"composes": [{"name": "no_such_set"}]})
+        assert r.status_code == 409
+        assert "no such featureset" in r.text
+
+    def test_the_form_offers_slots_parents_and_operations(self, registered):
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/featuresets").text
+        assert 'id="slot-rows"' in body
+        assert 'id="parent-rows"' in body
+        assert 'id="op-rows"' in body
+        assert 'id="preview-set"' in body
+        for word in ("add", "drop", "override"):
+            assert word in body, word

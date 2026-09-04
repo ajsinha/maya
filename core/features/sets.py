@@ -161,6 +161,53 @@ class FeaturesetRegistry:
                               "sealed": bool(current.get("sealed_at"))})
         return moved
 
+    def preview(self, slots: Optional[Dict[str, Any]] = None,
+                composes: Optional[Sequence[Any]] = None,
+                operations: Optional[Sequence[Dict[str, Any]]] = None,
+                defaults: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """What this featureset WOULD resolve to, without declaring anything.
+
+        Composition, inheritance and overrides are the part of this design
+        people get wrong, and they get it wrong for a good reason: the answer is
+        not what you typed, it is what your parents plus your operations say.
+        Making somebody declare a featureset to find that out means the register
+        fills with attempts.
+
+        So this is the same fold `define` runs, with nothing written. It refuses
+        exactly what `define` would refuse -- an unknown parent, an operation
+        that is a no-op, a cycle, a depth past the limit -- because a preview
+        that accepted more than the real thing would be worse than none.
+        """
+        row = {"name": "(preview)", "slots": {k: self._slot(k, v)
+                                              for k, v in (slots or {}).items()},
+               "composes": self._stamp(composes),
+               "operations": list(operations or []),
+               "defaults": policy.check(defaults)}
+        resolved = self.resolver.resolve(row)
+        own = set(row["slots"]) | {
+            op.get("name") for op in row["operations"]
+            if op.get("op") in ("add", "override") and op.get("name")}
+        parents = self._parents(row)
+        return {
+            "slots": resolved,
+            "declared_slots": sorted(own & set(resolved)),
+            "inherited_slots": sorted(set(resolved) - own),
+            "lineage": self.resolver.lineage(row),
+            "provenance": self.resolver.explain(row) if row["composes"] else {},
+            "policy": policy.explain(row, parents),
+            "detail": self._preview_detail(resolved, own),
+        }
+
+    @staticmethod
+    def _preview_detail(resolved: Dict[str, Any], own: set) -> str:
+        inherited = len(set(resolved) - own)
+        if not resolved:
+            return "this resolves to no slots at all, which is not a schema"
+        return (f"{len(resolved)} slot(s): {len(set(resolved) & own)} declared here"
+                + (f", {inherited} inherited" if inherited else "")
+                + ". the order is the fold: leftmost parent first, rightmost "
+                  "wins, then this set's own slots, then its operations")
+
     @staticmethod
     def _slot(name: str, spec: Any) -> Dict[str, Any]:
         """A slot is a type and a nullability. Given a bare string, it is a type."""
