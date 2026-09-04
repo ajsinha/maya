@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Telemetry — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT IS ARRIVING</p>
+<h1>Telemetry</h1>
+<div class="rule"></div>
+<p class="text-muted small">Two streams per model version, because they arrive at
+different times: a <strong>score</strong> exists the moment the model runs, an
+<strong>outcome</strong> is learned later. The gap between them is the thing a
+performance monitor has to reason about, so they are joined when they are read
+and not when they arrive.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if estate.silent else '' }}">{{ estate.silent }}</div>
+    <div class="stat-l">have stopped sending</div>
+    <div class="stat-l mt-1">nothing scored for over
+      {{ estate.silent_after_days|round(1) }} days</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ estate.never }}</div>
+    <div class="stat-l">have never sent anything</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ estate.sending }}</div>
+    <div class="stat-l">are sending</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ estate.versions|sum(attribute='scores') }}</div>
+    <div class="stat-l">scores held</div>
+    <div class="stat-l mt-1">{{ estate.versions|sum(attribute='outcomes') }} outcomes</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Every version, the silent ones first</span>
+    <span class="small text-muted">{{ estate.detail }}</span></div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Version</th><th>Silence</th><th>Scores</th><th>Outcomes</th>
+               <th>Sampling</th><th>What it means</th></tr></thead>
+    <tbody>
+    {% for v in estate.versions %}
+      <tr><td class="small">
+            <a href="/telemetry/{{ v.semver }}/{{ v.model.replace('maya://model/','') }}"
+               style="color:var(--crimson);text-decoration:none">
+              {{ v.model_name }} v{{ v.semver }}</a>
+            <div class="text-muted mono">{{ v.model }}</div></td>
+          <td class="small">
+            {% if v.silent %}
+              <span class="evidence-bad">{{ v.silent_days }} days</span>
+              <div class="text-muted">since anything was scored</div>
+            {% elif v.never %}
+              <span class="text-muted">never sent</span>
+            {% else %}
+              <span class="evidence-ok">{{ v.silent_days }} days</span>
+            {% endif %}</td>
+          <td class="small">{{ "{:,}".format(v.scores) }}</td>
+          <td class="small">{{ "{:,}".format(v.outcomes) }}
+            <div class="text-muted">{{ (v.labelled_fraction * 100)|round(1) }}% labelled</div></td>
+          <td class="small">
+            {% if v.sample_rates %}
+              {% for r in v.sample_rates %}{{ (r * 100)|round(1) }}%{{ "" if loop.last else ", " }}{% endfor %}
+            {% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          <td class="small text-muted">{{ v.detail }}</td></tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted small">
+        No versions are registered, so there is nothing that could be sending.
+        Telemetry is per model version rather than per model: two versions of one
+        model score different populations, and a monitor that mixed them would be
+        judging neither.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A version that has stopped sending is what this page exists to surface. A
+    monitor evaluated over a stale window still returns a number, and the number
+    describes a population that is no longer being produced &mdash; so the
+    silence is the finding, not the absence of one.</div></div>
+
+<div class="card mb-3"><div class="card-header">The two streams</div>
+  <table class="table maya mb-0">
+    <tbody>
+    {% for stream, means in streams.items() %}
+      <tr><td class="small mono" style="width:8rem">{{ stream }}</td>
+          <td class="small text-muted">{{ means }}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Ingestion is idempotent: a batch carries the digest of its own rows, and a
+    digest already recorded is accepted and not written again. Real collectors
+    deliver at least once, and a monitor that double-counted a redelivered batch
+    would report a population that never existed.</div></div>
+{% endblock %}
