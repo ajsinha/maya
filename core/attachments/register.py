@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 from core.attachments.common import KINDS, TEXT_MEDIA, AttachmentError
 from core.attachments.store import DocumentStore
 from core.evidence import EvidenceEngine
+from core.authz.common import same_person
 from core.log import get_logger
 from db import AttachmentRepository
 
@@ -145,7 +146,7 @@ class AttachmentRegister:
             raise AttachmentError("already_reviewed",
                                   f"this document is already '{row['state']}'",
                                   "supersede it if it needs replacing")
-        if actor == row["attached_by"]:
+        if same_person(actor, row["attached_by"]):
             raise AttachmentError(
                 "self_review",
                 f"{actor} attached this document and cannot also accept it",

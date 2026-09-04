@@ -1109,7 +1109,7 @@ runs(tf, [("Both are scalars, shape []. ", CRIMSON, True),
 note(sl, x, y + 3.18, CW * 0.50, 0.92,
      "The numbers on these slides were not invented. ",
      "Both files were pulled from FRED on 4 September 2026 and ship beside the "
-     "deck in docs/data/ \u2014 ",
+     "deck in docs/examples/ \u2014 ",
      "every figure that follows was computed from them.")
 
 
@@ -1292,7 +1292,7 @@ para(tf, "A deck that quotes figures nobody can check is a deck that has to be "
 
 x = ML + CW * 0.56
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(HERE, "..", "..", "docs", "data")
+DATA = os.path.join(HERE, "..", "..", "docs", "examples")
 
 # Embedded as WORKBOOKS, not as OLE packages. An OLE package must be wrapped in
 # a compound document, and handing PowerPoint raw bytes under that prog id
@@ -1325,7 +1325,7 @@ for stem, title, sheet, detail in files:
     yy += 1.52
 
 note(sl, ML, y + 3.22, CW, 0.86,
-     "They also ship in the repository, at docs/data/, as CSV. ",
+     "They also ship in the repository, at docs/examples/, as CSV. ",
      "The deck is regenerated from source rather than edited as a binary, so "
      "the figures and the files cannot drift apart \u2014 ",
      "the generator reads these same two CSVs.")

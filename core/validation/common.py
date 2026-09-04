@@ -12,6 +12,10 @@ date is derived from how bad something is rather than negotiated per finding.
 """
 from __future__ import annotations
 
+# Identity comparison is an authorisation question, not a validation one,
+# and every duties check in the platform has to ask it the same way.
+from core.authz.common import same_person  # noqa: F401 -- re-exported
+
 DAY = 86400.0
 
 # Worst first. Index doubles as the ordering.
@@ -104,17 +108,3 @@ class FindingWorkflowError(ValidationError):
     def as_problem(self):
         return {"error": self.code, "detail": self.detail,
                 "remediation": self.remediation}
-
-
-def same_person(a: str, b: str) -> bool:
-    """Whether two identities name the same person.
-
-    The platform writes an owner as ``person/j.okafor`` and authenticates the
-    same human as ``j.okafor``. A duties check that compares the two with ``==``
-    is one anybody can step around by dropping seven characters, which is the
-    whole value of it gone.
-    """
-    def bare(who: str) -> str:
-        return (who or "").strip().rsplit("/", 1)[-1].casefold()
-
-    return bool(a) and bool(b) and bare(a) == bare(b)

@@ -26,6 +26,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
+from core.authz.common import same_person
 from core.log import get_logger
 from core.parameters.common import (APPROVED, CALIBRATED, DECLARED, FITTED,
                                     MAX_INLINE_VALUES, NEEDS_WARRANT, PROPOSED,
@@ -208,7 +209,7 @@ class ParameterRegister:
         """A parameter set changes behaviour, so it is approved like a version."""
         row = self.require(parameter_set_id)
         self._refuse_second_review(row)
-        if actor == row["created_by"]:
+        if same_person(actor, row["created_by"]):
             raise ParameterError(
                 "self_approval",
                 f"{actor} recorded these parameters and cannot also approve them",

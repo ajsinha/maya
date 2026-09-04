@@ -84,3 +84,21 @@ def require_known(permission: str) -> str:
                          f"'{permission}' is not a recognised permission",
                          "check the spelling against core.authz.common.PERMISSIONS")
     return permission
+
+
+def same_person(a: str, b: str) -> bool:
+    """Whether two identities name the same person.
+
+    The platform writes an owner as ``person/j.okafor`` and authenticates the
+    same human as ``j.okafor``. A duties check that compares the two with ``==``
+    is one anybody can step around by dropping seven characters, which is the
+    whole value of it gone.
+
+    It lives here rather than beside any one register because the question is
+    about identity, and every subsystem that enforces a duties rule has to ask
+    it the same way. Two of them were asking it differently.
+    """
+    def bare(who: str) -> str:
+        return (who or "").strip().rsplit("/", 1)[-1].casefold()
+
+    return bool(a) and bool(b) and bare(a) == bare(b)

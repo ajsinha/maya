@@ -9,12 +9,6 @@
 # and Delta tables are large and machine-generated.
 /data/
 data/
-# The exception, and the reason for it: docs/data/ holds the two published FRED
-# series the worked example computes its figures from. The engineering deck says
-# they ship with the repository, and a deck that says so while the pattern above
-# quietly excludes them is a document that lies about its own sources.
-!docs/data/
-!docs/data/*.csv
 *.db
 *.db-journal
 *.db-wal
@@ -119,4 +113,6 @@ tmp/
 
 # Workbooks generated from the CSVs at deck build time. The CSVs are
 # the source; these are derived and are embedded into the pptx.
-docs/data/*.xlsx
+# Workbooks generated from the published series at deck build time. The CSVs in
+# docs/examples/ are the source; these are derived and embedded into the pptx.
+docs/examples/*.xlsx

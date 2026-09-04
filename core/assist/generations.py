@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from core.assist import grounding, oracles
 from core.assist.common import TIER_A, AssistError
 from core.evidence import EvidenceEngine
+from core.authz.common import same_person
 from core.log import get_logger
 from db import GenerationRepository
 
@@ -139,7 +140,7 @@ class GenerationLog:
         if row["state"] != "drafted":
             raise AssistError("already_decided",
                               f"this generation is already '{row['state']}'", "")
-        if actor == row["created_by"] and row["created_by"] != "system":
+        if same_person(actor, row["created_by"]) and row["created_by"] != "system":
             raise AssistError(
                 "self_attestation",
                 f"{actor} requested this generation and cannot also attest it",

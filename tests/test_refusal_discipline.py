@@ -103,3 +103,29 @@ def test_no_refusal_code_is_mapped_twice():
     assert not duplicated, (
         f"{source} maps these refusal codes more than once, so only the last "
         f"mapping is in force: {sorted(set(duplicated))}")
+
+
+def test_nothing_under_a_data_folder_is_ever_committed():
+    """Runtime data does not go in the repository -- and the rule is absolute.
+
+    data/ holds the control-plane database, the content-addressed artifact store
+    and the Delta Lake root. Artifacts may be proprietary models or carry
+    personal data, so this is a disclosure rule, not a tidiness one.
+
+    It is tested rather than left to .gitignore because the failure mode is a
+    NEGATION. Somebody needs one file from under a data/ path, adds `!` for it,
+    and the exception is now a precedent that reads as permission -- which is
+    how the two published FRED series briefly came to sit in docs/data/ before
+    being moved to docs/examples/, where no exception is needed at all.
+    """
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files"], capture_output=True, text=True, check=True).stdout
+    inside = [f for f in tracked.splitlines()
+              if f == "data" or f.startswith("data/") or "/data/" in f]
+    assert not inside, (
+        "these files are committed from under a data/ folder:\n    "
+        + "\n    ".join(inside)
+        + "\nIf a file genuinely belongs in the repository, move it out of a "
+          "data/ path rather than adding a negation to .gitignore.")
