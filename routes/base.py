@@ -14,6 +14,8 @@ drifts.
 """
 from __future__ import annotations
 
+import logging
+
 import base64
 import binascii
 from typing import Any, Callable, Dict, Optional
@@ -38,7 +40,7 @@ from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.monitoring import MonitorError
 from core.overlays import OverlayError
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from core.registry import RegistryError
 from core.validation import FindingWorkflowError, ValidationError
 
@@ -350,6 +352,44 @@ class Routes:
         return {"app_name": c.get("app.name", "MAYA"), "tagline": c.get("app.tagline", ""),
                 "slogan": c.get("app.slogan", ""), "version": c.get("app.version", ""),
                 "user": current_user(request) if request is not None else None}
+
+    def page_principal(self, request: Request):
+        """The signed-in principal for a PAGE, resolved from the session.
+
+        `login_required` answers whether somebody is signed in. It does not
+        answer who they are or what they may see, and the pages used it alone --
+        so a validator scoped to one legal entity got 403 from the API and the
+        dashboard correctly hid the model, then loaded the detail page directly
+        and received its versions, alias history, warrant grants and full
+        evidence chain. Listings filtered; directly-addressable pages did not.
+        """
+        username = current_user(request)
+        if username is None:
+            return None
+        return self.ctx["principals"].get(username)
+
+    def may_view(self, request: Request, permission: str = "model:read",
+                 model: Optional[Dict[str, Any]] = None) -> bool:
+        """Whether the signed-in person may see this, by the same rule the API
+        applies. One authorisation policy, asked from two places."""
+        who = self.page_principal(request)
+        if who is None:
+            return False
+        try:
+            self.ctx["authz"].authorise(who, permission, model)
+            return True
+        except AuthzError as exc:
+            swallowed(logger, exc, "decided whether to render a page",
+                      detail=f"{who.get('username')} may not {permission}; the "
+                             f"page refuses rather than raising, because a page "
+                             f"is not an API call",
+                      level=logging.INFO)
+            return False
+
+    def refused_page(self, request: Request, what: str):
+        """A page-shaped refusal, matching the API's 403 rather than pretending
+        the thing does not exist."""
+        return self.page(request, "forbidden.html", http_status=403, what=what)
 
     def page(self, request: Request, template: str, *, http_status: int = 200,
              **context):

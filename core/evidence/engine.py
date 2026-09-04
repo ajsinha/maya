@@ -57,8 +57,11 @@ APPEND_ATTEMPTS = 8
 class EvidenceEngine:
     """Append-only, hash-chained evidence with semiring evaluation over it."""
 
-    def __init__(self, repo: EvidenceRepository):
+    def __init__(self, repo: EvidenceRepository, checkpoints=None):
         self.repo = repo
+        # Optional. Without one, verification is always the full walk, which is
+        # correct and slow; with one, readiness can ask the cheap question.
+        self.checkpoints = checkpoints
 
     # -------------------------------------------------------------- append
     def head(self) -> Tuple[int, str]:
@@ -154,10 +157,65 @@ class EvidenceEngine:
             "recorded_by": node.get("recorded_by"),
             "trust": node.get("trust")})
 
+    # ------------------------------------------------------------- checkpoint
+    def checkpoint(self) -> Optional[Dict[str, Any]]:
+        """How far the chain has been verified, if anybody has recorded it."""
+        if self.checkpoints is None:
+            return None
+        return self.checkpoints.first("seq", desc=True)
+
+    def verify_since_checkpoint(self, advance: bool = True) -> Dict[str, Any]:
+        """Has anything broken since the last full verification?
+
+        O(nodes added since), rather than O(chain). This is the question a
+        readiness probe should ask: verifying the whole chain on every probe was
+        2.9 seconds and 83 MB at forty thousand nodes, and the same call sat on
+        the dashboard — so a busy instance would have been taken out of service
+        for being slow to answer whether it was healthy.
+
+        **It is a different question from `verify_chain`, and deliberately so.**
+        This one trusts that the chain was intact at the checkpoint and checks
+        only what came after. Only the full walk can answer "is the whole chain
+        intact", which is why it stays, and why `evidence.verify` runs it on the
+        schedule rather than leaving it to whoever remembers.
+        """
+        mark = self.checkpoint()
+        if mark is None:
+            report = self.verify_chain()
+            if advance and report["valid"]:
+                self._record_checkpoint(report["length"], report["head"])
+            return {**report, "scope": "full", "from_seq": 0}
+
+        nodes = self.repo.since(mark["seq"])
+        report = self._walk(nodes, mark["chain_hash"], mark["seq"] + 1)
+        report = {**report, "scope": "incremental", "from_seq": mark["seq"],
+                  "checked": len(nodes),
+                  "verified_at": mark["verified_at"]}
+        if advance and report["valid"] and nodes:
+            self._record_checkpoint(nodes[-1]["seq"], report["head"])
+        return report
+
+    def _record_checkpoint(self, seq: int, chain_hash: str,
+                           actor: str = "system") -> None:
+        if self.checkpoints is None:
+            return
+        self.checkpoints.add({"seq": seq, "chain_hash": chain_hash,
+                              "verified_at": time.time(), "verified_by": actor})
+
     def verify_chain(self) -> Dict[str, Any]:
-        """Walk the chain. Reports the first break, if any."""
+        """Walk the WHOLE chain. Reports the first break, if any.
+
+        Kept as the real control. `verify_since_checkpoint` is the cheap
+        question and answers a narrower one.
+        """
         nodes = self.repo.many()
-        prev_hash, expected_seq = GENESIS, 1
+        report = self._walk(nodes, GENESIS, 1)
+        return {**report, "scope": "full"} if report["valid"] else report
+
+    def _walk(self, nodes: List[Dict[str, Any]], prev_hash: str,
+              expected_seq: int) -> Dict[str, Any]:
+        """One verification loop, so the full walk and the incremental one
+        cannot drift apart in what they consider a break."""
         for n in nodes:
             if n["seq"] != expected_seq:
                 return {"valid": False, "broken_at": n["seq"], "reason": "sequence gap"}

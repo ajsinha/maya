@@ -66,7 +66,7 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
-                DeltaStore, DocumentRepository, EvidenceRepository,
+                DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository,
                 FeatureRepository, FeatureViewRepository,
                 FeatureViewVersionRepository, FindingActionRepository,
                 FindingRepository,
@@ -102,7 +102,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     db = Database(cfg.get("database.url", "sqlite:///data/sqlite/maya.db"),
                   cfg.get_bool("database.echo", False))
-    evidence = EvidenceEngine(EvidenceRepository(db))
+    evidence = EvidenceEngine(EvidenceRepository(db), EvidenceCheckpointRepository(db))
     registry = ModelRegistry(ModelRepository(db), VersionRepository(db),
                              AliasRepository(db), AliasHistoryRepository(db), evidence)
     tiering = TieringEngine(
@@ -281,7 +281,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=documents,
                    notifications=notifications,
-                   finding_workflow=finding_workflow))
+                   finding_workflow=finding_workflow,
+                   evidence=evidence))
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,

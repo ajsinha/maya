@@ -650,3 +650,59 @@ class TestTheParametersPage:
     def test_an_unknown_version_is_404(self, registered):
         _login(registered)
         assert registered.get(f"/parameters/9.9.9/{NAME}").status_code == 404
+
+
+class TestThePagesAuthoriseAndNotOnlyAuthenticate:
+    """A validator scoped to one legal entity got 403 from the API and the
+    dashboard correctly hid the model — then loaded the detail page directly and
+    received its versions, alias history, warrant grants and full evidence
+    chain. Listings filtered; directly-addressable pages did not.
+    """
+
+    OTHER = "maya://model/eu.capital.irb"
+    OTHER_NAME = "eu.capital.irb"
+
+    def _elsewhere(self, client, people):
+        """A model in a legal entity our scoped principal cannot see."""
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": self.OTHER, "name": "EU IRB", "model_class": "capital.irb",
+            "domain": "capital", "owner": "person/j.okafor",
+            "legal_entity": "LE-EU-01", "purpose": "IRB capital"})
+
+    def _scoped(self, client):
+        client.post("/api/v1/principals", json={
+            "username": "uk.val", "display_name": "UK Validator",
+            "roles": ["validator"], "password": "uk-pw",
+            "legal_entities": ["LE-US-01"], "domains": ["credit"]})
+        return ("uk.val", "uk-pw")
+
+    def test_the_api_refuses_an_out_of_scope_model(self, registered, people):
+        self._elsewhere(registered, people)
+        who = self._scoped(registered)
+        r = registered.get(f"/api/v1/models/{self.OTHER_NAME}", auth=who)
+        assert r.status_code == 403, r.text
+
+    def test_the_page_refuses_it_too(self, registered, people, client):
+        """The point. One authorisation policy, asked from two places — if a
+        page showed what the API refuses, the page would be the one telling
+        somebody what they are not cleared for."""
+        self._elsewhere(registered, people)
+        self._scoped(registered)
+        _login(registered, "uk.val", "uk-pw")
+        page = registered.get(f"/model/{self.OTHER_NAME}")
+        assert page.status_code == 403
+        assert "outside your scope" in page.text
+
+    def test_the_page_does_not_leak_the_record_in_its_body(self, registered,
+                                                           people):
+        self._elsewhere(registered, people)
+        self._scoped(registered)
+        _login(registered, "uk.val", "uk-pw")
+        body = registered.get(f"/model/{self.OTHER_NAME}").text
+        assert "LE-EU-01" not in body and "IRB capital" not in body
+
+    def test_somebody_in_scope_still_sees_their_own_model(self, registered,
+                                                          people):
+        _login(registered, "s.iqbal", "mrm-pw")
+        page = registered.get(f"/model/{NAME}")
+        assert page.status_code == 200 and "SB PD" in page.text
