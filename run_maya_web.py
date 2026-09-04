@@ -34,7 +34,8 @@ from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
-from core.assist import CapabilityRegistry, GenerationLog
+from core.assist import CapabilityRegistry, DraftingService, GenerationLog
+from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
 from core.parameters import FittingService, ParameterRegister
 from core.baseline import BaselineImporter, DebtRegister
@@ -192,6 +193,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
+    # Which model this instance may ask. The default is the mock, which
+    # exercises the whole governed path -- capability gating, oracles,
+    # grounding, attestation, sampling -- without calling anything. Every
+    # other provider refuses by name until somebody has answered the
+    # egress and confidentiality questions for their deployment.
+    drafting = DraftingService(
+        generations, capabilities, evidence,
+        assist_providers.build(cfg.get("assist.provider", "mock")))
 
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
@@ -290,6 +299,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "policies": policies,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
+                           "drafting": drafting,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

@@ -12,10 +12,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
 from core.assist import TIER_MEANING, oracles
+from core.assist import providers as assist_providers
 from routes.base import Routes
 
 
@@ -29,6 +30,14 @@ class CapabilityIn(BaseModel):
     oracle_key: Optional[str] = None
     autonomy: str = "human_approved_automation"
     review_sample: float = 0.1
+
+
+class DraftIn(BaseModel):
+    capability_key: str
+    subject_type: str
+    subject_id: str
+    instruction: str = ""
+    oracle_payload: Optional[dict] = None
 
 
 class GenerateIn(BaseModel):
@@ -88,6 +97,39 @@ class AssistRoutes(Routes):
                 body.capability_key, body.subject_type, body.subject_id,
                 body.claims, body.known_evidence, body.oracle_payload,
                 body.output, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/assist/providers", tags=["assistance"])
+        def list_providers(request: Request):
+            """Which model this instance can ask, and why it cannot ask the rest."""
+            self.principal(request)
+            drafting = self.ctx.get("drafting")
+            return {"providers": assist_providers.describe(),
+                    "in_force": drafting.describe() if drafting else {
+                        "provider": None, "usable": False,
+                        "why_not": "no drafting service is configured"}}
+
+        @self.app.post(f"{api}/assist/drafts", status_code=201,
+                       tags=["assistance"])
+        def draft(request: Request, body: DraftIn):
+            """Ask the configured provider for a draft about this subject.
+
+            What the model may cite is fixed from the register BEFORE it is
+            asked, so a citation it invents has nowhere to land. The result runs
+            through the same gate a hand-delivered generation does, and lands
+            drafted -- never evidence -- until a person attests it.
+            """
+            who = self.authorise(request, "assist:generate")
+            drafting = self.ctx.get("drafting")
+            if drafting is None:
+                raise HTTPException(501, {
+                    "error": "no_drafting_service",
+                    "detail": "this instance has no assist provider configured, "
+                              "so it can record a generation produced elsewhere "
+                              "but cannot ask for one",
+                    "remediation": "set assist.provider in configuration"})
+            return self.guard(lambda: drafting.draft(
+                body.capability_key, body.subject_type, body.subject_id,
+                body.instruction, body.oracle_payload, actor=self.actor(who)))
 
         @self.app.get(f"{api}/assist/generations/{{generation_id}}",
                       tags=["assistance"])

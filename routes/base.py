@@ -128,6 +128,12 @@ STATUS: Dict[str, int] = {
     "parameter_mismatch": 409, "no_parameter_register": 501,
     "no_parameters_supplied": 409, "parameter_missing": 409,
     "no_features": 422, "state_required": 422, "state_not_a_variance": 422,
+    # asking a model
+    # `provider_unavailable` is 501 and not 503: it is not that the provider is
+    # down, it is that this instance was never wired to one, which is a
+    # deployment decision rather than a transient fault.
+    "provider_unavailable": 501, "unknown_provider": 422,
+    "nothing_to_ground": 422,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,

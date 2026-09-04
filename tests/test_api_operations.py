@@ -378,3 +378,54 @@ class TestAssistApi:
         assert assist, "the assistance surface should exist"
         for path in assist:
             assert "approve" not in path and "conclude" not in path
+
+
+class TestDraftingOverTheApi:
+    """MAYA can now ask a model, and still does not believe what it says.
+
+    The generation log could always gate a draft; nothing ever asked for one, so
+    every control around it had only been exercised against claims a test wrote
+    by hand.
+    """
+
+    def _capability(self, client, people, key="validation_summary"):
+        return client.post("/api/v1/assist/capabilities", auth=people["s.iqbal"],
+                           json={"capability_key": key, "tier": "B",
+                                 "description": "Draft a summary from the record",
+                                 "base_model": "mock-1",
+                                 "prompt_digest": "sha256:prompt",
+                                 "owner": "person/a.mehta", "review_sample": 0.0})
+
+    def test_the_page_says_which_provider_can_be_asked_and_why_not_the_rest(
+            self, registered, people):
+        body = registered.get("/api/v1/assist/providers",
+                              auth=people["a.mehta"]).json()
+        rows = {r["provider"]: r for r in body["providers"]}
+        assert rows["mock"]["usable"] is True
+        assert rows["anthropic"]["usable"] is False and rows["anthropic"]["why_not"]
+        assert body["in_force"]["provider"] == "mock"
+
+    def test_a_draft_is_grounded_in_the_record_and_needs_attesting(
+            self, registered, people):
+        assert self._capability(registered, people).status_code == 201
+        r = registered.post("/api/v1/assist/drafts", auth=people["a.mehta"],
+                            json={"capability_key": "validation_summary",
+                                  "subject_type": "model",
+                                  "subject_id": registered.get(
+                                      f"/api/v1/models/{NAME}",
+                                      auth=people["a.mehta"]).json()["model"]["id"]})
+        assert r.status_code == 201, r.text
+        drafted = r.json()
+        assert drafted["state"] == "drafted"
+        assert drafted["claims"], "a draft with no grounded claim is not a draft"
+        assert drafted["output"]["grounding"]["rejected"] == 0
+
+    def test_drafting_about_a_subject_with_no_record_is_refused_by_name(
+            self, registered, people):
+        self._capability(registered, people)
+        r = registered.post("/api/v1/assist/drafts", auth=people["a.mehta"],
+                            json={"capability_key": "validation_summary",
+                                  "subject_type": "model",
+                                  "subject_id": "never-heard-of-it"})
+        assert r.status_code == 422
+        assert r.json()["error"] == "nothing_to_ground"
