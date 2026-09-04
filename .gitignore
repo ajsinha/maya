@@ -107,3 +107,6 @@ tmp/
 *.tmp
 *.bak
 *.orig
+
+# Agent worktrees and session state. Never part of the repository.
+.claude/
