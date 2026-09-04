@@ -6,50 +6,124 @@
 <h1>Every model, one register</h1>
 <div class="rule"></div>
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-3">
   <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
-    <div class="serif" style="font-size:1.9rem;color:var(--crimson)">{{ models|length }}</div>
-    <div class="text-muted small">models registered</div></div></div></div>
-  {% for t in [1,2,3,4] %}
-  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body py-3">
-    <div class="serif" style="font-size:1.6rem">{{ by_tier.get(t, 0) }}</div>
-    <div class="text-muted small">Tier {{ t }}</div></div></div></div>
-  {% endfor %}
-  <div class="col-12 col-md-1"><div class="card h-100"><div class="card-body py-3">
-    <div class="small {{ 'evidence-ok' if chain.valid else 'evidence-bad' }}">
-      {{ 'chain ok' if chain.valid else 'BROKEN' }}</div>
-    <div class="text-muted small">{{ chain.get('length', 0) }} nodes</div></div></div></div>
+    <div class="stat" style="color:var(--crimson)">{{ estate.models }}</div>
+    <div class="stat-l">models registered</div>
+    <div class="stat-l mt-1">{{ estate.in_force }} in force</div></div></div></div>
+
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if estate.governance.blocking_findings else '' }}">
+      {{ estate.governance.blocking_findings }}</div>
+    <div class="stat-l">blocking findings</div>
+    <div class="stat-l mt-1">{{ estate.governance.not_in_force }} not in force</div>
+  </div></div></div>
+
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if estate.assurance.open_breaches else '' }}">
+      {{ estate.assurance.open_breaches }}</div>
+    <div class="stat-l">open breaches</div>
+    <div class="stat-l mt-1">{{ estate.assurance.unmonitored }} unmonitored</div>
+  </div></div></div>
+
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ "%.0f"|format(estate.adjustments.aggregate_magnitude) }}</div>
+    <div class="stat-l">overlay adjustment, aggregate</div>
+    <div class="stat-l mt-1">
+      {% if estate.adjustments.persistent %}
+        <span class="evidence-bad">{{ estate.adjustments.persistent }} persistent</span>
+      {% else %}{{ estate.adjustments.active }} active{% endif %}</div>
+  </div></div></div>
 </div>
 
-{% if models %}
-<table class="table maya align-middle">
-  <thead><tr><th>Model</th><th>Domain</th><th>Class</th><th>Owner</th>
-             <th class="text-center">Tier</th><th>Status</th></tr></thead>
-  <tbody>
-  {% for m in models %}
-    <tr>
-      <td><a href="/model/{{ m.urn.replace('maya://model/','') }}" class="text-decoration-none">
-          <strong>{{ m.name }}</strong></a>
-          <div class="mono text-muted">{{ m.urn }}</div></td>
-      <td>{{ m.domain }}</td>
-      <td><span class="chip">{{ m.model_class }}</span></td>
-      <td class="small">{{ m.owner }}</td>
-      <td class="text-center">
-        <span class="tier {{ 'tier-' ~ m.tier if m.tier else 'tier-none' }}">
-          {{ 'TIER ' ~ m.tier if m.tier else 'UNTIERED' }}</span></td>
-      <td class="small">
-        {% set tone = {'attested': 'evidence-ok', 'retired': 'text-muted',
-                       'draft': '', 'amending': '', 'submitted': '', 'approved': ''} %}
-        <span class="{{ tone.get(m.status, '') }}">{{ m.status }}</span></td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% else %}
-<div class="card"><div class="card-body text-center py-5">
-  <p class="serif mb-2" style="font-size:1.2rem">The inventory is empty.</p>
-  <p class="text-muted mb-0">Register a model:
-    <code class="mono">POST /api/v1/models</code></p>
-</div></div>
-{% endif %}
+<div class="row g-3">
+  <div class="col-lg-7">
+    {% if models %}
+    <div class="card"><div class="card-header">The register</div>
+    <table class="table maya align-middle mb-0">
+      <thead><tr><th>Model</th><th>Domain</th><th>Owner</th>
+                 <th class="text-center">Tier</th><th>State</th></tr></thead>
+      <tbody>
+      {% for m in models %}
+        <tr>
+          <td><a href="/model/{{ m.urn.replace('maya://model/','') }}" class="text-decoration-none">
+              <strong>{{ m.name }}</strong></a>
+              <div class="mono text-muted">{{ m.urn }}</div></td>
+          <td class="small">{{ m.domain }}</td>
+          <td class="small">{{ m.owner or '—' }}</td>
+          <td class="text-center">
+            <span class="tier {{ 'tier-' ~ m.tier if m.tier else 'tier-none' }}">
+              {{ 'TIER ' ~ m.tier if m.tier else 'UNTIERED' }}</span></td>
+          <td class="small">
+            {% set tone = {'attested': 'evidence-ok', 'retired': 'text-muted'} %}
+            <span class="{{ tone.get(m.status, '') }}">{{ m.status }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="card"><div class="card-body text-center py-5">
+      <p class="serif mb-2" style="font-size:1.2rem">The inventory is empty.</p>
+      <p class="text-muted mb-0">Register a model:
+        <code class="mono">POST /api/v1/models</code>, or import an existing
+        estate with <code class="mono">POST /api/v1/baseline/imports</code>.</p>
+    </div></div>
+    {% endif %}
+
+    {% if estate.cold_start.baselined %}
+      <div class="card mt-3"><div class="card-header">Baseline debt</div>
+        <div class="card-body py-3">
+          <div class="d-flex justify-content-between small">
+            <span>{{ estate.cold_start.debt_closed }} of
+              {{ estate.cold_start.debt_closed + estate.cold_start.debt_open }} closed</span>
+            <span class="text-muted">{{ (estate.cold_start.burn_down * 100)|round|int }}%</span>
+          </div>
+          <div style="height:6px;background:var(--rule);border-radius:3px;margin:.4rem 0">
+            <div style="height:6px;background:var(--crimson);border-radius:3px;
+                        width:{{ (estate.cold_start.burn_down * 100)|round|int }}%"></div>
+          </div>
+          <div class="text-muted small">{{ estate.cold_start.detail }}.
+            Debt is not breach &mdash; it becomes one only at its expiry.</div>
+        </div></div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Outstanding for you</span>
+        {% if work.overdue %}
+          <span class="evidence-bad" style="font-size:.75rem">{{ work.overdue }} overdue</span>
+        {% endif %}</div>
+      <div class="card-body py-2">
+        {% for i in work['items'] %}
+          <div class="work-row {{ i.urgency }}">
+            <span class="u">{{ i.urgency }}</span>
+            <span class="flex-grow-1">
+              <a href="{{ i.href }}">{{ i.title }}</a>
+              <div class="w">{{ i.detail }}</div>
+            </span>
+          </div>
+        {% else %}
+          <div class="text-muted small py-2">{{ work.detail|capitalize }}.</div>
+        {% endfor %}
+      </div>
+      {% if work.others %}
+        <div class="card-body py-2 border-top small text-muted">
+          {{ work.others }} further item(s) are outstanding for other roles. Work is
+          computed from the register rather than assigned, so this list cannot go
+          stale.</div>
+      {% endif %}
+    </div>
+
+    <div class="card mt-3"><div class="card-header">Evidence chain</div>
+      <div class="card-body py-3 small">
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Integrity</span>
+          <span class="{{ 'evidence-ok' if chain.valid else 'evidence-bad' }}">
+            {{ 'valid' if chain.valid else 'BROKEN' }}</span></div>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Entries</span><span>{{ chain.get('length', 0) }}</span></div>
+      </div></div>
+  </div>
+</div>
 {% endblock %}
