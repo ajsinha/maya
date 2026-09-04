@@ -200,3 +200,32 @@ class TestTemplates:
         for kind, lenses in TEMPLATES.items():
             keys = [l.key for l in lenses]
             assert len(keys) == len(set(keys)), kind
+
+
+class TestRegimeSection:
+    """A compiled document states which supervisors apply. That is what an
+    examiner reads it for."""
+
+    def test_the_document_names_each_activated_regime(self, compiler, a_model,
+                                                      approved_version, lifecycle):
+        doc = compiler.compile(MODEL_DEVELOPMENT, URN)
+        section = next(s for s in doc["sections"] if s["key"] == "regimes")
+        assert section["filled"] is True
+        assert "SR 26-2" in section["body"] and "EU AI Act" in section["body"]
+
+    def test_outstanding_obligations_are_listed_with_their_citations(
+            self, compiler, a_model, approved_version, lifecycle):
+        doc = compiler.compile(MODEL_DEVELOPMENT, URN)
+        body = next(s for s in doc["sections"] if s["key"] == "regimes")["body"]
+        assert "outstanding" in body
+        assert "SR 26-2 §" in body, "each unmet obligation cites its source"
+
+    def test_it_explains_why_regimes_are_kept_apart(self, compiler, a_model,
+                                                    approved_version, lifecycle):
+        body = next(s for s in compiler.compile(MODEL_DEVELOPMENT, URN)["sections"]
+                    if s["key"] == "regimes")["body"]
+        assert "own vocabulary" in body and "indefensible" in body
+
+    def test_an_annex_iv_pack_requires_the_regime_section(self):
+        required = {l.key for l in TEMPLATES[ANNEX_IV] if l.required}
+        assert "regimes" in required

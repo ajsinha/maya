@@ -276,12 +276,27 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 ```
 maya/
 ├── README.md                        ← the only README; this file
+├── core/                            the platform, split by responsibility
+│   ├── domain/                      the algebra: kernels, schemas, contracts
+│   ├── registry/  features/         models, versions, aliases; the feature platform
+│   ├── execution/                   warrants, the grammar, the captive engine
+│   ├── validation/  monitoring/     tests and findings; drift and delayed labels
+│   ├── lifecycle/                   approval, attestation, amendment
+│   ├── authz/                       roles, scope, segregation of duties
+│   ├── docs/  overlays/             compiled documentation; post-model adjustments
+│   ├── regimes/                     supervisory regimes as institutions
+│   ├── assist/  baseline/           machine assistance; cold-start import
+│   └── evidence/  risk/  content/   the chain; tiering; rendered help
+├── db/                              the only package that knows about storage
+├── routes/  web/                    the HTTP surface and the vendored interface
+├── content/                         help and tutorials, rendered at request time
+├── examples/warrants/               ten worked warrants across the model estate
 ├── docs/                            15 specification documents + ADRs
 │   ├── 00 … 14-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
-│   └── MAYA-System-Design.pptx              46-slide engineering deck
+│   └── MAYA-System-Design.pptx              49-slide engineering deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```
@@ -301,14 +316,20 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 46 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 49 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*
 
 ## Status
 
-**Specification complete and adversarially reviewed. Implementation under way.**
+**Specification complete and adversarially reviewed. Every planned component is built.**
+
+The register, the feature platform, warrants and their grammar, validation and
+findings, the record lifecycle with quorum attestation, authorisation with
+segregation of duties read from the evidence chain, monitoring with delayed
+labels, compiled documentation, the overlay register, supervisory regimes as
+institutions, machine assistance, and baseline import with compliance debt.
 
 Build status, what is genuinely working, and the honest gaps are recorded in one
 place and kept current there:

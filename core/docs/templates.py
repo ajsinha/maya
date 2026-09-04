@@ -38,6 +38,7 @@ MONITORING = _lens("monitoring", "Ongoing monitoring", L.monitoring)
 LIFECYCLE = _lens("lifecycle", "Approval and attestation", L.lifecycle)
 EXECUTION = _lens("execution", "Use and entitlement", L.execution)
 OVERLAYS = _lens("overlays", "Post-model adjustments", L.overlays)
+REGIMES = _lens("regimes", "Supervisory regimes", L.regimes)
 PROVENANCE = _lens("provenance", "Provenance", L.provenance)
 
 
@@ -48,8 +49,8 @@ def optional(lens: Lens) -> Lens:
 TEMPLATES: Dict[str, Tuple[Lens, ...]] = {
     MODEL_DEVELOPMENT: (
         IDENTITY, CLASSIFICATION, RISK, METHOD, ASSUMPTIONS, DATA,
-        VALIDATION, FINDINGS, MONITORING, OVERLAYS, LIFECYCLE, EXECUTION,
-        PROVENANCE),
+        VALIDATION, FINDINGS, MONITORING, OVERLAYS, REGIMES, LIFECYCLE,
+        EXECUTION, PROVENANCE),
 
     VALIDATION_REPORT: (
         IDENTITY, CLASSIFICATION, optional(RISK), VALIDATION, FINDINGS,
@@ -64,6 +65,6 @@ TEMPLATES: Dict[str, Tuple[Lens, ...]] = {
 
     ANNEX_IV: (
         IDENTITY, CLASSIFICATION, RISK, METHOD, ASSUMPTIONS, DATA,
-        VALIDATION, FINDINGS, MONITORING, OVERLAYS, LIFECYCLE, EXECUTION,
-        PROVENANCE),
+        VALIDATION, FINDINGS, MONITORING, OVERLAYS, REGIMES, LIFECYCLE,
+        EXECUTION, PROVENANCE),
 }
