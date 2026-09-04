@@ -35,7 +35,8 @@ def _load(row: Optional[Dict[str, Any]], fields: tuple) -> Optional[Dict[str, An
                 out[f] = json.loads(out[f])
             except (ValueError, TypeError):
                 pass
-    for f in ("deterministic", "contains_personal_data", "revoked"):
+    for f in ("deterministic", "contains_personal_data", "revoked", "pii",
+              "protected_basis", "pit_verified"):
         if f in out and out[f] is not None:
             out[f] = bool(out[f])
     return out
@@ -180,3 +181,73 @@ class HookRepository(_Repo):
     def revoke(self, hook_id: str, reason: str, epoch: int) -> None:
         self.db.update("hook", "id = :i", {"i": hook_id},
                        {"revoked": 1, "revoke_reason": reason, "epoch": epoch})
+
+
+class FeatureRepository(_Repo):
+    TABLE, JSON_FIELDS = "feature", ()
+
+    def by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        return self._row("SELECT * FROM feature WHERE name = :n", {"n": name})
+
+    def list(self, entity: Optional[str] = None) -> List[Dict[str, Any]]:
+        if entity:
+            return self._rows("SELECT * FROM feature WHERE entity = :e ORDER BY name", {"e": entity})
+        return self._rows("SELECT * FROM feature ORDER BY name")
+
+    def certify(self, name: str, level: str) -> None:
+        self.db.update("feature", "name = :n", {"n": name}, {"certification": level})
+
+
+class FeatureViewRepository(_Repo):
+    TABLE, JSON_FIELDS = "feature_view", ()
+    VERSION_JSON = ("features", "quality_report")
+
+    def by_name(self, name: str) -> Optional[Dict[str, Any]]:
+        return self._row("SELECT * FROM feature_view WHERE name = :n", {"n": name})
+
+    def list(self) -> List[Dict[str, Any]]:
+        return self._rows("SELECT * FROM feature_view ORDER BY name")
+
+    def add_version(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        row.setdefault("id", new_id())
+        self.db.insert("feature_view_version", _dump(row, self.VERSION_JSON))
+        return row
+
+    def versions(self, view_id: str) -> List[Dict[str, Any]]:
+        return [_load(r, self.VERSION_JSON) for r in self.db.query(
+            "SELECT * FROM feature_view_version WHERE feature_view_id = :v ORDER BY version",
+            {"v": view_id})]
+
+    def version(self, view_id: str, version: int) -> Optional[Dict[str, Any]]:
+        return _load(self.db.query_one(
+            "SELECT * FROM feature_view_version WHERE feature_view_id = :v AND version = :n",
+            {"v": view_id, "n": version}), self.VERSION_JSON)
+
+    def latest_version(self, view_id: str) -> Optional[Dict[str, Any]]:
+        rows = self.versions(view_id)
+        return rows[-1] if rows else None
+
+
+class ContractRepository(_Repo):
+    TABLE, JSON_FIELDS = "feature_contract", ("items",)
+
+    def for_version(self, model_version_id: str) -> Optional[Dict[str, Any]]:
+        return self._row("SELECT * FROM feature_contract WHERE model_version_id = :m",
+                         {"m": model_version_id})
+
+    def consumers_of(self, view_id: str, version: int) -> List[Dict[str, Any]]:
+        """Which model versions pin this feature view version. Answering this is
+        what makes retiring a namespace a governed action rather than a guess."""
+        return [c for c in self._rows("SELECT * FROM feature_contract")
+                if any(i.get("feature_view_id") == view_id and i.get("version") == version
+                       for i in c["items"])]
+
+
+class SnapshotRepository(_Repo):
+    TABLE, JSON_FIELDS = "dataset_snapshot", ("pit_report",)
+
+    def by_id(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
+        return self._row("SELECT * FROM dataset_snapshot WHERE id = :i", {"i": snapshot_id})
+
+    def list(self) -> List[Dict[str, Any]]:
+        return self._rows("SELECT * FROM dataset_snapshot ORDER BY created_at DESC")

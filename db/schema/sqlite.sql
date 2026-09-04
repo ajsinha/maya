@@ -135,3 +135,74 @@ CREATE TABLE IF NOT EXISTS hook (
     created_at    REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_hook_model ON hook (model_id);
+
+-- ---------------------------------------------------------- feature platform
+CREATE TABLE IF NOT EXISTS feature (
+    id                 TEXT PRIMARY KEY,
+    name               TEXT NOT NULL UNIQUE,
+    entity             TEXT NOT NULL,
+    dtype              TEXT NOT NULL,
+    description        TEXT NOT NULL,
+    business_definition TEXT,
+    owner              TEXT NOT NULL,
+    source_system      TEXT,
+    sensitivity        TEXT NOT NULL DEFAULT 'internal',
+    pii                INTEGER NOT NULL DEFAULT 0,
+    protected_basis    INTEGER NOT NULL DEFAULT 0,
+    proxy_risk         TEXT NOT NULL DEFAULT 'none',
+    certification      TEXT NOT NULL DEFAULT 'experimental',
+    created_at         REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_feature_entity ON feature (entity);
+
+CREATE TABLE IF NOT EXISTS feature_view (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL UNIQUE,
+    entity       TEXT NOT NULL,
+    owner        TEXT NOT NULL,
+    description  TEXT,
+    delta_table  TEXT NOT NULL,
+    created_at   REAL NOT NULL
+);
+
+-- A view version pins a transformation to a Delta table version. Serving reads
+-- the namespace PINNED BY THE CONTRACT, never "latest" (adversarial finding C-2).
+CREATE TABLE IF NOT EXISTS feature_view_version (
+    id                 TEXT PRIMARY KEY,
+    feature_view_id    TEXT NOT NULL,
+    version            INTEGER NOT NULL,
+    features           TEXT NOT NULL DEFAULT '[]',
+    delta_version      INTEGER NOT NULL DEFAULT 0,
+    valid_time_column  TEXT NOT NULL DEFAULT 'event_ts',
+    ingest_time_column TEXT NOT NULL DEFAULT 'ingest_ts',
+    row_count          INTEGER NOT NULL DEFAULT 0,
+    quality_report     TEXT NOT NULL DEFAULT '{}',
+    materialised_at    REAL NOT NULL,
+    UNIQUE (feature_view_id, version)
+);
+CREATE INDEX IF NOT EXISTS ix_fvv_view ON feature_view_version (feature_view_id);
+
+-- Binds a model version to exact feature view versions. Serving with a
+-- non-matching contract fails closed.
+CREATE TABLE IF NOT EXISTS feature_contract (
+    id               TEXT PRIMARY KEY,
+    model_version_id TEXT NOT NULL,
+    digest           TEXT NOT NULL,
+    items            TEXT NOT NULL DEFAULT '[]',
+    created_at       REAL NOT NULL,
+    UNIQUE (model_version_id)
+);
+
+CREATE TABLE IF NOT EXISTS dataset_snapshot (
+    id             TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    kind           TEXT NOT NULL DEFAULT 'training',
+    delta_table    TEXT NOT NULL,
+    delta_version  INTEGER NOT NULL DEFAULT 0,
+    row_count      INTEGER NOT NULL DEFAULT 0,
+    as_of          REAL NOT NULL,
+    pit_verified   INTEGER NOT NULL DEFAULT 0,
+    pit_report     TEXT NOT NULL DEFAULT '{}',
+    digest         TEXT NOT NULL,
+    created_at     REAL NOT NULL
+);

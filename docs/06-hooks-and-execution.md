@@ -381,7 +381,7 @@ sequenceDiagram
     else both pass
         API->>POL: alias-move gate (validation, findings, docs, approvals)
         POL-->>API: allow
-        API->>API: advisory lock on (model, env); write alias + alias_history
+        API->>API: advisory lock on (model, env), write alias + alias_history
         API->>HK: invalidate cached descriptors for this alias
         HK->>CON: publish alias.moved event
         Note over CON: next resolve (≤ TTL) returns 3.3.0<br/>no consumer redeployment

@@ -27,13 +27,16 @@ from fastapi.templating import Jinja2Templates
 
 from core.execution import CaptiveEngine
 from core.evidence import EvidenceEngine
+from core.features import FeatureRegistry
 from core.execution import HookService
 from core.config import PropertiesConfigurator
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
-from db import (AliasRepository, Database, DeltaPaths, EvidenceRepository, HookRepository,
-                ModelRepository, RiskRepository, VersionRepository)
-from routes import AuthRoutes, HealthRoutes, HookRoutes, ModelRoutes, PublicRoutes, UIRoutes
+from db import (AliasRepository, ContractRepository, Database, DeltaPaths, DeltaStore,
+                EvidenceRepository, FeatureRepository, FeatureViewRepository, HookRepository,
+                ModelRepository, RiskRepository, SnapshotRepository, VersionRepository)
+from routes import (AuthRoutes, FeatureRoutes, HealthRoutes, HookRoutes, ModelRoutes,
+                    PublicRoutes, UIRoutes)
 
 ROOT = Path(__file__).resolve().parent
 logger = logging.getLogger("maya")
@@ -69,7 +72,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                                 {1: 0, 2: 0, 3: 900, 4: 900}),
                         jitter_pct=cfg.get_int("hooks.jitter_pct", 20))
 
-    ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "evidence": evidence,
+    features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
+                               ContractRepository(db), SnapshotRepository(db),
+                               DeltaStore(delta.root), evidence)
+
+    ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
+                           "evidence": evidence,
                            "registry": registry, "tiering": tiering, "hooks": hooks,
                            "risk_repo": RiskRepository(db), "engine": None}
     if cfg.get_bool("execution.captive.enabled", True):
@@ -101,6 +109,7 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     HealthRoutes(app, ctx)
     ModelRoutes(app, ctx)
     HookRoutes(app, ctx)
+    FeatureRoutes(app, ctx)
     AuthRoutes(app, ctx, templates)
     PublicRoutes(app, ctx, templates)
     UIRoutes(app, ctx, templates)
