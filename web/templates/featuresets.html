@@ -17,40 +17,89 @@ because the kernel reads the slot.</p>
             data-bs-toggle="collapse" data-bs-target="#new-set">Show</button></div>
   <div class="collapse" id="new-set"><div class="card-body">
     <form id="define-set" class="small">
-      <div class="row g-2">
-        <div class="col-md-4"><input class="form-control form-control-sm" name="name"
-               placeholder="name, e.g. nj_home_core" required></div>
-        <div class="col-md-4"><input class="form-control form-control-sm" name="entity"
-               placeholder="entity, e.g. property_id" required></div>
-        <div class="col-md-4"><input class="form-control form-control-sm" name="label_slot"
-               placeholder="label slot (optional)"></div>
-        <div class="col-md-6"><input class="form-control form-control-sm" name="composes"
-               placeholder="compose from (comma separated, rightmost wins)"></div>
-        <div class="col-md-3 form-check ms-2">
-          <input class="form-check-input" type="checkbox" name="ephemeral" id="eph-set">
-          <label class="form-check-label small" for="eph-set">ephemeral</label></div>
-        <div class="col-md-2"><input class="form-control form-control-sm" name="ttl_days"
-               placeholder="days"></div>
-        <div class="col-12"><textarea class="form-control form-control-sm" name="defaults" rows="2"
-               placeholder='default retrieval policy, e.g. {"fill": {"dscr": "flat_forward"}, "normalise": {"dscr": "zscore"}, "align": {"axis": "event_ts", "rule": "flat_forward"}}'></textarea>
-          <div class="text-muted mt-1" style="font-size:.72rem">
-            Attached to the featureset as its default behaviour; a request may
-            still override it, column by column. A child inherits it and may
-            override part &mdash; the same left-to-right fold, with the rightmost
-            winning.</div></div>
-        <div class="col-12">
-          <textarea class="form-control form-control-sm" name="slots" rows="4"
-            placeholder='{"log_living_area": "numeric", "bedrooms": "integer", "sale_price": "numeric"}'
-></textarea>
-          <div class="text-muted mt-1" style="font-size:.72rem">
-            The slots are the schema. Adding one later changes X, which is a model
-            change rather than a data change &mdash; so it is a different
-            featureset, and the register says so rather than letting it happen quietly.
-          </div>
-        </div>
+      <div class="row g-2 mb-3">
+        <div class="col-md-3"><label class="form-label mb-1">Name</label>
+          <input class="form-control form-control-sm" name="name"
+                 placeholder="nj_home_core" required></div>
+        <div class="col-md-3"><label class="form-label mb-1">Entity</label>
+          <input class="form-control form-control-sm" name="entity"
+                 placeholder="property_id" required></div>
+        <div class="col-md-3"><label class="form-label mb-1">Label slot</label>
+          <input class="form-control form-control-sm" name="label_slot"
+                 placeholder="optional"></div>
+        <div class="col-md-3"><label class="form-label mb-1">Owner</label>
+          <input class="form-control form-control-sm" name="owner"
+                 placeholder="person/j.okafor" required></div>
       </div>
-      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Declare</button>
+
+      <!-- ------------------------------------------------- 1. own slots -->
+      <p class="fw-bold mb-1" style="color:var(--crimson)">1 &middot; Slots it declares itself</p>
+      <p class="text-muted mb-2" style="font-size:.74rem">
+        The slots are the schema, and the schema is what a kernel is defined
+        over. Adding one later changes <code>X</code>, which is a model change
+        rather than a data change &mdash; so it becomes a different featureset
+        and the register says so instead of letting it happen quietly.
+      </p>
+      <div id="slot-rows"></div>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 mb-3"
+              id="add-slot" style="font-size:.72rem">Add a slot</button>
+
+      <!-- ------------------------------------------------ 2. composition -->
+      <p class="fw-bold mb-1" style="color:var(--crimson)">2 &middot; Featuresets it composes from</p>
+      <p class="text-muted mb-2" style="font-size:.74rem">
+        A combination of featuresets is a featureset. Order matters and is
+        <strong>left to right, rightmost wins</strong> &mdash; the leftmost parent
+        is the least prominent. A child inherits its parents' slots and their
+        retrieval policy, and the version it composed against is recorded, so a
+        parent that moves afterwards is reported as drift rather than changing
+        the child silently.
+      </p>
+      <div id="parent-rows"></div>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 mb-3"
+              id="add-parent" style="font-size:.72rem">Compose from another</button>
+
+      <!-- ------------------------------------------------- 3. operations -->
+      <p class="fw-bold mb-1" style="color:var(--crimson)">3 &middot; What it changes about what it inherited</p>
+      <p class="text-muted mb-2" style="font-size:.74rem">
+        <code>add</code> a slot the parents do not have, <code>drop</code> one
+        they do, or <code>override</code> one with a different type. Every
+        operation is total: adding a slot that already exists, or dropping one
+        that does not, is refused rather than quietly doing nothing &mdash;
+        because an operation that silently does nothing is one somebody believes
+        happened.
+      </p>
+      <div id="op-rows"></div>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 mb-3"
+              id="add-op" style="font-size:.72rem">Add an operation</button>
+
+      <!-- --------------------------------------------------- 4. lifetime -->
+      <p class="fw-bold mb-1" style="color:var(--crimson)">4 &middot; Lifetime and default retrieval</p>
+      <div class="row g-2 mb-2">
+        <div class="col-md-3 d-flex align-items-center">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="ephemeral" id="eph-set">
+            <label class="form-check-label small" for="eph-set">ephemeral</label></div></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="ttl_days"
+               placeholder="TTL in days"></div>
+        <div class="col-md-6"><input class="form-control form-control-sm" name="description"
+               placeholder="what it is for"></div>
+      </div>
+      <textarea class="form-control form-control-sm" name="defaults" rows="2"
+        placeholder='{"fill": {"dscr": "flat_forward"}, "normalise": {"dscr": "zscore"}}'></textarea>
+      <div class="text-muted mt-1 mb-3" style="font-size:.72rem">
+        Attached as this featureset's default behaviour; a request may still
+        override it column by column, and a child inherits it and may override
+        part &mdash; the same fold, with the rightmost winning.
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="button" id="preview-set"
+                class="btn btn-sm btn-outline-secondary py-0 px-3" style="font-size:.75rem">
+          Preview what it resolves to</button>
+        <button class="btn btn-sm btn-danger py-0 px-3" style="font-size:.75rem">Declare</button>
+      </div>
     </form>
+    <div id="set-preview" class="mt-3"></div>
     <div id="set-result" class="small mt-2"></div>
   </div></div></div>
 
@@ -96,39 +145,151 @@ because the kernel reads the slot.</p>
 {% endblock %}
 {% block scripts %}
 <script>
+/* -------------------------------------------------------------------------
+ * Composition, inheritance and overrides, built as rows rather than typed as
+ * JSON. The JSON textarea was the honest minimum and it made the two things
+ * this design is FOR -- composing and overriding -- the two hardest things to
+ * do in the interface.
+ * ---------------------------------------------------------------------- */
+var DTYPES = ["numeric", "integer", "categorical", "boolean", "timestamp", "text"];
+var EXISTING = {{ featuresets | map(attribute='name') | list | tojson }};
+
+function option(value, label) {
+  return '<option value="' + value + '">' + (label || value) + '</option>';
+}
+function removeButton() {
+  return '<div class="col-auto"><button type="button" class="btn btn-sm ' +
+         'btn-outline-secondary py-0 px-2 drop-row" style="font-size:.72rem" ' +
+         'aria-label="Remove this row">&times;</button></div>';
+}
+
+function slotRow() {
+  return '<div class="row g-2 mb-1 align-items-center">' +
+    '<div class="col-md-4"><input class="form-control form-control-sm slot-name" ' +
+      'placeholder="slot name, e.g. dscr" aria-label="Slot name"></div>' +
+    '<div class="col-md-3"><select class="form-select form-select-sm slot-type" ' +
+      'aria-label="Slot type">' + DTYPES.map(function (d) { return option(d); }).join("") +
+      '</select></div>' +
+    '<div class="col-md-3 form-check ms-3"><input class="form-check-input slot-null" ' +
+      'type="checkbox" id="n"><label class="form-check-label small">nullable</label></div>' +
+    removeButton() + '</div>';
+}
+
+function parentRow() {
+  return '<div class="row g-2 mb-1 align-items-center">' +
+    '<div class="col-md-6"><select class="form-select form-select-sm parent-name" ' +
+      'aria-label="Featureset to compose from">' +
+      EXISTING.map(function (n) { return option(n); }).join("") + '</select></div>' +
+    '<div class="col-md-5"><span class="text-muted" style="font-size:.72rem">' +
+      'later rows win where they overlap</span></div>' +
+    removeButton() + '</div>';
+}
+
+function opRow() {
+  return '<div class="row g-2 mb-1 align-items-center">' +
+    '<div class="col-md-3"><select class="form-select form-select-sm op-kind" ' +
+      'aria-label="Operation">' + ["add", "drop", "override"].map(function (o) {
+        return option(o); }).join("") + '</select></div>' +
+    '<div class="col-md-4"><input class="form-control form-control-sm op-name" ' +
+      'placeholder="slot name" aria-label="Slot the operation applies to"></div>' +
+    '<div class="col-md-3"><select class="form-select form-select-sm op-type" ' +
+      'aria-label="Type for add or override">' +
+      DTYPES.map(function (d) { return option(d); }).join("") + '</select></div>' +
+    removeButton() + '</div>';
+}
+
+$("#add-slot").on("click", function () { $("#slot-rows").append(slotRow()); });
+$("#add-parent").on("click", function () { $("#parent-rows").append(parentRow()); });
+$("#add-op").on("click", function () { $("#op-rows").append(opRow()); });
+$(document).on("click", ".drop-row", function () { $(this).closest(".row").remove(); });
+$("#slot-rows").append(slotRow());          // one row, so the form is not empty
+
+function collect() {
+  var body = {slots: {}, composes: [], operations: []};
+  $("#slot-rows .row").each(function () {
+    var name = $(this).find(".slot-name").val();
+    if (!name) { return; }
+    body.slots[name.trim()] = {dtype: $(this).find(".slot-type").val(),
+                               nullable: $(this).find(".slot-null").is(":checked")};
+  });
+  $("#parent-rows .row").each(function () {
+    var name = $(this).find(".parent-name").val();
+    if (name) { body.composes.push({name: name}); }
+  });
+  $("#op-rows .row").each(function () {
+    var name = $(this).find(".op-name").val();
+    if (!name) { return; }
+    var op = {op: $(this).find(".op-kind").val(), name: name.trim()};
+    if (op.op !== "drop") {
+      op.value = {dtype: $(this).find(".op-type").val()};
+    }
+    body.operations.push(op);
+  });
+  var raw = $("textarea[name=defaults]").val();
+  if (raw && raw.trim()) { body.defaults = JSON.parse(raw); }
+  return body;
+}
+
+function showPreview(r) {
+  var declared = r.declared_slots.map(function (s) {
+    return '<span class="chip">' + s + '</span>'; }).join(" ");
+  var inherited = r.inherited_slots.map(function (s) {
+    return '<span class="chip" style="opacity:.7">' + s + ' &larr; inherited</span>'; }).join(" ");
+  var lineage = (r.lineage || []).map(function (l) {
+    return l.name + (l.version ? " v" + l.version : ""); }).join(" &rarr; ");
+  $("#set-preview").html(
+    '<div class="card"><div class="card-header">What it resolves to</div>' +
+    '<div class="card-body py-2">' +
+      '<p class="small text-muted mb-2">' + r.detail + '</p>' +
+      '<div class="mb-2">' + declared + " " + inherited + '</div>' +
+      (lineage ? '<p class="small text-muted mb-0">Lineage: ' + lineage + '</p>' : '') +
+    '</div></div>');
+}
+
+$("#preview-set").on("click", function () {
+  var body;
+  try { body = collect(); }
+  catch (err) {
+    $("#set-preview").html('<span class="evidence-bad">The retrieval policy is ' +
+      'not valid JSON &mdash; ' + err.message + '</span>');
+    return;
+  }
+  $.ajax({url: "/api/v1/featuresets/preview", method: "POST",
+          contentType: "application/json", data: JSON.stringify(body)})
+    .done(showPreview)
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      $("#set-preview").html('<span class="evidence-bad">Would be refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>' +
+        (e.remediation ? '<div class="text-muted small">' + e.remediation + '</div>' : ''));
+    });
+});
+
 $("#define-set").on("submit", function (e) {
   e.preventDefault();
   var f = Object.fromEntries(new FormData(this));
   var body;
-  try { body = {name: f.name, entity: f.entity,
-                slots: f.slots ? JSON.parse(f.slots) : {}}; }
+  try { body = collect(); }
   catch (err) {
-    $("#set-result").html('<span class="evidence-bad">The slots are not valid JSON &mdash; ' +
-      err.message + '</span>');
+    $("#set-preview").html('<span class="evidence-bad">The retrieval policy is ' +
+      'not valid JSON &mdash; ' + err.message + '</span>');
     return;
   }
+  body.name = f.name;
+  body.entity = f.entity;
+  body.owner = f.owner;
   if (f.label_slot) { body.label_slot = f.label_slot; }
-  if (f.composes) {
-    body.composes = f.composes.split(",").map(function (s) { return {name: s.trim()}; });
-  }
+  if (f.description) { body.description = f.description; }
   if (f.ephemeral) { body.ephemeral = true; }
   if (f.ttl_days) { body.ttl_days = parseFloat(f.ttl_days); }
-  if (f.defaults) {
-    try { body.defaults = JSON.parse(f.defaults); }
-    catch (err) {
-      $("#set-result").html('<span class="evidence-bad">The policy is not valid JSON &mdash; ' +
-        err.message + '</span>');
-      return;
-    }
-  }
   $.ajax({url: "/api/v1/featuresets", method: "POST",
           contentType: "application/json", data: JSON.stringify(body)})
     .done(function () { location.reload(); })
     .fail(function (x) {
       var e = x.responseJSON || {};
-      $("#set-result").html('<span class="evidence-bad">Refused &mdash; ' +
+      $("#set-preview").html('<span class="evidence-bad">Refused &mdash; ' +
         (e.detail || x.statusText) + '</span>' +
-        (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+        (e.remediation ? '<div class="text-muted small">' + e.remediation + '</div>' : ''));
     });
 });
 </script>
