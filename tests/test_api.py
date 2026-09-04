@@ -2912,3 +2912,143 @@ class TestFindingWorkflowOverTheApi:
                               json={"jobs": ["findings.unacknowledged"]}).json()
         assert out["ran"] == 1 and out["failed"] == 0
         assert out["results"][0]["outcome"]["count"] == 1
+
+
+class TestFittingOverTheApi:
+    """The path a person actually walks: features, a featureset, a training set,
+    a fit, and an approval by somebody else.
+
+    Every step of this existed before and none of them had been run in sequence
+    over HTTP, because the middle one did not exist. A control that only works
+    when somebody hands it a hand-written dictionary is a control nobody has
+    tested.
+    """
+
+    AS_OF = 1736899200.0
+    EVENT = 1717200000.0
+    WINDOW = {"from": 1546300800.0, "to": 1735603200.0}
+    # Its own model rather than a version of the shared one. Promoting a version
+    # whose input schema differs is refused by L-12, and correctly -- a fit set
+    # up as a new champion of an unrelated scorecard would be testing the
+    # variance rule rather than the fit.
+    FIT_URN = "maya://model/credit.spend.linear"
+    FIT_NAME = "credit.spend.linear"
+
+    def _estimator_version(self, client, people):
+        owner, dev, mrm = people["j.okafor"], people["d.raman"], people["s.iqbal"]
+        client.post("/api/v1/models", auth=owner, json={
+            "urn": self.FIT_URN, "name": "Spend linear", "domain": "credit",
+            "model_class": "credit.spend.linear", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "expected spend"})
+        client.post(f"/api/v1/models/{self.FIT_NAME}/assess", auth=owner,
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+        kernel = {"parameter_kind": "estimated_coefficients",
+                  "fit_procedure": "estimate", "runtime": "estimator",
+                  "entry": {"family": "ols", "target": "spend",
+                            "regressors": ["dscr", "turnover"]},
+                  "input_schema": [{"name": "dscr", "dtype": "numeric"},
+                                   {"name": "turnover", "dtype": "numeric"}],
+                  "output_schema": [{"name": "spend", "dtype": "numeric"}]}
+        r = client.post(f"/api/v1/models/{self.FIT_NAME}/versions", auth=dev,
+                        json={"semver": "1.0.0", "kernel": kernel})
+        assert r.status_code == 201, r.text
+        _quorum_approve(client, people, "1.0.0", urn=self.FIT_URN)
+        moved = client.put(f"/api/v1/models/{self.FIT_NAME}/aliases", auth=mrm,
+                           json={"environment": "prod", "alias": "champion",
+                                 "semver": "1.0.0"})
+        assert moved.status_code == 200, moved.text
+
+    def _snapshot(self, client, auth):
+        """spend = 5 + 2*dscr - 0.5*turnover, exactly."""
+        for name in ("dscr", "turnover", "spend"):
+            client.post("/api/v1/features", auth=auth, json={
+                "name": name, "entity": "borrower_id", "dtype": "numeric",
+                "description": name, "owner": "person/j.okafor"})
+        client.post("/api/v1/feature-views", auth=auth, json={
+            "name": "sb_credit", "entity": "borrower_id",
+            "owner": "person/j.okafor",
+            "features": ["dscr", "turnover", "spend"]})
+        rows = []
+        for i in range(60):
+            dscr, turnover = 1.0 + i * 0.05, 100.0 + (i % 7) * 3.0
+            rows.append({"entity_id": f"B{i}", "event_ts": self.EVENT,
+                         "ingest_ts": self.EVENT, "dscr": dscr,
+                         "turnover": turnover,
+                         "spend": 5.0 + 2.0 * dscr - 0.5 * turnover})
+        client.post("/api/v1/feature-views/sb_credit/materialise", auth=auth,
+                    json={"rows": rows})
+        client.post("/api/v1/featuresets", auth=auth, json={
+            "name": "sb_fit_set", "entity": "borrower_id",
+            "slots": {"dscr": "numeric", "turnover": "numeric",
+                      "spend": "numeric"}})
+        client.post("/api/v1/featuresets/sb_fit_set/versions", auth=auth, json={
+            "bindings": {"dscr": "dscr", "turnover": "turnover",
+                         "spend": "spend"}})
+        return client.post("/api/v1/featuresets/sb_fit_set/training-sets",
+                           auth=auth, json={
+                               "version": 1, "as_of": self.AS_OF,
+                               "spine": [{"entity_id": f"B{i}",
+                                          "label_ts": self.AS_OF}
+                                         for i in range(60)]})
+
+    def _fit(self, client, people, **overrides):
+        owner = people["j.okafor"]
+        client.post("/api/v1/warrants", auth=owner, json={
+            "urn": self.FIT_URN, "environment": "prod",
+            "principal": "svc/model-lab", "declared_use": "model_development"})
+        snapshot = self._snapshot(client, people["d.raman"]).json()
+        body = {"urn": self.FIT_URN, "snapshot_id": snapshot["id"],
+                "environment": "prod",
+                "principal": "svc/model-lab", "window": self.WINDOW,
+                "name": "ols_v1"}
+        body.update(overrides)
+        return client.post("/api/v1/parameter-fits", auth=people["d.raman"],
+                           json=body)
+
+    def test_a_fit_over_http_recovers_the_relationship_in_the_data(
+            self, registered, people):
+        self._estimator_version(registered, people)
+        r = self._fit(registered, people)
+        assert r.status_code == 201, r.text
+        values = r.json()["values_inline"]
+        assert values["intercept"] == pytest.approx(5.0, abs=1e-6)
+        assert values["dscr"] == pytest.approx(2.0, abs=1e-6)
+        assert values["turnover"] == pytest.approx(-0.5, abs=1e-6)
+
+    def test_the_fit_is_proposed_and_needs_a_second_person(self, registered,
+                                                           people):
+        """The whole reason a fit is not allowed to be its own approval."""
+        self._estimator_version(registered, people)
+        fitted = self._fit(registered, people).json()
+        assert fitted["state"] == "proposed"
+        # The person who fitted it cannot approve it.
+        same = registered.post(
+            f"/api/v1/parameter-sets/{fitted['id']}/review",
+            auth=people["d.raman"],
+            json={"accept": True, "note": "looks fine to me"})
+        assert same.status_code in (403, 422), same.text
+        other = registered.post(
+            f"/api/v1/parameter-sets/{fitted['id']}/review",
+            auth=people["s.iqbal"],
+            json={"accept": True, "note": "diagnostics reviewed"})
+        assert other.status_code == 200, other.text
+        assert other.json()["state"] == "approved"
+
+    def test_the_diagnostics_reach_the_caller(self, registered, people):
+        self._estimator_version(registered, people)
+        d = self._fit(registered, people).json()["diagnostics"]
+        assert d["family"] == "ols" and d["rows"] == 60
+        assert d["r_squared"] == pytest.approx(1.0)
+        assert "condition_number" in d and "standard_errors" in d
+
+    def test_a_fit_without_a_window_is_refused_by_name(self, registered, people):
+        self._estimator_version(registered, people)
+        r = self._fit(registered, people, window={})
+        assert r.status_code == 422
+        assert r.json()["error"] == "window_required"
+
+    def test_an_unknown_snapshot_is_a_404_and_not_a_500(self, registered, people):
+        self._estimator_version(registered, people)
+        r = self._fit(registered, people, snapshot_id="nope")
+        assert r.status_code == 404
+        assert r.json()["error"] == "no_snapshot"

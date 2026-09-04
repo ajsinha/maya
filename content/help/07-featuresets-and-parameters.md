@@ -4,7 +4,7 @@ slug: featuresets-and-parameters
 section: Features and data
 order: 70
 icon: diagram-3
-summary: Named, versioned collections of features that a warrant can name; derived features computed from primitives; and the fitted parameters that come back from an execution engine and are stored, versioned and governed like everything else. With a worked New Jersey home-price regression, end to end.
+summary: Named, versioned collections of features that a warrant can name; derived features computed from primitives; and the fitted parameters that MAYA can now produce for two estimator families and receives from an execution engine for the rest — stored, versioned and governed like everything else. With a worked New Jersey home-price regression, end to end.
 audience: Model developers, Model owners, Model risk
 ---
 
@@ -415,6 +415,59 @@ Four checks happen before it is signed:
 
 The engine assembles, fits, and posts the result back.
 
+## Running the fit
+
+If the version's kernel declares the `estimator` runtime, MAYA can run the fit
+itself. Assemble the training set from the featureset version, then:
+
+```http
+POST /api/v1/parameter-fits
+{
+  "urn": "maya://model/credit.spend.linear",
+  "snapshot_id": "01a06d...",
+  "environment": "prod",
+  "principal": "svc/model-lab",
+  "window": {"from": 1546300800.0, "to": 1735603200.0},
+  "name": "ols_v1"
+}
+```
+
+Four things happen, in this order, and the order is the point:
+
+1. **The warrant is resolved first.** Authority before data — a read performed
+   under an authority that turns out not to exist has already happened.
+2. **The training set is read at the Delta version the snapshot pinned**, not at
+   the head. Run the same fit twice and it sees the same bytes, even if the
+   table has been written to since. Without that, *"reproduce this fit"* has no
+   meaning and neither does replaying the validation that used it.
+3. **The estimator runs** through the same runtime dispatch every other
+   operation uses.
+4. **The result is recorded through the ordinary register**, which means it
+   arrives `proposed`. The person who ran the fit still cannot approve it.
+
+You must state the **window**. MAYA will not derive it from the rows: the period
+a fit is *for* is a governance statement — *"estimated over 2019 to 2024"* —
+which happens to be reported by the data but is not defined by it. Reading it
+off whatever rows arrived would turn the claim into a description of the
+extract.
+
+### What it refuses, and why
+
+| Refusal | Why it is not a warning |
+|---|---|
+| `collinear_regressors` | The solver would return one of infinitely many answers, and the coefficient a validator reads would be an artefact of the solver |
+| `value_not_numeric` | Dropping or zeroing a missing value changes the population the fit speaks for without saying so. Put a fill policy on the featureset, where the decision is on the record |
+| `too_few_rows` | A fit on a handful of rows reports diagnostics that look like results |
+| `fit_did_not_converge` | Three numbers from a search that stopped early look exactly like three from one that finished |
+| `target_is_a_regressor` | The fit would predict the answer from the answer |
+| `window_required` | See above |
+
+The diagnostics travel with the parameter set — R², standard errors, t
+statistics, and the **condition number**, which is the one to read first: in the
+thousands, the coefficients are a solution to this sample rather than a property
+of the world. MAYA does not decide whether a fit is any good. It puts the
+numbers in front of somebody who can.
+
 ## What comes back
 
 ```json
@@ -526,9 +579,19 @@ and has no windows or lags. Anything needing a library, a join or a model is
 declared `external`: MAYA keeps the definition, the lineage and the checks, and
 says plainly that it did not compute the values.
 
-**It does not fit anything.** MAYA issues the warrant and receives the result.
-The estimation happens in an execution engine, which is the same boundary drawn
-everywhere else.
+**It fits two families and no more.** The captive engine estimates `ols` and
+`garch11` — enough that the whole path from a featureset version to an approved
+point of *P* can be walked without leaving the platform, and every control on
+that path exercised against a real fit rather than a hand-written dictionary.
+Anything else is estimated in an execution engine and delivered back, which is
+the same boundary drawn everywhere else. It is not a modelling library and does
+not want to become one.
+
+**It fits and does not score.** A fitted parameter set *is* the linear model, so
+scoring from it is arithmetic — but the engine would have to hold the *approved*
+values and be able to show they are the ones somebody signed, and that is a
+question about how a runtime obtains and proves them rather than about the
+arithmetic. Left undone rather than guessed at.
 
 **It does not choose your features.** No automatic selection, no importance
 ranking, no suggestion engine. It records what you chose, pins it so it cannot
