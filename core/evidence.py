@@ -20,9 +20,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generic, List, Optional, Set, Tuple, TypeVar
 
-from sqlalchemy import select
-
-from core.store import Store, canonical_digest, evidence_node, _ulid
+from db import EvidenceRepository
+from db.database import digest as canonical_digest
 
 K = TypeVar("K")
 
@@ -80,16 +79,13 @@ class EvaluationResult:
 class EvidenceEngine:
     """Append-only, hash-chained evidence with semiring evaluation over it."""
 
-    def __init__(self, store: Store):
-        self.store = store
+    def __init__(self, repo: EvidenceRepository):
+        self.repo = repo
 
     # -------------------------------------------------------------- append
     def head(self) -> Tuple[int, str]:
-        with self.store.engine.connect() as conn:
-            row = conn.execute(
-                select(evidence_node.c.seq, evidence_node.c.chain_hash)
-                .order_by(evidence_node.c.seq.desc()).limit(1)).first()
-        return (row[0], row[1]) if row else (0, GENESIS)
+        row = self.repo.head()
+        return (row["seq"], row["chain_hash"]) if row else (0, GENESIS)
 
     def append(self, kind: str, subject_type: str, subject_id: str,
                payload: Optional[Dict[str, Any]] = None, parents: Optional[List[str]] = None,
@@ -102,7 +98,7 @@ class EvidenceEngine:
         prev_seq, prev_hash = self.head()
         seq = prev_seq + 1
         node = {
-            "id": _ulid(), "seq": seq, "kind": kind,
+            "seq": seq, "kind": kind,
             "subject_type": subject_type, "subject_id": subject_id,
             # Law L-18: personal data is never inline, only an erasable pointer.
             "payload": {} if personal_data else payload,
@@ -111,11 +107,11 @@ class EvidenceEngine:
             "chain_hash": canonical_digest([seq, prev_hash, content_hash, parents]),
             "trust": trust, "recorded_at": time.time(), "recorded_by": actor,
         }
-        return self.store.insert(evidence_node, node)
+        return self.repo.add(node)
 
     def verify_chain(self) -> Dict[str, Any]:
         """Walk the chain. Reports the first break, if any."""
-        nodes = self.store.many(evidence_node, order_by=evidence_node.c.seq, limit=100000)
+        nodes = self.repo.all_ordered()
         prev_hash, expected_seq = GENESIS, 1
         for n in nodes:
             if n["seq"] != expected_seq:
@@ -129,8 +125,7 @@ class EvidenceEngine:
         return {"valid": True, "length": len(nodes), "head": prev_hash}
 
     def for_subject(self, subject_id: str) -> List[Dict[str, Any]]:
-        return self.store.many(evidence_node, evidence_node.c.subject_id == subject_id,
-                               order_by=evidence_node.c.seq)
+        return self.repo.for_subject(subject_id)
 
     # ------------------------------------------------------------ evaluate
     def evaluate(self, claim: str, derivations: Dict[str, Derivation], semiring: Semiring,

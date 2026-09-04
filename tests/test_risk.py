@@ -151,18 +151,18 @@ class TestAssessment:
     def test_none_exposure_is_treated_as_zero(self, tiering):
         assert tiering.assess({"exposure": None}).materiality == "negligible"
 
-    def test_persist_writes_an_assessment_row(self, tiering, store):
-        from core.store import risk_assessment
+    def test_persist_writes_an_assessment_row(self, tiering, repos):
         a = tiering.assess({"exposure": 1e9, "purpose_class": "financial_reporting",
                             "trainability_class": "T3"})
-        tiering.persist(store, "model-1", a)
-        rows = store.many(risk_assessment)
+        tiering.persist(repos["risk"], "model-1", a)
+        rows = repos["risk"].for_model("model-1")
         assert len(rows) == 1 and rows[0]["tier"] == a.tier
         assert rows[0]["next_review_due"] > 0
 
-    def test_higher_tier_gets_a_sooner_review(self, tiering, store):
-        from core.store import risk_assessment
-        tiering.persist(store, "m1", tiering.assess({"exposure": 1e10}))
-        tiering.persist(store, "m2", tiering.assess({"exposure": 0}))
-        rows = sorted(store.many(risk_assessment), key=lambda r: r["tier"])
-        assert rows[0]["next_review_due"] < rows[-1]["next_review_due"]
+    def test_higher_tier_gets_a_sooner_review(self, tiering, repos):
+        tiering.persist(repos["risk"], "m1", tiering.assess({"exposure": 1e10}))
+        tiering.persist(repos["risk"], "m2", tiering.assess({"exposure": 0}))
+        high = repos["risk"].latest("m1")
+        low = repos["risk"].latest("m2")
+        assert high["tier"] < low["tier"]
+        assert high["next_review_due"] < low["next_review_due"]

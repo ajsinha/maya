@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ app_name }}{% endblock %}</title>
+<link rel="icon" href="/static/img/maya-mark-64.png">
+<!-- Vendored locally: no CDN, so the interface renders in an air-gapped deployment. -->
+<link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+<link href="/static/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{--crimson:#A51C30;--crimson-d:#761422;--ink:#1C1C1E;--slate:#4A4F57;
+      --muted:#7A7F87;--rule:#D8D4CF;--parch:#F6F3EF;}
+body{background:#fff;color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+.navbar{background:var(--crimson)!important;}
+.navbar-brand{font-family:Georgia,serif;letter-spacing:.06em;font-weight:600;}
+.navbar .slogan{color:#F2D8DC;font-style:italic;font-size:.82rem;}
+h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif;}
+h1{font-size:1.75rem;}
+.rule{height:2px;background:var(--rule);margin:.6rem 0 1.2rem;}
+.accent{width:34px;height:4px;background:var(--crimson);border-radius:2px;}
+.tier{font-weight:700;font-size:.72rem;padding:.16rem .48rem;border-radius:3px;letter-spacing:.04em;}
+.tier-1{background:#A51C30;color:#fff}.tier-2{background:#B8873D;color:#fff}
+.tier-3{background:#2E4057;color:#fff}.tier-4{background:#7A7F87;color:#fff}
+.tier-none{background:#E8E4DE;color:#4A4F57}
+.chip{font-size:.72rem;padding:.14rem .42rem;border:1px solid var(--rule);border-radius:3px;color:var(--slate);}
+.card{border:1px solid var(--rule);border-radius:4px;}
+.card-header{background:var(--parch);border-bottom:1px solid var(--rule);font-weight:600;}
+table.maya{font-size:.88rem}
+table.maya thead th{background:var(--crimson);color:#fff;font-weight:600;font-size:.78rem;
+                    letter-spacing:.03em;border:0;}
+table.maya tbody tr:nth-child(even){background:var(--parch);}
+.kicker{color:var(--crimson);font-weight:700;font-size:.72rem;letter-spacing:.08em;}
+.mono{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:.82rem;}
+footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padding:1.2rem 0;margin-top:2.5rem;}
+.evidence-ok{color:#2D5016;font-weight:600}.evidence-bad{color:#A51C30;font-weight:600}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+      <img src="/static/img/maya-mark-64.png" alt="" width="26" height="26">MAYA
+    </a>
+    <span class="slogan d-none d-md-inline">{{ slogan }}</span>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <a class="nav-link d-inline text-white-50 small" href="/about">About</a>
+      <a class="nav-link d-inline text-white-50 small" href="/help">Help</a>
+      {% if user %}
+        <a class="nav-link d-inline text-white-50 small" href="/dashboard">Dashboard</a>
+        <a class="btn btn-sm btn-outline-light" href="/logout">Sign out</a>
+      {% else %}
+        <a class="btn btn-sm btn-light" style="color:var(--crimson)" href="/login">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+<main class="container">{% block content %}{% endblock %}</main>
+<footer><div class="container">
+  {{ app_name }} {{ version }} — {{ tagline }}. <strong>{{ slogan }}</strong><br>
+  Copyright © 2026 Ashutosh Sinha &lt;ajsinha@gmail.com&gt;. All rights reserved.
+  Proprietary and confidential. Not legal, regulatory or financial advice.
+</div></footer>
+<script src="/static/vendor/jquery/jquery.min.js"></script>
+<script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

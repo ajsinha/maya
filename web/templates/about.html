@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}About — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">ABOUT</p>
+<h1>What this is, and why it exists</h1>
+<div class="rule"></div>
+<div class="row g-4">
+<div class="col-lg-8">
+  <p>A large bank runs 800–3,000 models and tens of thousands of end-user computations.
+     Almost none of them are what MLOps tooling assumes.</p>
+  <h2 class="serif mt-4" style="font-size:1.25rem">The gap</h2>
+  <p class="text-muted">Governance platforms have excellent workflow but cannot see the artefact:
+     the record asserts that a model was validated, and nothing establishes that the model described
+     is the model executing. ML platforms have excellent artefact lineage but no concept of
+     materiality, approved use, effective challenge or overlay — and never see 60–80% of the estate.</p>
+  <p class="text-muted">Buying both produces two inventories that disagree, and the disagreement is
+     itself an audit finding.</p>
+
+  <h2 class="serif mt-4" style="font-size:1.25rem">The definition</h2>
+  <p class="text-muted">A model is a parameter object <code class="mono">P</code>, an input
+     <code class="mono">X</code>, an output <code class="mono">Y</code>, and a kernel
+     <code class="mono">f : P ⊗ X → Y</code>. Training is one way of inhabiting
+     <code class="mono">P</code> — not part of the definition of a model. A closed-form pricer is the
+     case where <code class="mono">P</code> is empty; a vendor black box is the case where it exists
+     but cannot be inspected.</p>
+
+  <h2 class="serif mt-4" style="font-size:1.25rem">What MAYA does not do</h2>
+  <p class="text-muted"><strong>It does not execute models.</strong> It manages them and issues
+     hooks — signed, expiring, entitlement-bound execution contracts — which an execution engine acts
+     on. A captive engine ships as a default so a deployment works out of the box, but it is a
+     consumer of the same public contract any external engine uses, and it can be switched off
+     without changing anything else.</p>
+</div>
+<div class="col-lg-4">
+  <div class="card mb-3"><div class="card-header">Identity</div><div class="card-body small">
+    <div class="mb-2"><span class="text-muted">Name</span><br>
+      <strong>MAYA</strong> — Sanskrit <em>māyā</em> (माया), appearance, representation</div>
+    <div class="mb-2"><span class="text-muted">Tagline</span><br>{{ tagline }}</div>
+    <div class="mb-2"><span class="text-muted">Slogan</span><br>
+      <strong>{{ slogan }}</strong></div>
+    <div><span class="text-muted">Principle</span><br>
+      <em>A model is a representation of the world. Governance is knowing the difference.</em></div>
+  </div></div>
+  <div class="card mb-3"><div class="card-header">The mark</div><div class="card-body small">
+    <img src="/static/img/maya-mark-64.png" width="46" class="float-start me-3" alt="">
+    A square inscribed in a circle — the oldest model there is. The <strong>gap</strong> is the model
+    error; the <strong>four points</strong> are where the model and the world agree.
+  </div></div>
+  <div class="card"><div class="card-header">Version</div><div class="card-body small">
+    {{ app_name }} {{ version }}<br>
+    <span class="text-muted">© 2026 Ashutosh Sinha. All rights reserved.</span>
+  </div></div>
+</div>
+</div>
+{% endblock %}
