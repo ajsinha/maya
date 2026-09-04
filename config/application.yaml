@@ -131,6 +131,10 @@ execution:
   captive:
     enabled: true
     max_seconds: 30
+    # Artifacts are read from data.artifacts and their digest is verified against
+    # the warrant before anything is loaded. The engine implements three of the
+    # grammar's seventeen runtimes -- registered callables, ONNX, and the
+    # regression and scorecard subset of PMML -- and refuses the rest by name.
 
 lifecycle:
   attestation:

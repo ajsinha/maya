@@ -50,6 +50,11 @@ CREATE TABLE IF NOT EXISTS model_version (
     output_schema      TEXT NOT NULL DEFAULT '[]',
     contract           TEXT NOT NULL DEFAULT '{}',
     artifact_digest    TEXT,
+    -- Where the artifact is, so an engine can locate it. The digest says WHAT
+    -- should be there; this says where to look. Both are needed: a digest with
+    -- no location cannot be fetched, and a location with no digest cannot be
+    -- checked against what was approved.
+    artifact_uri       TEXT,
     status             TEXT NOT NULL DEFAULT 'draft',
     created_at         REAL NOT NULL,
     created_by         TEXT NOT NULL,

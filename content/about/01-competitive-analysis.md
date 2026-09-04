@@ -133,6 +133,13 @@ every section cites what it rests on, staleness is computed from the chain rathe
 than remembered, and a section that cannot be filled says what is missing instead
 of leaving a blank heading.
 
+**The chain of custody reaches the bytes.** The captive engine verifies the
+artifact's digest against the warrant before loading it, so the registry, the
+warrant and the signature describe the thing that actually runs rather than
+something adjacent to it. It implements ONNX and — natively, without a JVM — the
+regression and scorecard subset of PMML, which is most of what a bank's credit
+risk function actually runs.
+
 **One grammar for every model family.** The warrant an execution engine acts on
 is the product of four independent vocabularies — how the parameter object is
 inhabited, how the kernel is realised, what is asked of it, where its data comes

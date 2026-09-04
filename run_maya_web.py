@@ -195,7 +195,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "replayer": Replayer(validation, catalogue)}
     if cfg.get_bool("execution.captive.enabled", True):
         # A consumer of the public warrant contract, nothing more.
-        ctx["engine"] = CaptiveEngine(warrants, cfg.get_float("execution.captive.max_seconds", 30.0))
+        ctx["engine"] = CaptiveEngine(
+            warrants, cfg.get_float("execution.captive.max_seconds", 30.0),
+            artifact_dir=Path(cfg.get("data.artifacts", str(ROOT / "data" / "artifacts"))))
     return ctx
 
 
