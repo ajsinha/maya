@@ -1,0 +1,96 @@
+{
+  "_comment": "A backtest. The verb is different from `score` because the question is different: score over a historical window and compare against realised outcomes. The grammar requires the inputs to supply those outcomes -- a backtest without them is a re-score wearing a backtest's name.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c8a04d5",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/market.var.equities@5.2.0",
+    "model_urn": "maya://model/market.var.equities",
+    "version": "5.2.0",
+    "version_id": "01a06c2311fe",
+    "manifest_digest": "sha256:c80f2a51d7b4e39602ac1f7be0d5a4839c17ea06bd23f9481570cae6b2f0d391",
+    "binding_kind": "pinned_version",
+    "trainability_class": "T1"
+  },
+
+  "operation": {"verb": "backtest", "determinism": "deterministic", "seed": 7, "mode": "batch"},
+
+  "parameters": {
+    "kind": "calibration_set",
+    "source": {"binding": "artifact", "uri": "delta://parameters/var_equities/2026-01-01"},
+    "digest": "sha256:3f1c07ba9e5d248610fac7b3e0d19582746be0ac1d5f39826041cb7ea2f8d503",
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "python.callable",
+    "entry": {"module": "market.var.equities.engine", "attr": "historical_var",
+              "confidence": 0.99, "horizon_days": 1, "lookback_days": 500},
+    "artifact": {"uri": "git://internal/market-risk@7d1c04a",
+                 "digest": "sha256:5a20c48e1b7f0936d2e14ac70bf3d8256910eab74c2f8d305176be0ac9f3d128",
+                 "format": "source_bundle"},
+    "environment": {"image": "reg.internal/quant/marketrisk:2026.01"}
+  },
+
+  "data": {
+    "inputs": [
+      {
+        "name": "history",
+        "binding": "dataset_snapshot",
+        "snapshot": "snapshots/equities_pnl_2025",
+        "labels": "realised_pnl",
+        "outcome_column": "realised_pnl",
+        "pit_verified": true,
+        "description": "Carries the realised P&L the VaR forecasts are compared against. Without an outcome column this warrant is refused by law L-W7."
+      }
+    ],
+    "outputs": [
+      {"name": "exceptions", "sink": "response"},
+      {"name": "traffic_light", "sink": "response"},
+      {"name": "backtest_report", "sink": "evidence"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "realised_pnl", "dtype": "float"},
+      {"name": "book", "dtype": "string"}
+    ],
+    "output_schema": [
+      {"name": "exceptions", "dtype": "int", "minimum": 0},
+      {"name": "traffic_light", "dtype": "string"}
+    ]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [{"key": "observations", "minimum": 250}],
+      "guarantees": [{"key": "exceptions", "maximum": 9,
+                      "note": "Basel traffic light: 10+ exceptions in 250 days is the red zone"}]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 900, "max_memory_mb": 8192}
+  },
+
+  "authority": {
+    "principal": "svc/market-risk-batch",
+    "declared_use": "regulatory_backtest",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767232800.0,
+    "grace_seconds": 0,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 1, "model_status": "attested", "version_status": "approved",
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "8f03c1a7e42b95d06718ac3be0f5d29714a0eb63c8d2f5910476bae1c3f0d852"
+  }
+}

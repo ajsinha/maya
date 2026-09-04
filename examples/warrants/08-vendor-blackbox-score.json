@@ -1,0 +1,102 @@
+{
+  "_comment": "T6 vendor black box, registered descriptor-only. MAYA holds the governance, the schemas and the operating boundary; the engine holds the artifact under licence. This is an honest state, not a defect -- and the one thing the grammar refuses here is `fit`, because you cannot inhabit a parameter object nothing on this side can reach.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c7a1f63",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/fincrime.aml.vendor#champion",
+    "model_urn": "maya://model/fincrime.aml.vendor",
+    "version": "2024.3",
+    "version_id": "01a06c1d3e02",
+    "manifest_digest": "sha256:0f3a71c8e2b940d517ac6be03f281d94a70c5eb18d2f6a3095c4b7e021df8a63",
+    "binding_kind": "alias",
+    "trainability_class": "T6"
+  },
+
+  "operation": {
+    "verb": "score",
+    "determinism": "deterministic",
+    "seed": null,
+    "mode": "batch"
+  },
+
+  "parameters": {
+    "kind": "opaque",
+    "source": {"note": "inside the vendor product; not obtainable under the licence"},
+    "digest": null,
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "descriptor_only",
+    "entry": {},
+    "artifact": {
+      "uri": null,
+      "digest": null,
+      "format": "vendor_binary",
+      "note": "MAYA records the vendor release identifier and cannot verify a digest. That limitation is recorded rather than papered over: nothing here asserts an assurance the platform does not have."
+    },
+    "environment": {"vendor": "Example AML Ltd", "release": "2024.3", "support_until": "2027-06-30"}
+  },
+
+  "data": {
+    "inputs": [
+      {"name": "transactions", "binding": "stream", "topic": "payments.cleared"},
+      {"name": "party_features", "binding": "feature_namespace",
+       "namespace": "features/party/aml_profile/v4"}
+    ],
+    "outputs": [
+      {"name": "alert_score", "sink": "response"},
+      {"name": "alerts", "sink": "delta_table", "table": "fincrime/alerts"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "amount", "dtype": "float", "minimum": 0.0},
+      {"name": "corridor", "dtype": "string"},
+      {"name": "party_risk_band", "dtype": "string"}
+    ],
+    "output_schema": [{"name": "alert_score", "dtype": "float", "minimum": 0.0, "maximum": 100.0}]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [{"key": "amount", "minimum": 0.0, "maximum": 100000000.0}],
+      "guarantees": [
+        {"key": "alert_rate", "maximum": 0.04},
+        {"key": "own_outcomes_precision", "minimum": 0.12,
+         "note": "SS1/23 2.6 -- vendor performance is monitored using OUR outcomes, since the internals cannot be inspected"}
+      ]
+    },
+    "on_boundary_violation": "flag",
+    "resources": {"max_seconds": 3}
+  },
+
+  "authority": {
+    "principal": "svc/transaction-monitoring",
+    "declared_use": "alert_generation",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767229200.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 1,
+    "model_status": "attested",
+    "version_status": "approved",
+    "descriptor_only": true,
+    "compensating_controls": ["own_outcomes_analysis", "benchmark_divergence",
+                              "vendor_release_change_detection"],
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "9b1e0c74a3f8d2650e17bc94a0f3d827516ea0bd4c93f7128a06de5b3fc1074a"
+  }
+}

@@ -91,6 +91,15 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**One grammar for every model family.** The warrant an execution engine acts on
+is the product of four independent vocabularies — how the parameter object is
+inhabited, how the kernel is realised, what is asked of it, where its data comes
+from — rather than a union of special cases. A Black–Scholes pricer and a
+Hull–White calibration are the same document at different coordinates, and the
+grammar refuses `fit` on the first because a T0 model has no parameters to fit.
+The JSON Schema is generated from the vocabulary and published, so an engine in
+any language can check a warrant before acting on it.
+
 **Monitoring that refuses rather than reports.** A breach raises a finding, and a
 blocking finding refuses warrant resolution — so degradation stops a model
 mechanically instead of colouring a chart somebody has to be looking at. And

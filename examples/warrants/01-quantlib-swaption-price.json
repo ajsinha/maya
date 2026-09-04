@@ -1,0 +1,122 @@
+{
+  "_comment": "T0 analytic pricing. No parameters to fit — the numbers come from theory and from the market, not from a training set. Asking this model for a training dataset is a type error, and the grammar refuses `fit` for it.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c4f2e8b",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/rates.swaption.black#champion",
+    "model_urn": "maya://model/rates.swaption.black",
+    "version": "4.1.0",
+    "version_id": "01a06c1122aa",
+    "manifest_digest": "sha256:6f21c9a4e0b7d5138ac2e91f7b0d4a6c3e88f1029d4b7ca5e0163f8b2d7a94ce",
+    "binding_kind": "alias",
+    "trainability_class": "T0"
+  },
+
+  "operation": {
+    "verb": "score",
+    "determinism": "deterministic",
+    "seed": null,
+    "mode": "batch"
+  },
+
+  "parameters": {
+    "kind": "none",
+    "source": {},
+    "digest": null,
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "quantlib",
+    "entry": {
+      "instrument": "Swaption",
+      "pricing_engine": "BlackSwaptionEngine",
+      "term_structures": ["EUR.OIS.DISCOUNT", "EUR.6M.FORWARD", "EUR.SWAPTION.VOL"],
+      "calendar": "TARGET",
+      "day_count": "Actual360",
+      "settlement": "Physical"
+    },
+    "artifact": {
+      "uri": "lib://quantlib/1.34",
+      "digest": "sha256:c1d0b8ea4f39a72e5b6104cd8f2e93a170bb4d6c8e5f210937ac4be1d05f8362",
+      "format": "shared_object"
+    },
+    "environment": {"image": "reg.internal/quant/quantlib:1.34-py312"}
+  },
+
+  "data": {
+    "inputs": [
+      {
+        "name": "trades",
+        "binding": "request",
+        "description": "Swaption terms: expiry, tenor, strike, notional, payer/receiver"
+      },
+      {
+        "name": "market",
+        "binding": "market_data",
+        "curve_set": "EOD.EUR.2026-01-01",
+        "as_of": 1767225600.0,
+        "description": "The curve set is pinned. A price is only reproducible against the curves it was struck from."
+      }
+    ],
+    "outputs": [
+      {"name": "npv", "sink": "response"},
+      {"name": "greeks", "sink": "response"},
+      {"name": "pricing_run", "sink": "evidence"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "expiry_years", "dtype": "float", "minimum": 0.02, "maximum": 30.0},
+      {"name": "tenor_years", "dtype": "float", "minimum": 0.5, "maximum": 30.0},
+      {"name": "strike", "dtype": "float", "minimum": -0.02, "maximum": 0.15},
+      {"name": "notional", "dtype": "float", "minimum": 0.0}
+    ],
+    "output_schema": [
+      {"name": "npv", "dtype": "float"},
+      {"name": "vega", "dtype": "float"},
+      {"name": "delta", "dtype": "float"}
+    ]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        {"key": "expiry_years", "minimum": 0.02, "maximum": 30.0},
+        {"key": "strike", "minimum": -0.02, "maximum": 0.15}
+      ],
+      "guarantees": [
+        {"key": "repricing_error_bp", "maximum": 0.5}
+      ]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 5, "max_memory_mb": 512}
+  },
+
+  "authority": {
+    "principal": "svc/xva-engine",
+    "declared_use": "eod_valuation",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767225660.0,
+    "grace_seconds": 0,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 1,
+    "model_status": "attested",
+    "version_status": "approved",
+    "attested_at": 1759276800.0,
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "b4c1e70a9f2d83615ce0a4b7d92f1830465e7c9ab21d0f8e3746c5b09a1e2d47"
+  }
+}
