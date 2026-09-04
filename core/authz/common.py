@@ -46,6 +46,7 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "assist:read", "assist:register", "assist:generate", "assist:attest",
     "baseline:read", "baseline:import", "baseline:plan",
     "regime:read", "regime:activate",
+    "scheduler:read", "scheduler:run",
     "evidence:read",
     # the platform itself
     "principal:read", "principal:manage",

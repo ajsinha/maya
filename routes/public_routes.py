@@ -104,6 +104,11 @@ class PublicRoutes(Routes):
             """Readiness includes the evidence chain: a broken chain means the
             assurance claims cannot be trusted, so the node is not ready."""
             chain = self.ctx["evidence"].verify_chain()
+            # The scheduler reports on itself here for the same reason a monitor
+            # does: one that has quietly stopped looks exactly like one with
+            # nothing to do. Its state is informational — a stopped scheduler is
+            # not a reason to take the node out of service.
+            scheduler = self.ctx["scheduler"].health()
             return JSONResponse({"status": "ready" if chain["valid"] else "degraded",
-                                 "evidence_chain": chain},
+                                 "evidence_chain": chain, "scheduler": scheduler},
                                 status_code=200 if chain["valid"] else 503)

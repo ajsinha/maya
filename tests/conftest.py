@@ -372,3 +372,16 @@ def estate(registry, findings, monitoring, overlays, debts, baseline, lifecycle,
     from core.estate import EstateSummary
     return EstateSummary(registry, findings, monitoring, overlays, debts, baseline,
                          lifecycle, regimes, compiler)
+
+
+# --------------------------------------------------------------------- scheduler
+@pytest.fixture
+def scheduler(db, evidence, registry, lifecycle, findings, monitoring, overlays,
+              debts, compiler):
+    from core.scheduler import JobContext, Scheduler
+    from db import ScheduledRunRepository
+    return Scheduler(
+        ScheduledRunRepository(db), evidence,
+        JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
+                   findings=findings, monitoring=monitoring, overlays=overlays,
+                   debts=debts, documents=compiler))

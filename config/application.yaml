@@ -155,6 +155,18 @@ regimes:
   # translation produces determinations nobody can defend.
   active: [sr-26-2, ss1-23, eu-ai-act]
 
+scheduler:
+  # Turning a computed condition into a recorded consequence: a lapsed
+  # attestation, a monitor that has stopped running, an overlay past its window,
+  # baseline debt whose evidence arrived.
+  #
+  # Every job is idempotent and derives its own work from the register, so this
+  # loop is a convenience only. Cron calling POST /api/v1/scheduler/run produces
+  # identical results, and is the right answer for more than one replica.
+  loop:
+    enabled: false
+    interval_seconds: 3600
+
 content:
   # Help and about pages are markdown files rendered at request time. They live
   # in the repository rather than the database so that a change to what the

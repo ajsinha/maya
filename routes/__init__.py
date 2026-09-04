@@ -21,6 +21,7 @@ from routes.monitoring_routes import MonitoringRoutes
 from routes.overlay_routes import OverlayRoutes
 from routes.principal_routes import PrincipalRoutes
 from routes.regime_routes import RegimeRoutes
+from routes.scheduler_routes import SchedulerRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_routes import UIRoutes
 from routes.validation_routes import ValidationRoutes
@@ -32,9 +33,9 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               ModelRoutes, LifecycleRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, MonitoringRoutes,
               DocumentRoutes, OverlayRoutes, AssistRoutes, BaselineRoutes,
-              RegimeRoutes,
+              RegimeRoutes, SchedulerRoutes,
               UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "BaselineRoutes", "RegimeRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]
