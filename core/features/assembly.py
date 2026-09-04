@@ -78,9 +78,25 @@ class TrainingSetBuilder:
     @staticmethod
     def latest_admissible(records: List[Dict[str, Any]], label_ts: float,
                           as_of: float) -> Optional[Dict[str, Any]]:
-        """The point-in-time rule: latest fact true by label_ts AND known by as_of."""
+        """The point-in-time rule: the latest fact true by `label_ts` and known
+        by `label_ts` — bounded also by the assembly's own `as_of`.
+
+        The ingest bound used to be `as_of` alone, and `as_of` is a single
+        scalar for the whole assembly. So a fact that was true before the label
+        and *learned afterwards* was admitted: knowable at assembly time, not
+        knowable at decision time. That is a leak in the exact sense the rule
+        exists to prevent, and back-filled alignment makes it concrete — a value
+        first observed in April, carried back onto a March grid point, arrives
+        with April's ingest stamp and is admitted into a March training row.
+
+        Both bounds are kept because they refuse different things. `label_ts`
+        is what the model could have known when the decision was made; `as_of`
+        is what the platform could have known when the set was built, so a
+        restatement arriving after assembly cannot creep into a re-run.
+        """
+        knowable_by = min(label_ts, as_of)
         eligible = [r for r in records
-                    if r[VALID_TIME] <= label_ts and r[INGEST_TIME] <= as_of]
+                    if r[VALID_TIME] <= label_ts and r[INGEST_TIME] <= knowable_by]
         if not eligible:
             return None
         return max(eligible, key=lambda r: (r[VALID_TIME], r[INGEST_TIME]))

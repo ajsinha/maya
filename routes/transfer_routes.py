@@ -106,13 +106,22 @@ class TransferRoutes(Routes):
         @self.app.get(f"{api}/featuresets/{{name}}/versions/{{version}}/data",
                       tags=["features"])
         def featureset_data(request: Request, name: str, version: int,
+                            as_of: Optional[float] = None,
                             format: Optional[str] = None,
                             limit: Optional[int] = None):
-            """Copy a whole featureset version out, joined on the entity key.
+            """Copy a whole featureset version out **as at a stated moment**.
 
-            A featureset spans several namespaces, so this is a join. A client
-            wanting parallelism should read the parts instead — `/parts` says
-            what they are.
+            A featureset spans several namespaces, so this is a join — and each
+            part is reduced to what was true and known at `as_of` before the
+            join happens. Without that the join pairs each feature's whole
+            history against every other feature's, which is what it used to do.
+
+            `as_of` is required. An export is a claim about what was known at a
+            moment, and defaulting it would make that moment whatever the clock
+            said when somebody happened to call.
+
+            A client wanting parallelism should read the parts instead — `/parts`
+            says what they are.
             """
             self.authorise(request, "feature:read")
             chosen = self.guard(
@@ -120,14 +129,14 @@ class TransferRoutes(Routes):
             if chosen == "json":
                 rows = self.guard(lambda: [
                     r for batch in transfer.featureset_batches(
-                        name, version, min(limit or 1000, 10_000))
+                        name, version, as_of, min(limit or 1000, 10_000))
                     for r in batch.to_pylist()])
                 return {"featureset": name, "version": version,
                         "returned": len(rows), "rows": rows,
                         "detail": "json is capped; ask for arrow or parquet to "
                                   "take the whole thing"}
             return self._stream(
-                transfer.featureset_stream(name, version, chosen, limit),
+                transfer.featureset_stream(name, version, chosen, as_of, limit),
                 chosen, f"{name}-v{version}")
 
         @self.app.post(f"{api}/featuresets/{{name}}/versions/{{version}}/prepared",
@@ -150,7 +159,7 @@ class TransferRoutes(Routes):
             effective = resolved["policy"]["policy"]
             rows = self.guard(lambda: [
                 r for batch in transfer.featureset_batches(
-                    name, version, body.limit or 50_000)
+                    name, version, body.as_of, body.limit or 50_000)
                 for r in batch.to_pylist()])
             return self.guard(lambda: _prepare(rows, effective, body))
 

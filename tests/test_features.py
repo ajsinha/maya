@@ -164,10 +164,31 @@ class TestTrainingSetAssembly:
             "the restated figure was not knowable at label time"
         assert snap["pit_verified"] is True
 
-    def test_a_later_assembly_sees_the_restatement(self, sb_view):
-        snap = sb_view.build_training_set("pd_train_v2", self.SPINE, self.VIEWS, as_of=999.0)
+    def test_a_later_assembly_still_refuses_the_restatement(self, sb_view):
+        """This test used to assert the opposite, and the opposite was a leak.
+
+        The decision is at t=500 and the restatement was not known until t=900.
+        Assembling the same spine later, with as_of=999, must still produce the
+        figure that was knowable at the decision — otherwise a model is trained
+        on what was learned afterwards, which is precisely what point-in-time
+        correctness means.
+
+        The ingest bound used to be `as_of` alone, which is one scalar for the
+        whole assembly, so anything learned before the set was BUILT was
+        admitted rather than anything known when the decision was MADE.
+        """
+        snap = sb_view.build_training_set("pd_train_v2", self.SPINE, self.VIEWS,
+                                          as_of=999.0)
         rows = sb_view.delta.read(snap["delta_table"])
-        assert float(rows[rows.entity_id == "C1"].iloc[0]["dscr"]) == pytest.approx(0.40)
+        assert float(rows[rows.entity_id == "C1"].iloc[0]["dscr"]) == pytest.approx(1.20)
+
+    def test_the_restatement_is_visible_where_it_belongs(self, sb_view):
+        """It is not hidden — it is kept out of the training row and reported as
+        what it is. A read at a later transaction time sees it."""
+        frame = sb_view.delta.as_of("features/customer/sb_financials/v1",
+                                    valid_before=500.0, known_before=999.0)
+        row = frame[frame.entity_id == "C1"].to_dict("records")[0]
+        assert row["dscr"] == pytest.approx(0.40)
 
     def test_assembly_without_a_temporal_bound_is_rejected(self, sb_view):
         with pytest.raises(AssemblyRejected, match="transaction_time"):
@@ -304,3 +325,47 @@ class TestAWithdrawnValueStaysWithdrawn:
         """Bitemporality's whole point: what was known then is still readable."""
         row = self._store(tmp_path).as_of("t", 1000.0, 500.0).to_dict("records")[0]
         assert row["dscr"] == 1.2 and row["ingest_ts"] == 110.0
+
+
+class TestABackFilledValueCannotEnterATrainingRow:
+    """The alignment module claimed a point-in-time read excluded back-filled
+    values 'arithmetically, without anybody having to remember a flag'.
+
+    The stamp was right — a value carried backwards keeps the ingest time at
+    which it actually became knowable. The argument that the stamp was
+    sufficient was not: the assembler bounded ingest by the assembly-wide
+    `as_of`, so a March training row happily took an April observation, and the
+    snapshot came back `pit_verified: True`.
+    """
+
+    def _view(self, features):
+        features.define("px", "customer", "float", "a price", "person/d.raman")
+        features.create_view("prices", "customer", "person/j.okafor", ["px"])
+        # The ONLY observation exists in April: true at 2000, known at 2000.
+        features.materialise("prices", [
+            {"entity_id": "C1", "event_ts": 2000.0, "ingest_ts": 2000.0, "px": 999.0}],
+            ["px"])
+        return features
+
+    def test_a_value_first_known_in_april_stays_out_of_a_march_row(self, features):
+        f = self._view(features)
+        snap = f.build_training_set(
+            "march", [{"entity_id": "C1", "label_ts": 1000.0, "label": 1}],
+            [{"view": "prices", "version": 1}], as_of=9999.0)
+        row = f.delta.read(snap["delta_table"]).to_dict("records")[0]
+        assert row.get("px") is None or str(row.get("px")) == "nan", (
+            "a value that did not exist until April cannot be in a March row")
+
+    def test_the_alignment_stamp_is_what_carries_the_information(self):
+        """The half that was already right, kept as the reason the fix works:
+        a back-filled value carries the ingest time of the observation it came
+        from, not of the grid point it was carried to."""
+        from core.features.alignment import align
+        out = align([{"entity_id": "C1", "asof_date": 2000.0, "ingest_ts": 2000.0,
+                      "px": 999.0}],
+                    ["px"], grid=[1000.0, 2000.0], axis="asof_date",
+                    rule="flat_backward", entity="entity_id")
+        march = next(r for r in out["rows"] if r["asof_date"] == 1000.0)
+        assert march["px"] == 999.0
+        assert march["ingest_ts"] == 2000.0, "stamped with when it became knowable"
+        assert out["point_in_time_safe"] is False

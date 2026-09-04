@@ -452,9 +452,25 @@ class TestBulkTransfer:
             "slots": {"dscr": "numeric"}})
         registered.post("/api/v1/featuresets/sb_core/versions", auth=dev,
                         json={"bindings": {"dscr": "dscr"}})
-        r = registered.get(
-            "/api/v1/featuresets/sb_core/versions/1/data?format=parquet")
+        r = registered.get("/api/v1/featuresets/sb_core/versions/1/data"
+                           "?format=parquet&as_of=1767139200")
         assert r.status_code == 200 and r.content[:4] == b"PAR1"
+
+    def test_an_export_without_a_moment_is_refused(self, registered, people):
+        """The join reduces each part to what was true and known at `as_of`
+        before joining. Without one it paired every feature's whole history
+        against every other feature's — 200 entities over 24 monthly
+        observations produced 115,200 rows where 4,800 were expected."""
+        dev = people["d.raman"]
+        self._view(registered, dev)
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "sb_nomoment", "entity": "borrower_id",
+            "slots": {"dscr": "numeric"}})
+        registered.post("/api/v1/featuresets/sb_nomoment/versions", auth=dev,
+                        json={"bindings": {"dscr": "dscr"}})
+        r = registered.get("/api/v1/featuresets/sb_nomoment/versions/1/data")
+        assert r.status_code == 409
+        assert "what moment it speaks for" in r.json()["detail"]
 
 class TestTheFitWarrantChecksTheSchema:
     """L-W10. A featureset a warrant names must provide what the kernel reads.

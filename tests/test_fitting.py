@@ -440,3 +440,49 @@ class TestGarchScoring:
         with pytest.raises(WarrantError) as exc:
             self._score(self.VALUES, {"last_shock": 0.5})
         assert exc.value.code == "state_required"
+
+
+class TestAFitWillNotRunOnAnUnverifiedSnapshot:
+    """`pit_verified` was computed, stored, displayed, and gated nothing.
+
+    So the platform's headline data-correctness control had no consequence
+    anywhere: this service would fit and record approved parameters from an
+    assembly its own verifier had rejected. It compounded a second defect — the
+    leakage screen flagged every continuous feature by construction, so the flag
+    was False for essentially every real training set, and a control that is
+    always false is a control nobody reads.
+    """
+
+    def test_a_failed_snapshot_is_refused_by_name(self, fitting, fittable,
+                                                  snapshot, entitled, db):
+        from db import SnapshotRepository
+        SnapshotRepository(db).set(
+            {"pit_verified": 0,
+             "pit_report": {"leakage": ["spend_next_month"],
+                            "detail": "1 of 60 rows disagreed"}},
+            id=snapshot["id"])
+        with pytest.raises(ParameterError) as exc:
+            fitting.fit(URN, snapshot["id"], "prod", "svc/model-lab",
+                        "model_development", WINDOW, actor="person/d.raman")
+        assert exc.value.code == "snapshot_not_pit_verified"
+
+    def test_the_refusal_names_the_suspected_leak(self, fitting, fittable,
+                                                  snapshot, entitled, db):
+        """A validator reading this needs to know which column to look at."""
+        from db import SnapshotRepository
+        SnapshotRepository(db).set(
+            {"pit_verified": 0, "pit_report": {"leakage": ["spend_next_month"]}},
+            id=snapshot["id"])
+        with pytest.raises(ParameterError) as exc:
+            fitting.fit(URN, snapshot["id"], "prod", "svc/model-lab",
+                        "model_development", WINDOW, actor="person/d.raman")
+        assert "spend_next_month" in exc.value.detail
+
+    def test_an_ordinary_verified_snapshot_still_fits(self, fitting, fittable,
+                                                      snapshot, entitled):
+        """The other half: the screen no longer fires on a continuous feature,
+        so a normal training set verifies and this path stays open."""
+        assert snapshot["pit_verified"] is True
+        out = fitting.fit(URN, snapshot["id"], "prod", "svc/model-lab",
+                          "model_development", WINDOW, actor="person/d.raman")
+        assert out["values_inline"]["dscr"] == pytest.approx(2.0, abs=1e-6)

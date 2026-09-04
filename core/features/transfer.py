@@ -406,41 +406,101 @@ class FeatureTransfer:
                            f"or ask for the join")}
 
     def featureset_batches(self, name: str, version: int,
+                           as_of: Optional[float] = None,
                            limit: Optional[int] = None) -> Iterator[Any]:
-        """The joined featureset, one Arrow batch at a time.
+        """The joined featureset AS AT a stated moment, one Arrow batch at a time.
 
-        Joined on the entity key. The parts are read at their pinned Delta
-        versions, so this returns what the version pinned rather than what the
-        namespaces currently hold.
+        Each part is first reduced to the latest row per entity that was true
+        and known by ``as_of``, and only then joined. That order is the whole
+        correctness of this method.
+
+        It used to join the raw namespaces on the entity key alone -- full
+        bitemporal history against full bitemporal history, with no time
+        predicate anywhere. Every output row therefore paired an arbitrary point
+        in one feature's history with an arbitrary point in another's: measured
+        on two views with twenty-four monthly observations each, 200 entities
+        produced 115,200 rows where 4,800 were expected, and the first of them
+        held a fact true at t=0 beside one true at t=23. The plan travelling
+        beside the data carried the point-in-time rule as a string while the
+        data broke it.
+
+        ``as_of`` is required rather than defaulted. An export is a claim about
+        what was known at a moment, and a default would make that moment
+        whatever the clock said when somebody happened to call it.
         """
         import pyarrow as pa
+
+        if as_of is None:
+            raise FeatureError(
+                "a featureset export has to say what moment it speaks for: "
+                "joining the parts without one pairs each feature's history "
+                "against every other feature's. pass as_of as epoch seconds — "
+                "usually the moment you are reconstructing, not the moment you "
+                "are asking")
 
         plan = self.featureset_table(name, version)
         frames = []
         for part in plan["parts"]:
             columns = sorted({ENTITY, VALID_TIME, INGEST_TIME, *part["columns"]})
-            batches = list(self.batches(part["namespace"], part["delta_version"],
-                                        columns))
-            if batches:
-                frames.append(pa.Table.from_batches(batches))
+            # The point-in-time collapse, through the same reader the training
+            # assembler verifies itself with, so the export and the training set
+            # cannot disagree about what was knowable.
+            frame = self.delta.as_of(part["namespace"], as_of, as_of,
+                                     part["delta_version"])
+            if frame.empty:
+                continue
+            frames.append(pa.Table.from_pandas(
+                frame[[c for c in columns if c in frame.columns]],
+                preserve_index=False))
         if not frames:
             return
         joined = frames[0]
         for other in frames[1:]:
+            # One row per entity on each side now, so this is a genuine
+            # one-to-one join rather than a cross product of two histories.
             joined = joined.join(other, keys=ENTITY,
                                  right_suffix="_r", join_type="inner")
+        joined = self._collapse_clocks(joined)
         if limit is not None:
             joined = joined.slice(0, limit)
         for batch in joined.to_batches(self.batch_rows):
             yield batch
 
+    @staticmethod
+    def _collapse_clocks(table: Any) -> Any:
+        """One bitemporal pair for the joined row, not one per part.
+
+        The join suffixes the second part's clocks, so a consumer was handed
+        `event_ts` and `event_ts_r` and no single answer to "when was this row
+        true" -- and a third part collided on the suffix outright. The row is
+        true from the latest of its constituents and knowable from the latest of
+        their ingest times, which is the same rule a derived feature uses.
+        """
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        for clock in (VALID_TIME, INGEST_TIME):
+            extras = [n for n in table.column_names
+                      if n.startswith(clock) and n != clock]
+            if not extras:
+                continue
+            combined = table.column(clock)
+            for name in extras:
+                combined = pc.max_element_wise(combined, table.column(name))
+            table = table.set_column(table.column_names.index(clock), clock,
+                                     combined)
+            for name in extras:
+                table = table.drop_columns([name])
+        return table
+
     def featureset_stream(self, name: str, version: int, fmt: str = ARROW,
+                          as_of: Optional[float] = None,
                           limit: Optional[int] = None) -> Iterator[bytes]:
-        """The joined featureset in the chosen format."""
+        """The joined featureset in the chosen format, as at a stated moment."""
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        batches = self.featureset_batches(name, version, limit)
+        batches = self.featureset_batches(name, version, as_of, limit)
         if fmt == NDJSON:
             for batch in batches:
                 yield ("\n".join(json.dumps(r, default=str)

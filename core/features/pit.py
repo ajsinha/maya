@@ -21,8 +21,13 @@ Verification is three layers, and they prove different things (finding H-6):
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
+
+from core.log import get_logger, swallowed
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -90,9 +95,31 @@ def verify_sampled(rows: List[Dict[str, Any]], recompute, sample: int = 200) -> 
                      detail=f"{len(chosen)} of {len(rows)} rows independently recomputed")
 
 
+# Above this many distinct values per row, a column is continuous for our
+# purposes and the purity screen below says nothing about it.
+CONTINUOUS_RATIO = 0.5
+
+
 def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List[str]:
     """A crude but useful screen: a feature that is a perfect predictor of the
-    label is almost always the label leaking under another name."""
+    label is almost always the label leaking under another name.
+
+    **Two screens, chosen by the column, and the reason is a defect this used to
+    have.** The original test bucketed values by label and flagged a column when
+    every bucket held exactly one label. For a *continuous* feature every value
+    is distinct, so every bucket holds one row and therefore one label --
+    trivially, by construction, regardless of any relationship to the label. An
+    ordinary forty-row training set with one float feature and random labels came
+    back flagged, so `pit_verified` was False for essentially every real
+    training set, and a control that is always false is a control nobody reads.
+
+    So: a repeating column is screened for **purity**, which is what the original
+    test meant and which is informative only when values recur. A continuous one
+    is screened for **perfect separation** -- a single threshold that splits the
+    labels exactly -- which is what "predicts the label perfectly" means for a
+    number. Neither screen is a proof; both are cheap and both fire on the shape
+    a leak actually has.
+    """
     if len(rows) < 8 or label_key not in rows[0]:
         return []
     labels = [r.get(label_key) for r in rows]
@@ -105,12 +132,45 @@ def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List
         values = [r.get(key) for r in rows]
         if any(v is None for v in values):
             continue
+        distinct = len(set(values))
+        if distinct < 2:
+            continue
+        if distinct / len(values) > CONTINUOUS_RATIO:
+            if _separates_perfectly(values, labels):
+                suspects.append(key)
+            continue
         mapping: Dict[Any, set] = {}
         for v, lab in zip(values, labels):
             mapping.setdefault(v, set()).add(lab)
-        if len(set(values)) > 1 and all(len(s) == 1 for s in mapping.values()):
+        if all(len(s) == 1 for s in mapping.values()):
             suspects.append(key)
     return suspects
+
+
+def _separates_perfectly(values: List[Any], labels: List[Any]) -> bool:
+    """Whether one threshold on this column splits the labels exactly.
+
+    Only meaningful for numbers and only for a binary label; anything else is
+    reported as unscreenable rather than as clean, by returning False and
+    leaving it to the sampled recomputation and the derived-feature lineage
+    check, which are the screens that actually prove something.
+    """
+    if len(set(labels)) != 2:
+        return False
+    try:
+        pairs = sorted((float(v), lab) for v, lab in zip(values, labels))
+    except (TypeError, ValueError) as exc:
+        swallowed(logger, exc, "screened a high-cardinality column for leakage",
+                  detail="it does not order as numbers, so a threshold test "
+                         "means nothing; it is left to the sampled "
+                         "recomputation and the lineage check",
+                  level=logging.DEBUG)
+        return False
+    ordered = [lab for _, lab in pairs]
+    # Exactly one change of label along the sorted column: everything below the
+    # threshold is one class and everything above it is the other.
+    changes = sum(1 for a, b in zip(ordered, ordered[1:]) if a != b)
+    return changes == 1
 
 
 def _stratified(rows: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
