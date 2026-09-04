@@ -1,0 +1,92 @@
+# ==========================================================================
+# MAYA — Model & AI Lifecycle Assurance
+# Copyright (c) 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# ==========================================================================
+# ${VAR} and ${VAR:default} substitution resolves against other keys in this
+# file, environment variables, and command-line --key=value overrides.
+# Values are read as strings and coerced on access (get_int / get_bool /
+# get_list), so `port: 8080` and `port: "${PORT:8080}"` behave identically.
+#
+# Secrets do NOT belong here: this file is tracked. Put them in
+# config/application.local.yaml, a git-ignored overlay loaded straight after
+# this file, which sets only the keys it names.
+# ==========================================================================
+
+app:
+  name: MAYA
+  tagline: Model & AI Lifecycle Assurance
+  slogan: Evidence, not assertion.
+  version: "0.1.0"
+  author:
+    name: Ashutosh Sinha
+    email: ajsinha@gmail.com
+  copyright:
+    years: "2026"
+    holder: Ashutosh Sinha
+  trademark:
+    notice: "MAYA(TM) is a trademark of Ashutosh Sinha"
+
+server:
+  host: "0.0.0.0"
+  port: "${PORT:8080}"
+  reload: false
+
+database:
+  # SQLAlchemy URL. SQLite for development; PostgreSQL is the production target.
+  url: "sqlite:///${data.dir}/maya.db"
+  echo: false
+
+data:
+  dir: ./data
+  artifacts: "${data.dir}/artifacts"
+
+# ---------------------------------------------------------------- governance
+risk:
+  # Exposure bands, in the reporting currency. Materiality is a JOIN of a
+  # quantitative band with a qualitative purpose class; complexity is a MEET
+  # over its components. Tier is a monotone map of the two (law L-4).
+  exposure_bands:
+    negligible: 0
+    low: 1000000
+    moderate: 50000000
+    material: 500000000
+    critical: 5000000000
+  purpose_ranks:
+    commercial: 1
+    risk_management: 2
+    financial_reporting: 3
+    regulatory_capital: 4
+  review_months:
+    1: 12
+    2: 18
+    3: 24
+    4: 36
+
+hooks:
+  # Tier 1 defaults are deliberately short, and grace is zero: grace extends
+  # authorisation currency, never revocation ignorance (adversarial finding C-1).
+  ttl_seconds:
+    1: 60
+    2: 300
+    3: 3600
+    4: 3600
+  grace_seconds:
+    1: 0
+    2: 0
+    3: 900
+    4: 900
+  jitter_pct: 20
+  signing_key_id: maya-dev-key
+
+# MAYA manages models and issues hooks. It does not execute models. A captive
+# engine is bundled as a reference CONSUMER of the public hook API, so that a
+# deployment works out of the box; disable it and any external engine that
+# resolves hooks behaves identically.
+execution:
+  captive:
+    enabled: true
+    max_seconds: 30
+
+logging:
+  level: INFO
+  format: "%(asctime)s %(levelname)-7s %(name)s | %(message)s"
