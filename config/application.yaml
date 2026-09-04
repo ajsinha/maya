@@ -140,6 +140,13 @@ lifecycle:
     required_roles: [model_owner, model_risk_manager]
     validity_days: 365
 
+overlays:
+  # How long a single overlay period may run before it must be re-examined, and
+  # how many renewals before the register treats the adjustment as an
+  # unversioned model change and raises a finding. Both are policy questions.
+  max_days: 180
+  renewal_limit: 2
+
 content:
   # Help and about pages are markdown files rendered at request time. They live
   # in the repository rather than the database so that a change to what the

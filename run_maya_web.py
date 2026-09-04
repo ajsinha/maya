@@ -37,6 +37,7 @@ from core.config import PropertiesConfigurator
 from core.docs import ContextBuilder, DocumentCompiler
 from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
+from core.overlays import OverlayRegister
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
@@ -47,7 +48,8 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
-                MonitorRepository, ObservationRepository, PrincipalRepository,
+                MeasurementRepository, MonitorRepository, ObservationRepository,
+                OverlayRepository, PrincipalRepository,
                 SignatureRepository, TestResultRepository,
                 ValidationRepository,
                 VersionRepository)
@@ -131,10 +133,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                FeatureViewVersionRepository(db), ContractRepository(db),
                                SnapshotRepository(db), DeltaStore(delta.root), evidence)
 
+    overlays = OverlayRegister(
+        OverlayRepository(db), MeasurementRepository(db), evidence, findings,
+        max_days=cfg.get_int("overlays.max_days", 180),
+        renewal_limit=cfg.get_int("overlays.renewal_limit", 2))
+
     documents = DocumentCompiler(
         DocumentRepository(db), evidence,
         ContextBuilder(registry, evidence, RiskRepository(db), features,
-                       validation, findings, monitoring, lifecycle, warrants))
+                       validation, findings, monitoring, lifecycle, warrants,
+                       overlays))
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
@@ -144,7 +152,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
-                           "documents": documents, "renderer": MarkdownRenderer(),
+                           "documents": documents, "overlays": overlays,
+                           "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}

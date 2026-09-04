@@ -37,6 +37,7 @@ FINDINGS = _lens("findings", "Open findings", L.findings)
 MONITORING = _lens("monitoring", "Ongoing monitoring", L.monitoring)
 LIFECYCLE = _lens("lifecycle", "Approval and attestation", L.lifecycle)
 EXECUTION = _lens("execution", "Use and entitlement", L.execution)
+OVERLAYS = _lens("overlays", "Post-model adjustments", L.overlays)
 PROVENANCE = _lens("provenance", "Provenance", L.provenance)
 
 
@@ -47,19 +48,22 @@ def optional(lens: Lens) -> Lens:
 TEMPLATES: Dict[str, Tuple[Lens, ...]] = {
     MODEL_DEVELOPMENT: (
         IDENTITY, CLASSIFICATION, RISK, METHOD, ASSUMPTIONS, DATA,
-        VALIDATION, FINDINGS, MONITORING, LIFECYCLE, EXECUTION, PROVENANCE),
+        VALIDATION, FINDINGS, MONITORING, OVERLAYS, LIFECYCLE, EXECUTION,
+        PROVENANCE),
 
     VALIDATION_REPORT: (
         IDENTITY, CLASSIFICATION, optional(RISK), VALIDATION, FINDINGS,
-        optional(DATA), optional(MONITORING), LIFECYCLE, PROVENANCE),
+        optional(DATA), optional(MONITORING), optional(OVERLAYS),
+        LIFECYCLE, PROVENANCE),
 
     # Deliberately short. A model card that nobody reads because it is forty
     # pages is not serving the purpose a model card exists for.
     MODEL_CARD: (
         IDENTITY, CLASSIFICATION, ASSUMPTIONS, optional(VALIDATION),
-        optional(FINDINGS), optional(MONITORING)),
+        optional(FINDINGS), optional(MONITORING), optional(OVERLAYS)),
 
     ANNEX_IV: (
         IDENTITY, CLASSIFICATION, RISK, METHOD, ASSUMPTIONS, DATA,
-        VALIDATION, FINDINGS, MONITORING, LIFECYCLE, EXECUTION, PROVENANCE),
+        VALIDATION, FINDINGS, MONITORING, OVERLAYS, LIFECYCLE, EXECUTION,
+        PROVENANCE),
 }

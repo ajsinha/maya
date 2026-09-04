@@ -28,6 +28,7 @@ from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.monitoring import MonitorError
+from core.overlays import OverlayError
 from core.log import get_logger
 from core.registry import RegistryError
 from core.validation import ValidationError
@@ -64,6 +65,12 @@ STATUS: Dict[str, int] = {
     "grammar_violation": 422,
     # documents
     "unknown_document_kind": 422, "no_document": 404,
+    # overlays
+    "unknown_direction": 422, "rationale_required": 422,
+    "window_too_long": 422, "unknown_closure": 422,
+    "self_approval": 403, "self_renewal": 403,
+    "not_proposed": 409, "not_active": 409, "already_measured": 409,
+    "unmeasured": 409, "period_unmeasured": 409, "no_overlay": 404,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -128,7 +135,8 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
-        except (WarrantError, LifecycleError, MonitorError, DocumentError) as exc:
+        except (WarrantError, LifecycleError, MonitorError, DocumentError,
+                OverlayError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

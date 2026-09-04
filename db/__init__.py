@@ -17,8 +17,10 @@ from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentR
                              AttestationRepository, BreachRepository, ContractRepository,
                              DocumentRepository, EvidenceRepository, FeatureRepository,
                              FeatureViewRepository, FeatureViewVersionRepository,
-                             FindingRepository, ModelRepository, MonitorRepository,
-                             ObservationRepository, PrincipalRepository, Repository,
+                             FindingRepository, MeasurementRepository, ModelRepository,
+                             MonitorRepository,
+                             ObservationRepository, OverlayRepository, PrincipalRepository,
+                             Repository,
                              RiskRepository, SignatureRepository, SnapshotRepository,
                              TestResultRepository, ValidationRepository,
                              VersionRepository, WarrantRepository)
@@ -30,4 +32,5 @@ __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepositor
            "SnapshotRepository", "ValidationRepository",
            "TestResultRepository", "FindingRepository", "PrincipalRepository", "AmendmentRepository",
            "AttestationRepository", "SignatureRepository", "MonitorRepository",
-           "ObservationRepository", "BreachRepository", "DocumentRepository"]
+           "ObservationRepository", "BreachRepository", "DocumentRepository", "OverlayRepository",
+           "MeasurementRepository"]

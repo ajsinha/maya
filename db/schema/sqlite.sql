@@ -464,3 +464,56 @@ CREATE TABLE IF NOT EXISTS document (
 );
 
 CREATE INDEX IF NOT EXISTS ix_document_model ON document (model_id, kind);
+
+-- --------------------------------------------------------------------------
+-- Overlays: post-model adjustments
+-- --------------------------------------------------------------------------
+-- An overlay is a human adjustment applied on top of a model's output. Every
+-- bank has them; almost none can say how large they are in aggregate, how long
+-- they have been running, or which of them have quietly become permanent.
+--
+-- Three columns carry the design. `expires_at` because an overlay with no end
+-- date is a model change nobody versioned. `renewals` because an overlay renewed
+-- again and again is evidence the MODEL is wrong, not that the overlay is
+-- needed -- and that is the signal this register exists to surface. And
+-- `approved_by`, separate from the proposer, because an adjustment that one
+-- person can both propose and approve is not a control.
+
+CREATE TABLE IF NOT EXISTS overlay (
+    id               TEXT PRIMARY KEY,
+    model_id         TEXT NOT NULL,
+    model_version_id TEXT,
+    reference        TEXT NOT NULL,
+    name             TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    direction        TEXT NOT NULL DEFAULT 'increase',
+    rationale        TEXT NOT NULL,
+    basis            TEXT NOT NULL DEFAULT '{}',
+    owner            TEXT NOT NULL,
+    proposed_by      TEXT NOT NULL,
+    approved_by      TEXT,
+    status           TEXT NOT NULL DEFAULT 'proposed',
+    effective_from   REAL,
+    expires_at       REAL,
+    renewals         INTEGER NOT NULL DEFAULT 0,
+    finding_id       TEXT,
+    created_at       REAL NOT NULL,
+    closed_at        REAL,
+    closure_reason   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_overlay_model ON overlay (model_id, status);
+
+CREATE TABLE IF NOT EXISTS overlay_measurement (
+    id             TEXT PRIMARY KEY,
+    overlay_id     TEXT NOT NULL,
+    period         TEXT NOT NULL,
+    base_value     REAL NOT NULL,
+    adjusted_value REAL NOT NULL,
+    magnitude      REAL NOT NULL,
+    pct_of_base    REAL,
+    measured_by    TEXT NOT NULL,
+    measured_at    REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_measurement_overlay ON overlay_measurement (overlay_id, period);

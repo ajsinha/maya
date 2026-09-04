@@ -908,3 +908,97 @@ class TestDocumentApi:
         body = registered.get(f"/model/{NAME}").text
         assert "Documentation" in body and "Model Card" in body
         assert 'id="compile-doc"' in body
+
+
+class TestOverlayApi:
+    def test_the_overlay_kinds_are_published(self, client, people):
+        body = client.get("/api/v1/overlay-kinds", auth=people["j.okafor"]).json()
+        assert {k["kind"] for k in body["kinds"]} == {
+            "parameter", "output", "exclusion", "judgemental"}
+
+    def test_propose_approve_measure_and_read(self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        r = registered.post("/api/v1/overlays", auth=owner, json={
+            "urn": URN, "name": "SME sector uplift", "kind": "output",
+            "rationale": "The model under-predicts hospitality default post-2025.",
+            "owner": "person/j.okafor"})
+        assert r.status_code == 201
+        oid = r.json()["id"]
+
+        assert registered.post(f"/api/v1/overlays/{oid}/approve",
+                               auth=mrm).status_code == 200
+        assert registered.post(f"/api/v1/overlays/{oid}/measure", auth=owner, json={
+            "period": "2026-Q1", "base_value": 1000000.0,
+            "adjusted_value": 1180000.0}).status_code == 201
+
+        reading = registered.get(f"/api/v1/overlays/{oid}", auth=owner).json()
+        assert reading["assessment"]["materiality"]["pct_of_base"] == pytest.approx(0.18)
+
+    def test_the_proposer_cannot_approve_over_the_api(self, registered):
+        """Admin holds both permissions and is still refused: the rule is about
+        the person, not the role."""
+        created = registered.post("/api/v1/overlays", json={
+            "urn": URN, "name": "x", "kind": "output", "rationale": "because",
+            "owner": "person/o"})
+        assert created.status_code == 201, created.text
+        r = registered.post(f"/api/v1/overlays/{created.json()['id']}/approve")
+        assert r.status_code == 403 and r.json()["error"] == "self_approval"
+
+
+    def test_renewal_without_a_measurement_is_refused(self, registered, people):
+        oid = registered.post("/api/v1/overlays", auth=people["j.okafor"], json={
+            "urn": URN, "name": "x", "kind": "output", "rationale": "because",
+            "owner": "person/o"}).json()["id"]
+        registered.post(f"/api/v1/overlays/{oid}/approve", auth=people["s.iqbal"])
+        r = registered.post(f"/api/v1/overlays/{oid}/renew", auth=people["s.iqbal"])
+        assert r.status_code == 409 and r.json()["error"] == "unmeasured"
+
+    def test_a_persistent_overlay_raises_a_finding(self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        oid = registered.post("/api/v1/overlays", auth=owner, json={
+            "urn": URN, "name": "SME uplift", "kind": "output",
+            "rationale": "model under-predicts", "owner": "person/o"}).json()["id"]
+        registered.post(f"/api/v1/overlays/{oid}/approve", auth=mrm)
+        for period in ("2026-Q1", "2026-Q2", "2026-Q3"):
+            registered.post(f"/api/v1/overlays/{oid}/measure", auth=owner, json={
+                "period": period, "base_value": 1000.0, "adjusted_value": 1150.0})
+            registered.post(f"/api/v1/overlays/{oid}/renew", auth=mrm,
+                            params={"period": period})
+        found = registered.get("/api/v1/findings", params={"urn": URN}).json()
+        assert any("Persistent overlay" in f["title"] for f in found["open"])
+
+    def test_the_portfolio_answers_how_much_is_the_model(self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        oid = registered.post("/api/v1/overlays", auth=owner, json={
+            "urn": URN, "name": "uplift", "kind": "output", "rationale": "r",
+            "owner": "person/o"}).json()["id"]
+        registered.post(f"/api/v1/overlays/{oid}/approve", auth=mrm)
+        registered.post(f"/api/v1/overlays/{oid}/measure", auth=owner, json={
+            "period": "2026-Q1", "base_value": 1000000.0, "adjusted_value": 1180000.0})
+        body = registered.get("/api/v1/overlays", params={"urn": URN},
+                              auth=owner).json()
+        assert body["aggregate_magnitude"] == pytest.approx(180000.0)
+        assert "in aggregate" in body["detail"]
+
+    def test_overlays_render_on_the_model_page(self, registered, people):
+        registered.post("/api/v1/overlays", auth=people["j.okafor"], json={
+            "urn": URN, "name": "SME sector uplift", "kind": "output",
+            "rationale": "r", "owner": "person/o"})
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert "Post-model adjustments" in body and "SME sector uplift" in body
+
+    def test_overlays_appear_in_a_compiled_document(self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        oid = registered.post("/api/v1/overlays", auth=owner, json={
+            "urn": URN, "name": "SME uplift", "kind": "output", "rationale": "r",
+            "owner": "person/o"}).json()["id"]
+        registered.post(f"/api/v1/overlays/{oid}/approve", auth=mrm)
+        doc = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                              params={"urn": URN,
+                                      "kind": "model_development_document"}).json()
+        text = registered.get(f"/api/v1/documents/{doc['id']}/markdown",
+                              auth=people["a.mehta"]).text
+        assert "## Post-model adjustments" in text
+        assert "describes a model nobody runs" in text
