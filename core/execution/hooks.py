@@ -29,8 +29,11 @@ from hashlib import sha256
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.evidence import EvidenceEngine
+from core.log import get_logger
 from core.registry import ModelRegistry, RegistryError
 from db import HookRepository
+
+logger = get_logger(__name__)
 from db.database import digest as canonical_digest, new_id
 
 
@@ -74,7 +77,7 @@ class HookService:
         self._ttl = ttl_by_tier or {1: 60, 2: 300, 3: 3600, 4: 3600}
         self._grace = grace_by_tier or {1: 0, 2: 0, 3: 900, 4: 900}
         self._jitter = max(0, min(jitter_pct, 50))
-        self._epoch = 0
+        self.epoch = 0
 
     # ------------------------------------------------------------------ issue
     def issue(self, urn: str, environment: str, principal: str, declared_use: str,
@@ -90,7 +93,7 @@ class HookService:
                "principal": principal, "declared_use": declared_use,
                "ttl_seconds": self._ttl.get(tier, 300),
                "grace_seconds": self._grace.get(tier, 0),
-               "revoked": False, "revoke_reason": None, "epoch": self._epoch,
+               "revoked": False, "revoke_reason": None, "epoch": self.epoch,
                "created_at": time.time()}
         if semver:
             v = self.registry.version(m["urn"], semver)
@@ -112,9 +115,11 @@ class HookService:
         try:
             m = self.registry.require(model_urn)
         except RegistryError as exc:
+            logger.info("hook resolution for %s hit an unregistered model: %s", urn, exc)
             raise HookError("not_found", str(exc), "register the model first") from exc
 
-        grant = self.repo.grant_for(m["id"], environment, principal)
+        grant = self.repo.one(model_id=m["id"], environment=environment,
+                              principal=principal)
         if grant is None:
             raise HookError("no_entitlement",
                             f"{principal} holds no hook for {model_urn} in {environment}",
@@ -139,29 +144,33 @@ class HookService:
                             f"version {version['semver']} is '{version['status']}'",
                             "an approved version is required in this environment")
 
-        ttl = self._jittered(grant["ttl_seconds"])
-        now = time.time()
+        return self._descriptor(urn, m, version, grant, principal, declared_use,
+                                environment)
+
+    def _descriptor(self, urn: str, model: Dict[str, Any], version: Dict[str, Any],
+                    grant: Dict[str, Any], principal: str, declared_use: str,
+                    environment: str) -> Dict[str, Any]:
+        ttl, now = self._jittered(grant["ttl_seconds"]), time.time()
         descriptor = {
-            "maya_descriptor_version": "1.0",
-            "descriptor_id": new_id(),
-            "urn": urn,
-            "resolved": {"model_urn": model_urn, "version": version["semver"],
+            "maya_descriptor_version": "1.0", "descriptor_id": new_id(), "urn": urn,
+            "resolved": {"model_urn": model["urn"], "version": version["semver"],
                          "version_id": version["id"],
                          "manifest_digest": version["manifest_digest"],
                          "binding_kind": grant["binding_kind"],
                          "trainability_class": version["trainability_class"]},
             "authorization": {"principal": principal, "declared_use": declared_use,
                               "environment": environment, "granted_at": now,
-                              "expires_at": now + ttl, "grace_seconds": grant["grace_seconds"]},
+                              "expires_at": now + ttl,
+                              "grace_seconds": grant["grace_seconds"]},
             "execution": {"flavour": grant["flavour"],
                           "artifact_digest": version["artifact_digest"],
                           "deterministic": version["deterministic"]},
             "io_contract": {"input_schema": version["input_schema"],
                             "output_schema": version["output_schema"]},
             "constraints": version["contract"],
-            "governance_snapshot": {"tier": m.get("tier"), "model_status": m["status"],
+            "governance_snapshot": {"tier": model.get("tier"), "model_status": model["status"],
                                     "version_status": version["status"]},
-            "revocation": {"epoch": self._epoch},
+            "revocation": {"epoch": self.epoch},
         }
         descriptor["signature"] = self.sign(descriptor)
         return descriptor
@@ -184,19 +193,20 @@ class HookService:
 
     # ------------------------------------------------------------- revocation
     def revoke(self, hook_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
-        row = self.repo.by_id(hook_id)
+        row = self.repo.one(id=hook_id)
         if not row:
             raise HookError("not_found", f"no hook {hook_id}", "")
-        self._epoch += 1
-        self.repo.revoke(hook_id, reason, self._epoch)
+        self.epoch += 1
+        self.repo.set({"revoked": True, "revoke_reason": reason,
+                       "epoch": self.epoch}, id=hook_id)
         self.evidence.append("hook_revoked", "model", row["model_id"],
                              {"hook_id": hook_id, "reason": reason}, actor=actor)
-        return {"hook_id": hook_id, "revoked": True, "reason": reason, "epoch": self._epoch}
+        return {"hook_id": hook_id, "revoked": True, "reason": reason, "epoch": self.epoch}
 
     def revoke_model(self, urn: str, reason: str, actor: str = "system") -> int:
         """Kill switch for every hook on a model."""
         m = self.registry.require(urn)
-        rows = self.repo.for_model(m["id"])
+        rows = self.repo.many(model_id=m["id"])
         for r in rows:
             self.revoke(r["id"], reason, actor)
         return len(rows)
@@ -206,4 +216,4 @@ class HookService:
         return (now or time.time()) > auth["expires_at"] + auth.get("grace_seconds", 0)
 
     def grants(self, urn: str) -> List[Dict[str, Any]]:
-        return self.repo.for_model(self.registry.require(urn)["id"])
+        return self.repo.many(model_id=self.registry.require(urn)["id"])

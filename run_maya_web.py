@@ -16,30 +16,31 @@ the public HookService — the same interface an external engine consumes.
 """
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any, Dict
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 
 from core.execution import CaptiveEngine
 from core.evidence import EvidenceEngine
+from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.execution import HookService
 from core.config import PropertiesConfigurator
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
-from db import (AliasRepository, ContractRepository, Database, DeltaPaths, DeltaStore,
-                EvidenceRepository, FeatureRepository, FeatureViewRepository, HookRepository,
+from db import (AliasHistoryRepository, AliasRepository, ContractRepository, Database,
+                DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
+                FeatureViewRepository, FeatureViewVersionRepository, HookRepository,
                 ModelRepository, RiskRepository, SnapshotRepository, VersionRepository)
-from routes import (AuthRoutes, FeatureRoutes, HealthRoutes, HookRoutes, ModelRoutes,
-                    PublicRoutes, UIRoutes)
+from routes import ALL_ROUTES
 
 ROOT = Path(__file__).resolve().parent
-logger = logging.getLogger("maya")
+logger = get_logger("maya")
 
 
 def _tier_map(cfg: PropertiesConfigurator, prefix: str, fallback: Dict[int, int]) -> Dict[int, int]:
@@ -57,7 +58,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                   cfg.get_bool("database.echo", False))
     evidence = EvidenceEngine(EvidenceRepository(db))
     registry = ModelRegistry(ModelRepository(db), VersionRepository(db),
-                             AliasRepository(db), evidence)
+                             AliasRepository(db), AliasHistoryRepository(db), evidence)
     tiering = TieringEngine(
         {b: cfg.get_float(f"risk.exposure_bands.{b}", 0.0)
          for b in ("negligible", "low", "moderate", "material", "critical")},
@@ -73,8 +74,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                         jitter_pct=cfg.get_int("hooks.jitter_pct", 20))
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
-                               ContractRepository(db), SnapshotRepository(db),
-                               DeltaStore(delta.root), evidence)
+                               FeatureViewVersionRepository(db), ContractRepository(db),
+                               SnapshotRepository(db), DeltaStore(delta.root), evidence)
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
@@ -88,8 +89,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
 def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     cfg = cfg or PropertiesConfigurator(str(ROOT / "config" / "application.yaml"))
-    logging.basicConfig(level=cfg.get("logging.level", "INFO"),
-                        format=cfg.get("logging.format", "%(asctime)s %(levelname)s %(message)s"))
+    configure(cfg.get("logging.level", "INFO"))
     ctx = build_context(cfg)
 
     app = FastAPI(title=cfg.get("app.name", "MAYA"),
@@ -106,13 +106,19 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     app.mount("/static", StaticFiles(directory=str(ROOT / "web" / "static")), name="static")
     templates = Jinja2Templates(directory=str(ROOT / "web" / "templates"))
 
-    HealthRoutes(app, ctx)
-    ModelRoutes(app, ctx)
-    HookRoutes(app, ctx)
-    FeatureRoutes(app, ctx)
-    AuthRoutes(app, ctx, templates)
-    PublicRoutes(app, ctx, templates)
-    UIRoutes(app, ctx, templates)
+    @app.exception_handler(HTTPException)
+    async def problem(_request, exc: HTTPException):
+        """RFC 9457 shape at the TOP level, not nested under `detail`.
+
+        Design rule DR-6 says no failure may be unmapped and DR-7 says a refusal
+        must explain itself; both are easier to honour when every error body has
+        the same shape, whichever route raised it."""
+        body = exc.detail if isinstance(exc.detail, dict) else {
+            "error": "error", "detail": str(exc.detail)}
+        return JSONResponse(body, status_code=exc.status_code, headers=exc.headers)
+
+    for routes in ALL_ROUTES:
+        routes(app, ctx, templates)
     logger.info("%s %s ready — %s database, captive engine %s",
                 cfg.get("app.name"), cfg.get("app.version"), ctx["db"].dialect,
                 "enabled" if ctx["engine"] else "disabled")
