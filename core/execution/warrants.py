@@ -22,6 +22,7 @@ which is the part that has to be right.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
@@ -31,7 +32,7 @@ from core.execution.errors import WarrantError
 from core.execution.grants import WarrantGrants
 from core.execution.signing import WarrantSigner
 from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from core.ports import BlockingSource
 from core.registry import ModelRegistry, RegistryError
 from db import WarrantRepository
@@ -47,13 +48,16 @@ class WarrantService:
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None,
-                 featuresets=None):
+                 featuresets=None, parameters=None):
         self.registry, self.blocking = registry, blocking
         # A fit warrant names a featureset, and whether that featureset provides
         # what the kernel declares it reads is a question with an answer. Left
         # unchecked it becomes a claim, and the model is fitted over a different
         # X than the one its version declares.
         self.featuresets = featuresets
+        # Optional, for the same reason it is optional on the engine: a
+        # register that has never fitted anything still issues warrants.
+        self.parameters = parameters
         # As everywhere: consulted after the checks above, and only
         # ever to refuse.
         self.policy = None
@@ -84,7 +88,34 @@ class WarrantService:
                 "attested": m.get("status") == "attested",
                 "version_status": version.get("status")}, urn)
         return self.builder.build(urn, m, version, grant, principal,
-                                  declared_use, environment, self.epoch, verb=verb)
+                                  declared_use, environment, self.epoch, verb=verb,
+                                  parameter_set=self._point_of_p(urn, version))
+
+    def _point_of_p(self, urn: str, version: Dict[str, Any]):
+        """The approved parameter set this run should be at, if there is one.
+
+        Law L-W8 says every run must say which point of P it is running at. For
+        an artifact-backed model that point is inside the artifact and the
+        artifact's digest speaks for it. For a model whose parameters live in
+        the register -- anything fitted here -- the artifact binding would be a
+        false statement: there is no artifact, and the numbers that decide what
+        it does are somewhere the warrant was not naming.
+
+        Silent when there is nothing approved, rather than refusing. A version
+        with no approved set fails for a better reason further on, and refusing
+        here would make every artifact-backed model depend on a register it does
+        not use.
+        """
+        if self.parameters is None or version.get("artifact_uri"):
+            return None
+        try:
+            return self.parameters.resolve(urn.split("#")[0], version["semver"])
+        except Exception as exc:                  # noqa: BLE001 -- reported below
+            swallowed(logger, exc, "looked for an approved parameter set",
+                      detail=f"{urn}@{version['semver']} has none, so the "
+                             f"warrant binds the artifact instead",
+                      level=logging.DEBUG)
+            return None
 
     # ------------------------------------------------------------------- fit
     def resolve_fit(self, urn: str, environment: str, principal: str,

@@ -95,12 +95,12 @@ class EstimatorRuntime:
                                "install numpy, or fit elsewhere and record the "
                                "parameters against the warrant")
         verb = (call.warrant.get("operation") or {}).get("verb")
-        if verb != "fit":
+        if verb not in ("fit", "score"):
             raise WarrantError(
                 "wrong_verb",
-                f"the estimator runtime inhabits a parameter object and the "
-                f"warrant's verb is '{verb}'",
-                "issue a warrant whose verb is 'fit', or use a runtime that scores")
+                f"the estimator inhabits a parameter object or runs at a point "
+                f"of one, and the warrant's verb is '{verb}'",
+                "issue a warrant whose verb is 'fit' or 'score'")
 
         entry = call.entry
         family = entry.get("family")
@@ -111,10 +111,103 @@ class EstimatorRuntime:
                 f"use one of {', '.join(FAMILIES)}, or fit it in your own engine "
                 f"and record the parameters under this warrant")
 
+        if verb == "score":
+            return self._score(call, family, entry)
         rows = self._rows(call.inputs)
         if family == OLS:
             return self._ols(rows, entry)
         return self._garch11(rows, entry)
+
+    # ------------------------------------------------------------------ score
+    def _score(self, call: Invocation, family: str,
+               entry: Dict[str, Any]) -> Dict[str, Any]:
+        """Run at the point of P the warrant names.
+
+        The values arrive through ``inputs['parameters']`` because the engine
+        put them there, having read them from the register and checked their
+        digest against the warrant. The runtime does not fetch them and could
+        not: a runtime that resolved its own parameters would be deciding which
+        numbers it ran on, which is the decision the approval exists to make.
+        """
+        values = (call.inputs or {}).get("parameters")
+        if not isinstance(values, dict) or not values:
+            raise WarrantError(
+                "no_parameters_supplied",
+                "the estimator was given no parameter values to score at",
+                "resolve a warrant that names an approved parameter set; the "
+                "engine reads the values and checks them against its digest")
+        features = (call.inputs or {}).get("features")
+        if not isinstance(features, dict):
+            raise WarrantError(
+                "no_features",
+                "scoring needs a record to score; inputs.features was missing "
+                "or was not an object",
+                "pass inputs.features as one record of named values")
+        if family == OLS:
+            return self._score_ols(values, features, entry)
+        return self._score_garch11(values, features, entry)
+
+    def _score_ols(self, values: Dict[str, Any], features: Dict[str, Any],
+                   entry: Dict[str, Any]) -> Dict[str, Any]:
+        """A linear prediction. The parameter set IS the model."""
+        regressors = list(entry.get("regressors") or [])
+        total = float(values.get("intercept", 0.0))
+        for name in regressors:
+            if name not in values:
+                raise WarrantError(
+                    "parameter_missing",
+                    f"the approved parameter set has no coefficient for "
+                    f"'{name}', which this version declares it reads",
+                    "the set was fitted against a different regressor list; fit "
+                    "again against the featureset this version names")
+            if name not in features:
+                raise WarrantError(
+                    "column_missing",
+                    f"no value supplied for '{name}'",
+                    "supply every regressor the version declares")
+            value = features[name]
+            if value is None or isinstance(value, bool) or not isinstance(
+                    value, (int, float)) or not math.isfinite(float(value)):
+                raise WarrantError(
+                    "value_not_numeric",
+                    f"'{name}' was given {value!r}, which is not a finite number",
+                    "supply a number, or apply a fill policy before scoring")
+            total += float(values[name]) * float(value)
+        return {"family": OLS, "prediction": total,
+                "target": entry.get("target")}
+
+    def _score_garch11(self, values: Dict[str, Any], features: Dict[str, Any],
+                       entry: Dict[str, Any]) -> Dict[str, Any]:
+        """The one-step-ahead conditional variance.
+
+        A GARCH model does not predict a level; it predicts a variance, and it
+        needs the last shock and the last variance to do it. Both are state,
+        so the caller supplies them and the answer says which it used --
+        otherwise this would be a forecast nobody could reproduce, which is
+        exactly the trap Prop. 2.13 in the paper describes for artefacts that
+        remember.
+        """
+        for key in ("last_shock", "last_variance"):
+            if key not in features:
+                raise WarrantError(
+                    "state_required",
+                    f"a one-step GARCH forecast needs '{key}', which is state "
+                    f"carried from the previous step rather than an input",
+                    "supply last_shock and last_variance from the previous "
+                    "observation; a forecast that invented them would not be "
+                    "reproducible")
+        shock, variance = float(features["last_shock"]), float(features["last_variance"])
+        if variance <= 0:
+            raise WarrantError(
+                "state_not_a_variance",
+                f"last_variance was {variance}, and a variance is positive",
+                "supply the previous step's conditional variance")
+        forecast = (float(values["omega"]) + float(values["alpha"]) * shock ** 2
+                    + float(values["beta"]) * variance)
+        return {"family": GARCH11, "prediction": forecast,
+                "conditional_variance": forecast,
+                "conditional_volatility": math.sqrt(forecast),
+                "from_state": {"last_shock": shock, "last_variance": variance}}
 
     # ------------------------------------------------------------------- data
     @staticmethod

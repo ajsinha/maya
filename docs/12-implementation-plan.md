@@ -134,10 +134,16 @@ deliberately left outside the platform's boundary.
 - **The captive engine implements five runtimes of eighteen.** No container, no
   spreadsheet, no SQL, no LLM. Each is refused by name; a real estate needs a
   real engine for the rest.
-- **The estimator fits and does not score.** A fitted parameter set is the
-  model, and scoring from it needs the engine to hold *approved* values — which
-  is a question about how a runtime gets them and proves they are the ones
-  somebody signed, not about arithmetic. Left undone rather than guessed at.
+- **The estimator fits *and* scores, at the point of P the warrant names.** A
+  run warrant for a model whose parameters live in the register now binds the
+  approved set rather than the artifact — because for a fitted model the
+  artifact binding was a false statement, there being no artifact and the
+  numbers deciding what it does living somewhere the warrant did not name. The
+  engine reads the values and **re-derives** their digest before anything runs
+  at them, rather than comparing the stored digest against the warrant's: two
+  copies of the same claim would agree over values somebody had edited
+  underneath them, which is the defect the scale suite found in the evidence
+  chain, one object over.
 
 ## 1. Engineering principles
 
