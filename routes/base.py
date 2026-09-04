@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from core.authz import AuthzError
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
+from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.monitoring import MonitorError
 from core.log import get_logger
@@ -61,6 +62,8 @@ STATUS: Dict[str, int] = {
     "no_monitor": 404, "unknown_severity": 422,
     # grammar
     "grammar_violation": 422,
+    # documents
+    "unknown_document_kind": 422, "no_document": 404,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -125,7 +128,7 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
-        except (WarrantError, LifecycleError, MonitorError) as exc:
+        except (WarrantError, LifecycleError, MonitorError, DocumentError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

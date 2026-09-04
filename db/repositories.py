@@ -231,3 +231,8 @@ class BreachRepository(Repository):
         return [self._decode(r) for r in self.db.query(
             f"SELECT * FROM {self.TABLE} WHERE model_id = :m AND status = 'open' "
             "ORDER BY opened_at", {"m": model_id})]
+
+
+class DocumentRepository(Repository):
+    TABLE, ORDER = "document", "compiled_at"
+    JSON = ("sections", "citations", "coverage")

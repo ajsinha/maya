@@ -289,3 +289,19 @@ def performance_monitor(monitors, a_model):
     return monitors.define(a_model["id"], "discrimination", "performance",
                            "discrimination.gini", {"min": 0.40}, "person/j.okafor",
                            label_delay_days=365, escalate_after=3)
+
+
+# --------------------------------------------------------------------- documents
+@pytest.fixture
+def doc_context(registry, evidence, repos, features, validation, findings,
+                monitoring, lifecycle, warrants):
+    from core.docs import ContextBuilder
+    return ContextBuilder(registry, evidence, repos["risk"], features, validation,
+                          findings, monitoring, lifecycle, warrants)
+
+
+@pytest.fixture
+def compiler(db, evidence, doc_context):
+    from core.docs import DocumentCompiler
+    from db import DocumentRepository
+    return DocumentCompiler(DocumentRepository(db), evidence, doc_context)
