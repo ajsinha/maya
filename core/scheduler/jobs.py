@@ -59,6 +59,7 @@ class JobContext:
     overlays: Any = None
     debts: Any = None
     documents: Any = None
+    notifications: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -206,7 +207,28 @@ def escalate_overdue_findings(ctx: JobContext) -> Dict[str, Any]:
     return {"raised": raised, "count": len(raised)}
 
 
+def notify_outstanding(ctx) -> Dict[str, Any]:
+    """Tell people what is outstanding for them.
+
+    The work is already derived; this is delivery. A worklist unchanged since
+    the last message is suppressed, because a message that repeats yesterday's
+    is a message somebody filters — and a control everybody filters has stopped
+    operating.
+    """
+    notifications = getattr(ctx, "notifications", None)
+    if notifications is None:
+        return {"sent": 0, "detail": "no notification service on this instance"}
+    out = notifications.run(now=ctx.now, actor=ctx.actor)
+    return {"sent": out["sent"], "suppressed": out["suppressed"],
+            "failed": out["failed"], "detail": out["detail"]}
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("notify.outstanding",
+        "tells each person what is outstanding for them",
+        "work nobody is told about is work nobody does; the dashboard only "
+        "reaches whoever happens to log in",
+        notify_outstanding),
     Job("attestation.lapsed",
         "raises a finding for a model in force on a lapsed attestation",
         "a model in force on a lapsed attestation is in force on nobody's "

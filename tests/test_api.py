@@ -1296,7 +1296,8 @@ class TestSchedulerApi:
         body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
         keys = {j["job"] for j in body["jobs"]}
         assert {"attestation.lapsed", "monitoring.stalled", "overlays.expire",
-                "debt.reconcile", "findings.overdue"} == keys
+                "debt.reconcile", "findings.overdue",
+                "notify.outstanding"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
 
@@ -1304,7 +1305,8 @@ class TestSchedulerApi:
         """Cron, a CronJob, or a person — all the same endpoint."""
         r = registered.post("/api/v1/scheduler/run", json={})
         assert r.status_code == 200
-        assert r.json()["ran"] == 5 and r.json()["failed"] == 0
+        from core.scheduler.jobs import JOBS
+        assert r.json()["ran"] == len(JOBS) and r.json()["failed"] == 0
 
     def test_running_the_same_job_twice_changes_nothing_more(self, registered):
         first = registered.post("/api/v1/scheduler/run",
@@ -1324,8 +1326,9 @@ class TestSchedulerApi:
 
     def test_history_records_what_ran(self, registered):
         registered.post("/api/v1/scheduler/run", json={})
+        from core.scheduler.jobs import JOBS
         runs = registered.get("/api/v1/scheduler/history").json()["runs"]
-        assert len(runs) == 5 and all(r["ok"] for r in runs)
+        assert len(runs) == len(JOBS) and all(r["ok"] for r in runs)
 
     def test_readiness_reports_the_scheduler_without_failing_on_it(self, client):
         """A stopped scheduler is worth knowing about and is not a reason to
@@ -2133,3 +2136,53 @@ class TestCompositionAndPolicyOverTheApi:
         _login(registered)
         page = registered.get("/features").text
         assert "vector" in page and "composed" in page and "sealed" in page
+
+
+class TestNotificationOverTheApi:
+    def test_the_channels_are_published_with_what_they_need(self, registered):
+        body = registered.get("/api/v1/notifications").json()
+        by_channel = {c["channel"]: c for c in body["channels"]}
+        assert by_channel["log"]["usable"], "the log channel is always available"
+        assert not by_channel["email"]["usable"]
+        assert "notifications.email.host" in by_channel["email"]["unavailable_because"]
+
+    def test_a_preview_shows_what_you_would_receive(self, registered, people):
+        registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor"})
+        body = registered.get("/api/v1/notifications/preview",
+                              auth=people["a.mehta"]).json()
+        assert body["principal"] == "a.mehta"
+        assert body["footer"]
+
+    def test_a_dry_run_sends_nothing(self, registered):
+        out = registered.post("/api/v1/notifications/run",
+                              json={"dry_run": True}).json()
+        assert out["dry_run"] and out["sent"] == 0
+        assert registered.get("/api/v1/notifications/history"
+                              ).json()["deliveries"] == []
+
+    def test_a_run_notifies_and_then_goes_quiet(self, registered, people):
+        registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor"})
+        first = registered.post("/api/v1/notifications/run", json={}).json()
+        assert first["sent"] >= 1
+        again = registered.post("/api/v1/notifications/run", json={}).json()
+        assert again["sent"] == 0 and again["suppressed"] >= 1
+
+    def test_an_unknown_channel_is_refused(self, registered):
+        r = registered.post("/api/v1/notifications/run",
+                            json={"channel": "smoke_signal"})
+        assert r.status_code == 422 and r.json()["error"] == "unknown_channel"
+
+    def test_a_developer_cannot_notify_the_estate(self, registered, people):
+        r = registered.post("/api/v1/notifications/run", auth=people["d.raman"],
+                            json={})
+        assert r.status_code == 403
+
+    def test_the_scheduler_runs_it(self, registered):
+        out = registered.post("/api/v1/scheduler/run",
+                              json={"jobs": ["notify.outstanding"]}).json()
+        assert out["ran"] == 1 and out["failed"] == 0
+        assert "detail" in out["results"][0]["outcome"]
