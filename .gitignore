@@ -116,3 +116,9 @@ tmp/
 # Workbooks generated from the published series at deck build time. The CSVs in
 # docs/examples/ are the source; these are derived and embedded into the pptx.
 docs/examples/*.xlsx
+
+# Only a development aid: `npm install --no-save jsdom` gives
+# tests/test_ui_tables.py a real DOM to run the table enhancer in.
+# Nothing at runtime depends on it, and the suite skips without it.
+node_modules/
+package-lock.json

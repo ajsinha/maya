@@ -34,7 +34,9 @@ class TestHealth:
 
 class TestModelApi:
     def test_empty_inventory(self, client):
-        assert client.get("/api/v1/models").json() == {"models": []}
+        body = client.get("/api/v1/models").json()
+        assert body["models"] == [] and body["total"] == 0
+        assert body["detail"] == "nothing matched"
 
     def test_create_and_read(self, client):
         r = client.post("/api/v1/models", json={
@@ -379,3 +381,48 @@ class TestAWarrantCannotBeMintedForSomebodyElse:
         """Minting on another principal's behalf stays possible, but only for
         somebody already entitled to create the entitlement itself."""
         assert self._resolve(registered, people["j.okafor"]).status_code == 200
+
+
+class TestListsArePaged:
+    """No endpoint paginated. `GET /models` returned the whole inventory, and
+    the architecture document targets estates of a hundred thousand models — so
+    the first honest deployment would have handed a browser a response it could
+    not render.
+    """
+
+    def _many(self, client, people, n=120):
+        for i in range(n):
+            client.post("/api/v1/models", auth=people["j.okafor"], json={
+                "urn": f"maya://model/bulk.m{i:04d}", "name": f"Bulk {i:04d}",
+                "model_class": "credit.pd", "domain": "credit",
+                "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+                "purpose": "p"})
+
+    def test_a_page_says_how_much_it_left_behind(self, client, people):
+        self._many(client, people)
+        body = client.get("/api/v1/models?limit=25").json()
+        assert body["returned"] == 25 and body["total"] == 120
+        assert body["has_more"] is True
+        assert "of 120" in body["detail"] and "offset=25" in body["detail"]
+
+    def test_the_offset_moves_the_window(self, client, people):
+        self._many(client, people)
+        first = client.get("/api/v1/models?limit=10").json()["models"]
+        second = client.get("/api/v1/models?limit=10&offset=10").json()["models"]
+        assert {m["urn"] for m in first}.isdisjoint({m["urn"] for m in second})
+
+    def test_a_caller_asking_for_everything_is_capped_and_told(self, client,
+                                                               people):
+        """Silently truncating is how a client concludes there are 200 models
+        when there are twelve thousand."""
+        self._many(client, people, n=60)
+        body = client.get("/api/v1/models?limit=100000").json()
+        assert body["limit"] == 500 and body["returned"] == 60
+
+    def test_search_filters_before_the_page_is_cut(self, client, people):
+        """Otherwise page two of a filtered list is page two of the unfiltered
+        one with holes in it."""
+        self._many(client, people)
+        body = client.get("/api/v1/models?q=m001&limit=50").json()
+        assert body["total"] == 10, "m0010 through m0019"
+        assert all("m001" in m["urn"] for m in body["models"])

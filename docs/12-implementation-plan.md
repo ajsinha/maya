@@ -103,6 +103,16 @@ deliberately left outside the platform's boundary.
   provider needs four answers that are not code: whether the instance may reach
   the internet, what of the register may leave the institution, how a
   non-deterministic model is made reproducible, and who pays.
+- **Readiness is incremental; the full chain walk is a scheduled job.** Verifying
+  every node on every probe was O(chain) — 512 ms at forty thousand nodes, and
+  the same call sat on the dashboard. The probe now checks what arrived since
+  the last full verification (1.6 ms, independent of chain length) and
+  `evidence.verify` walks the whole chain on the schedule. A broken chain is
+  never checkpointed, because advancing the mark past a break would bless it.
+- **Every list is paged, and every table in the interface is searchable and
+  sortable.** `limit`/`offset`/`q` on the API with the cap reported rather than
+  applied silently, and a vendored-by-writing table enhancer in the UI. Scope
+  filtering runs before the page is cut.
 - **No document rendering beyond markdown.** No PDF, no house template, no
   signature page, no export pack. Turning the compiled markdown into a firm's
   document standard is deliberately outside what the platform tries to own.

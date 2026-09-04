@@ -336,6 +336,7 @@
 
     <div class="card mb-3"><div class="card-header">Supervisory regimes</div>
       <div class="card-body p-0"><table class="table maya mb-0">
+        <thead><tr><th>Regime</th><th class="text-end">Standing</th></tr></thead>
         <tbody>
         {% for r in regimes.regimes %}
           <tr><td class="small">{{ r.regime }}
@@ -360,6 +361,7 @@
           <span class="evidence-bad">&nbsp;{{ finding_summary.blocking }} blocking</span>
         {% endif %}</div>
       <div class="card-body p-0"><table class="table maya mb-0">
+        <thead><tr><th>Finding</th></tr></thead>
         <tbody>
         {% for f in findings %}
           <tr><td class="small">
@@ -382,6 +384,7 @@
         <button id="gen-warrant" class="btn btn-sm btn-danger py-0 px-2"
                 style="font-size:.72rem">Generate</button></div>
       <div class="card-body p-0"><table class="table maya mb-0">
+        <thead><tr><th>Warrant grant</th></tr></thead>
         <tbody>
         {% for h in warrants %}
           <tr><td class="small">{{ h.principal }}<div class="text-muted">{{ h.declared_use }}</div></td>
@@ -407,13 +410,16 @@
       </div></div>
 
     <div class="card"><div class="card-header">Evidence ({{ evidence|length }})</div>
-      <div class="card-body p-0" style="max-height:22rem;overflow:auto">
-        <table class="table maya mb-0"><tbody>
+      <div class="card-body p-0">
+        <table class="table maya mb-0">
+          <thead><tr><th>Event</th><th>Sequence</th></tr></thead>
+          <tbody>
         {% for e in evidence %}
-          <tr><td class="small"><span class="chip">{{ e.kind }}</span>
-              <div class="mono text-muted" style="font-size:.7rem">#{{ e.seq }} {{ e.chain_hash[7:19] }}</div></td></tr>
+          <tr><td class="small"><span class="chip">{{ e.kind }}</span></td>
+              <td class="mono text-muted small" data-sort="{{ e.seq }}">#{{ e.seq }}
+                  <span style="font-size:.7rem">{{ e.chain_hash[7:19] }}</span></td></tr>
         {% else %}
-          <tr><td class="text-muted small p-3">No evidence recorded.</td></tr>
+          <tr><td colspan="2" class="text-muted small p-3">No evidence recorded.</td></tr>
         {% endfor %}
         </tbody></table></div></div>
   </div>

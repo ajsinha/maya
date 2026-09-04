@@ -28,7 +28,7 @@ published until they pass.</p>
 
 <div class="card mb-3"><div class="card-header">What a policy can and cannot do</div>
   <div class="card-body py-2">
-    <table class="table maya mb-0" style="font-size:.8rem">
+    <table data-plain class="table maya mb-0" style="font-size:.8rem">
       <tbody>
         <tr><td style="width:7rem">Applies</td>
             <td class="text-muted">{{ policy.applies }}</td></tr>
@@ -235,7 +235,7 @@ published until they pass.</p>
     <p class="text-muted mb-0"><span class="fw-bold text-body">Excluded</span>
       {{ language.excluded }}.</p>
   </div>
-  <table class="table maya mb-0">
+  <table data-plain class="table maya mb-0">
     <tbody>
     {% for f in language.functions %}
       <tr><td class="small mono" style="width:7rem">{{ f.name }}</td>

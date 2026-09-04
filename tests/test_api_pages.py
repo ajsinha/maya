@@ -706,3 +706,27 @@ class TestThePagesAuthoriseAndNotOnlyAuthenticate:
         _login(registered, "s.iqbal", "mrm-pw")
         page = registered.get(f"/model/{NAME}")
         assert page.status_code == 200 and "SB PD" in page.text
+
+
+class TestTheTableEnhancerIsActuallyServed:
+    """Structural tests prove the templates are shaped for it; this proves the
+    browser can reach it."""
+
+    def test_the_script_is_served(self, client):
+        r = client.get("/static/js/tables.js")
+        assert r.status_code == 200
+        assert "mayaEnhanceTables" in r.text
+
+    def test_every_page_loads_it(self, registered):
+        _login(registered)
+        for path in ("/dashboard", f"/model/{NAME}", "/features", "/featuresets",
+                     "/policies", "/notifications", "/telemetry"):
+            body = registered.get(path).text
+            assert "/static/js/tables.js" in body, path
+
+    def test_the_evidence_table_carries_its_header_when_rendered(self, registered):
+        """The one that grows without bound, and previously sat header-less in a
+        fixed-height scroll box."""
+        _login(registered)
+        body = registered.get(f"/model/{NAME}").text
+        assert "<th>Event</th>" in body and "<th>Sequence</th>" in body

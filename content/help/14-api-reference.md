@@ -74,6 +74,28 @@ Segregation refusals are a family, and each names the act it is protecting:
 
 ## The endpoints
 
+### Paging, search and sorting
+
+Every list endpoint takes `limit`, `offset` and — where it makes sense — `q`.
+The response carries `total`, `returned`, `limit`, `offset` and `has_more`
+alongside the rows, so a client always knows what it did not receive.
+
+| Parameter | Default | Notes |
+|---|---|---|
+| `limit` | 50 | Capped at 500. Asking for more returns the cap and says so in `limit`, rather than truncating quietly — silently truncating is how a client concludes there are 200 models when there are 12,000 |
+| `offset` | 0 | Ordinary offsets rather than cursors: a governance register is read by people who want page four |
+| `q` | — | Case-insensitive substring across the fields a reader would search by |
+
+**Scope filtering runs before the page is cut.** Page two of a filtered list is
+never page two of the unfiltered one with holes in it — otherwise a model out of
+scope becomes discoverable by a count that does not add up.
+
+In the interface, every table is searchable and sortable, and pages once it is
+long enough for a pager to be worth the space. That is served from
+`/static/js/tables.js` — written rather than vendored, because this platform has
+to run air-gapped and a table plugin is a hundred lines of arithmetic wearing
+eighty kilobytes.
+
 ### Models, versions and aliases
 
 | Method | Path | Notes |

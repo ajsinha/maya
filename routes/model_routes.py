@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 from fastapi import Request
 from pydantic import BaseModel, Field
 
+from core.domain import paging
 from routes.base import Routes
 
 
@@ -64,11 +65,24 @@ class ModelRoutes(Routes):
 
         @self.app.get(f"{self.api}/models", tags=["models"])
         def list_models(request: Request, domain: Optional[str] = None,
-                        tier: Optional[int] = None):
+                        tier: Optional[int] = None, q: Optional[str] = None,
+                        limit: Optional[int] = None,
+                        offset: Optional[int] = None):
             who = self.authorise(request, "model:read")
             # Filtered at the listing, not only at the detail page: a model out
             # of scope must not be discoverable by a count that does not add up.
-            return {"models": self.ctx["authz"].visible(who, reg.list(domain, tier))}
+            #
+            # And filtered BEFORE the page is cut, for the same reason: page two
+            # of a filtered list must not be page two of the unfiltered one with
+            # holes in it.
+            visible = self.ctx["authz"].visible(who, reg.list(domain, tier))
+            if q:
+                needle = q.strip().lower()
+                visible = [m for m in visible
+                           if needle in f"{m.get('name','')} {m.get('urn','')} "
+                                        f"{m.get('owner','')} "
+                                        f"{m.get('model_class','')}".lower()]
+            return paging.page(visible, limit, offset).as_dict("models")
 
         @self.app.post(f"{self.api}/models", status_code=201, tags=["models"])
         def create_model(request: Request, body: ModelIn):
