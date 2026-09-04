@@ -1,27 +1,109 @@
-# LaTeX build artefacts
+# ==========================================================================
+# MAYA — Copyright (c) 2026 Ashutosh Sinha <ajsinha@gmail.com>.
+# ==========================================================================
+
+# ---------------------------------------------------------------- runtime data
+# Nothing under data/ is committed. It is runtime state: the control-plane
+# database, the content-addressed artifact store, and the Delta Lake root.
+# Artifacts in particular may be proprietary models or contain personal data,
+# and Delta tables are large and machine-generated.
+/data/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# Delta Lake internals, wherever a table is rooted
+_delta_log/
+*.parquet
+*.crc
+
+# ------------------------------------------------------------------- secrets
+# Local configuration overlays hold values a machine needs but that must not be
+# committed. The tracked application.yaml deliberately carries no secrets.
+config/*.local.yaml
+config/*.local.yml
+config/*.local.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+!**/*.public.key
+credentials.json
+secrets.yaml
+
+# -------------------------------------------------------------------- python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+eggs/
+.eggs/
+sdist/
+wheels/
+*.egg-info/
+*.egg
+MANIFEST
+
+# ---------------------------------------------------------- virtual environments
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# ---------------------------------------------------------------- test & tools
+.pytest_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# ---------------------------------------------------------------------- latex
 *.aux
 *.fdb_latexmk
 *.fls
-*.log
 *.out
 *.synctex.gz
 *.toc
+*.bbl
+*.blg
+*.lof
+*.lot
+*.log
 
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
+# ---------------------------------------------------------------------- logs
+logs/
+*.log
+!docs/**/*.log
 
-# OS / editor
-.DS_Store
+# --------------------------------------------------------------- editors / OS
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
 
-# MAYA runtime
-config/*.local.yaml
-data/
-*.db
-.pytest_cache/
-.coverage
-htmlcov/
+# ------------------------------------------------------------------ scratch
+scratch/
+tmp/
+*.tmp
+*.bak
+*.orig

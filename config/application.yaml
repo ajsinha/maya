@@ -37,8 +37,23 @@ database:
   echo: false
 
 data:
+  # Nothing under data/ is committed. It is runtime state: the control-plane
+  # database, the artifact store, and the Delta Lake root.
   dir: ./data
   artifacts: "${data.dir}/artifacts"
+
+  # Delta Lake root. Feature values, dataset snapshots, inference logs and
+  # monitoring observations live here — everything whose volume scales with
+  # business events rather than with the number of models (see docs/05, rule R2).
+  delta:
+    dir: "${data.dir}/delta"
+    features: "${data.delta.dir}/features"
+    snapshots: "${data.delta.dir}/snapshots"
+    telemetry: "${data.delta.dir}/telemetry"
+    monitoring: "${data.delta.dir}/monitoring"
+    # Minimum time-travel retention. Regulatory feature views are aligned to the
+    # audit cycle; over-retaining costs less than failing an examination.
+    retention_days: 400
 
 # ---------------------------------------------------------------- governance
 risk:
