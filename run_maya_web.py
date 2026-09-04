@@ -31,6 +31,7 @@ from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.execution import WarrantService
 from core.config import PropertiesConfigurator
+from core.content import ContentLibrary
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
@@ -95,6 +96,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "test_catalogue": catalogue,
+                           "content": ContentLibrary(
+                               Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}
     if cfg.get_bool("execution.captive.enabled", True):
         # A consumer of the public warrant contract, nothing more.

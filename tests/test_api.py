@@ -227,9 +227,31 @@ class TestPublicPages:
         r = client.get("/about")
         assert r.status_code == 200 and "does not execute models" in r.text
 
-    def test_help_is_public_and_shows_the_six_steps(self, client):
-        html = client.get("/help").text
-        assert "Register the model" in html and "Issue a warrant" in html
+    def test_help_lists_topic_cards_from_the_content_directory(self, client):
+        body = client.get("/help").text
+        assert "Documentation" in body
+        # Cards, not a hard-coded walkthrough: the topics come from markdown on disk.
+        assert "/help/quickstart" in body and "/help/trainability-classes" in body
+        assert "Getting started" in body and "Reference" in body
+
+    def test_a_help_topic_renders_its_markdown(self, client):
+        body = client.get("/help/point-in-time-assembly").text
+        assert body.count("<h2") >= 2, "headings should be rendered, not escaped"
+        assert "<table>" in body, "markdown tables should render as tables"
+        assert "content/help/" in body, "the source file is cited on the page"
+
+    def test_an_unknown_help_topic_is_404(self, client):
+        assert client.get("/help/no-such-topic").status_code == 404
+
+    def test_help_is_reachable_without_signing_in(self, client):
+        assert client.get("/help").status_code == 200
+        assert client.get("/help/glossary").status_code == 200
+
+    def test_about_carries_the_competitive_analysis(self, client):
+        body = client.get("/about").text
+        assert "Competitive analysis" in body
+        assert "OpenPages" in body and "MLflow" in body
+        assert "Where MAYA is weaker today" in body, "positioning must state weaknesses too"
 
     def test_landing_offers_sign_in_when_anonymous(self, client):
         assert "/login" in client.get("/").text

@@ -37,8 +37,17 @@ class UIRoutes(Routes):
             m = registry.get(urn)
             if not m:
                 return self.page(request, "not_found.html", status=404, name=name)
-            return self.page(request, "model.html", model=m,
-                             versions=registry.versions(urn),
-                             history=registry.alias_history(urn),
-                             warrants=self.ctx["warrants"].grants_for(urn),
-                             evidence=self.ctx["evidence"].for_subject(m["id"]))
+            versions = registry.versions(urn)
+            features, register = self.ctx["features"], self.ctx["findings"]
+            return self.page(
+                request, "model.html", model=m, versions=versions,
+                history=registry.alias_history(urn),
+                warrants=self.ctx["warrants"].grants_for(urn),
+                evidence=self.ctx["evidence"].for_subject(m["id"]),
+                # A model's features are the view versions its contracts pin —
+                # per model version, because that is the granularity a contract
+                # binds at and the granularity serving reads at.
+                contracts=[(v, features.contract_for(v["id"])) for v in versions],
+                findings=register.open_for(m["id"]),
+                finding_summary=register.summary(m["id"]),
+                validations=self.ctx["validation"].for_model(urn))
