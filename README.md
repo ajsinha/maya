@@ -137,7 +137,10 @@ See [02 — Model Taxonomy](docs/02-model-taxonomy.md) for the full catalogue ac
 ## Built on stated mathematics
 
 The design rests on six pillars, each chosen because it delivers an engineering property — not for
-elegance. Every one ships with **executable laws** that run in CI; a failing law fails the build.
+elegance. The laws they imply are stated in [00 §12](docs/00-mathematical-foundations.md#12-the-laws-maya-enforces),
+and that section says of each law whether it is executable today or is still a claim about a design —
+because a document that says *all* the laws run in CI, when six of them do, is the sort of thing this
+platform exists to catch.
 
 | Pillar | Mathematics | Property it delivers |
 |---|---|---|
@@ -146,7 +149,7 @@ elegance. Every one ships with **executable laws** that run in CI; a failing law
 | What can we say about a black box? | **Assume–guarantee contracts**, **Galois connections**, probe-relative **Yoneda** | Operating boundaries checked at runtime; version substitution decided by refinement, not by meeting; model cards that are provably sound over-approximations |
 | How is everything indexed? | **Fibrations** / Grothendieck construction | **New model classes require no schema migration** — supply a fibre, change nothing else |
 | How do many regulators coexist? | **Institutions** (Goguen–Burstall abstract model theory) | **New regulators require no schema migration**; scope determinations are derivations with citations, not flags |
-| How is evidence accounted for? | **Commutative semirings** (provenance) + lattices + bitemporal algebra + metric temporal logic | *One* evidence engine answers nine different questions — sufficiency, minimal proof set, trust, cost, classification, admissibility, freshness — by swapping the semiring |
+| How is evidence accounted for? | **Commutative semirings** (provenance) + lattices + bitemporal algebra | *One* evidence engine answers six different questions — sufficiency, minimal justification, corroboration, confidence, cost, currency — by swapping the semiring over a single traversal |
 
 Full treatment, including what we deliberately **did not** adopt and why:
 [00 — Mathematical Foundations](docs/00-mathematical-foundations.md).
@@ -229,9 +232,12 @@ r.reason_codes    # ['DSCR_LOW', 'THIN_FILE']  → Reg B adverse action
 maya.load("maya://model/credit.pd.smallbiz@3.1.0?calibration=2026-03-31")
 ```
 
-Eleven warrant flavours cover REST (Open Inference Protocol v2), gRPC, Python and JVM SDKs, Spark batch,
-SQL UDF, Kafka streams, OCI containers, spreadsheets, composite model DAGs, and **descriptor-only** for
-engines MAYA will never host — which is most of a bank's real estate.
+A warrant is the product of four independent vocabularies — how the parameter object is inhabited ×
+how the kernel is realised (**seventeen runtimes**, from QuantLib and ONNX to a spreadsheet and a
+prompt bundle) × what is asked of it (**ten verbs**) × where its data comes from (**twelve
+bindings**). `descriptor_only` is one of the seventeen and matters most in a bank: most of the estate
+already runs inside engines nobody is going to replace. The captive engine implements four of the
+seventeen; the rest are refused by name rather than approximated.
 
 Moving `champion` from 3.2.1 to 3.3.0 requires the new version's contract to **refine** the old one and its
 schemas to satisfy variance rules. Consumers are not redeployed and cannot be broken. Revocation takes
@@ -246,10 +252,10 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 
 | # | Document | What it is |
 |---|---|---|
-| **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) | Six pillars, eighteen executable laws, and what was deliberately not adopted |
+| **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) | Six pillars, nineteen laws with an honest statement of which are executable today, and what was deliberately not adopted |
 | **01** | [Industry Research](docs/01-industry-research.md) | SR 26-2, SS1/23, EU AI Act; ~15 products surveyed; the six-capability gap |
 | **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | 200+ model families across eleven domains, with the T0–T8 trainability classification |
-| **03** | [Requirements](docs/03-requirements.md) ★ | 13 personas, ~200 numbered requirements, regulatory traceability matrix |
+| **03** | [Requirements](docs/03-requirements.md) ★ | 13 personas, 220 numbered functional requirements plus 26 non-functional, regulatory traceability matrix |
 | **04** | [Architecture](docs/04-architecture.md) ★ | Containers, bounded contexts, lifecycles, extensibility, deployment, failure modes |
 | **05** | [Data Model](docs/05-data-model.md) | Postgres DDL, Delta Lake schemas, evidence graph, warrant projection, migrations |
 | **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, signed descriptors, resolution, aliases, revocation floor, composites |
@@ -279,19 +285,27 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 maya/
 ├── README.md                        ← the only README; this file
 ├── core/                            the platform, split by responsibility
-│   ├── domain/                      the algebra: kernels, schemas, contracts
-│   ├── registry/  features/         models, versions, aliases; features, featuresets
+│   ├── domain/                      the algebra: kernels, schemas, contracts, identity
+│   ├── registry/                    models, immutable versions, governed aliases
+│   ├── features/                    features, views, featuresets, shapes, composition,
+│   │                                lifecycle, retrieval policy, alignment, bulk transfer
 │   ├── parameters/                  inhabitants of P: fitted, calibrated, declared
-│   ├── execution/                   warrants, the grammar, the captive engine
+│   ├── execution/                   warrants, the grammar, the runtimes, the sandbox
 │   ├── validation/  monitoring/     tests and findings; drift and delayed labels
-│   ├── lifecycle/                   approval, attestation, amendment
-│   ├── authz/                       roles, scope, segregation of duties
+│   ├── telemetry/                   two bitemporal streams, idempotent ingestion
+│   ├── lifecycle/                   version approval by quorum, attestation, amendment
+│   ├── authz/                       roles, scope, segregation of duties, OIDC, RS256
+│   ├── policy/                      versioned gates: a rule is a predicate, with its cases
 │   ├── docs/  attachments/          documentation compiled, and documentation filed
 │   ├── overlays/                    post-model adjustments, time-boxed
 │   ├── regimes/                     supervisory regimes as institutions
 │   ├── assist/  baseline/           machine assistance; cold-start import
+│   ├── scheduler/  notify/          idempotent jobs; digests, not a message per item
+│   ├── estate/                      the worklist and the summary, derived not assigned
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
+│       config/                      YAML with a git-ignored local overlay
 ├── db/                              the only package that knows about storage
+│   └── schema/                      two hand-written schemas, 40 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
@@ -300,8 +314,8 @@ maya/
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── data/                        the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
-│   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
-│   ├── MAYA-System-Design.pptx              52-slide engineering deck
+│   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
+│   ├── MAYA-System-Design.pptx              56-slide system design deck
 │   └── MAYA-Model-and-Feature-Engineering.pptx
 │                                     33-slide practitioner deck, with its data embedded
 ├── assets/logo/                     the mark, the lockup, and their variants
@@ -314,16 +328,16 @@ The ideas behind this system are written up independently of the product:
 
 | Artefact | Audience |
 |---|---|
-| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 27-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
+| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 29-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
 | **[Most of Your Models Were Never Trained](docs/research/most-of-your-models-were-never-trained.md)** | General technical readers |
-| **[Models as Parametric Kernels](docs/Models-as-Parametric-Kernels.pptx)** — 26 slides | Conversation-starter deck mirroring the paper: the problem, the formal foundation, automation and its oracles, and six questions worth arguing about |
+| **[Models as Parametric Kernels](docs/Models-as-Parametric-Kernels.pptx)** — 27 slides | Conversation-starter deck mirroring the paper: the problem, the formal foundation, automation and its oracles, and six questions worth arguing about |
 
 The paper, the article and the research deck are deliberately **product-neutral** — no MAYA name, no
 branding — so the ideas can be judged on their own. The engineering material below carries the brand.
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 49 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 56 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*
@@ -378,7 +392,7 @@ Licensing enquiries and permission requests: **ajsinha@gmail.com**
 ## Contributing
 
 Read [00 — Mathematical Foundations](docs/00-mathematical-foundations.md) before proposing changes to
-`maya/domain/`, and read the relevant [ADR](docs/adr/) before revisiting a settled decision. New
+`core/domain/`, and read the relevant [ADR](docs/adr/) before revisiting a settled decision. New
 abstractions must pass the **rent test**: an abstraction earns its place only if it delivers a property we
 would otherwise have to hand-build, hand-check or hand-migrate — and only if that property is stated as an
 executable law.

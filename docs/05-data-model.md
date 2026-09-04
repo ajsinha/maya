@@ -7,6 +7,41 @@
 
 ---
 
+## 0. What this document is, and what `db/schema/` is
+
+**`db/schema/sqlite.sql` and `db/schema/postgres.sql` are authoritative. This document is not.**
+
+The DDL below is a *target* Postgres model, written before the build, and it is richer than what
+ships in several directions at once. Reading it as a description of the database would mislead a
+reader in the most expensive way available — they would write a query against a table that does not
+exist, or trust an integrity constraint that is not there. So the divergence is stated here, once, at
+the top, rather than left to be discovered per section.
+
+| | This document | `db/schema/` |
+|---|---|---|
+| Tables | ~60, including `model_class`, `legal_entity`, `person`, `vendor`, `run`, `deployment`, `artifact`, `calibration_set`, `feature_contract_item`, `remediation`, `warrant_grant`, `evidence_edge`, `audit_log` | **40**, and the two dialects agree exactly — same names, same order, same indexes |
+| Referential integrity | `REFERENCES` throughout, some `DEFERRABLE` (finding H-4) | **No foreign keys at all.** Enforced in the repositories, which are the only interface |
+| Constraints | `CHECK` on enumerations; triggers for immutability (finding C-3) | **No `CHECK`, no triggers.** Immutability is a refusal in `core/registry/`, not a `RAISE EXCEPTION` |
+| Row-level security | `ENABLE`/`FORCE ROW LEVEL SECURITY` per scoped table (finding H-5) | **Not used.** Scoping is `core/authz/scope.py`, which filters listings as well as detail reads, on two dimensions — legal entity and domain |
+| Types | `jsonb`, `ltree`, `citext`, `timestamptz`, `text[]` | `TEXT` holding JSON, `REAL` epoch seconds, `INTEGER` flags. Postgres substitutes `BOOLEAN` and `DOUBLE PRECISION`; **JSON stays `TEXT` in both, deliberately**, so one parser reads both dialects |
+| Keys | ULIDs (D7) | Hex ids from the same generator; sortable, not guessable |
+| Migrations | Expand/contract, Alembic | **None.** Two hand-written files. A schema small enough to read is a schema you can change by reading it |
+| Views, partitions | Monthly partitions on `audit_log`, `evidence_node` | **No views, no partitions, no separate audit database.** The evidence chain *is* the audit log |
+
+The tables that ship, in schema order: `model`, `model_version`, `alias`, `alias_history`,
+`evidence_node`, `risk_assessment`, `warrant`; `feature`, `feature_view`, `feature_view_version`,
+`feature_contract`; `policy_rule`, `notification`, `telemetry_batch`, `version_approval`,
+`version_approval_signature`, `derived_feature`; `featureset`, `featureset_version`; `parameter_set`,
+`dataset_snapshot`; `validation`, `test_result`, `finding`; `principal`; `amendment`, `attestation`,
+`attestation_signature`; `monitor`, `observation`, `breach`; `document`; `overlay`,
+`overlay_measurement`; `ai_capability`, `ai_generation`; `baseline_import`, `compliance_debt`;
+`scheduled_run`; `attachment`.
+
+Seventeen of those forty postdate this document and appear nowhere in the DDL below. **§7a** describes
+them, read out of the shipped schema rather than out of an intention.
+
+---
+
 ## 1. Principles
 
 | # | Principle |
@@ -646,6 +681,81 @@ CREATE TABLE dataset_snapshot (
     created_at     timestamptz NOT NULL DEFAULT now()
 );
 ```
+
+---
+
+## 7a. The seventeen tables added after this document was written
+
+*Read out of `db/schema/sqlite.sql`. Postgres is identical but for type substitution.*
+
+Every one of these is `TEXT id PRIMARY KEY`, no foreign keys, JSON in `TEXT` columns, `REAL` epoch
+timestamps. They are grouped here by the question each answers.
+
+### Featuresets and the parameter object
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `featureset` | `name UNIQUE`, `entity`, `owner`, `slots`, `label_slot`, `outcome_window_days`, `grain`, `defaults`, `composes`, `operations`, `sealed_at`, `sealed_by`, `seal_note`, `ephemeral`, `expires_at`, `created_by` | `slots` is the **schema** — `slot → {dtype, nullable}`. It is separate from any version's bindings, which is what lets two versions hold different features and remain the same `X` |
+| `featureset_version` | `featureset_id`, `version`, `bindings`, `label_binding`, `digest`, **`UNIQUE (featureset_id, version)`** | `bindings` is `slot → {feature, view, view_version, namespace, delta_version, …}`. The **`delta_version`** inside each binding is what makes *same featureset version → same bytes* true rather than true-until-Tuesday |
+| `parameter_set` | `model_version_id`, `name`, `version`, `kind`, `provenance`, `values_inline`, `values_uri`, `cardinality`, `diagnostics`, `featureset_version_id`, `window_from`, `window_to`, `as_of`, `snapshot_id`, `warrant_id`, `digest`, `state`, `created_by`, `approved_by`, `superseded_by`, **`UNIQUE (model_version_id, name, version)`** | A fit produces a row here and **not** a `model_version`, because the kernel did not change. `warrant_id` is why a set has provenance at all; `approved_by` is separate from `created_by` and the register refuses their equality |
+| `dataset_snapshot` | `name`, `kind`, `delta_table`, `delta_version`, `row_count`, `as_of`, `pit_verified`, `pit_report`, `digest` | `delta_version` is the pin replay reads at. Without it, replay would follow a restatement and report a mismatch about the data as though it were about the test |
+| `derived_feature` | `feature_id`, `name`, `expression`, `inputs`, `evaluator`, `on_error`, `definition_version`, `digest`, **`UNIQUE (name, definition_version)`** | The definition is versioned, so amending a derivation does not rewrite what earlier featuresets resolved against |
+
+### Telemetry, monitoring's missing half
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `telemetry_batch` | `digest UNIQUE`, `delta_table`, `row_count`, `at` | **The `UNIQUE` on `digest` is the idempotency control.** Real collectors deliver at least once; a monitor that double-counts a redelivered batch reports a population that never existed. The digest is over the stream, the version id and the rows themselves. The rows go to Delta — two streams per version, `scores` and `outcomes` — and only the receipt is relational |
+
+### Approval as a quorum
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `version_approval` | `model_id`, `model_version_id`, `tier`, `required_roles`, `status`, `statement`, `opened_by`, `completed_at` | `tier` is nullable and the service refuses to open when it is null: approving before assessing would be a way of choosing your own control depth |
+| `version_approval_signature` | `version_approval_id`, `principal`, `role`, `decision`, `statement`, **`UNIQUE (version_approval_id, role)`** | One signature per role, enforced in the schema. The *other* half — that one person may not sign twice under two hats — cannot be a `UNIQUE` and is checked in `core/lifecycle/approval.py`, because a quorum is a number of people rather than a number of roles. Note the older `attestation_signature` has no such `UNIQUE`; the newer table is the better shape |
+
+### Versioned gates
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `policy_rule` | `gate`, `version`, `rule`, `reason`, `cases`, `facts_read`, `test_report`, `state`, `digest`, `published_by`, **`UNIQUE (gate, version)`** | `cases` ships **with** the rule and the register will not publish until they pass, at least one of them a refusal. `facts_read` is computed from the rule's own AST, so a rule reading a fact the gate does not publish is refused when it is written rather than at the moment of a governance decision. A published row is never edited; a change mints the next `version` and supersedes its predecessor |
+
+### Delivery
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `notification` | `principal`, `channel`, `state`, `digest`, `item_count`, `overdue`, `summary`, `detail`, `sent_at` | `digest` is over the **work described**, not the message. An unchanged worklist is suppressed until a quiet period passes, because nothing is more certain to be ignored than a daily message identical to yesterday's |
+
+### Attached documents
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `attachment` | `model_id`, `model_version_id`, `kind`, `title`, `filename`, `media_type`, `digest`, `size_bytes`, `text_indexed`, `state`, `attached_by`, `reviewed_by`, `review_note`, `supersedes`, `superseded_by` | `model_version_id` is the normal filing target and `NULL` means model-level, which has to be asked for: a development document describes the coefficients it printed, not their replacement. `digest` is the SHA-256 of the bytes and is deliberately **not** `UNIQUE` — the same file may legitimately be filed against two versions. `text_indexed` records whether the platform can genuinely read it, so later machine review knows what has been read and what has only been stored |
+
+### The scheduler's own record
+
+| Table | Key columns | The constraint that carries the design |
+|---|---|---|
+| `scheduled_run` | `job`, `ran_at`, `outcome`, and its report | One failing job does not stop the others, and the scheduler reports its own health on `/health/ready`. A job that has stopped running is itself a finding |
+
+### Feature composition, on `feature` rather than in a table of its own
+
+`feature` gained eleven columns rather than a join table, because every one of them is a property of
+the definition and a definition has exactly one row: `shape`, `components`, `composes`, `operations`,
+`defaults`, `definition_version`, `sealed_at`, `sealed_by`, `seal_note`, `ephemeral`, `expires_at`.
+
+`composes` holds each parent **with the `definition_version` it was composed against**. That stamp is
+the fix for finding C-2 at the composition level (§ [11 · C-2](11-adversarial-review.md)) — and it is
+worth being exact about what it does, because the obvious reading is wrong. Resolution reads the
+parent **as it currently stands**; the stamp is compared against the parent's current
+`definition_version` and any difference is *reported* as drift on the resolved view. It does not
+freeze the parent and it does not refuse the read. A child whose parent has moved is a thing to be
+told about rather than a read that should fail — but "pinned" would be the wrong word for it, and the
+schema is the place that has to be honest about which.
+
+`featureset` carries the same lifecycle and composition columns and **does not carry the stamp**: it
+records `composes` without a `definition_version`, so a composed featureset has no drift to report.
+That is a gap in the build rather than a decision.
 
 ---
 

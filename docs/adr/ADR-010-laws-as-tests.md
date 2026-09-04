@@ -1,4 +1,4 @@
-# ADR-010 — The sixteen laws enforced by property-based tests in CI
+# ADR-010 — The laws enforced by tests in CI
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
@@ -25,6 +25,23 @@ machine-checked evidence.
 - **−** Property tests are slower than unit tests and can be flaky if generators are poorly bounded.
   Mitigated by bounded strategies, fixed seeds in CI, and a nightly deep run with wider generation.
 - **−** Writing good generators requires skill. Accepted as a deliberate investment.
+
+## As built
+
+*An ADR records a decision; this section records how far the decision has been carried out, because the
+decision above is the one thing in this document a reader could mistake for a description.*
+
+There is **no `tests/laws/` package**. The executable laws live beside the code they constrain —
+`tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_evidence.py` (L-18),
+`tests/test_composition.py` (L-19), `tests/test_grammar.py` and `tests/test_api.py` (the eleven
+warrant-admissibility laws). Hypothesis is used for L-4 and nowhere else; the rest are exhaustive or
+example-based, which is adequate for a finite lattice and honest about being so.
+
+The law count is now **nineteen** foundational plus eleven warrant laws, not sixteen. Of the nineteen,
+seven are executable and enforcing; the remainder are stated and not yet executable, each marked as such
+in [00 §12](../00-mathematical-foundations.md#12-the-laws-maya-enforces). The decision above stands as
+the target. The gap between it and this section is the honest cost of having shipped the mechanisms in
+a different order from the one this ADR assumed.
 
 ---
 

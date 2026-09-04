@@ -1,5 +1,11 @@
 # 16 — Features Composed, Shaped and Prepared
 
+*MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
+
+**Annex to** [07 — The Feature Platform](07-feature-platform.md), alongside
+[15 — Featuresets and the Parameter Object](15-featuresets-and-parameters.md).
+The composition monoid is [00 §5.4](00-mathematical-foundations.md#54-composition-of-definitions-is-a-monoid).
+
 *A feature is not always a number, is not always defined in one place, and does
 not always outlive the request that made it. This is the specification for the
 five things that follow from that.*
@@ -79,11 +85,33 @@ differs from what its author believed they had written.
 Also refused: a cycle (no fixed point to resolve to), a chain deeper than 12 (a
 modelling problem rather than a depth problem), and composing anything ephemeral.
 
-### Parents are pinned
+### Parents are stamped, and drift is reported
 
-A composition names a parent *and a version of it*. A parent that could move
-underneath its children is adversarial finding **C-2** wearing a third hat: the
+A composition records the parent's **`definition_version`** — which definition of
+it the child was written against. A parent that could move underneath its
+children unremarked is adversarial finding **C-2** wearing a third hat: the
 child's digest stable while its contents were not.
+
+Be exact about what the stamp does, because the obvious reading is wrong and this
+is the third place in the platform where the wrong reading has cost something.
+**Resolution reads the parent as it currently stands.** The stamp is compared
+against the parent's live `definition_version`, and any difference surfaces as
+`drift` on the resolved view — naming the parent, the version composed against,
+the version it is at now, and whether it has since been sealed. It does not
+freeze the parent and it does not refuse the read: a child whose parent has moved
+is a thing to be *told about*, not a read that should fail, because the parent
+usually moved for a good reason and failing closed would make the platform
+unusable at exactly the moment somebody improved a definition.
+
+So this is a **detector, not a pin**, and the word matters. Calling it a pin
+would repeat C-2's original error one abstraction higher — a name that sounds
+like a guarantee over something that can still move.
+
+> **A gap, stated rather than left to be found.** Featuresets compose by the same
+> fold and **carry no stamp**: `composes` records the parent's name and nothing
+> about which definition of it. A composed featureset therefore has no drift to
+> report, which is the same finding a third time, still open. It is recorded in
+> [11 · C-2](11-adversarial-review.md) rather than only here.
 
 ### Resolution is a read-time act
 
@@ -222,13 +250,13 @@ gives an execution engine a rectangle instead of a ragged frame.
 
 | Rule | Fills from | Point-in-time safe |
 |---|---|---|
+| `none` | nothing | **yes** |
 | `flat_forward` | the last observation | **yes** |
 | `flat_backward` | the next observation | no |
 | `linear` | both neighbours | no |
 | `nearest` | whichever is closer | no |
-| `none` | nothing | yes |
 
-The last three reach into the future. They are the right answer for drawing a
+Three of the five reach into the future. They are the right answer for drawing a
 curve, for an explicitly retrospective backtest, for showing a history to a
 person — and wrong for training.
 
