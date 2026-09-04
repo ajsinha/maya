@@ -372,3 +372,41 @@ class TestThroughTheWholeChain:
                            {"dscr": 99.0})
         assert exc.value.code == "boundary_violation", \
             "refused on the boundary, not on the missing artifact"
+
+
+class TestTheArtifactRootIsADirectoryNotAPrefix:
+    """A warrant is a document from elsewhere, and a path inside it is the least
+    trustworthy thing in it."""
+
+    def _call(self, uri):
+        return Invocation({"realisation": {"artifact": {"uri": uri}}}, {})
+
+    def test_a_sibling_whose_name_extends_the_root_is_refused(self, tmp_path):
+        """'/x/artifacts-backup' begins with '/x/artifacts' and is not inside it.
+        A string prefix admitted it; is_relative_to does not."""
+        from core.execution.runtimes.base import resolve_path
+        root = tmp_path / "artifacts"
+        root.mkdir()
+        sibling = tmp_path / "artifacts-backup"
+        sibling.mkdir()
+        (sibling / "model.onnx").write_bytes(b"not ours")
+        with pytest.raises(WarrantError) as exc:
+            resolve_path(self._call("file://../artifacts-backup/model.onnx"), root)
+        assert exc.value.code == "artifact_outside_root"
+
+    def test_a_traversal_out_of_the_root_is_refused(self, tmp_path):
+        from core.execution.runtimes.base import resolve_path
+        root = tmp_path / "artifacts"
+        root.mkdir()
+        (tmp_path / "secret.onnx").write_bytes(b"not ours")
+        with pytest.raises(WarrantError) as exc:
+            resolve_path(self._call("file://../secret.onnx"), root)
+        assert exc.value.code == "artifact_outside_root"
+
+    def test_an_artifact_inside_the_root_is_located(self, tmp_path):
+        from core.execution.runtimes.base import resolve_path
+        root = tmp_path / "artifacts"
+        (root / "credit").mkdir(parents=True)
+        target = root / "credit" / "pd.onnx"
+        target.write_bytes(b"ours")
+        assert resolve_path(self._call("file://credit/pd.onnx"), root) == target

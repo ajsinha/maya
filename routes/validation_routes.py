@@ -155,6 +155,9 @@ class ValidationRoutes(Routes):
         @self.app.post(f"{api}/findings/{{finding_id}}/close", tags=["findings"])
         def close_finding(request: Request, finding_id: str, body: CloseFindingIn):
             finding = self.guard(lambda: register.require(finding_id))
-            who = self.authorise(request, "finding:close", subject_id=finding_id)
+            # The evidence lives on the model, which is where a reader looks
+            # for it; `about` narrows it to this finding.
+            who = self.authorise(request, "finding:close",
+                                 subject_id=finding["model_id"], about=finding_id)
             return self.guard(lambda: register.close(
                 finding_id, body.verified_by, body.evidence, actor=self.actor(who)))

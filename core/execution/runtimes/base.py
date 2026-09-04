@@ -123,7 +123,10 @@ def resolve_path(call: Invocation, root: Optional[Path]) -> Path:
                            "this engine has no artifact directory configured",
                            "set execution.captive.artifact_dir")
     path = (root / name).resolve()
-    if not str(path).startswith(str(Path(root).resolve())):
+    # is_relative_to, not a string prefix: '/srv/artifacts-backup/x' begins with
+    # '/srv/artifacts' and is a different directory. A warrant is a document from
+    # elsewhere, and a path inside it is the least trustworthy thing in it.
+    if not path.is_relative_to(Path(root).resolve()):
         raise WarrantError("artifact_outside_root",
                            f"'{uri}' resolves outside the artifact directory",
                            "artifacts are read from the configured directory only")

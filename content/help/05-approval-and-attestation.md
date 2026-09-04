@@ -249,6 +249,7 @@ chain.
 | `version:approve` | created that version | a first line must not approve its own work |
 | `alias:move` | created that version | the builder must not promote their own build |
 | `validation:conclude` | created that version | effective challenge requires independence |
+| `finding:close` | raised **that** finding | closure must be attested by someone other than the raiser |
 
 The refusal cites the record:
 
@@ -261,9 +262,30 @@ The refusal cites the record:
 }
 ```
 
-Closure of a finding is segregated too, but by a rule that lives in the findings
+### When the subject is not where the evidence lives
+
+The last row needs a word, because it is where this design nearly failed
+silently. A finding is raised against the **model** — that is where a reader
+looks for it, and what a compiled document cites — while the act being checked is
+about one finding. Searching the chain under the finding's own id therefore found
+nothing and permitted everything: the rule was in the table, in the tests, and
+inert in production for three milestones.
+
+So a rule may name the payload field carrying the identity it is about. The check
+searches the model's evidence and narrows to nodes whose `finding_id` matches the
+one being closed. Raising one finding on a model does not disqualify you from
+closing another — that would be a different and much broader rule, and not the
+one anybody wrote down.
+
+A rule that needs that discriminator and is given none matches **nothing** rather
+than matching everything of its kind on the subject. Refusing acts nobody meant
+to forbid is worse than the gap, and it is loud in a test rather than silent in
+production.
+
+Closure is segregated a second time, by a rule that lives in the findings
 register rather than in this policy: the owner of a finding may not verify its
-own closure, and closure evidence is required. See
+own closure, and closure evidence is required. Two different questions — *did you
+raise it* and *do you own it* — and a person can fail either. See
 [Validation and findings](/help/validation).
 
 **This applies to administrators too.** Break-glass exempts you from the

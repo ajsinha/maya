@@ -450,25 +450,64 @@ class TestFindingsApi:
         assert r.json()["error"] == "blocked"
         assert r.json()["remediation"]
 
-    def test_closing_the_finding_restores_service(self, registered):
-        fid = registered.post("/api/v1/findings", json={
+    def test_closing_the_finding_restores_service(self, registered, people):
+        fid = registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
             "urn": URN, "severity": "Critical", "title": "Leakage",
             "owner": "person/j.okafor"}).json()["id"]
-        registered.post(f"/api/v1/findings/{fid}/close",
-                        json={"verified_by": "person/a.mehta", "evidence": {"pr": "1420"}})
+        closed = registered.post(
+            f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
+            json={"verified_by": "person/d.raman", "evidence": {"pr": "1420"}})
+        assert closed.status_code == 200, closed.text
         r = registered.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
         assert r.status_code == 200
 
-    def test_the_owner_cannot_verify_their_own_closure_over_the_api(self, registered):
-        fid = registered.post("/api/v1/findings", json={
+    def test_the_owner_cannot_verify_their_own_closure_over_the_api(
+            self, registered, people):
+        """A different rule from segregation: this one is about the finding's
+        OWNER attesting their own remediation, and it lives in the register
+        rather than in the authorisation layer. Raised and closed by different
+        principals so the segregation gate does not answer first."""
+        mrm, val = people["s.iqbal"], people["a.mehta"]
+        fid = registered.post("/api/v1/findings", auth=mrm, json={
             "urn": URN, "severity": "High", "title": "Docs stale",
             "owner": "person/j.okafor"}).json()["id"]
-        r = registered.post(f"/api/v1/findings/{fid}/close",
+        r = registered.post(f"/api/v1/findings/{fid}/close", auth=val,
                             json={"verified_by": "person/j.okafor",
                                   "evidence": {"pr": "1"}})
         assert r.status_code == 409 and "own closure" in r.json()["detail"]
+
+    def test_the_raiser_cannot_close_it_over_the_api(self, registered, people):
+        """This is the rule that was inert: the route searched for evidence
+        under the finding's id while the register writes it under the model's,
+        so the lookup always came back empty and the check always passed."""
+        mrm = people["s.iqbal"]
+        fid = registered.post("/api/v1/findings", auth=mrm, json={
+            "urn": URN, "severity": "High", "title": "Docs stale",
+            "owner": "person/j.okafor"}).json()["id"]
+        r = registered.post(f"/api/v1/findings/{fid}/close", auth=mrm,
+                            json={"verified_by": "person/a.mehta",
+                                  "evidence": {"pr": "1"}})
+        assert r.status_code == 403
+        assert r.json()["error"] == "segregation_of_duties"
+        assert "may not close it" in r.json()["detail"]
+        assert "finding_raised" in r.json()["detail"]
+
+    def test_raising_one_finding_does_not_block_closing_another(self, registered,
+                                                                people):
+        """The narrowing is by finding, not by model — otherwise a validator who
+        raised anything on a model could close nothing on it."""
+        mrm, val = people["s.iqbal"], people["a.mehta"]
+        registered.post("/api/v1/findings", auth=mrm, json={
+            "urn": URN, "severity": "Low", "title": "Typo", "owner": "person/j.okafor"})
+        other = registered.post("/api/v1/findings", auth=val, json={
+            "urn": URN, "severity": "High", "title": "Drift",
+            "owner": "person/j.okafor"}).json()["id"]
+        r = registered.post(f"/api/v1/findings/{other}/close", auth=mrm,
+                            json={"verified_by": "person/d.raman",
+                                  "evidence": {"pr": "2"}})
+        assert r.status_code == 200, r.text
 
     def test_an_unknown_severity_is_refused(self, registered):
         r = registered.post("/api/v1/findings", json={

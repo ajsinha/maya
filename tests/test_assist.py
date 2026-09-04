@@ -255,3 +255,33 @@ class TestAutomationBias:
     def test_a_steady_reviewer_is_not_flagged(self, generations, tier_b):
         self._attest_series(generations, tier_b, [0.30, 0.28, 0.31, 0.29])
         assert generations.automation_bias("a.mehta")["falling"] is False
+
+
+class TestTheReviewSampleIsDeterministic:
+    """The docstring's reasoning is the requirement: a drafter must not be able
+    to learn which of their drafts go unreviewed, and a test must be able to
+    depend on the sequence. Seeding on the clock made both false."""
+
+    def test_the_same_history_draws_the_same_sample(self, generations, tier_b):
+        first = [generations._sample({**tier_b, "review_sample": 0.5})
+                 for _ in range(1)]
+        second = [generations._sample({**tier_b, "review_sample": 0.5})
+                  for _ in range(1)]
+        assert first == second
+
+    def test_a_zero_rate_never_samples(self, generations, tier_b):
+        assert generations._sample({**tier_b, "review_sample": 0.0}) is False
+
+    def test_a_full_rate_always_samples(self, generations, tier_b):
+        assert generations._sample({**tier_b, "review_sample": 1.0}) is True
+
+    def test_the_draw_advances_with_the_capability_s_own_history(
+            self, generations, tier_b):
+        """Fixed by the capability and its history, not by the wall clock."""
+        import hashlib
+        drawn = len(generations.generations.many(capability_id=tier_b["id"]))
+        expected = hashlib.sha256(
+            f"{tier_b['id']}:{drawn}".encode()).digest()[0] / 255.0
+        assert generations._sample({**tier_b, "review_sample": 1.0}) is True
+        assert (expected < 0.5) == generations._sample(
+            {**tier_b, "review_sample": 0.5})

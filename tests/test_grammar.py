@@ -7,7 +7,7 @@ parameter object is inhabited, how the kernel is realised, what is asked of it,
 and where its data comes from — cover every model a bank runs, as a *product*
 rather than a union of special cases.
 
-TestTheShippedExamples is where that claim is actually tested: ten worked
+TestTheShippedExamples is where that claim is actually tested: twelve worked
 warrants spanning QuantLib pricing and calibration, gradient boosting scored and
 refitted, a regression scorecard, an LLM summariser, an agent, a vendor black
 box, a spreadsheet and a VaR backtest — all validated against one grammar with

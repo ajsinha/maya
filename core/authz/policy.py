@@ -77,20 +77,23 @@ class AuthorizationPolicy:
 
     # ----------------------------------------------------------- segregation
     def require_segregation(self, principal: Dict[str, Any], permission: str,
-                            subject_id: Optional[str]) -> None:
+                            subject_id: Optional[str],
+                            about: Optional[str] = None) -> None:
         if self.segregation is None or subject_id is None:
             return
-        self.segregation.check(principal.get("username", ""), permission, subject_id)
+        self.segregation.check(principal.get("username", ""), permission,
+                               subject_id, about)
 
     # ------------------------------------------------------------------- all
     def authorise(self, principal: Dict[str, Any], permission: str,
                   model: Optional[Dict[str, Any]] = None,
-                  subject_id: Optional[str] = None) -> None:
+                  subject_id: Optional[str] = None,
+                  about: Optional[str] = None) -> None:
         """The whole decision. Raises AuthzError naming which gate refused."""
         self.require_permission(principal, permission)
         if model is not None:
             self.require_scope(principal, model)
-        self.require_segregation(principal, permission, subject_id)
+        self.require_segregation(principal, permission, subject_id, about)
 
     def explain(self, principal: Dict[str, Any]) -> Dict[str, Any]:
         """What this principal may do — for the interface and for review."""
