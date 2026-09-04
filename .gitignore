@@ -17,3 +17,11 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+# MAYA runtime
+config/*.local.yaml
+data/
+*.db
+.pytest_cache/
+.coverage
+htmlcov/
