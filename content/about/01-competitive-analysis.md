@@ -91,6 +91,14 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Monitoring that refuses rather than reports.** A breach raises a finding, and a
+blocking finding refuses warrant resolution — so degradation stops a model
+mechanically instead of colouring a chart somebody has to be looking at. And
+delayed labels are treated as the bookkeeping problem they are: a performance
+monitor declares its outcome window, and evaluating over an immature cohort is
+refused, because a number computed from the outcomes that arrived early is biased
+rather than merely noisy.
+
 **Immutability with a declared way out.** An attested record cannot be edited and
 cannot take a new version — because a new version *is* a change to the model, and
 allowing it is exactly how a record quietly stops describing what runs. The only
@@ -116,8 +124,10 @@ marketing rather than analysis.
   attestation, amendments that must themselves be attested — but nobody is *told*
   their signature is outstanding. OpenPages and SAS have two decades of task
   inboxes, reminders, escalation and regulatory report templates.
-- **Monitoring.** Drift, delayed labels and breach detection are designed but
-  not built; Arize and Fiddler do this well today and MAYA does not do it at all.
+- **Telemetry ingestion.** Monitors, drift, delayed labels and breach-to-finding
+  are built, but scored rows are passed in rather than collected: there is no
+  streaming ingestion, no sampling strategy and no scheduler. Arize and Fiddler
+  do that part properly today and MAYA does not do it at all.
 - **Scale.** The design targets a large estate; it has not been run against one.
 - **Ecosystem.** Databricks and Domino arrive with connectors, an installed base
   and a support organisation.

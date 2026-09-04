@@ -259,3 +259,33 @@ def attested_model(registry, lifecycle, ready_model, owner, mrm):
     lifecycle.sign(registry.get(URN), owner, "model_owner")
     lifecycle.sign(registry.get(URN), mrm, "model_risk_manager")
     return registry.get(URN)
+
+
+# -------------------------------------------------------------------- monitoring
+@pytest.fixture
+def monitors(db, catalogue, evidence):
+    from core.monitoring import MonitorRegistry
+    from db import MonitorRepository
+    return MonitorRegistry(MonitorRepository(db), catalogue, evidence)
+
+
+@pytest.fixture
+def monitoring(db, monitors, findings, catalogue, evidence):
+    from core.monitoring import BreachRegister, MonitoringService
+    from db import BreachRepository, ObservationRepository
+    return MonitoringService(monitors, ObservationRepository(db),
+                             BreachRegister(BreachRepository(db), findings, evidence),
+                             catalogue, evidence)
+
+
+@pytest.fixture
+def drift_monitor(monitors, a_model):
+    return monitors.define(a_model["id"], "score drift", "score_drift",
+                           "stability.psi", {"max": 0.25}, "person/j.okafor")
+
+
+@pytest.fixture
+def performance_monitor(monitors, a_model):
+    return monitors.define(a_model["id"], "discrimination", "performance",
+                           "discrimination.gini", {"min": 0.40}, "person/j.okafor",
+                           label_delay_days=365, escalate_after=3)
