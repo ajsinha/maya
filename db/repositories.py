@@ -201,3 +201,15 @@ class FindingRepository(Repository):
 class PrincipalRepository(Repository):
     TABLE, ORDER = "principal", "username"
     JSON = ("roles", "legal_entities", "domains")
+
+
+class AmendmentRepository(Repository):
+    TABLE, JSON, ORDER = "amendment", ("scope",), "opened_at"
+
+
+class AttestationRepository(Repository):
+    TABLE, JSON, ORDER = "attestation", ("required_roles",), "opened_at"
+
+
+class SignatureRepository(Repository):
+    TABLE, ORDER = "attestation_signature", "signed_at"

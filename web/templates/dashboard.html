@@ -37,7 +37,10 @@
       <td class="text-center">
         <span class="tier {{ 'tier-' ~ m.tier if m.tier else 'tier-none' }}">
           {{ 'TIER ' ~ m.tier if m.tier else 'UNTIERED' }}</span></td>
-      <td class="small">{{ m.status }}</td>
+      <td class="small">
+        {% set tone = {'attested': 'evidence-ok', 'retired': 'text-muted',
+                       'draft': '', 'amending': '', 'submitted': '', 'approved': ''} %}
+        <span class="{{ tone.get(m.status, '') }}">{{ m.status }}</span></td>
     </tr>
   {% endfor %}
   </tbody>

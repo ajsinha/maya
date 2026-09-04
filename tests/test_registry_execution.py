@@ -23,7 +23,7 @@ class TestModelRegistration:
     def test_register_returns_the_row(self, registry):
         m = registry.register(URN, "SB PD", "credit.pd.scorecard", "credit",
                               "person/a", "LE-US-01", "purpose")
-        assert m["urn"] == URN and m["status"] == "proposed"
+        assert m["urn"] == URN and m["status"] == "draft"
 
     def test_duplicate_urn_is_refused(self, registry, a_model):
         with pytest.raises(RegistryError, match="already registered"):

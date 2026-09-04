@@ -577,3 +577,99 @@ class TestAuthorisationApi:
         actors = {n["recorded_by"] for n in body["evidence"]}
         assert "j.okafor" in actors, "registration must be attributed to whoever did it"
         assert "system" not in actors
+
+
+class TestLifecycleApi:
+    def test_the_state_machine_is_published(self, client, people):
+        body = client.get("/api/v1/lifecycle", auth=people["d.raman"]).json()
+        assert {t["name"] for t in body["transitions"]} == {
+            "submit", "return", "approve", "attest", "amend", "retire"}
+
+    def test_the_whole_path_over_the_api(self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        assert registered.post(f"/api/v1/models/{NAME}/submit", auth=owner,
+                               json={"note": "ready"}).status_code == 200
+        assert registered.post(f"/api/v1/models/{NAME}/approve", auth=mrm,
+                               json={"note": "sound"}).status_code == 200
+
+        state = registered.get(f"/api/v1/models/{NAME}",
+                               auth=owner).json()["lifecycle"]
+        assert state["state"] == "approved" and not state["mutable"]
+        assert state["open_attestation"]["outstanding_roles"] == [
+            "model_owner", "model_risk_manager"]
+
+        registered.post(f"/api/v1/models/{NAME}/attest", auth=owner,
+                        json={"role": "model_owner", "statement": "controls operating"})
+        r = registered.post(f"/api/v1/models/{NAME}/attest", auth=mrm,
+                            json={"role": "model_risk_manager"})
+        assert r.json()["state"] == "attested"
+
+    def test_a_developer_cannot_approve_the_record(self, registered, people):
+        registered.post(f"/api/v1/models/{NAME}/submit", auth=people["j.okafor"], json={})
+        r = registered.post(f"/api/v1/models/{NAME}/approve", auth=people["d.raman"],
+                            json={})
+        assert r.status_code == 403
+
+    def test_an_attested_model_refuses_a_new_version(self, registered, people):
+        owner, mrm, dev = people["j.okafor"], people["s.iqbal"], people["d.raman"]
+        registered.post(f"/api/v1/models/{NAME}/submit", auth=owner, json={})
+        registered.post(f"/api/v1/models/{NAME}/approve", auth=mrm, json={})
+        registered.post(f"/api/v1/models/{NAME}/attest", auth=owner,
+                        json={"role": "model_owner"})
+        registered.post(f"/api/v1/models/{NAME}/attest", auth=mrm,
+                        json={"role": "model_risk_manager"})
+        r = registered.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                            json={"semver": "4.0.0", "kernel": KERNEL})
+        assert r.status_code == 409
+        assert "immutable" in r.json()["detail"]
+        assert "amendment" in r.json()["detail"]
+
+    def test_deletion_is_refused_for_everyone_but_an_administrator(self, registered,
+                                                                   people):
+        for who in (people["j.okafor"], people["s.iqbal"], people["d.raman"]):
+            r = registered.request("DELETE", f"/api/v1/models/{NAME}",
+                                   auth=who, params={"reason": "cleanup"})
+            assert r.status_code == 403, f"{who[0]} must not be able to delete"
+
+    def test_an_administrator_may_delete_and_the_evidence_remains(self, registered):
+        before = registered.get("/api/v1/evidence/chain").json()["length"]
+        r = registered.request("DELETE", f"/api/v1/models/{NAME}",
+                               params={"reason": "registered in error"})
+        assert r.status_code == 200 and r.json()["deleted"] is True
+        chain = registered.get("/api/v1/evidence/chain").json()
+        assert chain["valid"] is True and chain["length"] > before
+
+    def test_the_workflow_renders_in_the_interface(self, registered, people):
+        registered.post(f"/api/v1/models/{NAME}/submit", auth=people["j.okafor"], json={})
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert "Approval &amp; attestation" in body
+        assert 'class="flow"' in body, "the stepper should render"
+        assert "FROZEN" in body, "a submitted record is not open to change"
+
+    def test_a_lifecycle_refusal_renders_in_the_standard_shape(self, registered, people):
+        """Every refusal in the platform has the same three fields."""
+        r = registered.post(f"/api/v1/models/{NAME}/approve", auth=people["s.iqbal"],
+                            json={})
+        assert r.status_code == 409
+        body = r.json()
+        assert body["error"] == "illegal_transition"
+        assert "from here you may" in body["detail"]
+        assert body["remediation"]
+
+    def test_amending_reopens_an_attested_record(self, registered, people):
+        owner, mrm, dev = people["j.okafor"], people["s.iqbal"], people["d.raman"]
+        registered.post(f"/api/v1/models/{NAME}/submit", auth=owner, json={})
+        registered.post(f"/api/v1/models/{NAME}/approve", auth=mrm, json={})
+        registered.post(f"/api/v1/models/{NAME}/attest", auth=owner,
+                        json={"role": "model_owner"})
+        registered.post(f"/api/v1/models/{NAME}/attest", auth=mrm,
+                        json={"role": "model_risk_manager"})
+
+        r = registered.post(f"/api/v1/models/{NAME}/amend", auth=owner,
+                            json={"reason": "recalibrate for the 2026 cycle",
+                                  "scope": ["kernel"]})
+        assert r.status_code == 200 and r.json()["status"] == "amending"
+        assert registered.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                               json={"semver": "4.0.0", "kernel": KERNEL}).status_code == 201

@@ -8,6 +8,7 @@ with their rationale. Every asset is vendored, so it renders air-gapped.
 """
 from __future__ import annotations
 
+import time
 from typing import Any, Dict
 
 from fastapi import Request
@@ -22,11 +23,16 @@ class UIRoutes(Routes):
         def dashboard(request: Request):
             if (r := login_required(request)) is not None:
                 return r
-            models = self.ctx["registry"].list()
+            models = self.ctx["authz"].visible(self.principal(request),
+                                               self.ctx["registry"].list())
             by_tier: Dict[Any, int] = {}
             for m in models:
                 by_tier[m["tier"]] = by_tier.get(m["tier"], 0) + 1
+            by_state: Dict[Any, int] = {}
+            for m in models:
+                by_state[m["status"]] = by_state.get(m["status"], 0) + 1
             return self.page(request, "dashboard.html", models=models, by_tier=by_tier,
+                             by_state=by_state,
                              chain=self.ctx["evidence"].verify_chain())
 
         @self.app.get("/model/{name:path}", response_class=HTMLResponse, tags=["ui"])
@@ -50,4 +56,5 @@ class UIRoutes(Routes):
                 contracts=[(v, features.contract_for(v["id"])) for v in versions],
                 findings=register.open_for(m["id"]),
                 finding_summary=register.summary(m["id"]),
-                validations=self.ctx["validation"].for_model(urn))
+                validations=self.ctx["validation"].for_model(urn),
+                flow=self.ctx["lifecycle"].state(urn), now=time.time())
