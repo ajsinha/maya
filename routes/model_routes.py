@@ -85,8 +85,12 @@ class ModelRoutes(Routes):
             if not m:
                 raise self.not_found(f"no model {name}")
             self.authorise(request, "model:read", model=m)
+            # The lifecycle state travels with the model rather than living at
+            # /models/{name}/state: the name segment is a greedy `:path`
+            # converter and would swallow any suffix registered after it.
             return {"model": m, "versions": reg.versions(m["urn"]),
                     "alias_history": reg.alias_history(m["urn"]),
+                    "lifecycle": self.ctx["lifecycle"].state(m["urn"]),
                     "evidence": ev.for_subject(m["id"])}
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions", status_code=201,

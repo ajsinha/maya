@@ -217,3 +217,45 @@ def staff(principals):
     principals.create("a.mehta", "A Mehta", ["validator"], "val-pw")
     principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "mrm-pw")
     return {u: principals.get(u) for u in ("d.raman", "j.okafor", "a.mehta", "s.iqbal")}
+
+
+# --------------------------------------------------------------------- lifecycle
+@pytest.fixture
+def lifecycle(db, registry, evidence):
+    from core.lifecycle import AmendmentService, AttestationService, LifecycleService
+    from db import AmendmentRepository, AttestationRepository, SignatureRepository
+    service = LifecycleService(
+        registry,
+        AmendmentService(AmendmentRepository(db), evidence),
+        AttestationService(AttestationRepository(db), SignatureRepository(db), evidence),
+        evidence)
+    registry.attach_gate(service)
+    return service
+
+
+@pytest.fixture
+def owner():
+    return {"username": "j.okafor", "roles": ["model_owner"]}
+
+
+@pytest.fixture
+def mrm():
+    return {"username": "s.iqbal", "roles": ["model_risk_manager"]}
+
+
+@pytest.fixture
+def ready_model(registry, lifecycle, a_model, kernel_spec, contract_spec):
+    """A registered, versioned, tiered model sitting in draft."""
+    registry.create_version(URN, "1.0.0", kernel_spec, contract_spec,
+                            artifact_digest="sha256:abc", actor="d.raman")
+    return registry.get(URN)
+
+
+@pytest.fixture
+def attested_model(registry, lifecycle, ready_model, owner, mrm):
+    """Taken all the way through to attested, by two different people."""
+    lifecycle.submit(ready_model, "j.okafor")
+    lifecycle.approve(registry.get(URN), "s.iqbal")
+    lifecycle.sign(registry.get(URN), owner, "model_owner")
+    lifecycle.sign(registry.get(URN), mrm, "model_risk_manager")
+    return registry.get(URN)

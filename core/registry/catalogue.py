@@ -16,6 +16,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
+from core.ports import LifecycleGate
 from core.registry.common import RegistryError
 from db import ModelRepository
 
@@ -23,8 +24,16 @@ from db import ModelRepository
 class ModelCatalogue:
     """Model identity and status. Emits evidence for everything it changes."""
 
-    def __init__(self, models: ModelRepository, evidence: EvidenceEngine):
+    # Fields a model owner may revise while the record is open. Identity,
+    # status and tier are not here: the URN is permanent, status moves only
+    # through the lifecycle, and the tier comes from an assessment.
+    EDITABLE = ("name", "description", "owner", "legal_entity", "purpose",
+                "model_class", "domain", "origin", "attributes")
+
+    def __init__(self, models: ModelRepository, evidence: EvidenceEngine,
+                 gate: Optional[LifecycleGate] = None):
         self.models, self.evidence = models, evidence
+        self.gate = gate
 
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
@@ -35,7 +44,7 @@ class ModelCatalogue:
         row = {"urn": urn, "name": name, "description": description,
                "model_class": model_class, "domain": domain, "owner": owner,
                "legal_entity": legal_entity, "purpose": purpose, "origin": origin,
-               "status": "proposed", "tier": None, "attributes": attributes or {},
+               "status": "draft", "tier": None, "attributes": attributes or {},
                "created_at": time.time(), "created_by": actor}
         self.models.add(row)
         self.evidence.append("model_registered", "model", row["id"],
@@ -54,6 +63,27 @@ class ModelCatalogue:
     def list(self, domain: Optional[str] = None,
              tier: Optional[int] = None) -> List[Dict[str, Any]]:
         return self.models.many(domain=domain, tier=tier)
+
+    def update(self, urn: str, fields: Dict[str, Any],
+               actor: str = "system") -> Dict[str, Any]:
+        """Revise an open record. Refused once it is attested."""
+        model = self.require(urn)
+        if self.gate is not None:
+            allowed, why = self.gate.may_mutate(model["id"])
+            if not allowed:
+                raise RegistryError(f"cannot change {urn}: {why}")
+        unknown = set(fields) - set(self.EDITABLE)
+        if unknown:
+            raise RegistryError(
+                f"these fields are not editable: {', '.join(sorted(unknown))}; "
+                f"editable fields are {', '.join(self.EDITABLE)}")
+        if not fields:
+            return model
+        self.models.set(dict(fields), id=model["id"])
+        self.evidence.append("model_updated", "model", model["id"],
+                             {"changed": sorted(fields),
+                              "from": {k: model.get(k) for k in fields}}, actor=actor)
+        return self.models.one(id=model["id"])
 
     def set_tier(self, model_id: str, tier: int) -> None:
         self.models.set({"tier": tier}, id=model_id)

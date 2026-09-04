@@ -16,7 +16,7 @@ the findings register today, an external GRC system tomorrow — satisfies it.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Protocol, runtime_checkable
+from typing import Any, Dict, List, Protocol, Tuple, runtime_checkable
 
 
 @runtime_checkable
@@ -25,4 +25,18 @@ class BlockingSource(Protocol):
 
     def blocking_for(self, model_id: str) -> List[Dict[str, Any]]:
         """Open findings that block. Empty means nothing stands in the way."""
+        ...
+
+
+@runtime_checkable
+class LifecycleGate(Protocol):
+    """Answers whether a model record currently accepts changes.
+
+    The registry must be able to refuse a change to an attested record without
+    knowing that amendments and attestations exist. It asks this instead, and
+    gets back a verdict and a sentence explaining it.
+    """
+
+    def may_mutate(self, model_id: str) -> Tuple[bool, str]:
+        """(allowed, reason). The reason is empty when allowed."""
         ...

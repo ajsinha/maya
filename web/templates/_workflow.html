@@ -1,0 +1,105 @@
+{# The approval and attestation workflow. Rendered from the lifecycle service;
+   the buttons call the same API an external client would. #}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Approval &amp; attestation</span>
+    {% if flow.mutable %}
+      <span class="open-badge">OPEN TO CHANGE</span>
+    {% else %}
+      <span class="frozen-badge">FROZEN</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+
+    {% set order = ['draft', 'submitted', 'approved', 'attested'] %}
+    {% if flow.state == 'retired' %}
+      <div class="state-note mt-0"><strong>Retired.</strong> {{ flow.meaning }}</div>
+    {% else %}
+      {% set shown = ['amending' if flow.state == 'amending' else 'draft',
+                      'submitted', 'approved', 'attested'] %}
+      {% set here = shown.index(flow.state) if flow.state in shown else 0 %}
+      <div class="flow">
+        {% for label in shown %}
+          <div class="step {{ 'here' if loop.index0 == here else ('done' if loop.index0 < here else '') }}">
+            <span class="dot">{{ '✓' if loop.index0 < here else loop.index }}</span>
+            <span class="lbl">{{ label }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="state-note">{{ flow.meaning|capitalize }}.</div>
+    {% endif %}
+
+    {% if flow.open_amendment %}
+      <div class="mt-3 p-2" style="border:1px solid var(--rule);border-radius:3px">
+        <span class="chip">{{ flow.open_amendment.reference }}</span>
+        <strong class="ms-1">Amendment open</strong>
+        <div class="small text-muted mt-1">{{ flow.open_amendment.reason }}</div>
+        {% if flow.open_amendment.scope %}
+          <div class="small mt-1">Scope:
+            {% for s in flow.open_amendment.scope %}<span class="chip">{{ s }}</span> {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if flow.open_attestation %}
+      {% set att = flow.open_attestation %}
+      <div class="kicker mt-3 mb-1">ATTESTATION &mdash; {{ att.signed_roles|length }} of
+        {{ att.required_roles|length }} signed</div>
+      {% for role in att.required_roles %}
+        {% set sig = (att.signatures | selectattr('role', 'equalto', role) | list | first) %}
+        <div class="sig {{ 'signed' if sig and sig.decision == 'attest'
+                        else ('declined' if sig else 'waiting') }}">
+          <span class="ic">{{ '✓' if sig and sig.decision == 'attest'
+                            else ('✕' if sig else '·') }}</span>
+          <span class="flex-grow-1">{{ role.replace('_', ' ') }}
+            {% if sig %}<span class="who">&mdash; {{ sig.principal }}</span>{% endif %}
+            {% if sig and sig.statement %}
+              <div class="who">{{ sig.statement }}</div>
+            {% endif %}
+          </span>
+          {% if not sig %}<span class="who">awaiting</span>{% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% if flow.attested_at %}
+      <div class="small text-muted mt-3">
+        Attested; renewal due
+        {% if flow.attestation_expired %}
+          <span class="evidence-bad">now &mdash; the attestation has lapsed</span>
+        {% else %}
+          in {{ ((flow.attestation_expires_at - now) / 86400) | round | int }} days
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {% if flow.available_transitions %}
+      <div class="mt-3 pt-2" style="border-top:1px solid var(--rule)">
+        {% for t in flow.available_transitions %}
+          <button class="btn btn-sm act {{ 'btn-danger' if t.name in ('approve','attest')
+                                        else 'btn-outline-secondary' }}"
+                  data-action="{{ t.name }}" data-note="{{ t.note }}"
+                  title="{{ t.note }} &middot; needs {{ t.permission }}">
+            {{ t.name|capitalize }}
+          </button>
+        {% endfor %}
+        {% if flow.state == 'approved' and flow.open_attestation %}
+          <button class="btn btn-sm btn-outline-danger act" data-action="decline">Decline</button>
+        {% endif %}
+        <div class="small text-muted mt-2" id="flow-msg"></div>
+      </div>
+    {% endif %}
+
+    {% if flow.amendment_history %}
+      <div class="kicker mt-3 mb-1">AMENDMENT HISTORY</div>
+      {% for a in flow.amendment_history %}
+        <div class="sig {{ 'signed' if a.status == 'attested' else 'waiting' }}">
+          <span class="ic">{{ '✓' if a.status == 'attested' else '·' }}</span>
+          <span class="flex-grow-1"><strong>{{ a.reference }}</strong> {{ a.reason }}
+            <div class="who">{{ a.status }} &middot; opened by {{ a.opened_by }}</div></span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>

@@ -27,7 +27,8 @@ class AuthzError(RuntimeError):
 # Every permission the platform recognises, grouped by the resource it acts on.
 PERMISSIONS: FrozenSet[str] = frozenset({
     # the register
-    "model:read", "model:register", "model:retire",
+    "model:read", "model:register", "model:retire", "model:delete",
+    "model:submit", "model:approve", "model:attest", "model:amend",
     "version:create", "version:approve",
     "alias:move",
     "risk:assess",

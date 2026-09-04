@@ -29,6 +29,7 @@ from core.execution import CaptiveEngine
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
+from core.lifecycle import (AmendmentService, AttestationService, LifecycleService)
 from core.execution import WarrantService
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
@@ -38,11 +39,13 @@ from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
-from db import (AliasHistoryRepository, AliasRepository, ContractRepository, Database,
+from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
+                AttestationRepository, ContractRepository, Database,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
-                PrincipalRepository, TestResultRepository, ValidationRepository,
+                PrincipalRepository, SignatureRepository, TestResultRepository,
+                ValidationRepository,
                 VersionRepository)
 from routes import ALL_ROUTES
 from routes.base import authz_problem
@@ -88,6 +91,19 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # registry because both need the evidence engine, and attached explicitly.
     findings = FindingRegister(FindingRepository(db), evidence)
     registry.attach_blocking(findings)
+    # The lifecycle needs the registry, and the registry needs the lifecycle's
+    # mutation gate, so the gate is attached after both exist.
+    lifecycle = LifecycleService(
+        registry,
+        AmendmentService(AmendmentRepository(db), evidence),
+        AttestationService(
+            AttestationRepository(db), SignatureRepository(db), evidence,
+            required_roles=cfg.get_list("lifecycle.attestation.required_roles",
+                                        ["model_owner", "model_risk_manager"]),
+            validity_days=cfg.get_int("lifecycle.attestation.validity_days", 365)),
+        evidence)
+    registry.attach_gate(lifecycle)
+
     catalogue = TestCatalogue()
     validation = ValidationService(ValidationRepository(db), TestResultRepository(db),
                                    registry, catalogue, evidence, findings)
@@ -112,6 +128,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "findings": findings, "validation": validation,
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
+                           "lifecycle": lifecycle,
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}

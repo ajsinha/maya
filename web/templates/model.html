@@ -14,6 +14,8 @@
 
 <div class="row g-3">
   <div class="col-md-8">
+    {% include "_workflow.html" %}
+
     <div class="card mb-3"><div class="card-header">Purpose</div>
       <div class="card-body"><p class="mb-0">{{ model.purpose }}</p></div></div>
 
@@ -153,4 +155,47 @@
         </tbody></table></div></div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// The workflow buttons call the same API an external client would; the session
+// cookie authenticates them, so there is no second code path for the interface.
+$(function () {
+  var base = "/api/v1/models/{{ model.urn.split('/')[-1] }}";
+  var needs = {
+    "return": {url: "/return", ask: "Why is this being returned?", field: "reason"},
+    "amend":  {url: "/amend",  ask: "What is being changed, and why?", field: "reason"},
+    "retire": {url: "/retire", ask: "Why is this model being retired?", field: "reason"}
+  };
+
+  $("[data-action]").on("click", function () {
+    var act = $(this).data("action");
+    var msg = $("#flow-msg").removeClass("evidence-bad").text("Working…");
+    var url = base + "/" + act, body = {};
+
+    if (needs[act]) {
+      var answer = window.prompt(needs[act].ask);
+      if (!answer) { msg.text(""); return; }
+      url = base + needs[act].url;
+      body[needs[act].field] = answer;
+    } else if (act === "attest" || act === "decline") {
+      var role = window.prompt("Sign as which role? (e.g. model_owner)");
+      if (!role) { msg.text(""); return; }
+      url = base + "/attest";
+      body = {role: role, decision: act === "decline" ? "decline" : "attest",
+              statement: window.prompt("Statement (optional)") || ""};
+    }
+
+    $.ajax({url: url, method: "POST", contentType: "application/json",
+            data: JSON.stringify(body)})
+      .done(function () { window.location.reload(); })
+      .fail(function (xhr) {
+        var d = xhr.responseJSON || {};
+        msg.addClass("evidence-bad")
+           .text((d.detail || "Refused.") + (d.remediation ? "  " + d.remediation : ""));
+      });
+  });
+});
+</script>
 {% endblock %}
