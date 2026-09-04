@@ -6,10 +6,19 @@
 -- applied with CREATE TABLE IF NOT EXISTS, so starting against an existing
 -- database is a no-op.
 --
--- The same tables as sqlite.sql, with the two type substitutions PostgreSQL
--- requires: BOOLEAN where SQLite stores 0/1, and DOUBLE PRECISION where SQLite
--- uses REAL. Everything else is identical, so a model row written by one
--- dialect reads correctly under the other.
+-- The same tables as sqlite.sql, with the ONE type substitution PostgreSQL
+-- requires: DOUBLE PRECISION where SQLite uses REAL. Everything else is
+-- identical, so a model row written by one dialect reads correctly under the
+-- other.
+--
+-- There are deliberately NO BOOLEAN columns, here or in sqlite.sql or in any
+-- Delta table. Truth values are integer 0 and 1 in every dialect. This file
+-- once declared fourteen columns BOOLEAN while db/repositories.py coerced every
+-- boolean to int on the way in -- and PostgreSQL does not implicitly cast
+-- integer to boolean, so every insert touching one of those tables failed and
+-- the whole dialect was unusable. Nothing tested it. Integer everywhere removes
+-- the divergence rather than papering over it, and the service layer converts
+-- to a real bool at its boundary so no consumer has to know how one is stored.
 --
 -- JSON documents are held as TEXT rather than JSONB deliberately: the
 -- application serialises and parses them, so the two dialects behave alike and
@@ -47,7 +56,7 @@ CREATE TABLE IF NOT EXISTS model_version (
     trainability_class TEXT NOT NULL,
     parameter_kind     TEXT NOT NULL,
     fit_procedure      TEXT NOT NULL,
-    deterministic      BOOLEAN NOT NULL DEFAULT TRUE,
+    deterministic      integer NOT NULL DEFAULT 1,
     input_schema       TEXT NOT NULL DEFAULT '[]',
     output_schema      TEXT NOT NULL DEFAULT '[]',
     contract           TEXT NOT NULL DEFAULT '{}',
@@ -99,7 +108,7 @@ CREATE TABLE IF NOT EXISTS evidence_node (
     subject_id             TEXT NOT NULL,
     payload                TEXT NOT NULL DEFAULT '{}',
     parents                TEXT NOT NULL DEFAULT '[]',
-    contains_personal_data BOOLEAN NOT NULL DEFAULT FALSE,
+    contains_personal_data integer NOT NULL DEFAULT 0,
     content_hash           TEXT NOT NULL,
     prev_hash              TEXT NOT NULL,
     chain_hash             TEXT NOT NULL,
@@ -136,7 +145,7 @@ CREATE TABLE IF NOT EXISTS warrant (
     declared_use  TEXT NOT NULL,
     ttl_seconds   INTEGER NOT NULL,
     grace_seconds INTEGER NOT NULL DEFAULT 0,
-    revoked       BOOLEAN NOT NULL DEFAULT FALSE,
+    revoked       integer NOT NULL DEFAULT 0,
     revoke_reason TEXT,
     epoch         INTEGER NOT NULL DEFAULT 0,
     created_at    DOUBLE PRECISION NOT NULL
@@ -154,8 +163,8 @@ CREATE TABLE IF NOT EXISTS feature (
     owner              TEXT NOT NULL,
     source_system      TEXT,
     sensitivity        TEXT NOT NULL DEFAULT 'internal',
-    pii                BOOLEAN NOT NULL DEFAULT FALSE,
-    protected_basis    BOOLEAN NOT NULL DEFAULT FALSE,
+    pii                integer NOT NULL DEFAULT 0,
+    protected_basis    integer NOT NULL DEFAULT 0,
     proxy_risk         TEXT NOT NULL DEFAULT 'none',
     defaults           text NOT NULL DEFAULT '{}',
     shape              text NOT NULL DEFAULT '[]',
@@ -400,7 +409,7 @@ CREATE TABLE IF NOT EXISTS dataset_snapshot (
     delta_version  INTEGER NOT NULL DEFAULT 0,
     row_count      INTEGER NOT NULL DEFAULT 0,
     as_of          DOUBLE PRECISION NOT NULL,
-    pit_verified   BOOLEAN NOT NULL DEFAULT FALSE,
+    pit_verified   integer NOT NULL DEFAULT 0,
     pit_report     TEXT NOT NULL DEFAULT '{}',
     -- Which featureset version produced this snapshot. Recorded rather than
     -- recomputed: a fit warrant pins the snapshot, and 'which schema did
@@ -450,7 +459,7 @@ CREATE TABLE IF NOT EXISTS test_result (
     slice         TEXT NOT NULL DEFAULT '{}',
     value         DOUBLE PRECISION,
     threshold     TEXT NOT NULL DEFAULT '{}',
-    passed        BOOLEAN NOT NULL DEFAULT FALSE,
+    passed        integer NOT NULL DEFAULT 0,
     detail        TEXT NOT NULL DEFAULT '',
     digest        TEXT NOT NULL,
     computed_at   DOUBLE PRECISION NOT NULL
@@ -469,7 +478,7 @@ CREATE TABLE IF NOT EXISTS finding (
     title              TEXT NOT NULL,
     description        TEXT NOT NULL DEFAULT '',
     affected_component TEXT,
-    blocking           BOOLEAN NOT NULL DEFAULT FALSE,
+    blocking           integer NOT NULL DEFAULT 0,
     owner              TEXT NOT NULL,
     raised_at          DOUBLE PRECISION NOT NULL,
     due_at             DOUBLE PRECISION NOT NULL,
@@ -642,12 +651,12 @@ CREATE TABLE IF NOT EXISTS observation (
     id           TEXT PRIMARY KEY,
     monitor_id   TEXT NOT NULL,
     value        DOUBLE PRECISION,
-    passed       BOOLEAN NOT NULL DEFAULT FALSE,
+    passed       integer NOT NULL DEFAULT 0,
     detail       TEXT NOT NULL DEFAULT '',
     sample_size  INTEGER NOT NULL DEFAULT 0,
     window_start DOUBLE PRECISION,
     window_end   DOUBLE PRECISION,
-    matured      BOOLEAN NOT NULL DEFAULT TRUE,
+    matured      integer NOT NULL DEFAULT 1,
     digest       TEXT NOT NULL,
     computed_at  DOUBLE PRECISION NOT NULL
 );
@@ -795,7 +804,7 @@ CREATE TABLE IF NOT EXISTS ai_generation (
     rejected_claims TEXT NOT NULL DEFAULT '[]',
     oracle_verdict  TEXT NOT NULL DEFAULT '{}',
     state           TEXT NOT NULL DEFAULT 'drafted',
-    sampled         BOOLEAN NOT NULL DEFAULT FALSE,
+    sampled         integer NOT NULL DEFAULT 0,
     attested_by     TEXT,
     attested_at     DOUBLE PRECISION,
     edit_distance   DOUBLE PRECISION,
@@ -865,7 +874,7 @@ CREATE TABLE IF NOT EXISTS scheduled_run (
     id          TEXT PRIMARY KEY,
     job         TEXT NOT NULL,
     outcome     TEXT NOT NULL DEFAULT '{}',
-    ok          BOOLEAN NOT NULL DEFAULT TRUE,
+    ok          integer NOT NULL DEFAULT 1,
     error       TEXT,
     duration_ms DOUBLE PRECISION NOT NULL DEFAULT 0,
     ran_by      TEXT NOT NULL,
@@ -901,7 +910,7 @@ CREATE TABLE IF NOT EXISTS attachment (
     media_type       TEXT NOT NULL DEFAULT 'application/octet-stream',
     digest           TEXT NOT NULL,
     size_bytes       INTEGER NOT NULL DEFAULT 0,
-    text_indexed     BOOLEAN NOT NULL DEFAULT FALSE,
+    text_indexed     integer NOT NULL DEFAULT 0,
     state            TEXT NOT NULL DEFAULT 'attached',
     note             TEXT NOT NULL DEFAULT '',
     attached_by      TEXT NOT NULL,
