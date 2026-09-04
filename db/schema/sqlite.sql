@@ -473,6 +473,31 @@ CREATE TABLE IF NOT EXISTS finding (
 
 CREATE INDEX IF NOT EXISTS ix_finding_open ON finding (model_id, status, severity);
 
+-- Everything that happened to a finding between being raised and being closed:
+-- handed to somebody else, accepted by its owner, planned, or given a later
+-- date. Append-only, and deliberately NOT a status table -- ageing,
+-- overdue-ness, whether the current owner ever accepted it, how many times the
+-- date has moved and whether it should be escalated are all COMPUTED from these
+-- rows and the finding itself. A status column and a log can disagree, and when
+-- they do it is the column that gets believed and the log that is right.
+CREATE TABLE IF NOT EXISTS finding_action (
+    id           TEXT PRIMARY KEY,
+    finding_id   TEXT NOT NULL,
+    model_id     TEXT NOT NULL,
+    act          TEXT NOT NULL,          -- assigned | acknowledged | planned | extended
+    actor        TEXT NOT NULL,
+    from_owner   TEXT,
+    to_owner     TEXT,
+    reason       TEXT NOT NULL DEFAULT '',
+    plan         TEXT NOT NULL DEFAULT '',
+    committed_at REAL,                   -- the date the owner said they would fix it by
+    due_before   REAL,                   -- the remediation date an extension moved
+    due_after    REAL,                   -- and where it moved it to
+    acted_at     REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_finding_action ON finding_action (finding_id, acted_at);
+
 -- --------------------------------------------------------------------------
 -- Principals: identity, roles and scope
 -- --------------------------------------------------------------------------

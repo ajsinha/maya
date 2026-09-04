@@ -80,3 +80,26 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
     assert not orphans, (
         "these codes are in the status taxonomy but nothing in core/ raises "
         "them:\n    " + "\n    ".join(orphans))
+
+
+def test_no_refusal_code_is_mapped_twice():
+    """A repeated key in the taxonomy is invisible once the literal is built --
+    the last one silently wins -- so the source has to be read rather than the
+    dict. Three had crept in. All three happened to agree, which is exactly why
+    nobody noticed: the next one to disagree would change a status code from
+    somewhere nobody would think to look.
+    """
+    import ast
+    import collections
+    import pathlib
+
+    source = pathlib.Path("routes/base.py")
+    duplicated = []
+    for node in ast.walk(ast.parse(source.read_text())):
+        if not isinstance(node, ast.Dict):
+            continue
+        keys = [k.value for k in node.keys if isinstance(k, ast.Constant)]
+        duplicated += [k for k, n in collections.Counter(keys).items() if n > 1]
+    assert not duplicated, (
+        f"{source} maps these refusal codes more than once, so only the last "
+        f"mapping is in force: {sorted(set(duplicated))}")

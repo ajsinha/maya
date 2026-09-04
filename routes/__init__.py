@@ -20,6 +20,7 @@ from routes.baseline_routes import BaselineRoutes
 from routes.auth_routes import AuthRoutes
 from routes.base import API, Routes, current_user, login_required
 from routes.feature_routes import FeatureRoutes
+from routes.finding_routes import FindingWorkflowRoutes
 from routes.warrant_routes import WarrantRoutes
 from routes.document_routes import DocumentRoutes
 from routes.grammar_routes import GrammarRoutes
@@ -39,7 +40,8 @@ from routes.validation_routes import ValidationRoutes
 # must register first or it will never be reached.
 ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               ModelRoutes, LifecycleRoutes,
-              WarrantRoutes, FeatureRoutes, ValidationRoutes, MonitoringRoutes,
+              WarrantRoutes, FeatureRoutes, ValidationRoutes, FindingWorkflowRoutes,
+              MonitoringRoutes,
               DocumentRoutes, AttachmentRoutes, FeaturesetRoutes,
               ApprovalRoutes, TelemetryRoutes, TransferRoutes,
               NotificationRoutes, SsoRoutes, PolicyRoutes,
@@ -49,5 +51,6 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
-           "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes",
+           "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes",
+           "FindingWorkflowRoutes", "PrincipalRoutes",
            "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]

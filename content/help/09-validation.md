@@ -248,6 +248,175 @@ There is also no back door: `set_status` will move a finding to
 `in_remediation` or `resolved`, but attempting to set it to `closed` is refused
 with *use close() — closure needs a verifier and evidence*.
 
+## The workflow: everything between raising and closing
+
+A finding used to be raised with an owner and a date, and then nothing happened
+to it until somebody closed it. That is the year in which findings actually go
+wrong: handed quietly between three people, never accepted by anybody, and given
+a later date by the one person with a reason to want one.
+
+Four acts close that, and **none of them is a status**. They are appended to
+`finding_action` and everything else — age, overdue-ness, whether the current
+owner ever accepted it, how many times the date has moved, whether it should be
+escalated — is *computed* from them. There is no status table that can disagree
+with the register.
+
+```bash
+GET /api/v1/finding-acts        # the four acts and what each one means
+GET /api/v1/findings/{id}       # the finding and everything derived from its acts
+```
+
+### Assignment — the handover is on the record
+
+```bash
+POST /api/v1/findings/{id}/assign
+{"to": "person/d.raman", "reason": "the re-fit is development work"}
+```
+
+Whoever *raised* a finding never changes — that is what the segregation check
+reads to decide who may close it. Whoever *owns* it can, and every handover names
+who gave it up, who took it on and why. A handover with no reason is refused:
+"reassigned" explains nothing to whoever reads it at the next committee.
+
+**A handover withdraws the previous owner's acceptance.** The new owner has not
+agreed to the date the last one named, and treating the old acknowledgement as
+current is how a reassignment launders an unaccepted commitment into an accepted
+one. Because acknowledgement is derived rather than stored, this needs no code:
+an acknowledgement recorded before the last handover simply is not the current
+one.
+
+### Acknowledgement — an owner accepting that it is theirs
+
+```bash
+POST /api/v1/findings/{id}/acknowledge
+{"plan": "Re-fit on the 2026 sample by 30 June", "days": 60}
+```
+
+*A remediation plan nobody agreed to is a date somebody else invented*, and on
+every dashboard it looks exactly like a date somebody is working to.
+
+- **Only the owner may acknowledge, and nobody may do it for them.** An
+  acknowledgement somebody else recorded for you is the paperwork of a
+  commitment without the commitment.
+- **A plan is required.** Acknowledging without saying what will be done is a
+  receipt, not a commitment.
+- **The committed date may not be later than the due date.** This is the hole it
+  closes: an owner who could accept to any date they liked would have an
+  extension mechanism that needed nobody's agreement, left no count, and gave no
+  reason. The refusal says so and points at the legitimate route.
+
+Acknowledging moves the finding to `in_remediation`. The status column ends up
+agreeing with what was done; it is a summary of the acts, never a substitute.
+
+### The plan — what will be done, by when
+
+```bash
+POST /api/v1/findings/{id}/plan
+{"plan": "Re-fit on the 2026 sample by 30 June, revalidate in July"}
+```
+
+The same act, the same word and the same refusal as the compliance debt
+register's `plan_for`: an empty plan is refused, because *"will fix" is not a
+plan*. Re-planning does not overwrite: a finding re-planned three times is a fact
+about the remediation, and the reading reports how many revisions there have
+been.
+
+### Extension — legitimate, never silent, counted
+
+```bash
+POST /api/v1/findings/{id}/extend
+{"reason": "the 2026 sample does not close until Q3", "days": 30}
+```
+
+Dates move for good reasons. What must not happen is a date moving with no
+reason, at the discretion of the person it constrains, and uncounted. So:
+
+| Refusal | Why |
+|---|---|
+| `reason_required` | a date that moves without one is a date nobody is accountable for |
+| `self_extension` | the person with the deadline is the last person who should be able to move it |
+| `not_acknowledged` | extending a date nobody agreed to moves a number, not a commitment |
+| `not_an_extension` | a date brought forward is a plan, not an extension |
+| `extension_too_long` | longer than the original window is a new remediation date nobody justified |
+
+Extension is enforced three times over, deliberately: the first line does not
+hold `finding:extend` at all; the register refuses the owner however their
+identity is spelled; and the evidence chain refuses whoever *acknowledged* the
+finding, which catches one person wearing two hats.
+
+**Past the limit, the extension itself becomes a finding.** This is the overlay
+register's answer to the same shape of problem. Two extensions are a schedule
+slipping; the third says the date has stopped meaning anything, and that is a
+governance failure distinct from whatever the original finding was about:
+
+```
+Remediation date moved repeatedly: Segment drift unexplained
+extended 3 time(s) against a limit of 2, adding 30 days; a date moved this
+often is not a date
+```
+
+It is raised once, not on every extension.
+
+### Escalation — by role, not by hierarchy
+
+```bash
+GET /api/v1/findings/{id}/escalation
+GET /api/v1/findings/escalated?urn=...     # or estate-wide, within your scope
+```
+
+MAYA does not know who reports to whom and does not pretend to. What it knows is
+that a finding that is overdue, unaccepted or serially extended has stopped being
+only its owner's problem, so the escalation names a **role** — the same role, and
+for the same reason, that notification escalates to.
+
+Escalation is *computed*, never set. An escalation somebody has to remember to
+flag is an escalation that happens when somebody remembers. A finding escalates
+when it is:
+
+- more than seven days past its remediation date; or
+- blocking and past its date at all — it is stopping the model being served; or
+- unaccepted more than five days after it was raised or handed over; or
+- extended past the limit.
+
+### The reminder cycle
+
+An unaccepted finding appears on its owner's worklist, which means the existing
+notification digest delivers it — derived like everything else there, so it
+clears itself when the owner accepts rather than when somebody ticks a task.
+
+When the reminders have been ignored, the `findings.unacknowledged` job records
+the fact as a finding of its own, idempotently. Reminders that are ignored have
+to end somewhere other than in more reminders.
+
+### The ageing profile
+
+```bash
+GET /api/v1/findings/ageing?urn=maya://model/credit.pd.smallbiz
+GET /api/v1/findings/ageing                # the estate, within your scope
+```
+
+What a risk committee asks for and rarely gets. Not *how many findings* — every
+bank has that number — but:
+
+```json
+{"open": 12, "blocking": 2, "overdue": 4, "unacknowledged": 3, "unplanned": 3,
+ "escalated": 5, "worst_severity": "Critical",
+ "by_severity": {"High": {"open": 6, "overdue": 3, "unacknowledged": 1,
+                          "extended": 2, "oldest_days": 214.0,
+                          "mean_age_days": 88.4}},
+ "by_age": {"0-30 days": 4, "91-180 days": 5, "over 180 days": 3},
+ "extended": {"findings": 4, "extensions": 9, "over_limit": 1,
+              "days_added": 240.0, "most_extended": 3},
+ "oldest": {"finding_id": "...", "severity": "High", "age_days": 214.0}}
+```
+
+Age is reported as a **distribution rather than a mean**, because one finding
+open for four years and nine opened last week average to something reassuring.
+
+The extension counts are the line nobody reports and the one that matters most:
+they say whether the remediation dates in the rest of the pack mean anything at
+all.
+
 ### Sources
 
 `validation`, `monitoring`, `audit`, `regulator`, `self_identified`. The source
