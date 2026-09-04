@@ -116,6 +116,7 @@ STATUS: Dict[str, int] = {
     "window_required": 422, "window_inverted": 422,
     "no_snapshot": 404, "snapshot_storage_missing": 410,
     "snapshot_not_from_a_featureset": 409, "snapshot_is_empty": 409,
+    "snapshot_not_pit_verified": 409,
     "wrong_verb": 409, "unknown_family": 422, "fit_underspecified": 422,
     "target_is_a_regressor": 422, "no_rows": 422, "too_few_rows": 422,
     "column_missing": 422, "value_not_numeric": 422,

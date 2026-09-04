@@ -38,6 +38,20 @@ by the ordinary rule, without anybody having to remember a flag.
 That is the whole design. The leakage is not caught by a check; it is made
 arithmetically impossible to hide, by recording when each filled value actually
 became available.
+
+**The stamp is necessary and it was not sufficient, which is worth recording
+because the sentence above was believed for longer than it was true.** The
+"ordinary rule" has to bound the ingest clock by the moment of the DECISION, and
+it used to bound it by the assembly's `as_of` — one scalar for the whole
+training set, usually "now". So a value carried backwards onto a March grid
+point, correctly stamped with April's ingest time, was admitted into a March
+training row on the grounds that April was before the set was built. The stamp
+told the truth and nothing read it against the right bound.
+
+`TrainingSetBuilder.latest_admissible` now bounds ingest by `min(label_ts,
+as_of)`, and the two bounds refuse different things: `label_ts` is what could
+have been known when the decision was made, `as_of` is what the platform could
+have known when the set was built.
 """
 from __future__ import annotations
 

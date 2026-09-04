@@ -92,6 +92,7 @@ class FittingService:
             featureset_version, window, snapshot["as_of"])
         grant = self._grant(urn, environment, principal, declared_use)
 
+        self._refuse_unverified(snapshot)
         rows = self._rows(snapshot)
         started = time.perf_counter()
         result = self.engine.runtimes.invoke(Invocation(warrant, {"rows": rows}))
@@ -144,6 +145,36 @@ class FittingService:
                 "no_snapshot", f"there is no training snapshot {snapshot_id}",
                 "assemble one from a featureset version first")
         return snapshot
+
+    @staticmethod
+    def _refuse_unverified(snapshot: Dict[str, Any]) -> None:
+        """A fit does not run on a snapshot MAYA declared unverified.
+
+        `pit_verified` was computed, stored, displayed, and gated nothing -- so
+        the platform's headline data-correctness control had no consequence
+        anywhere, and this service would fit and record approved parameters from
+        an assembly its own verifier had rejected.
+
+        It is a refusal rather than a warning because of what a warning would
+        mean here: the diagnostics travel with the parameter set, so a warning
+        would put "possible leakage" in a field beside coefficients that a
+        validator is about to approve. The whole point of the flag is that
+        training on leaked data produces a model which scores well and then does
+        not.
+        """
+        if snapshot.get("pit_verified"):
+            return
+        report = snapshot.get("pit_report") or {}
+        leakage = report.get("leakage") or []
+        raise ParameterError(
+            "snapshot_not_pit_verified",
+            f"snapshot '{snapshot.get('name')}' did not pass point-in-time "
+            f"verification"
+            + (f"; suspected leakage in {', '.join(leakage)}" if leakage else "")
+            + (f": {report.get('detail')}" if report.get("detail") else ""),
+            "assemble it again from a featureset version whose slots cannot see "
+            "the label, or fix the leak the report names; a model fitted on "
+            "leaked data scores well and then does not")
 
     def _rows(self, snapshot: Dict[str, Any]):
         """The rows as the snapshot pinned them, or a refusal saying why not."""
