@@ -141,12 +141,37 @@ POST /api/v1/monitors/{id}/evaluate
 
 `monitor:evaluate` is granted to the `operator` and `service` roles as well as to
 owners, so a batch runner can evaluate on a schedule and decide nothing else.
+`monitor:observe` sits beside it and is deliberately separate: the principal that
+runs the model holds the rows and should be able to hand them over without also
+being able to decide that a monitor has breached.
+
+### Telemetry the platform holds
+
+MAYA does take delivery of scored rows and outcomes, per model version, as two
+streams:
+
+```bash
+POST /api/v1/telemetry
+{"urn": "maya://model/credit.pd.smallbiz", "semver": "3.2.1",
+ "stream": "scores", "sample_rate": 1.0,
+ "rows": [{"entity_id": "B1", "scored_at": 1767225600, "score": 0.31}]}
+```
+
+Ingestion is idempotent: a batch carries the digest of its own rows, and a digest
+already recorded is accepted and not written again, because real collectors
+deliver at least once and a monitor that double-counted a redelivery would report
+a population that never existed. Scores and outcomes are joined when they are
+read rather than when they arrive, so maturity is decided per row instead of
+assumed for a batch. **Telemetry** in the navigation shows what every version has
+sent, ordered so that a version which has stopped sending comes first — a monitor
+evaluated over a stale window still returns a number, and the number describes a
+population nobody is producing any more.
 
 ### What is not built
 
-Stated plainly: **MAYA does not ingest inference telemetry for you.** You pass the
-scored rows in. There is no streaming collector, no sampling strategy and no
-automatic reference-window management.
+There is no streaming collector and no automatic reference-window management.
+Something outside still has to post the batches, and the reference window is
+named on the evaluation rather than chosen for you.
 
 Nor does anything evaluate a due monitor on your behalf. The cadence is recorded
 and queryable, and something outside has to call `evaluate`. What the platform

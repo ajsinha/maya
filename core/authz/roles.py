@@ -46,7 +46,9 @@ MODEL_OWNER = MODEL_DEVELOPER | {
     # The owner puts the record forward, opens amendments to it, and signs the
     # owner half of the attestation. They never approve it.
     "model:submit", "model:amend", "model:attest", "baseline:plan",
-    "monitor:define", "monitor:evaluate", "document:compile",
+    # Defines the monitors on its own models, takes delivery of what they
+    # observe, and evaluates them.
+    "monitor:define", "monitor:evaluate", "monitor:observe", "document:compile",
     # The first line proposes an adjustment and measures it. It never approves
     # its own, and never renews it.
     "overlay:propose", "overlay:measure",
@@ -87,11 +89,13 @@ MODEL_RISK_MANAGER = VALIDATOR | {
 AUDITOR = READ_PERMISSIONS | {"finding:raise"}
 # The batch runner: it evaluates monitors on a schedule and can do nothing else.
 OPERATOR = {"model:read", "warrant:read", "evidence:read",
-            "monitor:read", "monitor:evaluate",
+            "monitor:read", "monitor:evaluate", "monitor:observe",
             # The operator runs the schedule. Every job is idempotent and derives
             # its own work, so this is an operational act and not a governance one.
             "scheduler:read", "scheduler:run"}
 SERVICE = {"model:read", "warrant:read", "warrant:execute", "monitor:evaluate",
+           # The principal that runs the model is the one holding the scores.
+           "monitor:observe",
            # Read alongside run: acting on something you cannot read back is a
            # permission set nobody can reason about.
            "scheduler:run", "scheduler:read"}

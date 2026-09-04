@@ -21,16 +21,24 @@
 
     <div class="card mb-3"><div class="card-header">Versions</div>
       <table class="table maya mb-0">
-        <thead><tr><th>Version</th><th>Class</th><th>Fit</th><th>Status</th><th>Digest</th></tr></thead>
+        <thead><tr><th>Version</th><th>Class</th><th>Fit</th><th>Status</th><th>Digest</th>
+                   <th></th></tr></thead>
         <tbody>
+        {% set slug = model.urn.replace('maya://model/','') %}
         {% for v in versions %}
           <tr><td class="mono">{{ v.semver }}</td>
               <td><span class="chip">{{ v.trainability_class }}</span></td>
               <td class="small">{{ v.fit_procedure }}</td>
               <td class="small">{{ v.status }}</td>
-              <td class="mono small text-muted">{{ v.manifest_digest[:22] }}…</td></tr>
+              <td class="mono small text-muted">{{ v.manifest_digest[:22] }}…</td>
+              <td class="small text-end">
+                <a href="/parameters/{{ v.semver }}/{{ slug }}"
+                   style="color:var(--crimson);text-decoration:none">parameters</a>
+                &middot;
+                <a href="/telemetry/{{ v.semver }}/{{ slug }}"
+                   style="color:var(--crimson);text-decoration:none">telemetry</a></td></tr>
         {% else %}
-          <tr><td colspan="5" class="text-muted small">No versions yet.</td></tr>
+          <tr><td colspan="6" class="text-muted small">No versions yet.</td></tr>
         {% endfor %}
         </tbody></table></div>
 
@@ -194,7 +202,10 @@
       {% for semver, status in parameters.items() %}
         {% if status.recorded or not status.ready %}
           <div class="card-body py-2 small text-muted border-top">
-            v{{ semver }} &mdash; {{ status.detail }}.</div>
+            v{{ semver }} &mdash; {{ status.detail }}.
+            <a href="/parameters/{{ semver }}/{{ model.urn.replace('maya://model/','') }}"
+               style="color:var(--crimson);text-decoration:none">The values and
+              what stands behind them</a>.</div>
         {% endif %}
       {% endfor %}</div>
 

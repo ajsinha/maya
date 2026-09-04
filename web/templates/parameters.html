@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% block title %}Parameters — {{ model.name }} v{{ version.semver }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">INHABITANTS OF P</p>
+<h1>{{ model.name }} <span class="text-muted">v{{ version.semver }}</span></h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  <a href="/model/{{ model.urn.replace('maya://model/','') }}"
+     style="color:var(--crimson);text-decoration:none">{{ model.urn }}</a>
+  &middot; version {{ version.status }}
+  &middot; parameter object <code>{{ readiness.parameter_kind }}</code></p>
+<p class="text-muted small">A model is <code>f : P &times; X &rarr; D(Y)</code>.
+Fitting does not change <code>f</code> &mdash; it picks a point in
+<code>P</code>. So a fit produces a parameter set rather than a model version:
+the kernel did not change, and minting a version for every retrain would make
+&ldquo;the model changed&rdquo; mean two different things. A parameter set does
+change behaviour, so it is approved the way a version is.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-ok' if readiness.ready else 'evidence-bad' }}">
+      {{ 'ready' if readiness.ready else 'not ready' }}</div>
+    <div class="stat-l">to run</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ readiness.recorded }}</div>
+    <div class="stat-l">recorded</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ readiness.approved }}</div>
+    <div class="stat-l">approved</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'open-badge' if readiness.awaiting_approval else '' }}">
+      {{ readiness.awaiting_approval }}</div>
+    <div class="stat-l">awaiting somebody else's approval</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header">Where this version stands</div>
+  <div class="card-body py-3 small">
+    <p class="mb-2">{{ readiness.detail }}.</p>
+    {% if readiness.by_provenance %}
+      <p class="text-muted mb-0">
+        {% for kind, count in readiness.by_provenance.items() %}
+          {{ count }} {{ kind }}{{ "" if loop.last else " · " }}
+        {% endfor %}</p>
+    {% endif %}
+  </div>
+  <table class="table maya mb-0">
+    <thead><tr><th>How a parameter object is inhabited</th><th>What that means</th></tr></thead>
+    <tbody>
+    {% for kind, means in provenance.items() %}
+      <tr><td class="small mono" style="width:8rem">{{ kind }}</td>
+          <td class="small text-muted">{{ means }}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Three routes with genuinely different evidence behind them, and governed to
+    different depths. A fitted set is accepted only against a warrant MAYA
+    issued: without one, &ldquo;which data produced these numbers&rdquo; has no
+    answer, and the lineage the featureset and the pinned view versions exist to
+    establish stops one step short of the thing it was for.</div></div>
+
+{% for p in parameter_sets|reverse %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ p.name }} <span class="text-muted">v{{ p.version }}</span>
+        <span class="text-muted small">&nbsp;<code>{{ p.digest[7:23] }}&hellip;</code></span></span>
+      <span class="small">
+        {% if p.state == 'approved' %}
+          <span class="evidence-ok">approved by {{ p.approved_by }}</span>
+        {% elif p.state == 'rejected' %}
+          <span class="evidence-bad">rejected by {{ p.approved_by }}</span>
+        {% elif p.state == 'superseded' %}
+          <span class="text-muted">superseded</span>
+        {% else %}
+          <span class="open-badge">awaiting approval</span>
+        {% endif %}</span></div>
+
+    <table class="table maya mb-0">
+      <tbody>
+        <tr><td class="small" style="width:11rem">Provenance</td>
+            <td class="small">{{ p.provenance }}
+              <div class="text-muted">{{ provenance.get(p.provenance, '') }}</div></td></tr>
+        <tr><td class="small">Kind</td><td class="small mono">{{ p.kind }}</td></tr>
+        <tr><td class="small">Recorded by</td>
+            <td class="small">{{ p.created_by }}
+              {% if p.note %}<div class="text-muted">{{ p.note }}</div>{% endif %}</td></tr>
+        {% if p.featureset_version_id %}
+          <tr><td class="small">Fitted from</td>
+              <td class="small">
+                {{ featuresets.get(p.featureset_version_id, p.featureset_version_id) }}
+                <div class="text-muted">the columns these numbers belong to; the
+                  coefficients mean nothing without them</div></td></tr>
+        {% endif %}
+        {% if p.warrant_id %}
+          <tr><td class="small">Under warrant</td>
+              <td class="small mono">{{ p.warrant_id }}</td></tr>
+        {% endif %}
+        {% if p.window_from or p.window_to %}
+          <tr><td class="small">Fitting window</td>
+              <td class="small mono">{{ p.window_from }} &rarr; {{ p.window_to }}</td></tr>
+        {% endif %}
+        {% if p.as_of %}
+          <tr><td class="small">As of</td>
+              <td class="small mono">{{ p.as_of }}
+                <div class="text-muted">the transaction-time bound the fit read
+                  at, so the same fit re-run reads the same rows</div></td></tr>
+        {% endif %}
+        {% if p.snapshot_id %}
+          <tr><td class="small">Snapshot</td>
+              <td class="small mono">{{ p.snapshot_id }}</td></tr>
+        {% endif %}
+        {% if p.review_note %}
+          <tr><td class="small">Review note</td>
+              <td class="small text-muted">{{ p.review_note }}</td></tr>
+        {% endif %}
+      </tbody></table>
+
+    <div class="card-body py-2 border-top">
+      <p class="small fw-bold mb-2" style="color:var(--crimson)">
+        The values &mdash; {{ p.cardinality }} of them</p>
+      {% if p.values_inline %}
+        <table class="table maya mb-0">
+          <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+          <tbody>
+          {% for key, value in p.values_inline.items() %}
+            <tr><td class="small mono">{{ key }}</td>
+                <td class="small mono">{{ value }}</td></tr>
+          {% endfor %}
+          </tbody></table>
+      {% elif p.values_uri %}
+        <p class="small mb-0">Held as an artifact at
+          <code>{{ p.values_uri }}</code>.
+          <span class="text-muted">A coefficient vector is a record and a
+          reviewer should be able to read it; a hundred million weights are an
+          artifact, and putting them in a row would make every read of the
+          register carry them.</span></p>
+      {% else %}
+        <p class="small text-muted mb-0">No values are held against this set.</p>
+      {% endif %}
+    </div>
+
+    {% if p.diagnostics %}
+      <div class="card-body py-2 border-top">
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">Diagnostics</p>
+        <table class="table maya mb-0">
+          <tbody>
+          {% for key, value in p.diagnostics.items() %}
+            <tr><td class="small mono" style="width:14rem">{{ key }}</td>
+                <td class="small mono">{{ value }}</td></tr>
+          {% endfor %}
+          </tbody></table>
+        <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+          What the fit reported about itself. Recorded with the parameters rather
+          than beside them, because an approver deciding without them is
+          approving numbers they have no way to challenge.</p>
+      </div>
+    {% endif %}
+
+    {% if p.state == 'proposed' %}
+      <div class="card-body py-2 border-top">
+        <form class="review small" data-id="{{ p.id }}">
+          <div class="row g-2">
+            <div class="col-md-8"><input class="form-control form-control-sm"
+                   name="note" placeholder="what you checked, or what is wrong with it"></div>
+            <div class="col-md-4 d-flex gap-2">
+              <button class="btn btn-sm btn-danger py-0 px-3" style="font-size:.75rem"
+                      name="accept" value="1">Approve</button>
+              <button class="btn btn-sm btn-outline-secondary py-0 px-3"
+                      style="font-size:.75rem" name="accept" value="">Reject</button></div>
+          </div>
+        </form>
+        <div class="review-result small mt-2"></div>
+        <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+          Not by whoever recorded them. A parameter set changes what the model
+          does, so approval is by somebody else &mdash; the same gate that
+          governs a model version, applied to the other half of the pair.
+          Rejecting one requires a reason, and the reason stays in the register.
+          {% if 'parameter:approve' not in permissions %}
+            Your roles do not carry <code>parameter:approve</code>; the second
+            line holds it.
+          {% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="card mb-3"><div class="card-body small text-muted">
+    No parameter sets are recorded against this version. A kernel with no
+    approved parameters cannot be run, unless its parameter object is terminal
+    and its constants come from theory rather than from data &mdash; and this
+    one is <code>{{ readiness.parameter_kind }}</code>. Record them at
+    <code>/api/v1/parameters</code>, naming the warrant the fit ran under.
+  </div></div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script>
+$(".review button").on("click", function (e) {
+  e.preventDefault();
+  var form = $(this).closest("form"),
+      result = form.parent().find(".review-result"),
+      accept = $(this).val() === "1";
+  $.ajax({url: "/api/v1/parameter-sets/" + form.data("id") + "/review",
+          method: "POST", contentType: "application/json",
+          data: JSON.stringify({accept: accept,
+                                note: form.find("input[name=note]").val() || ""})})
+    .done(function () { location.reload(); })
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      result.html('<span class="evidence-bad">Refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>' +
+        (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+    });
+});
+</script>
+{% endblock %}
