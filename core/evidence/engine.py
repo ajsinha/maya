@@ -12,6 +12,7 @@ of a leaf and insertion into the past detectable.
 from __future__ import annotations
 
 import logging
+import random
 import time
 from dataclasses import dataclass, field
 from typing import (Any, Callable, Dict, Generic, List, Optional, Sequence,
@@ -51,7 +52,10 @@ class EvaluationResult:
 # one integer, so a handful of attempts covers far more concurrency than a
 # governance platform will ever see; the cap exists so a genuine defect surfaces
 # as a failure rather than as a hang.
-APPEND_ATTEMPTS = 8
+APPEND_ATTEMPTS = 12
+# Base for a jittered backoff between attempts. Small, because the contention is
+# on one integer and the winner commits immediately.
+BACKOFF_SECONDS = 0.01
 
 
 class EvidenceEngine:
@@ -95,6 +99,13 @@ class EvidenceEngine:
                                         parents, personal_data=personal_data,
                                         trust=trust, actor=actor)
             except IntegrityError as exc:
+                # Back off before re-reading the head. Without this every loser
+                # retries at the same instant and collides again, so eight
+                # threads exhaust eight attempts without any of them making
+                # progress -- the retry was there and the contention pattern
+                # defeated it. Jittered, so the retries spread rather than
+                # marching in step.
+                time.sleep(random.uniform(0, BACKOFF_SECONDS * (attempt + 1)))
                 if attempt == APPEND_ATTEMPTS - 1:
                     logger.error("evidence append lost the sequence race %d "
                                  "times for %s/%s; giving up",
