@@ -283,6 +283,21 @@ class FindingRepository(Repository):
         return [self._decode(r) for r in self.db.query(sql + " ORDER BY raised_at", params)]
 
 
+class FindingActionRepository(Repository):
+    """What happened to a finding between raising it and closing it.
+
+    Append-only. Nothing here is ever updated, because the point of it is that
+    the acts cannot be made to say something other than what happened — the
+    workflow's state is derived from these rows rather than stored beside them.
+    """
+    TABLE, ORDER = "finding_action", "acted_at"
+
+    def for_finding(self, finding_id: str) -> List[Dict[str, Any]]:
+        """In the order they happened, which is the order they must be read in:
+        an acknowledgement before a handover is not an acknowledgement now."""
+        return self.many(finding_id=finding_id, order="acted_at")
+
+
 class PrincipalRepository(Repository):
     TABLE, ORDER = "principal", "username"
     JSON = ("roles", "legal_entities", "domains")

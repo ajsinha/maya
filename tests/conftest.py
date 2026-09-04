@@ -152,6 +152,17 @@ def findings(db, evidence):
 
 
 @pytest.fixture
+def finding_workflow(db, findings, evidence):
+    """The acts between raising a finding and closing it. Short windows, so a
+    test can reach the escalation without inventing a week of elapsed time."""
+    from core.validation import FindingWorkflow
+    from db import FindingActionRepository
+    return FindingWorkflow(findings, FindingActionRepository(db), evidence,
+                           extension_limit=2, acknowledge_days=5.0,
+                           escalate_days=7.0)
+
+
+@pytest.fixture
 def gated_registry(repos, evidence, findings):
     """A registry whose alias moves are gated on the findings register."""
     from core.registry import ModelRegistry
@@ -363,10 +374,10 @@ def regimes(evidence):
 # ------------------------------------------------------------------ estate view
 @pytest.fixture
 def worklist(registry, lifecycle, findings, monitoring, overlays, compiler, debts,
-             validation):
+             validation, finding_workflow):
     from core.estate import WorkList
     return WorkList(registry, lifecycle, findings, monitoring, overlays, compiler,
-                    debts, validation)
+                    debts, validation, finding_workflow)
 
 
 @pytest.fixture
@@ -380,14 +391,15 @@ def estate(registry, findings, monitoring, overlays, debts, baseline, lifecycle,
 # --------------------------------------------------------------------- scheduler
 @pytest.fixture
 def scheduler(db, evidence, registry, lifecycle, findings, monitoring, overlays,
-              debts, compiler):
+              debts, compiler, finding_workflow):
     from core.scheduler import JobContext, Scheduler
     from db import ScheduledRunRepository
     return Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
                    findings=findings, monitoring=monitoring, overlays=overlays,
-                   debts=debts, documents=compiler))
+                   debts=debts, documents=compiler,
+                   finding_workflow=finding_workflow))
 
 
 @pytest.fixture

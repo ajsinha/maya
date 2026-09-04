@@ -3,6 +3,8 @@ MAYA — HTTP API and UI tests, exercised through the real application.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
 import json
+import time
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -1298,7 +1300,7 @@ class TestSchedulerApi:
         body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
         keys = {j["job"] for j in body["jobs"]}
         assert {"attestation.lapsed", "monitoring.stalled", "overlays.expire",
-                "debt.reconcile", "findings.overdue",
+                "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
@@ -2704,3 +2706,209 @@ class TestTheParametersPage:
     def test_an_unknown_version_is_404(self, registered):
         _login(registered)
         assert registered.get(f"/parameters/9.9.9/{NAME}").status_code == 404
+class TestFindingWorkflowOverTheApi:
+    """Everything between raising a finding and closing it.
+
+    The register was already a control; this is the year in the middle, where a
+    finding could previously be handed round, never accepted, and given a later
+    date by the one person with a reason to want one.
+    """
+
+    def _raise(self, client, people, severity="High", title="Segment drift"):
+        return client.post("/api/v1/findings", auth=people["s.iqbal"], json={
+            "urn": URN, "severity": severity, "title": title,
+            "owner": "person/j.okafor"}).json()["id"]
+
+    def test_a_finding_reads_back_with_everything_derived_from_its_acts(
+            self, registered, people):
+        fid = self._raise(registered, people)
+        body = registered.get(f"/api/v1/findings/{fid}").json()
+        assert body["acknowledgement"]["acknowledged"] is False
+        assert body["extensions"]["count"] == 0
+        assert body["escalation"]["escalate"] is False
+        assert body["age_bucket"] == "0-30 days"
+
+    def test_the_owner_accepts_it_with_a_plan(self, registered, people):
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                            auth=people["j.okafor"],
+                            json={"plan": "Re-fit on the 2026 sample by 30 June"})
+        assert r.status_code == 200, r.text
+        assert r.json()["acknowledgement"]["acknowledged"] is True
+        assert r.json()["status"] == "in_remediation"
+
+    def test_nobody_may_accept_it_for_the_owner(self, registered, people):
+        """An acknowledgement somebody else recorded for you is the paperwork of
+        a commitment without the commitment."""
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                            auth=people["a.mehta"], json={"plan": "a plan"})
+        assert r.status_code == 403
+        assert r.json()["error"] == "not_the_owner"
+        assert r.json()["remediation"]
+
+    def test_accepting_without_a_plan_is_refused_with_what_to_do(
+            self, registered, people):
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                            auth=people["j.okafor"], json={})
+        assert r.status_code == 422 and r.json()["error"] == "plan_required"
+        assert "receipt, not a commitment" in r.json()["detail"]
+
+    def test_a_handover_is_recorded_with_its_reason(self, registered, people):
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/assign",
+                            auth=people["j.okafor"],
+                            json={"to": "person/d.raman",
+                                  "reason": "the re-fit is development work"})
+        assert r.status_code == 200 and r.json()["owner"] == "person/d.raman"
+        reading = registered.get(f"/api/v1/findings/{fid}").json()
+        assert reading["handovers"][0]["from"] == "person/j.okafor"
+        assert reading["handovers"][0]["by"] == "j.okafor"
+
+    def test_a_handover_without_a_reason_is_refused(self, registered, people):
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/assign",
+                            auth=people["j.okafor"],
+                            json={"to": "person/d.raman", "reason": " "})
+        assert r.status_code == 422 and r.json()["error"] == "reason_required"
+
+    def test_the_owner_cannot_extend_their_own_deadline(self, registered, people):
+        """Refused twice over: the first line does not hold the permission, and
+        the register would refuse the owner even if it did."""
+        fid = self._raise(registered, people)
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["j.okafor"], json={"plan": "a plan"})
+        r = registered.post(f"/api/v1/findings/{fid}/extend",
+                            auth=people["j.okafor"],
+                            json={"reason": "need more time", "days": 30})
+        assert r.status_code == 403 and r.json()["error"] == "forbidden"
+
+    def test_the_second_line_extends_it_with_a_reason(self, registered, people):
+        fid = self._raise(registered, people)
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["j.okafor"], json={"plan": "a plan"})
+        r = registered.post(f"/api/v1/findings/{fid}/extend",
+                            auth=people["s.iqbal"],
+                            json={"reason": "the 2026 sample closes in Q3",
+                                  "days": 30})
+        assert r.status_code == 200, r.text
+        assert r.json()["extensions"]["count"] == 1
+        assert r.json()["extensions"]["history"][0]["by"] == "s.iqbal"
+
+    def test_extending_something_nobody_accepted_is_refused(self, registered,
+                                                            people):
+        fid = self._raise(registered, people)
+        r = registered.post(f"/api/v1/findings/{fid}/extend",
+                            auth=people["s.iqbal"],
+                            json={"reason": "more time", "days": 30})
+        assert r.status_code == 409 and r.json()["error"] == "not_acknowledged"
+        assert "acknowledge it with a plan first" in r.json()["remediation"]
+
+    def test_whoever_accepted_it_may_not_then_extend_it(self, registered, people):
+        """A validator who owns a finding holds both permissions; the evidence
+        chain still refuses them, which is the point of checking there."""
+        fid = registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
+            "urn": URN, "severity": "High", "title": "Validation docs stale",
+            "owner": "person/a.mehta"}).json()["id"]
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["a.mehta"], json={"plan": "rewrite them"})
+        r = registered.post(f"/api/v1/findings/{fid}/extend",
+                            auth=people["a.mehta"],
+                            json={"reason": "busy", "days": 10})
+        assert r.status_code == 403
+        assert r.json()["error"] == "segregation_of_duties"
+        assert "may not move the date they accepted" in r.json()["detail"]
+
+    def test_extending_past_the_limit_raises_a_finding_of_its_own(
+            self, registered, people):
+        fid = self._raise(registered, people)
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["j.okafor"], json={"plan": "a plan"})
+        for i in range(3):
+            registered.post(f"/api/v1/findings/{fid}/extend",
+                            auth=people["s.iqbal"],
+                            json={"reason": f"reason {i}", "days": 10})
+        opened = registered.get("/api/v1/findings", params={"urn": URN}).json()
+        escalations = [f for f in opened["open"]
+                       if f["category"] == "remediation_extension"]
+        assert len(escalations) == 1
+        assert "moved repeatedly" in escalations[0]["title"]
+
+    def test_the_ageing_profile_is_what_a_committee_asks_for(self, registered,
+                                                             people):
+        self._raise(registered, people, "Critical", "Leakage")
+        fid = self._raise(registered, people, "Low", "Typo")
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["j.okafor"], json={"plan": "fix the typo"})
+        body = registered.get("/api/v1/findings/ageing",
+                              params={"urn": URN}).json()
+        assert body["open"] == 2 and body["blocking"] == 1
+        assert body["by_severity"]["Critical"]["open"] == 1
+        assert body["unacknowledged"] == 1
+        assert body["by_age"]["0-30 days"] == 2
+
+    def test_the_estate_profile_needs_no_model(self, registered, people):
+        self._raise(registered, people)
+        body = registered.get("/api/v1/findings/ageing").json()
+        assert body["model"] is None and body["open"] == 1
+        assert body["scope"] >= 1
+
+    def test_the_escalated_list_names_a_role(self, registered, people):
+        fid = self._raise(registered, people, "Critical", "Leakage")
+        registered.post(f"/api/v1/findings/{fid}/acknowledge",
+                        auth=people["j.okafor"], json={"plan": "rebuild"})
+        # Reach past the remediation date the way time would.
+        registered.app.state.ctx["findings"].findings.set({"due_at": 1.0}, id=fid)
+        body = registered.get(f"/api/v1/findings/{fid}/escalation").json()
+        assert body["escalate"] is True
+        assert body["to_role"] == "model_risk_manager"
+        listed = registered.get("/api/v1/findings/escalated",
+                                params={"urn": URN}).json()
+        assert len(listed["escalated"]) == 1
+        assert "past what their owner alone" in listed["detail"]
+
+    def test_a_missing_finding_is_a_404_and_not_a_bare_400(self, registered):
+        r = registered.get("/api/v1/findings/no-such-finding")
+        assert r.status_code == 404 and r.json()["error"] == "no_finding"
+        assert r.json()["remediation"]
+
+    def test_a_closed_findings_workflow_has_ended(self, registered, people):
+        fid = self._raise(registered, people)
+        registered.post(f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
+                        json={"verified_by": "person/d.raman",
+                              "evidence": {"pr": "1420"}})
+        r = registered.post(f"/api/v1/findings/{fid}/plan",
+                            auth=people["j.okafor"], json={"plan": "too late"})
+        assert r.status_code == 409 and r.json()["error"] == "finding_closed"
+
+    def test_the_acts_are_published_with_what_each_means(self, registered):
+        body = registered.get("/api/v1/finding-acts").json()
+        acts = {a["act"]: a["means"] for a in body["acts"]}
+        assert set(acts) == {"assigned", "acknowledged", "planned", "extended"}
+        assert all(acts.values())
+
+    def test_an_unaccepted_finding_reaches_its_owner_on_the_dashboard(
+            self, registered, people):
+        """The reminder cycle: derived like everything else, so it clears itself
+        when the owner accepts rather than when somebody ticks a task."""
+        fid = self._raise(registered, people)
+        registered.app.state.ctx["findings"].findings.set(
+            {"raised_at": time.time() - 30 * 86400.0}, id=fid)
+        owner = people["j.okafor"]
+        client = TestClient(registered.app)
+        client.post("/login", data={"username": owner[0], "password": owner[1],
+                                    "next": "/dashboard"})
+        body = client.get("/dashboard").text
+        assert "Finding not accepted: Segment drift" in body
+        assert "Accept it with a plan" in body
+
+    def test_the_scheduler_records_a_finding_nobody_ever_accepted(
+            self, registered, people):
+        fid = self._raise(registered, people)
+        registered.app.state.ctx["findings"].findings.set(
+            {"raised_at": time.time() - 30 * 86400.0}, id=fid)
+        out = registered.post("/api/v1/scheduler/run",
+                              json={"jobs": ["findings.unacknowledged"]}).json()
+        assert out["ran"] == 1 and out["failed"] == 0
+        assert out["results"][0]["outcome"]["count"] == 1

@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.validation.common import (BLOCKING_BY_DEFAULT, DAY, REMEDIATION_DAYS, SEVERITIES,
-                                    SOURCES, ValidationError, worst)
+                                    SOURCES, ValidationError, same_person, worst)
 from db import FindingRepository
 
 
@@ -80,7 +80,11 @@ class FindingRegister:
             raise ValidationError(f"finding {finding_id} is already closed")
         if not verified_by:
             raise ValidationError("closing a finding requires a verifier")
-        if verified_by == row["owner"]:
+        if same_person(verified_by, row["owner"]):
+            # Compared as identities rather than as strings. The platform writes
+            # an owner as `person/j.okafor` and authenticates the same human as
+            # `j.okafor`, so a `==` here was a duties check anybody could step
+            # around by dropping the prefix.
             raise ValidationError(
                 f"'{verified_by}' owns this finding and cannot verify its own closure; "
                 "closure must be attested by someone else")

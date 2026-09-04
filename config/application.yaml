@@ -208,6 +208,22 @@ lifecycle:
     required_roles: [model_owner, model_risk_manager]
     validity_days: 365
 
+findings:
+  # The workflow between raising a finding and closing it. All three are policy
+  # questions and none of them is a threshold the platform should decide.
+  #
+  # How many times a remediation date may be moved before the extension itself
+  # becomes a finding. The same answer, for the same reason, as the overlay
+  # register's renewal limit: a date moved often enough is not a date.
+  extension_limit: 2
+  # How long an owner has to accept a finding as theirs. Past this the silence
+  # is the problem, because an unaccepted finding looks exactly like one
+  # somebody is working on.
+  acknowledge_days: 5
+  # And how long past its date a finding stops being only its owner's problem.
+  # Deliberately the same default as notifications.escalate_after_days.
+  escalate_after_days: 7
+
 overlays:
   # How long a single overlay period may run before it must be re-examined, and
   # how many renewals before the register treats the adjustment as an
