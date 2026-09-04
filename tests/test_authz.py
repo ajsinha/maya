@@ -32,6 +32,30 @@ class TestRoles:
         with pytest.raises(AuthzError, match="not a recognised role"):
             permissions_for(["wizard"])
 
+    def test_a_page_can_use_status_as_an_ordinary_context_key(self):
+        """`page(status=...)` used to mean the HTTP code, so a page that wanted
+        to show a model's status got an empty variable and a response code taken
+        from a domain word -- silently, in both directions."""
+        import inspect
+
+        from routes.base import Routes
+        params = inspect.signature(Routes.page).parameters
+        assert "status" not in params, (
+            "`status` is a domain word; the HTTP code must not claim it")
+        assert params["http_status"].kind is inspect.Parameter.KEYWORD_ONLY
+
+    def test_delivering_telemetry_and_ruling_on_it_are_held_apart(self):
+        """The permission exists so that supplying the population and deciding a
+        monitor breached can be held by different principals. It was introduced
+        with a comment saying exactly that, and then granted to all three roles
+        at once -- which made the separation a sentence rather than a rule."""
+        delivers = {n for n, g in ROLES.items() if "monitor:observe" in g}
+        rules = {n for n, g in ROLES.items() if "monitor:evaluate" in g}
+        assert delivers - {"admin"} == {"service"}, (
+            "only the principal that runs the model should hand over its scores")
+        assert not (delivers & rules) - {"admin"}, (
+            f"{delivers & rules} both supply telemetry and rule on it")
+
     def test_a_developer_cannot_approve_or_tier(self):
         granted = permissions_for(["model_developer"])
         assert "version:create" in granted

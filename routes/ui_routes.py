@@ -47,7 +47,7 @@ class UIRoutes(Routes):
             registry, urn = self.ctx["registry"], f"maya://model/{name}"
             m = registry.get(urn)
             if not m:
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             versions = registry.versions(urn)
             features, register = self.ctx["features"], self.ctx["findings"]
             docs = self.ctx["documents"]
@@ -119,7 +119,7 @@ class UIRoutes(Routes):
             f = self.ctx["features"]
             view = f.views.views.one(name=name)
             if not view:
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             versions = f.views.versions_of(name)
             return self.page(request, "feature_view.html", view=view,
                              versions=[{**v, **f.views.restated(name, v["version"])}
@@ -151,7 +151,7 @@ class UIRoutes(Routes):
                 return r
             f = self.ctx["features"]
             if not f.sets.get(name):
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             row = f.sets.resolved(name)
             versions = f.sets.versions_of(name)
             return self.page(
@@ -241,7 +241,7 @@ class UIRoutes(Routes):
                 return r
             model, version = self._version_or_none(name, semver)
             if version is None:
-                return self.page(request, "not_found.html", status=404,
+                return self.page(request, "not_found.html", http_status=404,
                                  name=f"telemetry/{semver}/{name}")
             telemetry, urn = self.ctx["telemetry"], model["urn"]
             cohort = telemetry.cohort(urn, semver)
@@ -262,7 +262,7 @@ class UIRoutes(Routes):
             who = self.principal(request)
             model, version = self._version_or_none(name, semver)
             if version is None:
-                return self.page(request, "not_found.html", status=404,
+                return self.page(request, "not_found.html", http_status=404,
                                  name=f"parameters/{semver}/{name}")
             parameters, urn = self.ctx["parameters"], model["urn"]
             sets = parameters.for_version(urn, semver)
@@ -304,7 +304,7 @@ class UIRoutes(Routes):
             docs = self.ctx["documents"]
             doc = docs.get(document_id)
             if not doc:
-                return self.page(request, "not_found.html", status=404,
+                return self.page(request, "not_found.html", http_status=404,
                                  name=f"document/{document_id}")
             html, headings = self.ctx["renderer"].render(docs.markdown(doc))
             model = self.ctx["registry"].catalogue.models.one(id=doc["model_id"])

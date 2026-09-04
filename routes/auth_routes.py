@@ -34,7 +34,7 @@ class AuthRoutes(Routes):
                          next: str = Form("/dashboard")):
             principal = people.authenticate(username, password_in)
             if principal is None:
-                return self.page(request, "login.html", status=401, next=next,
+                return self.page(request, "login.html", http_status=401, next=next,
                                  error="Those credentials were not recognised.")
             request.session["username"] = principal["username"]
             return RedirectResponse(next or "/dashboard", status_code=303)
