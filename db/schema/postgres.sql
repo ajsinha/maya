@@ -519,3 +519,54 @@ CREATE TABLE IF NOT EXISTS overlay_measurement (
 );
 
 CREATE INDEX IF NOT EXISTS ix_measurement_overlay ON overlay_measurement (overlay_id, period);
+
+-- --------------------------------------------------------------------------
+-- Machine assistance
+-- --------------------------------------------------------------------------
+-- The platform's own AI. A capability declares what it produces, which tier it
+-- is admissible at, and — for Tier A — which oracle checks it.
+--
+-- `rejected_claims` is the column that matters. A claim whose citations do not
+-- resolve is REMOVED from the output before anyone sees it, and kept here. The
+-- alternative, flagging it in place, means the flag is what gets skimmed past.
+--
+-- `edit_distance` records how much a reviewer changed on attestation. A FALL in
+-- it over time is the signal for automation bias: a reviewer who has approved
+-- forty correct drafts is not reviewing the forty-first.
+
+CREATE TABLE IF NOT EXISTS ai_capability (
+    id             TEXT PRIMARY KEY,
+    capability_key TEXT NOT NULL UNIQUE,
+    description    TEXT NOT NULL,
+    tier           TEXT NOT NULL,
+    oracle_key     TEXT,
+    autonomy       TEXT NOT NULL DEFAULT 'human_approved_automation',
+    base_model     TEXT NOT NULL,
+    prompt_digest  TEXT NOT NULL,
+    review_sample  DOUBLE PRECISION NOT NULL DEFAULT 0.1,
+    status         TEXT NOT NULL DEFAULT 'active',
+    owner          TEXT NOT NULL,
+    created_at     DOUBLE PRECISION NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS ai_generation (
+    id              TEXT PRIMARY KEY,
+    capability_id   TEXT NOT NULL,
+    subject_type    TEXT NOT NULL,
+    subject_id      TEXT NOT NULL,
+    prompt_digest   TEXT NOT NULL,
+    base_model      TEXT NOT NULL,
+    output          TEXT NOT NULL DEFAULT '{}',
+    claims          TEXT NOT NULL DEFAULT '[]',
+    rejected_claims TEXT NOT NULL DEFAULT '[]',
+    oracle_verdict  TEXT NOT NULL DEFAULT '{}',
+    state           TEXT NOT NULL DEFAULT 'drafted',
+    sampled         BOOLEAN NOT NULL DEFAULT FALSE,
+    attested_by     TEXT,
+    attested_at     DOUBLE PRECISION,
+    edit_distance   DOUBLE PRECISION,
+    created_at      DOUBLE PRECISION NOT NULL,
+    created_by      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_generation_capability ON ai_generation (capability_id, state);
