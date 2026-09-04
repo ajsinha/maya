@@ -265,3 +265,42 @@ class TestContractsAndRetirement:
             {"entity_id": "C1", "event_ts": 300.0, "ingest_ts": 310.0, "dscr": 1.0, "revenue": 1.0}])
         sb_view.bind_contract("mv-1", [{"view": "sb_financials", "version": 1}])
         assert sb_view.can_retire("sb_financials", 2)[0] is True
+
+
+class TestAWithdrawnValueStaysWithdrawn:
+    """`as_of` returned a bitemporal state that never existed.
+
+    It used `groupby().last()`, which takes the last non-null value per COLUMN
+    rather than the last row. A restatement that withdraws a figure — setting it
+    null, which is a legitimate correction — had the superseded value
+    resurrected and welded onto the withdrawal's timestamps. The row then
+    asserted the old figure was known at a moment it had already been retracted,
+    from the function whose docstring calls itself the point-in-time rule.
+    """
+
+    def _store(self, tmp_path):
+        from db import DeltaStore
+        store = DeltaStore(tmp_path / "delta")
+        store.write("t", [
+            {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0,
+             "dscr": 1.2, "revenue": 5.0},
+            {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 900.0,
+             "dscr": None, "revenue": 3.0},
+        ], mode="overwrite")
+        return store
+
+    def test_a_retracted_figure_is_not_resurrected(self, tmp_path):
+        import math
+        row = self._store(tmp_path).as_of("t", 1000.0, 1000.0).to_dict("records")[0]
+        assert math.isnan(row["dscr"]), "the withdrawal is the latest fact"
+
+    def test_the_rest_of_the_row_is_the_same_row(self, tmp_path):
+        """The other half of the defect: the resurrected value was stamped with
+        the newer row's clocks, so the two halves came from different moments."""
+        row = self._store(tmp_path).as_of("t", 1000.0, 1000.0).to_dict("records")[0]
+        assert row["ingest_ts"] == 900.0 and row["revenue"] == 3.0
+
+    def test_reading_before_the_withdrawal_still_sees_the_figure(self, tmp_path):
+        """Bitemporality's whole point: what was known then is still readable."""
+        row = self._store(tmp_path).as_of("t", 1000.0, 500.0).to_dict("records")[0]
+        assert row["dscr"] == 1.2 and row["ingest_ts"] == 110.0

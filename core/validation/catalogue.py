@@ -108,9 +108,22 @@ class TestCatalogue:
         """Compute one test and judge it. ``left``/``right`` are labels and
         scores, or the reference and current samples for a two-sample test."""
         definition = self.definition(key)
-        if len(left) != len(right):
+        # Paired tests only. A label and a score belong to the same observation,
+        # so unequal lengths mean the caller has lost the pairing -- but a
+        # TWO-SAMPLE test compares two DISTRIBUTIONS, which have no reason to be
+        # the same size and usually are not: a 200-point reference against a
+        # 5,200-row window is the ordinary case.
+        #
+        # Applying it to both is why the drift monitor truncated. It cut each
+        # series to the shorter one, and telemetry returns rows in write order,
+        # so the slice taken was the OLDEST -- a PSI of 3.54 was reported as
+        # 0.023 and passed, while the observation's own detail line claimed all
+        # 5,200 observations had been used.
+        if definition.inputs == LABELS_SCORES and len(left) != len(right):
             raise ValidationError(
-                f"{key}: got {len(left)} and {len(right)} values; the two series must align")
+                f"{key}: got {len(left)} and {len(right)} values; a label and a "
+                f"score belong to the same observation, so the two series must "
+                f"align")
         parameters = dict(parameters or {})
         value = definition.fn(left, right, **parameters)
         passed, detail = self.judge(value, threshold or {}, definition.direction)

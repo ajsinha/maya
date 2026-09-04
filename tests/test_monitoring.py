@@ -235,3 +235,47 @@ class TestTheLoop:
         status = monitoring.status(a_model["id"])
         assert status["monitors"] == 1 and status["active"] == 1
         assert status["open_breaches"] == 0 and status["worst_breach"] is None
+
+
+class TestDriftIsMeasuredOverTheWholeWindow:
+    """A 17x breach was reported as a pass.
+
+    `_drift` cut both series to the length of the shorter, to satisfy an
+    equal-length check written for paired label/score tests. Telemetry returns
+    rows in write order, so the slice kept was the OLDEST — precisely the part
+    of a window that has not drifted yet. The observation's own detail line then
+    stated how many observations were in the window, which was true, while the
+    number beside it had been computed from a fraction of them.
+    """
+
+    REFERENCE = [i / 200 for i in range(200)]
+    # First half matches the reference, second half has moved to [2, 3).
+    DRIFTED = ([i % 200 / 200 for i in range(2600)]
+               + [2 + (i % 200) / 200 for i in range(2600)])
+
+    def test_a_two_sample_test_accepts_series_of_different_lengths(self, catalogue):
+        """Two distributions have no reason to be the same size, and a 200-point
+        reference against a 5,200-row window is the ordinary case."""
+        out = catalogue.run("stability.psi", self.REFERENCE, self.DRIFTED,
+                            {"max": 0.2})
+        assert out.value is not None
+
+    def test_drift_arriving_late_in_the_window_is_caught(self, catalogue):
+        out = catalogue.run("stability.psi", self.REFERENCE, self.DRIFTED,
+                            {"max": 0.2})
+        assert out.passed is False, "this is a breach and must be reported as one"
+        assert out.value > 1.0
+
+    def test_the_oldest_slice_alone_would_have_missed_it(self, catalogue):
+        """The measurement that used to be taken, kept as the counter-example."""
+        out = catalogue.run("stability.psi", self.REFERENCE[:200],
+                            self.DRIFTED[:200], {"max": 0.2})
+        assert out.passed is True and out.value < 0.01
+
+    def test_a_paired_test_still_refuses_unequal_series(self, catalogue):
+        """The check was right for the tests it was written for. A label and a
+        score belong to the same observation."""
+        from core.validation.common import ValidationError
+        with pytest.raises(ValidationError, match="same observation"):
+            catalogue.run("discrimination.auc", [0, 1, 0], [0.1, 0.9],
+                          {"min": 0.5})

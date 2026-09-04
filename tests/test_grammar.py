@@ -169,10 +169,32 @@ class TestAdmissibility:
         assert "point-in-time" in law.detail
         assert "dataset_snapshot" in law.remediation
 
-    def test_training_from_a_feature_namespace_is_allowed(self, fit_warrant):
+    def test_training_from_a_bounded_feature_namespace_is_allowed(self, fit_warrant):
+        fit_warrant["data"]["inputs"][0] = {
+            "name": "t", "binding": "feature_namespace",
+            "namespace": "features/customer/sb_financials/v1",
+            "as_of": 1736899200.0,
+            "window": {"from": 1546300800.0, "to": 1735603200.0}}
+        assert validate(fit_warrant).valid
+
+    def test_training_from_an_UNbounded_namespace_is_refused(self, fit_warrant):
+        """L-W9 only inspected `featureset` bindings, so a fit from a bare
+        namespace -- an entire namespace with both clocks open, which is
+        literally the "everything we know now" the law's own docstring says it
+        exists to refuse -- was admitted."""
         fit_warrant["data"]["inputs"][0] = {
             "name": "t", "binding": "feature_namespace",
             "namespace": "features/customer/sb_financials/v1"}
+        report = validate(fit_warrant)
+        assert not report.valid
+        assert {p.law for p in report.problems} == {"L-W9"}
+
+    def test_a_snapshot_needs_no_window_because_it_is_already_bounded(
+            self, fit_warrant):
+        """A dataset_snapshot is a fixed set of rows pinned at a Delta version,
+        so the bound is the object rather than something the warrant supplies."""
+        fit_warrant["data"]["inputs"][0] = {
+            "name": "t", "binding": "dataset_snapshot", "snapshot": "s-1"}
         assert validate(fit_warrant).valid
 
     def test_a_fit_must_say_where_its_parameters_go(self, fit_warrant):
@@ -325,3 +347,50 @@ class TestAFeaturesetReadForFittingIsBounded:
         """So L-W3 admits training from it at all."""
         from core.execution.grammar.vocabulary import BITEMPORAL_BINDINGS
         assert "featureset" in BITEMPORAL_BINDINGS
+
+
+class TestTheLawsCannotBeBypassedByOmissionOrTypo:
+    """Three laws that read a field and never checked it was one of its values.
+
+    A law that compares against literals passes silently on anything it does not
+    recognise, so an unrecognised value is not refused — it disables the law.
+    """
+
+    def test_a_trainability_class_with_a_trailing_space_is_refused(
+            self, fit_warrant):
+        """`T6` is a vendor black box and fitting one is a type error. `"T6 "`
+        matched no literal, so L-W1 had nothing to fire on and the warrant was
+        admitted."""
+        fit_warrant["subject"]["trainability_class"] = "T6 "
+        report = validate(fit_warrant)
+        assert not report.valid
+        assert any(p.law == "L-W1" for p in report.problems)
+
+    def test_a_lowercase_class_is_refused(self, fit_warrant):
+        fit_warrant["subject"]["trainability_class"] = "t6"
+        assert not validate(fit_warrant).valid
+
+    def test_a_class_outside_the_range_is_refused(self, fit_warrant):
+        fit_warrant["subject"]["trainability_class"] = "T99"
+        assert not validate(fit_warrant).valid
+
+    def test_the_real_classes_still_pass(self, fit_warrant):
+        fit_warrant["subject"]["trainability_class"] = "T4"
+        assert validate(fit_warrant).valid
+
+    def test_omitting_the_parameter_source_no_longer_bypasses_L_W8(
+            self, score_warrant):
+        """The exemption is for a TERMINAL parameter object, which has no point
+        of P to name. It was granted to anything that left the field out, so a
+        learned-weights scoring warrant that declined to say where it ran was
+        admitted — the exact thing the law exists to refuse."""
+        score_warrant["parameters"] = {"kind": "learned_weights"}
+        report = validate(score_warrant)
+        assert not report.valid
+        assert any(p.law == "L-W8" for p in report.problems)
+
+    def test_a_terminal_parameter_object_may_still_omit_it(self, score_warrant):
+        """T0 carries its constants in the kernel. There is nothing to name and
+        requiring a name would be requiring a fiction."""
+        score_warrant["parameters"] = {"kind": "none"}
+        assert validate(score_warrant).valid

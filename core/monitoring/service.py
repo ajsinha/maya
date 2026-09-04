@@ -170,8 +170,13 @@ class MonitoringService:
                 "supply one on the monitor definition, or pass it at evaluation")
         # PSI takes (expected, actual) and its bin edges come from the reference,
         # which is the direction that keeps the number comparable over time.
-        size = min(len(baseline), len(current))
-        result = self.catalogue.run(monitor["test_key"], baseline[:size], current[:size],
+        #
+        # Both series whole. This used to truncate each to the length of the
+        # shorter, to satisfy an equal-length check meant for paired
+        # label/score tests -- and since telemetry returns rows in write order,
+        # the slice kept was the oldest, which is precisely the part of a window
+        # that has not drifted yet.
+        result = self.catalogue.run(monitor["test_key"], baseline, current,
                                     monitor["threshold"], slice_=monitor["slice"])
         return {"outcome": result, "sample": len(current), "matured": True,
                 "note": f"{len(current)} observations against a "
