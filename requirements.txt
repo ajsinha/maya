@@ -17,3 +17,7 @@ hypothesis>=6.100
 deltalake>=1.0
 pandas>=2.2
 pyarrow>=17.0
+
+# deck and logo tooling (tools/deck/)
+python-pptx>=1.0
+pillow>=10.0
