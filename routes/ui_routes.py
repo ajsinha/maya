@@ -28,12 +28,12 @@ class UIRoutes(Routes):
             by_tier: Dict[Any, int] = {}
             for m in models:
                 by_tier[m["tier"]] = by_tier.get(m["tier"], 0) + 1
-            by_state: Dict[Any, int] = {}
-            for m in models:
-                by_state[m["status"]] = by_state.get(m["status"], 0) + 1
-            return self.page(request, "dashboard.html", models=models, by_tier=by_tier,
-                             by_state=by_state,
-                             chain=self.ctx["evidence"].verify_chain())
+            who = self.principal(request)
+            return self.page(
+                request, "dashboard.html", models=models, by_tier=by_tier,
+                chain=self.ctx["evidence"].verify_chain(),
+                estate=self.ctx["estate"].of(models),
+                work=self.ctx["worklist"].mine(who, self.ctx["authz"], models))
 
         @self.app.get("/model/{name:path}", response_class=HTMLResponse, tags=["ui"])
         def model_detail(request: Request, name: str):

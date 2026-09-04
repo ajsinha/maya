@@ -171,10 +171,10 @@ incompatible-roles check and not from history.
 Stated plainly, because a positioning page that only lists strengths is
 marketing rather than analysis.
 
-- **Workflow routing.** MAYA has the lifecycle — gated transitions, a quorum
-  attestation, amendments that must themselves be attested — but nobody is *told*
-  their signature is outstanding. OpenPages and SAS have two decades of task
-  inboxes, reminders, escalation and regulatory report templates.
+- **Notification and escalation.** Outstanding work is computed and shown to
+  whoever can act on it, but nothing reaches out: no email, no Slack, no reminder
+  cycle, no escalation when an item ages. OpenPages and SAS have two decades of
+  that, and of regulatory report templates.
 - **Telemetry ingestion.** Monitors, drift, delayed labels and breach-to-finding
   are built, but scored rows are passed in rather than collected: there is no
   streaming ingestion, no sampling strategy and no scheduler. Arize and Fiddler

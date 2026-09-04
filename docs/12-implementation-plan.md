@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 15. This section is the authoritative record of what
+*Last updated after milestone 16. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -44,6 +44,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (17 runtimes) × what is asked of it (10 verbs) × where its data comes from (11 bindings). Seven admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Ten worked examples spanning QuantLib pricing and calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet and a VaR backtest, all validated on every test run |
 | ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | Five worked walkthroughs rendered at request time: a model end to end with four separated principals, storing artifacts, running several versions, features end to end, and warrants by model family |
 | ✅ | **Machine assistance** (`core/assist/`) | **Complete** | Capabilities registered at Tier A (a named oracle checks the output) or Tier B (every claim cites evidence); Tier C is deliberately not registrable. Five oracles, each backed by machinery that exists for another reason. The grounding gate *removes* unsupported claims rather than flagging them, and keeps them for the reviewer. Nothing is evidence until a person attests it, and never the person who asked. Edit distance and a mandatory review sample detect automation bias |
+| ✅ | **Estate view & worklist** (`core/estate/`) | **Complete** | Outstanding work derived from the register rather than assigned — no task table, so it cannot go stale, disagree with the register, or accumulate orphans. Filtered to what a principal holds the permission and scope to do, and for attestation to their own role's signature. Estate summary aggregates governance, assurance, adjustments and baseline debt, with debt kept apart from breach |
 | ✅ | **Baseline import** (`core/baseline/`) | **Complete** | Closes adversarial finding C-5, judged the single most likely cause of total failure. Imported models enter a `baselined` lifecycle state — governed going forward, mutable so their debt can be closed — carrying explicit dated debt for each of eleven gaps *computed from the register rather than declared*, so an importer cannot under-declare. Debt closes by itself when the evidence arrives, making the burn-down a measurement rather than a self-report, and expires into a finding at its board-approved date. Debt and breach are reported separately everywhere. One bad row does not stop the batch |
 
 ### What is genuinely working
@@ -83,9 +84,9 @@ deliberately left outside the platform's boundary.
 - **No telemetry ingestion or scheduler.** Scored rows are passed in; there is no
   streaming collector, no sampling strategy, no automatic reference-window
   management, and nothing calls `monitors.due()` on a cadence.
-- **No routing or notification.** Attestation is a quorum and the outstanding
-  signatures are visible, but nobody is *told* they are outstanding: there is no
-  task inbox, no reminder, no escalation and no review calendar.
+- **No push notification.** Outstanding work is computed and shown on the
+  dashboard to whoever can act on it, but nothing reaches out — no email, no
+  Slack, no reminder cycle, no escalation to a supervisor when an item ages.
 - **Version approval is still single-signature.** The model *record* is attested
   by a quorum; an individual version is approved by one authorised person.
 - **No single sign-on.** Local credentials only; no OIDC, SAML or SCIM, so

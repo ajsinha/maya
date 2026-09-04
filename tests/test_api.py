@@ -1187,3 +1187,41 @@ class TestRegimeApi:
         body = registered.get(f"/model/{NAME}").text
         assert "Supervisory regimes" in body
         assert "sr-26-2" in body or "eu-ai-act" in body
+
+
+class TestDashboardEstate:
+    def test_the_dashboard_shows_the_estate_and_your_own_work(self, registered,
+                                                              people):
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get("/dashboard").text
+        assert "models registered" in body
+        assert "blocking findings" in body and "open breaches" in body
+        assert "Outstanding for you" in body
+
+    def test_an_outstanding_signature_reaches_the_person_who_can_sign(
+            self, registered, people):
+        owner, mrm = people["j.okafor"], people["s.iqbal"]
+        r1 = registered.post(f"/api/v1/models/{NAME}/submit", auth=owner, json={})
+        assert r1.status_code == 200, r1.text
+        r2 = registered.post(f"/api/v1/models/{NAME}/approve", auth=mrm, json={})
+        assert r2.status_code == 200, r2.text
+
+        client = TestClient(registered.app)
+        client.post("/login", data={"username": owner[0], "password": owner[1],
+                                    "next": "/dashboard"})
+        body = client.get("/dashboard").text
+        assert "Attestation outstanding: model_owner" in body
+        assert "Attestation outstanding: model_risk_manager" not in body, \
+            "the owner is not shown somebody else's signature"
+
+    def test_the_worklist_explains_that_it_cannot_go_stale(self, registered,
+                                                           people):
+        owner = people["j.okafor"]
+        registered.post(f"/api/v1/models/{NAME}/submit", auth=owner, json={})
+        client = TestClient(registered.app)
+        val = people["a.mehta"]
+        client.post("/login", data={"username": val[0], "password": val[1],
+                                    "next": "/dashboard"})
+        body = client.get("/dashboard").text
+        assert "computed from the register rather than assigned" in body

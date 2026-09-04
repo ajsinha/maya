@@ -26,6 +26,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 
 from core.execution import CaptiveEngine
+from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
@@ -163,6 +164,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     baseline = BaselineImporter(ImportRepository(db), debts, registry, evidence,
                                 documents.build_context)
 
+    # Both are derived from the services above rather than from tables of their
+    # own: a task table or a summary table would be a second source of truth.
+    worklist = WorkList(registry, lifecycle, findings, monitoring, overlays,
+                        documents, debts, validation)
+    estate = EstateSummary(registry, findings, monitoring, overlays, debts,
+                           baseline, lifecycle, regimes, documents)
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "warrants": warrants,
@@ -174,7 +182,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "documents": documents, "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,
-                           "regimes": regimes,
+                           "regimes": regimes, "worklist": worklist,
+                           "estate": estate,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
