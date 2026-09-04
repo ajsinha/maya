@@ -91,6 +91,15 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**A cold start that does not kill the programme.** An existing estate imports
+into a `baselined` state carrying explicit, dated debt for what it lacks —
+computed from the register rather than declared, so nobody under-declares — and
+that debt closes by itself as the evidence arrives. Debt is kept apart from
+breach on every view, because a Tier 1 model that arrived last week and one that
+missed its validation are different situations. Every competitor's answer to day
+one is a migration project; this is a first-class capability with its own
+burn-down.
+
 **AI admitted only where it can be checked.** The platform's own machine
 assistance is registrable at two tiers — an oracle checks the output, or every
 claim cites evidence a person then approves — and the third tier, output that can

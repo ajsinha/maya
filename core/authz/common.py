@@ -44,6 +44,7 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "document:read", "document:compile",
     "overlay:read", "overlay:propose", "overlay:approve", "overlay:measure",
     "assist:read", "assist:register", "assist:generate", "assist:attest",
+    "baseline:read", "baseline:import", "baseline:plan",
     "evidence:read",
     # the platform itself
     "principal:read", "principal:manage",
