@@ -37,11 +37,12 @@ def db():
 
 @pytest.fixture
 def repos(db):
-    from db import (AliasRepository, EvidenceRepository, HookRepository, ModelRepository,
-                    RiskRepository, VersionRepository)
+    from db import (AliasHistoryRepository, AliasRepository, EvidenceRepository,
+                    HookRepository, ModelRepository, RiskRepository, VersionRepository)
     return {"models": ModelRepository(db), "versions": VersionRepository(db),
-            "aliases": AliasRepository(db), "evidence": EvidenceRepository(db),
-            "risk": RiskRepository(db), "hooks": HookRepository(db)}
+            "aliases": AliasRepository(db), "history": AliasHistoryRepository(db),
+            "evidence": EvidenceRepository(db), "risk": RiskRepository(db),
+            "hooks": HookRepository(db)}
 
 
 @pytest.fixture
@@ -53,7 +54,8 @@ def evidence(repos):
 @pytest.fixture
 def registry(repos, evidence):
     from core.registry import ModelRegistry
-    return ModelRegistry(repos["models"], repos["versions"], repos["aliases"], evidence)
+    return ModelRegistry(repos["models"], repos["versions"], repos["aliases"],
+                         repos["history"], evidence)
 
 
 @pytest.fixture
@@ -117,9 +119,10 @@ def delta(tmp_path):
 def features(db, delta, evidence):
     from core.features import FeatureRegistry
     from db import (ContractRepository, FeatureRepository, FeatureViewRepository,
-                    SnapshotRepository)
+                    FeatureViewVersionRepository, SnapshotRepository)
     return FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
-                           ContractRepository(db), SnapshotRepository(db), delta, evidence)
+                           FeatureViewVersionRepository(db), ContractRepository(db),
+                           SnapshotRepository(db), delta, evidence)
 
 
 @pytest.fixture

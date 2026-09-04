@@ -3,17 +3,19 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Route handlers. Each class takes the FastAPI app and the services it needs, and
-registers its own endpoints. Routers hold no domain logic: they validate input,
-call a service, and shape the response.
+Route modules. Each subclasses Routes, which owns the scaffolding they all
+share: the services, the brand context, the domain-refusal mapping, and the
+login check. Routers hold no domain logic.
 """
-from routes.auth_routes import AuthRoutes, current_user, login_required
+from routes.auth_routes import AuthRoutes
+from routes.base import API, Routes, current_user, login_required
 from routes.feature_routes import FeatureRoutes
-from routes.health_routes import HealthRoutes
 from routes.hook_routes import HookRoutes
 from routes.model_routes import ModelRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_routes import UIRoutes
 
-__all__ = ["AuthRoutes", "FeatureRoutes", "HealthRoutes", "HookRoutes", "ModelRoutes",
-           "PublicRoutes", "UIRoutes", "current_user", "login_required"]
+ALL_ROUTES = (PublicRoutes, AuthRoutes, ModelRoutes, HookRoutes, FeatureRoutes, UIRoutes)
+
+__all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "HookRoutes",
+           "ModelRoutes", "PublicRoutes", "UIRoutes", "current_user", "login_required"]

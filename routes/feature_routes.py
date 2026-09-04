@@ -7,10 +7,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from core.features import AssemblyRejected, FeatureError
+from routes.base import Routes
 
 
 class FeatureIn(BaseModel):
@@ -53,80 +52,64 @@ class TrainingSetIn(BaseModel):
     transaction_time_bound: bool = True
 
 
-class FeatureRoutes:
-    def __init__(self, app: FastAPI, ctx: Dict[str, Any]):
-        self.app, self.features = app, ctx["features"]
-        self._register()
+class FeatureRoutes(Routes):
+    def register(self) -> None:
+        f = self.ctx["features"]
 
-    def _guard(self, fn):
-        try:
-            return fn()
-        except AssemblyRejected as exc:
-            raise HTTPException(422, {"error": "assembly_rejected", "detail": str(exc),
-                                      "remediation": "bound the assembly on both valid time "
-                                                     "and transaction time"}) from exc
-        except FeatureError as exc:
-            raise HTTPException(409, {"error": "feature_refused", "detail": str(exc)}) from exc
-
-    def _register(self) -> None:
-        api = "/api/v1"
-
-        @self.app.get(f"{api}/features", tags=["features"])
+        @self.app.get(f"{self.api}/features", tags=["features"])
         def list_features(entity: Optional[str] = None):
-            return {"features": self.features.features.list(entity)}
+            return {"features": f.features.many(entity=entity)}
 
-        @self.app.post(f"{api}/features", status_code=201, tags=["features"])
+        @self.app.post(f"{self.api}/features", status_code=201, tags=["features"])
         def define(body: FeatureIn):
-            near = self.features.similar(body.name, body.description)
-            row = self._guard(lambda: self.features.define(**body.model_dump()))
-            return {"feature": row,
-                    "possible_duplicates": [f["name"] for f in near]}
+            near = [x["name"] for x in f.similar(body.name, body.description)]
+            return {"feature": self.guard(lambda: f.define(**body.model_dump())),
+                    "possible_duplicates": near}
 
-        @self.app.post(f"{api}/features/{{name}}/certify", tags=["features"])
+        @self.app.post(f"{self.api}/features/{{name}}/certify", tags=["features"])
         def certify(name: str, level: str = "certified"):
-            return self._guard(lambda: self.features.certify(name, level))
+            return self.guard(lambda: f.certify(name, level))
 
-        @self.app.get(f"{api}/feature-views", tags=["features"])
+        @self.app.get(f"{self.api}/feature-views", tags=["features"])
         def list_views():
-            return {"views": self.features.views.list()}
+            return {"views": f.views.many()}
 
-        @self.app.post(f"{api}/feature-views", status_code=201, tags=["features"])
+        @self.app.post(f"{self.api}/feature-views", status_code=201, tags=["features"])
         def create_view(body: ViewIn):
-            return self._guard(lambda: self.features.create_view(
+            return self.guard(lambda: f.create_view(
                 body.name, body.entity, body.owner, body.features, body.description))
 
-        @self.app.post(f"{api}/feature-views/{{name}}/materialise", status_code=201,
+        @self.app.post(f"{self.api}/feature-views/{{name}}/materialise", status_code=201,
                        tags=["features"])
         def materialise(name: str, body: MaterialiseIn):
-            return self._guard(lambda: self.features.materialise(name, body.rows))
+            return self.guard(lambda: f.materialise(name, body.rows))
 
-        @self.app.get(f"{api}/feature-views/{{name}}/versions", tags=["features"])
+        @self.app.get(f"{self.api}/feature-views/{{name}}/versions", tags=["features"])
         def versions(name: str):
-            view = self.features.views.by_name(name)
+            view = f.views.one(name=name)
             if not view:
-                raise HTTPException(404, {"error": "not_found", "detail": f"no view {name}"})
-            return {"versions": self.features.views.versions(view["id"])}
+                raise self.not_found(f"no feature view {name}")
+            return {"versions": f.view_versions.many(feature_view_id=view["id"])}
 
-        @self.app.get(f"{api}/feature-views/{{name}}/versions/{{version}}/retirable",
+        @self.app.get(f"{self.api}/feature-views/{{name}}/versions/{{version}}/retirable",
                       tags=["features"])
         def retirable(name: str, version: int):
-            ok, consumers = self._guard(lambda: self.features.can_retire(name, version))
-            return {"retirable": ok, "pinned_by": consumers}
+            ok, pinned_by = self.guard(lambda: f.can_retire(name, version))
+            return {"retirable": ok, "pinned_by": pinned_by}
 
-        @self.app.post(f"{api}/feature-contracts", status_code=201, tags=["features"])
+        @self.app.post(f"{self.api}/feature-contracts", status_code=201, tags=["features"])
         def bind(body: ContractIn):
-            return self._guard(lambda: self.features.bind_contract(
-                body.model_version_id, body.items))
+            return self.guard(lambda: f.bind_contract(body.model_version_id, body.items))
 
-        @self.app.get(f"{api}/feature-contracts/{{model_version_id}}/namespaces",
+        @self.app.get(f"{self.api}/feature-contracts/{{model_version_id}}/namespaces",
                       tags=["features"])
         def namespaces(model_version_id: str):
             """What serving MUST read. Law L-17 compares this to what it did read."""
-            return {"namespaces": self._guard(
-                lambda: self.features.serving_namespaces(model_version_id))}
+            return {"namespaces": self.guard(
+                lambda: f.serving_namespaces(model_version_id))}
 
-        @self.app.post(f"{api}/training-sets", status_code=201, tags=["features"])
+        @self.app.post(f"{self.api}/training-sets", status_code=201, tags=["features"])
         def training_set(body: TrainingSetIn):
-            return self._guard(lambda: self.features.build_training_set(
+            return self.guard(lambda: f.build_training_set(
                 body.name, body.spine, body.views, body.as_of,
                 body.valid_time_bound, body.transaction_time_bound))

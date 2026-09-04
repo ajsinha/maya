@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import logging
 import secrets
 import time
 from dataclasses import dataclass
@@ -17,7 +16,9 @@ from typing import Any, Dict, List, Optional, Sequence
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 
-logger = logging.getLogger(__name__)
+from core.log import get_logger
+
+logger = get_logger(__name__)
 SCHEMA_DIR = Path(__file__).resolve().parent / "schema"
 
 
@@ -32,29 +33,25 @@ def digest(payload: Any) -> str:
         json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
 
 
-@dataclass(frozen=True)
 class DeltaPaths:
-    """Where the Delta Lake tables live. Held here so that no service above the
+    """Where the Delta tables live. Held here so that no service above the
     persistence package needs to know a filesystem path."""
-    root: Path
-    features: Path
-    snapshots: Path
-    telemetry: Path
-    monitoring: Path
-    retention_days: int = 400
+
+    AREAS = ("features", "snapshots", "telemetry", "monitoring")
+
+    def __init__(self, root: Path, retention_days: int = 400, **areas: Path):
+        self.root, self.retention_days = Path(root), retention_days
+        for area in self.AREAS:
+            setattr(self, area, Path(areas.get(area) or self.root / area))
 
     @classmethod
     def from_config(cls, cfg) -> "DeltaPaths":
         root = Path(cfg.get("data.delta.dir", "./data/delta"))
-        return cls(root=root,
-                   features=Path(cfg.get("data.delta.features", root / "features")),
-                   snapshots=Path(cfg.get("data.delta.snapshots", root / "snapshots")),
-                   telemetry=Path(cfg.get("data.delta.telemetry", root / "telemetry")),
-                   monitoring=Path(cfg.get("data.delta.monitoring", root / "monitoring")),
-                   retention_days=cfg.get_int("data.delta.retention_days", 400))
+        return cls(root, cfg.get_int("data.delta.retention_days", 400),
+                   **{a: cfg.get(f"data.delta.{a}") for a in cls.AREAS})
 
     def ensure(self) -> "DeltaPaths":
-        for p in (self.root, self.features, self.snapshots, self.telemetry, self.monitoring):
+        for p in (self.root, *(getattr(self, a) for a in self.AREAS)):
             p.mkdir(parents=True, exist_ok=True)
         return self
 
