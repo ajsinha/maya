@@ -208,7 +208,8 @@ class WorkList:
     def _debt(self, model, urn, now) -> List[Item]:
         """One item per model, not one per gap.
 
-        A freshly baselined model has eleven gaps by construction, and listing
+        A freshly baselined model has a gap for every check in the baseline
+        register — thirteen at the time of writing, and the number moves — and listing
         them individually buries every other kind of work under a wall of rows
         that all say the same thing: this model arrived without its evidence.
         The item names the count, the worst materiality and the earliest expiry;

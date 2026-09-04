@@ -10,7 +10,7 @@ audience: Engineers, Quants
 
 # Warrants by model family
 
-Ten worked warrants ship in `examples/warrants/`. Every one validates against
+Twelve worked warrants ship in `examples/warrants/`. Every one validates against
 the same grammar, with no special cases and no exemptions — which is the test of
 whether the four axes were the right ones.
 

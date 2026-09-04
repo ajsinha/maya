@@ -138,9 +138,31 @@ class TestSegregation:
             segregation.check("d.raman", "validation:conclude", "v-1")
 
     def test_the_raiser_of_a_finding_may_not_close_it(self, segregation, evidence):
-        evidence.append("finding_raised", "model", "f-1", {}, actor="a.mehta")
+        """The evidence is recorded against the MODEL, which is where a reader
+        looks for it, so the check is narrowed by the finding id in the payload.
+        Searching under the finding's own id finds nothing and permits
+        everything, which is how this rule was silently inert."""
+        evidence.append("finding_raised", "model", "m-1", {"finding_id": "f-1"},
+                        actor="a.mehta")
         with pytest.raises(AuthzError, match="may not close it"):
-            segregation.check("a.mehta", "finding:close", "f-1")
+            segregation.check("a.mehta", "finding:close", "m-1", about="f-1")
+
+    def test_raising_one_finding_does_not_disqualify_closing_another(
+            self, segregation, evidence):
+        """Otherwise a validator who raised anything on a model could close
+        nothing on it, which is not the rule and would make the register
+        unworkable."""
+        evidence.append("finding_raised", "model", "m-1", {"finding_id": "f-1"},
+                        actor="a.mehta")
+        segregation.check("a.mehta", "finding:close", "m-1", about="f-2")
+
+    def test_a_rule_needing_a_discriminator_refuses_to_guess_without_one(
+            self, segregation, evidence):
+        """Matching any finding on the subject would be worse than matching
+        none: it would refuse acts nobody meant to forbid."""
+        evidence.append("finding_raised", "model", "m-1", {"finding_id": "f-1"},
+                        actor="a.mehta")
+        assert segregation.conflict("a.mehta", "finding:close", "m-1") is None
 
     def test_acts_on_other_subjects_do_not_disqualify(self, segregation, evidence):
         evidence.append("version_created", "version", "v-1", {}, actor="d.raman")

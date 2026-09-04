@@ -91,6 +91,20 @@ STATUS: Dict[str, int] = {
     "no_parameter_set": 404, "no_approved_parameters": 409,
     "ambiguous_parameters": 409, "different_version": 409,
     "schema_not_satisfied": 409, "no_featureset_registry": 501,
+
+    # --- the captive engine's own refusals -------------------------------
+    # These reach a caller only through the convenience execute endpoint, but
+    # they still deserve a status that says who has to act. A 502 says the
+    # artifact behind the warrant is wrong or absent, which is the registrar's
+    # problem; a 422 says the caller's inputs are; a 504 says it ran too long.
+    "no_artifact": 502, "artifact_missing": 502,
+    "artifact_mismatch": 502, "artifact_unverifiable": 502,
+    "artifact_outside_root": 502, "no_artifact_root": 501,
+    "pmml_malformed": 502, "pmml_unsupported": 501,
+    "runtime_unavailable": 503,
+    "missing_inputs": 422, "input_not_in_graph": 422,
+    "execution_timeout": 504, "execution_limit": 507,
+    "execution_failed": 502,
     # overlays
     "unknown_direction": 422, "rationale_required": 422,
     "window_too_long": 422, "unknown_closure": 422,
@@ -214,15 +228,20 @@ class Routes:
 
     def authorise(self, request: Request, permission: str,
                   model: Optional[Dict[str, Any]] = None,
-                  subject_id: Optional[str] = None) -> Dict[str, Any]:
+                  subject_id: Optional[str] = None,
+                  about: Optional[str] = None) -> Dict[str, Any]:
         """Authenticate, then check permission, scope and segregation.
+
+        ``subject_id`` is where the evidence lives; ``about`` narrows it to one
+        thing when the subject carries evidence for many, as a model does for
+        every finding raised against it.
 
         Returns the principal so the caller can attribute the act to them —
         every governance act is recorded against a real identity rather than
         against 'system'.
         """
         who = self.principal(request)
-        self.ctx["authz"].authorise(who, permission, model, subject_id)
+        self.ctx["authz"].authorise(who, permission, model, subject_id, about)
         return who
 
     @staticmethod

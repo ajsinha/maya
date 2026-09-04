@@ -5,9 +5,13 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The model record's state machine.
 
-Six states, and the whole design turns on one distinction: an **attested** record
-is immutable, and a **mutable** record is one somebody has explicitly opened for
-change and will have to attest again.
+Seven states, and the whole design turns on one distinction: an **attested**
+record is immutable, and a **mutable** record is one somebody has explicitly
+opened for change and will have to attest again.
+
+``baselined`` is the seventh and is easy to miss in the diagram below because it
+has no inbound arrow: a model imported from a legacy inventory *starts* there,
+governed going forward and mutable so its debt can be closed.
 
     draft ──submit──▶ submitted ──approve──▶ approved ──attest──▶ attested
       ▲                   │                                          │

@@ -106,18 +106,25 @@ class GenerationLog:
         verdict = oracle.check(payload or {})
         return {"oracle": key, **verdict.as_dict()}
 
-    @staticmethod
-    def _sample(capability: Dict[str, Any]) -> bool:
+    def _sample(self, capability: Dict[str, Any]) -> bool:
         """Deterministic sampling on the capability's own counter.
 
         Not random: a reviewer must not be able to learn that today's drafts are
         unsampled, and a test must be able to depend on it.
+
+        The counter is how many generations this capability has already produced,
+        so the sequence is fixed by the capability and its own history. Seeding on
+        the clock — which this did until it was noticed — made the docstring false
+        in both halves: the sequence was unrepeatable, so no test could depend on
+        it, and a drafter watching which of their own drafts were sampled could
+        infer the rate and time around it.
         """
         rate = capability.get("review_sample") or 0.0
         if rate <= 0:
             return False
+        drawn = len(self.generations.many(capability_id=capability["id"]))
         seed = hashlib.sha256(
-            f"{capability['id']}:{time.time_ns()}".encode()).digest()[0] / 255.0
+            f"{capability['id']}:{drawn}".encode()).digest()[0] / 255.0
         return seed < rate
 
     # --------------------------------------------------------------- attest

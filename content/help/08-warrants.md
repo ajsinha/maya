@@ -208,6 +208,14 @@ reproduce.
 `as_of`, and a window with a start and an end. This is L-W3 made specific for the
 binding that carries a whole training set.
 
+**L-W10 — a featureset must provide what the kernel declares it reads.** Checked
+by `POST /api/v1/fit-warrants` rather than by the validator, because it needs the
+register: the grammar can see that a warrant names a featureset, but only the
+register can say whether that set covers the version's declared inputs. Refused
+as `schema_not_satisfied`, naming the missing slots. It is contravariant, so a
+*wider* set passes — the extra columns are simply not read, and refusing them
+would make a set unshareable, which is what sets exist for.
+
 ## Checking a warrant
 
 The grammar is published rather than documented, because a contract nobody can
