@@ -11,10 +11,18 @@ python -m venv .venv && .venv/bin/pip install python-pptx
 .venv/bin/python tools/deck/audit.py <deck>       # must report no geometry issues
 ```
 
-The engineering deck embeds `docs/data/*.csv` as OLE package objects, so the
-two series its worked example is computed from travel inside the file and can be
-opened from the slide. The generator reads those same files, so the figures on
-the slides and the data behind them cannot drift apart.
+The engineering deck embeds the two series its worked example is computed from,
+so they travel inside the file and open on a double-click. The generator reads
+those same files, so the figures on the slides and the data behind them cannot
+drift apart.
+
+They are embedded as **workbooks**, not as OLE packages. An OLE package must be
+wrapped in a compound document, and PowerPoint handed raw bytes under that prog
+id shows an icon that opens nothing — which is what the first attempt did, and
+it looked correct from the outside because the bytes were demonstrably inside
+the file. `xlsx.py` writes a minimal valid `.xlsx` from a CSV using nothing but
+`zipfile`, keeping the deck free of a dependency for the same reason every other
+asset here is vendored.
 
 Three decks, three audiences. The research deck argues the theory; the design
 deck is for whoever builds the platform; the engineering deck is for whoever

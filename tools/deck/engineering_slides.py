@@ -11,6 +11,9 @@ how a warrant carries both to an execution engine, and what comes back. Same
 Harvard-Crimson theme as the other two (see theme.py).
 """
 import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "theme.py")).read())
 
 MONO = "Consolas"
@@ -1270,7 +1273,8 @@ sl, y = content("The data itself", "A worked example")
 tf = txt(sl, ML, y, CW * 0.52, 2.6)
 para(tf, "Both files are inside this deck.", size=13, color=CRIMSON, bold=True,
      font=SERIF, first=True, space_after=9)
-para(tf, "Double-click either icon to open it. They are the files every number "
+para(tf, "Double-click either icon and it opens in Excel. They are the data "
+         "every number "
          "in this chapter was computed from, carrying their own provenance in "
          "the header \u2014 which series, from where, retrieved when, and "
          "which column means what.",
@@ -1287,37 +1291,41 @@ para(tf, "A deck that quotes figures nobody can check is a deck that has to be "
      size=11, color=INK, bold=True, space_after=0, line=1.25)
 
 x = ML + CW * 0.56
-DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
-                    "docs", "data")
-ICON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
-                    "assets", "logo", "maya-mark-64.png")
-files = [("sp500_daily.csv", "S&P 500, daily close",
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.path.join(HERE, "..", "..", "docs", "data")
+
+# Embedded as WORKBOOKS, not as OLE packages. An OLE package must be wrapped in
+# a compound document, and handing PowerPoint raw bytes under that prog id
+# produces an icon that opens nothing -- which is what the first attempt did.
+# A .xlsx is a known type and opens on a double-click with no wrapper at all.
+import xlsx as _xlsx
+from pptx.enum.shapes import PROG_ID
+
+files = [("sp500_daily", "S&P 500, daily close", "S&P 500 daily",
           "FRED series SP500  \u00b7  258 rows  \u00b7  Sep 2025 \u2013 Sep 2026"),
-         ("us_unemployment_monthly.csv", "US unemployment rate (U-3)",
+         ("us_unemployment_monthly", "US unemployment rate (U-3)",
+          "US unemployment",
           "FRED series UNRATE  \u00b7  12 months  \u00b7  one of them empty")]
 yy = y + 0.06
-for name, title, detail in files:
-    path = os.path.join(DATA, name)
+for stem, title, sheet, detail in files:
+    source = os.path.join(DATA, stem + ".csv")
+    book = os.path.join(DATA, stem + ".xlsx")
     rect(sl, x, yy, CW * 0.44, 1.34, fill=PARCH, line=RULE)
     rect(sl, x, yy, CW * 0.44, 0.05, fill=CRIMSON)
-    if os.path.exists(path):
-        try:
-            sl.shapes.add_ole_object(
-                path, "Package", In(x + 0.22), In(yy + 0.30),
-                width=In(0.52), height=In(0.52),
-                icon_file=ICON if os.path.exists(ICON) else None,
-                icon_width=In(0.52), icon_height=In(0.52))
-        except Exception as exc:                  # noqa: BLE001 -- reported
-            print(f"  could not embed {name}: {exc}")
-    tf = txt(sl, x + 0.92, yy + 0.24, CW * 0.44 - 1.14, 0.90)
+    if os.path.exists(source):
+        _xlsx.from_csv(source, book, sheet)
+        sl.shapes.add_ole_object(
+            book, PROG_ID.XLSX, In(x + 0.20), In(yy + 0.26),
+            width=In(0.62), height=In(0.62))
+    tf = txt(sl, x + 0.96, yy + 0.22, CW * 0.44 - 1.18, 0.94)
     para(tf, title, size=11.5, color=INK, bold=True, font=SERIF, first=True,
          space_after=3)
     para(tf, detail, size=9, color=SLATE, space_after=3, line=1.18)
-    para(tf, name, size=8.5, color=CRIMSON, space_after=0)
+    para(tf, stem + ".xlsx", size=8.5, color=CRIMSON, space_after=0)
     yy += 1.52
 
 note(sl, ML, y + 3.22, CW, 0.86,
-     "They also ship in the repository, at docs/data/. ",
+     "They also ship in the repository, at docs/data/, as CSV. ",
      "The deck is regenerated from source rather than edited as a binary, so "
      "the figures and the files cannot drift apart \u2014 ",
      "the generator reads these same two CSVs.")
