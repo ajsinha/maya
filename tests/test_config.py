@@ -227,11 +227,11 @@ class TestShippedConfiguration:
         assert c.get("app.slogan") == "Evidence, not assertion."
         assert c.get("app.author.email") == "ajsinha@gmail.com"
 
-    def test_tier_one_hook_grace_is_zero(self):
+    def test_tier_one_warrant_grace_is_zero(self):
         """Grace extends authorisation currency, never revocation ignorance."""
         c = PropertiesConfigurator("config/application.yaml", reload_interval=0)
-        assert c.get_int("hooks.grace_seconds.1") == 0
-        assert c.get_int("hooks.ttl_seconds.1") == 60
+        assert c.get_int("warrants.grace_seconds.1") == 0
+        assert c.get_int("warrants.ttl_seconds.1") == 60
 
     def test_captive_engine_is_configurable(self):
         c = PropertiesConfigurator("config/application.yaml", reload_interval=0)

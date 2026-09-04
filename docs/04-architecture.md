@@ -3,7 +3,7 @@
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
 **Companion to:** [00 — Mathematical Foundations](00-mathematical-foundations.md) · [03 — Requirements](03-requirements.md)
-**Annexes:** [05 — Data Model](05-data-model.md) · [06 — Hooks & Execution](06-hooks-and-execution.md) · [07 — Feature Platform](07-feature-platform.md) · [08 — UI/UX](08-ui-ux.md) · [09 — Security & Compliance](09-security-compliance.md)
+**Annexes:** [05 — Data Model](05-data-model.md) · [06 — Warrants & Execution](06-warrants-and-execution.md) · [07 — Feature Platform](07-feature-platform.md) · [08 — UI/UX](08-ui-ux.md) · [09 — Security & Compliance](09-security-compliance.md)
 
 ---
 
@@ -14,7 +14,7 @@
 > MAYA is a **modular monolith** in Python/FastAPI that maintains a **fibred registry** of models as
 > morphisms in `Para(Stoch)`, binds every governance claim to an **immutable, semiring-annotated evidence
 > graph** in PostgreSQL, stores feature and telemetry data in **Delta Lake**, evaluates **institution-indexed
-> regulatory obligations** as policy-as-code, and issues **signed execution hooks** that let any external
+> regulatory obligations** as policy-as-code, and issues **signed execution warrants** that let any external
 > engine run any governed model version on demand.
 
 ### 1.2 Why a modular monolith, not microservices
@@ -24,7 +24,7 @@
 | The domain is densely interconnected — tiering reads inventory, evidence, findings, overlays and monitoring in one transaction | A monolith keeps these as ACID transactions rather than sagas |
 | Governance data is *small* (10⁵ models, 10⁶ versions); feature/telemetry data is *large* | Split by **data gravity**, not by service noun: control plane = Postgres monolith; data plane = Delta/Spark |
 | Team size at launch is 8–15 engineers | Microservices would be premature distribution |
-| Hook resolution has a 10× tighter SLA than everything else (`NFR-PERF-002`) | It is the **one** component extracted as an independently scalable, independently deployable service |
+| Warrant resolution has a 10× tighter SLA than everything else (`NFR-PERF-002`) | It is the **one** component extracted as an independently scalable, independently deployable service |
 
 The result is two deployable units plus workers, described in §3.
 
@@ -32,7 +32,7 @@ The result is two deployable units plus workers, described in §3.
 
 1. **Evidential integrity** — the system's value is that its claims are verifiable. Immutability and hash-chaining beat every other concern.
 2. **Extensibility without migration** — new model classes and new regulators must be plugins (§7, §8).
-3. **Hook-path availability and latency** — production scoring depends on it (`NFR-PERF-002`, `NFR-AVAIL-001`).
+3. **Warrant-path availability and latency** — production scoring depends on it (`NFR-PERF-002`, `NFR-AVAIL-001`).
 4. **Auditability of every derivation** — nothing derived may be unexplainable (`P8`).
 5. **Developer ergonomics** — if the compliant path is slower than the non-compliant path, the inventory rots.
 
@@ -67,7 +67,7 @@ C4Context
     Rel(mrm, maya, "Oversees, tiers, reports", "UI")
     Rel(aud, maya, "Inspects, samples, exports", "UI / API")
 
-    Rel(exec, maya, "Resolves hooks, executes models", "HTTPS / gRPC")
+    Rel(exec, maya, "Resolves warrants, executes models", "HTTPS / gRPC")
     Rel(maya, lake, "Reads/writes features, telemetry", "Delta / Spark")
     Rel(maya, mlops, "Imports models, runs, lineage", "REST")
     Rel(maya, idp, "Authenticates", "OIDC")
@@ -114,7 +114,7 @@ flowchart TB
         end
     end
 
-    subgraph HOOKSVC["Hook Resolution Service — independently scaled"]
+    subgraph WARRANTSVC["Warrant Resolution Service — independently scaled"]
         HR["Resolver<br/>p99 < 50 ms"]
         SIGN["Descriptor signer / verifier"]
         REV["Revocation & kill switch"]
@@ -141,7 +141,7 @@ flowchart TB
         PG[("PostgreSQL 16<br/>governance system of record<br/>+ pgvector + RLS")]
         DL[("Delta Lake<br/>features, snapshots,<br/>telemetry, observations")]
         OBJ[("Object Store<br/>content-addressed artifacts<br/>WORM tier")]
-        RD[("Redis<br/>hook cache, sessions,<br/>rate limits, queues")]
+        RD[("Redis<br/>warrant cache, sessions,<br/>rate limits, queues")]
     end
 
     subgraph BUS["Eventing"]
@@ -159,7 +159,7 @@ flowchart TB
     CTX --> KAF
     CTX -.enqueue.-> WORKERS
     HR --> RD
-    HR -->|hook_projection ONLY| PG
+    HR -->|warrant_projection ONLY| PG
     HR --> SIGN
     REV --> RD
     W2 --> SB
@@ -173,7 +173,7 @@ flowchart TB
     SB --> OBJ
     KAF --> WORKERS
 
-    style HOOKSVC fill:#2d5016,color:#fff
+    style WARRANTSVC fill:#2d5016,color:#fff
     style CONTROL fill:#1f3a5f,color:#fff
     style STORES fill:#4a3a1f,color:#fff
 ```
@@ -182,9 +182,9 @@ flowchart TB
 
 | Unit | Scaling | Why separate |
 |---|---|---|
-| `maya-web` | Static; CDN + 2 pods | **Separate process, separate pipeline** ([ADR-011](adr/ADR-011-decoupled-frontend.md)). A front-end outage stops human review but not hook resolution, jobs, monitoring or the SDK |
+| `maya-web` | Static; CDN + 2 pods | **Separate process, separate pipeline** ([ADR-011](adr/ADR-011-decoupled-frontend.md)). A front-end outage stops human review but not warrant resolution, jobs, monitoring or the SDK |
 | `maya-api` | 3–10 pods, CPU-bound | The bulk of the domain; deploys together for transactional integrity |
-| `maya-hooks` | 10–100 pods, latency-critical, regional | 10× tighter SLA; must survive control-plane outage (`P9`) |
+| `maya-warrants` | 10–100 pods, latency-critical, regional | 10× tighter SLA; must survive control-plane outage (`P9`) |
 | `maya-worker` | Queue-depth autoscaled | Long-running, retryable |
 | `maya-sandbox` | Job-per-task, hard-isolated | **Never** runs untrusted code in-process with the control plane (`P7`) |
 | `maya-spark` (jobs) | Cluster-managed | Data-plane compute |
@@ -238,7 +238,7 @@ maya/
 ├── docs/
 │   ├── lens.py                 # get / put, staleness, lens laws
 │   └── templates/              # MDD, validation report, model card, Annex IV, AI-BOM
-├── hooks/                      # Descriptor issuance, signing, revocation, composite hooks
+├── warrants/                      # Descriptor issuance, signing, revocation, composite warrants
 ├── ai/                         # Machine assistance — a bounded context, not a layer
 │   ├── capabilities.py         # each registered as a T5 model in MAYA's own inventory
 │   ├── grounding.py            # retrieval over the evidence graph
@@ -347,7 +347,7 @@ runtime:
   artifact: {uri: "s3://maya-artifacts/sha256/9f2c…", digest: "sha256:9f2c…", bytes: 184320}
   preprocessing_dag_ref: "prep/01J…"
   resources: {cpu: "500m", memory: "512Mi", gpu: null}
-  hook_flavours: ["rest_oip_v2", "python_sdk", "sql_udf", "batch_spark"]
+  warrant_flavours: ["rest_oip_v2", "python_sdk", "sql_udf", "batch_spark"]
 
 signatures:
   - {type: "cosign", key_id: "maya-signing-2026", value: "MEUCIQ…"}
@@ -390,7 +390,7 @@ stateDiagram-v2
     InValidation --> Approved: no open blocking findings
     InValidation --> ApprovedWithConditions: conditions set
     InValidation --> Rejected: not fit for purpose
-    Approved --> InUse: use approved + hook issued
+    Approved --> InUse: use approved + warrant issued
     ApprovedWithConditions --> RestrictedUse: limits enforced
     RestrictedUse --> InUse: conditions cleared
     InUse --> InUse: recalibrate / refit (MINOR)
@@ -508,7 +508,7 @@ Nine extension points exist, all following the same pattern:
 | Validation test | `maya.test` | a house backtesting method |
 | Monitoring metric | `maya.metric` | a domain-specific drift statistic |
 | Document template | `maya.doc_template` | local regulator's report format |
-| Hook flavour | `maya.hook_flavour` | in-house RPC protocol |
+| Warrant flavour | `maya.warrant_flavour` | in-house RPC protocol |
 | Connector | `maya.connector` | in-house ML platform |
 
 ---
@@ -621,8 +621,8 @@ flowchart LR
     T1 & T2 & T3 & REP --> VR["ValidationReport v2"]
     VR --> APPR["Approval<br/>MRC 2026-08-11"]
     APPR --> DEP["Deployment prod"]
-    DEP --> HOOK["Hook #champion"]
-    HOOK --> OBS["Observations<br/>rolling"]
+    DEP --> WARRANT["Warrant #champion"]
+    WARRANT --> OBS["Observations<br/>rolling"]
 
     style VER fill:#1f3a5f,color:#fff
     style APPR fill:#2d5016,color:#fff
@@ -667,15 +667,15 @@ Nine product capabilities, one implementation. Law `L-9` asserts consistency acr
 
 ---
 
-## 10. Hook architecture (summary)
+## 10. Warrant architecture (summary)
 
-Full protocol in [06 — Hooks & Execution](06-hooks-and-execution.md). Architecturally:
+Full protocol in [06 — Warrants & Execution](06-warrants-and-execution.md). Architecturally:
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant E as Execution Engine
-    participant H as maya-hooks
+    participant H as maya-warrants
     participant R as Redis cache
     participant P as Postgres
     participant O as Object store
@@ -691,7 +691,7 @@ sequenceDiagram
         H->>H: build + sign descriptor (Ed25519)
         H->>R: cache with TTL and revocation tag
     end
-    H-->>E: 200 HookDescriptor{artifact_uri, digest, schemas, feature_contract, constraints, expiry, sig}
+    H-->>E: 200 WarrantDescriptor{artifact_uri, digest, schemas, feature_contract, constraints, expiry, sig}
     E->>E: verify signature, check declared_use ⊆ approved_uses
     E->>O: fetch artifact by digest (cached locally)
     E->>E: verify digest, load in sandbox, execute
@@ -717,11 +717,11 @@ Key properties:
 | ORM / DB | **SQLAlchemy 2.0** + Alembic, **PostgreSQL 16** (RLS, JSONB, `ltree`, `pgvector`, partitioning) | Governance system of record |
 | Lakehouse | **Delta Lake** via `delta-rs` (small reads/writes) and **Spark/Databricks** (large jobs) | Features, snapshots, telemetry |
 | Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Artifacts |
-| Cache / queue | **Redis 7** | Hook cache, sessions, rate limits, Celery broker |
+| Cache / queue | **Redis 7** | Warrant cache, sessions, rate limits, Celery broker |
 | Async | **Celery** + Redis; **APScheduler** for cron-like campaigns | Workers |
 | Eventing | **Kafka** with CloudEvents envelopes | Domain events out |
 | Policy | **OPA/Rego** embedded (`opa` sidecar or `regopy`) | Policy-as-code, testable |
-| Auth | OIDC via Authlib; SCIM; JWT for service principals; **Ed25519** hook signatures | |
+| Auth | OIDC via Authlib; SCIM; JWT for service principals; **Ed25519** warrant signatures | |
 | Signing | **Sigstore/cosign** for artifacts, in-toto attestations | Supply chain |
 | Sandboxing | gVisor / Kata containers on Kubernetes, no egress, read-only rootfs, seccomp | `P7` |
 | Search | Postgres FTS + `pgvector` (bge-m3 or in-house embeddings) | Avoids a second search cluster |
@@ -748,7 +748,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.add_middleware(OTelMiddleware)
 
     for router in (models, versions, artifacts, features, runs, validations,
-                   findings, overlays, documents, monitors, hooks, policies,
+                   findings, overlays, documents, monitors, warrants, policies,
                    regimes, evidence, reports, admin):
         app.include_router(router.router, prefix="/api/v1")
 
@@ -814,7 +814,7 @@ maya_lake/
 │   └── <snapshot_id>/                          # immutable materialised training sets
 ├── telemetry/
 │   ├── inference_log/                          # partitioned by dt, model_urn
-│   ├── hook_resolution_log/
+│   ├── warrant_resolution_log/
 │   └── boundary_violations/
 ├── monitoring/
 │   ├── observations/                           # metric time series
@@ -904,7 +904,7 @@ sequenceDiagram
     T-->>INV: tier + rationale + next review + trigger set
 ```
 
-### 13.3 Monitoring breach → finding → hook restriction
+### 13.3 Monitoring breach → finding → warrant restriction
 
 ```mermaid
 sequenceDiagram
@@ -914,7 +914,7 @@ sequenceDiagram
     participant MON as Monitoring ctx
     participant POL as Policy
     participant VAL as Findings
-    participant HK as Hook service
+    participant HK as Warrant service
     actor OWN as Model Owner
 
     SP->>DL: compute PSI, Gini, AIR by slice (incremental, CDF)
@@ -923,7 +923,7 @@ sequenceDiagram
     MON->>VAL: breach → auto-finding (severity from ladder × tier)
     VAL->>POL: re-evaluate production gate
     POL-->>HK: verdict RESTRICT (Critical open finding)
-    HK->>HK: revoke prod hook grants, mark alias champion suspended
+    HK->>HK: revoke prod warrant grants, mark alias champion suspended
     HK-->>OWN: notification + break-glass instructions
     MON-->>OWN: breach detail, affected slices, downstream blast radius
 ```
@@ -938,7 +938,7 @@ flowchart TB
         LB_A["Ingress / WAF"]
         subgraph K8S_A["Kubernetes"]
             CTRL_A["maya-control ×5"]
-            HOOK_A["maya-hooks ×20 (HPA)"]
+            WARRANT_A["maya-warrants ×20 (HPA)"]
             WORK_A["maya-worker ×8"]
             SBX_A["maya-sandbox (Job pool, gVisor)"]
         end
@@ -947,7 +947,7 @@ flowchart TB
     end
     subgraph REGION_B["Region B (DR / read)"]
         LB_B["Ingress"]
-        HOOK_B["maya-hooks ×10"]
+        WARRANT_B["maya-warrants ×10"]
         PG_B[("Postgres standby<br/>streaming replication")]
         RD_B[("Redis replica")]
     end
@@ -959,11 +959,11 @@ flowchart TB
         IDP["Entra ID / Okta"]
     end
 
-    LB_A --> CTRL_A & HOOK_A
-    LB_B --> HOOK_B
+    LB_A --> CTRL_A & WARRANT_A
+    LB_B --> WARRANT_B
     CTRL_A --> PG_A & RD_A & OBJ & KAF
-    HOOK_A --> RD_A & PG_A
-    HOOK_B --> RD_B & PG_B
+    WARRANT_A --> RD_A & PG_A
+    WARRANT_B --> RD_B & PG_B
     WORK_A --> PG_A & DBX & OBJ
     SBX_A --> OBJ
     PG_A -.->|streaming| PG_B
@@ -971,7 +971,7 @@ flowchart TB
     CTRL_A --> VAULT & IDP
 ```
 
-**Failure behaviour.** If Region A's control plane is unavailable, Region B's `maya-hooks` continue to
+**Failure behaviour.** If Region A's control plane is unavailable, Region B's `maya-warrants` continue to
 resolve from the standby and the Redis replica. Reads succeed; new issuance and alias moves fail closed
 with a clear error. This is `P9` and `NFR-AVAIL-002`.
 
@@ -981,7 +981,7 @@ with a clear error. This is `P9` and `NFR-AVAIL-002`.
 
 | Concern | Approach |
 |---|---|
-| Hook resolution p99 < 50 ms | Descriptors pre-computed and cached; Redis GET + Ed25519 verify; **no DB on the hot path** — the resolver reads only `hook_projection` (finding H-2); local in-process LRU in front of Redis |
+| Warrant resolution p99 < 50 ms | Descriptors pre-computed and cached; Redis GET + Ed25519 verify; **no DB on the hot path** — the resolver reads only `warrant_projection` (finding H-2); local in-process LRU in front of Redis |
 | **Cache stampede on alias move** (finding H-1) | **Pre-warm before invalidate** — build and sign the new descriptor, write it to cache, *then* flip the pointer, so the cache is never empty · **single-flight coalescing** per `(urn, principal, env)` · **TTL jitter ±20%** to prevent synchronised expiry · **stale-while-revalidate** for up to 5 s while the new descriptor is built |
 | Inventory list at 50k models | Keyset pagination, covering indexes, materialised summary view refreshed on domain events, server-side DataTables |
 | Blast radius on a 50k-node graph | Adjacency in Postgres; recursive CTE with depth cap for interactive use; nightly precomputed transitive closure for portfolio analytics |
@@ -997,14 +997,14 @@ with a clear error. This is `P9` and `NFR-AVAIL-002`.
 
 | Failure | Impact | Mitigation |
 |---|---|---|
-| Postgres primary loss | Control plane down | Streaming standby, automated failover, RTO 4 h / RPO 15 min; hooks keep serving (`P9`) |
-| Redis loss | Hook latency degrades | Resolver falls back to Postgres read replica; latency budget degrades to 200 ms, not an outage |
+| Postgres primary loss | Control plane down | Streaming standby, automated failover, RTO 4 h / RPO 15 min; warrants keep serving (`P9`) |
+| Redis loss | Warrant latency degrades | Resolver falls back to Postgres read replica; latency budget degrades to 200 ms, not an outage |
 | Malicious artifact upload | RCE risk | Quarantine + sandboxed introspection + format policy + signing; control plane never deserialises |
 | Alias move breaks a consumer | Production incident | Contract refinement check (`L-7`) and schema variance check (`L-12`) block the move; canary + shadow first |
 | Feature source restated | Silent model degradation | Bitemporal detection, affected-snapshot identification, automatic finding, downstream notification |
 | Evidence graph corruption | Loss of assurance | Merkle chain verification job; WORM copies of Tier 1 evidence; append-only enforced at the DB role level |
 | Policy misconfiguration blocks everyone | Operational gridlock | Policy changes are themselves versioned, tested against a golden corpus, canaried, and reversible; break-glass with dual authorisation |
-| Runaway GenAI cost | Financial | Per-hook token/cost budgets, hard stops, anomaly alerting |
+| Runaway GenAI cost | Financial | Per-warrant token/cost budgets, hard stops, anomaly alerting |
 | Clock skew across regions | Bad temporal reasoning | NTP discipline; all temporal logic uses server-assigned monotonic transaction time, never client time |
 
 ---
@@ -1015,13 +1015,13 @@ See [`docs/adr/`](adr/INDEX.md) for the full set. Summary:
 
 | ADR | Decision |
 |---|---|
-| [ADR-001](adr/ADR-001-modular-monolith.md) | Modular monolith + one extracted hook service |
+| [ADR-001](adr/ADR-001-modular-monolith.md) | Modular monolith + one extracted warrant service |
 | [ADR-002](adr/ADR-002-postgres-delta-split.md) | Postgres for governance, Delta for data-plane volume |
 | [ADR-003](adr/ADR-003-para-stoch-model-definition.md) | `Para(Stoch)` as the universal model definition |
 | [ADR-004](adr/ADR-004-fibration-extensibility.md) | Model classes as fibres, delivered as plugins |
 | [ADR-005](adr/ADR-005-institutions-for-regimes.md) | Institutions for multi-regulator scoping |
 | [ADR-006](adr/ADR-006-semiring-evidence.md) | Semiring-annotated provenance as the single evidence engine |
-| [ADR-007](adr/ADR-007-hook-protocol.md) | Signed, TTL'd, alias-aware hook descriptors |
+| [ADR-007](adr/ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors |
 | [ADR-008](adr/ADR-008-server-rendered-ui.md) | ~~Server-rendered Jinja2~~ — **superseded by ADR-011** |
 | [ADR-009](adr/ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading; format policy |
 | [ADR-010](adr/ADR-010-laws-as-tests.md) | The eighteen laws enforced by property-based tests in CI |

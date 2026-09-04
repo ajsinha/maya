@@ -38,11 +38,11 @@ def db():
 @pytest.fixture
 def repos(db):
     from db import (AliasHistoryRepository, AliasRepository, EvidenceRepository,
-                    HookRepository, ModelRepository, RiskRepository, VersionRepository)
+                    WarrantRepository, ModelRepository, RiskRepository, VersionRepository)
     return {"models": ModelRepository(db), "versions": VersionRepository(db),
             "aliases": AliasRepository(db), "history": AliasHistoryRepository(db),
             "evidence": EvidenceRepository(db), "risk": RiskRepository(db),
-            "hooks": HookRepository(db)}
+            "warrants": WarrantRepository(db)}
 
 
 @pytest.fixture
@@ -104,9 +104,9 @@ def approved_version(registry, a_model, kernel_spec, contract_spec):
 
 
 @pytest.fixture
-def hooks(repos, registry, evidence):
-    from core.execution import HookService
-    return HookService(repos["hooks"], registry, evidence, jitter_pct=0)
+def warrants(repos, registry, evidence):
+    from core.execution import WarrantService
+    return WarrantService(repos["warrants"], registry, evidence, jitter_pct=0)
 
 
 @pytest.fixture

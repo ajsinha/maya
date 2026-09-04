@@ -20,7 +20,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from core.execution import HookError
+from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
 from core.log import get_logger
 from core.registry import RegistryError
@@ -74,7 +74,7 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
-        except HookError as exc:
+        except WarrantError as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

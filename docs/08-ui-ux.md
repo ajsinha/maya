@@ -18,7 +18,7 @@ flowchart LR
     subgraph WEB["maya-web  ·  separate process, separate pipeline"]
         direction TB
         SHELL["App shell<br/>routing · layout · auth"]
-        MODS["Feature modules<br/>inventory · features · validation ·<br/>monitoring · overlays · hooks · risk · admin"]
+        MODS["Feature modules<br/>inventory · features · validation ·<br/>monitoring · overlays · warrants · risk · admin"]
         CLIENT["Generated API client<br/>from OpenAPI 3.1"]
         SHELL --> MODS --> CLIENT
     end
@@ -77,7 +77,7 @@ maya-web/
 │   ├── components/       # grid, derivation panel, RAG chip, graph, diff, form-from-schema
 │   ├── modules/
 │   │   ├── inventory/    ├── features/    ├── validation/   ├── findings/
-│   │   ├── overlays/     ├── monitoring/  ├── hooks/        ├── risk/
+│   │   ├── overlays/     ├── monitoring/  ├── warrants/        ├── risk/
 │   │   ├── documents/    ├── regimes/     ├── examiner/     └── admin/
 │   └── styles/           # Bootstrap 5 theme, design tokens
 └── tests/                # component tests + contract test against the published OpenAPI
@@ -141,12 +141,12 @@ MAYA
 │   ├── Findings            register, ageing, remediation
 │   └── Campaigns           periodic revalidation / attestation cycles
 ├── Monitoring
-│   ├── Health board        portfolio RAG, breaches, degraded hooks
+│   ├── Health board        portfolio RAG, breaches, degraded warrants
 │   ├── Model monitors      metrics, slices, thresholds, history
 │   └── Use reconciliation  approved vs actual use exceptions
 ├── Overlays                PMA register, magnitude, ageing, recurrence
 ├── Documents               repository, templates, staleness queue
-├── Hooks                   catalogue, grants, usage, revocation
+├── Warrants                   catalogue, grants, usage, revocation
 ├── Risk
 │   ├── Portfolio           tier distribution, heatmaps, concentration
 │   ├── KRIs & appetite     dials, trends, breaches
@@ -168,7 +168,7 @@ healthy, is it allowed to be used, and what do I owe on it?*
 │  Small Business PD Scorecard                            maya://model/credit.pd.smallbiz      │
 │  ● IN USE   ▲ TIER 1   ◆ T2 statistically estimated   Owner: J. Okafor   LE-US-01            │
 │  ┌────────────┬────────────┬────────────┬────────────┬────────────┬────────────┐            │
-│  │ HEALTH     │ VALIDATION │ FINDINGS   │ OVERLAYS   │ DOCS       │ HOOKS      │            │
+│  │ HEALTH     │ VALIDATION │ FINDINGS   │ OVERLAYS   │ DOCS       │ WARRANTS      │            │
 │  │ ● 0.87     │ ✓ Current  │ ⚠ 1 High   │ ⚠ 1 active │ ⚠ 1 stale  │ ● 3 active │            │
 │  │ Amber      │ 4 Aug 2026 │ due 14 Sep │ exp 31 Dec │ MDD §4     │ 14.2k/day  │            │
 │  └────────────┴────────────┴────────────┴────────────┴────────────┴────────────┘            │
@@ -178,7 +178,7 @@ healthy, is it allowed to be used, and what do I owe on it?*
 │  ECOA ✓ adverse action required · SOX — not a key control        [why? →]                    │
 │──────────────────────────────────────────────────────────────────────────────────────────────│
 │ Overview │ Versions │ Features │ Uses │ Risk │ Validation │ Findings │ Overlays │ Monitoring │
-│ Documents │ Hooks │ Dependencies │ Evidence │ History                                        │
+│ Documents │ Warrants │ Dependencies │ Evidence │ History                                        │
 │──────────────────────────────────────────────────────────────────────────────────────────────│
 │                                                                                              │
 │  PURPOSE            Estimate 12-month PD for US small-business term loans at origination.    │
