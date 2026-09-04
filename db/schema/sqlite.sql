@@ -616,3 +616,24 @@ CREATE TABLE IF NOT EXISTS compliance_debt (
 );
 
 CREATE INDEX IF NOT EXISTS ix_debt_model ON compliance_debt (model_id, status);
+
+-- --------------------------------------------------------------------------
+-- Scheduled runs
+-- --------------------------------------------------------------------------
+-- What the scheduler did, and when. Not a queue and not a task list: every job
+-- is idempotent and derives its own work from the register, so this table is a
+-- record of activity rather than a source of it. Deleting every row here would
+-- change nothing about what the next run does.
+
+CREATE TABLE IF NOT EXISTS scheduled_run (
+    id          TEXT PRIMARY KEY,
+    job         TEXT NOT NULL,
+    outcome     TEXT NOT NULL DEFAULT '{}',
+    ok          INTEGER NOT NULL DEFAULT 1,
+    error       TEXT,
+    duration_ms REAL NOT NULL DEFAULT 0,
+    ran_by      TEXT NOT NULL,
+    ran_at      REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_scheduled_run_job ON scheduled_run (job, ran_at);

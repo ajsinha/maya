@@ -1225,3 +1225,52 @@ class TestDashboardEstate:
                                     "next": "/dashboard"})
         body = client.get("/dashboard").text
         assert "computed from the register rather than assigned" in body
+
+
+class TestSchedulerApi:
+    def test_the_job_catalogue_is_published_with_reasons(self, client, people):
+        body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
+        keys = {j["job"] for j in body["jobs"]}
+        assert {"attestation.lapsed", "monitoring.stalled", "overlays.expire",
+                "debt.reconcile", "findings.overdue"} == keys
+        assert all(j["what"] and j["why"] for j in body["jobs"])
+        assert body["health"]["ever_run"] == 0
+
+    def test_a_run_is_an_ordinary_authenticated_call(self, registered):
+        """Cron, a CronJob, or a person — all the same endpoint."""
+        r = registered.post("/api/v1/scheduler/run", json={})
+        assert r.status_code == 200
+        assert r.json()["ran"] == 5 and r.json()["failed"] == 0
+
+    def test_running_the_same_job_twice_changes_nothing_more(self, registered):
+        first = registered.post("/api/v1/scheduler/run",
+                                json={"jobs": ["overlays.expire"]}).json()
+        second = registered.post("/api/v1/scheduler/run",
+                                 json={"jobs": ["overlays.expire"]}).json()
+        assert first["results"][0]["outcome"] == second["results"][0]["outcome"]
+
+    def test_an_unknown_job_is_refused(self, registered):
+        r = registered.post("/api/v1/scheduler/run", json={"jobs": ["nonsense"]})
+        assert r.status_code == 422 and r.json()["error"] == "unknown_job"
+
+    def test_a_developer_cannot_run_the_schedule(self, registered, people):
+        r = registered.post("/api/v1/scheduler/run", auth=people["d.raman"],
+                            json={})
+        assert r.status_code == 403
+
+    def test_history_records_what_ran(self, registered):
+        registered.post("/api/v1/scheduler/run", json={})
+        runs = registered.get("/api/v1/scheduler/history").json()["runs"]
+        assert len(runs) == 5 and all(r["ok"] for r in runs)
+
+    def test_readiness_reports_the_scheduler_without_failing_on_it(self, client):
+        """A stopped scheduler is worth knowing about and is not a reason to
+        take the node out of service."""
+        body = client.get("/health/ready")
+        assert body.status_code == 200
+        assert "scheduler" in body.json()
+        assert body.json()["scheduler"]["detail"]
+
+    def test_the_loop_is_off_unless_configured_on(self, client, people):
+        body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
+        assert body["loop_running"] is False

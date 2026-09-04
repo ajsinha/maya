@@ -43,23 +43,22 @@ from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
+from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
-                ContractRepository, Database, DebtRepository,
-                DocumentRepository,
-                DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
-                FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
-                WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
+                ContractRepository, Database, DebtRepository, DeltaPaths,
+                DeltaStore, DocumentRepository, EvidenceRepository,
+                FeatureRepository, FeatureViewRepository,
+                FeatureViewVersionRepository, FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
-                MonitorRepository,
-                ObservationRepository,
-                OverlayRepository, PrincipalRepository,
-                SignatureRepository, TestResultRepository,
-                ValidationRepository,
-                VersionRepository)
+                ModelRepository, MonitorRepository, ObservationRepository,
+                OverlayRepository, PrincipalRepository, RiskRepository,
+                ScheduledRunRepository, SignatureRepository, SnapshotRepository,
+                TestResultRepository, ValidationRepository, VersionRepository,
+                WarrantRepository)
 from routes import ALL_ROUTES
 from routes.base import authz_problem
 
@@ -171,6 +170,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     estate = EstateSummary(registry, findings, monitoring, overlays, debts,
                            baseline, lifecycle, regimes, documents)
 
+    scheduler = Scheduler(
+        ScheduledRunRepository(db), evidence,
+        JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
+                   findings=findings, monitoring=monitoring, overlays=overlays,
+                   debts=debts, documents=documents))
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "warrants": warrants,
@@ -183,7 +188,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
-                           "estate": estate,
+                           "estate": estate, "scheduler": scheduler,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
@@ -230,6 +235,15 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
         body = exc.detail if isinstance(exc.detail, dict) else {
             "error": "error", "detail": str(exc.detail)}
         return JSONResponse(body, status_code=exc.status_code, headers=exc.headers)
+
+    # The in-process loop is a convenience for a single-node deployment. Every
+    # job is idempotent and reachable over the API, so cron is an equally
+    # supported way to drive the same work.
+    if cfg.get_bool("scheduler.loop.enabled", False):
+        loop = SchedulerLoop(ctx["scheduler"],
+                             cfg.get_float("scheduler.loop.interval_seconds", 3600.0))
+        loop.start()
+        ctx["scheduler_loop"] = loop
 
     for routes in ALL_ROUTES:
         routes(app, ctx, templates)
