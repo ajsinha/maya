@@ -1,0 +1,105 @@
+{
+  "_comment": "A vanilla swap valued by the captive engine — the first QuantLib warrant this platform can actually execute rather than describe. Everything the valuation reads is in this document: the evaluation date, the curve, and the one past fixing the first floating period needs. Nothing is fetched, because a number fetched at run time is a number nobody can reconcile afterwards.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06e2f4c93",
+  "issued_at": 1767225600.0,
+  "subject": {
+    "urn": "maya://model/rates.swap.vanilla@1.0.0",
+    "model_urn": "maya://model/rates.swap.vanilla",
+    "version": "1.0.0",
+    "version_id": "01a06e1b7d20",
+    "model_class": "rates.linear.swap",
+    "trainability_class": "T0",
+    "tier": 2
+  },
+  "operation": {
+    "verb": "score",
+    "deterministic": true,
+    "note": "T0: the parameter object is terminal. There is nothing to fit — the constants come from theory and the inputs come from the curve — so law L-W1 refuses a fit warrant for this model, and that refusal is the class working rather than a limitation."
+  },
+  "parameters": {
+    "kind": "none",
+    "source": {},
+    "digest": null,
+    "mutable": false
+  },
+  "realisation": {
+    "runtime": "quantlib",
+    "entry": {
+      "instrument": "vanilla_swap",
+      "pricing_engine": "discounting"
+    }
+  },
+  "data": {
+    "inputs": [
+      {
+        "name": "market",
+        "binding": "market_data",
+        "curve_set": "EUR-ESTR-2026-01-01",
+        "as_of": "2026-01-01",
+        "day_count": "actual/365",
+        "curve": [
+          {"date": "2026-01-01", "rate": 0.030},
+          {"date": "2027-01-01", "rate": 0.032},
+          {"date": "2031-01-01", "rate": 0.036},
+          {"date": "2036-01-01", "rate": 0.038}
+        ],
+        "fixings": [
+          {"date": "2025-12-31", "rate": 0.031}
+        ],
+        "description": "The evaluation date is here and not taken from the clock: a valuation that reads today is not reproducible tomorrow, and a backtest of it is a backtest of nothing. The fixing is here for the same reason — the first floating period began before the evaluation date, and a valuation that invented that fixing would put an unversioned number into a governed computation."
+      },
+      {"name": "trade", "binding": "request"}
+    ],
+    "outputs": [{"sink": "response"}]
+  },
+  "io_contract": {
+    "input_schema": {
+      "fields": [
+        {"name": "start", "dtype": "date"},
+        {"name": "maturity", "dtype": "date"},
+        {"name": "fixed_rate", "dtype": "numeric"},
+        {"name": "notional", "dtype": "numeric"},
+        {"name": "side", "dtype": "categorical"}
+      ]
+    },
+    "output_schema": {
+      "fields": [
+        {"name": "npv", "dtype": "numeric"},
+        {"name": "fair_rate", "dtype": "numeric"},
+        {"name": "fixed_leg_npv", "dtype": "numeric"},
+        {"name": "floating_leg_npv", "dtype": "numeric"}
+      ]
+    }
+  },
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        "EUR swaps against a six-month floating index",
+        "Maturities out to ten years; the curve's last pillar is 2036 and beyond it the engine extrapolates flat, which is a stated convention rather than a fact about the market",
+        "No collateral or funding adjustment: this is a discounting valuation, not an XVA"
+      ],
+      "input_bounds": {
+        "fixed_rate": {"minimum": -0.02, "maximum": 0.20},
+        "notional": {"minimum": 0, "maximum": 500000000}
+      }
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 10, "memory_mb": 512}
+  },
+  "authority": {
+    "principal": "svc/rates-valuation",
+    "declared_use": "daily_valuation",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767229200.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 41, "check": "required"}
+  },
+  "governance": {"tier": 2, "model_status": "active", "version_status": "approved"},
+  "signature": {
+    "algorithm": "hmac-sha256",
+    "key_id": "maya-dev-key",
+    "value": "3c7e1a09d4b825f6e0917c3adb4508fe62d19a7b0c38f45e91da62b7038cf514"
+  }
+}

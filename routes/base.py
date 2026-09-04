@@ -117,6 +117,12 @@ STATUS: Dict[str, int] = {
     "missing_inputs": 422, "input_not_in_graph": 422,
     "execution_timeout": 504, "execution_limit": 507,
     "execution_failed": 502,
+    # the quantlib runtime's own refusals
+    "no_evaluation_date": 422, "no_curve": 422, "malformed_curve": 422,
+    "malformed_date": 422, "malformed_fixing": 422, "missing_fixing": 422,
+    "no_volatility": 422, "unknown_day_count": 422,
+    "instrument_unsupported": 501, "pricing_engine_unsupported": 501,
+    "valuation_failed": 422,
     # overlays
     "unknown_direction": 422, "rationale_required": 422,
     "window_too_long": 422, "unknown_closure": 422,

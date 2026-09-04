@@ -24,12 +24,16 @@ from typing import Any, Callable, Dict, List, Optional
 
 from core.domain.contracts import Bound, Contract
 from core.execution.runtimes import (CallableRuntime, Invocation, OnnxRuntime,
-                                     PmmlRuntime, RuntimeRegistry)
+                                     PmmlRuntime, QuantLibRuntime,
+                                     RuntimeRegistry)
 from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
                                     describe as describe_sandbox)
 from core.execution.warrants import WarrantError, WarrantService
 
 # Runtimes that load an artifact from disk, and therefore run isolated.
+# QuantLib is not here on purpose. It loads no artifact — the instrument and the
+# curve arrive in the warrant — so there is no untrusted file to isolate from,
+# and paying a process spawn per valuation would buy nothing.
 SANDBOXED_RUNTIMES = frozenset({"onnx", "pmml"})
 
 
@@ -66,6 +70,7 @@ class CaptiveEngine:
             self._callables,
             OnnxRuntime(self.artifact_dir),
             PmmlRuntime(self.artifact_dir),
+            QuantLibRuntime(),
         ])
         # Artifacts run in a child with limits from the warrant. Bound callables
         # cannot: you cannot isolate a function handed to you in your own address

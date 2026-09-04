@@ -36,6 +36,7 @@ curl -u a.mehta:pw -X POST localhost:5006/api/v1/grammar/validate \
 | `10-var-backtest` | `calibration_set` (T1) | `python.callable` | `backtest` | `dataset_snapshot` |
 | `11-nj-linear-fit-from-featureset` | `estimated_coefficients` (T2) | `python.callable` | `fit` | `featureset` |
 | `12-nj-linear-score-on-parameters` | `estimated_coefficients` (T2) | `python.callable` | `score` | `request` |
+| `13-quantlib-swap-price` | `none` (T0) | `quantlib` | `score` | `market_data` |
 
 Nothing there is a special case. Each row is a different point in one product
 space.
@@ -87,3 +88,26 @@ Read the two `parameters.source` blocks against each other. `11` binds
 binds `parameter_set` and names the digest a second person approved. Law **L-W8**
 refuses each of those in the other's position, because a run that will not say
 which inhabitant of P it is using produces a number attributable to nothing.
+
+
+## The one the engine can run
+
+`13` is the first QuantLib warrant this platform can **execute** rather than
+describe. Everything the valuation reads is in the document: the evaluation date,
+the curve, and the single past fixing the first floating period needs.
+
+That is not tidiness. A valuation that reads today's date is not reproducible
+tomorrow, and a backtest of it is a backtest of nothing — so the engine refuses a
+warrant that does not say when. A valuation that fetched its curve would put an
+unversioned input into a governed computation — so the engine refuses one that
+does not carry it. And a swap whose first fixing predates the evaluation date
+needs that fixing supplied, because inventing it would be the same failure in
+miniature:
+
+> **`missing_fixing`** — the instrument needs a past fixing the warrant does not
+> carry. *Supply fixings alongside the curve; a valuation that invented one would
+> put an unversioned number into a governed computation.*
+
+Note `parameters.kind: none`. This is **T0**: the parameter object is terminal,
+the constants come from theory, and law **L-W1** refuses to warrant it for
+fitting. That refusal is the trainability class working rather than a limitation.

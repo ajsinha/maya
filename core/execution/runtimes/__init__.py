@@ -17,7 +17,8 @@ from core.execution.runtimes.base import Invocation, Runtime, digest_of, verify_
 from core.execution.runtimes.callables import CallableRuntime
 from core.execution.runtimes.onnx import OnnxRuntime
 from core.execution.runtimes.pmml import PmmlRuntime
+from core.execution.runtimes.quantlib import QuantLibRuntime
 from core.execution.runtimes.registry import RuntimeRegistry
 
 __all__ = ["RuntimeRegistry", "Runtime", "Invocation", "CallableRuntime",
-           "OnnxRuntime", "PmmlRuntime", "digest_of", "verify_artifact"]
+           "OnnxRuntime", "PmmlRuntime", "QuantLibRuntime", "digest_of", "verify_artifact"]
