@@ -24,7 +24,7 @@ to ignore.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core.log import get_logger
@@ -50,11 +50,13 @@ class Item:
     due_at: Optional[float] = None
     role: Optional[str] = None
     href: str = ""
+    model: str = ""         # the model's name, so a row reads without clicking
 
     def as_dict(self) -> Dict[str, Any]:
         return {"kind": self.kind, "urn": self.urn, "title": self.title,
                 "detail": self.detail, "permission": self.permission,
                 "urgency": self.urgency, "due_at": self.due_at, "role": self.role,
+                "model": self.model or self.urn.rsplit("/", 1)[-1],
                 "href": self.href or f"/model/{self.urn.rsplit('/', 1)[-1]}"}
 
 
@@ -67,6 +69,9 @@ def _urgency(due_at: Optional[float], now: float) -> str:
 
 
 ORDER = {"overdue": 0, "due": 1, "open": 2}
+
+# Worst first, so the summarised debt item can name the most material gap.
+_MATERIALITY = ("Critical", "High", "Medium", "Low", "Observation")
 
 
 class WorkList:
@@ -88,7 +93,10 @@ class WorkList:
         for source in (self._attestation, self._approval, self._findings,
                        self._monitors, self._overlays, self._debt, self._documents):
             items.extend(self._safely(source, model, urn, moment))
-        return items
+        # Stamped centrally rather than in each source: a row that does not say
+        # which model it is about is unreadable in an estate of any size, and
+        # relying on seven call sites to remember that is how one forgets.
+        return [replace(i, model=model.get("name") or urn) for i in items]
 
     @staticmethod
     def _safely(source: Callable, model: Dict[str, Any], urn: str,
@@ -198,21 +206,33 @@ class WorkList:
         return items
 
     def _debt(self, model, urn, now) -> List[Item]:
+        """One item per model, not one per gap.
+
+        A freshly baselined model has eleven gaps by construction, and listing
+        them individually buries every other kind of work under a wall of rows
+        that all say the same thing: this model arrived without its evidence.
+        The item names the count, the worst materiality and the earliest expiry;
+        the model page has the detail.
+        """
         if not self.debts:
             return []
-        items = []
-        for d in self.debts.open_for(model["id"]):
-            urgency = _urgency(d["expires_at"], now)
-            if urgency == "open" and d["plan"]:
-                continue                      # dated and not yet close
-            items.append(Item(
-                "debt", urn,
-                f"Baseline debt{' unplanned' if not d['plan'] else ''}: {d['gap_key']}",
-                d["description"] + ("; no dated plan to close it has been recorded"
-                                    if not d["plan"] else ""),
-                "baseline:plan", "overdue" if urgency == "overdue" else "due",
-                due_at=d["expires_at"]))
-        return items
+        relevant = [d for d in self.debts.open_for(model["id"])
+                    if not d["plan"] or _urgency(d["expires_at"], now) != "open"]
+        if not relevant:
+            return []
+        overdue = [d for d in relevant if d["expires_at"] < now]
+        unplanned = [d for d in relevant if not d["plan"]]
+        soonest = min(d["expires_at"] for d in relevant)
+        worst = min(relevant, key=lambda d: _MATERIALITY.index(d["materiality"])
+                    if d["materiality"] in _MATERIALITY else len(_MATERIALITY))
+        return [Item(
+            "debt", urn,
+            f"Baseline debt: {len(relevant)} item(s) outstanding",
+            (f"{len(unplanned)} without a dated plan; the most material is "
+             f"'{worst['gap_key']}' ({worst['materiality']}) — {worst['description']}"
+             + (f". {len(overdue)} have passed their expiry and are now breaches"
+                if overdue else "")),
+            "baseline:plan", "overdue" if overdue else "due", due_at=soonest)]
 
     def _documents(self, model, urn, now) -> List[Item]:
         if not self.documents:
