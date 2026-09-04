@@ -15,7 +15,7 @@ regulatory event, not merely an IT one.
 | # | Threat | Impact | Controls |
 |---|---|---|---|
 | T1 | **Malicious model artifact** (pickle RCE, poisoned weights, backdoored `.pth`) | Code execution, lateral movement | Format policy; opcode scanning; malware scan; sandbox-only deserialisation; content addressing; signature verification |
-| T2 | **Evidence tampering** — altering a validation result or approval after the fact | Fraudulent assurance; regulatory misstatement | Append-only tables at the DB role level; Merkle chaining; WORM copies for Tier 1; independent chain verification job |
+| T2 | **Evidence tampering** — altering a validation result or approval after the fact | Fraudulent assurance; regulatory misstatement | A linear `seq`/`prev_hash` chain over the derivation DAG, so deletion of a leaf and insertion into the past are both detectable. Verification **re-derives each node's content hash from its own fields** rather than re-linking the stored one — see §4. Append-only DB roles and WORM copies remain targets |
 | T3 | **Unauthorised model execution** — running an unapproved model, or an approved model for an unapproved purpose | Unassessed risk in production; consumer harm | Warrant entitlements bound to approved uses; fail-closed resolution; use reconciliation |
 | T4 | **Model exfiltration** — bulk download of proprietary models | IP loss | Rate limits and quotas on resolution; anomaly detection on access patterns; artifact download audit; watermarking for Tier 1 |
 | T5 | **Insider tier manipulation** — lowering a tier to escape controls | Control avoidance | Tiering is derived and traced; overrides require justification, elevated authority, and independent reassessment at validation |
@@ -25,7 +25,7 @@ regulatory event, not merely an IT one.
 | T7b | **Evidence poisoning by an assistant** — machine-created evidence supporting a machine-made claim | Fabricated assurance | Agents may **propose**; only humans and instrumented systems create evidence. AI output carries `ai_drafted` provenance and reduced trust, which the trust semiring propagates automatically |
 | T7c | **Automation bias** — a usually-correct triage queue trains reviewers to approve without looking | Silent governance failure at scale | Deliberate sampling of AI proposals for full independent assessment (`FR-AI-015`); reviewer edit distance tracked, with a *falling* edit distance investigated (`FR-AI-016`) |
 | T8 | **Supply-chain compromise** of MAYA itself | Total | SBOM per release; signed images; SLSA L3 build; dependency pinning; SCA in CI; reproducible builds |
-| T9 | **Cross-entity data leakage** in a multi-entity deployment | Regulatory breach | Postgres RLS as the last line; ABAC in the API; residency partitioning; tested with negative cases |
+| T9 | **Cross-entity data leakage** in a multi-entity deployment | Regulatory breach | Scope filtering in the application, on legal entity and domain, applied to listings as well as detail reads (§3.3). Postgres RLS as a second line is **designed and not built**, so this control is currently single-layer |
 | T10 | **Denial of the warrant plane** | Bank-wide scoring outage | Independent scaling; regional failover; descriptor grace window; static fallback |
 | T11 | **Compromised MAYA signing key** | Forged descriptors | KMS/HSM-held keys; 90-day rotation with overlapping validity; SDK pins a key set; emergency key revocation |
 | T12 | **Malicious or careless policy change** | Estate-wide gridlock or estate-wide bypass | Policies versioned, peer-reviewed, tested against a golden corpus, canaried; policy changes are themselves audited and reversible |
@@ -73,18 +73,40 @@ that class of risk in production when ONNX and safetensors exist.
 
 ### 2.2 Sandbox specification
 
-| Property | Setting |
-|---|---|
-| Isolation | gVisor or Kata Containers; one pod per task; destroyed after use |
-| Network | Deny-all egress; artifact fetched by the supervisor and mounted read-only |
-| Filesystem | Read-only root; `tmpfs` scratch capped |
-| Identity | No service account token; no cloud credentials; no MAYA API access |
-| Limits | CPU, memory, PID, wall-clock caps; OOM and timeout are normal outcomes, not incidents |
-| Syscalls | Restrictive seccomp profile; no `ptrace`, no `mount` |
-| Output | Structured result only; stdout/stderr captured, size-capped and sanitised |
+The table below is the **target**. What ships is narrower, and the gap is the whole point of this
+subsection: a boundary that is published is one an engineer can plan around, and a boundary that is
+implied is one somebody discovers by trusting it.
 
-The control plane **never** loads a model artifact in-process. This is `P7`, and it is the single most
-important security decision in the design.
+| Property | Target | As built (`core/execution/sandbox.py`) |
+|---|---|---|
+| Isolation | gVisor or Kata Containers; one pod per task | A **`spawn`ed child process**, not `fork` — a forked child inherits the parent's open database handles and signal state |
+| Network | Deny-all egress | **None.** The child shares the network namespace |
+| Filesystem | Read-only root; capped `tmpfs` scratch | **None.** The child shares the filesystem |
+| Identity | No service account token, no cloud credentials | Inherited from the parent process |
+| Limits | CPU, memory, PID, wall-clock caps | `RLIMIT_CPU` and `RLIMIT_AS`, **read from `constraints.resources` on the warrant**, defaulting to 30 s and 2 GB. The wall clock is the CPU budget plus two seconds |
+| Syscalls | Restrictive seccomp profile | **None** |
+| Output | Structured result only | A four-kind pipe: `ok`, `refused` (the original refusal, re-raised with its code and remediation), `limit`, `failed` |
+
+Two implementation details are load-bearing rather than incidental. The memory budget is **additive to
+the interpreter's own footprint**, read from `/proc/self/status`, so a 512 MB budget means 512 MB for
+the model rather than 512 MB for Python and the model together. And the runtime's dependencies are
+imported **before** the limit is applied, so a library's import cost is never charged to the model's
+budget — otherwise the first ONNX model of the day fails for a reason that has nothing to do with it.
+
+**Which runtimes are isolated:** `onnx` and `pmml` — the artifact-backed ones. `quantlib` is **not**,
+and the reason is stated rather than implied: it loads no artifact, so there is nothing untrusted to
+isolate from. A bound callable runs in process by construction and is named as such.
+
+**What the boundary is published as protecting against**, in the words `describe()` returns: *a
+runaway loop, an allocation storm, an artifact crash.* And what it does not: *a deliberately hostile
+artifact — the child shares the filesystem and the network namespace*, and *bound callables, which run
+unisolated by construction.*
+
+So `P7` — *the control plane never loads a model artifact in-process* — holds for ONNX and PMML and is
+enforced by process boundary rather than by container. Against a hostile artifact it is not a control.
+Blocking the filesystem and the network needs a container, a VM or seccomp, and pretending otherwise
+would be worse than saying so, because a reader who believes this is a security boundary will put a
+vendor's binary behind it.
 
 ---
 
@@ -92,75 +114,243 @@ important security decision in the design.
 
 ### 3.1 Roles
 
-| Role | Capabilities |
+**Eight roles across three lines of defence**, and each is a named set drawn from a closed vocabulary
+of **64 permissions** in `resource:act` form. Two roles are supersets of others by construction rather
+than by copying, which is what stops the two drifting apart.
+
+| Role | Line | Holds | The sentence that defines it |
+|---|---|---|---|
+| `model_developer` | First | 23 permissions | *Builds models and features. Cannot approve, tier or validate.* |
+| `model_owner` | First | `model_developer` ∪ 15 more | *Owns a model end to end: registers it, requests its tier, issues warrants.* |
+| `validator` | Second | the 15 read permissions ∪ 14 more | *Second line. Runs effective challenge and closes findings. Never builds.* |
+| `model_risk_manager` | Second | `validator` ∪ 15 more | *Second line with authority: approves versions, moves aliases, sets tiers.* |
+| `auditor` | Third | the 15 read permissions ∪ `finding:raise` | *Reads everything, raises findings, remediates nothing.* |
+| `operator` | — | 7 permissions | *Runs the platform and the monitoring batch. No governance authority.* |
+| `service` | — | 6 permissions | *A non-human principal. Resolves and executes warrants; signs in to nothing.* |
+| `admin` | — | all 64 | *Everything, including principal management. For bootstrap and break-glass.* |
+
+One distinction in that vocabulary is worth pulling out, because it is the kind that is usually
+collapsed: **`version:sign` and `version:approve` are separate permissions.** A validator holds the
+first and never the second — signing a quorum is not the same act as approving alone.
+
+**Four incompatible pairs**, refused at the point a principal is created *and* at SSO login:
+
+| Pair | Because |
 |---|---|
-| `viewer` | Read the catalogue and non-sensitive metadata |
-| `developer` | Create models/versions, run fits, author documents, submit for validation |
-| `feature_owner` | Define, materialise, certify and deprecate features |
-| `model_owner` | Own models, approve uses, attest, accept residual risk within authority |
-| `validator` | Execute validations, raise findings, issue reports (**never** on models they developed) |
-| `approver` | Approve promotions within a delegated authority matrix |
-| `mrm_admin` | Tiering rules, policies, lifecycles, templates, campaigns |
-| `auditor` | Read everything including evidence and audit log; no writes |
-| `examiner` | Time-boxed, scoped, fully-logged read; as-at-date queries; pack export |
-| `platform_admin` | Infrastructure; **no** access to governance decisions or model artifacts |
-| `service` | Machine principals for warrant resolution and telemetry |
+| `model_developer` + `model_risk_manager` | a developer who can also approve versions is a first line approving its own work |
+| `model_owner` + `model_risk_manager` | an owner who can also approve and tier their own models defeats second-line challenge |
+| `model_developer` + `auditor` | the third line must not build what it audits |
+| `model_owner` + `auditor` | the third line must not own what it audits |
+
+`admin` bypasses the conflict check. That is deliberate and it is the break-glass path; it is also the
+single most valuable line in an access review of this system.
 
 ### 3.2 Segregation of duties
 
-Enforced, not advisory:
+Enforced, and — this is the part that distinguishes it from a role matrix — **read from the evidence
+chain rather than from a second who-did-what table**. A duty conflict is a question about what a
+person *did*, and the chain is the only record of that which cannot disagree with itself.
 
-```python
-SOD_RULES = [
-    Sod("developer_not_validator",
-        "A person may not validate a model version they developed or materially advised on"),
-    Sod("owner_not_sole_approver",
-        "The model owner may not be the sole approver for Tier 1 and Tier 2"),
-    Sod("no_self_finding_closure",
-        "The person who raised a finding may not verify its closure"),
-    Sod("policy_author_not_publisher",
-        "Policy authoring and policy publication require different people"),
-    Sod("platform_admin_no_governance",
-        "Platform administrators cannot alter governance state or read artifacts"),
-    Sod("overlay_proposer_not_approver",
-        "The proposer of a post-model adjustment may not approve it"),
-]
-```
+| Act | Refused when the actor recorded | Because |
+|---|---|---|
+| `version:approve` | `version_created` against this version | the person who created a version may not approve it |
+| `alias:move` | `version_created` against this version | the person who created a version may not promote it into an environment |
+| `validation:conclude` | `version_created` against this version | the person who created a version may not conclude its validation |
+| `finding:close` | `finding_raised` **for this finding** | the person who raised a finding may not close it |
 
-Violations are blocked at the API and re-checked in a nightly sweep (to catch role changes that create a
-retrospective conflict). Access is recertified quarterly for privileged roles, annually otherwise.
+The last row carries a lesson worth keeping. A rule may name the payload field carrying the identity
+it is about, because an evidence node's *subject* is not always the thing an act concerns: a finding is
+raised against the **model**, which is where a reader looks for it, while the act being checked is
+about one **finding**. Without that field the raiser-may-not-close rule was **inert over HTTP** — it
+searched under the finding's own id, found nothing, and permitted everything. A segregation control
+that silently permits is worse than none, because it is reported as present.
 
-### 3.3 Defence in depth for data isolation
+The refusal names the act, the actor and the chain position: *"the person who raised a finding may not
+close it — j.okafor recorded 'finding_raised' against this subject at evidence #4821."*
 
-Three independent layers, because one is not enough for cross-entity separation:
+Two rules in earlier drafts of this section are **not implemented**: policy author ≠ publisher is
+enforced by *permission* (`policy:author` sits with the validator, `policy:publish` with the model risk
+manager) rather than by an actor comparison, so one person holding both roles could do both; and the
+overlay proposer ≠ approver rule lives in `core/overlays/`, not here. There is **no nightly re-sweep**
+for retrospective conflicts created by a role change.
 
-1. **API layer** — ABAC filters on entity, business unit, geography and classification.
-2. **Data layer** — Postgres Row-Level Security keyed to session variables set by middleware. A missing
-   filter in a handler still cannot leak.
-3. **Storage layer** — separate object-store prefixes and KMS keys per legal entity where residency rules
-   require it.
+### 3.3 Scope
 
-Negative tests for all three run in CI: an authenticated user of entity A must receive 404, not 403, for
-entity B's models (existence itself can be sensitive).
+Scope has **two dimensions — legal entity and domain** — and an empty tuple on either means
+unrestricted there. It filters **listings as well as detail reads**, which is the property that
+matters: a model out of scope is invisible rather than merely unopenable, because the existence of a
+model can itself be sensitive.
+
+> **Row-level security is not implemented.** Earlier drafts of this section described three
+> independent layers with Postgres RLS as the last line. The shipped schema has no RLS, no session
+> variables and no separate application role, so **there is one layer, in the application**, and
+> finding H-5's `FORCE ROW LEVEL SECURITY` fix remains a Postgres design. Business unit, geography and
+> classification are not scope dimensions. A reader planning a multi-entity deployment should treat
+> defence in depth here as unbuilt rather than as configured.
+
+### 3.4 Authentication
+
+Three routes to a principal, all against the same register:
+
+**Password.** PBKDF2-HMAC-SHA256, **200,000 iterations**, a 32-hex-character salt per principal. A
+successful verification is cached for **60 seconds** under a per-process peppered key that never holds
+the password — and the cache shortens the key derivation and **never the decision**: `status` is
+re-read from the store on every request, so suspending a principal takes effect immediately. An
+unknown username is hashed against a dummy salt so it costs the same as a wrong password.
+
+**HTTP Basic**, for services, against that same register. A malformed `Authorization` header is treated
+as absent rather than as an error, because a broken header and a missing one should not be
+distinguishable to a prober.
+
+**SSO — see §3.5.**
+
+### 3.5 Single sign-on
+
+The authorisation-code flow with **PKCE, a state parameter and a nonce** — all standard, all checked,
+and PKCE used even when a client secret is configured. Discovery must yield an issuer matching the
+configured one; the state must match and be under ten minutes old; the ID token's issuer, audience,
+expiry, issued-at and nonce are each checked with 120 seconds of leeway.
+
+**RS256 verification is in the standard library** (`core/authz/jws.py`), for the same reason every
+front-end asset is vendored: a governance system that cannot be deployed air-gapped is one somebody
+works around. Two details are the whole of why it is written rather than imported:
+
+- The verifier **constructs** the padded block the signature should have produced —
+  `00 01 FF…FF 00 || DigestInfo || SHA-256` — and compares the whole of it, rather than parsing what
+  it recovers. That is the difference between correct PKCS#1 v1.5 and the Bleichenbacher forgery,
+  which works precisely against verifiers that parse.
+- It **decides the algorithm itself** rather than reading `alg` from the token. That is the other
+  famous way a JWT is accepted with no signature at all.
+
+Alongside: a 2048-bit minimum modulus, and a refusal to try keys in turn when a token carries no `kid`
+and the provider publishes several — `ambiguous_key`, because guessing is how a verifier ends up
+accepting a signature from a key nobody meant to trust. Tested against genuine OpenSSL-signed tokens
+rather than against its own arithmetic.
+
+**What is not mechanical is roles.** An identity provider that grants MAYA roles is one that decides
+segregation of duties, and the person administering it is very often the person whose duties are being
+segregated. So:
+
+- **Group claims are mapped, never obeyed.** A group with no mapping in `auth.oidc.roles.*` grants
+  nothing, and never grants itself.
+- **The incompatible-roles check of §3.1 applies to a directory exactly as it does to a local
+  principal.** A group membership mapping to a conflicting pair **refuses the login** rather than
+  accepting both or quietly reducing to one — and it is checked *before* the provisioning check, so
+  the lesser problem cannot hide the greater.
+- **Provisioning on first login is off by default**, because it hands everybody in the directory a
+  foothold in the model register.
+- The issuer, subject and the groups that produced the roles are recorded on an evidence node, so
+  *"why did this person have that role in March"* survives the directory moving on. The token is not.
+
+**No SAML and no SCIM.** A SAML-only directory is unsupported, and automatic deprovisioning is not
+built, so **a leaver is suspended by hand**. That is a real operational obligation, and stating it here
+is cheaper than a bank discovering it during an access review.
+
+### 3.6 Versioned gates
+
+A gate that cannot be changed without a release is a gate people work around; a gate that *can* be
+changed without one is a gate that can be **weakened** without one, which is worse. `core/policy/`
+makes the first possible without making the second silent.
+
+A rule is a **predicate over a closed vocabulary of facts** — comparison, membership, boolean
+connectives, `any` and `all` over a generator, six other functions, and no loops, assignment, function
+definitions, attribute access or subscripting. That restriction is what makes a rule something a
+reviewer can reason about rather than something they have to run. A fact the gate does not publish is
+refused **when the rule is written**, because a rule that failed at the moment of a governance decision
+would have failed at the worst possible time.
+
+Four gates, each publishing its own facts: `version:approve` (12), `alias:move` (9), `model:mutate` (5),
+`warrant:resolve` (8). There is no `warn` verdict — a gate that warns is a gate that is not a gate.
+
+Four properties do the work:
+
+- **A policy ships with its own cases and cannot be published until they pass**, and **at least one
+  must be a case it refuses**: a policy nobody has shown to refuse anything is a policy nobody has
+  shown to be a gate.
+- **Weakening is allowed and never quiet.** On publication the register replays the *outgoing*
+  version's cases against the incoming rule and reports every verdict that flipped, bucketed as
+  `loosened` or `tightened`, into the evidence node and the log. A change that loosens a gate becomes
+  something somebody decided rather than something somebody discovered.
+- **Authoring and publishing are separate permissions.** Cases are re-run at publish time, not trusted
+  from the draft.
+- **An instance that publishes nothing runs exactly what it ran before**: the built-in rules are the
+  default for every gate, expressed in the same language.
+
+And the honest boundary, stated rather than implied: **policy tightens; the code's invariants are the
+floor.** A rule runs *in addition to* the checks written in the registry, never instead of them.
+Loosening a gate still costs a release — deliberately, because replacing an invariant with a line of
+configuration means a typo can weaken the platform and the failure looks like a successful deployment.
+
+### 3.7 Attached documents
+
+The other half of documentation: the papers people wrote, as against the ones MAYA compiled.
+
+Stored under the **SHA-256 of their bytes**, so the same file is stored once and cannot be edited in
+place — changing a byte changes the digest, which is the whole mechanism. They are **re-hashed on the
+way out**, and a mismatch raises rather than serves: *"the stored bytes for sha256:… no longer hash to
+that digest — the store has been tampered with or has corrupted; do not use this document and raise an
+incident."* What an approver accepted is what a reader fetches, checked rather than assumed.
+
+Filed against the **version** they describe rather than the model, because a development document
+describes the coefficients it printed and not their replacement; model-level filing exists and has to
+be asked for. **Review is segregated twice**: by role grant, and again in the register, so the person
+who filed a document cannot accept it even if their role would let them — and that check precedes the
+accept/reject branch, so it applies to a rejection too. Rejection requires a reason, and the rejected
+document stays on file, because the papers that did not pass are the ones a supervisor asks about.
+Supersession names what it replaces, so *"which MDD was in force in March"* is answerable.
+
+Each attachment records whether its bytes are text the platform can genuinely read — six media types
+qualify, and PDF and Word are not among them. They are served faithfully and reported as **not
+machine-readable**, because that is what they are. There is no extraction pipeline and no retrieval
+over document content: the register is *shaped* to support machine review of filed documents, and that
+review is not built. Saying which is the difference between a roadmap and a claim.
 
 ---
 
 ## 4. Audit
 
+**There is no separate `audit_log` table. The evidence chain is the audit log**, and that is a
+deliberate consolidation rather than an omission: two records of who did what are two records that can
+disagree, and segregation of duties (§3.2) is decided by reading the chain, which only works if the
+chain is the record.
+
 ```
-audit_log:  actor · action · subject · before · after · request_id · ip · justification
-            prev_hash · hash          ← SHA-256 chain over the canonicalised record
+evidence_node:  seq · kind · subject_type · subject_id · payload · parents
+                contains_personal_data · trust · recorded_at · recorded_by
+                content_hash · prev_hash · chain_hash
 ```
 
-- **Append-only at the database role level.** The application role has `INSERT`/`SELECT` only.
-- **Hash-chained.** A daily verification job walks the chain and alarms on any break.
-- **Anchored.** The daily chain head is written to WORM storage and, optionally, to an internal
-  timestamping authority — so tampering requires compromising two systems with different controls.
-- **Comprehensive.** Every mutating call, every sensitive read (artifact download, PII feature preview,
-  examiner access), every policy evaluation that denied an action.
+- **Two structures, one table.** The `parents` edges are a DAG and say *what supports what*. The
+  `seq`/`prev_hash` chain is linear and says *what order things happened in*, which is what makes
+  deleting a leaf or inserting into the past detectable — finding C-4.
+- **Verification re-derives, and this is where a real defect lived.** `verify_chain` recomputes each
+  node's `content_hash` from the node's own kind, subject, payload and parents, and only then checks
+  the links. Re-linking a *stored* content hash proves the links are intact and says nothing about
+  whether the thing linked is still what was recorded — so an edited payload left a chain that
+  verified and a record that lied. The scale suite found it. The unit test that should have found it
+  years earlier was named for payload tampering while actually altering the stored hash: a test
+  passing for a reason other than its name, which is the failure mode a green suite is worst at
+  showing you. Both are fixed, and the four checks now run in order: sequence gap → `prev_hash` →
+  **re-derived `content_hash`** → `chain_hash`.
+- **`L-18` is enforced in the append path, not in DDL.** A node flagged `contains_personal_data`
+  stores an empty payload *and is hashed over what it stored*, so it verifies against itself. Hashing
+  the original would make every such node fail its own verification — which is the trap the obvious
+  implementation falls into.
+- **Anchoring is not built.** Writing the daily chain head to WORM storage and to an RFC-3161
+  timestamping authority is C-4's third disposition and remains a design. Until it exists,
+  verification compares the chain against itself, and self-consistency of a chain an attacker
+  controls proves less than it appears to.
+- **Append-only at the database role level** is likewise a target; the shipped schema has no role
+  separation.
+- **Comprehensive for governance acts, and not for reads.** Every governance act appends a node —
+  a version created, a tier assessed, an alias moved, a finding raised or closed, a document accepted,
+  a policy published, an SSO login and the groups that produced its roles. Sensitive *reads* — an
+  artifact download, a PII feature preview, an examiner's query — are **not** recorded, which is a gap
+  worth naming because an access-review question about who looked at what has no answer here.
 - **Justification required** for: overrides, exceptions, break-glass, alias moves, revocations,
   decommissioning, tier overrides.
-- **Retained 10 years**, partitioned monthly, with partition-level WORM.
+- **Retention is unbounded.** Ten-year retention, monthly partitioning and partition-level WORM are
+  targets; nothing expires today, and nothing is partitioned.
 
 ---
 

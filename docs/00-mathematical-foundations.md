@@ -21,8 +21,10 @@ Every abstraction below must satisfy the **rent test**:
 > hand-check, or hand-migrate — and only if that property is stated as an executable law.
 
 Mathematics that is merely elegant is recorded in §13 (*Deliberate non-adoptions*) and not implemented.
-Every law in §12 becomes a property-based test in the codebase. The theory is not decoration; if a law
-fails in CI, the build fails.
+The rent an abstraction pays is a law, and §12 states each law together with whether it is executable
+today. Where a law runs, a failure fails the build. Where it does not run, §12 says so by name — an
+unexecuted law is a claim about a design, and a document that lets the two look alike has stopped being
+a foundation and become a brochure.
 
 ---
 
@@ -85,7 +87,7 @@ flowchart TB
 | 3 | **Assume–guarantee contract algebra**, **abstract interpretation**, **Yoneda (probe-relative)** | Operating boundaries, model cards, vendor black boxes, version compatibility | Contract composition/refinement/quotient give automatic compatibility checking; sound abstraction gives never-understated risk summaries |
 | 4 | **Fibrations**, Grothendieck construction, indexed categories | Versions over models, classes over the registry, environments, tenants | New model classes are new fibres — plugin, not migration |
 | 5 | **Institutions** (abstract model theory) | Multiple simultaneous regulatory regimes | New regulator = new institution + comorphism; *satisfaction condition* guarantees determinations survive translation |
-| 6 | **Commutative semirings**, **lattices/Galois connections**, **bitemporal relational algebra**, **MTL** | Evidence, risk tiering, time, obligations | One evidence engine → lineage, trust, cost, classification by swapping the semiring; monotone tiering; PIT correctness as a theorem; monitors synthesized from specs |
+| 6 | **Commutative semirings**, **lattices/Galois connections**, **bitemporal relational algebra**, **MTL** | Evidence, risk tiering, time, obligations | One evidence engine → sufficiency, minimal justification, corroboration, trust, cost and currency by swapping the semiring; monotone tiering; PIT correctness as a theorem. The MTL half is design, not code: obligations are discharged by five named scheduler jobs rather than compiled from formulae (§11.2) |
 
 ---
 
@@ -171,6 +173,30 @@ Three consequences that are immediately practical:
    schema for a vendor model demands *behavioural* evidence (own-outcomes analysis, benchmarking) rather
    than developmental evidence — the mathematics says the only thing we can observe is the composite.
 
+### 4.2a Two of the three letters become objects in the register
+
+`f : P ⊗ X → D(Y)` names three things. For a long time only the morphism had a home: a model version
+was the record, and `P` and `X` were fields on it. Both are now registrable objects, and each closes a
+question the other shape could not answer.
+
+**`X` becomes a featureset.** A featureset declares a *schema* — named slots with types — and a
+version *fills* it, binding each slot to a feature and to the exact feature view version supplying its
+values. The separation is the point: the kernel reads the *slot*, so swapping a constituent does not
+change `X`, and a version that cannot fill the schema is refused as a different set or as a model
+change. That is what makes "different versions may hold different features, all adhering to the same
+structure" true rather than hopeful.
+
+**`P` gets its inhabitants.** A fit produces a **parameter set** and *not* a new model version,
+because the kernel did not change — a refit picks a different point in `P` and leaves `f` alone. The
+alternative, minting a version per retrain, makes *"the model changed"* mean two different things, and
+a governance vocabulary in which one phrase means two things is a vocabulary that will eventually be
+used to mean the wrong one. A parameter set nonetheless changes behaviour, so it is immutable,
+versioned, accepted only against a warrant MAYA issued, named by the featureset version that produced
+it, and approved by somebody other than whoever recorded it.
+
+The admissibility rules this forces are `L-W8`, `L-W9` and `L-W10` in §12b. Specification:
+[15 — Featuresets and the Parameter Object](15-featuresets-and-parameters.md).
+
 ### 4.3 Determinism is a property, not a category
 
 In a Markov category, `f` is deterministic iff `copy ∘ f = (f ⊗ f) ∘ copy`. MAYA computes and stores this
@@ -254,6 +280,46 @@ This makes MAYA's version semantics precise and honest:
 And it forces the honest caveat that no product states: **equivalence is only as strong as `Π`.** MAYA
 therefore stores `Π` with every equivalence claim, measures probe-set coverage, and treats "probe set too
 weak for this tier" as a finding. That is the Yoneda lemma doing real governance work.
+
+> **State, stated.** `pi_equivalent` and its coverage measure are implemented in
+> `core/domain/identity.py` and exercised by the domain tests. They are **not yet wired into version
+> promotion**: nothing today refuses a PATCH bump for a thin probe set. The definition is the part
+> that had to be right first; the gate is not built, and calling it built would be exactly the kind of
+> claim §5.3 exists to make checkable.
+
+### 5.4 Composition of *definitions* is a monoid
+
+§5.1 composes models. A second, humbler composition runs underneath it and turns out to carry more
+weight day to day: composing the *definitions* of features and featuresets, where one object inherits
+from a parent, or combines several.
+
+Inheriting from one parent and combining several are the same operation at different arities, so there
+is one mechanism rather than two. Members resolve by a **left-to-right fold in which the rightmost
+wins**, and an object's own operations are applied last:
+
+```
+resolve(x) = apply( merge( fold(parents), members(x) ), operations(x) )
+merge(a, b) = b overrides a, key by key
+```
+
+Merge-with-rightmost-wins over a keyed map is **associative**, and the empty map is its **identity**.
+Composition is therefore a **monoid** — and that is not decoration. It is precisely what makes *"a
+combination of features is a feature"* and *"a combination of featuresets is a featureset"* statements
+rather than aspirations: grouping does not matter, so `(a·b)·c` and `a·(b·c)` cannot disagree, and the
+empty composition is the thing itself. Without associativity, the order in which a reviewer *read* a
+composition could differ from the order the platform *resolved* it, and neither of them would be wrong.
+
+Two consequences follow directly from the algebra rather than from taste:
+
+- **Every operation is total.** `add` of something a parent already has, `drop` of something no parent
+  has, and `override` of something no parent has are each **refused**. The no-op alternative leaves a
+  child quietly differing from what its author wrote, which is a divergence nobody is looking for.
+- **The precedence rule is reused, not re-invented.** Retrieval policy — filling, normalising,
+  aligning — merges under the *same* fold: parents left to right, then the object's own defaults, then
+  the request. One rule, so a reader who has learnt it once has learnt it everywhere.
+
+This is `L-19` in §12, and both monoid properties are asserted in `tests/test_composition.py`. The
+specification is [16 — Features Composed, Shaped and Prepared](16-features-composed-and-shaped.md).
 
 ---
 
@@ -436,34 +502,46 @@ computed from base evidence nodes by `⊕`/`⊗`.
 This is the single highest-leverage result in the document. **The same evidence computation, evaluated in
 different semirings, answers completely different questions:**
 
+The six implemented in `core/evidence/semirings.py`, each named exactly as the code names it:
+
 | Semiring `K` | `⊕` , `⊗` | Question it answers |
 |---|---|---|
-| `B = ({⊥,⊤}, ∨, ∧)` | or, and | *Is there sufficient evidence at all?* — gate evaluation |
-| `ℕ` | `+`, `×` | *How many independent derivations support this?* — corroboration depth |
-| `Why(X)` = sets of sets of evidence ids | `∪`, pairwise `∪` | *Which minimal sets of evidence suffice?* — **why-provenance**; what an examiner must be shown |
-| `ℕ[X]` provenance polynomials | polynomial `+`, `×` | *Exactly how was this derived, with multiplicities?* — **how-provenance**; full audit reconstruction |
-| `([0,1], max, ×)` | max, product | *How much confidence does this claim carry?* — trust scoring, model health |
-| Tropical `(ℝ⁺∪{∞}, min, +)` | min, plus | *What is the cheapest / fastest path to close this gap?* — validation effort and cost attribution |
-| Security lattice `(L, ⊓, ⊔)` | meet, join | *What classification does this derived artifact inherit?* — automatic PII/confidentiality propagation (`FR-SEC-007`) |
-| `(2^Regimes, ∩, ∪)` | intersect, union | *Which regulatory regimes is this evidence admissible for?* |
-| `(Time, max, max)` | latest, latest | *As of when is this claim current?* — **staleness** (`FR-DOC-004`) |
+| `boolean` — `({⊥,⊤}, ∨, ∧)` | or, and | *Is there sufficient evidence at all?* — gate evaluation |
+| `counting` — `ℕ` with `+`, `×` | `+`, `×` | *How many independent derivations support this?* — corroboration depth |
+| `why` — sets of sets of evidence ids | `∪` with absorption, pairwise `∪` | *Which minimal sets of evidence suffice?* — **why-provenance**; what an examiner must be shown |
+| `trust` — `([0,1], max, ×)` | max, product | *How much confidence does this claim carry?* — trust scoring, model health |
+| `cost` — tropical `(ℝ⁺∪{∞}, min, +)` | min, plus | *What is the cheapest / fastest path to close this gap?* — validation effort and cost attribution |
+| `freshness` — `(Time, max, max)` | latest, latest | *As of when is this claim current?* — **staleness** (`FR-DOC-004`) |
 
-We implement the evidence engine **once**, generically over `K`, and obtain nine capabilities that
-competitors build as nine features. Adding a tenth analysis means defining a tenth semiring — roughly
-twenty lines of code — and it is automatically consistent with the other nine, because they share the
-derivation structure.
+We implement the evidence engine **once**, generically over `K`, and obtain six capabilities that
+competitors build as six features. Adding a seventh analysis means defining a seventh semiring —
+roughly twenty lines of code — and it is automatically consistent with the other six, because they
+share the derivation structure.
 
-> **Practical note.** `ℕ[X]` (how-provenance) is the *universal* semiring: computing once in `ℕ[X]` and
-> then applying a semiring homomorphism `ℕ[X] → K` recovers the answer in any other `K`. MAYA therefore
-> stores provenance polynomials for Tier 1 evidence and evaluates on demand, and stores the cheaper
-> `Why(X)` form below Tier 1. That is a storage/precision trade-off with a theorem telling us exactly
-> what we lose.
+Three further semirings are *implied by the construction and are not built*, and it is worth saying
+which, because the sentence "one engine, many analyses" is only interesting if the count is honest:
+
+| Semiring `K` | Would answer | State |
+|---|---|---|
+| `ℕ[X]` provenance polynomials | *Exactly how was this derived, with multiplicities?* — how-provenance | **Not built.** `Why(X)` is what is stored |
+| Security lattice `(L, ⊓, ⊔)` | *What classification does this derived artifact inherit?* — PII propagation (`FR-SEC-007`) | **Not built.** Sensitivity is a column on `feature`, not a propagated annotation |
+| `(2^Regimes, ∩, ∪)` | *Which regimes is this evidence admissible for?* | **Not built.** Regime determinations are computed in `core/regimes/`, not over the evidence semiring |
+
+> **What `ℕ[X]` would have bought, and why its absence costs little here.** `ℕ[X]` is the *universal*
+> semiring: computing once in `ℕ[X]` and then applying a homomorphism `ℕ[X] → K` recovers the answer
+> in any other `K`. That is the elegant construction, and it is not the one MAYA runs. Evaluation is
+> re-run per semiring over a memoised traversal instead, which costs a traversal and loses the
+> multiplicities `ℕ[X]` would have carried. No governance question we have found asks for a
+> multiplicity, so the trade is recorded rather than defended.
 >
 > **Complexity, stated honestly (finding M-2).** `Why(X)` is worst-case *exponential* in the number of
 > alternative derivations, and governance DAGs are not always shallow. Mitigations are concrete rather
-> than aspirational: canonical form with absorption (`a ⊕ ab = a`), memoisation over subgraphs, depth
-> caps, and a hard term cap beyond which evaluation **degrades to `Boolean ⊕ Trust` and emits an
-> explicit truncation marker** — never a silently partial answer.
+> than aspirational: canonical form with absorption (`a ⊕ ab = a`) and memoisation over subgraphs are
+> implemented, and a hard term cap of **4,096** stops accumulating alternatives and returns
+> `truncated = true` alongside the partial value. Note precisely what that does and does not do: it
+> **marks** the answer as partial. It does not fall back to a cheaper semiring, and a caller that
+> ignores the marker gets a `Why` set that is a subset of the true one. The marker is the control; the
+> partial answer is not silently correct.
 
 ### 9.3 Gluing: evidence as a sheaf
 
@@ -566,12 +644,17 @@ G( in_production ∧ ¬approved  →  X alert )
 ```
 
 Monitors for MTL formulas can be **synthesized automatically** by standard runtime-verification
-constructions. So MAYA's obligation engine is not a hand-written scheduler with special cases; it is a
-compiler from declarative specifications to monitors. New obligations are new formulas.
+constructions, so an obligation engine can in principle be a compiler from declarative specifications
+to monitors rather than a hand-written scheduler with special cases.
 
-A thin **deontic** layer (obligation `O`, permission `P`, prohibition `F`) sits on top, because model
-governance genuinely distinguishes *must*, *may* and *must not* — and because contradiction detection
-(`O φ ∧ F φ`) catches policy conflicts before they reach users.
+> **State, stated.** That compiler is **not built**, and neither is the deontic layer (obligation `O`,
+> permission `P`, prohibition `F`) that `L-16`'s contradiction check would run over. What ships is the
+> thing the compiler would have generated: five idempotent jobs in `core/scheduler/jobs.py`, one per
+> obligation — a lapsed attestation and a stalled monitor each raise a finding, overlays past their
+> window close, baseline debt reconciles, and a missed remediation window is recorded as its own
+> finding rather than by rewriting the original. Five hand-written monitors are not an argument
+> against the construction; they are what the construction is worth deferring until there are fifty.
+> The formulae above are therefore a specification of those jobs, not a description of a compiler.
 
 ### 11.3 Documentation as a lens
 
@@ -598,29 +681,64 @@ author can act on.
 
 ## 12. The laws MAYA enforces
 
-Each of the eighteen laws below is implemented as a property-based test in the MAYA test suite. **If a law fails, the
-build fails.** This is how the theory stays honest.
+A law is what separates a foundation from an ornament: a statement precise enough that a machine can
+tell you it has stopped being true. The nineteen below are the laws the pillars imply.
 
-| # | Law | Pillar | Test strategy |
+**The honest state of them.** Seven are executable today and fail the build when they fail: `L-4`,
+`L-5`, `L-7`, `L-12`, `L-18`, `L-19`, and the warrant-grammar family of §12b. The rest are **stated
+and not yet executable** — either because the mechanism they govern is not built (`L-17` needs an
+online store; `L-13` needs the gluing computation; `L-16` needs the deontic layer), or because the
+property is enforced by construction and never re-asserted (`L-1`, `L-2`, `L-6`, `L-11`). That
+distinction is recorded per law in the **State** column below rather than averaged away, because the
+opposite habit — a document asserting that every law runs in CI while six of them do — is the exact
+failure this section exists to prevent. There is no `tests/laws/` directory; the executable laws live
+beside the code they constrain, named in the last column.
+
+| # | Law | Pillar | State, and where it runs |
 |---|---|---|---|
-| **L-1** | *Functoriality of lifecycle.* A model's history is a path in the free category on its lifecycle graph; no state is reachable except along declared transitions. | §2, §5.1 | Generate random event sequences; assert all reachable states are lifecycle-legal |
-| **L-2** | *Immutability.* For any version `v`, `hash(manifest(v))` is constant over its lifetime. | §4 | Hash on read; compare with stored digest |
-| **L-3** | *Determinism flag correctness.* `deterministic(f)` ⟹ repeated execution on identical input is bit-identical. | §4.3 | Double-execution differential test in the sandbox |
-| **L-4** | *Tiering monotonicity.* `(m,c) ⊑ (m',c') ⟹ τ(m,c) ⊑ τ(m',c')`. | §10.1 | Property test over generated lattice pairs |
-| **L-5** | *Control adequacy Galois adjunction.* `req(t) ⊑ c ⟺ t ⊑ sup(c)`. | §10.2 | Exhaustive check over the finite tier chain × control lattice |
-| **L-6** | *Abstraction soundness.* For every generated summary `a` of behaviour `c`: `c ⊑ γ(a)`. | §6.2 | Replay in-boundary evaluation data against every quantitative claim in generated documents |
-| **L-7** | *Contract refinement on substitution.* An alias move to version `v'` requires `contract(v') ⪯ contract(v)`. | §6.1 | Refinement checker at alias-move time; property test on generated contracts |
-| **L-8** | *Satisfaction condition.* For every regime comorphism `σ`: `M' ⊨ σ(φ) ⟺ Mod(σ)(M') ⊨ φ`. | §8.2 | Property test over generated inventory states × regime obligations |
-| **L-9** | *Provenance homomorphism.* For any semiring homomorphism `h : ℕ[X] → K`, evaluating in `K` equals `h` applied to the `ℕ[X]` result. | §9.2 | Differential test across all implemented semirings |
-| **L-10** | *PIT correctness.* Every generated training set satisfies the condition of §11.1. | §11.1 | Automated verifier run on every dataset snapshot; synthetic leakage injection must be caught |
-| **L-11** | *Lens laws.* GetPut, PutGet and PutPut hold for every document template. | §11.3 | Round-trip property tests per template |
-| **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §6.3 | Static check at warrant issuance; property test on generated schema pairs |
-| **L-13** | *Evidence gluing.* Overlapping evidence sections have consistency radius ≤ declared tolerance. | §9.3 | Computed at validation-report compile time |
-| **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | Property test over generated model graphs |
-| **L-15** | *Fibration completeness.* Every model class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §7 | Startup validation of the class registry; CI check on plugin registration |
-| **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §11.2 | SAT check on the compiled policy set at policy-publish time |
-| **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | Continuous production check, **not** a design-time assertion — C-2 was invisible to every design-time check |
-| **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no inline payload, only an erasable pointer. | [11 · H-3](11-adversarial-review.md) | DB `CHECK` constraint plus a payload scanner; reconciles append-only evidence with GDPR erasure |
+| **L-1** | *Functoriality of lifecycle.* A model's history is a path in the free category on its lifecycle graph; no state is reachable except along declared transitions. | §2, §5.1 | **By construction.** `core/lifecycle/states.py` admits only declared transitions; no generative property test |
+| **L-2** | *Immutability.* For any version `v`, `hash(manifest(v))` is constant over its lifetime. | §4 | **By construction.** The registry refuses field changes on an approved version. Note the schema has no `CHECK` and no trigger: this is application-enforced, and finding C-3's trigger remains a Postgres design, not shipped DDL |
+| **L-3** | *Determinism flag correctness.* `deterministic(f)` ⟹ repeated execution on identical input is bit-identical. | §4.3 | **Not executable.** Stored and carried into the warrant (`operation.determinism`); no double-execution differential test |
+| **L-4** | *Tiering monotonicity.* `(m,c) ⊑ (m',c') ⟹ τ(m,c) ⊑ τ(m',c')`. | §10.1 | **Executable.** Hypothesis property test over generated lattice pairs — `tests/test_risk.py::TestTauMonotonicity` |
+| **L-5** | *Control adequacy Galois adjunction.* `req(t) ⊑ c ⟺ t ⊑ sup(c)`. | §10.2 | **Executable.** Exhaustive over the finite tier chain — `tests/test_risk.py::TestControlAdjunction`. Also decides the version-approval quorum |
+| **L-6** | *Abstraction soundness.* For every generated summary `a` of behaviour `c`: `c ⊑ γ(a)`. | §6.2 | **Not executable.** Rescoped by M-5 to quantitative claims in structured sections; the replay that would check them is not built |
+| **L-7** | *Contract refinement on substitution.* An alias move to version `v'` requires `contract(v') ⪯ contract(v)`. | §6.1 | **Executable and enforcing.** `core/domain/contracts.py::refines`, discharged at alias-move time in `core/registry/aliases.py`; `tests/test_domain.py` |
+| **L-8** | *Satisfaction condition.* For every regime comorphism `σ`: `M' ⊨ σ(φ) ⟺ Mod(σ)(M') ⊨ φ`. | §8.2 | **Enforcing, over probe states rather than generated ones.** `core/regimes/` checks the condition against states spanning the corners, and a regime whose encoding fails it cannot be activated |
+| **L-9** | *Provenance homomorphism.* For any semiring homomorphism `h : ℕ[X] → K`, evaluating in `K` equals `h` applied to the `ℕ[X]` result. | §9.2 | **Vacuous as stated.** `ℕ[X]` is not implemented (§9.2), so there is no universal object to push forward from |
+| **L-10** | *PIT correctness.* Every generated training set satisfies the condition of §11.1. | §11.1 | **Enforcing, in the rescoped form of H-6.** Static rejection of an assembly missing either clock is a genuine refusal (`core/features/pit.py::static_check`); sampling gives detection, never absence |
+| **L-11** | *Lens laws.* GetPut, PutGet and PutPut hold for every document template. | §11.3 | **Not executable.** The compiler regenerates whole documents; there is no `put`, so no round trip to test |
+| **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §6.3 | **Executable and enforcing.** `core/domain/schemas.py::substitutable`, at alias moves and — as `L-W10` — at warrant issuance; `tests/test_domain.py` |
+| **L-13** | *Evidence gluing.* Overlapping evidence sections have consistency radius ≤ declared tolerance. | §9.3 | **Not built.** No gluing computation exists |
+| **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | **Not built.** Composite warrants and aggregate `ρ` are design; no code computes an interaction premium |
+| **L-15** | *Fibration completeness.* Every model class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §7 | **Not built as a startup gate.** Model classes are strings on the register; there is no plugin loader refusing to boot on a partial fibre |
+| **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §11.2 | **Not built.** No deontic layer. The nearest shipped thing is the policy register's replay of the outgoing version's cases, which reports flipped verdicts rather than proving consistency |
+| **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | **Not executable — there is no online store.** `core/features/contracts.py::serving_namespaces` computes what serving *must* read, which is the half of the comparison that can exist without one. The runtime half arrives with the store |
+| **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no inline payload, only an erasable pointer. | [11 · H-3](11-adversarial-review.md) | **Executable and enforcing**, in the append path rather than in DDL: `core/evidence/engine.py` stores an empty payload for such a node *and hashes what it stored*, so the node verifies against itself. `tests/test_evidence.py` |
+| **L-19** | *Composition is a monoid.* Merge-with-rightmost-wins over definitions is associative, with the empty composition as identity. | §5.4 | **Executable.** Both properties asserted in `tests/test_composition.py` |
+
+### 12b. Warrant admissibility
+
+A second family governs what a warrant may *ask for*. They are not invented for the grammar: the
+trainability class is derived from how `P` is inhabited, so what a class admits is what the class
+means. All eleven are checked before a warrant is signed — signing a non-conforming document would
+assure that it is authentic and not that it is usable, and an engine would reasonably read it as both.
+
+| # | Refuses | Because | Where |
+|---|---|---|---|
+| **L-W0** | A malformed document | Ten required sections, a known verb, a known runtime with its entry keys, known bindings with theirs | `grammar/validator.py` |
+| **L-W1** | `fit` on T0 or T6 | T0's parameters come from theory; T6's are inside a vendor black box | `grammar/rules.py` |
+| **L-W2** | `generate` on a non-generative runtime | An ONNX graph does not produce prose | `grammar/rules.py` |
+| **L-W3** | Training from a non-bitemporal binding | It cannot be read as-of, so it cannot be shown leak-free | `grammar/rules.py` |
+| **L-W4** | A `fit` with no `parameter_object` sink | A fit must say where the parameters it produces will go | `grammar/rules.py` |
+| **L-W5** | Claimed determinism from a stochastic runtime with no seed | An LLM at temperature 0.7 is not reproducible, and would be believed | `grammar/rules.py` |
+| **L-W6** | `fit` on a `descriptor_only` model | You cannot inhabit what nothing on this side can reach | `grammar/rules.py` |
+| **L-W7** | A backtest with no outcomes | That is a re-score wearing a backtest's name | `grammar/rules.py` |
+| **L-W8** | A run that will not say which point in `P` it runs at | Fitting does not change the kernel, so a run declining to name its inhabitant produces a number attributable to nothing. Only a `fit` may leave it unfilled, and a `fit` must bind `to_be_fitted` and nothing else — it *writes* the parameter object, so declaring that it reads one describes the wrong direction | `grammar/rules.py` |
+| **L-W9** | A featureset read for training that is unbounded in either clock | The set fixes the columns; the warrant must fix the period, or *train on 2019–23* and *train on 2020–24* are the same document | `grammar/rules.py` |
+| **L-W10** | A featureset that does not provide what the kernel declares it reads | Contravariance in inputs — `L-12` applied one level out. Refused as `schema_not_satisfied` | `core/execution/warrants.py` |
+
+`L-W8` earned its place immediately: it caught a real error in the shipped Hull–White calibration
+example, which claimed its calibration set came from an artifact while its verb produced it.
 
 ---
 
@@ -701,21 +819,30 @@ against the rent test of §0.
 
 The abstractions are not confined to this document. They appear in the codebase as named artifacts:
 
+The package is `core/`, not `maya/`. Where a concept has no row, it has no code, and the row says so —
+an index that quietly omits the unbuilt entries is how a reader concludes the whole table is built.
+
 | Concept | Where it lives |
 |---|---|
-| `Para(Stoch)` model definition | `maya/domain/model_algebra.py` — `ParametricKernel`, `ParameterObject`, `FittingProcedure` |
-| Trainability class as fitting-morphism kind | `maya/domain/trainability.py` |
-| Model composition, string diagrams | `maya/domain/composition.py`; composite warrants in `maya/warrants/composite.py` |
-| Contract algebra (⪯, ⊗, ∧, /) | `maya/domain/contracts.py` |
-| Fibrations / class registry | `maya/registry/fibres.py`, plugin entry points `maya.model_class` |
-| Institutions & comorphisms | `maya/regimes/institution.py`, one module per regime |
-| Provenance semirings | `maya/evidence/semiring.py` — `Semiring` protocol + nine instances |
-| Sheaf consistency radius | `maya/evidence/gluing.py` |
-| Risk lattices & Galois connection | `maya/risk/lattice.py`, `maya/risk/tiering.py` |
-| Bitemporal PIT verifier | `maya/features/pit.py` |
-| MTL obligation compiler | `maya/policy/temporal.py` |
-| Document lenses | `maya/docs/lens.py` |
-| The eighteen laws | `tests/laws/test_L01.py` … `test_L18.py` |
+| `Para(Stoch)` model definition | `core/domain/algebra.py` — `ParametricKernel`, `ParameterObject`, `FitProcedure` |
+| Trainability class as fitting-morphism kind | `core/domain/algebra.py` — `trainability_class`, a derived property; there is no `trainability.py` because there is nothing to store |
+| Contract algebra (⪯, ⊗, ∧, /) | `core/domain/contracts.py` — `refines`, `compose`, `conjoin`, `quotient` |
+| Schema lattice and variance | `core/domain/schemas.py` — `substitutable` |
+| Probe-relative equivalence (Yoneda) | `core/domain/identity.py` — `pi_equivalent`; defined and tested, not yet wired into promotion (§5.3) |
+| Definition composition as a monoid | `core/features/composition.py` — `merge`, `fold`, `apply`, `Resolver` |
+| Provenance semirings | `core/evidence/semirings.py` — `Semiring` + **six** instances (§9.2) |
+| Evidence chain and evaluation | `core/evidence/engine.py` — `append`, `verify_chain`, `evaluate` |
+| Risk lattices & Galois connection | `core/risk/lattices.py`, `core/risk/tiering.py` — `tau`, `required_controls`, `supports_tier` |
+| Bitemporal PIT verifier | `core/features/pit.py`; the assembly rule itself in `core/features/assembly.py` |
+| Institutions & comorphisms | `core/regimes/` — `signature.py`, `sentences.py`, `translation.py`, `library.py` |
+| Document lenses | `core/docs/lenses.py` — fifteen lenses; `get` only, no `put` (see `L-11`) |
+| Warrant grammar and its laws | `core/execution/grammar/` — `vocabulary.py`, `rules.py`, `validator.py`, `schema.py` |
+| Featuresets and parameter sets | `core/features/sets.py`, `core/parameters/register.py` |
+| The executable laws | Beside the code they constrain: `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W1…L-W9), `tests/test_api.py` (L-W10). There is no `tests/laws/` package |
+| Sheaf consistency radius (`L-13`) | **Not built** |
+| Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
+| Fibre registry with startup totality (`L-15`) | **Not built** — a model class is a string on the register |
+| MTL obligation compiler and the deontic layer (`L-16`) | **Not built** — five named jobs in `core/scheduler/jobs.py` do the work an obligation compiler would generate |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its module
 structure looks the way it does.

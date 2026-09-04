@@ -90,6 +90,31 @@ exists to prevent, introduced by the platform itself, with **every guard reporti
 Cost is roughly `k ×` online storage, where `k` is the number of concurrently pinned versions per view —
 in practice 1–2. That is the correct price.
 
+#### Recurrence — the same failure, found twice more during the build
+
+C-2 was recorded as a defect. It is better read as a **class**, and the evidence for that is that the
+identical shape has since been found twice more, in code, in places the original disposition did not
+reach. The shape is always this: **a stable identifier over moving contents.** Something names a thing;
+the thing can change underneath the name; the digest of the namer does not move; every guard reports
+green.
+
+| Where | The pin that was not one | Found | Disposition |
+|---|---|---|---|
+| **Feature view** (the original C-2) | An online store keyed by entity, serving whatever was latest | Design review | The version *is* the serving namespace |
+| **Featureset** — one level out from the view | A featureset version bound each slot to a **path**. A path is mutable: two writes produce two Delta versions and a read gets whichever is current, so a snapshot was reproducible only until somebody wrote to the view again | Building the featureset roll-forward | A binding now carries the **Delta version** alongside the namespace, and reads are pinned to it. `restated()` answers the neighbouring question a reviewer asks before comparing two runs: *has anything underneath this pin been written to since?* That is what makes *same featureset version → same bytes* true rather than true-until-Tuesday |
+| **Composition** — one level in | A child named a parent, and a feature's definition is amendable. Amending a parent silently changed every child that composed it | Building the composition fold | A composition now stamps the parent's **`definition_version`**, and drift against it is **reported** on the resolved view. Note precisely what that is: resolution still reads the parent as it currently stands, because a child whose parent has moved is a thing to be told about rather than a read that should fail. It is a detector, not a freeze — and calling it a pin would repeat C-2's original error one abstraction higher |
+
+**The gap this leaves.** Featuresets carry `composes` **without** the `definition_version` stamp, so a
+composed featureset has no drift to report. That is the third instance of the class, still open.
+
+**What the recurrence argues.** Three findings of one shape, in three subsystems, across a design
+review and two implementation passes, is not three mistakes. It is a missing habit. The habit, stated
+so it can be applied to the next new object rather than rediscovered in it: **whenever one governed
+object names another, ask what the name resolves to at read time, and whether that can differ from
+what it resolved to at write time.** If it can, either pin the resolution or report the drift — and say
+in the document which of the two you did, because they are not the same guarantee and the word
+"pinned" has now been used for both.
+
 ---
 
 ### C-3 · `model_version` immutability is enforced by a rule that silently discards writes
@@ -152,6 +177,34 @@ which carries the higher-value claims, gets it wrong. That inconsistency is itse
    itself — self-consistency of a chain an attacker controls proves nothing.
 4. Database role separation: the application role holds `INSERT`/`SELECT` only; retention deletion runs
    under a distinct, dual-controlled role, and every such deletion writes a tombstone into the chain.
+
+#### Recurrence — the chain verified while the record lied
+
+Disposition 1 was implemented, and implemented **wrongly**, in a way that left the finding open while
+looking closed. `verify_chain` walked the chain and re-linked each node's **stored** `content_hash`
+rather than **re-deriving** it from the node's own fields. Re-linking proves the links are intact and
+says nothing about whether the thing linked is still what was recorded — so an edited payload left a
+chain that verified cleanly and a record that lied. Every property C-4 was raised to obtain was absent,
+and the verification job reported valid.
+
+Two things about how it was found are worth more than the defect.
+
+**The scale suite found it, on its first run** — not a correctness test. The suite exists to assert that
+things are still correct at a size where a good implementation and a bad one look different, and it
+happened to be the first thing to walk a long chain with a mutated node in it.
+
+**The unit test that should have caught it was passing for a reason other than its name.** It was named
+for payload tampering and actually altered the *stored* content hash — which the re-linking
+implementation did detect. So there was a green test called "detects a tampered payload" that had never
+detected a tampered payload. That is the most expensive kind of test to own, because it converts an
+absent control into a reported one, and no amount of running the suite reveals it.
+
+**Disposition.** Verification now re-derives each node's content hash from its kind, subject, payload
+and parents before checking any link, and the four checks run in order: sequence gap → `prev_hash` →
+re-derived `content_hash` → `chain_hash`. The test was rewritten to do what it was named for, and
+separate cases now cover an altered payload, an altered subject and an altered stored hash. Disposition
+2 — anchoring the chain head to WORM and an RFC-3161 timestamp — **remains unbuilt**, so C-4 is
+partially discharged rather than closed.
 
 ---
 
@@ -402,7 +455,7 @@ that criticises nothing.
 | Postgres / Delta split | **Held**, with H-7 and H-9 corrections |
 | Overlay (PMA) register | **Held.** No defects found; remains a genuine differentiator |
 | Sandbox-only artifact loading | **Held.** The most robust security decision in the design |
-| Laws-as-tests discipline | **Held**, and vindicated: C-2, C-3 and H-6 would each have been caught earlier had the corresponding law existed. Two new laws added (L-17 contract–serving agreement, L-18 no personal data in evidence nodes) |
+| Laws-as-tests discipline | **Held in principle, and the build has tested the principle.** C-2, C-3 and H-6 would each have been caught earlier had the corresponding law existed. Since the review, thirteen more laws have been added: L-17 (contract–serving agreement), L-18 (no personal data in evidence nodes), **L-19** (composition is a monoid), and the eleven warrant-admissibility laws L-W0…L-W10 — of which L-W8 caught a real error in a shipped example on the day it was written. The honest qualification is in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces): only seven of the nineteen foundational laws are executable today, and a law that is stated but not executed did not prevent anything. C-4's recurrence above is what that costs |
 
 ---
 
@@ -424,6 +477,21 @@ questions systematically rather than reviewing for correctness.
 
 That is the argument for running this review before writing code, and again after each major phase.
 It is scheduled accordingly in [12 — Implementation Plan](12-implementation-plan.md).
+
+## 9. What the build has since said about the review
+
+Two findings have **recurred** — the same shape, in code, after the disposition was written. They are
+recorded in place, above, rather than in a separate log, because a finding whose recurrence lives
+somewhere else is a finding a reader will believe is closed.
+
+| Finding | What recurrence showed |
+|---|---|
+| **C-2** | It is a *class*, not a defect. The same stable-identifier-over-moving-contents shape appeared at the featureset level and again at the composition level, and one instance of it is still open (a composed featureset stamps no parent version). The generalised habit is stated at the end of C-2 |
+| **C-4** | A disposition can be implemented and still be absent. Verification re-linked a stored hash instead of re-deriving it, so the control reported valid on a record that had been edited — and the unit test named for exactly that case was asserting something else |
+
+Neither was found by re-reading this document. C-2's recurrences were found by building the next
+object; C-4's was found by the scale suite. **A review is a way of noticing a class, and the build is
+where you find out how many members it has.**
 
 ---
 

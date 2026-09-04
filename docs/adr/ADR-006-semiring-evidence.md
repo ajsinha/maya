@@ -24,8 +24,23 @@ evaluating other semirings by homomorphism on demand.
 - **+** Classification propagation and regime admissibility stop being bespoke code paths.
 - **−** `ℕ[X]` polynomials can grow large on deep derivations. Mitigated by tier-based materialisation,
   depth limits, memoisation and periodic normalisation.
-- **−** The abstraction is unfamiliar. Mitigated by confining it to `maya/evidence/` behind a plain
-  `EvidenceQuery.evaluate(semiring)` API.
+- **−** The abstraction is unfamiliar. Mitigated by confining it to `core/evidence/` behind a plain
+  `EvidenceEngine.evaluate(claim, derivations, semiring, valuation)` API.
+
+## As built
+
+**Six semiring instances, not nine**, in `core/evidence/semirings.py`: `boolean`, `counting`, `why`,
+`trust`, `cost`, `freshness`. The three not built are `ℕ[X]`, the security lattice for classification
+propagation, and the regime-admissibility powerset.
+
+`ℕ[X]` not being built has one consequence worth naming rather than leaving to be discovered:
+**materialisation by homomorphism is not what happens.** There is no universal object to push forward
+from, so each semiring is evaluated by its own traversal of the same memoised derivation DAG. That
+costs a traversal per question and makes law L-9 vacuous as stated. It also removes the multiplicities
+`ℕ[X]` would have carried, and no governance question we have found asks for one.
+
+`Why(X)` is stored for every tier rather than below Tier 1, with absorption applied on every `⊕` and a
+hard cap of 4,096 terms that sets `truncated = true` on the result.
 
 ---
 

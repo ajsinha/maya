@@ -196,74 +196,101 @@ flowchart TB
 Each context maps to a mathematical pillar. This is the architectural payoff of
 [00](00-mathematical-foundations.md): module boundaries are not arbitrary.
 
+This is the map **as built**. The package is `core/`; module names are the ones on disk.
+
 ```
-maya/
-├── domain/                     # Pure domain — no FastAPI, no SQLAlchemy (hexagonal)
-│   ├── model_algebra.py        # Para(Stoch): ParametricKernel, ParameterObject, FittingProcedure
-│   ├── trainability.py         # T0–T8 as fitting-morphism kinds
-│   ├── composition.py          # Symmetric monoidal composition, string diagrams, blast radius
-│   ├── contracts.py            # Assume-guarantee algebra: refine, compose, conjoin, quotient
-│   ├── schemas.py              # Schema lattice, variance rules
+core/
+├── domain/                     # Pure domain — no web framework, no ORM (hexagonal)
+│   ├── algebra.py              # Para(Stoch): ParametricKernel, ParameterObject, FitProcedure,
+│   │                           #   and trainability_class as a DERIVED property — T0–T8 are
+│   │                           #   computed from how P is inhabited, so there is nothing to store
+│   ├── contracts.py            # Assume-guarantee algebra: refines, compose, conjoin, quotient (L-7)
+│   ├── schemas.py              # Schema lattice, variance rule (L-12)
 │   └── identity.py             # Probe-relative equivalence (Yoneda), version semantics
-├── registry/                   # Fibration: versions over models, classes over registry
-│   ├── fibres.py               # Class registry, cartesian lifting
-│   ├── models.py  versions.py  artifacts.py  aliases.py
-│   └── introspection/          # Format adapters (ONNX, PMML, sklearn, prompt bundle, …)
+├── registry/                   # Models, immutable versions, governed aliases
+│   ├── models.py  versions.py  aliases.py  catalogue.py  specs.py
 ├── regimes/                    # Institutions
-│   ├── institution.py          # Sign, Sen, Mod, ⊨ ; comorphisms
-│   ├── sr26_2.py  ss1_23.py  eu_ai_act.py  sox.py  irb.py  ecoa.py  …
+│   ├── signature.py            # Sign — the vocabulary a regime reasons in
+│   ├── sentences.py            # Sen — obligations in that vocabulary
+│   ├── translation.py          # The comorphism into the core signature
+│   ├── engine.py               # ⊨ ; the satisfaction condition, checked before activation
+│   └── library.py              # SR 26-2, PRA SS1/23, EU AI Act
 ├── evidence/
-│   ├── semiring.py             # Semiring protocol + 9 instances
-│   ├── graph.py                # Append-only DAG, Merkle chaining
-│   ├── gluing.py               # Sheaf consistency radius
-│   └── query.py                # Evaluate a claim in any semiring
+│   ├── semirings.py            # Semiring + six instances (00 §9.2)
+│   └── engine.py               # Append chain over the DAG; evaluate a claim in any semiring
 ├── risk/
-│   ├── lattice.py              # Materiality, complexity, control, classification lattices
-│   ├── tiering.py              # τ : M × C → Tier ; monotone, traced
-│   └── aggregate.py            # Lax monoidal ρ ; concentration analytics
+│   ├── lattices.py             # Materiality and complexity, kept separate; the control sets
+│   └── tiering.py              # τ : M × C → Tier, monotone (L-4); its adjoint (L-5)
 ├── features/
-│   ├── registry.py  views.py  materialise.py
-│   ├── derived.py  expressions.py   # Z = f(X, Y); a small whitelisted language
+│   ├── catalogue.py  registry.py  views.py  contracts.py  assembly.py
+│   ├── derived.py  expressions.py   # Z = f(X, Y); nine whitelisted functions, checked at the AST
 │   ├── sets.py                 # Featuresets: a schema, and versions that fill it
-│   ├── pit.py                  # Bitemporal PIT verifier
-│   └── skew.py                 # Training-serving skew detection
+│   ├── shapes.py               # Scalar, vector, matrix, tensor; named components on the first axis
+│   ├── composition.py          # The fold: a monoid over definitions (L-19)
+│   ├── lifecycle.py            # Sealing, ephemerality with a TTL, creator-vs-owner
+│   ├── policy.py               # Retrieval policy: fill · normalise · align, and nothing else
+│   ├── normalisation.py  preparation.py  alignment.py   # Point-in-time statistics, fills, axes
+│   ├── transfer.py             # Arrow / Parquet / NDJSON streaming; nothing materialised whole
+│   └── pit.py                  # Bitemporal verifier: static rejection, then sampling (L-10, H-6)
 ├── parameters/                 # Inhabitants of P — a fit makes one, not a version
-│   └── register.py             # Recorded under a warrant, approved by a second person
+│   └── register.py             # Recorded under a warrant MAYA issued, approved by a second person
+├── telemetry/                  # Two bitemporal streams per version; idempotent on the batch digest
+│   └── collector.py            # Scores exist when the model runs; outcomes are learned later
 ├── lifecycle/
-│   ├── machine.py              # Free category on the lifecycle graph
-│   ├── guards.py  workflow.py  campaigns.py
-├── policy/
-│   ├── engine.py               # OPA/Rego evaluation
-│   ├── temporal.py             # MTL → monitor synthesis
-│   └── deontic.py              # O / P / F, contradiction detection
-├── validation/                 # Plans, test catalogue, findings, reports
+│   ├── states.py               # The six-state record machine
+│   ├── approval.py             # Version approval as a quorum, its depth set by tier (L-5)
+│   ├── attestation.py  amendments.py  service.py
+├── policy/                     # Versioned gates — policy tightens, it never loosens
+│   ├── language.py             # A rule is a predicate over a closed vocabulary; no loops, no calls
+│   ├── facts.py                # What each of the four gates publishes, and the built-in defaults
+│   └── engine.py               # Draft with cases, publish once they pass, report what a change flipped
+├── validation/                 # Catalogue, findings, statistics
+│   ├── replay.py  storage.py   # Replay from the pinned snapshot, not from what a caller hands back
 ├── overlays/                   # PMA register
-├── monitoring/                 # Monitor defs, observations, breaches, health score
+├── monitoring/                 # Monitor definitions, observations, breaches, delayed labels
 ├── docs/
-│   ├── lens.py                 # get / put, staleness, lens laws
-│   └── templates/              # MDD, validation report, model card, Annex IV, AI-BOM
+│   ├── lenses.py               # Fifteen lenses; get only — there is no put (see L-11)
+│   ├── compiler.py  templates.py  context.py
 ├── attachments/                # The documents people wrote, as against the compiled ones
 │   ├── store.py                # Content-addressed bytes; re-hashed on read
 │   └── register.py             # Version-level filing, segregated review, supersession
-├── warrants/                      # Descriptor issuance, signing, revocation, composite warrants
-├── ai/                         # Machine assistance — a bounded context, not a layer
-│   ├── capabilities.py         # each registered as a T5 model in MAYA's own inventory
-│   ├── grounding.py            # retrieval over the evidence graph
-│   ├── citation.py             # Boolean-semiring verification of generated citations
+├── execution/                  # Warrants — issuance, signing, revocation
+│   ├── grammar/                # The four vocabularies, their product, and the admissibility laws
+│   ├── runtimes/               # quantlib · onnx · pmml · bound callables; the other thirteen refuse
+│   ├── sandbox.py              # Artifact-backed runtimes in a child process with rlimits
+│   └── urn.py  grants.py  builder.py  signing.py  warrants.py  engine.py
+├── assist/                     # Machine assistance — a bounded context, not a layer
+│   ├── capabilities.py         # Tier A (an oracle checks it) or Tier B (every claim cites evidence)
+│   ├── grounding.py            # Unsupported claims are REMOVED, and kept for the reviewer
 │   ├── oracles.py              # ok_T predicates: satisfaction condition, probe equivalence, refinement
-│   ├── gate.py                 # claim→citation mapping, unverified-narrative marking, numeric interpolation
-│   └── evals.py                # frozen eval sets, regression gates, base-model canary fingerprints
-├── iam/                        # OIDC, RBAC/ABAC, SoD, audit log
-├── connectors/                 # MLflow, UC, SageMaker, Vertex, git, SAS, EUC, LLM gateway
-├── api/                        # FastAPI routers — thin, no domain logic
-├── web/                        # Jinja2 templates, static (Bootstrap 5, jQuery)
-├── workers/                    # Celery tasks
-└── platform/                   # Config, DB, migrations, telemetry, plugin loader
+│   └── generations.py          # Nothing is evidence until a person attests it, never the asker
+├── authz/                      # Roles, scope, segregation of duties read from the evidence chain
+│   ├── roles.py  scope.py  segregation.py  principals.py  policy.py
+│   └── oidc.py  jws.py         # Authorisation code + PKCE; an RS256 verifier in the standard library
+├── notify/                     # A digest per person per run; silence when nothing has changed
+├── scheduler/                  # Five idempotent jobs turning computed conditions into consequences
+├── estate/                     # The worklist and the summary, derived from the register
+├── baseline/                   # Cold-start import and dated compliance debt (C-5)
+├── content/                    # Help, about and tutorials as markdown, rendered server-side
+└── config/                     # YAML with a git-ignored .local overlay, ${...} resolution
+
+db/          # The only package that knows about storage. Two hand-written schemas,
+             # 40 tables, no migrations. Repositories are the only interface.
+routes/      # HTTP routers — thin, no domain logic. RFC-9457-shaped refusals.
+web/         # Jinja2 templates and vendored static assets (Bootstrap 5, jQuery). No CDN.
 ```
 
-**Dependency rule.** `domain/` depends on nothing in MAYA. `registry/`, `risk/`, `evidence/` depend only on
-`domain/`. `api/` and `web/` depend on everything and are depended on by nothing. Enforced in CI by an
-import-linter contract (`NFR-MNT-002`).
+**Dependency rule.** `core/domain/` depends on nothing in MAYA. `registry/`, `risk/`, `evidence/`
+depend only on `domain/` and `db/`. `routes/` and `web/` depend on everything and are depended on by
+nothing.
+
+> **Not built, and named rather than omitted.** There is no `fibres.py` — a model class is a string on
+> the register, so `L-15`'s startup totality check does not exist. There is no `gluing.py` (`L-13`),
+> no `aggregate.py` for lax monoidal risk (`L-14`), no `temporal.py` or `deontic.py` (`L-16` — the
+> five scheduler jobs do that work directly), no `connectors/` package, no `workers/` package and no
+> Celery, and no `skew.py`: skew detection needs an online store, which is design rather than code.
+> The import-linter contract of `NFR-MNT-002` is likewise a plan, not a CI gate. Each of these is a
+> gap in the build, not a naming difference, and the map above is the wrong place to hide one.
 
 ---
 
@@ -472,7 +499,7 @@ The **Extension Theorem** of [00 §7](00-mathematical-foundations.md#7-pillar-4-
 becomes a plugin contract. Adding a model class requires **no schema change, no core code change**.
 
 ```python
-# maya/registry/fibres.py
+# core/registry/ — NOT BUILT: a model class is a string on the register, and there is no plugin loader
 from typing import Protocol, Sequence
 
 class ModelClassFibre(Protocol):
@@ -549,7 +576,7 @@ flowchart LR
 A regime module declares its vocabulary, its sentences, and the translation:
 
 ```python
-# maya/regimes/sr26_2.py
+# core/regimes/library.py
 class SR26_2(Institution):
     key = "sr_26_2"
 
@@ -638,39 +665,45 @@ flowchart LR
 ### 9.2 One engine, many questions
 
 ```python
-# maya/evidence/semiring.py
-class Semiring(Protocol[K]):
+# core/evidence/semirings.py
+@dataclass(frozen=True)
+class Semiring(Generic[K]):
+    name: str
     zero: K
     one: K
-    def plus(self, a: K, b: K) -> K: ...   # alternative derivations
-    def times(self, a: K, b: K) -> K: ...  # joint dependence
+    plus: Callable[[K, K], K]    # alternative derivations — OR
+    times: Callable[[K, K], K]   # joint dependence — AND
 
-BOOLEAN    = Semiring(False, True, or_, and_)                     # is there evidence?
-COUNTING   = Semiring(0, 1, add, mul)                             # corroboration depth
-WHY        = WhyProvenance()                                      # minimal sufficient evidence sets
-HOW        = PolynomialSemiring()                                 # full derivation (universal)
-TRUST      = Semiring(0.0, 1.0, max, mul)                         # confidence
-COST       = Semiring(inf, 0.0, min, add)                         # tropical: cheapest gap closure
-CLASSIF    = LatticeSemiring(SECURITY_LATTICE)                    # PII / confidentiality propagation
-ADMISSIBLE = Semiring(frozenset(), ALL_REGIMES, or_, and_)        # which regimes accept this evidence
-FRESHNESS  = Semiring(MIN_TIME, MIN_TIME, max, max)               # staleness
+BOOLEAN   = Semiring("boolean",   False,  True, lambda a, b: a or b,  lambda a, b: a and b)
+COUNTING  = Semiring("counting",  0,      1,    lambda a, b: a + b,   lambda a, b: a * b)
+TRUST     = Semiring("trust",     0.0,    1.0,  max,                  lambda a, b: a * b)
+COST      = Semiring("cost",      inf,    0.0,  min,                  lambda a, b: a + b)
+FRESHNESS = Semiring("freshness", 0.0,    0.0,  max,                  max)
+WHY       = Semiring("why",       set(),  {frozenset()}, _why_plus,   _why_times)
 ```
 
-The same call, different answers:
+The same traversal, different answers:
 
 ```python
-claim = EvidenceQuery(model="credit.pd.smallbiz", version="3.2.1", claim="validated_for_production")
-
-claim.evaluate(BOOLEAN)     # -> True
-claim.evaluate(WHY)         # -> {{VR_v2, APPR_MRC}, {VR_v2, APPR_DELEGATED}}   # what to show an examiner
-claim.evaluate(TRUST)       # -> 0.91
-claim.evaluate(COST)        # -> 0.0  (or, if unmet: 14.5 person-days to close the cheapest path)
-claim.evaluate(CLASSIF)     # -> Confidential ⊔ PII
-claim.evaluate(FRESHNESS)   # -> 2026-08-11T09:00Z   → compare to now for staleness
-claim.evaluate(HOW)         # -> (T1·T2·T3·REP)·VR_v2·(APPR_MRC + APPR_DELEGATED)
+engine.evaluate(claim, derivations, BOOLEAN,   presence_valuation(version_id)).value
+    # -> True
+engine.evaluate(claim, derivations, WHY,       why_valuation()).value
+    # -> {{VR_v2, APPR_MRC}, {VR_v2, APPR_DELEGATED}}   # what to show an examiner
+engine.evaluate(claim, derivations, TRUST,     trust_valuation(version_id)).value
+    # -> 0.91
+engine.evaluate(claim, derivations, COST,      effort_valuation()).value
+    # -> 0.0  (or, if unmet: 14.5 person-days to close the cheapest path)
+engine.evaluate(claim, derivations, FRESHNESS, recorded_at_valuation()).value
+    # -> 1786521600.0   → compare to now for staleness
 ```
 
-Nine product capabilities, one implementation. Law `L-9` asserts consistency across all of them.
+Six product capabilities, one implementation.
+
+> **Three that are not there.** `ℕ[X]` how-provenance, a security lattice for classification
+> propagation, and a regime-admissibility powerset are all constructions this shape admits and none of
+> them is built. The consequence worth naming: without `ℕ[X]` there is no universal object, so each
+> semiring is a separate traversal rather than a homomorphic image, and law `L-9` is vacuous as
+> stated. See [00 §9.2](00-mathematical-foundations.md#92-one-engine-many-analyses).
 
 ---
 
@@ -695,7 +728,7 @@ sequenceDiagram
     else miss
         H->>P: resolve alias → version, check approval, entitlement, findings, policy
         P-->>H: version + contract + policy verdict
-        H->>H: build + sign descriptor (Ed25519)
+        H->>H: build + sign descriptor (HMAC-SHA256; Ed25519 is the production target)
         H->>R: cache with TTL and revocation tag
     end
     H-->>E: 200 WarrantDescriptor{artifact_uri, digest, schemas, feature_contract, constraints, expiry, sig}
@@ -716,30 +749,36 @@ Key properties:
 
 ## 11. Technology stack
 
-| Layer | Choice | Rationale |
+> **Read this table as the production target, not as the bill of materials.** The reference
+> implementation deliberately runs on a much smaller footprint, and where the two differ the difference
+> is stated in the last column rather than left for a reader to discover by looking for a service that
+> is not there. The rule that decided most of these: a governance system that cannot be deployed
+> air-gapped is one somebody works around, so where the standard library will do, it does.
+
+| Layer | Choice | Rationale, and what actually ships |
 |---|---|---|
 | API / web | **FastAPI** (async), Pydantic v2, Uvicorn behind Gunicorn | Mandated; excellent OpenAPI generation, type safety, async I/O for connectors |
 | Templating | **Jinja2** server-rendered + partial fragments | Mandated stack is jQuery/Bootstrap, not an SPA; server rendering keeps the security model simple |
 | Front end | **Bootstrap 5.3**, **jQuery 3.7**, DataTables, Chart.js, Cytoscape.js (graphs), CodeMirror 6 (policy/YAML), Mermaid (diagrams) | See [08 — UI/UX](08-ui-ux.md) |
-| ORM / DB | **SQLAlchemy 2.0** + Alembic, **PostgreSQL 16** (RLS, JSONB, `ltree`, `pgvector`, partitioning) | Governance system of record |
-| Lakehouse | **Delta Lake** via `delta-rs` (small reads/writes) and **Spark/Databricks** (large jobs) | Features, snapshots, telemetry |
-| Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Artifacts |
-| Cache / queue | **Redis 7** | Warrant cache, sessions, rate limits, Celery broker |
-| Async | **Celery** + Redis; **APScheduler** for cron-like campaigns | Workers |
-| Eventing | **Kafka** with CloudEvents envelopes | Domain events out |
-| Policy | **OPA/Rego** embedded (`opa` sidecar or `regopy`) | Policy-as-code, testable |
-| Auth | OIDC via Authlib; SCIM; JWT for service principals; **Ed25519** warrant signatures | |
-| Signing | **Sigstore/cosign** for artifacts, in-toto attestations | Supply chain |
-| Sandboxing | gVisor / Kata containers on Kubernetes, no egress, read-only rootfs, seccomp | `P7` |
-| Search | Postgres FTS + `pgvector` (bge-m3 or in-house embeddings) | Avoids a second search cluster |
-| Observability | OpenTelemetry, Prometheus, Grafana, structured JSON logs | |
-| Testing | pytest, **Hypothesis** (the sixteen laws), schemathesis (API contract), testcontainers | Laws as tests |
-| Packaging | `uv` / Poetry, Docker, Helm, Terraform | |
+| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 40 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
+| Lakehouse | **Delta Lake** via `delta-rs` | Features, snapshots, telemetry. Spark/Databricks is the target for large jobs and is not a dependency of the reference implementation |
+| Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Target. What ships is a content-addressed store on the local filesystem, with the digest as the key and a re-hash on every read |
+| Cache / queue | **Redis 7** | Target, for the warrant cache and rate limits. **Not used**: warrant TTL and jitter are computed in process |
+| Async | **Celery**; **APScheduler** for cron-like campaigns | Target. What ships is `core/scheduler/` — five idempotent jobs invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results, with an in-process loop off by default |
+| Eventing | **Kafka** with CloudEvents envelopes | Target. Not used |
+| Policy | Target was **OPA/Rego**. **What ships is `core/policy/`**: a rule is a predicate over a closed vocabulary of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions, no loops, no assignment, no attribute access — checked at the AST | Rego is a general language, and a gate written in one is a program a reviewer has to run rather than reason about. A fact the gate does not publish is refused *when the rule is written*, not at the moment of a governance decision |
+| Auth | OIDC authorisation-code flow with PKCE, state and nonce; HTTP Basic and a session cookie for people; **HMAC-SHA256** warrant signatures | **No Authlib, no SAML, no SCIM, no MFA.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason above: the verifier *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token. Ed25519 descriptor signing remains the production target |
+| Signing | **Sigstore/cosign** for artifacts, in-toto attestations | Target. Not used |
+| Sandboxing | Target was gVisor / Kata on Kubernetes. **What ships** is a `spawn`ed child process with `RLIMIT_CPU` and `RLIMIT_AS` read from the warrant, for the two artifact-backed runtimes | `P7`, honestly scoped: it protects against a runaway loop, an allocation storm and a hard crash, and **not** against a hostile artifact — the child shares the filesystem and the network namespace. See [09 §2.2](09-security-compliance.md) |
+| Search | Postgres FTS + `pgvector` | Target. **Not used** — there is no semantic feature matching and no duplicate-feature detection |
+| Observability | OpenTelemetry, Prometheus, Grafana, structured JSON logs | Target. Structured logging ships; the rest does not |
+| Testing | pytest; **Hypothesis** for L-4; schemathesis and testcontainers as targets | The executable laws live beside the code they constrain — see [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) |
+| Packaging | `uv` / Poetry, Docker, Helm, Terraform | Target. What ships is `requirements.txt` |
 
 ### 11.1 FastAPI application shape
 
 ```python
-# maya/api/app.py
+# run_maya_web.py
 def create_app(settings: Settings) -> FastAPI:
     app = FastAPI(title="MAYA", version=API_VERSION, openapi_url="/api/v1/openapi.json")
 
@@ -764,7 +803,7 @@ def create_app(settings: Settings) -> FastAPI:
 ```
 
 **Rule:** routers contain no domain logic. They validate input, call an application service, and render.
-Domain logic lives in `maya/domain/` and the context packages, which are importable and testable without
+Domain logic lives in `core/domain/` and the context packages, which are importable and testable without
 a web server.
 
 ---
@@ -1031,7 +1070,7 @@ See [`docs/adr/`](adr/INDEX.md) for the full set. Summary:
 | [ADR-007](adr/ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors |
 | [ADR-008](adr/ADR-008-server-rendered-ui.md) | ~~Server-rendered Jinja2~~ — **superseded by ADR-011** |
 | [ADR-009](adr/ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading; format policy |
-| [ADR-010](adr/ADR-010-laws-as-tests.md) | The eighteen laws enforced by property-based tests in CI |
+| [ADR-010](adr/ADR-010-laws-as-tests.md) | The laws enforced by tests in CI |
 | [ADR-011](adr/ADR-011-decoupled-frontend.md) | Decoupled front end consuming backend services over the public API |
 
 > **Post-review.** This architecture incorporates the dispositions of
