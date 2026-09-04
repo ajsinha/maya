@@ -53,11 +53,11 @@ class WarrantRoutes(Routes):
                 body.flavour, actor=self.actor(who)))
 
         @self.app.post(f"{self.api}/resolve", tags=["warrants"])
-        def resolve(request: Request, body: ResolveIn):
+        def resolve(request: Request, body: ResolveIn, verb: str = "score"):
             self.authorise(request, "warrant:read")
             """The hot path. A signed descriptor, or a refusal with a reason."""
             return self.guard(lambda: warrants.resolve(
-                body.urn, body.environment, body.principal, body.declared_use))
+                body.urn, body.environment, body.principal, body.declared_use, verb))
 
         @self.app.post(f"{self.api}/warrants/revoke", tags=["warrants"])
         def revoke(request: Request, body: RevokeIn):

@@ -1,0 +1,121 @@
+{
+  "_comment": "The same model being RETRAINED. Note three things the grammar enforces here and nowhere else: `fit` is admissible because the class is T3; the training input must be a bitemporal binding, so the set can be shown point-in-time correct; and there must be an output whose sink is `parameter_object`, because a fit produces a new parameter object rather than editing the old one.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c5c9014",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/credit.pd.smallbiz@3.3.0",
+    "model_urn": "maya://model/credit.pd.smallbiz",
+    "version": "3.3.0",
+    "version_id": "01a06a0a08d1",
+    "manifest_digest": "sha256:7c4e19b0d38a625f0e1b94ac7d206f83b5194ea0c86d3f712049be5c8a1d637f",
+    "binding_kind": "pinned_version",
+    "trainability_class": "T3"
+  },
+
+  "operation": {
+    "verb": "fit",
+    "determinism": "deterministic",
+    "seed": 20260101,
+    "mode": "batch"
+  },
+
+  "parameters": {
+    "kind": "learned_weights",
+    "source": {},
+    "digest": null,
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "python.callable",
+    "entry": {
+      "module": "credit.pd.smallbiz.train",
+      "attr": "fit",
+      "hyperparameters": {
+        "objective": "binary:logistic",
+        "max_depth": 4,
+        "eta": 0.05,
+        "num_boost_round": 400,
+        "subsample": 0.8,
+        "monotone_constraints": {"dscr": -1, "months_on_book": -1}
+      }
+    },
+    "artifact": {
+      "uri": "git://internal/credit-models@3f2a19c",
+      "digest": "sha256:1b8c05f7a2e63d940187fc5be0a3d729648f0c1eb5372a9d04e8617cbf20a935",
+      "format": "source_bundle"
+    },
+    "environment": {
+      "image": "reg.internal/ml/train:2026.01",
+      "requirements_digest": "sha256:d02f4a1c8b7e6350ad294f1b0e83c67d5a19f042bc8e37516d0a9b24ec7f8103"
+    }
+  },
+
+  "data": {
+    "inputs": [
+      {
+        "name": "training_set",
+        "binding": "dataset_snapshot",
+        "snapshot": "snapshots/sb_pd_2025h2",
+        "pit_verified": true,
+        "as_of": 1767139200.0,
+        "labels": "default_12m",
+        "description": "A digested, point-in-time-verified snapshot. A plain delta_table or a SQL query would be refused here: neither can answer what was known at a given moment, so neither can be shown not to have leaked."
+      }
+    ],
+    "outputs": [
+      {
+        "name": "fitted_parameters",
+        "sink": "parameter_object",
+        "description": "written as a NEW parameter object; version 3.2.1's weights are untouched"
+      },
+      {"name": "training_metrics", "sink": "evidence"},
+      {"name": "feature_importance", "sink": "artifact"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "dscr", "dtype": "float", "minimum": -5.0, "maximum": 20.0},
+      {"name": "revenue_ttm", "dtype": "float", "minimum": 0.0},
+      {"name": "months_on_book", "dtype": "float", "minimum": 0.0, "maximum": 600.0},
+      {"name": "default_12m", "dtype": "int", "minimum": 0, "maximum": 1}
+    ],
+    "output_schema": [{"name": "pd_12m", "dtype": "float", "minimum": 0.0, "maximum": 1.0}]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [{"key": "dscr", "minimum": -5.0, "maximum": 20.0}],
+      "guarantees": [{"key": "gini", "minimum": 0.42}]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 7200, "max_memory_mb": 32768, "gpus": 0}
+  },
+
+  "authority": {
+    "principal": "svc/model-training",
+    "declared_use": "scheduled_retrain",
+    "environment": "uat",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767312000.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 2,
+    "model_status": "amending",
+    "version_status": "draft",
+    "amendment": "AMD-002",
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-uat-2026",
+    "value": "3f70b1c8a24e6d90513ac7be08f2d461970c5eab138d2f6a4e0b97c521df3a68"
+  }
+}

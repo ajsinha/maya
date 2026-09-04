@@ -11,6 +11,7 @@ from routes.auth_routes import AuthRoutes
 from routes.base import API, Routes, current_user, login_required
 from routes.feature_routes import FeatureRoutes
 from routes.warrant_routes import WarrantRoutes
+from routes.grammar_routes import GrammarRoutes
 from routes.lifecycle_routes import LifecycleRoutes
 from routes.model_routes import ModelRoutes
 from routes.monitoring_routes import MonitoringRoutes
@@ -22,10 +23,11 @@ from routes.validation_routes import ValidationRoutes
 # Order matters: the model path segment is a greedy `:path` converter (URNs
 # carry dots and slashes), so the module with the longer, more specific paths
 # must register first or it will never be reached.
-ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, ModelRoutes, LifecycleRoutes,
+ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
+              ModelRoutes, LifecycleRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, MonitoringRoutes,
               UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "current_user", "login_required"]

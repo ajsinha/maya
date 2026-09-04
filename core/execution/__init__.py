@@ -11,14 +11,18 @@ consumer's only handle), grants (standing entitlements and revocation), signing
 order the checks happen in). CaptiveEngine is a reference CONSUMER of that
 contract, bundled so a deployment works out of the box.
 """
-from core.execution.descriptors import DescriptorFactory
+from core.execution.builder import WarrantBuilder
 from core.execution.engine import CaptiveEngine, ExecutionResult
 from core.execution.errors import WarrantError
 from core.execution.grants import WarrantGrants
 from core.execution.warrants import WarrantService
-from core.execution.signing import DescriptorSigner
+from core.execution.signing import WarrantSigner
+from core.execution.grammar import GrammarValidator
+from core.execution.grammar import validate as validate_warrant
+from core.execution.grammar import vocabulary as warrant_grammar
 from core.execution.urn import build_urn, model_urn, parse_urn
 
 __all__ = ["WarrantService", "WarrantError", "parse_urn", "build_urn", "model_urn",
-           "WarrantGrants", "DescriptorSigner", "DescriptorFactory",
+           "WarrantGrants", "WarrantSigner", "WarrantBuilder",
+           "GrammarValidator", "validate_warrant", "warrant_grammar",
            "CaptiveEngine", "ExecutionResult"]

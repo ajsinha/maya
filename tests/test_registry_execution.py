@@ -192,16 +192,16 @@ class TestWarrantResolution:
 
     def test_resolution_returns_a_signed_descriptor(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        assert d["resolved"]["version"] == "3.2.1" and ready.verify(d)
+        assert d["subject"]["version"] == "3.2.1" and ready.verify(d)
 
     def test_descriptor_carries_the_governance_snapshot(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        assert d["governance_snapshot"]["tier"] == 1
-        assert d["resolved"]["trainability_class"] == "T2"
+        assert d["governance"]["tier"] == 1
+        assert d["subject"]["trainability_class"] == "T2"
 
     def test_tampering_invalidates_the_signature(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        d["resolved"]["version"] = "9.9.9"
+        d["subject"]["version"] = "9.9.9"
         assert not ready.verify(d)
 
     def test_unknown_principal_is_refused(self, ready):
@@ -221,7 +221,7 @@ class TestWarrantResolution:
 
     def test_pinned_version_resolves_exactly(self, ready):
         d = ready.resolve(f"{URN}@3.2.1", "prod", "svc/origination", "origination_decision")
-        assert d["resolved"]["version"] == "3.2.1"
+        assert d["subject"]["version"] == "3.2.1"
 
     def test_errors_carry_a_remediation_hint(self, ready):
         with pytest.raises(WarrantError) as e:
@@ -259,12 +259,12 @@ class TestRevocation:
     def test_expiry_accounts_for_grace(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
         assert not ready.is_expired(d)
-        assert ready.is_expired(d, now=d["authorization"]["expires_at"] + 1)
+        assert ready.is_expired(d, now=d["authority"]["expires_at"] + 1)
 
     def test_tier_one_grace_is_zero(self, ready):
         """Grace extends authorisation currency, never revocation ignorance."""
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        assert d["authorization"]["grace_seconds"] == 0
+        assert d["authority"]["grace_seconds"] == 0
 
 
 class TestCaptiveEngine:
@@ -303,11 +303,11 @@ class TestCaptiveEngine:
     def test_local_revocation_floor_beats_a_valid_descriptor(self, engine, warrants):
         """Grace never extends revocation ignorance, even with a fresh descriptor."""
         d = warrants.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        engine.note_revocation(d["descriptor_id"])
+        engine.note_revocation(d["warrant_id"])
         # a fresh resolve yields a new id, so prove the check itself works
         engine._revoked_locally.add("*")
-        engine.note_revocation(d["descriptor_id"])
-        assert d["descriptor_id"] in engine._revoked_locally
+        engine.note_revocation(d["warrant_id"])
+        assert d["warrant_id"] in engine._revoked_locally
 
     def test_missing_runtime_is_reported_not_guessed(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")

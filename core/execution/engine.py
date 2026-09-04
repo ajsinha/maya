@@ -7,7 +7,7 @@ The captive execution engine.
 
 MAYA manages models and issues warrants; it does not execute them. This module is
 deliberately a CONSUMER of the public warrant contract, not part of the control
-plane: it resolves a descriptor, verifies the signature, checks expiry, checks
+plane: it resolves a warrant, verifies the signature, checks expiry, checks
 the operating boundaries, and only then runs. An external engine that does the
 same is indistinguishable to MAYA — which is the point. It exists so that a
 deployment works out of the box, and it is disabled by a single config key.
@@ -53,35 +53,36 @@ class CaptiveEngine:
         """The revocation floor: honoured regardless of grace state."""
         self._revoked_locally.add(descriptor_id)
 
-    def _constraints(self, descriptor: Dict[str, Any]) -> Contract:
-        spec = descriptor.get("constraints") or {}
+    def _constraints(self, warrant: Dict[str, Any]) -> Contract:
+        """The operating boundary, read from where the grammar puts it."""
+        boundary = (warrant.get("constraints") or {}).get("operating_boundary") or {}
         return Contract(tuple(Bound(b["key"], b.get("minimum"), b.get("maximum"),
                                     tuple(b.get("allowed", ())))
-                              for b in spec.get("assumptions", [])))
+                              for b in boundary.get("assumptions", [])))
 
     def execute(self, urn: str, environment: str, principal: str, declared_use: str,
                 inputs: Dict[str, Any]) -> ExecutionResult:
         started = time.perf_counter()
-        descriptor = self.warrants.resolve(urn, environment, principal, declared_use)
+        warrant = self.warrants.resolve(urn, environment, principal, declared_use)
 
-        if not self.warrants.verify(descriptor):
-            raise WarrantError("signature_invalid", "descriptor signature does not verify",
+        if not self.warrants.verify(warrant):
+            raise WarrantError("signature_invalid", "warrant signature does not verify",
                             "discard it and raise a security incident")
-        if descriptor["descriptor_id"] in self._revoked_locally:
-            raise WarrantError("revoked", "descriptor is on the local revocation list",
+        if warrant["warrant_id"] in self._revoked_locally:
+            raise WarrantError("revoked", "warrant is on the local revocation list",
                             "stop; grace never extends revocation ignorance")
-        if self.warrants.is_expired(descriptor):
-            raise WarrantError("expired", "descriptor has expired beyond its grace window",
+        if self.warrants.is_expired(warrant):
+            raise WarrantError("expired", "warrant has expired beyond its grace window",
                             "re-resolve the warrant")
 
-        violations = self._constraints(descriptor).check_inputs(inputs)
-        policy = (descriptor.get("constraints") or {}).get("on_boundary_violation", "reject")
+        violations = self._constraints(warrant).check_inputs(inputs)
+        policy = (warrant.get("constraints") or {}).get("on_boundary_violation", "reject")
         if violations and policy == "reject":
             raise WarrantError("boundary_violation",
                             f"inputs outside the operating boundary: {', '.join(violations)}",
                             "the guarantee is void outside the assumption; refer or widen it")
 
-        version_id = descriptor["resolved"]["version_id"]
+        version_id = warrant["subject"]["version_id"]
         runtime = self._runtimes.get(version_id)
         if runtime is None:
             raise WarrantError("no_runtime", f"no runtime registered for version {version_id}",
@@ -89,9 +90,9 @@ class CaptiveEngine:
 
         prediction = runtime(inputs)
         return ExecutionResult(
-            descriptor_id=descriptor["descriptor_id"],
-            model_urn=descriptor["resolved"]["model_urn"],
-            version=descriptor["resolved"]["version"],
+            descriptor_id=warrant["warrant_id"],
+            model_urn=warrant["subject"]["model_urn"],
+            version=warrant["subject"]["version"],
             prediction=prediction, boundary_ok=not violations,
             boundary_violations=violations,
             latency_ms=round((time.perf_counter() - started) * 1000, 3))
