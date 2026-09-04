@@ -16,7 +16,7 @@ regulatory event, not merely an IT one.
 |---|---|---|---|
 | T1 | **Malicious model artifact** (pickle RCE, poisoned weights, backdoored `.pth`) | Code execution, lateral movement | Format policy; opcode scanning; malware scan; sandbox-only deserialisation; content addressing; signature verification |
 | T2 | **Evidence tampering** — altering a validation result or approval after the fact | Fraudulent assurance; regulatory misstatement | Append-only tables at the DB role level; Merkle chaining; WORM copies for Tier 1; independent chain verification job |
-| T3 | **Unauthorised model execution** — running an unapproved model, or an approved model for an unapproved purpose | Unassessed risk in production; consumer harm | Hook entitlements bound to approved uses; fail-closed resolution; use reconciliation |
+| T3 | **Unauthorised model execution** — running an unapproved model, or an approved model for an unapproved purpose | Unassessed risk in production; consumer harm | Warrant entitlements bound to approved uses; fail-closed resolution; use reconciliation |
 | T4 | **Model exfiltration** — bulk download of proprietary models | IP loss | Rate limits and quotas on resolution; anomaly detection on access patterns; artifact download audit; watermarking for Tier 1 |
 | T5 | **Insider tier manipulation** — lowering a tier to escape controls | Control avoidance | Tiering is derived and traced; overrides require justification, elevated authority, and independent reassessment at validation |
 | T6 | **Feature poisoning** — corrupting upstream data to shift model behaviour | Financial loss; fraud | Data-quality assertions; drift and skew detection; source lineage; anomaly alerting |
@@ -26,7 +26,7 @@ regulatory event, not merely an IT one.
 | T7c | **Automation bias** — a usually-correct triage queue trains reviewers to approve without looking | Silent governance failure at scale | Deliberate sampling of AI proposals for full independent assessment (`FR-AI-015`); reviewer edit distance tracked, with a *falling* edit distance investigated (`FR-AI-016`) |
 | T8 | **Supply-chain compromise** of MAYA itself | Total | SBOM per release; signed images; SLSA L3 build; dependency pinning; SCA in CI; reproducible builds |
 | T9 | **Cross-entity data leakage** in a multi-entity deployment | Regulatory breach | Postgres RLS as the last line; ABAC in the API; residency partitioning; tested with negative cases |
-| T10 | **Denial of the hook plane** | Bank-wide scoring outage | Independent scaling; regional failover; descriptor grace window; static fallback |
+| T10 | **Denial of the warrant plane** | Bank-wide scoring outage | Independent scaling; regional failover; descriptor grace window; static fallback |
 | T11 | **Compromised MAYA signing key** | Forged descriptors | KMS/HSM-held keys; 90-day rotation with overlapping validity; SDK pins a key set; emergency key revocation |
 | T12 | **Malicious or careless policy change** | Estate-wide gridlock or estate-wide bypass | Policies versioned, peer-reviewed, tested against a golden corpus, canaried; policy changes are themselves audited and reversible |
 
@@ -104,7 +104,7 @@ important security decision in the design.
 | `auditor` | Read everything including evidence and audit log; no writes |
 | `examiner` | Time-boxed, scoped, fully-logged read; as-at-date queries; pack export |
 | `platform_admin` | Infrastructure; **no** access to governance decisions or model artifacts |
-| `service` | Machine principals for hook resolution and telemetry |
+| `service` | Machine principals for warrant resolution and telemetry |
 
 ### 3.2 Segregation of duties
 
@@ -307,14 +307,14 @@ MAYA feature that operates it, so a control-testing exercise becomes a query rat
 
 | Scenario | Response |
 |---|---|
-| MAYA control plane unavailable | Hook plane continues; already-authorised production scoring is unaffected. Governance changes queue. |
-| MAYA hook plane unavailable in a region | Regional failover; SDK grace window covers the switch. |
+| MAYA control plane unavailable | Warrant plane continues; already-authorised production scoring is unaffected. Governance changes queue. |
+| MAYA warrant plane unavailable in a region | Regional failover; SDK grace window covers the switch. |
 | Total MAYA outage beyond the grace window | Documented manual break-glass: pre-authorised static descriptors for a named set of Tier 1 production models, held in escrow, dual-controlled, with mandatory post-hoc review of every use. |
 | Data loss | Postgres PITR; Delta time travel; object-store versioning and cross-region replication; quarterly restore tests with evidence. |
 | Ransomware | Immutable backups (object lock); WORM evidence tier; offline chain-head anchors. |
 | Loss of a key person | No single-person dependency: ownership is a role with a deputy; policy and configuration are code in git. |
 
-**Recovery objectives:** control plane RTO 4 h / RPO 15 min; hook plane RTO 15 min / RPO 0; audit log RPO 0
+**Recovery objectives:** control plane RTO 4 h / RPO 15 min; warrant plane RTO 15 min / RPO 0; audit log RPO 0
 (synchronous replication).
 
 ---

@@ -36,7 +36,7 @@ risk:
   purpose_ranks: {{commercial: 1, risk_management: 2, financial_reporting: 3,
                   regulatory_capital: 4}}
   review_months: {{1: 12, 2: 18, 3: 24, 4: 36}}
-hooks: {{jitter_pct: 0, signing_key_id: test-key,
+warrants: {{jitter_pct: 0, signing_key_id: test-key,
          ttl_seconds: {{1: 60, 2: 300, 3: 3600, 4: 3600}},
          grace_seconds: {{1: 0, 2: 0, 3: 900, 4: 900}}}}
 execution: {{captive: {{enabled: true, max_seconds: 5}}}}
@@ -63,7 +63,7 @@ def registered(client):
                 json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
     client.put(f"/api/v1/models/{NAME}/aliases",
                json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})
-    client.post("/api/v1/hooks", json={
+    client.post("/api/v1/warrants", json={
         "urn": f"{URN}#champion", "environment": "prod",
         "principal": "svc/origination", "declared_use": "origination_decision"})
     return client
@@ -135,7 +135,7 @@ class TestModelApi:
         assert registered.get("/api/v1/evidence/chain").json()["valid"] is True
 
 
-class TestHookApi:
+class TestWarrantApi:
     def test_resolve_returns_a_signed_descriptor(self, registered):
         r = registered.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
@@ -169,7 +169,7 @@ class TestHookApi:
         assert r.status_code == 422
 
     def test_revocation_then_resolution_fails_closed(self, registered):
-        assert registered.post("/api/v1/hooks/revoke",
+        assert registered.post("/api/v1/warrants/revoke",
                                json={"urn": URN, "reason": "critical finding"}).json()["revoked"] == 1
         r = registered.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
@@ -178,7 +178,7 @@ class TestHookApi:
 
 
 class TestExecutionBoundary:
-    """MAYA issues hooks. The captive engine is one consumer of that contract."""
+    """MAYA issues warrants. The captive engine is one consumer of that contract."""
 
     def test_execute_without_a_runtime_reports_not_implemented(self, registered):
         r = registered.post("/api/v1/execute", json={
@@ -203,7 +203,7 @@ class TestExecutionBoundary:
         assert r.status_code == 403
 
     def test_execution_after_revocation_is_refused(self, registered):
-        registered.post("/api/v1/hooks/revoke", json={"urn": URN, "reason": "stop"})
+        registered.post("/api/v1/warrants/revoke", json={"urn": URN, "reason": "stop"})
         r = registered.post("/api/v1/execute", json={
             "urn": f"{URN}#champion", "environment": "prod", "principal": "svc/origination",
             "declared_use": "origination_decision", "inputs": {"dscr": 1.2}})
@@ -227,9 +227,31 @@ class TestPublicPages:
         r = client.get("/about")
         assert r.status_code == 200 and "does not execute models" in r.text
 
-    def test_help_is_public_and_shows_the_six_steps(self, client):
-        html = client.get("/help").text
-        assert "Register the model" in html and "Issue a hook" in html
+    def test_help_lists_topic_cards_from_the_content_directory(self, client):
+        body = client.get("/help").text
+        assert "Documentation" in body
+        # Cards, not a hard-coded walkthrough: the topics come from markdown on disk.
+        assert "/help/quickstart" in body and "/help/trainability-classes" in body
+        assert "Getting started" in body and "Reference" in body
+
+    def test_a_help_topic_renders_its_markdown(self, client):
+        body = client.get("/help/point-in-time-assembly").text
+        assert body.count("<h2") >= 2, "headings should be rendered, not escaped"
+        assert "<table>" in body, "markdown tables should render as tables"
+        assert "content/help/" in body, "the source file is cited on the page"
+
+    def test_an_unknown_help_topic_is_404(self, client):
+        assert client.get("/help/no-such-topic").status_code == 404
+
+    def test_help_is_reachable_without_signing_in(self, client):
+        assert client.get("/help").status_code == 200
+        assert client.get("/help/glossary").status_code == 200
+
+    def test_about_carries_the_competitive_analysis(self, client):
+        body = client.get("/about").text
+        assert "Competitive analysis" in body
+        assert "OpenPages" in body and "MLflow" in body
+        assert "Where MAYA is weaker today" in body, "positioning must state weaknesses too"
 
     def test_landing_offers_sign_in_when_anonymous(self, client):
         assert "/login" in client.get("/").text
@@ -384,7 +406,7 @@ class TestFindingsApi:
         assert body["summary"]["blocking"] == 1
         assert body["blocking"][0]["title"] == "Leakage in training set"
 
-    def test_a_blocking_finding_refuses_hook_resolution(self, registered):
+    def test_a_blocking_finding_refuses_warrant_resolution(self, registered):
         registered.post("/api/v1/findings", json={
             "urn": URN, "severity": "Critical", "title": "Leakage",
             "owner": "person/j.okafor"})

@@ -86,10 +86,10 @@ Six capabilities absent from every product surveyed in [our market research](doc
    XGBoost fraud model, a SAR-drafting LLM and a pricing spreadsheet, each with class-appropriate evidence.
 2. **An immutable evidence graph** that cryptographically binds the governance record to the artifact,
    dataset snapshot, feature contract and fitting run — so *"validated"* is verifiable, not a checkbox.
-3. **Governed execution hooks on demand** — any engine resolves a URN to a signed, entitlement-bound,
+3. **Governed execution warrants on demand** — any engine resolves a URN to a signed, entitlement-bound,
    revocable execution contract, with alias-based champion/challenger routing and a global kill switch.
 4. **Approved-use vs actual-use reconciliation** — SS1/23 asks for intended use *compared to actual use*;
-   MAYA observes it from hook telemetry.
+   MAYA observes it from warrant telemetry.
 5. **A post-model-adjustment register** — overlays with quantified magnitude, mandatory expiry, downstream
    propagation and recurrence-trend detection.
 6. **Compiled, always-fresh documentation** — model development documents, validation reports, model cards,
@@ -106,7 +106,7 @@ Six capabilities absent from every product surveyed in [our market research](doc
 │  Continuous discovery         BCBS 239 by construction  Skew & drift detection  │
 ├─────────────────────────────────────────────────────────────────────────────────┤
 │  4 · GOVERNED EXECUTION                    5 · LIVING DOCUMENTATION             │
-│  Signed hooks, issued on demand            Compiled from the evidence graph     │
+│  Signed warrants, issued on demand            Compiled from the evidence graph     │
 │  champion / challenger / shadow aliases    MDD · validation report · model card │
 │  Policy enforced at issuance and at call   EU AI Act Annex IV · AI-BOM          │
 │  Kill switch ≤ 60 s · fails safe           Staleness detected, never assumed    │
@@ -142,7 +142,7 @@ elegance. Every one ships with **executable laws** that run in CI; a failing law
 | Pillar | Mathematics | Property it delivers |
 |---|---|---|
 | What *is* a model? | **Markov categories** + the **Para construction** | One interface for all nine classes; training is *one way* to inhabit the parameter object, not part of the definition |
-| How do models compose? | **Symmetric monoidal categories**, string diagrams | Typed composite hooks; blast radius; aggregate risk as **lax** monoidality — the interaction premium regulators ask about becomes computable |
+| How do models compose? | **Symmetric monoidal categories**, string diagrams | Typed composite warrants; blast radius; aggregate risk as **lax** monoidality — the interaction premium regulators ask about becomes computable |
 | What can we say about a black box? | **Assume–guarantee contracts**, **Galois connections**, probe-relative **Yoneda** | Operating boundaries checked at runtime; version substitution decided by refinement, not by meeting; model cards that are provably sound over-approximations |
 | How is everything indexed? | **Fibrations** / Grothendieck construction | **New model classes require no schema migration** — supply a fibre, change nothing else |
 | How do many regulators coexist? | **Institutions** (Goguen–Burstall abstract model theory) | **New regulators require no schema migration**; scope determinations are derivations with citations, not flags |
@@ -183,7 +183,7 @@ API as the SDK and any third-party client — there is no privileged server-side
                    └────┬─────────────────────────┘            │
                         │                                      │
    ┌────────────────────┴──────────────────┐      ┌────────────┴────────────┐
-   │   maya-api  (FastAPI monolith)        │      │      maya-hooks         │
+   │   maya-api  (FastAPI monolith)        │      │      maya-warrants         │
    │  registry · features · lifecycle      │      │  resolve · sign · revoke│
    │  validation · overlays · evidence     │      │  p99 < 50 ms · 99.99%   │
    │  policy/regimes · risk · docs · IAM   │      │  survives control outage│
@@ -191,7 +191,7 @@ API as the SDK and any third-party client — there is no privileged server-side
        │              │              │                         │
   ┌────┴────┐   ┌─────┴─────┐  ┌─────┴──────┐            ┌─────┴─────┐
   │Postgres │   │Delta Lake │  │Object store│            │   Redis   │
-  │governance│  │features   │  │artifacts   │            │hook cache │
+  │governance│  │features   │  │artifacts   │            │warrant cache │
   │ · RLS    │  │telemetry  │  │WORM tier   │            │           │
   └──────────┘  └───────────┘  └────────────┘            └───────────┘
                         │
@@ -204,7 +204,7 @@ API as the SDK and any third-party client — there is no privileged server-side
 
 Details: [04 — Architecture](docs/04-architecture.md). Deployables, failure modes and scaling in §3, §14, §16.
 
-## Hooks — running a model on demand
+## Warrants — running a model on demand
 
 An execution engine holds nothing but a URN. Everything else is resolved, signed and policy-checked at
 runtime.
@@ -229,7 +229,7 @@ r.reason_codes    # ['DSCR_LOW', 'THIN_FILE']  → Reg B adverse action
 maya.load("maya://model/credit.pd.smallbiz@3.1.0?calibration=2026-03-31")
 ```
 
-Eleven hook flavours cover REST (Open Inference Protocol v2), gRPC, Python and JVM SDKs, Spark batch,
+Eleven warrant flavours cover REST (Open Inference Protocol v2), gRPC, Python and JVM SDKs, Spark batch,
 SQL UDF, Kafka streams, OCI containers, spreadsheets, composite model DAGs, and **descriptor-only** for
 engines MAYA will never host — which is most of a bank's real estate.
 
@@ -238,7 +238,7 @@ schemas to satisfy variance rules. Consumers are not redeployed and cannot be br
 effect in under 60 seconds. If MAYA is down, already-authorised scoring keeps running — governance must not
 become the bank's single point of failure.
 
-Full protocol: [06 — Hooks & Execution](docs/06-hooks-and-execution.md).
+Full protocol: [06 — Warrants & Execution](docs/06-warrants-and-execution.md).
 
 ## Documentation
 
@@ -251,8 +251,8 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 | **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | 200+ model families across eleven domains, with the T0–T8 trainability classification |
 | **03** | [Requirements](docs/03-requirements.md) ★ | 13 personas, ~200 numbered requirements, regulatory traceability matrix |
 | **04** | [Architecture](docs/04-architecture.md) ★ | Containers, bounded contexts, lifecycles, extensibility, deployment, failure modes |
-| **05** | [Data Model](docs/05-data-model.md) | Postgres DDL, Delta Lake schemas, evidence graph, hook projection, migrations |
-| **06** | [Hooks & Execution](docs/06-hooks-and-execution.md) | URNs, signed descriptors, resolution, aliases, revocation floor, composites |
+| **05** | [Data Model](docs/05-data-model.md) | Postgres DDL, Delta Lake schemas, evidence graph, warrant projection, migrations |
+| **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, signed descriptors, resolution, aliases, revocation floor, composites |
 | **07** | [Feature Platform](docs/07-feature-platform.md) | Bitemporal store, point-in-time correctness, contracts, version-namespaced serving |
 | **08** | [UI / UX](docs/08-ui-ux.md) | Decoupled front end, information architecture, key screens, brand and design system |
 | **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, artifact security, GenAI controls, fair lending, control library |
@@ -266,7 +266,7 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 **Reading paths**
 
 - **Executive** — [01 §1](docs/01-industry-research.md), [01 §6](docs/01-industry-research.md), [10 §5](docs/10-roadmap.md), the research deck
-- **Engineer** — [00 §2](docs/00-mathematical-foundations.md), [04](docs/04-architecture.md), **[14](docs/14-detailed-design.md)**, [05](docs/05-data-model.md), [06](docs/06-hooks-and-execution.md), [12](docs/12-implementation-plan.md)
+- **Engineer** — [00 §2](docs/00-mathematical-foundations.md), [04](docs/04-architecture.md), **[14](docs/14-detailed-design.md)**, [05](docs/05-data-model.md), [06](docs/06-warrants-and-execution.md), [12](docs/12-implementation-plan.md)
 - **Regulator / auditor** — [01 §2](docs/01-industry-research.md), [03 §10](docs/03-requirements.md), [09 §7](docs/09-security-compliance.md)
 - **Sceptic** — [11](docs/11-adversarial-review.md), then [00 §13](docs/00-mathematical-foundations.md)
 - **AI strategy** — [13](docs/13-ai-in-the-platform.md), then [09 §5](docs/09-security-compliance.md)
@@ -301,7 +301,7 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 46 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and hooks, machine assistance, interfaces, cross-cutting and operations |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 46 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*

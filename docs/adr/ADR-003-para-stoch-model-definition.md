@@ -22,7 +22,7 @@ of object; they are nine answers to *how `P` is inhabited*, characterised by a f
   training is one way of inhabiting `P`, not part of the definition of a model.
 - **+** Determinism becomes a checkable property (`copy ∘ f = (f ⊗ f) ∘ copy`), which is exactly the
   reproducibility test.
-- **+** Composition is inherited from the monoidal structure, so feeder graphs and composite hooks are
+- **+** Composition is inherited from the monoidal structure, so feeder graphs and composite warrants are
   typed and checkable.
 - **−** The team must learn a small amount of category theory. Mitigated by keeping the vocabulary confined
   to `maya/domain/` and documenting it in [00](../00-mathematical-foundations.md).

@@ -6,7 +6,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 Ports — the narrow interfaces one part of the core offers another.
 
 The registry must refuse to promote a model that has an open blocking finding,
-and hook resolution must refuse to serve one. Neither should therefore have to
+and warrant resolution must refuse to serve one. Neither should therefore have to
 import the validation package: a governance gate that only works when the whole
 system is assembled in one order is not a gate, it is a coincidence.
 

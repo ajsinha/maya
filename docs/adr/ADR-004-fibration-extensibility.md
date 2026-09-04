@@ -15,7 +15,7 @@ Make model classes the **base of a fibration**, not a column. A class supplies a
 (JSON Schema), lifecycle specialisation, default monitors, document templates, tiering hints, contract
 template, introspector, and validation tests. Fibres are registered through Python entry points. The same
 pattern is applied to eight other extension points (regimes, semirings, artifact formats, tests, metrics,
-templates, hook flavours, connectors).
+templates, warrant flavours, connectors).
 
 ## Consequences
 - **+** **Extension theorem:** adding a model class requires supplying a fibre and nothing else. No DDL, no

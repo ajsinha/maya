@@ -40,7 +40,7 @@
 MAYA is the bank's **single system of record and system of engagement for every model and model-adjacent
 asset**, from the moment someone proposes one to the moment it is decommissioned and archived. It manages
 the *governance* (inventory, tiering, approval, validation, findings, overlays, documentation, audit) and
-the *engineering* (artifacts, features, training/calibration runs, versions, deployment hooks, monitoring)
+the *engineering* (artifacts, features, training/calibration runs, versions, deployment warrants, monitoring)
 in one object model, with the governance record **cryptographically bound to the engineering artifact**.
 
 ### 1.2 Scope
@@ -64,7 +64,7 @@ corpora, and the tiering model itself.
 | **Feature** | A named, typed, semantically defined input signal, with an owner and a computation definition. |
 | **Feature View** | A versioned, point-in-time-correct materialisation of a set of features for an entity, in Delta Lake. |
 | **Feature Contract** | The exact, immutable set of feature-view versions and transformations a model version was fitted on and must be served. |
-| **Hook** | A signed, policy-bound, resolvable execution contract that lets an execution engine run a specific model version or alias. |
+| **Warrant** | A signed, policy-bound, resolvable execution contract that lets an execution engine run a specific model version or alias. |
 | **Evidence Node** | An immutable, hash-identified record of something that happened (a run, a test, a decision) with its inputs and outputs. |
 | **Overlay / PMA** | A post-model adjustment to model input, assumption, methodology or output, made by expert judgment. |
 | **Tier** | Derived risk classification from materiality × complexity, driving control intensity. |
@@ -101,7 +101,7 @@ mindmap
       ("Feature contracts per version")
       ("Skew & drift detection")
     ("4 · Governed Execution")
-      ("On-demand signed hooks")
+      ("On-demand signed warrants")
       ("Alias routing: champion / challenger / shadow")
       ("Policy enforced at issuance and at call")
       ("Approved-use vs actual-use reconciliation")
@@ -124,7 +124,7 @@ mindmap
 | P6 | **Open standards at the boundary.** | Open Inference Protocol, ONNX/PMML, OpenLineage, SPDX/CycloneDX AI-BOM, OPA/Rego, OIDC. |
 | P7 | **Zero-trust on artifacts.** | Never deserialise untrusted code in the control plane. Sign everything. Verify at execution. |
 | P8 | **Explain the derivation.** | Every derived value (tier, score, status, RAG rating) exposes its inputs, rule version and rationale. |
-| P9 | **Degrade safely.** | If MAYA is unavailable, hooks already issued keep working; only *new* issuance and *changes* block. |
+| P9 | **Degrade safely.** | If MAYA is unavailable, warrants already issued keep working; only *new* issuance and *changes* block. |
 | P10 | **Regulatory scope is plural.** | Scope regimes are attributes, not the schema. Adding a regulator must not require a migration. |
 
 ---
@@ -138,7 +138,7 @@ mindmap
 | U3 | **Independent Validator** (2LoD, ~50–150) | Perform effective challenge efficiently; evidence it | Chasing artifacts and data; rebuilding developer results; template drudgery | Validation workbench, reproducible run replay, challenger sandbox, findings register, report compiler |
 | U4 | **Head of Model Risk / MRM Office** | Portfolio view, tiering integrity, backlog control, board reporting | Inventory accuracy; no aggregate risk view; manual board packs | Portfolio dashboard, tiering engine, KRI/risk-appetite board, reporting pack export |
 | U5 | **Model User / Business Analyst** | Use approved models correctly; understand limits | Doesn't know limitations or boundaries; uses models off-label | Model catalogue (read-only), limitations panel, "may I use this for X?" checker |
-| U6 | **Execution Engine / Application** (machine persona) | Resolve and run a model version reliably and fast | Hardcoded model paths; silent version drift; no kill switch | Hook Resolution API, OIP v2 endpoints, SDK client |
+| U6 | **Execution Engine / Application** (machine persona) | Resolve and run a model version reliably and fast | Hardcoded model paths; silent version drift; no kill switch | Warrant Resolution API, OIP v2 endpoints, SDK client |
 | U7 | **Data Engineer / Feature Owner** | Publish trustworthy features; avoid duplication | Feature sprawl; no PIT correctness; no consumer visibility | Feature registry, materialisation jobs, consumer impact view |
 | U8 | **Internal Audit (3LoD)** | Test whether the framework operates as designed | Sampling by hand; evidence in email | Audit workbench, immutable audit log, sampling and evidence export |
 | U9 | **Regulator / External Examiner** | Verify inventory completeness and control operation | PDF dumps; inconsistent answers | Read-only examiner portal, time-travel "as at date" inventory, exam request pack |
@@ -164,7 +164,7 @@ sequenceDiagram
     participant POL as Policy Engine
     actor Val as Validator
     actor Own as Model Owner
-    participant HK as Hook Service
+    participant HK as Warrant Service
 
     Dev->>API: Create model proposal (intake form, intended use)
     API->>POL: Pre-screen scope + provisional tier
@@ -185,7 +185,7 @@ sequenceDiagram
     API->>POL: Evaluate promotion gate
     POL-->>API: PASS (no open High findings) / conditional
     Own->>API: Approve use: {purpose, portfolio, entity, geography}
-    API->>HK: Issue hook (alias=champion, env=prod)
+    API->>HK: Issue warrant (alias=champion, env=prod)
     HK-->>Dev: maya://model/fraud.card.rt@1.0.0 + signed descriptor
 ```
 
@@ -210,11 +210,11 @@ release notes and flags version changes as a change event requiring impact asses
 harm) → prompt/RAG/tool registration → eval-set construction → pre-deployment eval → guardrail config →
 human-oversight design → approve → continuous eval + trace monitoring`.
 
-### J5 — Issue a hook to an execution engine
+### J5 — Issue a warrant to an execution engine
 
-The scheduler/batch engine holds only a URN. At runtime it calls the Hook Resolution API, gets a signed
+The scheduler/batch engine holds only a URN. At runtime it calls the Warrant Resolution API, gets a signed
 descriptor with artifact URI, feature contract, runtime spec and policy, verifies the signature, and
-executes. If MAYA has revoked the hook (kill switch), resolution fails closed. See [06 — Hooks](06-hooks-and-execution.md).
+executes. If MAYA has revoked the warrant (kill switch), resolution fails closed. See [06 — Warrants](06-warrants-and-execution.md).
 
 ### J6 — Annual/periodic revalidation and attestation cycle
 
@@ -254,9 +254,9 @@ erDiagram
     RUN ||--o{ DATASET_SNAPSHOT : "consumes"
     VALIDATION ||--o{ FINDING : "raises"
     FINDING ||--o{ REMEDIATION : "resolved by"
-    DEPLOYMENT ||--o{ HOOK : "exposes"
-    HOOK ||--o{ HOOK_GRANT : "entitles"
-    HOOK ||--o{ INVOCATION : "observed as"
+    DEPLOYMENT ||--o{ WARRANT : "exposes"
+    WARRANT ||--o{ WARRANT_GRANT : "entitles"
+    WARRANT ||--o{ INVOCATION : "observed as"
     MODEL_VERSION ||--o{ MONITOR : "watched by"
     MONITOR ||--o{ OBSERVATION : "emits"
     OBSERVATION ||--o{ BREACH : "may raise"
@@ -308,7 +308,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-TIER-004 | Complexity scoring must support the advanced factors: alternative/unstructured data usage, interpretability, explainability, transparency, designer/data bias potential. | M | SS1/23 1.3(c) |
 | FR-TIER-005 | **Automatic re-tiering triggers**: exposure change beyond threshold, new use added, methodology change, data-source change, monitoring breach, regulatory change, elapsed time. | M | SR 26-2 III |
 | FR-TIER-006 | Register the tiering approach **as a model in the inventory** and subject it to periodic validation. | S | SS1/23 1.3(d) |
-| FR-TIER-007 | Tier drives, by configuration: validation scope and cadence, monitoring frequency and metric set, documentation template set, approval authority level, hook issuance constraints. | M | SR 26-2 III |
+| FR-TIER-007 | Tier drives, by configuration: validation scope and cadence, monitoring frequency and metric set, documentation template set, approval authority level, warrant issuance constraints. | M | SR 26-2 III |
 | FR-TIER-008 | **Immaterial-model lite path**: models deemed immaterial require only identification + condition monitoring for materiality escalation. | M | SR 26-2 III (explicit) |
 | FR-TIER-009 | What-if tiering simulator: re-run the current or a candidate ruleset across the whole portfolio and diff the outcome. | S | — |
 | FR-TIER-010 | Record and track **regulatory model approvals** (IRB permission, FRTB IMA desk approval, internal model waiver) with scope, conditions, and expiry. | S | Basel |
@@ -323,10 +323,10 @@ Each requirement carries regulatory traceability where applicable.
 | FR-VER-004 | Automatic **artifact introspection** on upload: framework and library versions, input/output schema (name, dtype, shape, nullability), declared features, hyperparameters, size, opset. | M | Core |
 | FR-VER-005 | **Security scanning at upload**: malware scan, pickle opcode analysis, dependency vulnerability scan, secret detection, licence detection. Block or quarantine on policy breach. | M | Supply chain (01 §5.4) |
 | FR-VER-006 | **Format policy enforcement**: configurable allow/deny by environment. Default: pickle denied in production without explicit, expiring risk acceptance. | M | 01 §5.4 |
-| FR-VER-007 | **Sign artifacts** (Sigstore/cosign-compatible) and record in-toto/SLSA provenance attestations; verify signature at hook resolution. | S | SLSA |
+| FR-VER-007 | **Sign artifacts** (Sigstore/cosign-compatible) and record in-toto/SLSA provenance attestations; verify signature at warrant resolution. | S | SLSA |
 | FR-VER-008 | Generate an **AI-BOM** (SPDX 3.0 AI/Dataset profile and CycloneDX ML-BOM) per version. | S | EU AI Act Art. 11; AIBOM research |
 | FR-VER-009 | **Version comparison / diff**: parameters, hyperparameters, feature contract, metrics, schema, documentation, and output on a common test set. | M | SS1/23 3.3(c) |
-| FR-VER-010 | **Aliases** as mutable named pointers per environment: `champion`, `challenger`, `shadow`, `baseline`, `candidate`, plus custom. Alias moves are governed, audited, and instantly effective for hooks. | M | MLflow/UC pattern |
+| FR-VER-010 | **Aliases** as mutable named pointers per environment: `champion`, `challenger`, `shadow`, `baseline`, `candidate`, plus custom. Alias moves are governed, audited, and instantly effective for warrants. | M | MLflow/UC pattern |
 | FR-VER-011 | Support versions with **no artifact** (vendor black box, EUC, expert-judgment) but full metadata and evidence. | M | T6/T7/T8 |
 | FR-VER-012 | **Reproducibility bundle**: one command reconstructs the exact environment (lockfile/container digest), dataset snapshot, feature views, seed, and code commit to re-run a fit. | M | SR 26-2 V; P1 |
 | FR-VER-013 | Store **calibration parameter sets** as versioned, high-frequency child objects of a version (a T1 model may recalibrate daily without creating a new model version). | M | T1 lifecycle |
@@ -345,7 +345,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-FEA-006 | **Feature contract**: every model version binds to exact feature view versions + transformation versions. Serving with a non-matching contract fails closed. | M | Skew prevention |
 | FR-FEA-007 | **Training–serving skew detection**: compare offline vs online distributions and values for the same entity/time; alert on divergence. | M | 01 §5.2 |
 | FR-FEA-008 | **Feature-level lineage**: source table/column → transformation → feature → feature view version → model version → model use → business decision. | M | BCBS 239 |
-| FR-FEA-009 | **Consumer impact analysis**: before changing or deprecating a feature, list every affected model version, hook and use. Block breaking changes without impact sign-off. | M | — |
+| FR-FEA-009 | **Consumer impact analysis**: before changing or deprecating a feature, list every affected model version, warrant and use. Block breaking changes without impact sign-off. | M | — |
 | FR-FEA-010 | **Feature discovery and reuse**: search, similarity detection, duplicate-feature warning, popularity and quality signals. | S | — |
 | FR-FEA-011 | **Data quality assertions** per feature (null rate, range, cardinality, freshness, referential integrity) evaluated on every materialisation; failures quarantine the version. | M | SS1/23 3.2 |
 | FR-FEA-012 | **Feature drift monitoring** (PSI/CSI, KL, KS, Wasserstein) against the training-time reference distribution stored in the contract. | M | SR 26-2 V |
@@ -399,7 +399,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-VAL-003 | **Executable validation**: validators run tests inside MAYA against the pinned version and dataset snapshot; results become evidence nodes, not pasted screenshots. | M | P1 |
 | FR-VAL-004 | **Independent recode / benchmark harness**: validator implements an independent version; MAYA runs both and reports divergence distribution. | M | Industry practice |
 | FR-VAL-005 | **Findings register**: severity (Critical/High/Medium/Low), category, affected component, owner, due date, remediation plan, status, evidence of closure, and independent closure verification. | M | SS1/23 1.2(c)(iii) |
-| FR-VAL-006 | Findings **block or restrict** lifecycle transitions and hook issuance according to policy (e.g. open Critical ⇒ suspend production hook). | M | — |
+| FR-VAL-006 | Findings **block or restrict** lifecycle transitions and warrant issuance according to policy (e.g. open Critical ⇒ suspend production warrant). | M | — |
 | FR-VAL-007 | **Validation report compiler** producing the standard report from evidence + validator narrative, with a completeness checklist. | M | SR 26-2 V |
 | FR-VAL-008 | **Validation scheduling** by risk-based cadence with triggers, not a fixed annual rule; explicitly support "no fixed cadence, trigger-based" for low-tier models. | M | SR 26-2 V (cadence removed) |
 | FR-VAL-009 | **Vendor model validation** workflow: due diligence checklist, vendor attestation ingestion, own-outcomes analysis, customisation documentation and evaluation. | M | SR 26-2 VII; SS1/23 2.6 |
@@ -434,7 +434,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-MON-006 | **Breach → finding** automation with severity mapping and auto-assignment. | M | — |
 | FR-MON-007 | **Model health score** per model version combining performance, drift, data quality, overlay reliance, validation currency, and open findings — with full derivation transparency. | S | P8 |
 | FR-MON-008 | **Inference logging**: capture request id, model URN + resolved version, feature values (or a governed subset/hash), prediction, explanation, latency, caller identity, decision outcome, with sampling policy by tier. Retain per regulatory class. | M | EU AI Act Art. 12, 19 |
-| FR-MON-009 | **Approved-use vs actual-use reconciliation**: compare hook invocation patterns (caller, portfolio, geography, volume) against approved uses and raise off-label-use exceptions. | M | SS1/23 1.2(c)(i) |
+| FR-MON-009 | **Approved-use vs actual-use reconciliation**: compare warrant invocation patterns (caller, portfolio, geography, volume) against approved uses and raise off-label-use exceptions. | M | SS1/23 1.2(c)(i) |
 | FR-MON-010 | **Operating-boundary monitoring**: flag inference requests whose inputs fall outside the declared operating boundaries; count, alert and optionally reject. | M | SS1/23 1.2(c)(i) |
 | FR-MON-011 | **Champion/challenger continuous comparison** with statistical significance and a promotion recommendation. | S | — |
 | FR-MON-012 | **Adaptive-model (T4) change monitoring**: track the magnitude and frequency of autonomous parameter change and alarm on excursions; retain the parameter trajectory. | M | SS1/23 3.3(c) |
@@ -443,29 +443,29 @@ Each requirement carries regulatory traceability where applicable.
 | FR-MON-015 | **Data pipeline monitoring** upstream of models: freshness, volume, schema change, null spikes — because most "model failures" are data failures. | M | — |
 | FR-MON-016 | Ingest **external monitoring** results (Arize, Evidently, Lakehouse Monitoring) via API so MAYA remains the system of record without mandating its own compute. | S | Integration |
 
-### 6.10 Module: Hooks & Execution (`FR-HOOK`)
+### 6.10 Module: Warrants & Execution (`FR-WARRANT`)
 
-Detailed protocol in [06 — Hooks and Execution](06-hooks-and-execution.md).
+Detailed protocol in [06 — Warrants and Execution](06-warrants-and-execution.md).
 
 | ID | Requirement | Pri | Traceability |
 |---|---|---|---|
-| FR-HOOK-001 | **Issue a hook on demand** for a model version or alias, of a requested flavour, subject to policy evaluation. | M | User requirement |
-| FR-HOOK-002 | Support hook flavours: **REST/OIP-v2**, **gRPC**, **batch job** (Spark/Delta), **Python/Java SDK client**, **SQL UDF**, **stream processor** (Kafka), **container image**, **spreadsheet/API-key**, and **descriptor-only** (execution engine supplies its own runtime). | M | Execution-engine requirement |
-| FR-HOOK-003 | A hook resolves a stable **URN** (`maya://model/<name>@<version>` or `...#<alias>`) to a **signed Hook Descriptor** containing artifact URI + digest, runtime spec, input/output schema, feature contract, preprocessing DAG, policy constraints, expiry and revocation endpoint. | M | — |
-| FR-HOOK-004 | **Alias-based routing**: an execution engine may bind to `#champion` and automatically follow governed alias moves without redeployment. | M | Champion/challenger |
-| FR-HOOK-005 | **Pinned-version binding** for reproducibility-critical callers (regulatory reporting must not silently follow an alias). | M | SOX |
-| FR-HOOK-006 | **Entitlement model**: hooks are granted to a principal (service account, team, application) for a specific **approved use**; resolution fails if the caller's declared use is not approved. | M | SR 26-2 III |
-| FR-HOOK-007 | **Kill switch**: revoke a hook, an alias binding, a version, or all hooks for a model, taking effect within a configurable TTL (default ≤ 60s), with a documented break-glass. | M | Operational resilience |
-| FR-HOOK-008 | **Fail-safe availability**: previously resolved descriptors remain valid for their TTL if MAYA is unreachable; only new issuance and revocation propagation are affected. | M | P9 |
-| FR-HOOK-009 | **Invocation telemetry**: every resolution and (where MAYA serves) every invocation is logged with caller, use, version, latency and outcome. | M | FR-MON-009 |
-| FR-HOOK-010 | **Rate limits, quotas and cost budgets** per hook grant, especially for T5 token-metered models. | M | — |
-| FR-HOOK-011 | **Signature verification**: descriptors are signed; SDKs verify before execution; artifact digest is checked at load. | M | Supply chain |
-| FR-HOOK-012 | **Environment scoping**: dev / test / uat / prod hooks with distinct policy; production issuance requires approved state. | M | — |
-| FR-HOOK-013 | **Shadow and canary traffic** support: issue a hook that mirrors a percentage of traffic to a challenger without affecting the served result. | S | — |
-| FR-HOOK-014 | **Optional managed serving**: MAYA can host the model itself behind an OIP-v2 endpoint with autoscaling, for teams without their own runtime. | S | — |
-| FR-HOOK-015 | **Execution sandboxing**: any MAYA-hosted execution runs in a network-isolated, resource-capped, ephemeral sandbox with no credentials to the control plane. | M | P7 |
-| FR-HOOK-016 | **Hook catalogue** UI: what exists, who holds it, what it points at, usage volume, last used, and unused-hook cleanup. | S | — |
-| FR-HOOK-017 | Support **composite hooks**: a hook that resolves to a DAG of models (e.g. curve → pricer → XVA) as one callable unit, with per-node governance. | C | Feeder graph |
+| FR-WARRANT-001 | **Issue a warrant on demand** for a model version or alias, of a requested flavour, subject to policy evaluation. | M | User requirement |
+| FR-WARRANT-002 | Support warrant flavours: **REST/OIP-v2**, **gRPC**, **batch job** (Spark/Delta), **Python/Java SDK client**, **SQL UDF**, **stream processor** (Kafka), **container image**, **spreadsheet/API-key**, and **descriptor-only** (execution engine supplies its own runtime). | M | Execution-engine requirement |
+| FR-WARRANT-003 | A warrant resolves a stable **URN** (`maya://model/<name>@<version>` or `...#<alias>`) to a **signed Warrant Descriptor** containing artifact URI + digest, runtime spec, input/output schema, feature contract, preprocessing DAG, policy constraints, expiry and revocation endpoint. | M | — |
+| FR-WARRANT-004 | **Alias-based routing**: an execution engine may bind to `#champion` and automatically follow governed alias moves without redeployment. | M | Champion/challenger |
+| FR-WARRANT-005 | **Pinned-version binding** for reproducibility-critical callers (regulatory reporting must not silently follow an alias). | M | SOX |
+| FR-WARRANT-006 | **Entitlement model**: warrants are granted to a principal (service account, team, application) for a specific **approved use**; resolution fails if the caller's declared use is not approved. | M | SR 26-2 III |
+| FR-WARRANT-007 | **Kill switch**: revoke a warrant, an alias binding, a version, or all warrants for a model, taking effect within a configurable TTL (default ≤ 60s), with a documented break-glass. | M | Operational resilience |
+| FR-WARRANT-008 | **Fail-safe availability**: previously resolved descriptors remain valid for their TTL if MAYA is unreachable; only new issuance and revocation propagation are affected. | M | P9 |
+| FR-WARRANT-009 | **Invocation telemetry**: every resolution and (where MAYA serves) every invocation is logged with caller, use, version, latency and outcome. | M | FR-MON-009 |
+| FR-WARRANT-010 | **Rate limits, quotas and cost budgets** per warrant grant, especially for T5 token-metered models. | M | — |
+| FR-WARRANT-011 | **Signature verification**: descriptors are signed; SDKs verify before execution; artifact digest is checked at load. | M | Supply chain |
+| FR-WARRANT-012 | **Environment scoping**: dev / test / uat / prod warrants with distinct policy; production issuance requires approved state. | M | — |
+| FR-WARRANT-013 | **Shadow and canary traffic** support: issue a warrant that mirrors a percentage of traffic to a challenger without affecting the served result. | S | — |
+| FR-WARRANT-014 | **Optional managed serving**: MAYA can host the model itself behind an OIP-v2 endpoint with autoscaling, for teams without their own runtime. | S | — |
+| FR-WARRANT-015 | **Execution sandboxing**: any MAYA-hosted execution runs in a network-isolated, resource-capped, ephemeral sandbox with no credentials to the control plane. | M | P7 |
+| FR-WARRANT-016 | **Warrant catalogue** UI: what exists, who holds it, what it points at, usage volume, last used, and unused-warrant cleanup. | S | — |
+| FR-WARRANT-017 | Support **composite warrants**: a warrant that resolves to a DAG of models (e.g. curve → pricer → XVA) as one callable unit, with per-node governance. | C | Feeder graph |
 
 ### 6.11 Module: Documentation (`FR-DOC`)
 
@@ -561,13 +561,13 @@ model, tiered, evaluated and monitored — MAYA governs its own AI on the same t
 | ID | Category | Requirement |
 |---|---|---|
 | NFR-PERF-001 | Latency | Inventory list/search p95 < 500 ms at 10,000 models; model detail p95 < 800 ms. |
-| NFR-PERF-002 | Latency | **Hook resolution p99 < 50 ms** (cached descriptor) and < 200 ms cold; this is on the critical path of production scoring. |
+| NFR-PERF-002 | Latency | **Warrant resolution p99 < 50 ms** (cached descriptor) and < 200 ms cold; this is on the critical path of production scoring. |
 | NFR-PERF-003 | Latency | MAYA-hosted OIP-v2 inference adds p99 < 20 ms overhead above raw model execution. |
-| NFR-PERF-004 | Throughput | 5,000 hook resolutions/sec sustained; 50,000 inference log events/sec ingested to Delta. |
+| NFR-PERF-004 | Throughput | 5,000 warrant resolutions/sec sustained; 50,000 inference log events/sec ingested to Delta. |
 | NFR-PERF-005 | Scale | 50,000 models, 500,000 versions, 200,000 features, 20,000 feature views, 10 M runs, 100 B inference log rows. |
 | NFR-PERF-006 | Batch | PIT training-set generation over 1 B rows × 500 features in < 30 min on the standard compute profile. |
-| NFR-AVAIL-001 | Availability | Control plane 99.9%; **hook resolution plane 99.99%** with regional failover. |
-| NFR-AVAIL-002 | Degradation | Hook resolution serves from cache/read replica if the primary is down (P9). |
+| NFR-AVAIL-001 | Availability | Control plane 99.9%; **warrant resolution plane 99.99%** with regional failover. |
+| NFR-AVAIL-002 | Degradation | Warrant resolution serves from cache/read replica if the primary is down (P9). |
 | NFR-AVAIL-003 | RTO/RPO | RTO 4 h, RPO 15 min for the control plane; RPO 0 for the audit log (synchronous replication). |
 | NFR-SEC-001 | Security | Meet the bank's Tier 1 application security standard; annual pen test; SAST/DAST/SCA in CI; SBOM per release. |
 | NFR-SEC-002 | Security | No untrusted deserialisation in the control plane; all artifact introspection in sandbox. |
@@ -625,7 +625,7 @@ Grouped, with source regulation. `A` = auto-derived by MAYA, `H` = human-entered
 | Inventory, versions, lifecycle, workflow, findings, overlays, approvals, policy, entitlements, audit log | **PostgreSQL** | Relational integrity, transactions, RLS, complex joins, low-latency reads |
 | Feature values (offline), training snapshots, inference logs, monitoring observations, evaluation results, large evidence payloads | **Delta Lake** | Columnar scale, ACID, time travel, schema evolution, cheap retention |
 | Artifact binaries | **Object storage** (S3/ADLS/GCS), content-addressed, versioned, optionally WORM | Cost, immutability, size |
-| Hook descriptors (hot cache), sessions, rate limits | **Redis** | Sub-millisecond reads on the critical path |
+| Warrant descriptors (hot cache), sessions, rate limits | **Redis** | Sub-millisecond reads on the critical path |
 | Semantic search vectors | **pgvector** in Postgres | Avoid a second datastore; scale is modest |
 | Online feature values (optional) | Redis / DynamoDB / Postgres | Serving latency |
 
@@ -660,7 +660,7 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | INT-009 | **ITSM / CMDB (ServiceNow)** | Bi | Change records for production model changes; application mapping | S |
 | INT-010 | **Data catalogue** (Collibra, Alation, Purview) | Bi | Push feature and model lineage; pull business glossary and data ownership | S |
 | INT-011 | **ML observability** (Arize, Fiddler, Evidently, Lakehouse Monitoring) | In | Ingest metric observations | S |
-| INT-012 | **Serving runtimes** (KServe, Seldon, BentoML, SageMaker, Vertex, Databricks Serving, Triton) | Out | Deploy hooks; read endpoint health | S |
+| INT-012 | **Serving runtimes** (KServe, Seldon, BentoML, SageMaker, Vertex, Databricks Serving, Triton) | Out | Deploy warrants; read endpoint health | S |
 | INT-013 | **Collaboration** (Teams, Slack, email) | Out | Notifications, approvals via adaptive cards | M |
 | INT-014 | **BI** (Power BI, Tableau) | Out | Read-only semantic layer / SQL views | S |
 | INT-015 | **Vendor model providers** | In | Version change feeds, attestation documents | C |
@@ -688,7 +688,7 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | Data suitability, representativeness, bias, adjustments, alternative data | SS1/23 3.2 | FR-FEA-001/011/013/016; FR-INV-002 |
 | Validation: conceptual soundness, outcomes analysis, ongoing monitoring | SR 26-2 V | FR-VAL-001/002/012; FR-MON-* |
 | Risk-based validation timing (no fixed annual rule) | SR 26-2 V | FR-VAL-008 |
-| Use before validation permitted with limits and closer monitoring | SR 26-2 V | FR-LC-006; FR-HOOK-006 |
+| Use before validation permitted with limits and closer monitoring | SR 26-2 V | FR-LC-006; FR-WARRANT-006 |
 | Challenger models and benchmarking | SR 26-2 V; SS1/23 3.3(b)(iii) | FR-TRN-009; FR-MON-011 |
 | Dynamic models: parallel outcomes analysis on change | SS1/23 3.3(c) | FR-LC-008; FR-MON-012 |
 | Model adjustments justified, recorded, with calculation over time | SS1/23 3.4 | FR-PMA-001..003 |
@@ -729,7 +729,7 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 - Being the bank's general-purpose data catalogue (integrate with Collibra/Purview instead).
 - Being the primary training compute platform.
 - Automated model *development* (AutoML).
-- Real-time payment-scale inference serving as the primary path (MAYA-hosted serving is for convenience; high-TPS models keep their own runtime and use descriptor-only hooks).
+- Real-time payment-scale inference serving as the primary path (MAYA-hosted serving is for convenience; high-TPS models keep their own runtime and use descriptor-only warrants).
 - Non-model EUC remediation tooling (ingest scan results only).
 
 ---

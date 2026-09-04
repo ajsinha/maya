@@ -36,7 +36,7 @@ of this type.
 ## 2. Critical findings
 
 ### C-1 · The kill switch and the availability guarantee contradict each other
-**Lens:** L1 · **Challenges:** [06 §1 G4 vs G5](06-hooks-and-execution.md), [ADR-007](adr/ADR-007-hook-protocol.md)
+**Lens:** L1 · **Challenges:** [06 §1 G4 vs G5](06-warrants-and-execution.md), [ADR-007](adr/ADR-007-warrant-protocol.md)
 
 The design asserts that a model is stoppable globally in under 60 seconds (`G4`), *and* that a descriptor
 remains usable for a 900-second grace window if MAYA is unreachable (`G5`). These cannot both hold. An
@@ -84,7 +84,7 @@ exists to prevent, introduced by the platform itself, with **every guard reporti
 - Publishing a new view version starts a **dual-write** period; the old namespace is retained until no
   active contract references it — which MAYA knows exactly, from the contract table.
 - Namespace retirement is a governed action with a consumer-impact check, identical to feature deprecation.
-- A new law, **L-17 (contract–serving agreement)**: for every active hook, the online namespace served
+- A new law, **L-17 (contract–serving agreement)**: for every active warrant, the online namespace served
   must equal the namespace pinned by its contract. Checked continuously, not at design time.
 
 Cost is roughly `k ×` online storage, where `k` is the number of concurrently pinned versions per view —
@@ -182,8 +182,8 @@ Without this, the platform is technically correct and organisationally unusable.
 
 ---
 
-### C-6 · `descriptor_only` hooks make governance dependent on client honesty
-**Lens:** L3 · **Challenges:** [06 §3](06-hooks-and-execution.md) — an overclaim
+### C-6 · `descriptor_only` warrants make governance dependent on client honesty
+**Lens:** L3 · **Challenges:** [06 §3](06-warrants-and-execution.md) — an overclaim
 
 The `descriptor_only` flavour exists because most of a bank's estate runs in engines that will never be
 replaced. But such an engine receives a signed descriptor and then does whatever it likes: it can skip
@@ -201,16 +201,16 @@ and the difference matters.
    detected and raised. Silence is evidence.
 3. **Signed telemetry** from attested engines; unsigned telemetry is retained but marked lower-trust — and
    the evidence semiring propagates that trust automatically ([00 §9.2](00-mathematical-foundations.md)).
-4. **Policy.** Tier 1 consumer-impacting models may not be granted `opaque`-tier hooks without a dated,
+4. **Policy.** Tier 1 consumer-impacting models may not be granted `opaque`-tier warrants without a dated,
    approved migration plan.
-5. **Documentation change.** [06](06-hooks-and-execution.md) now states this limitation explicitly rather
+5. **Documentation change.** [06](06-warrants-and-execution.md) now states this limitation explicitly rather
    than implying uniform enforcement.
 
 ---
 
 ## 3. High findings
 
-### H-1 · Cache stampede on alias move will breach the hook latency SLA
+### H-1 · Cache stampede on alias move will breach the warrant latency SLA
 **Lens:** L4 · **Challenges:** [04 §15](04-architecture.md), `NFR-PERF-002`
 
 Alias move invalidates cached descriptors for a model. For a model at 14,000 requests/second, every
@@ -221,18 +221,18 @@ of magnitude, and the database is the failure point — during a *governed, rout
 flip the pointer — the cache is never empty. (ii) **Single-flight coalescing** per `(urn, principal, env)`
 so concurrent misses produce one backend call. (iii) **TTL jitter** of ±20% to prevent synchronised
 expiry. (iv) **Stale-while-revalidate** on the resolver: serve the previous descriptor for up to 5 s while
-the new one is built. Added to [04 §15](04-architecture.md) and [06 §6](06-hooks-and-execution.md).
+the new one is built. Added to [04 §15](04-architecture.md) and [06 §6](06-warrants-and-execution.md).
 
-### H-2 · `maya-hooks` reading the control-plane schema directly is unacceptable coupling
+### H-2 · `maya-warrants` reading the control-plane schema directly is unacceptable coupling
 **Lens:** L1 · **Challenges:** [04 §3, §10](04-architecture.md)
 
-The hook service is described as independently deployable and independently available — yet it queries the
-control plane's normalised tables. A control-plane migration breaks the hook plane, which is the one
+The warrant service is described as independently deployable and independently available — yet it queries the
+control plane's normalised tables. A control-plane migration breaks the warrant plane, which is the one
 component that must never break; and the deployment independence is fictional.
 
-**Fix.** The hook service reads **only** a dedicated `hook_projection` read model — a flat, versioned,
+**Fix.** The warrant service reads **only** a dedicated `warrant_projection` read model — a flat, versioned,
 denormalised table maintained by the control plane through the outbox. Its schema is a published contract
-with its own version, changed under expand/contract discipline. The hook service holds no knowledge of any
+with its own version, changed under expand/contract discipline. The warrant service holds no knowledge of any
 other table. This also removes the join cost from the hot path. Reflected in [04 §3](04-architecture.md)
 and [05 §9](05-data-model.md).
 
@@ -322,7 +322,7 @@ predicts anything is evidence of systematic understatement.
 ### H-9 · Single Postgres primary is a structural scaling ceiling
 **Lens:** L4 · **Challenges:** [04 §12](04-architecture.md)
 
-Inventory reads, evidence-graph traversals, audit-log writes and hook projection maintenance all land on
+Inventory reads, evidence-graph traversals, audit-log writes and warrant projection maintenance all land on
 one primary. Evidence traversal is recursive and read-heavy; audit is write-heavy and cannot be lost;
 they compete.
 
@@ -342,9 +342,9 @@ prematurely.
 | **M-1** | **`Para(Stoch)` handles adaptive (T4) models awkwardly.** A time-indexed parameter object is not an object of the category; the paper admits this, [00](00-mathematical-foundations.md) does not. | Caveat added to [00 §4.2](00-mathematical-foundations.md). T4 is modelled as a *sequence* of models with a governed change process, plus a coalgebraic treatment noted as future work. Consistency between paper and design docs restored. |
 | **M-2** | **Provenance polynomials can blow up exponentially** on wide OR-structures; "mitigated by depth limits" understates it. | Complexity stated: `Why(X)` is worst-case exponential in the number of alternative derivations. Mitigations made concrete — canonical form with absorption, memoisation, a hard term cap that degrades to `Boolean ⊕ Trust` with an explicit truncation marker rather than silently. |
 | **M-3** | **Outbox → Delta writes are not idempotent.** At-least-once delivery duplicates rows. | Every Delta write carries an `outbox_id`; writers use `MERGE` on it. Reconciliation compares outbox rows marked done against Delta counts and has a **defined repair action**, not merely an alert. |
-| **M-4** | **Composite hooks may re-resolve members mid-execution**, producing an internally inconsistent valuation chain. | A composite pins **all** members at first resolution and holds them for the execution's declared lifetime; the pinned set is recorded so the result is attributable. Long-running composites renew as a set or fail. |
+| **M-4** | **Composite warrants may re-resolve members mid-execution**, producing an internally inconsistent valuation chain. | A composite pins **all** members at first resolution and holds them for the execution's declared lifetime; the pinned set is recorded so the result is attributable. Long-running composites renew as a set or fail. |
 | **M-5** | **Law L-6 (summary soundness) only checks machine-parseable claims.** Narrative assertions are unverified, and the law implies otherwise. | Restated: soundness is checked for **quantitative claims in structured sections**. Narrative sections carry an explicit `unverified_narrative` marker and require human attestation. Honest scope. |
-| **M-6** | **No FinOps model.** GenAI token spend, Spark compute and sandbox fleet costs are unbounded and unattributed. | Cost is a first-class dimension: per-hook budgets already exist; added per-model and per-business-unit cost attribution, showback, and cost as a monitored metric with thresholds. |
+| **M-6** | **No FinOps model.** GenAI token spend, Spark compute and sandbox fleet costs are unbounded and unattributed. | Cost is a first-class dimension: per-warrant budgets already exist; added per-model and per-business-unit cost attribution, showback, and cost as a monitored metric with thresholds. |
 | **M-7** | **Deletion of a model is undefined.** Retention, legal hold and erasure interact; the design covers decommissioning but never *deletion*. | Explicit retention state machine: `decommissioned → archived → (legal hold?) → purge-eligible → purged`, with purge requiring dual control and writing a tombstone. Legal hold blocks every transition. |
 | **M-8** | **Notification storms.** A single upstream failure raises findings on every downstream model, mailing hundreds of owners. | Findings are **correlated**: a root-cause finding with downstream *impact records*, not N independent findings. Notification is to the root owner plus a digest to affected owners. Suppression windows and deduplication keys defined. |
 

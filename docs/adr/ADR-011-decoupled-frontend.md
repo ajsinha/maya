@@ -53,7 +53,7 @@ Supporting decisions:
 
 - The API is exercised continuously by the product itself, so it cannot drift from what the UI needs.
 - Independent scaling and release. A front-end deploy carries no database migration risk.
-- Independent failure. A front-end outage stops human review; it does not stop hook resolution,
+- Independent failure. A front-end outage stops human review; it does not stop warrant resolution,
   scheduled jobs, monitoring, or the SDK — which is a meaningful improvement in blast radius.
 - Alternative clients (mobile approvals, embedded widgets, a terminal client) become possible at no
   additional backend cost.

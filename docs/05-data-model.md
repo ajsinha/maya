@@ -57,8 +57,8 @@ erDiagram
     VALIDATION ||--o{ TEST_RESULT : ""
     VALIDATION ||--o{ FINDING : ""
     FINDING ||--o{ REMEDIATION : ""
-    DEPLOYMENT ||--o{ HOOK : ""
-    HOOK ||--o{ HOOK_GRANT : ""
+    DEPLOYMENT ||--o{ WARRANT : ""
+    WARRANT ||--o{ WARRANT_GRANT : ""
     MODEL_VERSION ||--o{ MONITOR : ""
     MONITOR ||--o{ BREACH : ""
     EVIDENCE_NODE ||--o{ EVIDENCE_EDGE : "child"
@@ -690,7 +690,7 @@ CREATE TABLE overlay_measurement (                        -- quantified magnitud
 
 ---
 
-## 9. Deployment, hooks and monitoring
+## 9. Deployment, warrants and monitoring
 
 ```sql
 CREATE TABLE deployment (
@@ -705,7 +705,7 @@ CREATE TABLE deployment (
     retired_at       timestamptz
 );
 
-CREATE TABLE hook (
+CREATE TABLE warrant (
     id               text PRIMARY KEY,
     model_id         text NOT NULL REFERENCES model(id),
     binding_kind     text NOT NULL CHECK (binding_kind IN ('pinned_version','alias')),
@@ -724,9 +724,9 @@ CREATE TABLE hook (
      OR (binding_kind = 'alias'          AND alias_name IS NOT NULL))
 );
 
-CREATE TABLE hook_grant (
+CREATE TABLE warrant_grant (
     id            text PRIMARY KEY,
-    hook_id       text NOT NULL REFERENCES hook(id),
+    warrant_id       text NOT NULL REFERENCES warrant(id),
     principal     text NOT NULL,                        -- service account / team / application
     model_use_id  text NOT NULL REFERENCES model_use(id),
     rate_limit_rps integer,
@@ -735,7 +735,7 @@ CREATE TABLE hook_grant (
     expires_at    timestamptz,
     status        text NOT NULL DEFAULT 'active'
 );
-CREATE INDEX ON hook_grant (principal, status);
+CREATE INDEX ON warrant_grant (principal, status);
 
 CREATE TABLE monitor (
     id               text PRIMARY KEY,
@@ -841,15 +841,15 @@ and role model.
 
 ---
 
-## 10a. Hook projection — the read model for `maya-hooks`
+## 10a. Warrant projection — the read model for `maya-warrants`
 
-Finding **H-2**: the hook service must not read the control plane's normalised tables. That coupling
+Finding **H-2**: the warrant service must not read the control plane's normalised tables. That coupling
 would let a control-plane migration break the one component that must never break, and makes its
 "independent deployability" fictional. It reads **only** this flat, versioned projection, maintained
 through the outbox.
 
 ```sql
-CREATE TABLE hook_projection (
+CREATE TABLE warrant_projection (
     urn              text NOT NULL,
     environment      text NOT NULL,
     alias_name       text,                    -- null for pinned bindings
@@ -864,7 +864,7 @@ CREATE TABLE hook_projection (
     updated_at       timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (urn, environment, coalesce(alias_name, semver))
 );
-CREATE INDEX ON hook_projection (revocation_epoch);
+CREATE INDEX ON warrant_projection (revocation_epoch);
 ```
 
 The projection's schema is a **published contract with its own version**, evolved under expand/contract
@@ -1014,7 +1014,7 @@ CREATE TABLE maya_lake.telemetry.inference_log (
     occurred_at     TIMESTAMP,
     model_urn       STRING,
     model_version    STRING,
-    hook_id         STRING,
+    warrant_id         STRING,
     principal       STRING,
     declared_use_id STRING,
     features        MAP<STRING, STRING>,   -- governed subset or hashes, per sensitivity policy

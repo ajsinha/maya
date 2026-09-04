@@ -1,13 +1,13 @@
-# 06 — Hooks and the Execution Contract
+# 06 — Warrants and the Execution Contract
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
 **Annex to** [04 — Architecture](04-architecture.md).
 
-> *"The system should be able to produce hooks on demand so an execution engine can run a model or its
+> *"The system should be able to produce warrants on demand so an execution engine can run a model or its
 > version at will."*
 >
-> This document specifies that mechanism. A **hook** is not a URL. It is a **signed, policy-bound,
+> This document specifies that mechanism. A **warrant** is not a URL. It is a **signed, policy-bound,
 > expiring execution contract** — the operational realisation of the assume–guarantee contract of
 > [00 §6.1](00-mathematical-foundations.md#61-assumeguarantee-contracts).
 
@@ -48,11 +48,11 @@ maya://model/<domain>.<family>.<name>[@<semver>][#<alias>][?<qualifiers>]
 
 **Rule.** Anything feeding a regulatory submission or a financial-statement figure **must** pin. MAYA
 enforces this: a `model_use` with `decision_authority = 'regulatory_submission'` cannot be granted an
-alias-bound hook.
+alias-bound warrant.
 
 ---
 
-## 3. Hook flavours
+## 3. Warrant flavours
 
 One governance model, many delivery mechanisms. The flavour determines what the descriptor contains and
 how the caller executes; it does **not** change the policy evaluation.
@@ -69,7 +69,7 @@ how the caller executes; it does **not** change the policy evaluation.
 | `container` | An OCI image digest that embeds the model and preprocessing | Any container runtime | Air-gapped or vendor-hosted environments |
 | `descriptor_only` | The signed descriptor alone; the caller supplies its own runtime | Caller (e.g. a C++ pricing library) | Quant libraries, HPC grids, existing engines |
 | `sheet` | An API key + Excel/Power Query connector | Business users | Controlled EUC replacement |
-| `composite` | A DAG descriptor of member hooks | Orchestrator or MAYA | Model chains |
+| `composite` | A DAG descriptor of member warrants | Orchestrator or MAYA | Model chains |
 
 `descriptor_only` matters most in a bank: the majority of the estate already runs inside engines nobody
 is going to replace.
@@ -87,14 +87,14 @@ of every model it runs.
 |---|---|---|
 | `attested` | Uses a MAYA SDK, verified build provenance, signs its telemetry | Full trust; telemetry admissible as evidence |
 | `cooperating` | Custom integration, reports telemetry, unverified | Telemetry retained at reduced trust, which the evidence semiring propagates automatically |
-| `opaque` | Resolves only; no telemetry | Tier 1 consumer-impacting models may not be granted an `opaque` hook without a dated, approved migration plan |
+| `opaque` | Resolves only; no telemetry | Tier 1 consumer-impacting models may not be granted an `opaque` warrant without a dated, approved migration plan |
 
 **Liveness as a control.** A principal that resolves but never reports is an exception, raised as a
 finding. Silence is evidence.
 
 ---
 
-## 4. The Hook Descriptor
+## 4. The Warrant Descriptor
 
 ```jsonc
 {
@@ -169,7 +169,7 @@ finding. Silence is evidence.
   },
 
   "telemetry": {
-    "endpoint": "https://hooks.maya.bank.internal/v1/telemetry",
+    "endpoint": "https://warrants.maya.bank.internal/v1/telemetry",
     "sampling_rate": 1.0,
     "required_fields": ["request_id","features_digest","prediction","latency_ms","boundary_ok"],
     "batch_max_seconds": 30
@@ -186,13 +186,13 @@ finding. Silence is evidence.
   },
 
   "revocation": {
-    "check_endpoint": "https://hooks.maya.bank.internal/v1/revocations",
+    "check_endpoint": "https://warrants.maya.bank.internal/v1/revocations",
     "epoch": 4471                                     // monotonic; see §6.3
   },
 
   "signature": {
     "alg": "Ed25519",
-    "key_id": "maya-hook-signing-2026-09",
+    "key_id": "maya-warrant-signing-2026-09",
     "value": "MEUCIQDx…",
     "signed_at": "2026-09-03T08:00:00Z"
   }
@@ -237,12 +237,12 @@ flowchart TD
     G -->|no| X5["409 not_approved_for_env"]
     G -->|yes| H{"Blocking findings?<br/>Suspended? Revoked?"}
     H -->|yes| X6["423 restricted<br/>+ reason + remediation link"]
-    H -->|no| I["Policy engine:<br/>Rego gate for hook issuance"]
+    H -->|no| I["Policy engine:<br/>Rego gate for warrant issuance"]
     I -->|deny| X7["403 policy_denied + deny_reason[]"]
     I -->|allow| J["Assemble descriptor<br/>+ governance snapshot"]
     J --> K["Sign (Ed25519)"]
     K --> L["Cache in Redis with<br/>revocation tag + TTL"]
-    L --> M["200 HookDescriptor"]
+    L --> M["200 WarrantDescriptor"]
 
     style X6 fill:#8b2f2f,color:#fff
     style M fill:#2d5016,color:#fff
@@ -257,7 +257,7 @@ Every denial returns a machine-readable reason **and** a human-actionable next s
   "detail": "Critical finding FND-4821 (fairness: AIR 0.74 on age_62plus) is open.",
   "remediation_url": "https://maya.bank.internal/findings/FND-4821",
   "break_glass": {"available": true, "requires": "dual_authorisation",
-                  "url": "https://maya.bank.internal/breakglass/new?hook=…"}
+                  "url": "https://maya.bank.internal/breakglass/new?warrant=…"}
 }
 ```
 
@@ -285,7 +285,7 @@ formally void, and MAYA records a boundary violation rather than a silent bad sc
 sequenceDiagram
     participant E as Engine
     participant C as Local cache
-    participant H as maya-hooks
+    participant H as maya-warrants
     Note over E,C: Descriptor TTL default 300 s (Tier 1) / 3600 s (Tier 3–4)
     E->>C: get descriptor
     alt fresh
@@ -311,7 +311,7 @@ Three timers, tuned per tier:
 
 **Grace is an opt-in concession, not a default.** For Tier 1 it is zero unless a consumer can evidence
 that failing stale is *less* dangerous than failing closed — real-time payment authorisation is the
-canonical case. Such grants are per-hook, expiring, and reported as a KRI, so the population of
+canonical case. Such grants are per-warrant, expiring, and reported as a KRI, so the population of
 consumers running with a grace window is always visible rather than assumed away.
 
 #### The revocation floor
@@ -336,7 +336,7 @@ pinned version so the run is reproducible even though the alias may have moved m
 ### 6.2 Kill switch
 
 ```http
-POST /v1/hooks/{hook_id}/revoke
+POST /v1/warrants/{warrant_id}/revoke
 {"reason": "critical_finding", "scope": "all_grants", "urgency": "immediate"}
 ```
 
@@ -346,8 +346,8 @@ Propagation, fastest to slowest:
 2. **Epoch bump** — the global `revocation.epoch` increments; any engine polling (default 30 s) sees the change and re-resolves.
 3. **TTL expiry** — worst case, the descriptor dies at `expires_at` (≤ 300 s for Tier 1).
 
-Revocation scopes: a single grant · all grants on a hook · all hooks for a version · all hooks for a
-model · all hooks for a vendor (used when a vendor discloses a defect) · **estate-wide** (dual-authorised,
+Revocation scopes: a single grant · all grants on a warrant · all warrants for a version · all warrants for a
+model · all warrants for a vendor (used when a vendor discloses a defect) · **estate-wide** (dual-authorised,
 for a systemic event such as a bad market-data feed).
 
 ### 6.3 Degraded mode is a first-class state
@@ -370,7 +370,7 @@ sequenceDiagram
     participant API as Control plane
     participant DOM as Contract algebra
     participant POL as Policy
-    participant HK as Hook service
+    participant HK as Warrant service
     participant CON as Consumers
 
     O->>API: POST /aliases/champion/move {to: 3.3.0, justification}
@@ -397,14 +397,14 @@ than as a project.
 
 ---
 
-## 8. Composite hooks
+## 8. Composite warrants
 
-A composite hook exposes a **DAG of models as one callable unit** — the composed morphism of
+A composite warrant exposes a **DAG of models as one callable unit** — the composed morphism of
 [00 §5.1](00-mathematical-foundations.md#51-the-feeder-graph-is-a-string-diagram).
 
 ```yaml
 apiVersion: maya.dev/v1
-kind: CompositeHook
+kind: CompositeWarrant
 metadata:
   urn: "maya://composite/markets.xva.desk_a"
 spec:
@@ -562,7 +562,7 @@ exceptions:
 | **Volume anomaly** | 40× the expected daily volume — suggests a new, unassessed use |
 | **Boundary violation rate** | 0.26% of inputs outside operating boundaries — assumption `A` failing |
 | **Dormant approval** | An approved use with zero calls for 180 days — candidate for withdrawal |
-| **Undeclared consumer** | A new principal resolving the hook |
+| **Undeclared consumer** | A new principal resolving the warrant |
 
 Each becomes a finding with an owner and a due date. This capability exists in no product surveyed in
 [01 §5](01-industry-research.md), and it is the difference between an inventory that describes intentions
@@ -575,7 +575,7 @@ and one that describes reality.
 | Control | Implementation |
 |---|---|
 | Authentication | Workload identity (SPIFFE/Kubernetes SA tokens, or mTLS client certs); no long-lived shared secrets |
-| Authorisation | Grant = (principal, hook, approved use); ABAC on entity/geography |
+| Authorisation | Grant = (principal, warrant, approved use); ABAC on entity/geography |
 | Integrity | Ed25519 descriptor signatures; key rotation every 90 days with an overlapping key set; SDKs pin the key set |
 | Artifact integrity | Content-addressed fetch; digest verified after download; cosign signature verified for Tier 1 |
 | Confidentiality | TLS 1.3 everywhere; descriptors contain no secrets, only references resolved via the caller's own credentials |
@@ -594,7 +594,7 @@ and one that describes reality.
 | MAYA unreachable, descriptor within grace | Execute, flag `degraded`, alert | Availability over strictness for already-approved work (`G5`) |
 | MAYA unreachable, past grace | **Fail closed** | Ungoverned execution is not a fallback |
 | Revoked | Fail closed, with reason and break-glass link | `G4` |
-| Feature online store stale beyond SLA | Fail closed by default; `serve_stale` is an explicit, per-hook, expiring opt-in | Stale features are silent model failure |
+| Feature online store stale beyond SLA | Fail closed by default; `serve_stale` is an explicit, per-warrant, expiring opt-in | Stale features are silent model failure |
 | Input outside operating boundaries | Per `on_boundary_violation`: reject, or score with a flag, or refer to human | The contract's assumption is violated; the guarantee no longer holds |
 | Artifact digest mismatch | **Fail closed**, raise a security incident | Possible tampering |
 | Signature verification failure | **Fail closed**, raise a security incident | Possible forged descriptor |

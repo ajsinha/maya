@@ -101,7 +101,7 @@ risk:
     3: 24
     4: 36
 
-hooks:
+warrants:
   # Tier 1 defaults are deliberately short, and grace is zero: grace extends
   # authorisation currency, never revocation ignorance (adversarial finding C-1).
   ttl_seconds:
@@ -117,14 +117,21 @@ hooks:
   jitter_pct: 20
   signing_key_id: maya-dev-key
 
-# MAYA manages models and issues hooks. It does not execute models. A captive
-# engine is bundled as a reference CONSUMER of the public hook API, so that a
+# MAYA manages models and issues warrants. It does not execute models. A captive
+# engine is bundled as a reference CONSUMER of the public warrant API, so that a
 # deployment works out of the box; disable it and any external engine that
-# resolves hooks behaves identically.
+# resolves warrants behaves identically.
 execution:
   captive:
     enabled: true
     max_seconds: 30
+
+content:
+  # Help and about pages are markdown files rendered at request time. They live
+  # in the repository rather than the database so that a change to what the
+  # platform says about itself is reviewable in the same pull request as the
+  # change to what it does.
+  dir: ./content
 
 logging:
   level: INFO

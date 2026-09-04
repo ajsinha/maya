@@ -217,7 +217,7 @@ vocabulary of "AI-powered governance" is already in the market.
 | **Close a finding** | Closure requires independent verification by a person who did not raise it. |
 | **Compute a metric** | Do not ask a language model for a Gini coefficient. Compute it and let the model describe it. This sounds obvious and is violated constantly. |
 
-**And AI must never be in the hook path.** [06](06-hooks-and-execution.md) requires p99 under 50 ms and
+**And AI must never be in the warrant path.** [06](06-warrants-and-execution.md) requires p99 under 50 ms and
 deterministic behaviour. Nothing probabilistic goes there.
 
 ---

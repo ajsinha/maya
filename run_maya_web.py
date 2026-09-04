@@ -10,9 +10,9 @@ services and the routes, then serves.
     python run_maya_web.py
     python run_maya_web.py --server.port=5006 --database.url=postgresql://...
 
-MAYA manages models and issues hooks. The captive execution engine is
+MAYA manages models and issues warrants. The captive execution engine is
 constructed here only if execution.captive.enabled is true, and it is handed
-the public HookService — the same interface an external engine consumes.
+the public WarrantService — the same interface an external engine consumes.
 """
 from __future__ import annotations
 
@@ -29,8 +29,9 @@ from core.execution import CaptiveEngine
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
-from core.execution import HookService
+from core.execution import WarrantService
 from core.config import PropertiesConfigurator
+from core.content import ContentLibrary
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
@@ -38,7 +39,7 @@ from core.validation import (FindingRegister, Replayer, TestCatalogue,
 from db import (AliasHistoryRepository, AliasRepository, ContractRepository, Database,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
-                HookRepository, ModelRepository, RiskRepository, SnapshotRepository,
+                WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
                 TestResultRepository, ValidationRepository, VersionRepository)
 from routes import ALL_ROUTES
 
@@ -76,13 +77,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     validation = ValidationService(ValidationRepository(db), TestResultRepository(db),
                                    registry, catalogue, evidence, findings)
 
-    hooks = HookService(HookRepository(db), registry, evidence,
-                        signing_key=cfg.get("hooks.signing_key_id", "maya-dev-key"),
-                        ttl_by_tier=_tier_map(cfg, "hooks.ttl_seconds",
+    warrants = WarrantService(WarrantRepository(db), registry, evidence,
+                        signing_key=cfg.get("warrants.signing_key_id", "maya-dev-key"),
+                        ttl_by_tier=_tier_map(cfg, "warrants.ttl_seconds",
                                               {1: 60, 2: 300, 3: 3600, 4: 3600}),
-                        grace_by_tier=_tier_map(cfg, "hooks.grace_seconds",
+                        grace_by_tier=_tier_map(cfg, "warrants.grace_seconds",
                                                 {1: 0, 2: 0, 3: 900, 4: 900}),
-                        jitter_pct=cfg.get_int("hooks.jitter_pct", 20),
+                        jitter_pct=cfg.get_int("warrants.jitter_pct", 20),
                         blocking=findings)
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
@@ -91,14 +92,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "tiering": tiering, "hooks": hooks,
+                           "registry": registry, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "test_catalogue": catalogue,
+                           "content": ContentLibrary(
+                               Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}
     if cfg.get_bool("execution.captive.enabled", True):
-        # A consumer of the public hook contract, nothing more.
-        ctx["engine"] = CaptiveEngine(hooks, cfg.get_float("execution.captive.max_seconds", 30.0))
+        # A consumer of the public warrant contract, nothing more.
+        ctx["engine"] = CaptiveEngine(warrants, cfg.get_float("execution.captive.max_seconds", 30.0))
     return ctx
 
 

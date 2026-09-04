@@ -4,14 +4,14 @@ Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 
 The register is only a control if something refuses to proceed because of it, so
 the tests that matter most here are the ones asserting that an alias move and a
-hook resolution both fail while a blocking finding is open, and both recover the
+warrant resolution both fail while a blocking finding is open, and both recover the
 moment it is properly closed.
 """
 import time
 
 import pytest
 
-from core.execution import HookError, HookService
+from core.execution import WarrantError, WarrantService
 from core.registry import RegistryError
 from core.validation import ValidationError
 from tests.conftest import URN
@@ -242,33 +242,33 @@ class TestBlockingGate:
         findings.raise_finding(model["id"], "Medium", "Docs stale", "person/j.okafor")
         assert gated_registry.move_alias(URN, "prod", "champion", "1.0.0")
 
-    def test_hook_resolution_fails_closed_on_a_blocking_finding(
+    def test_warrant_resolution_fails_closed_on_a_blocking_finding(
             self, repos, registry, evidence, findings, a_model, approved_version):
-        hooks = HookService(repos["hooks"], registry, evidence, jitter_pct=0,
+        warrants = WarrantService(repos["warrants"], registry, evidence, jitter_pct=0,
                             blocking=findings)
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(URN, "prod", "svc/pricing", "origination_decision")
-        assert hooks.resolve(URN, "prod", "svc/pricing", "origination_decision")
+        warrants.issue(URN, "prod", "svc/pricing", "origination_decision")
+        assert warrants.resolve(URN, "prod", "svc/pricing", "origination_decision")
 
         findings.raise_finding(a_model["id"], "Critical", "Leakage", "person/j.okafor")
-        with pytest.raises(HookError) as exc:
-            hooks.resolve(URN, "prod", "svc/pricing", "origination_decision")
+        with pytest.raises(WarrantError) as exc:
+            warrants.resolve(URN, "prod", "svc/pricing", "origination_decision")
         assert exc.value.code == "blocked"
         assert exc.value.remediation, "a refusal must say what to do about it"
 
     def test_resolution_recovers_once_the_finding_is_closed(
             self, repos, registry, evidence, findings, a_model, approved_version):
-        hooks = HookService(repos["hooks"], registry, evidence, jitter_pct=0,
+        warrants = WarrantService(repos["warrants"], registry, evidence, jitter_pct=0,
                             blocking=findings)
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(URN, "prod", "svc/pricing", "origination_decision")
+        warrants.issue(URN, "prod", "svc/pricing", "origination_decision")
         f = findings.raise_finding(a_model["id"], "Critical", "Leakage", "person/j.okafor")
         findings.close(f["id"], "person/a.mehta", {"pr": "1"})
-        assert hooks.resolve(URN, "prod", "svc/pricing", "origination_decision")
+        assert warrants.resolve(URN, "prod", "svc/pricing", "origination_decision")
 
     def test_without_a_register_wired_in_nothing_blocks(
-            self, hooks, registry, a_model, approved_version):
+            self, warrants, registry, a_model, approved_version):
         """The gate is optional by construction, so the core stays independent."""
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(URN, "prod", "svc/pricing", "origination_decision")
-        assert hooks.resolve(URN, "prod", "svc/pricing", "origination_decision")
+        warrants.issue(URN, "prod", "svc/pricing", "origination_decision")
+        assert warrants.resolve(URN, "prod", "svc/pricing", "origination_decision")

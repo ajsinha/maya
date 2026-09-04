@@ -135,7 +135,7 @@ implementation, or **decommissioned**". Prescribed inventory content:
 | (iv) | governance details — "the names of individuals responsible for validation, the dates when validation was last performed, and the **frequency of future validation**" |
 
 "Intended use **compared to actual use**" is a requirement almost no product implements. MAYA does, via
-**hook telemetry reconciliation** (§6 of the design): we know what the model was approved for and we
+**warrant telemetry reconciliation** (§6 of the design): we know what the model was approved for and we
 observe what it was actually called for.
 
 **Principle 1.3 — tiering.** Two independent axes, not one score:
@@ -209,7 +209,7 @@ inference log is designed to satisfy Art. 12/19 retention.
 
 ### 2.4 Other frameworks in scope
 
-| Framework | Relevance | MAYA hook |
+| Framework | Relevance | MAYA warrant |
 |---|---|---|
 | **NIST AI RMF 1.0** (Govern / Map / Measure / Manage) + **Generative AI Profile (AI 600-1)**, 12 GenAI risk categories | Voluntary but the de facto US control vocabulary for AI | Control library mapped to GOVERN/MAP/MEASURE/MANAGE subcategories |
 | **ISO/IEC 42001** (AIMS), **ISO/IEC 23894** (AI risk) | Certifiable management system; increasingly demanded by counterparties | Evidence export pack; control-to-clause mapping |
@@ -275,7 +275,7 @@ frozen eval set and a prompt version; demanding an AUC is nonsense. MAYA encodes
 | **SAS Model Risk Management** | Deep MRM domain model; strong in SAS-centric shops; validation workflow and reporting | SAS-ecosystem gravity; weak for Python/OSS estates; limited GenAI; artifact link is by reference only |
 | **MetricStream / LogicManager / Empowered** | GRC workflow, mid-market friendly | Generic risk register with a "model" object type; no technical depth |
 | **Moody's Model Lifecycle Management** | Credit-risk domain content, benchmarking data, strong analytics heritage | Oriented to Moody's own model content; limited coverage of trading/GenAI estate |
-| **ValidMind** | Best-in-class **documentation automation** and validation templates for regulated FS; developer SDK that pushes test results into governance; bidirectional integrations | Documentation/validation-centric; not a model *execution* or feature platform; no hook/serving concept |
+| **ValidMind** | Best-in-class **documentation automation** and validation templates for regulated FS; developer SDK that pushes test results into governance; bidirectional integrations | Documentation/validation-centric; not a model *execution* or feature platform; no warrant/serving concept |
 | **Yields.io (Chiron)** | Automated validation and testing engine; quantitatively serious; challenger-model automation | Validation-focused point solution; not the system of record for the full lifecycle |
 | **ModelOp Center** | Strongest **inventory automation** and "evergreen" discovery; AI Governance Score; use-case intake workflow; model cards and audit reports; agentic AI governance | Governance overlay over other people's runtime; not a feature store; limited native quant/pricing model support |
 | **Mitratech ClusterSeven / CIMCON / Apparity / Incisive** | **EUC and spreadsheet discovery** — automated scanning of shared drives, complexity scoring | EUC-only; deliberately narrow |
@@ -305,7 +305,7 @@ finding, or regulatory approval — and because 60–80% of a bank's model estat
 ### 5.3 Category C — standards and building blocks worth adopting
 
 - **Open Inference Protocol / KServe V2** — health, metadata, infer. Adopt as MAYA's serving contract so
-  any compliant runtime can host a MAYA-issued hook.
+  any compliant runtime can host a MAYA-issued warrant.
 - **ONNX / PMML / safetensors** — portable, *non-executing* model formats. Adopt as preferred; treat
   `pickle`/`joblib` as a controlled exception (see below).
 - **SPDX 3.0 AI & Dataset profiles / CycloneDX ML-BOM / OWASP AIBOM** — machine-readable AI bill of
@@ -313,7 +313,7 @@ finding, or regulatory approval — and because 60–80% of a bank's model estat
   indicates current AIBOM schemas already satisfy **13 of 14 EU AI Act information obligations**. Adopt
   as MAYA's export format.
 - **in-toto / Sigstore / SLSA** — provenance attestation. SLSA L3 gives non-falsifiable build provenance.
-  Adopt for artifact signing and hook integrity.
+  Adopt for artifact signing and warrant integrity.
 - **OpenLineage** — job/dataset lineage events. Adopt as an ingestion format for the evidence graph.
 - **Model Cards / System Cards** — adopt as one of several generated document types.
 - **Open Policy Agent / Rego** — policy-as-code for gates. Adopt.
@@ -368,10 +368,10 @@ Six capabilities are **absent from every product surveyed**, individually or in 
 2. **An immutable evidence graph** that cryptographically binds the governance record to the artifact,
    dataset snapshot, feature view version, and training/calibration run — so "validated" is a verifiable
    claim, not a checkbox.
-3. **On-demand issuance of governed execution hooks** — the ability for any execution engine to resolve
+3. **On-demand issuance of governed execution warrants** — the ability for any execution engine to resolve
    a model URN to a runnable, policy-checked, entitlement-bound contract, with kill-switch and
    alias-based champion/challenger routing.
-4. **Approved-use vs actual-use reconciliation** (SS1/23 1.2(c)(i)) using hook telemetry.
+4. **Approved-use vs actual-use reconciliation** (SS1/23 1.2(c)(i)) using warrant telemetry.
 5. **A post-model-adjustment / overlay register** with materiality, expiry, downstream propagation and
    recurrence-trend analysis (SS1/23 Principle 5).
 6. **Compiled, always-fresh documentation** — Model Development Document, Validation Report, Model Card,

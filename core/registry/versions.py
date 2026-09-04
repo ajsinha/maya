@@ -6,7 +6,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 Model versions: immutable, digested, and classified on arrival.
 
 A version is created once and never edited. That is not fastidiousness — it is
-what makes a manifest digest worth computing, and what lets a hook descriptor
+what makes a manifest digest worth computing, and what lets a warrant descriptor
 name a version and mean something six months later.
 
 The trainability class is DERIVED here rather than declared. Asking an owner to
