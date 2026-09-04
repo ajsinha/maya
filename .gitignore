@@ -110,3 +110,7 @@ tmp/
 
 # Agent worktrees and session state. Never part of the repository.
 .claude/
+
+# Workbooks generated from the CSVs at deck build time. The CSVs are
+# the source; these are derived and are embedded into the pptx.
+docs/data/*.xlsx
