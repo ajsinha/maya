@@ -120,6 +120,8 @@ Segregation refusals are a family, and each names the act it is protecting:
 | `POST` | `/featuresets/{name}/roll-forward` | Re-resolve to current view versions |
 | `GET` | `/parameter-provenance` | fitted, calibrated, declared |
 | `GET` `POST` | `/models/{name}/parameters` | Read and record parameter sets |
+| `POST` | `/featuresets/{name}/training-sets` | Assemble a PIT-correct training set from a pinned version |
+| `POST` | `/parameter-fits` | **Run** the fit and record what came out. Resolves the warrant before reading anything, reads the snapshot at its pinned Delta version, lands `proposed` |
 | `GET` | `/parameter-sets/{id}` | One set with its lineage |
 | `POST` | `/parameter-sets/{id}/review` | Approve or reject. Not by whoever recorded it |
 
