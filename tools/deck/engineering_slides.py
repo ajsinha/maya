@@ -178,7 +178,8 @@ for i, c in enumerate(["The shape of the whole thing",
                        "Engineering a feature",
                        "Composing a featureset",
                        "Warrants, and what comes back",
-                       "What MAYA refuses, and why"], 1):
+                       "What MAYA refuses, and why",
+                       "A worked example, with the numbers"], 1):
     runs(tf, [(f"{i}   ", CRIMSON, True), (c, SLATE, False)], size=10.5,
          space_after=3)
 footer(sl)
@@ -195,9 +196,9 @@ sl, y = content("Five words, and how they hold together",
                 "The shape of the whole thing")
 
 # --- the equation is the organising device, so it goes first --------------
-rect(sl, ML, y, CW, 1.16, fill=PARCH)
-rect(sl, ML, y, 0.05, 1.16, fill=CRIMSON)
-tf = txt(sl, ML, y + 0.16, CW, 0.52, align=PP_ALIGN.CENTER)
+rect(sl, ML, y, CW, 1.26, fill=PARCH)
+rect(sl, ML, y, 0.05, 1.26, fill=CRIMSON)
+tf = txt(sl, ML, y + 0.14, CW, 0.62, align=PP_ALIGN.CENTER)
 runs(tf, [("f", CRIMSON, True), (" :  ", INK, False),
           ("P", CRIMSON, True), ("  \u2297  ", INK, False),
           ("X", CRIMSON, True), ("  \u2192  ", INK, False),
@@ -210,14 +211,14 @@ EQ = [("f", "the KERNEL", "the shape of the computation"),
 qw = (CW - 0.5) / 4
 for i, (sym, name, gloss) in enumerate(EQ):
     xx = ML + 0.25 + i * qw
-    tf = txt(sl, xx, y + 0.74, qw - 0.1, 0.36, align=PP_ALIGN.CENTER)
+    tf = txt(sl, xx, y + 0.82, qw - 0.1, 0.40, align=PP_ALIGN.CENTER)
     runs(tf, [(f"{sym}  ", CRIMSON, True), (name, INK, True)],
          size=9.5, first=True, space_after=1)
     para(tf, gloss, size=8.2, color=SLATE, space_after=0, align=PP_ALIGN.CENTER)
 
 # --- the five terms, each with the confusion it is usually mistaken for ---
-CY = y + 1.42
-CH = 2.62
+CY = y + 1.50
+CH = 2.56
 cw = (CW - 4 * 0.16) / 5
 TERMS = [
     ("Model", "The register entry: what this is for, who owns it, what tier it "
@@ -607,7 +608,8 @@ h1 = listbox(sl, ML, y, CW3, "usd_curve", [
     fill=PARCH)
 
 x2 = ML + CW3 + GAPX
-rect(sl, x2, y, CW3, h1, fill=WHITE, line=RULE)
+OPS_H = h1 + 0.24
+rect(sl, x2, y, CW3, OPS_H, fill=WHITE, line=RULE)
 rect(sl, x2, y, CW3, 0.05, fill=CRIMSON)
 tf = txt(sl, x2 + 0.14, y + 0.13, CW3 - 0.28, 0.26)
 para(tf, "its own operations", size=11, color=INK, bold=True, font=SERIF,
@@ -615,15 +617,15 @@ para(tf, "its own operations", size=11, color=INK, bold=True, font=SERIF,
 tf = txt(sl, x2 + 0.14, y + 0.40, CW3 - 0.28, 0.20)
 para(tf, "applied last, so they beat everything above", size=7.8, color=SLATE,
      italic=True, first=True, space_after=0)
-yy = y + 0.66
-for op, target, why in [("add", "30y", "the curve now goes further out"),
+yy = y + 0.68
+for op, target, why in [("add", "30y", "the curve goes further out"),
                         ("drop", "1m", "no longer quoted"),
                         ("override", "3m", "an OIS-based fixing")]:
-    tf = txt(sl, x2 + 0.14, yy, CW3 - 0.28, 0.42)
+    tf = txt(sl, x2 + 0.14, yy, CW3 - 0.28, 0.38)
     runs(tf, [(f"{op}  ", CRIMSON, True), (target, INK, True)],
          size=9.5, first=True, space_after=1)
     para(tf, why, size=7.6, color=SLATE, space_after=0)
-    yy += 0.44
+    yy += 0.40
 
 x3 = x2 + CW3 + GAPX
 listbox(sl, x3, y, CW3, "usd_curve_plus", [
@@ -1044,6 +1046,209 @@ note(sl, ML, y + 2.82, CW, 0.94,
      "what makes the rest of it worth relying on \u2014 ",
      "and every honest gap is written down in the implementation plan.")
 
+# ============================================================ CH 6
+divider("6", "A Worked Example",
+        "Two features, one featureset, three models \u2014 with the numbers.",
+        ["The data, and its two clocks", "The featureset, aligned",
+         "Two models over one X", "Extending it, and what that forces"])
+
+# ------------------------------------------------------------- the raw data
+sl, y = content("Two features that arrive on different clocks",
+                "A worked example")
+
+data = [["event_ts", "ingest_ts", "px_close"],
+        ["2026-08-27", "2026-08-27", "97.05"],
+        ["2026-08-28", "2026-08-28", "98.11"],
+        ["2026-08-31", "2026-08-31", "98.74"],
+        ["2026-09-01", "2026-09-01", "99.43"]]
+h = table(sl, data, ML, y, CW * 0.44, col_w=[1.9, 1.9, 1.3], row_h=0.28,
+          fs=9.5, hfs=9.5, bold_col0=True)
+tf = txt(sl, ML, y + h + 0.16, CW * 0.44, 0.5)
+runs(tf, [("us_equity_close", CRIMSON, True),
+          ("   daily, scalar, published the same day", SLATE, False)],
+     size=9.5, first=True, space_after=0)
+
+data2 = [["event_ts", "ingest_ts", "u3_rate"],
+         ["2026-06-30", "2026-07-02", "4.1"],
+         ["2026-07-31", "2026-08-07", "4.1"],
+         ["2026-08-31", "2026-09-04", "4.0"]]
+h2 = table(sl, data2, ML, y + h + 0.62, CW * 0.44, col_w=[1.9, 1.9, 1.3],
+           row_h=0.28, fs=9.5, hfs=9.5, bold_col0=True)
+tf = txt(sl, ML, y + h + h2 + 0.78, CW * 0.44, 0.5)
+runs(tf, [("us_unemployment", CRIMSON, True),
+          ("   monthly, scalar, published days later", SLATE, False)],
+     size=9.5, first=True, space_after=0)
+
+x = ML + CW * 0.48
+tf = txt(sl, x, y, CW * 0.52, 0.34)
+para(tf, "Look at the second table\u2019s two columns", size=13, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=8)
+para(tf, "August\u2019s unemployment rate was TRUE on the 31st of August and "
+         "was not KNOWN until the 4th of September. The two clocks differ by "
+         "four days, and they differ because that is what happened.",
+     size=11, color=INK, space_after=10, line=1.25)
+para(tf, "A model trained on the 1st of September using August\u2019s figure "
+         "would be using a number that did not exist yet. It would back-test "
+         "beautifully and disappoint in production, and no metric would say why.",
+     size=11, color=SLATE, space_after=10, line=1.25)
+runs(tf, [("This is not a hypothetical about leakage. ", CRIMSON, True),
+          ("It is the ordinary shape of every macroeconomic series a bank uses, "
+           "and it is why every row here carries both stamps rather than one.",
+           SLATE, False)],
+     size=11, space_after=0, line=1.25)
+note(sl, x, y + 3.02, CW * 0.52, 0.98,
+     "Both are scalars \u2014 shape []. ",
+     "The curve on an earlier slide was a vector; these are not. The shape is "
+     "declared either way, ",
+     "because a shape nobody states is a shape somebody assumes.")
+
+
+# ------------------------------------------------------------ the featureset
+sl, y = content("One featureset, aligned onto a daily axis",
+                "A worked example")
+
+h = code(sl, ML, y, CW * 0.50, [
+ 'featureset: macro_core',
+ 'entity:     us_equity_index      grain: one row per day',
+ 'slots:      px_close        numeric   []',
+ '            u3_rate         numeric   []',
+ '            prev_return     numeric   []   (derived)',
+ 'label:      next_return',
+ 'defaults:',
+ '  align:     {axis: event_ts, rule: flat_forward}',
+ '  normalise: {u3_rate: zscore}',
+], fs=9)
+tf = txt(sl, ML, y + h + 0.22, CW * 0.50, 1.0)
+runs(tf, [("flat_forward, and only flat_forward. ", CRIMSON, True),
+          ("Unemployment is monthly and the grid is daily, so the gaps are "
+           "filled by carrying the last published figure. Interpolating "
+           "between June and July would use July\u2019s number on the 2nd of "
+           "July, which nobody had.", SLATE, False)],
+     size=10, first=True, space_after=0, line=1.22)
+
+x = ML + CW * 0.54
+data = [["date", "px_close", "u3_rate", "u3 ingest", "usable at t?"],
+        ["2026-09-01", "99.43", "4.1", "2026-08-07", "yes \u2014 July\u2019s"],
+        ["2026-09-02", "99.10", "4.1", "2026-08-07", "yes"],
+        ["2026-09-03", "98.72", "4.1", "2026-08-07", "yes"],
+        ["2026-09-04", "98.95", "4.0", "2026-09-04", "yes \u2014 August lands"],
+        ["2026-09-05", "99.31", "4.0", "2026-09-04", "yes"]]
+h2 = table(sl, data, x, y, CW * 0.46, col_w=[1.25, 1.05, 0.9, 1.15, 1.0],
+           row_h=0.28, fs=8.5, hfs=8.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, x, y + h2 + 0.20, CW * 0.46, 1.24,
+     "The carried value keeps the clock it was published on. ",
+     "Rows on the 1st to the 3rd hold July\u2019s 4.1, stamped 7 August. On "
+     "the 4th, August\u2019s 4.0 arrives and is stamped that day \u2014 ",
+     "so a point-in-time read as of the 2nd cannot see it, by the ordinary "
+     "rule and without anybody remembering a flag.")
+
+
+# --------------------------------------------------- two models over one X
+sl, y = content("Two models, one featureset", "A worked example")
+
+HW = (CW - 0.40) / 2
+h = code(sl, ML, y, HW, [
+ "multiple linear regression",
+ "",
+ "next_return  =  18.080",
+ "             \u2212 4.247 \u00d7 u3_rate",
+ "             \u2212 0.096 \u00d7 prev_return",
+ "",
+ "kind   estimated_coefficients   \u2192 T2",
+ "P      3 numbers",
+ "D(Y)   point_estimate",
+ "fit    n = 10   R\u00b2 = 0.179   resid sd = 1.114",
+], fs=9)
+tf = txt(sl, ML, y + h + 0.22, HW, 0.9)
+runs(tf, [("It predicts the level. ", CRIMSON, True),
+          ("An R\u00b2 of 0.18 on ten points is not a good model; it is an "
+           "honest one, and the register stores the diagnostics beside the "
+           "coefficients so a reviewer sees both.", SLATE, False)],
+     size=10, first=True, space_after=0, line=1.22)
+
+x = ML + HW + 0.40
+h2 = code(sl, x, y, HW, [
+ "GARCH(1,1) on the same returns",
+ "",
+ "\u03c3\u00b2\u209c  =  0.1050",
+ "      + 0.110 \u00d7 \u03b5\u00b2\u209c\u208b\u2081",
+ "      + 0.790 \u00d7 \u03c3\u00b2\u209c\u208b\u2081",
+ "",
+ "kind   estimated_coefficients   \u2192 T2",
+ "P      3 numbers  (\u03c9, \u03b1, \u03b2)",
+ "D(Y)   predictive_distribution",
+ "fit    long-run sd 1.025, matching the sample",
+], fs=9)
+tf = txt(sl, x, y + h2 + 0.22, HW, 0.9)
+runs(tf, [("It predicts the spread. ", CRIMSON, True),
+          ("Same features, same entity, same grain \u2014 a different kernel, "
+           "a different P, and an output that is a distribution rather than a "
+           "number.", SLATE, False)],
+     size=10, first=True, space_after=0, line=1.22)
+
+note(sl, ML, y + h + 1.22, CW, 1.16,
+     "Two warrants, two parameter sets, one featureset version. ",
+     "Each fit warrant names macro_core@v1 and its own model version; each "
+     "returns a parameter set that records which featureset version produced "
+     "it. Nothing about the data was duplicated to serve two models, and "
+     "nothing about either model had to know the other existed \u2014 ",
+     "which is what a named presentation of X buys.")
+
+
+# ---------------------------------------------------- extending the set
+sl, y = content("Extending the featureset, and what that forces",
+                "A worked example")
+
+h = code(sl, ML, y, CW * 0.48, [
+ "featureset: macro_plus",
+ "composes:   [macro_core]",
+ "operations: [{op: add, name: term_spread}]",
+ "",
+ "\u2192 macro_plus resolves to FOUR slots",
+ "  px_close  u3_rate  prev_return  term_spread",
+], fs=9)
+tf = txt(sl, ML, y + h + 0.22, CW * 0.48, 1.5)
+runs(tf, [("Not a new version of macro_core. ", CRIMSON, True),
+          ("Adding a slot changes the schema, and the schema is what a kernel "
+           "is defined over \u2014 so it is a new featureset composed from the "
+           "old one, and macro_core@v1 is untouched for whoever is already "
+           "using it.", SLATE, False)],
+     size=10.5, first=True, space_after=0, line=1.24)
+
+x = ML + CW * 0.52
+tf = txt(sl, x, y, CW * 0.48, 0.3)
+para(tf, "And the old model cannot simply read it", size=12.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=0)
+h3 = code(sl, x, y + 0.38, CW * 0.48, [
+ "POST /api/v1/fit-warrants",
+ "  { model: mlr@1.0.0, featureset: macro_plus }",
+ "",
+ "409 schema_not_satisfied",
+ "    'macro_plus' provides term_spread, which this",
+ "    version does not declare in its input schema.",
+ "    Adding a regressor is a MODEL change, not a",
+ "    data change.",
+], fs=8.5)
+tf = txt(sl, x, y + 0.38 + h3 + 0.20, CW * 0.48, 1.0)
+para(tf, "So a third model is registered over the wider X \u2014 a "
+         "gradient-boosted classifier for \u2018drawdown next month\u2019:",
+     size=10.5, color=INK, first=True, space_after=6, line=1.24)
+data = [["", ""],
+        ["kind", "learned_weights  \u2192 T3, not T2"],
+        ["fit", "train, not estimate"],
+        ["D(Y)", "class_probabilities"],
+        ["reads", "macro_plus@v1, all four slots"]]
+table(sl, data, x, y + 0.38 + h3 + 1.20, CW * 0.48, col_w=[1.0, 4.55],
+      header=False, row_h=0.27, fs=9, bold_col0=True, first_col_color=CRIMSON)
+
+note(sl, ML, y + h + 1.86, CW * 0.48, 1.32,
+     "The refusal is the feature. ",
+     "Widening a featureset under a model that was never defined over it is "
+     "the failure all of this exists to make visible \u2014 and it is caught "
+     "at the warrant, ",
+     "before anything is fitted, rather than by somebody noticing later that "
+     "a coefficient vector had four entries.")
+
 # ============================================================ CLOSING
 sl = blank()
 rect(sl, 0, 0, SW, SH, fill=CRIMSON)
@@ -1058,7 +1263,7 @@ para(tf, "A pin is to a version, never to a name. A clock records when something
          "what it will.",
      size=15, color=RGBColor(0xF4, 0xDF, 0xE3), italic=True, space_after=0,
      line=1.32)
-tf = txt(sl, ML + 0.4, 4.30, CW * 0.74, 1.5)
+tf = txt(sl, ML + 0.4, 4.22, CW * 0.74, 2.10)
 para(tf, "Ashutosh Sinha", size=18, color=WHITE, bold=True, first=True,
      space_after=4)
 para(tf, "Independent Researcher   \u00b7   ajsinha@gmail.com", size=12,

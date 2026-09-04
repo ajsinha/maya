@@ -302,7 +302,7 @@ maya/
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
 │   ├── MAYA-System-Design.pptx              52-slide engineering deck
 │   └── MAYA-Model-and-Feature-Engineering.pptx
-│                                     23-slide practitioner deck
+│                                     32-slide practitioner deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```
