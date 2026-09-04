@@ -136,6 +136,16 @@ class FeatureRegistry:
     def roll_forward(self, name: str, actor: str = "system") -> Dict[str, Any]:
         return self._sets().roll_forward(name, actor)
 
+    def restatements(self, name: str, version: int) -> Dict[str, Any]:
+        return self._sets().restatements(name, version)
+
+    def pinned(self, view_name: str, version: int) -> Dict[str, Any]:
+        """The namespace and the Delta version a view version was pinned at."""
+        return self.views.pinned(view_name, version)
+
+    def restated(self, view_name: str, version: int) -> Dict[str, Any]:
+        return self.views.restated(view_name, version)
+
     def _derived(self) -> DerivedFeatures:
         if self.derived is None:
             raise FeatureError("this registry was built without derived features")

@@ -294,6 +294,46 @@ then approve is exactly the hole an auditor looks for, and a single-account
 deployment genuinely cannot complete a segregated path — which is the correct
 answer, not a limitation to work around.
 
+## A version is approved by a quorum too
+
+The record is attested by several people. A version — the thing that actually
+runs — used to be approved by one. That asymmetry was backwards: the record says
+what the model is *for*; the version says what will *happen*.
+
+The depth of control follows the tier, which is the same adjunction (**L-5**)
+that decides every other control set here:
+
+| Tier | Who must sign |
+|---|---|
+| 1 | model risk manager **and** validator |
+| 2 | model risk manager **and** validator |
+| 3 | one authorised person |
+| 4 | one authorised person |
+
+Pretending a scheduling heuristic and a capital model deserve the same ceremony
+is how a control becomes something people route around, so tiers 3 and 4 keep a
+single signature and the register says plainly that they do.
+
+**A version whose model has no tier cannot be approved at all.**
+
+> **409 `no_tier`** — this model has no risk tier, so how many signatures its
+> version needs is undecided. *Assess the model first; approving before assessing
+> would be a way of choosing your own control depth.*
+
+That refusal is not about paperwork. The tier decides the number of signatures,
+so approving first would let anybody pick their own. It is the obvious way to
+game a rule like this one, and it is closed.
+
+Signing is its own permission. A validator holds `version:sign` and never
+`version:approve`: they can complete a quorum and can never approve alone. And
+the same person may not sign twice under two hats — a quorum is a number of
+people, not a number of roles.
+
+One decline closes the approval and returns the version to its author, with the
+statement attached. A declined round stays in the history; the next attempt is a
+new approval, so *"how many times did this fail second-line review"* is a
+question with an answer.
+
 ## Who can do what to the record
 
 | Act | Permission | Held by |

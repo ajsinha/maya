@@ -58,7 +58,11 @@ class TrainingSetBuilder:
               as_of: float) -> List[Dict[str, Any]]:
         rows = [dict(s) for s in spine]
         for spec in views:
-            frame = self.delta.read(self.views.namespace(spec["view"], spec["version"]))
+            # Read at the pinned Delta version, not at whatever the namespace
+            # currently holds. Without this an assembly is reproducible only for
+            # as long as nobody writes to the view again.
+            pin = self.views.pinned(spec["view"], spec["version"])
+            frame = self.delta.read(pin["namespace"], pin["delta_version"])
             by_entity: Dict[str, List[Dict[str, Any]]] = {}
             for rec in frame.to_dict("records") if not frame.empty else []:
                 by_entity.setdefault(rec[ENTITY], []).append(rec)
@@ -84,8 +88,9 @@ class TrainingSetBuilder:
         route to the same answer, so agreement means something."""
         expected: Dict[str, Any] = {}
         for spec in views:
-            frame = self.delta.as_of(self.views.namespace(spec["view"], spec["version"]),
-                                     row["label_ts"], as_of)
+            pin = self.views.pinned(spec["view"], spec["version"])
+            frame = self.delta.as_of(pin["namespace"], row["label_ts"], as_of,
+                                     pin["delta_version"])
             match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame
             if not match.empty:
                 expected.update(payload(match.to_dict("records")[0]))
@@ -95,6 +100,8 @@ class TrainingSetBuilder:
     def _persist(self, name: str, rows: List[Dict[str, Any]], as_of: float,
                  report, actor: str) -> Dict[str, Any]:
         table = f"snapshots/{name}"
+        # The pins the assembly actually read, recorded so a replay reads the
+        # same bytes rather than the same paths.
         row = {"name": name, "kind": "training", "delta_table": table,
                "delta_version": self.delta.write(table, rows, mode="overwrite"),
                "row_count": len(rows), "as_of": as_of,

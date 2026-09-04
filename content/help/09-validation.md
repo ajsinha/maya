@@ -270,3 +270,41 @@ GET /api/v1/findings?urn=maya://model/credit.pd.smallbiz
 Returns the open list, the blocking subset, and a summary — open count, blocking
 count, overdue count, worst severity, and a breakdown by severity. That summary
 is what the model page shows, and what an inventory row needs.
+
+
+## Replay without asking you for the data
+
+A replay that takes its numbers from the caller proves the arithmetic. It does
+not prove much else, because it can only be run by somebody who already has the
+data, and only with their cooperation. That is a control you help perform.
+
+`POST /api/v1/validations/{id}/replay-from-storage` re-reads the dataset snapshot
+the episode was pinned to and recomputes from that. Nothing is supplied by the
+caller, so a mismatch is about the test rather than about who handed over which
+file.
+
+**It reads at the pin, not at the path.** The snapshot names a Delta version and
+the read uses it. If the table has been written to since, the replay still sees
+what the validation saw:
+
+```json
+{"pinned_delta_version": 3, "current_delta_version": 5, "restated": true,
+ "detail": "the table has been written to since: v3 when the validation ran,
+            v5 now. the replay reads v3, so a mismatch is about the test and
+            not about the data"}
+```
+
+Those are two different findings and the report keeps them apart. A restatement
+underneath a validation is worth knowing about; it is not the same as a test that
+no longer reproduces.
+
+**What cannot be checked is never reported as checked.** An episode that pins no
+snapshot, a snapshot whose table has been removed, or a test whose columns are
+not in the frame comes back as *skipped* with the reason. A slice naming a column
+the frame does not have yields nothing rather than the whole frame, because a
+slice silently ignored is a replay of a different population.
+
+`GET /api/v1/validations/{id}/replayable` answers the question before you spend
+anything on it. And across a model's history, `replayable()` gives the number a
+second line actually wants: not whether replay works, but what fraction of what
+was concluded could be checked without asking whoever concluded it.

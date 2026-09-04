@@ -144,6 +144,15 @@ execution:
     sandbox: subprocess          # or "none", deliberately and visibly
 
 lifecycle:
+  # A version approval is a quorum where the tier says it should be. The model
+  # record was already attested by several people; the version is what actually
+  # runs, so if anything deserves more than one signature it is this. Tiers
+  # absent from this map are approved by one authorised person.
+  version_approval:
+    quorum:
+      1: [model_risk_manager, validator]
+      2: [model_risk_manager, validator]
+
   attestation:
     # Who must sign before a model record is in force. Attestation is a quorum,
     # not a signature: every role named here signs, and one decline ends it.

@@ -108,3 +108,40 @@ class ViewManager:
     def namespace_of(self, view: Dict[str, Any], version: int) -> str:
         """Namespace for a view row already in hand, without a second lookup."""
         return self._path(view, version)
+
+    # ------------------------------------------------------------ time travel
+    def pinned(self, view_name: str, version: int) -> Dict[str, Any]:
+        """The namespace AND the Delta version it was materialised at.
+
+        A namespace is a path; a path is a mutable thing. Two writes to the same
+        namespace produce two Delta versions, and a read that names only the path
+        gets whichever is current. For serving that is correct — the namespace is
+        the contract. For *reproducing* an assembly it is not: the whole point of
+        a snapshot is that re-running it returns what it returned before.
+        """
+        view = self.require(view_name)
+        row = self.view_versions.one(feature_view_id=view["id"], version=version)
+        if row is None:
+            raise FeatureError(f"feature view '{view_name}' has no version {version}")
+        return {"namespace": self._path(view, version),
+                "delta_version": row["delta_version"],
+                "row_count": row["row_count"],
+                "materialised_at": row["materialised_at"]}
+
+    def restated(self, view_name: str, version: int) -> Dict[str, Any]:
+        """Whether the namespace has moved since this version was pinned.
+
+        A namespace whose current Delta version is ahead of the pinned one has
+        been written to again. That is not automatically wrong — a correction to
+        a stale row is a legitimate act — but it means a read without the pin
+        returns something other than what was assembled, and anybody comparing
+        two runs needs to know which case they are in.
+        """
+        pin = self.pinned(view_name, version)
+        current = self.delta.version(pin["namespace"])
+        moved = current > pin["delta_version"]
+        return {**pin, "current_delta_version": current, "restated": moved,
+                "detail": (f"{pin['namespace']} has been written to since it was "
+                           f"pinned: v{pin['delta_version']} then, v{current} now"
+                           if moved else
+                           f"{pin['namespace']} is unchanged since it was pinned")}

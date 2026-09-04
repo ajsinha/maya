@@ -174,10 +174,15 @@ class FeaturesetRegistry:
 
         view_name, view_version = self._locate(feature_name, binding)
         view = self.views.require(view_name)
+        pin = self.views.pinned(view_name, view_version)
         return {"feature": feature_name, "slot": slot, "dtype": feature["dtype"],
                 "view": view_name, "view_version": view_version,
                 "feature_view_id": view["id"],
-                "namespace": self.views.namespace(view_name, view_version),
+                "namespace": pin["namespace"],
+                # The Delta version, not just the path. A path is mutable; this
+                # is what makes "same featureset version -> same bytes" true
+                # rather than true-until-somebody-writes-again.
+                "delta_version": pin["delta_version"],
                 "derived": self.derived.is_derived(feature_name),
                 "definition_version": (self.derived.require(feature_name)["definition_version"]
                                        if self.derived.is_derived(feature_name) else None),
@@ -281,6 +286,8 @@ class FeaturesetRegistry:
             "outcome_window_days": featureset["outcome_window_days"],
             "slots": [{"slot": s, **b} for s, b in sorted(version["bindings"].items())],
             "namespaces": sorted({b["namespace"] for b in version["bindings"].values()}),
+            "pins": sorted({(b["namespace"], b.get("delta_version"))
+                            for b in version["bindings"].values()}),
         }
 
     # ---------------------------------------------------------------- schemas
@@ -301,6 +308,29 @@ class FeaturesetRegistry:
         """
         missing = self.schema(name).accepts_superset_of(kernel_input)
         return not missing, missing
+
+    def restatements(self, name: str, number: int) -> Dict[str, Any]:
+        """Which of this version's namespaces have been written to since.
+
+        A featureset version resolves to the same bytes by construction, because
+        every binding pins a Delta version. This answers the neighbouring
+        question: has anything *underneath* it changed, so that a reader who
+        dropped the pin would now see something else. That is what a restatement
+        looks like from here, and it is worth knowing before comparing two runs.
+        """
+        version = self.version(name, number)
+        moved = []
+        for slot, binding in sorted(version["bindings"].items()):
+            state = self.views.restated(binding["view"], binding["view_version"])
+            if state["restated"]:
+                moved.append({"slot": slot, **state})
+        return {"featureset": name, "version": number,
+                "restated": bool(moved), "slots": moved,
+                "detail": (f"{len(moved)} of this version's namespaces have been "
+                           f"written to since it was published; the version still "
+                           f"reads the bytes it pinned"
+                           if moved else
+                           "nothing underneath this version has moved")}
 
     # ------------------------------------------------------------ roll forward
     def roll_forward(self, name: str, actor: str = "system") -> Dict[str, Any]:

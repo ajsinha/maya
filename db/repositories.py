@@ -221,6 +221,21 @@ class ParameterSetRepository(Repository):
         return (prior["version"] + 1) if prior else 1
 
 
+class VersionApprovalRepository(Repository):
+    """Approvals that need more than one signature."""
+    TABLE, JSON, ORDER = "version_approval", ("required_roles",), "opened_at"
+
+    def open_for(self, model_version_id: str):
+        return self.one(model_version_id=model_version_id, status="open")
+
+    def history(self, model_version_id: str):
+        return self.many(model_version_id=model_version_id)
+
+
+class VersionApprovalSignatureRepository(Repository):
+    TABLE, ORDER = "version_approval_signature", "signed_at"
+
+
 class ValidationRepository(Repository):
     TABLE, ORDER = "validation", "started_at"
     JSON = ("scope", "plan", "validators", "independence", "conditions")

@@ -204,6 +204,35 @@ CREATE TABLE IF NOT EXISTS feature_contract (
 -- A feature whose values are computed from other features: Z = f(X, Y). The
 -- definition lives here so lineage, the leakage check and the retirement guard
 -- all work whether or not MAYA is the thing that evaluates it.
+-- A version approval that needs more than one signature. The depth of control
+-- follows the risk tier, which is the same adjunction (L-5) that decides every
+-- other control set: a Tier 1 model's version is not approved by one person.
+CREATE TABLE IF NOT EXISTS version_approval (
+    id               text PRIMARY KEY,
+    model_id         text NOT NULL,
+    model_version_id text NOT NULL,
+    tier             integer,
+    required_roles   text NOT NULL DEFAULT '[]',
+    status           text NOT NULL DEFAULT 'open',
+    statement        text NOT NULL DEFAULT '',
+    opened_by        text NOT NULL,
+    opened_at        double precision NOT NULL,
+    completed_at     double precision,
+    UNIQUE (model_version_id, opened_at)
+);
+CREATE INDEX IF NOT EXISTS ix_version_approval ON version_approval (model_version_id);
+
+CREATE TABLE IF NOT EXISTS version_approval_signature (
+    id                   text PRIMARY KEY,
+    version_approval_id  text NOT NULL,
+    principal            text NOT NULL,
+    role                 text NOT NULL,
+    decision             text NOT NULL DEFAULT 'approve',
+    statement            text NOT NULL DEFAULT '',
+    signed_at            double precision NOT NULL,
+    UNIQUE (version_approval_id, role)
+);
+
 CREATE TABLE IF NOT EXISTS derived_feature (
     id                 text PRIMARY KEY,
     feature_id         text NOT NULL,

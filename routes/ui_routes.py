@@ -66,6 +66,8 @@ class UIRoutes(Routes):
                 # are shown as different things: one MAYA wrote, one somebody did.
                 # Fitting does not change the kernel; it inhabits P. So the page
                 # shows the parameter sets a version may run at, per version.
+                approvals={v["semver"]: self.ctx["approvals"].needed(urn, v["semver"])
+                           for v in versions},
                 parameters={v["semver"]: self.ctx["parameters"].status(urn, v["semver"])
                             for v in versions},
                 parameter_sets=[p for v in versions

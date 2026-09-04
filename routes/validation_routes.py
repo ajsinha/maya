@@ -128,6 +128,33 @@ class ValidationRoutes(Routes):
                 return (pair[0], pair[1]) if pair and len(pair) == 2 else None
             return self.guard(lambda: replayer.replay(validation_id, provider))
 
+        @self.app.post(f"{api}/validations/{{validation_id}}/replay-from-storage",
+                       tags=["validation"])
+        def replay_stored(request: Request, validation_id: str):
+            """Replay by re-reading the snapshot the episode was pinned to.
+
+            Nothing is supplied by the caller, so a mismatch is about the test
+            rather than about who handed over which file. An episode that pins no
+            snapshot reports every test as skipped, with the reason.
+            """
+            self.authorise(request, "validation:read")
+            return self.guard(lambda: replayer.from_storage(validation_id))
+
+        @self.app.get(f"{api}/validations/{{validation_id}}/replayable",
+                      tags=["validation"])
+        def replayable(request: Request, validation_id: str):
+            """What a replay would read, and whether the ground under it moved."""
+            self.authorise(request, "validation:read")
+            episode = self.guard(lambda: service.require(validation_id))
+            if not episode.get("snapshot_id"):
+                return {"validation_id": validation_id, "readable": False,
+                        "detail": "this episode pins no dataset snapshot, so it "
+                                  "cannot be replayed without the data being "
+                                  "supplied"}
+            return self.guard(
+                lambda: {"validation_id": validation_id,
+                         **replayer.storage.describe(episode["snapshot_id"])})
+
         # -------------------------------------------------------------- findings
         @self.app.post(f"{api}/findings", status_code=201, tags=["findings"])
         def raise_finding(request: Request, body: FindingIn):

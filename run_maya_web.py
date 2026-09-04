@@ -30,7 +30,8 @@ from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
-from core.lifecycle import (AmendmentService, AttestationService, LifecycleService)
+from core.lifecycle import (AmendmentService, AttestationService,
+                            LifecycleService, VersionApproval)
 from core.execution import WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
 from core.attachments import AttachmentRegister, DocumentStore
@@ -47,10 +48,12 @@ from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.risk import TieringEngine
-from core.validation import (FindingRegister, Replayer, TestCatalogue,
-                             ValidationService)
+from core.validation import (FindingRegister, Replayer, SnapshotProvider,
+                             TestCatalogue, ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
+                VersionApprovalRepository,
+                VersionApprovalSignatureRepository,
                 FeaturesetRepository, FeaturesetVersionRepository,
                 ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
@@ -73,6 +76,12 @@ logger = get_logger("maya")
 
 def _tier_map(cfg: PropertiesConfigurator, prefix: str, fallback: Dict[int, int]) -> Dict[int, int]:
     return {t: cfg.get_int(f"{prefix}.{t}", fallback[t]) for t in (1, 2, 3, 4)}
+
+
+def _tier_roles(cfg: PropertiesConfigurator, prefix: str) -> Dict[int, list]:
+    """Which roles must sign, by tier. A tier with no entry needs no quorum."""
+    found = {t: cfg.get_list(f"{prefix}.{t}", []) for t in (1, 2, 3, 4)}
+    return {t: roles for t, roles in found.items() if roles}
 
 
 def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
@@ -182,6 +191,22 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                        validation, findings, monitoring, lifecycle, warrants,
                        overlays, regimes, attachments))
 
+    # Replay reads the snapshot an episode was pinned to, at the Delta version
+    # it was pinned at, so the control does not depend on the caller still
+    # holding the numbers.
+    replayer = Replayer(validation, catalogue,
+                        SnapshotProvider(SnapshotRepository(db),
+                                         DeltaStore(delta.root), features))
+
+    # The quorum records its outcome through the registry, and the registry
+    # refuses a single signature where the quorum applies. Connected explicitly
+    # in both directions rather than through a circular constructor.
+    approvals = VersionApproval(
+        VersionApprovalRepository(db), VersionApprovalSignatureRepository(db),
+        registry, evidence,
+        quorum=_tier_roles(cfg, "lifecycle.version_approval.quorum"))
+    registry.attach_quorum(approvals.refuse_without_quorum)
+
     debts = DebtRegister(DebtRepository(db), evidence, findings)
     baseline = BaselineImporter(ImportRepository(db), debts, registry, evidence,
                                 documents.build_context)
@@ -208,7 +233,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
                            "documents": documents, "attachments": attachments,
-                           "parameters": parameters,
+                           "parameters": parameters, "replayer": replayer,
+                           "approvals": approvals,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,
@@ -217,7 +243,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
-                           "replayer": Replayer(validation, catalogue)}
+                           }
     if cfg.get_bool("execution.captive.enabled", True):
         # A consumer of the public warrant contract, nothing more.
         chosen = cfg.get("execution.captive.sandbox", "subprocess")

@@ -76,6 +76,25 @@ def people(client):
     return {u: (u, pw) for u, (roles, pw) in PEOPLE.items()}
 
 
+def _quorum_approve(client, people, semver="3.2.1", urn=None):
+    """Take a version through the quorum its tier requires.
+
+    Assessment comes first on purpose: the tier decides how many signatures the
+    version needs, so approving before assessing would be choosing your own
+    control depth, and the register refuses it.
+    """
+    opened = client.post("/api/v1/version-approvals", auth=people["s.iqbal"],
+                         json={"urn": urn or URN, "semver": semver})
+    assert opened.status_code == 201, opened.text
+    approval = opened.json()["id"]
+    for who, role in ((people["s.iqbal"], "model_risk_manager"),
+                      (people["a.mehta"], "validator")):
+        r = client.post(f"/api/v1/version-approvals/{approval}/sign", auth=who,
+                        json={"role": role})
+        assert r.status_code == 200, r.text
+    return r.json()
+
+
 @pytest.fixture
 def registered(client, people):
     """A model taken through the whole governed path by four different people."""
@@ -84,12 +103,12 @@ def registered(client, people):
         "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
         "domain": "credit", "owner": "person/j.okafor", "legal_entity": "LE-US-01",
         "purpose": "12-month PD at origination"})
+    client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
+                json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
     client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                 json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
                       "artifact_digest": "sha256:abc"})
-    client.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve", auth=mrm)
-    client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
-                json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+    _quorum_approve(client, people)
     client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})
     client.post("/api/v1/warrants", auth=owner, json={
@@ -156,7 +175,7 @@ class TestModelApi:
         weak = {**CONTRACT, "guarantees": [{"key": "gini", "minimum": 0.10}]}
         registered.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                         json={"semver": "3.3.0", "kernel": KERNEL, "contract": weak})
-        registered.post(f"/api/v1/models/{NAME}/versions/3.3.0/approve", auth=mrm)
+        _quorum_approve(registered, people, "3.3.0")
         r = registered.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                            json={"environment": "prod", "alias": "champion", "semver": "3.3.0"})
         assert r.status_code == 409 and "gini" in r.json()["detail"], \
@@ -567,6 +586,10 @@ class TestAuthorisationApi:
             "urn": "maya://model/sod.demo", "name": "SoD", "model_class": "c",
             "domain": "credit", "owner": "person/o", "legal_entity": "LE-US-01",
             "purpose": "p"})
+        # Tier 4, so a single signature is the correct control depth here and
+        # the test stays about segregation rather than about the quorum.
+        client.post("/api/v1/models/sod.demo/assess", auth=people["j.okafor"],
+                    json={"exposure": 1e5, "purpose_class": "commercial"})
         r = client.post("/api/v1/models/sod.demo/versions", auth=solo,
                         json={"semver": "1.0.0", "kernel": KERNEL})
         assert r.status_code == 201, "both roles are held, so creation is permitted"
@@ -1609,8 +1632,7 @@ class TestTheFitWarrantChecksTheSchema:
                           "contract": CONTRACT,
                           "artifact_digest": "sha256:" + "d" * 64,
                           "artifact_uri": "file://sb_pd_3.3.0.onnx"})
-        client.post(f"/api/v1/models/{NAME}/versions/3.3.0/approve",
-                    auth=people["s.iqbal"])
+        _quorum_approve(client, people, "3.3.0")
         client.put(f"/api/v1/models/{NAME}/aliases", auth=people["s.iqbal"],
                    json={"environment": "prod", "alias": "champion",
                          "semver": "3.3.0"})
@@ -1684,3 +1706,108 @@ class TestTheEngineBoundaryIsPublished:
         body = registered.get("/api/v1/engine").json()
         assert body["captive_engine"] == "enabled"
         assert body["does_not_protect_against"]
+
+
+class TestVersionApprovalIsAQuorum:
+    """The model record was attested by several people while the version — the
+    thing that actually runs — was approved by one. This closes that."""
+
+    def _version(self, client, people, semver="4.0.0"):
+        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                    json={"semver": semver, "kernel": KERNEL,
+                          "contract": CONTRACT, "artifact_digest": "sha256:e"})
+        return semver
+
+    def test_the_quorum_table_is_published(self, registered):
+        by_tier = {r["tier"]: r["signatures"]
+                   for r in registered.get(
+                       "/api/v1/version-approval-quorum").json()["quorum"]}
+        assert by_tier[1] == 2 and by_tier[4] == 1
+
+    def test_a_single_signature_is_refused_and_names_the_route(self, registered,
+                                                               people):
+        semver = self._version(registered, people)
+        r = registered.post(f"/api/v1/models/{NAME}/versions/{semver}/approve",
+                            auth=people["s.iqbal"])
+        assert r.status_code == 409 and r.json()["error"] == "quorum_required"
+        assert "not by one signature" in r.json()["detail"]
+        assert "/approval" in r.json()["remediation"]
+
+    def test_two_signatures_approve_it(self, registered, people):
+        semver = self._version(registered, people)
+        opened = registered.post("/api/v1/version-approvals",
+                                 auth=people["s.iqbal"],
+                                 json={"urn": URN, "semver": semver})
+        assert opened.status_code == 201, opened.text
+        aid = opened.json()["id"]
+
+        first = registered.post(f"/api/v1/version-approvals/{aid}/sign",
+                                auth=people["s.iqbal"],
+                                json={"role": "model_risk_manager"})
+        assert first.json()["status"] == "open"
+        assert first.json()["outstanding_roles"] == ["validator"]
+
+        second = registered.post(f"/api/v1/version-approvals/{aid}/sign",
+                                 auth=people["a.mehta"], json={"role": "validator"})
+        assert second.json()["status"] == "approved"
+        listed = registered.get(f"/api/v1/models/{NAME}").json()["versions"]
+        by_semver = {v["semver"]: v["status"] for v in listed}
+        assert by_semver[semver] == "approved"
+
+    def test_a_decline_returns_the_version_to_its_author(self, registered, people):
+        semver = self._version(registered, people)
+        aid = registered.post("/api/v1/version-approvals", auth=people["s.iqbal"],
+                              json={"urn": URN, "semver": semver}).json()["id"]
+        registered.post(f"/api/v1/version-approvals/{aid}/sign",
+                        auth=people["s.iqbal"], json={"role": "model_risk_manager"})
+        out = registered.post(f"/api/v1/version-approvals/{aid}/sign",
+                              auth=people["a.mehta"],
+                              json={"role": "validator", "decision": "decline",
+                                    "statement": "back-testing is thin"})
+        assert out.json()["status"] == "declined"
+        assert "returns the version to its author" in out.json()["detail"]
+
+    def test_a_developer_may_neither_open_nor_sign(self, registered, people):
+        semver = self._version(registered, people)
+        opened = registered.post("/api/v1/version-approvals",
+                                 auth=people["d.raman"],
+                                 json={"urn": URN, "semver": semver})
+        assert opened.status_code == 403
+        aid = registered.post("/api/v1/version-approvals", auth=people["s.iqbal"],
+                              json={"urn": URN, "semver": semver}).json()["id"]
+        r = registered.post(f"/api/v1/version-approvals/{aid}/sign",
+                            auth=people["d.raman"],
+                            json={"role": "model_risk_manager"})
+        assert r.status_code == 403
+
+    def test_it_says_what_this_version_needs(self, registered, people):
+        semver = self._version(registered, people)
+        body = registered.get("/api/v1/version-approvals",
+                              params={"urn": URN, "semver": semver}).json()
+        assert body["quorum_required"] and body["tier"] in (1, 2)
+        assert body["required_roles"] == ["model_risk_manager", "validator"]
+
+
+class TestReplayFromStorageOverTheApi:
+    def test_an_episode_with_no_snapshot_reports_every_test_as_skipped(
+            self, registered, people):
+        episode = registered.post("/api/v1/validations", auth=people["a.mehta"],
+                                  json={"urn": URN, "semver": "3.2.1",
+                                        "kind": "periodic",
+                                        "validators": ["person/a.mehta"]}).json()
+        r = registered.post(
+            f"/api/v1/validations/{episode['id']}/replay-from-storage")
+        assert r.status_code == 200
+        assert r.json()["source"] == "storage"
+        assert r.json()["data"]["readable"] is False
+
+    def test_replayability_is_reported_before_it_is_attempted(self, registered,
+                                                              people):
+        episode = registered.post("/api/v1/validations", auth=people["a.mehta"],
+                                  json={"urn": URN, "semver": "3.2.1",
+                                        "kind": "periodic",
+                                        "validators": ["person/a.mehta"]}).json()
+        body = registered.get(
+            f"/api/v1/validations/{episode['id']}/replayable").json()
+        assert body["readable"] is False
+        assert "pins no dataset snapshot" in body["detail"]

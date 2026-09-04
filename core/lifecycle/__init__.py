@@ -11,6 +11,7 @@ attestation quorum, and the service that wires them and implements the mutation
 gate the registry consults.
 """
 from core.lifecycle.amendments import AmendmentService
+from core.lifecycle.approval import VersionApproval
 from core.lifecycle.attestation import AttestationService
 from core.lifecycle.common import (ATTESTATION_KINDS, DECISIONS, DEFAULT_REQUIRED_ROLES,
                                    LifecycleError)
@@ -20,7 +21,7 @@ from core.lifecycle.states import (AMENDING, APPROVED, ATTESTED, BASELINED,
                                    MUTABLE, RETIRED, STATES, SUBMITTED, TRANSITIONS,
                                    allowed_from, describe, is_mutable, transition)
 
-__all__ = ["LifecycleService", "AmendmentService", "AttestationService",
+__all__ = ["LifecycleService", "AmendmentService", "AttestationService", "VersionApproval",
            "LifecycleError", "STATES", "TRANSITIONS", "MUTABLE", "MEANING",
            "DRAFT", "BASELINED", "SUBMITTED", "APPROVED", "ATTESTED", "AMENDING",
            "RETIRED",
