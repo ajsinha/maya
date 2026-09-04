@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">MODEL INVENTORY</p>
+<h1>Every model, one register</h1>
+<div class="rule"></div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="serif" style="font-size:1.9rem;color:var(--crimson)">{{ models|length }}</div>
+    <div class="text-muted small">models registered</div></div></div></div>
+  {% for t in [1,2,3,4] %}
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body py-3">
+    <div class="serif" style="font-size:1.6rem">{{ by_tier.get(t, 0) }}</div>
+    <div class="text-muted small">Tier {{ t }}</div></div></div></div>
+  {% endfor %}
+  <div class="col-12 col-md-1"><div class="card h-100"><div class="card-body py-3">
+    <div class="small {{ 'evidence-ok' if chain.valid else 'evidence-bad' }}">
+      {{ 'chain ok' if chain.valid else 'BROKEN' }}</div>
+    <div class="text-muted small">{{ chain.get('length', 0) }} nodes</div></div></div></div>
+</div>
+
+{% if models %}
+<table class="table maya align-middle">
+  <thead><tr><th>Model</th><th>Domain</th><th>Class</th><th>Owner</th>
+             <th class="text-center">Tier</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for m in models %}
+    <tr>
+      <td><a href="/model/{{ m.urn.replace('maya://model/','') }}" class="text-decoration-none">
+          <strong>{{ m.name }}</strong></a>
+          <div class="mono text-muted">{{ m.urn }}</div></td>
+      <td>{{ m.domain }}</td>
+      <td><span class="chip">{{ m.model_class }}</span></td>
+      <td class="small">{{ m.owner }}</td>
+      <td class="text-center">
+        <span class="tier {{ 'tier-' ~ m.tier if m.tier else 'tier-none' }}">
+          {{ 'TIER ' ~ m.tier if m.tier else 'UNTIERED' }}</span></td>
+      <td class="small">{{ m.status }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="card"><div class="card-body text-center py-5">
+  <p class="serif mb-2" style="font-size:1.2rem">The inventory is empty.</p>
+  <p class="text-muted mb-0">Register a model:
+    <code class="mono">POST /api/v1/models</code></p>
+</div></div>
+{% endif %}
+{% endblock %}

@@ -19,8 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.domain import (Bound, Contract, Field, FitProcedure, OutputKind, ParameterKind,
                          ParameterObject, ParametricKernel, Schema, substitutable)
 from core.evidence import EvidenceEngine
-from core.store import (Store, _ulid, alias, alias_history, canonical_digest, model,
-                        model_version)
+from db import AliasRepository, ModelRepository, VersionRepository
+from db.database import digest as canonical_digest
 
 
 class RegistryError(RuntimeError):
@@ -42,28 +42,30 @@ def _contract(spec: Dict[str, Any]) -> Contract:
 class ModelRegistry:
     """Application service over the store. Emits evidence for everything it does."""
 
-    def __init__(self, store: Store, evidence: EvidenceEngine):
-        self.store, self.evidence = store, evidence
+    def __init__(self, models: ModelRepository, versions: VersionRepository,
+                 aliases: AliasRepository, evidence: EvidenceEngine):
+        self.models, self.versions_repo = models, versions
+        self.aliases, self.evidence = aliases, evidence
 
     # ----------------------------------------------------------------- models
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
                  origin: str = "internal", actor: str = "system",
                  attributes: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        if self.store.one(model, model.c.urn == urn):
+        if self.models.by_urn(urn):
             raise RegistryError(f"a model is already registered with urn {urn}")
-        row = {"id": _ulid(), "urn": urn, "name": name, "description": description,
+        row = {"urn": urn, "name": name, "description": description,
                "model_class": model_class, "domain": domain, "owner": owner,
                "legal_entity": legal_entity, "purpose": purpose, "origin": origin,
                "status": "proposed", "tier": None, "attributes": attributes or {},
                "created_at": time.time(), "created_by": actor}
-        self.store.insert(model, row)
+        self.models.add(row)
         self.evidence.append("model_registered", "model", row["id"],
                              {"urn": urn, "owner": owner}, actor=actor)
         return row
 
     def get(self, urn: str) -> Optional[Dict[str, Any]]:
-        return self.store.one(model, model.c.urn == urn)
+        return self.models.by_urn(urn)
 
     def require(self, urn: str) -> Dict[str, Any]:
         row = self.get(urn)
@@ -72,19 +74,13 @@ class ModelRegistry:
         return row
 
     def list(self, domain: Optional[str] = None, tier: Optional[int] = None) -> List[Dict[str, Any]]:
-        where = None
-        if domain:
-            where = model.c.domain == domain
-        if tier is not None:
-            clause = model.c.tier == tier
-            where = clause if where is None else where & clause
-        return self.store.many(model, where, order_by=model.c.urn)
+        return self.models.list(domain, tier)
 
     def set_tier(self, model_id: str, tier: int) -> None:
-        self.store.update(model, model.c.id == model_id, {"tier": tier})
+        self.models.set_tier(model_id, tier)
 
     def set_status(self, model_id: str, status: str, actor: str = "system") -> None:
-        self.store.update(model, model.c.id == model_id, {"status": status})
+        self.models.set_status(model_id, status)
         self.evidence.append("status_changed", "model", model_id, {"status": status}, actor=actor)
 
     # --------------------------------------------------------------- versions
@@ -93,8 +89,7 @@ class ModelRegistry:
                        artifact_digest: Optional[str] = None,
                        actor: str = "system") -> Dict[str, Any]:
         m = self.require(urn)
-        if self.store.one(model_version, (model_version.c.model_id == m["id"])
-                          & (model_version.c.semver == semver)):
+        if self.versions_repo.by_semver(m["id"], semver):
             raise RegistryError(f"version {semver} already exists for {urn}; versions are immutable")
 
         kernel = ParametricKernel(
@@ -109,7 +104,7 @@ class ModelRegistry:
 
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {}, "artifact_digest": artifact_digest}
-        row = {"id": _ulid(), "model_id": m["id"], "semver": semver, "manifest": manifest,
+        row = {"model_id": m["id"], "semver": semver, "manifest": manifest,
                "manifest_digest": canonical_digest(manifest),
                "trainability_class": kernel.trainability_class,
                "parameter_kind": kernel.parameters.kind.value,
@@ -118,27 +113,23 @@ class ModelRegistry:
                "output_schema": kernel_spec.get("output_schema", []),
                "contract": contract_spec or {}, "artifact_digest": artifact_digest,
                "status": "draft", "created_at": time.time(), "created_by": actor}
-        self.store.insert(model_version, row)
+        self.versions_repo.add(row)
         self.evidence.append("version_created", "version", row["id"],
                              {"semver": semver, "digest": row["manifest_digest"],
                               "trainability_class": row["trainability_class"]}, actor=actor)
         return row
 
     def versions(self, urn: str) -> List[Dict[str, Any]]:
-        m = self.require(urn)
-        return self.store.many(model_version, model_version.c.model_id == m["id"],
-                               order_by=model_version.c.created_at)
+        return self.versions_repo.for_model(self.require(urn)["id"])
 
     def version(self, urn: str, semver: str) -> Optional[Dict[str, Any]]:
-        m = self.require(urn)
-        return self.store.one(model_version, (model_version.c.model_id == m["id"])
-                              & (model_version.c.semver == semver))
+        return self.versions_repo.by_semver(self.require(urn)["id"], semver)
 
     def approve_version(self, urn: str, semver: str, actor: str = "system") -> Dict[str, Any]:
         v = self.version(urn, semver)
         if not v:
             raise RegistryError(f"no version {semver} for {urn}")
-        self.store.update(model_version, model_version.c.id == v["id"], {"status": "approved"})
+        self.versions_repo.set_status(v["id"], "approved")
         self.evidence.append("version_approved", "version", v["id"], {"semver": semver}, actor=actor)
         return {**v, "status": "approved"}
 
@@ -154,13 +145,12 @@ class ModelRegistry:
             raise RegistryError(f"version {to_semver} is '{new['status']}', not approved; "
                                 f"an alias may only point at an approved version")
 
-        current = self.store.one(alias, (alias.c.model_id == m["id"])
-                                 & (alias.c.environment == environment) & (alias.c.name == name))
+        current = self.aliases.current(m["id"], environment, name)
         refinement = {"holds": True, "reason": "no incumbent"}
         variance = {"ok": True, "reason": "no incumbent"}
 
         if current:
-            old = self.store.one(model_version, model_version.c.id == current["version_id"])
+            old = self.versions_repo.by_id(current["version_id"])
             r = _contract(new["contract"]).refines(_contract(old["contract"]))
             v = substitutable(_schema(new["input_schema"]), _schema(new["output_schema"]),
                               _schema(old["input_schema"]), _schema(old["output_schema"]))
@@ -171,15 +161,9 @@ class ModelRegistry:
                     f"alias move refused: {refinement['reason']} / {variance['reason']}")
 
         now = time.time()
-        if current:
-            self.store.update(alias, alias.c.id == current["id"],
-                              {"version_id": new["id"], "moved_at": now, "moved_by": actor})
-        else:
-            self.store.insert(alias, {"id": _ulid(), "model_id": m["id"],
-                                      "environment": environment, "name": name,
-                                      "version_id": new["id"], "moved_at": now, "moved_by": actor})
-        self.store.insert(alias_history, {
-            "id": _ulid(), "model_id": m["id"], "environment": environment, "name": name,
+        self.aliases.point(m["id"], environment, name, new["id"], now, actor)
+        self.aliases.record_move({
+            "model_id": m["id"], "environment": environment, "name": name,
             "from_version_id": current["version_id"] if current else None,
             "to_version_id": new["id"], "refinement": refinement, "variance": variance,
             "moved_at": now, "moved_by": actor, "justification": justification})
@@ -190,14 +174,8 @@ class ModelRegistry:
                 "refinement": refinement, "variance": variance}
 
     def resolve_alias(self, urn: str, environment: str, name: str) -> Optional[Dict[str, Any]]:
-        m = self.require(urn)
-        a = self.store.one(alias, (alias.c.model_id == m["id"])
-                           & (alias.c.environment == environment) & (alias.c.name == name))
-        if not a:
-            return None
-        return self.store.one(model_version, model_version.c.id == a["version_id"])
+        a = self.aliases.current(self.require(urn)["id"], environment, name)
+        return self.versions_repo.by_id(a["version_id"]) if a else None
 
     def alias_history(self, urn: str) -> List[Dict[str, Any]]:
-        m = self.require(urn)
-        return self.store.many(alias_history, alias_history.c.model_id == m["id"],
-                               order_by=alias_history.c.moved_at)
+        return self.aliases.history(self.require(urn)["id"])

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ app_name }} — {{ tagline }}{% endblock %}
+{% block head %}<style>
+.hero{background:linear-gradient(135deg,#761422 0%,#A51C30 55%,#8E1828 100%);color:#fff;
+      border-radius:6px;padding:3.2rem 2.6rem;margin-bottom:2.2rem;position:relative;overflow:hidden}
+.hero h1{font-size:2.9rem;line-height:1.14;margin-bottom:.7rem}
+.hero .lede{color:#F4DFE3;font-size:1.06rem;max-width:44rem;line-height:1.55}
+.hero .mark{position:absolute;right:-28px;bottom:-34px;opacity:.14;width:290px}
+.pill{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:.7rem;
+      letter-spacing:.10em;font-weight:700;padding:.3rem .7rem;border-radius:3px;margin-bottom:1.1rem}
+.gold{height:4px;background:#B8873D;border-radius:2px;width:76px;margin:1.4rem 0}
+.tclass{border-left:3px solid var(--crimson);padding-left:.85rem;margin-bottom:1.05rem}
+.tclass .code{font-weight:700;color:var(--crimson);font-size:.82rem;letter-spacing:.04em}
+.pillar{border:1px solid var(--rule);border-radius:4px;padding:1.15rem;height:100%}
+.pillar .n{color:var(--crimson);font-weight:700;font-size:.72rem;letter-spacing:.09em}
+</style>{% endblock %}
+{% block content %}
+
+<div class="hero">
+  <img src="/static/img/maya-mark-64.png" class="mark" alt="">
+  <span class="pill">MODEL &amp; AI LIFECYCLE ASSURANCE</span>
+  <h1 class="serif">Every model a bank runs.<br>One register.</h1>
+  <div class="gold"></div>
+  <p class="lede">Statistical, machine-learned, generative, calibrated, vendor-supplied,
+     expert-judgment, rule-based and end-user-computed — governed as one population,
+     with evidence bound to the artefact rather than asserted beside it.</p>
+  <p class="serif" style="font-size:1.3rem;color:#fff;margin:1.5rem 0 1.7rem">
+     <em>{{ slogan }}</em></p>
+  <a href="/login" class="btn btn-light btn-sm px-3" style="color:var(--crimson);font-weight:600">
+     Sign in</a>
+  <a href="/about" class="btn btn-outline-light btn-sm px-3 ms-2">What this is</a>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-7">
+    <p class="kicker">THE NAME</p>
+    <h2 class="serif" style="font-size:1.5rem">māyā — the map, not the territory</h2>
+    <p class="text-muted" style="line-height:1.65">In Indian philosophy <em>māyā</em> is
+      <strong>appearance</strong>: the representation that stands in for reality and is so easily
+      mistaken for it. Not falsehood — a <em>rendering</em> of the world, useful and necessary, and
+      dangerous only when you forget that it is a rendering.</p>
+    <p class="text-muted" style="line-height:1.65">Which is exactly what a model is. Supervisory
+      guidance says so almost in the same words: <em>“Models are simplified representations of
+      real-world relationships… based on assumptions that make them useful… but which also can
+      have limitations and create model risk.”</em></p>
+    <p class="text-muted mb-0" style="line-height:1.65">Model risk is what happens when an
+      organisation forgets the difference between the map and the territory.</p>
+  </div>
+  <div class="col-md-5">
+    <p class="kicker">SOME MODELS ARE NEVER TRAINED</p>
+    <div class="tclass"><div class="code">T0 · ANALYTIC</div>
+      <div class="small text-muted">Parameters come from theory. Black–Scholes, SA-CCR, RWA engines.
+        Asking for a training set is a type error.</div></div>
+    <div class="tclass"><div class="code">T1 · CALIBRATED</div>
+      <div class="small text-muted">Solved against market data each morning. Yield curves, vol surfaces.</div></div>
+    <div class="tclass"><div class="code">T5 · FOUNDATION-BASED</div>
+      <div class="small text-muted">Base model, prompt, corpus, tools. Configured, not trained.</div></div>
+    <div class="tclass"><div class="code">T6 · OPAQUE</div>
+      <div class="small text-muted">A vendor black box. Parameters exist; you cannot see them.</div></div>
+    <p class="small text-muted mb-0">Nine classes, one definition. The class is
+      <em>derived</em> from how the parameter object is inhabited — never declared.</p>
+  </div>
+</div>
+
+<div class="rule"></div>
+<p class="kicker">WHAT IT DOES</p>
+<div class="row g-3 mb-4">
+  {% for n, t, d in [
+     ('01','Universal inventory','All nine trainability classes — vendor, EUC, quant and generative in one register, each with class-appropriate evidence.'),
+     ('02','Evidence graph','Append-only and hash-chained, so “validated” is a verifiable claim rather than a checkbox.'),
+     ('03','Governed hooks','Any engine resolves a URN to a signed, entitlement-bound, revocable execution contract.'),
+     ('04','Proof-gated changes','An alias move requires the replacement’s contract to refine the incumbent’s. Consumers cannot be broken.')] %}
+  <div class="col-md-3"><div class="pillar">
+    <div class="n">{{ n }}</div>
+    <div class="serif" style="font-size:1.05rem;margin:.3rem 0 .45rem">{{ t }}</div>
+    <div class="small text-muted" style="line-height:1.5">{{ d }}</div>
+  </div></div>
+  {% endfor %}
+</div>
+
+<div class="card"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+  <div><strong>{{ model_count }}</strong> model{{ '' if model_count == 1 else 's' }} currently
+       registered in this instance.</div>
+  <a href="/login" class="btn btn-sm" style="background:var(--crimson);color:#fff">Open the register</a>
+</div></div>
+{% endblock %}

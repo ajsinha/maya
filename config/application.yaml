@@ -5,7 +5,7 @@
 # ${VAR} and ${VAR:default} substitution resolves against other keys in this
 # file, environment variables, and command-line --key=value overrides.
 # Values are read as strings and coerced on access (get_int / get_bool /
-# get_list), so `port: 8080` and `port: "${PORT:8080}"` behave identically.
+# get_list), so `port: 5006` and `port: "${PORT:5006}"` behave identically.
 #
 # Secrets do NOT belong here: this file is tracked. Put them in
 # config/application.local.yaml, a git-ignored overlay loaded straight after
@@ -28,12 +28,31 @@ app:
 
 server:
   host: "0.0.0.0"
-  port: "${PORT:8080}"
+  port: "${PORT:5006}"
   reload: false
 
+auth:
+  # Development default. Override in config/application.local.yaml (git-ignored)
+  # or via MAYA_AUTH_PASSWORD before exposing this beyond a workstation.
+  username: admin
+  password: "${MAYA_AUTH_PASSWORD:admin123}"
+  # Session cookie signing secret. A committed value is a public value, and a
+  # public value lets anyone forge a session — so override it in the local
+  # overlay for any deployment that matters.
+  session_secret: "${MAYA_SESSION_SECRET:maya-development-secret-change-me}"
+  session_max_age: 28800
+
 database:
-  # SQLAlchemy URL. SQLite for development; PostgreSQL is the production target.
-  url: "sqlite:///${data.dir}/maya.db"
+  # There are no migrations. The schema is db/schema/sqlite.sql and
+  # db/schema/postgres.sql, applied idempotently at start-up; the dialect is
+  # chosen from this URL alone and nothing else in the application changes.
+  #
+  #   SQLite     (default)  sqlite:///${data.sqlite.dir}/maya.db
+  #   PostgreSQL            postgresql+psycopg://maya:secret@localhost/maya
+  #
+  # Only column types with the same meaning in both dialects are used, so the
+  # two schemas differ in exactly two substitutions. See db/schema/.
+  url: "sqlite:///${data.sqlite.dir}/maya.db"
   echo: false
 
 data:
@@ -41,6 +60,11 @@ data:
   # database, the artifact store, and the Delta Lake root.
   dir: ./data
   artifacts: "${data.dir}/artifacts"
+
+  # SQLite lives here by default. Switch database.url to PostgreSQL and this
+  # directory is simply unused.
+  sqlite:
+    dir: "${data.dir}/sqlite"
 
   # Delta Lake root. Feature values, dataset snapshots, inference logs and
   # monitoring observations live here — everything whose volume scales with

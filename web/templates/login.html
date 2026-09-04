@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Sign in — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-md-5">
+  <div class="text-center mb-4">
+    <img src="/static/img/maya-mark-64.png" width="52" alt="">
+    <h1 class="serif mt-3 mb-1">{{ app_name }}</h1>
+    <div class="text-muted small">{{ tagline }}</div>
+    <div class="serif fst-italic mt-2" style="color:var(--crimson)">{{ slogan }}</div>
+  </div>
+  <div class="card"><div class="card-body p-4">
+    {% if error %}<div class="alert alert-danger py-2 small">{{ error }}</div>{% endif %}
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="{{ next }}">
+      <div class="mb-3"><label class="form-label small">Username</label>
+        <input class="form-control" name="username" autocomplete="username" autofocus required></div>
+      <div class="mb-3"><label class="form-label small">Password</label>
+        <input class="form-control" type="password" name="password"
+               autocomplete="current-password" required></div>
+      <button class="btn w-100" style="background:var(--crimson);color:#fff">Sign in</button>
+    </form>
+  </div></div>
+  <p class="text-muted small text-center mt-3 mb-0">
+    Development credentials are set in <code class="mono">config/application.yaml</code>.
+    Override them before exposing this beyond a workstation.</p>
+</div></div>
+{% endblock %}
