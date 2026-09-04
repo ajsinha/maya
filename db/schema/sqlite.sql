@@ -276,3 +276,34 @@ CREATE TABLE IF NOT EXISTS finding (
 );
 
 CREATE INDEX IF NOT EXISTS ix_finding_open ON finding (model_id, status, severity);
+
+-- --------------------------------------------------------------------------
+-- Principals: identity, roles and scope
+-- --------------------------------------------------------------------------
+-- A principal is a person or a service. Roles carry permissions; scope narrows
+-- WHICH models those permissions reach, by legal entity and by domain. An empty
+-- scope list means unrestricted for that dimension, because the alternative --
+-- enumerating every entity for every user -- is the design that makes people
+-- grant `*` to get on with their day.
+--
+-- Passwords are PBKDF2-HMAC-SHA256 with a per-principal salt. Service
+-- principals have no password and cannot sign in to the interface; they are
+-- addressed by warrants.
+
+CREATE TABLE IF NOT EXISTS principal (
+    id              TEXT PRIMARY KEY,
+    username        TEXT NOT NULL UNIQUE,
+    display_name    TEXT NOT NULL,
+    kind            TEXT NOT NULL DEFAULT 'person',
+    email           TEXT,
+    roles           TEXT NOT NULL DEFAULT '[]',
+    legal_entities  TEXT NOT NULL DEFAULT '[]',
+    domains         TEXT NOT NULL DEFAULT '[]',
+    status          TEXT NOT NULL DEFAULT 'active',
+    password_hash   TEXT,
+    password_salt   TEXT,
+    created_at      REAL NOT NULL,
+    last_seen_at    REAL
+);
+
+CREATE INDEX IF NOT EXISTS ix_principal_status ON principal (status);

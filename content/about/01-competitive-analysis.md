@@ -91,21 +91,31 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Segregation of duties read from the evidence chain.** Most platforms enforce
+separation with a second table of who-did-what, which becomes a second source of
+truth the moment it disagrees with the record. Here the append-only chain that
+proves what happened is the same artifact that decides who may act next: the
+person who created a version cannot approve it, promote it, or conclude its
+validation — and the refusal cites the evidence entry that disqualifies them.
+This binds even for administrators, because break-glass exempts you from the
+incompatible-roles check and not from history.
+
 ## Where MAYA is weaker today
 
 Stated plainly, because a positioning page that only lists strengths is
 marketing rather than analysis.
 
 - **Workflow depth.** OpenPages and SAS have two decades of committee routing,
-  attestation cycles and regulatory report templates. MAYA has none of that yet.
-- **Authorisation.** One account, no roles, no segregation of duties, no
-  per-entity row filtering.
+  attestation cycles and regulatory report templates. MAYA has roles,
+  segregation of duties and gated transitions, but not the routing and
+  attestation cycles built on top of them.
 - **Monitoring.** Drift, delayed labels and breach detection are designed but
   not built; Arize and Fiddler do this well today and MAYA does not do it at all.
 - **Scale.** The design targets a large estate; it has not been run against one.
 - **Ecosystem.** Databricks and Domino arrive with connectors, an installed base
   and a support organisation.
 
-The bet is that the *first* four items are architecture and the last five are
-work — that a platform built on evidence and refusal can add workflow, but a
-platform built on workflow cannot retrofit evidence.
+The bet is that the items above are **work**, and the four commitments before
+them are **architecture** — that a platform built on evidence and refusal can
+add workflow, ecosystem and scale, but a platform built on workflow cannot
+retrofit evidence into a record that was never bound to the artifact.

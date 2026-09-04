@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 6. This section is the authoritative record of what
+*Last updated after milestone 7. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -39,6 +39,7 @@ is built; the phases below are the plan it is being built against.*
 | ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
 | ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
 | ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
+| ✅ | **Authorisation** (`core/authz/`) | **Complete** | Eight roles across three lines of defence, refused incompatible pairs, entity and domain scope that filters listings as well as detail pages, and segregation of duties read from the evidence chain rather than a second who-did-what table. HTTP Basic for services against the same principal register; PBKDF2 with a short verification cache that shortens the key derivation and never the decision |
 | ⬜ | **Machine assistance** | **Not started** | Capability registry, grounding gate, oracle-backed generation |
 | ⬜ | **Baseline import** | **Not started** | Compliance-debt tracking for legacy models (finding C-5) |
 
@@ -63,9 +64,11 @@ number.
 
 ### Honest gaps
 
-- **No authorisation model beyond a single account.** One username and password;
-  no roles, no segregation of duties, no per-entity row filtering. Everything in
-  [09](09-security-compliance.md) §3 is design, not code.
+- **No approval workflow.** Roles, scope and segregation are enforced, but there
+  is no routing, no committee, no attestation cycle and no review calendar on top
+  of them. A version is approved by one authorised person, not by a quorum.
+- **No single sign-on.** Local credentials only; no OIDC, SAML or SCIM, so
+  principals are provisioned by hand.
 - **No policy engine.** Lifecycle guards are hard-coded checks in the registry
   rather than versioned Rego, so gates cannot yet be changed without a release.
 - **The captive engine runs registered Python callables only.** It does not load
