@@ -294,7 +294,7 @@ maya/
 ├── db/                              the only package that knows about storage
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
-├── examples/warrants/               twelve worked warrants across the model estate
+├── examples/warrants/               thirteen worked warrants across the model estate
 ├── docs/                            17 specification documents + ADRs
 │   ├── 00 … 16-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records

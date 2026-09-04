@@ -484,3 +484,60 @@ validates and that between them they exercise every axis.
 
 See [warrants by model family](/tutorials/warrants-by-family) for the
 walkthrough.
+
+
+## Valuations, and the date that changes the answer
+
+Most of what a bank runs is not a learned model. It is a valuation: a discount
+factor, a swap, a bond, a swaption. The captive engine prices six of them through
+QuantLib.
+
+These models are **T0** — the parameter object is terminal, the constants come
+from theory, and law **L-W1** refuses to warrant one for fitting. That refusal is
+the trainability class working, not a limitation.
+
+They have something the learned models do not: an as-of date that changes the
+answer. So the QuantLib runtime does two things the others do not have to.
+
+**It takes the evaluation date from the warrant, never from the clock.** A
+valuation that reads today's date is not reproducible tomorrow, and a backtest of
+it is a backtest of nothing. A warrant that does not say when is refused rather
+than defaulted to now — the default would be the wrong answer that looks right.
+
+**It builds the curve from what the warrant carries, and nothing else.** Reaching
+for a market data service would put an unversioned input into a governed
+computation, which is the whole failure the platform exists to make visible.
+
+```json
+{"binding": "market_data", "as_of": "2026-01-01", "day_count": "actual/365",
+ "curve":    [{"date": "2026-01-01", "rate": 0.030},
+              {"date": "2031-01-01", "rate": 0.036}],
+ "fixings":  [{"date": "2025-12-31", "rate": 0.031}]}
+```
+
+The fixings are there for the same reason. A swap whose first floating period
+began before the evaluation date needs that fixing, and it is an input like any
+other:
+
+> **`missing_fixing`** — the instrument needs a past fixing the warrant does not
+> carry. *Supply fixings alongside the curve; a valuation that invented one would
+> put an unversioned number into a governed computation.*
+
+Writing this runtime turned up a hazard worth naming: QuantLib keeps its fixing
+history in a **process-global** manager, so a fixing supplied by one warrant
+would still be sitting there for the next valuation — the unversioned input
+arriving through the back door. Each valuation now starts from an empty history
+and sees only what its own warrant carries.
+
+Everything else it will not do, it refuses **by name**. An instrument it does not
+price, a pricing engine it does not build, a day count it does not know: each
+named rather than substituted, because a day count silently swapped moves every
+cash flow and an engine silently swapped produces a number nobody can reconcile.
+
+It is not sandboxed, and the reason is stated rather than left to be inferred: it
+loads no artifact — the instrument and the curve arrive in the warrant — so there
+is nothing untrusted to isolate from, and a process spawn per valuation would buy
+nothing.
+
+`examples/warrants/13-quantlib-swap-price.json` is a worked example that both
+validates against the grammar and prices through the engine.
