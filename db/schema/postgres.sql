@@ -435,3 +435,34 @@ CREATE TABLE IF NOT EXISTS breach (
 );
 
 CREATE INDEX IF NOT EXISTS ix_breach_model ON breach (model_id, status);
+
+-- --------------------------------------------------------------------------
+-- Compiled documents
+-- --------------------------------------------------------------------------
+-- A model development document, a validation report, a model card or an Annex IV
+-- pack is COMPILED from the register and the evidence graph, not typed into a
+-- word processor. Two columns make that worth doing.
+--
+-- `citations` records which evidence nodes each section rested on, so "this
+-- document is supported" becomes a claim that can be evaluated rather than
+-- trusted. `evidence_head` records how far the chain had got when it was
+-- compiled, so staleness is COMPUTED -- new evidence about the subject after
+-- that point means the document no longer describes the model.
+
+CREATE TABLE IF NOT EXISTS document (
+    id               TEXT PRIMARY KEY,
+    model_id         TEXT NOT NULL,
+    model_version_id TEXT,
+    kind             TEXT NOT NULL,
+    title            TEXT NOT NULL,
+    sections         TEXT NOT NULL DEFAULT '[]',
+    citations        TEXT NOT NULL DEFAULT '[]',
+    coverage         TEXT NOT NULL DEFAULT '{}',
+    digest           TEXT NOT NULL,
+    evidence_head    INTEGER NOT NULL DEFAULT 0,
+    status           TEXT NOT NULL DEFAULT 'compiled',
+    compiled_at      DOUBLE PRECISION NOT NULL,
+    compiled_by      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_document_model ON document (model_id, kind);

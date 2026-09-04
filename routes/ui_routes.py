@@ -45,6 +45,7 @@ class UIRoutes(Routes):
                 return self.page(request, "not_found.html", status=404, name=name)
             versions = registry.versions(urn)
             features, register = self.ctx["features"], self.ctx["findings"]
+            docs = self.ctx["documents"]
             return self.page(
                 request, "model.html", model=m, versions=versions,
                 history=registry.alias_history(urn),
@@ -58,4 +59,27 @@ class UIRoutes(Routes):
                 finding_summary=register.summary(m["id"]),
                 validations=self.ctx["validation"].for_model(urn),
                 flow=self.ctx["lifecycle"].state(urn), now=time.time(),
-                monitoring=self.ctx["monitoring"].status(m["id"]))
+                monitoring=self.ctx["monitoring"].status(m["id"]),
+                documents=[{**d, "staleness": docs.staleness(d["id"])}
+                           for d in docs.for_model(m["id"])])
+
+        @self.app.get("/document/{document_id}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def document(request: Request, document_id: str):
+            """A compiled document, rendered with the same markdown pipeline the
+            help system uses. One renderer, so a document reads like the rest of
+            the platform rather than like a report generator's output."""
+            if (r := login_required(request)) is not None:
+                return r
+            docs = self.ctx["documents"]
+            doc = docs.get(document_id)
+            if not doc:
+                return self.page(request, "not_found.html", status=404,
+                                 name=f"document/{document_id}")
+            html, headings = self.ctx["renderer"].render(docs.markdown(doc))
+            model = self.ctx["registry"].catalogue.models.one(id=doc["model_id"])
+            return self.page(request, "document.html", doc=doc, model=model,
+                             body=html,
+                             anchors=[h for h in headings if h["level"] == 2],
+                             staleness=docs.staleness(document_id),
+                             citations=docs.verify_citations(document_id))

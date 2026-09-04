@@ -1,0 +1,105 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+
+Gathering what the lenses read.
+
+This is the one place in the documentation package that knows the platform has a
+registry, a feature platform, a validation service and the rest. The compiler and
+the lenses do not: they are handed a dictionary and go looking in it.
+
+That separation is worth the extra class. A lens that imported nine services
+would be a lens nobody could test without standing up nine services, and a
+compiler that did the gathering itself would need changing every time a new
+subsystem had something to say about a model.
+
+Services are received rather than imported, and every one of them is optional —
+a deployment without monitoring should still be able to compile a model
+development document, with the monitoring section honestly reporting that there
+is nothing to report.
+"""
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from core.log import get_logger, swallowed
+
+logger = get_logger(__name__)
+
+
+class ContextBuilder:
+    """Assembles the state a document is compiled from."""
+
+    def __init__(self, registry, evidence, risk_repo=None, features=None,
+                 validation=None, findings=None, monitoring=None, lifecycle=None,
+                 warrants=None):
+        self.registry, self.evidence = registry, evidence
+        self.risk_repo, self.features = risk_repo, features
+        self.validation, self.findings = validation, findings
+        self.monitoring, self.lifecycle, self.warrants = monitoring, lifecycle, warrants
+
+    def __call__(self, urn: str) -> Dict[str, Any]:
+        model = self.registry.require(urn)
+        versions = self.registry.versions(urn)
+        version = self._current(urn, versions)
+
+        ctx: Dict[str, Any] = {
+            "model": model, "versions": versions, "version": version,
+            "evidence": self.evidence.for_subject(model["id"]),
+            "chain": self.evidence.verify_chain(),
+            "alias_history": self.registry.alias_history(urn),
+        }
+        ctx["assessment"] = self._assessment(model["id"])
+        ctx["feature_contract"] = self._optional(
+            lambda: self.features.contract_for(version["id"]) if version else None,
+            "feature contract")
+        ctx["validations"] = self._optional(
+            lambda: self.validation.for_model(urn), "validations", default=[])
+        ctx["results_by_validation"] = {
+            v["id"]: self._optional(lambda v=v: self.validation.results_for(v["id"]),
+                                    "validation results", default=[])
+            for v in ctx["validations"]}
+        ctx["findings"] = self._optional(
+            lambda: self.findings.open_for(model["id"]), "findings", default=[])
+        ctx["monitoring"] = self._optional(
+            lambda: self.monitoring.status(model["id"]), "monitoring", default={})
+        ctx["lifecycle"] = self._optional(
+            lambda: self.lifecycle.state(urn), "lifecycle")
+        ctx["warrants"] = self._optional(
+            lambda: self.warrants.grants_for(urn), "warrants", default=[])
+        return ctx
+
+    def _current(self, urn: str, versions: List[Dict[str, Any]]) -> Optional[Dict]:
+        """The version the document is about: the production champion if there is
+        one, otherwise the most recent. A document about 'the model' with no
+        version named is a document about nothing in particular."""
+        resolved = self._optional(
+            lambda: self.registry.resolve_alias(urn, "prod", "champion"),
+            "prod champion")
+        return resolved or (versions[-1] if versions else None)
+
+    def _assessment(self, model_id: str) -> Optional[Dict[str, Any]]:
+        if self.risk_repo is None:
+            return None
+        rows = self.risk_repo.many(model_id=model_id)
+        return rows[-1] if rows else None
+
+    @staticmethod
+    def _optional(fetch, what: str, default=None):
+        """Fetch from a service that may be absent, or may have nothing.
+
+        A subsystem that is not wired in, or has nothing recorded, must not stop
+        a document compiling — but it must not do so silently either, so the
+        reason is logged and the section reports the gap.
+        """
+        try:
+            return fetch() if fetch else default
+        except AttributeError as exc:
+            swallowed(logger, exc, f"{what} is not available to the compiler",
+                      detail="the section will report the gap", level=10)
+            return default
+        except Exception as exc:                      # a service refusing is data
+            swallowed(logger, exc, f"could not read {what} while compiling",
+                      detail="the section will report the gap")
+            return default

@@ -91,6 +91,13 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Documentation compiled, not written.** The model development document is the
+artifact a supervisor reads and, in most banks, the one that has drifted furthest
+from the model. Here it is generated from the register and the evidence graph:
+every section cites what it rests on, staleness is computed from the chain rather
+than remembered, and a section that cannot be filled says what is missing instead
+of leaving a blank heading.
+
 **One grammar for every model family.** The warrant an execution engine acts on
 is the product of four independent vocabularies — how the parameter object is
 inhabited, how the kernel is realised, what is asked of it, where its data comes

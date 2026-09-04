@@ -40,7 +40,7 @@ MODEL_OWNER = MODEL_DEVELOPER | {
     # The owner puts the record forward, opens amendments to it, and signs the
     # owner half of the attestation. They never approve it.
     "model:submit", "model:amend", "model:attest",
-    "monitor:define", "monitor:evaluate",
+    "monitor:define", "monitor:evaluate", "document:compile",
 }
 
 # ---------------------------------------------------------------------------
@@ -48,14 +48,14 @@ MODEL_OWNER = MODEL_DEVELOPER | {
 # ---------------------------------------------------------------------------
 VALIDATOR = READ_PERMISSIONS | {
     "validation:open", "validation:record", "validation:conclude",
-    "finding:raise", "finding:close",
+    "finding:raise", "finding:close", "document:compile",
 }
 MODEL_RISK_MANAGER = VALIDATOR | {
     "risk:assess", "version:approve", "alias:move",
     "feature:certify", "warrant:revoke", "model:retire",
     # Approves the record, and signs the second-line half of the attestation.
     # Cannot submit or amend: that is the first line's act.
-    "model:approve", "model:attest", "monitor:define",
+    "model:approve", "model:attest", "monitor:define", "document:compile",
 }
 
 # ---------------------------------------------------------------------------
