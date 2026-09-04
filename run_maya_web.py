@@ -30,6 +30,8 @@ from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.execution import WarrantService
+from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
+                        SegregationPolicy)
 from core.config import PropertiesConfigurator
 from core.content import ContentLibrary
 from core.registry import ModelRegistry
@@ -40,8 +42,10 @@ from db import (AliasHistoryRepository, AliasRepository, ContractRepository, Dat
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
-                TestResultRepository, ValidationRepository, VersionRepository)
+                PrincipalRepository, TestResultRepository, ValidationRepository,
+                VersionRepository)
 from routes import ALL_ROUTES
+from routes.base import authz_problem
 
 ROOT = Path(__file__).resolve().parent
 logger = get_logger("maya")
@@ -69,6 +73,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         {p: cfg.get_int(f"risk.purpose_ranks.{p}", 1)
          for p in ("commercial", "risk_management", "financial_reporting", "regulatory_capital")},
         _tier_map(cfg, "risk.review_months", {1: 12, 2: 18, 3: 24, 4: 36}))
+    # Authorisation. The segregation policy reads the evidence chain, so the
+    # record that proves what happened is the record that decides who may act
+    # next — there is no second history to keep in step.
+    principals = PrincipalService(
+        PrincipalRepository(db), evidence,
+        iterations=cfg.get_int("auth.kdf_iterations", 200_000),
+        verification_ttl=cfg.get_float("auth.verification_ttl_seconds", 60.0))
+    authz = AuthorizationPolicy(SegregationPolicy(evidence))
+    principals.bootstrap(cfg.get("auth.username", "admin"),
+                         cfg.get("auth.password", "admin123"))
+
     # The register is the BlockingSource for both gates. It is built after the
     # registry because both need the evidence engine, and attached explicitly.
     findings = FindingRegister(FindingRepository(db), evidence)
@@ -96,6 +111,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "test_catalogue": catalogue,
+                           "principals": principals, "authz": authz,
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}
@@ -123,6 +139,13 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     # Vendored assets only: the interface renders with no external network.
     app.mount("/static", StaticFiles(directory=str(ROOT / "web" / "static")), name="static")
     templates = Jinja2Templates(directory=str(ROOT / "web" / "templates"))
+
+    @app.exception_handler(AuthzError)
+    async def refused(_request, exc: AuthzError):
+        """Authorisation refusals render in the same shape as every other one."""
+        problem = authz_problem(exc)
+        return JSONResponse(problem.detail, status_code=problem.status_code,
+                            headers=problem.headers)
 
     @app.exception_handler(HTTPException)
     async def problem(_request, exc: HTTPException):

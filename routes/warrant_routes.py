@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
+from fastapi import Request
 from pydantic import BaseModel, Field
 
 from routes.base import Routes
@@ -45,24 +46,30 @@ class WarrantRoutes(Routes):
         warrants, engine = self.ctx["warrants"], self.ctx.get("engine")
 
         @self.app.post(f"{self.api}/warrants", status_code=201, tags=["warrants"])
-        def issue(body: IssueIn):
+        def issue(request: Request, body: IssueIn):
+            who = self.authorise(request, "warrant:issue")
             return self.guard(lambda: warrants.issue(
-                body.urn, body.environment, body.principal, body.declared_use, body.flavour))
+                body.urn, body.environment, body.principal, body.declared_use,
+                body.flavour, actor=self.actor(who)))
 
         @self.app.post(f"{self.api}/resolve", tags=["warrants"])
-        def resolve(body: ResolveIn):
+        def resolve(request: Request, body: ResolveIn):
+            self.authorise(request, "warrant:read")
             """The hot path. A signed descriptor, or a refusal with a reason."""
             return self.guard(lambda: warrants.resolve(
                 body.urn, body.environment, body.principal, body.declared_use))
 
         @self.app.post(f"{self.api}/warrants/revoke", tags=["warrants"])
-        def revoke(body: RevokeIn):
-            n = self.guard(lambda: warrants.revoke_model(body.urn, body.reason))
+        def revoke(request: Request, body: RevokeIn):
+            who = self.authorise(request, "warrant:revoke")
+            n = self.guard(lambda: warrants.revoke_model(body.urn, body.reason,
+                                                         actor=self.actor(who)))
             return {"revoked": n, "urn": body.urn, "reason": body.reason,
                     "epoch": warrants.epoch}
 
         @self.app.post(f"{self.api}/execute", tags=["execution"])
-        def execute(body: ExecuteIn):
+        def execute(request: Request, body: ExecuteIn):
+            self.authorise(request, "warrant:execute")
             """Convenience only: the captive engine, reached through the same
             contract an external engine uses. Disable it and nothing else changes."""
             if engine is None:

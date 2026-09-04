@@ -36,6 +36,12 @@ auth:
   # or via MAYA_AUTH_PASSWORD before exposing this beyond a workstation.
   username: admin
   password: "${MAYA_AUTH_PASSWORD:admin123}"
+  # PBKDF2-HMAC-SHA256 rounds. Deliberately expensive for an interactive login.
+  # A successful verification is then trusted for verification_ttl_seconds so an
+  # API caller does not pay the cost on every request; suspension and status are
+  # still re-read every time.
+  kdf_iterations: 200000
+  verification_ttl_seconds: 60
   # Session cookie signing secret. A committed value is a public value, and a
   # public value lets anyone forge a session — so override it in the local
   # overlay for any deployment that matters.

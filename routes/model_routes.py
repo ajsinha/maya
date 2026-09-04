@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
+from fastapi import Request
 from pydantic import BaseModel, Field
 
 from routes.base import Routes
@@ -47,7 +48,13 @@ class AssessIn(BaseModel):
 
 
 class ModelRoutes(Routes):
-    """The inventory API. Every refusal explains itself (design rule DR-7)."""
+    """The inventory API.
+
+    Every endpoint authorises before it acts, and every act is attributed to the
+    principal who made it rather than to "system". That attribution is what the
+    segregation policy reads back: a version approved by the person who created
+    it is refused because the evidence chain says who created it.
+    """
 
     def register(self) -> None:
         reg, ev = self.ctx["registry"], self.ctx["evidence"]
@@ -55,44 +62,70 @@ class ModelRoutes(Routes):
         urn = lambda name: f"maya://model/{name}"
 
         @self.app.get(f"{self.api}/models", tags=["models"])
-        def list_models(domain: Optional[str] = None, tier: Optional[int] = None):
-            return {"models": reg.list(domain, tier)}
+        def list_models(request: Request, domain: Optional[str] = None,
+                        tier: Optional[int] = None):
+            who = self.authorise(request, "model:read")
+            # Filtered at the listing, not only at the detail page: a model out
+            # of scope must not be discoverable by a count that does not add up.
+            return {"models": self.ctx["authz"].visible(who, reg.list(domain, tier))}
 
         @self.app.post(f"{self.api}/models", status_code=201, tags=["models"])
-        def create_model(body: ModelIn):
+        def create_model(request: Request, body: ModelIn):
+            who = self.authorise(request, "model:register",
+                                 model={"legal_entity": body.legal_entity,
+                                        "domain": body.domain})
             return self.guard(lambda: reg.register(
                 body.urn, body.name, body.model_class, body.domain, body.owner,
-                body.legal_entity, body.purpose, body.description, body.origin))
+                body.legal_entity, body.purpose, body.description, body.origin,
+                actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/models/{{name:path}}", tags=["models"])
-        def get_model(name: str):
+        def get_model(request: Request, name: str):
             m = reg.get(urn(name))
             if not m:
                 raise self.not_found(f"no model {name}")
+            self.authorise(request, "model:read", model=m)
             return {"model": m, "versions": reg.versions(m["urn"]),
                     "alias_history": reg.alias_history(m["urn"]),
                     "evidence": ev.for_subject(m["id"])}
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions", status_code=201,
                        tags=["versions"])
-        def create_version(name: str, body: VersionIn):
+        def create_version(request: Request, name: str, body: VersionIn):
+            who = self.authorise(request, "version:create",
+                                 model=self.guard(lambda: reg.require(urn(name))))
             return self.guard(lambda: reg.create_version(
-                urn(name), body.semver, body.kernel, body.contract, body.artifact_digest))
+                urn(name), body.semver, body.kernel, body.contract, body.artifact_digest,
+                actor=self.actor(who)))
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions/{{semver}}/approve",
                        tags=["versions"])
-        def approve(name: str, semver: str):
-            return self.guard(lambda: reg.approve_version(urn(name), semver))
+        def approve(request: Request, name: str, semver: str):
+            model = self.guard(lambda: reg.require(urn(name)))
+            version = reg.version(urn(name), semver)
+            if not version:
+                raise self.not_found(f"no version {semver} for {name}")
+            # The subject is the VERSION, because that is what the evidence chain
+            # recorded `version_created` against.
+            who = self.authorise(request, "version:approve", model=model,
+                                 subject_id=version["id"])
+            return self.guard(lambda: reg.approve_version(urn(name), semver,
+                                                          actor=self.actor(who)))
 
         @self.app.put(f"{self.api}/models/{{name:path}}/aliases", tags=["aliases"])
-        def move_alias(name: str, body: AliasIn):
+        def move_alias(request: Request, name: str, body: AliasIn):
+            model = self.guard(lambda: reg.require(urn(name)))
+            version = reg.version(urn(name), body.semver)
+            who = self.authorise(request, "alias:move", model=model,
+                                 subject_id=version["id"] if version else None)
             return self.guard(lambda: reg.move_alias(
                 urn(name), body.environment, body.alias, body.semver,
-                justification=body.justification))
+                actor=self.actor(who), justification=body.justification))
 
         @self.app.post(f"{self.api}/models/{{name:path}}/assess", tags=["risk"])
-        def assess(name: str, body: AssessIn):
+        def assess(request: Request, name: str, body: AssessIn):
             m = self.guard(lambda: reg.require(urn(name)))
+            who = self.authorise(request, "risk:assess", model=m)
             versions = reg.versions(urn(name))
             facts = {**body.model_dump(),
                      "trainability_class": versions[-1]["trainability_class"] if versions else "T0"}
@@ -100,11 +133,13 @@ class ModelRoutes(Routes):
             tiering.persist(risk_repo, m["id"], a)
             reg.set_tier(m["id"], a.tier)
             ev.append("tier_assigned", "model", m["id"],
-                      {"tier": a.tier, "rationale": a.rationale})
+                      {"tier": a.tier, "rationale": a.rationale},
+                      actor=self.actor(who))
             return {"tier": a.tier, "materiality": a.materiality, "complexity": a.complexity,
                     "required_controls": list(a.required_controls), "rationale": a.rationale,
                     "ruleset_version": a.ruleset_version}
 
         @self.app.get(f"{self.api}/evidence/chain", tags=["evidence"])
-        def chain():
+        def chain(request: Request):
+            self.authorise(request, "evidence:read")
             return ev.verify_chain()

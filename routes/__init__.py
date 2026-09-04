@@ -12,12 +12,13 @@ from routes.base import API, Routes, current_user, login_required
 from routes.feature_routes import FeatureRoutes
 from routes.warrant_routes import WarrantRoutes
 from routes.model_routes import ModelRoutes
+from routes.principal_routes import PrincipalRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_routes import UIRoutes
 from routes.validation_routes import ValidationRoutes
 
-ALL_ROUTES = (PublicRoutes, AuthRoutes, ModelRoutes, WarrantRoutes, FeatureRoutes,
-              ValidationRoutes, UIRoutes)
+ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, ModelRoutes, WarrantRoutes,
+              FeatureRoutes, ValidationRoutes, UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
-           "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "current_user", "login_required"]
+           "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes", "current_user", "login_required"]
