@@ -16,9 +16,11 @@ from db.delta_store import DeltaStore
 from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                              AttestationRepository, BreachRepository, CapabilityRepository,
                              ContractRepository,
-                             DocumentRepository, EvidenceRepository, FeatureRepository,
+                             DebtRepository, DocumentRepository, EvidenceRepository,
+                             FeatureRepository,
                              FeatureViewRepository, FeatureViewVersionRepository,
-                             FindingRepository, GenerationRepository, MeasurementRepository,
+                             FindingRepository, GenerationRepository, ImportRepository,
+                             MeasurementRepository,
                              ModelRepository,
                              MonitorRepository,
                              ObservationRepository, OverlayRepository, PrincipalRepository,
@@ -36,4 +38,5 @@ __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepositor
            "AttestationRepository", "SignatureRepository", "MonitorRepository",
            "ObservationRepository", "BreachRepository", "DocumentRepository", "OverlayRepository",
            "MeasurementRepository", "CapabilityRepository",
-           "GenerationRepository"]
+           "GenerationRepository", "ImportRepository",
+           "DebtRepository"]

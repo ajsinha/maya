@@ -280,3 +280,41 @@ class TestDeletion:
         lifecycle.retire(attested_model, "s.iqbal", "superseded by the 2026 model")
         assert registry.get(URN)["status"] == RETIRED
         assert registry.get(URN) is not None
+
+
+class TestBaselinedIsMutable:
+    """C-5: a baselined model must be able to receive the evidence it lacks.
+
+    It arrived without a version, a tier or a validation. Freezing it would mean
+    the only route to closing that debt is an amendment to a record that was
+    never attested — which is nonsense, and which is how a cold-start capability
+    quietly becomes unusable.
+    """
+
+    def test_baselined_is_in_the_mutable_set(self):
+        from core.lifecycle import BASELINED, MUTABLE
+        assert BASELINED in MUTABLE
+
+    def test_a_baselined_model_accepts_a_version(self, registry, lifecycle,
+                                                 a_model, kernel_spec):
+        from core.lifecycle import BASELINED
+        registry.catalogue.models.set({"status": BASELINED}, id=a_model["id"])
+        assert registry.create_version(URN, "1.0.0", kernel_spec)
+
+    def test_it_leaves_baseline_through_the_normal_path(self, registry, lifecycle,
+                                                        a_model, kernel_spec,
+                                                        owner, mrm):
+        from core.lifecycle import ATTESTED, BASELINED
+        registry.catalogue.models.set({"status": BASELINED}, id=a_model["id"])
+        registry.create_version(URN, "1.0.0", kernel_spec, actor="d.raman")
+
+        lifecycle.submit(registry.get(URN), "j.okafor")
+        lifecycle.approve(registry.get(URN), "s.iqbal")
+        lifecycle.sign(registry.get(URN), owner, "model_owner")
+        lifecycle.sign(registry.get(URN), mrm, "model_risk_manager")
+        assert registry.get(URN)["status"] == ATTESTED
+
+    def test_its_meaning_says_what_it_is(self):
+        from core.lifecycle import BASELINED, MEANING
+        assert "governed going forward" in MEANING[BASELINED]
+        assert "debt" in MEANING[BASELINED]
