@@ -881,3 +881,51 @@ class TestComposingAFeaturesetFromTheInterface:
         assert 'id="preview-set"' in body
         for word in ("add", "drop", "override"):
             assert word in body, word
+
+
+class TestAFitWarrantIsSelfDescribing:
+    """An engine receiving a fit warrant should not need a second call to learn
+    what columns it is being asked to train on.
+
+    The warrant named a featureset and its digest and said nothing about what
+    was in it — so the digest was the only thing standing between "the right
+    columns" and "some columns", which is a check nobody can perform by reading.
+    """
+
+    def test_the_warrant_carries_the_slots_and_what_fills_them(
+            self, registered, people):
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        doc = self._fit(registered, owner).json()
+        binding = doc["data"]["inputs"][0]
+        assert binding["featureset"] == "sb_set"
+        slots = {s["slot"]: s for s in binding["slots"]}
+        assert "dscr" in slots
+        assert slots["dscr"]["feature"] == "dscr"
+        assert slots["dscr"]["view"] and slots["dscr"]["view_version"]
+
+    def test_it_carries_the_grain_and_the_entity(self, registered, people):
+        """What one row means. Without it an engine knows the columns and not
+        what they are a row of."""
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        binding = self._fit(registered, owner).json()["data"]["inputs"][0]
+        assert binding["entity"] == "borrower_id"
+        assert binding["grain"]
+
+    def test_it_does_not_carry_the_values(self, registered, people):
+        """Names and types, never data. A signed credential is not a wire format
+        for a dataset, and the transfer API is how the rows are fetched."""
+        import json
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        doc = self._fit(registered, owner).json()
+        assert len(json.dumps(doc)) < 20_000, "a warrant is a credential, not a payload"
+
+    # the helpers this class needs, borrowed from the schema-check suite
+    _fittable_version = TestTheFitWarrantChecksTheSchema._fittable_version
+    _setup = TestTheFitWarrantChecksTheSchema._setup
+    _fit = TestTheFitWarrantChecksTheSchema._fit
