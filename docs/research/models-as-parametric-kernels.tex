@@ -186,12 +186,18 @@ We give a mathematical foundation addressing all four. Concretely:
       standard informal taxonomy is recovered as a classification of \emph{fitting morphisms}
       $\varphi \colon D \to P$ into the parameter object (\Cref{prop:classification}). This
       dissolves P1: training is one way of inhabiting a parameter object, not part of the
-      definition of a model.
+      definition of a model. \Cref{prop:refit} draws the operational corollary --- refitting
+      produces a new \emph{point} of $P$ and not a new morphism --- which separates two events that
+      standard versioning practice conflates, and makes ``did this model change?'' a question with
+      one answer.
 \item \Cref{sec:composition} proves that no aggregate risk assignment can be compositional
       (\Cref{thm:noncomp}), and identifies the obstruction as the comonoid copy map. This gives
       formal content to the supervisory expectation regarding interactions and common dependencies,
       and explains why Markov categories --- which make copying explicit --- are the right ambient
-      setting rather than Cartesian ones, which hide it.
+      setting rather than Cartesian ones, which hide it. We then bound the scope of that negative
+      result by exhibiting a composition in the same domain that \emph{is} well-behaved
+      (\Cref{prop:monoid}), and showing that it is well-behaved for exactly the reason risk is not:
+      it has no copy map to respect.
 \item \Cref{sec:observation} treats artefacts that cannot be opened, combining assume--guarantee
       contracts, sound abstraction in the sense of abstract interpretation, and a
       \emph{probe-relative} weakening of the Yoneda principle. We obtain a soundness criterion for
@@ -203,7 +209,7 @@ We give a mathematical foundation addressing all four. Concretely:
       condition yields a falsifiable consistency test for scope determinations
       (\Cref{prop:stability}), addressing P3.
 \item \Cref{sec:evidence} presents assurance evidence as an annotated derivation structure over a
-      commutative semiring, so that seven distinct governance questions are one computation
+      commutative semiring, so that nine distinct governance questions are one computation
       evaluated in different semirings (\Cref{prop:semiring}), addressing P4.
 \item \Cref{sec:order,sec:time} treat risk classification as a monotone map between lattices adjoint
       to control intensity, and give a characterisation of causally admissible training assemblies
@@ -247,10 +253,14 @@ What we claim is new: (i) the identification of $\Para(\Stoch)$ as the right amb
 taxonomy; (ii) \Cref{thm:noncomp} and its diagnosis of the copy map as the obstruction; (iii) the
 application of institution theory to plural regulatory scope over a shared inventory, with the
 satisfaction condition repurposed as a consistency test; (iv) the application of semiring provenance
-to assurance evidence rather than to query answers, and the resulting collapse of seven governance
+to assurance evidence rather than to query answers, and the resulting collapse of nine governance
 questions into one; (v) the probe-relative treatment of artefact identity and its use as a semantics
-for version increments; and (vi) the oracle analysis of \Cref{sec:automation}, including
-\Cref{prop:citation} and the constitutivity argument of \Cref{obs:constitutive}.
+for version increments, together with \Cref{prop:refit} and the reading of an inhabitant of $P$ as an
+object of the record in its own right; and (vi) the oracle analysis of \Cref{sec:automation},
+including \Cref{prop:citation} and the constitutivity argument of \Cref{obs:constitutive}.
+\Cref{prop:monoid} is elementary and we claim only its \emph{use}: as a scope boundary on
+\Cref{thm:noncomp}, and as the observation that whether an assignment composes is decided by which
+structure it must respect rather than by the domain it is drawn from.
 
 \section{Models as parametric kernels}\label{sec:models}
 
@@ -454,6 +464,65 @@ the deterministic section obtained by post-composing with a summary statistic. T
 calibration assessment, interval-based monitoring and proper scoring rules to be defined once,
 generically, rather than per artefact family.
 
+\subsection{Inhabitants of $P$ are objects of the record}\label{sec:inhabitants}
+
+\Cref{prop:classification} says that fitting inhabits a parameter object. A consequence follows
+immediately, and it is worth stating separately because it contradicts the dominant practice in the
+domain.
+
+\begin{proposition}[Refitting preserves the morphism]\label{prop:refit}
+Let $(P, f)$ be a model and let $p, p' \in P$ be two inhabitants obtained by the same fitting
+morphism $\varphi \colon D \to P$ from data $d, d' \in D$. Then $(P, f)$ is unchanged: $p$ and $p'$
+are points of the parameter object, not distinct morphisms. Consequently the pair
+$\big((P,f), p\big)$, not $(P,f)$ alone, is what determines observable behaviour.
+\end{proposition}
+
+\begin{proof}
+Immediate. $\varphi$ has codomain $P$, so $p, p' \in P$; $f \colon P \otimes X \to Y$ is a fixed
+morphism independent of which point of $P$ is supplied.
+\end{proof}
+
+The proposition is trivial mathematically and consequential in practice. Standard practice mints a
+new artefact \emph{version} on every refit, which conflates two events the formalism separates: a
+change of morphism (new $\varphi$, $P$, $X$ or $Y$) and a change of point (same everything, new
+data). Under \Cref{prop:version} these are respectively \textsc{major} and \textsc{minor}
+increments, and treating both as ``the model changed'' makes that phrase ambiguous exactly where
+precision is required --- a supervisor asking whether a model changed between two dates is asking a
+question that then has two answers.
+
+The corrective the formalism suggests is that an inhabitant of $P$ should be a \emph{first-class
+record} with its own identity, immutability and provenance: which $\varphi$ produced it, from which
+$d$, over which observation window. Two properties then become expressible that otherwise are not.
+Governance depth can follow \emph{provenance} rather than artefact kind --- a daily recalibration
+governs the \emph{procedure} once, while a periodic re-estimation governs \emph{each} inhabitant,
+and both are the same construction at different frequencies. And reproducibility acquires a
+statement: the pair $(\text{version}, \text{inhabitant})$ determines the behaviour, so an audit
+question about a decision resolves to a point in $P$ and the data that produced it, rather than to a
+version number that has since been reused.
+
+Symmetrically, the input object $X$ admits the same treatment. Naming a \emph{schema} of typed slots
+and separately recording which observable fills each slot makes ``two artefacts consume the same
+inputs'' a checkable statement rather than a coincidence of column names, and makes substitution of
+a constituent a change to the filling rather than to $X$. The variance condition of
+\Cref{sec:observation} then applies one level out: an assignment of observables to slots is
+admissible for a given kernel exactly when it provides everything the kernel's input schema
+declares.
+
+\begin{plain}
+\pt Retraining a model on this year's data does not give you a different model. It gives you the
+same model with different numbers in it.
+
+That sounds pedantic until you notice what the usual practice does with it. Most systems create a
+new ``version 4.1'' every time somebody refits, which means the version number is doing two jobs at
+once: it tracks changes to what the model \emph{is}, and changes to what it currently \emph{holds}.
+Ask ``did this model change in March?'' and you get an answer that could mean either.
+
+Separating them costs nothing and buys two things. You can govern a daily recalibration by approving
+the recalibration \emph{procedure} once, instead of pretending that a fresh committee decision
+happens every morning. And when somebody asks which numbers produced a decision made two years ago,
+there is something to point at.
+\end{plain}
+
 \section{Composition and the impossibility of compositional risk}\label{sec:composition}
 
 \subsection{Networks as string diagrams}
@@ -572,6 +641,74 @@ proceeds by the sources of shared dependency admitted by the diagram: common par
 (\Cref{prop:accum}), common inputs, common fitting evidence $D$, and common methodology. To our
 knowledge no deployed system computes this quantity, though every relevant supervisory regime asks
 for it in prose.
+
+\subsection{What \emph{does} compose: specifications}\label{sec:speccompose}
+
+\Cref{thm:noncomp} is a negative result about risk, and negative results are more useful when the
+boundary of their scope is drawn. It is worth recording that a different composition in the same
+domain is not merely well-behaved but as well-behaved as it is possible to be --- and that the
+reason is precisely the absence of the structure that obstructs \Cref{thm:noncomp}.
+
+Artefact \emph{specifications} --- the declarations of what a feature, an input schema or an
+observable is --- are routinely built by inheriting from one prior specification or combining
+several. Treat a specification as a finite map from member names to definitions, and both operations
+are instances of one:
+\[
+  \mathrm{resolve}(x) \;=\; \mathrm{ops}(x)\Big( \big(\textstyle\bigodot_{i} \mathrm{resolve}(p_i)\big)
+                                                  \odot \mathrm{own}(x) \Big),
+\]
+where $\odot$ is right-biased union: $(a \odot b)(k) = b(k)$ if $k \in \operatorname{dom} b$, else
+$a(k)$.
+
+\begin{proposition}[Specification composition is a monoid]\label{prop:monoid}
+$(\mathrm{Map}, \odot, \varnothing)$ is a monoid: $\odot$ is associative, and the empty map is a
+two-sided identity. It is not commutative, and this is required rather than incidental.
+\end{proposition}
+
+\begin{proof}
+Associativity: for any key $k$, both $((a \odot b) \odot c)(k)$ and $(a \odot (b \odot c))(k)$ return
+$c(k)$ if defined, else $b(k)$ if defined, else $a(k)$. Identity is immediate. Non-commutativity is
+witnessed by any $a, b$ disagreeing on a shared key.
+\end{proof}
+
+Three consequences are worth naming.
+
+\emph{Closure.} ``A combination of specifications is a specification'' is a theorem rather than an
+aspiration, so the construction may be iterated without a separate account of what an $n$-fold
+combination means.
+
+\emph{Order-independence of grouping.} Associativity guarantees that the order in which a reader
+\emph{parses} a chain of inheritance cannot differ from the order in which a system \emph{resolves}
+it. Without it, two defensible readings of the same declaration could disagree and neither would be
+wrong --- a failure mode that is undetectable by inspection, since each party sees a consistent
+result.
+
+\emph{Non-commutativity is the point.} A commutative merge would have no notion of override, and a
+specification that inherits could not correct what it inherits. The asymmetry is what makes the
+relation between a parent and a child directional: a parent that could override a child would make
+naming a parent an act of surrender.
+
+The contrast with \Cref{thm:noncomp} is instructive. Risk fails to compose because $\rho$ must be
+sensitive to shared dependency, and shared dependency \emph{is} the copy map (\Cref{rem:copy}).
+Specification composition has no copy map to respect --- a member name appearing in two parents is
+resolved by the bias, not accumulated --- so the obstruction is absent and the algebra is as clean as
+the domain ever gets. Compositionality is not a property one has or lacks in general; it is a
+property of a particular assignment against a particular structure, and knowing which structure
+obstructs it tells you where to look for the next failure.
+
+\begin{plain}
+\pt When one definition inherits from another, something has to decide who wins on a disagreement.
+The rule here is ``the later one'', applied left to right, with a thing's own edits applied last.
+
+The mathematical point is that this rule is \emph{associative}: it does not matter how you bracket
+the chain. That sounds like a technicality. It is the difference between a system where a reviewer
+reading a definition and the system resolving it are guaranteed to get the same answer, and one
+where they usually do.
+
+And the reason it works here, when risk did not, is worth holding onto: risk fails to add up because
+things share dependencies. Definitions do not have that problem --- if two parents define the same
+field, one of them simply wins. No sharing, no obstruction.
+\end{plain}
 
 \section{Specifying artefacts one cannot open}\label{sec:observation}
 
@@ -937,7 +1074,7 @@ $K$ equals $h_\nu$ applied to its $\mathbb{N}[X]$ evaluation.
 $\mathbb{N}[X]$ is the free commutative semiring on $X$; this is the universality result of Green,
 Karvounarakis and Tannen, restated. \end{proof}
 
-\subsection{Seven questions, one engine}
+\subsection{Nine questions, one engine}
 
 The consequence for the domain is that governance questions previously treated as distinct features
 are one computation under different valuations:
@@ -978,7 +1115,7 @@ question, from the same computation.
 
 Use true/false arithmetic and you learn whether the claim holds. Use probabilities and you learn how
 confident you should be. Use ``smallest cost'' arithmetic and you learn the cheapest way to fix a
-gap. Use sets-of-evidence and you learn what to put in front of an examiner. Nine features, one
+gap. Use sets-of-evidence and you learn what to put in front of an examiner. Nine questions, one
 implementation --- and because they share a computation, they cannot contradict each other.
 \end{plain}
 
@@ -1605,7 +1742,7 @@ and visible enough to prove that aggregate risk cannot be compositional --- givi
 supervisory expectation that has been stated in prose for fifteen years and implemented, so far as we
 can determine, nowhere. Indexing artefact kinds as fibres and normative regimes as institutions turns
 the two most common causes of re-architecture into module additions with conservative-extension
-guarantees. Annotating evidence over a semiring collapses seven governance questions into one
+guarantees. Annotating evidence over a semiring collapses nine governance questions into one
 computation. And restating each result as an executable law is what prevents the whole apparatus from
 becoming decoration.
 

@@ -57,6 +57,14 @@ alias-bound warrant.
 One governance model, many delivery mechanisms. The flavour determines what the descriptor contains and
 how the caller executes; it does **not** change the policy evaluation.
 
+> **State, stated.** A `flavour` is a string on the grant record and defaults to `descriptor_only`.
+> The eleven below are the *delivery* mechanisms this document plans for, and none of them has
+> per-flavour behaviour in code today. The axis that *is* built and closed is **`realisation.runtime`**
+> — seventeen values, each declaring the keys its `entry` block must carry (§3a). The two are not the
+> same axis and the distinction matters: a flavour says how a caller receives a descriptor, a runtime
+> says how the kernel becomes something an engine can invoke. Where this document later says "eleven
+> flavours cover the estate", the sentence that is true today is the runtime one.
+
 | Flavour | Delivered as | Executed by | Typical consumer |
 |---|---|---|---|
 | `rest_oip_v2` | HTTPS endpoint speaking **Open Inference Protocol v2** (KServe V2: `/v2/health`, `/v2/models/{n}`, `/v2/models/{n}/infer`) | MAYA-hosted or external runtime | Microservices, decision engines |
@@ -94,110 +102,171 @@ finding. Silence is evidence.
 
 ---
 
+## 3a. The four axes, and why the grammar is their product
+
+A warrant is not a document type per model kind. Every model a bank runs — a Black–Scholes closed
+form, a Hull–White calibration, a gradient-boosted PD model, a prompt bundle, an agent, a credit
+rulebook, a spreadsheet, a vendor black box — differs along exactly **four independent axes**, and the
+grammar is their *product*:
+
+| Axis | Field | Values |
+|---|---|---|
+| **1 · How `P` is inhabited** | `parameters.kind` | `none` · `calibration_set` · `estimated_coefficients` · `learned_weights` · `llm_configuration` · `rule_set` · `elicited_weights` · `opaque` — **eight** |
+| **2 · How the kernel is realised** | `realisation.runtime` | `python.callable` · `container` · `rest` · `onnx` · `pmml` · `pfa` · **`quantlib`** · `solver` · `sas` · `r` · `matlab` · `sql` · `spreadsheet` · `rules` · `llm.prompt` · `llm.agent` · `descriptor_only` — **seventeen** |
+| **3 · What is asked of it** | `operation.verb` | `score` · `fit` · `validate` · `backtest` · `explain` · `simulate` · `stress` · `optimise` · `generate` · `monitor` — **ten** |
+| **4 · Where its data comes from** | `data.inputs[].binding` | `inline` · `request` · `feature_namespace` · **`featureset`** · `dataset_snapshot` · `delta_table` · `sql_query` · `stream` · `market_data` · `document_corpus` · `scenario_set` · `artifact` — **twelve** |
+
+A fifth, smaller vocabulary says where a run's parameters come from — `parameters.source.binding` is
+one of `artifact` · `parameter_set` · `declared` · `to_be_fitted` · `vendor_internal` — and it is
+closed and checked, so a run cannot decline to say which point in `P` it is running at.
+
+QuantLib pricing is `(none, quantlib, score, market_data)`. A Hull–White calibration is *the same
+library and the same runtime* at `(calibration_set, quantlib, fit, market_data)`. An XGBoost PD model
+is `(learned_weights, onnx, score, feature_namespace)`. One structure, different coordinates — and
+that is the argument: *"is it AI?"* puts the first two in one bucket, while *"how is `P` inhabited?"*
+separates them correctly, which is what makes the evidence expectations right for each.
+
+It extends the right way. A model technology nobody anticipated is a **new value in one vocabulary**,
+almost always a runtime — not a new section, not a new document type, and not a change to anything
+that already works.
+
+### The QuantLib runtime
+
+Most of what a bank runs is not a learned model but a valuation, and those have no parameter object to
+fit — which is what T0 means, and why `L-W1` refuses to warrant one for fitting. They have something
+the learned ones do not: an as-of date that changes the answer. So the captive QuantLib runtime
+**takes the evaluation date from the warrant and never from the clock**, because a valuation that
+reads today is not reproducible tomorrow and a backtest of it is a backtest of nothing; and it
+**builds the curve from what the warrant carries and nothing else**, because reaching for a market
+data service would put an unversioned input into a governed computation.
+
+Six instruments are priced for real: discount factor, zero rate, forward rate, fixed-rate bond,
+vanilla swap, European swaption. A missing past fixing, an unknown day count, an instrument or a
+pricing engine it does not build — each is refused **by name** rather than substituted, because a day
+count silently swapped moves every cash flow and an engine silently swapped produces a number nobody
+can reconcile.
+
+It is **not sandboxed**, and the reason is stated rather than left implicit: it loads no artifact, so
+there is nothing untrusted to isolate from. Writing it surfaced a real hazard worth recording, because
+it is the kind that survives a code review — QuantLib keeps fixing history in a **process-global**
+manager, so one warrant's fixing would still be present for the next valuation. Each valuation now
+starts from an empty history and sees only what its own warrant carries.
+
+---
+
 ## 4. The Warrant Descriptor
+
+**Ten sections, each answering exactly one question.** The list is closed and checked: a document
+missing any of them fails `L-W0` before anything else is looked at.
+
+| Section | The question it answers |
+|---|---|
+| `subject` | which model and version this is about |
+| `operation` | what is being asked of it |
+| `parameters` | where the parameter object comes from |
+| `realisation` | how to obtain and invoke the artifact |
+| `data` | where the inputs come from and where the outputs go |
+| `io_contract` | the input and output schemas |
+| `constraints` | the operating boundary and the resource limits |
+| `authority` | who may do this, for what, until when |
+| `governance` | the state of the record at the moment of issue |
+| `signature` | integrity |
 
 ```jsonc
 {
-  "maya_descriptor_version": "1.0",
-  "descriptor_id":  "hd_01J8XQ7C3M4N5P6Q7R8S9T0V",
-  "urn":            "maya://model/credit.pd.smallbiz#champion",
-  "resolved": {
-    "model_id":      "mdl_01J8…",
-    "model_version": "3.2.1",
-    "version_id":    "mv_01J8…",
-    "manifest_digest": "sha256:4e1b…",
-    "binding_kind":  "alias",
-    "alias":         "champion",
-    "alias_moved_at": "2026-08-11T09:00:00Z"
+  "maya_warrant": "1.0",
+  "warrant_id":   "wrt_01a06d3f8b21",
+  "issued_at":    1767225600.0,
+
+  "subject": {
+    "urn":               "maya://model/credit.pd.smallbiz#champion",
+    "model_urn":         "maya://model/credit.pd.smallbiz",
+    "version":           "3.2.1",
+    "version_id":        "01a06d1c4472",
+    "manifest_digest":   "sha256:4e1b…",
+    "binding_kind":      "alias",              // alias | version
+    "model_class":       "credit.pd.scorecard",
+    "trainability_class": "T3",                // DERIVED, never declared
+    "tier":              1
   },
 
-  "authorization": {
-    "principal":      "svc/loan-origination-prod",
-    "model_use_id":   "use_01J8…",
-    "declared_use":   {"purpose": "origination_decision", "portfolio": "SB Term Loan",
-                       "legal_entity": "LE-US-01", "geography": "US"},
-    "environment":    "prod",
-    "granted_at":     "2026-09-03T08:00:00Z",
-    "expires_at":     "2026-09-03T08:05:00Z",     // TTL — see §6
-    "rate_limit_rps": 500,
-    "daily_quota":    2000000,
-    "cost_budget_usd": null
+  "operation": {
+    "verb":         "score",                   // one of ten
+    "determinism":  "deterministic",
+    "seed":         null,                      // L-W5: required if a stochastic runtime claims determinism
+    "mode":         "batch"
   },
 
-  "execution": {
-    "flavour":  "rest_oip_v2",
-    "endpoint": "https://serve.maya.bank.internal/v2/models/credit_pd_smallbiz/infer",
-    "artifact": {
-      "uri":    "s3://maya-artifacts/sha256/9f2c…",
-      "digest": "sha256:9f2c…",
-      "format": "onnx",
-      "opset":  17
-    },
-    "runtime": {"image": "ghcr.io/bank/maya-onnx-runtime@sha256:77de…",
-                "resources": {"cpu": "500m", "memory": "512Mi"}},
-    "preprocessing_dag_uri": "s3://maya-artifacts/sha256/aa31…"
+  "parameters": {                              // L-W8: every run says which point in P it runs at
+    "kind":   "learned_weights",
+    "source": {"binding": "artifact"},         // artifact | parameter_set | declared |
+    "digest": "sha256:9f2c…",                  //   to_be_fitted | vendor_internal
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "onnx",                         // one of seventeen; declares its own entry keys
+    "entry":   {"graph": "model.onnx"},
+    "artifact": {"uri": "…/sha256/9f2c…", "digest": "sha256:9f2c…", "format": "onnx"},
+    "environment": {}
+  },
+
+  "data": {
+    "inputs":  [{"name": "features", "binding": "feature_namespace",
+                 "namespace": "features/customer/sb_financials/v7"}],
+    "outputs": [{"name": "prediction", "sink": "response"}]
   },
 
   "io_contract": {
-    "input_schema":  {"$ref": "https://maya.bank.internal/schemas/pd_input/2"},
-    "output_schema": {"$ref": "https://maya.bank.internal/schemas/pd_output/1"},
-    "feature_contract": {
-      "digest": "sha256:c701…",
-      "features": [
-        {"name": "years_in_business", "feature_view": "sb_financials", "view_version": 7,
-         "source": "online_store", "dtype": "float32", "required": true},
-        {"name": "dscr",              "feature_view": "sb_financials", "view_version": 7,
-         "source": "online_store", "dtype": "float32", "required": false,
-         "imputation": {"strategy": "median", "value": 1.24}},
-        {"name": "request_amount",    "source": "request", "dtype": "float32", "required": true}
-      ],
-      "online_store": {"endpoint": "redis://feast-online.prod:6379",
-                       "freshness_sla_seconds": 900}
-    }
+    "input_schema":  {"fields": [{"name": "dscr", "dtype": "numeric"},
+                                 {"name": "years_in_business", "dtype": "numeric"}]},
+    "output_schema": {"fields": [{"name": "pd_12m", "dtype": "numeric"}]}
   },
 
-  "constraints": {                                   // A — the contract's assumptions, machine-checked
-    "operating_boundaries": {
-      "years_in_business": {"min": 0, "max": 60},
-      "dscr":              {"min": -5.0, "max": 20.0}
-    },
-    "on_boundary_violation": "flag_and_score",       // reject | flag_and_score | flag_and_refer
-    "max_batch_size":  1000,
-    "explanation_required": true,                    // ECOA adverse action
-    "human_review_required": false,
-    "prohibited_uses": ["pricing", "marketing_targeting"]
+  "constraints": {                             // A — the contract's assumptions, machine-checked
+    "operating_boundary": {"dscr": {"min": -5.0, "max": 20.0}},
+    "on_boundary_violation": "reject",         // reject | flag_and_score | flag_and_refer
+    "resources": {"max_seconds": 30, "max_memory_mb": 2048}   // read by the sandbox
   },
 
-  "telemetry": {
-    "endpoint": "https://warrants.maya.bank.internal/v1/telemetry",
-    "sampling_rate": 1.0,
-    "required_fields": ["request_id","features_digest","prediction","latency_ms","boundary_ok"],
-    "batch_max_seconds": 30
+  "authority": {
+    "principal":     "svc/loan-origination-prod",
+    "declared_use":  "origination_decision",
+    "environment":   "prod",
+    "granted_at":    1767225600.0,
+    "expires_at":    1767225660.0,             // TTL, jittered — see §6
+    "grace_seconds": 0,
+    "revocation":    {"epoch": 4471, "check": "required"}
   },
 
-  "governance_snapshot": {                            // why this is allowed to run, right now
-    "model_status":     "in_use",
-    "tier":             1,
-    "validation_status":"approved",
-    "validation_date":  "2026-08-04",
-    "open_blocking_findings": 0,
-    "active_overlays":  1,
-    "regimes": {"sr_26_2": "in_scope", "eu_ai_act": "high_risk", "ecoa": "in_scope"}
-  },
-
-  "revocation": {
-    "check_endpoint": "https://warrants.maya.bank.internal/v1/revocations",
-    "epoch": 4471                                     // monotonic; see §6.3
+  "governance": {                              // why this is allowed to run, right now
+    "tier": 1, "model_status": "active", "version_status": "approved"
   },
 
   "signature": {
-    "alg": "Ed25519",
+    "alg":    "HMAC-SHA256",
     "key_id": "maya-warrant-signing-2026-09",
-    "value": "MEUCIQDx…",
-    "signed_at": "2026-09-03T08:00:00Z"
+    "value":  "d41f8a0c7e93b256…"
   }
 }
 ```
+
+Three things about this document are worth stating rather than leaving to be inferred.
+
+**The signature block is excluded whole from what is signed**, rather than blanked. A warrant signed
+before the block existed and one signed after therefore produce the same digest over the same content,
+which is what stops a signature that verifies in one place and fails in another.
+
+**`alg` is `HMAC-SHA256`, and that is what ships.** Ed25519 with a 90-day overlapping key set is the
+production target and appears in §11 as such. The distinction matters to a deployer: HMAC is a shared
+secret, so a descriptor's authenticity can be *verified* only by a party that could also have
+*minted* it. Asymmetric signing is what makes client-side verification meaningful, and until it lands,
+§5.3 step 1 is a check an engine performs against a key it must be trusted with.
+
+**Resources are read by the sandbox.** `constraints.resources.max_seconds` and `max_memory_mb` become
+`RLIMIT_CPU` and `RLIMIT_AS` on the child process that loads an artifact-backed runtime — the memory
+budget added to the interpreter's own footprint, and the runtime's dependencies imported *before* the
+limit is applied, so a library's import cost is never charged to the model's budget.
 
 ---
 
@@ -576,7 +645,7 @@ and one that describes reality.
 |---|---|
 | Authentication | Workload identity (SPIFFE/Kubernetes SA tokens, or mTLS client certs); no long-lived shared secrets |
 | Authorisation | Grant = (principal, warrant, approved use); ABAC on entity/geography |
-| Integrity | Ed25519 descriptor signatures; key rotation every 90 days with an overlapping key set; SDKs pin the key set |
+| Integrity | **Target:** Ed25519 descriptor signatures, key rotation every 90 days with an overlapping key set, SDKs pinning the key set. **As built:** HMAC-SHA256 over the canonical form with the signature block excluded — adequate for integrity against a party that holds no key, and *not* adequate for third-party verification, because a shared secret cannot distinguish a verifier from a minter. Asymmetric signing is the one change this section is waiting on |
 | Artifact integrity | Content-addressed fetch; digest verified after download; cosign signature verified for Tier 1 |
 | Confidentiality | TLS 1.3 everywhere; descriptors contain no secrets, only references resolved via the caller's own credentials |
 | Replay resistance | Descriptors are short-lived and bound to principal + environment |
@@ -602,14 +671,7 @@ and one that describes reality.
 
 ---
 
-Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
-Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
-*Not legal, regulatory or financial advice — see NOTICE §4.*
-
-
----
-
-## Featuresets, and naming the point in P
+## 13. Featuresets, and naming the point in P
 
 Two additions, specified in [15](15-featuresets-and-parameters.md).
 
@@ -619,7 +681,9 @@ rather than enumerating namespaces. It joins `feature_namespace` and
 and **L-W9** requires a fit reading one to bound both clocks — an `as_of` and a
 `from`/`to` window. The featureset fixes the columns; the warrant fixes the
 period, which is what lets one set serve *train on 2019–2023* and *train on
-2020–2024* without becoming two sets.
+2020–2024* without becoming two sets. `as_of` is deliberately **not** required
+for a `score`: reading a featureset at whatever is current is legitimate when
+serving, and is not when training.
 
 **`parameters.source.binding`** becomes a closed vocabulary — `artifact` ·
 `parameter_set` · `declared` · `to_be_fitted` · `vendor_internal` — checked by
@@ -632,3 +696,38 @@ describes the wrong direction.
 That law found a real error in `examples/warrants/02-quantlib-hullwhite-calibrate`,
 which claimed its calibration set came from an artifact while its verb produced
 it.
+
+**A third law is checked at issuance rather than in the grammar.** **L-W10** asks
+whether the featureset a warrant names actually provides what the kernel declares
+it reads. That is contravariance in inputs — the same variance rule (**L-12**)
+that gates an alias move, applied one level out — and it is refused as
+`schema_not_satisfied` with the missing slots named. It cannot live in the
+grammar, because the grammar validates a document in isolation and this question
+needs the register: it compares a featureset version's resolved slots against a
+model version's input schema, and neither is in the document being validated.
+
+### The full admissibility set
+
+| Law | Refuses | Checked |
+|---|---|---|
+| `L-W0` | A malformed document — a missing section, an unknown verb, a runtime without its entry keys | grammar |
+| `L-W1` | `fit` on T0 or T6 | grammar |
+| `L-W2` | `generate` on a non-generative runtime | grammar |
+| `L-W3` | Training from a binding that cannot be read as-of | grammar |
+| `L-W4` | A `fit` with no `parameter_object` sink | grammar |
+| `L-W5` | Claimed determinism from a stochastic runtime with no seed | grammar |
+| `L-W6` | `fit` on a `descriptor_only` model | grammar |
+| `L-W7` | A backtest with no outcomes | grammar |
+| `L-W8` | A run that will not name its point in `P` | grammar |
+| `L-W9` | A featureset read for training, unbounded in either clock | grammar |
+| `L-W10` | A featureset that does not provide what the kernel reads | warrant issuance |
+
+Every one is checked **before** the warrant is signed. A signature over a
+non-conforming document would assure that it is authentic and not that it is
+usable, and an engine would reasonably read it as both.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -88,30 +88,36 @@ facts with `event_ts ≤ label_ts` **and** `ingest_ts ≤ as_of`.
 MAYA does not trust the query author. Every dataset snapshot is checked:
 
 ```python
-# maya/features/pit.py
-def verify_pit_correctness(snapshot: DatasetSnapshot,
-                           spine: LabelSpine,
-                           contract: FeatureContract) -> PitReport:
-    """Law L-10. Independently recompute a stratified sample of rows using the
-    bitemporal rule and assert equality with the delivered snapshot."""
-    violations, sample = [], snapshot.stratified_sample(n=SAMPLE_N, strata=["label_ts_month", "entity_type"])
+# core/features/pit.py
+def static_check(req: AssemblyRequest) -> PitReport:
+    """Layer 1. An assembly lacking either clock is REJECTED, not sampled."""
+    missing = ([VALID_TIME] if not req.valid_time_bound else []) + \
+              ([INGEST_TIME] if not req.transaction_time_bound else [])
+    if missing:
+        return PitReport(passed=False, violations=[
+            f"assembly lacks a bound on {' and '.join(missing)}; "
+            "without both, leakage cannot be excluded"])
+    return PitReport(passed=True)
 
-    for row in sample:
-        for item in contract.items:
-            expected = lookup_bitemporal(
-                view_version = item.feature_view_version,
-                entity_id    = row.entity_id,
-                valid_before = row.label_ts,          # event_ts <= label_ts
-                known_before = snapshot.as_of,        # ingest_ts <= as_of
-            )
-            if not equal_within_tolerance(row[item.feature_name], expected):
-                violations.append(PitViolation(row.entity_id, item.feature_name,
-                                               got=row[item.feature_name], expected=expected))
+def verify_sampled(rows, recompute, sample: int = 200) -> PitReport:
+    """Layer 2. Independently recompute a stratified sample and compare."""
+    ...
 
-    leakage = detect_future_leakage(snapshot, spine)   # any feature correlating with post-label events
-    return PitReport(passed=not violations and not leakage,
-                     violations=violations, leakage=leakage, sample_size=len(sample))
+def detect_leakage(rows, label_key: str = "label") -> List[str]:
+    """Any column that is a perfect functional predictor of the label."""
+    ...
 ```
+
+The bitemporal rule itself — `event_ts <= label_ts AND ingest_ts <= as_of`, then
+the maximum by `(event_ts, ingest_ts)` — lives in
+`core/features/assembly.py::latest_admissible`, and a featureset publishes it as
+`plan()["pit_rule"]` so an engine reads the rule rather than reimplementing it.
+
+> **One honest correction to layer 2.** Stratification is by **label value**, not
+> by label period and entity type as well. Label value is the stratum that
+> matters most — a leak that only shows on defaults is the one worth catching —
+> but the narrower stratification means the stated power in the table below is
+> power against *systematic* violation, and against nothing finer.
 
 ### 2.2 Three layers, and an honest statement of what each proves
 
@@ -324,11 +330,26 @@ what this model was fitted on", which is only measurable relative to the fitting
 
 Optional and pluggable — many bank models are batch-only and need no online store.
 
+> **Not built.** There is no Redis, no DynamoDB and no online store of any kind in the codebase. This
+> section is design. What *is* built is the half of C-2's fix that does not need one: a feature view
+> version **is** a serving namespace (`features/{entity}/{name}/v{n}`), a contract pins the namespace
+> rather than the view, and `ContractBinder.serving_namespaces` computes what serving must read. The
+> remaining half — comparing that against what serving *did* read — is `L-17`, and it cannot run until
+> there is a store to observe. §9's `pgvector` search and duplicate detection, and §4's semantic
+> matching during upload, are likewise unbuilt.
+
 > **Critical design point (finding C-2).** An online store keyed only by entity silently defeats the
 > feature contract. When a feature view advances from v7 to v8 with a changed transformation, a model
 > pinned to v7 begins receiving v8 values — contract digest still matching, every guard reporting
 > green. That is the exact training–serving skew this platform exists to prevent, introduced by the
 > platform itself. **The online store is therefore namespaced by feature view version.**
+>
+> **And the same failure has since been found twice more**, which is the strongest evidence that C-2
+> was a *class* rather than an incident. Once at the **featureset** level — a set that named views
+> without pinning their Delta versions resolved to different bytes next month with its digest
+> unchanged — and once at the **composition** level, where a child named a parent without recording
+> which definition of it. Both are dispositioned in
+> [11 · C-2](11-adversarial-review.md#c-2--the-online-feature-store-is-not-versioned-silently-defeating-the-feature-contract).
 
 | Aspect | Design |
 |---|---|
@@ -362,26 +383,67 @@ The economics of a feature store are determined by reuse. MAYA optimises for it:
 
 ---
 
-Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
-Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
-*Not legal, regulatory or financial advice — see NOTICE §4.*
+## 10. What is specified elsewhere
 
+The material above describes features, views and contracts — the original three
+objects. Four further bodies of work sit on top of them and have documents of
+their own, because folding them in here would have produced one annex nobody
+finishes.
+
+**[15 — Featuresets and the Parameter Object](15-featuresets-and-parameters.md).**
+A **featureset** is the schema-and-constituents separation that makes `X`
+nameable, shareable and comparable across models. A **parameter set** is the
+inhabitant of `P` an execution engine returns, which MAYA accepts only against a
+warrant it issued and only when it names the featureset version that produced it.
+Together they close the loop a feature platform exists to serve: a warrant can
+say *train this model on that data* and mean something checkable, and the
+resulting coefficients carry provenance all the way back through the pinned view
+versions to the rows that were true and known at a stated moment. Also there:
+**derived features** and the whitelisted expression language, and the refusal of
+any slot derived from the label.
+
+**[16 — Features Composed, Shaped and Prepared](16-features-composed-and-shaped.md).**
+Five things a feature is not. Not always a number — a *shape* and named
+components make a curve a vector and a correlation structure a matrix. Not always
+defined in one place — composition as a left-to-right fold that is a **monoid**.
+Not always mutable — sealing. Not always permanent — ephemerality with a TTL. Not
+always accountable to its author — creator against owner. Plus the retrieval
+half: point-in-time normalisation, imputation, and axis alignment that stamps a
+back-filled value with the ingest clock of the observation it came from, so an
+ordinary point-in-time read excludes it and the leakage is arithmetically
+impossible to hide.
+
+**Bulk transfer** (`core/features/transfer.py`, `routes/transfer_routes.py`).
+Every other surface in MAYA moves small documents; feature values are not small,
+and an API that turns a few million rows into JSON objects spends most of its
+time and nearly all of its memory on punctuation. So the rule is inverted for
+this one layer: **nothing is materialised whole.** Reads iterate Arrow record
+batches straight off the Delta files, writes parse a batch at a time, and peak
+memory is one batch rather than one dataset. A batch is sized by **cells rather
+than rows** — sixteen thousand rows of six columns is a few megabytes and sixteen
+thousand rows of two thousand columns is not — so the batch is
+`max(512, min(16_384, 1_048_576 // columns))`. Four formats: `arrow` for an
+execution engine, `parquet` for disk, `ndjson` for anything, and `json` hard
+capped at 10,000 rows for a page. Reads use the **pinned** Delta version, and a
+featureset's `/parts` names each namespace and its pin so an engine can pull a
+large set in parallel instead of waiting on a join. An upload missing either
+clock is refused at the upload rather than two layers later during assembly,
+where it stops being fixable. One honest exception: the *featureset* export in
+`arrow` and `parquet` joins its parts in memory before writing, so the
+no-materialisation rule holds for a single namespace and not yet for a join
+across several.
+
+**Telemetry** (`core/telemetry/`). Monitors could always be evaluated; they had
+to be *handed* their rows. Two bitemporal Delta streams per version — a **score**
+exists when the model runs, an **outcome** is learned later — and the gap between
+them is precisely what the delayed-label discipline reasons about, so flattening
+them into one would take that reasoning away before it started. Ingestion is
+idempotent on the digest of the batch's own rows, because real collectors deliver
+at least once. A row without its own timestamp is refused rather than stamped
+with the batch's, which is how every window silently becomes wrong.
 
 ---
 
-## 10. Featuresets and the parameter object
-
-The material above describes features, views and contracts. Two further objects
-sit on top of them and are specified separately, in
-[15](15-featuresets-and-parameters.md):
-
-- a **featureset** — the schema-and-constituents separation that makes `X`
-  nameable, shareable and comparable across models;
-- a **parameter set** — the inhabitant of `P` an execution engine returns, which
-  MAYA accepts only against a warrant it issued and only when it names the
-  featureset version that produced it.
-
-Together they close the loop a feature platform exists to serve: a warrant can
-now say *train this model on that data* and mean something checkable, and the
-resulting coefficients carry provenance all the way back through the pinned view
-versions to the rows that were true and known at a stated moment.
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*
