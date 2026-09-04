@@ -5,14 +5,23 @@ than a binary nobody can edit safely.
 
 ```bash
 python -m venv .venv && .venv/bin/pip install python-pptx
-.venv/bin/python tools/deck/slides.py docs/Models-as-Parametric-Kernels.pptx
-.venv/bin/python tools/deck/audit.py            # must report no geometry issues
+.venv/bin/python tools/deck/slides.py             docs/Models-as-Parametric-Kernels.pptx
+.venv/bin/python tools/deck/design_slides.py      docs/MAYA-System-Design.pptx
+.venv/bin/python tools/deck/engineering_slides.py docs/MAYA-Model-and-Feature-Engineering.pptx
+.venv/bin/python tools/deck/audit.py <deck>       # must report no geometry issues
 ```
+
+Three decks, three audiences. The research deck argues the theory; the design
+deck is for whoever builds the platform; the engineering deck is for whoever
+uses it to engineer a model, and opens with a single-slide process diagram of
+model, feature and warrant management.
 
 | File | Purpose |
 |---|---|
 | `theme.py` | Harvard-Crimson design system: palette, typography, and the layout primitives |
-| `slides.py` | Slide content — edit this to change the deck |
+| `slides.py` | The research deck: models as parametric kernels |
+| `design_slides.py` | The engineering deck: how the platform is built |
+| `engineering_slides.py` | The practitioner's deck: model and feature engineering |
 | `audit.py` | Geometry checker (see below). Run it after every change |
 
 ## Why there is a text-fitting layer
