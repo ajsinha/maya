@@ -347,10 +347,10 @@ data = [["Task", "The oracle", "From"],
         ["Propose a probe", "It executes and discriminates, or it does not", "—"],
         ["Propose a query", "It parses, type-checks and returns, or it does not", "—"]]
 th = table(sl, data, ML, y, CW, col_w=[4.4, 5.4, 1.8], row_h=0.365, fs=11, bold_col0=True, first_col_color=CRIMSON)
-cy = y + th + 0.26
-rect(sl, ML, cy, CW, 0.95, fill=PARCH)
-rect(sl, ML, cy, 0.045, 0.95, fill=CRIMSON)
-tf = txt(sl, ML + 0.30, cy + 0.14, CW - 0.6, 0.75)
+cy = y + th + 0.22
+rect(sl, ML, cy, CW, 1.08, fill=PARCH)
+rect(sl, ML, cy, 0.045, 1.08, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, cy + 0.13, CW - 0.6, 0.88)
 runs(tf, [("The first row inverts an apparent weakness. ", CRIMSON, True),
           ("Encoding a forty-page supervisory statement is expensive expert work — the practical objection to the whole institutions approach. "
            "It is also a task language models are unusually good at, and the output is checkable. Generation becomes cheap; verification is mechanical; "

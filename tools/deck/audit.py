@@ -54,9 +54,43 @@ def est_lines(text, width_in, fs, bold, font):
     return lines
 
 
+# A chevron's notch eats width on both sides, and an arrow's head eats it on
+# one. Measuring these as plain rectangles under-counts the lines their text
+# needs, which is exactly how text ends up outside a shape that the audit
+# called clean.
+NOTCHED = {"CHEVRON", "PENTAGON", "HOME_PLATE"}
+POINTED = {"RIGHT_ARROW", "LEFT_ARROW", "UP_ARROW", "DOWN_ARROW",
+           "STRIPED_RIGHT_ARROW", "NOTCHED_RIGHT_ARROW"}
+
+
+def usable_width(sh):
+    """The width text may actually occupy inside this shape.
+
+    Margins are read from the shape rather than assumed. A textbox here is
+    created with zero margins and an auto-shape with a tenth of an inch each
+    side; assuming one number for both makes the audit pessimistic about half
+    the deck and optimistic about the other half, and an audit that cries wolf
+    is an audit somebody stops reading.
+    """
+    W = (sh.width or 0) / EMU
+    H = (sh.height or 0) / EMU
+    tf = sh.text_frame
+    margins = ((tf.margin_left or 0) + (tf.margin_right or 0)) / EMU
+    W -= margins
+    kind = str(getattr(sh, "shape_type", "") or "")
+    name = str(getattr(sh, "name", "") or "").upper()
+    for token in NOTCHED:
+        if token in kind.upper() or token in name:
+            return max(0.3, W - 2 * 0.18 * H)     # notch in, point out
+    for token in POINTED:
+        if token in kind.upper() or token in name:
+            return max(0.3, W - 0.18 * H)
+    return W
+
+
 def text_extent(sh):
     """Estimated rendered height of a shape's text, in inches."""
-    W = (sh.width or 0) / EMU
+    W = usable_width(sh)
     total = 0.0
     for p in sh.text_frame.paragraphs:
         ptxt = "".join(r.text for r in p.runs)
@@ -68,7 +102,7 @@ def text_extent(sh):
         font = r0.font.name or SANS
         ls = p.line_spacing if isinstance(p.line_spacing, float) else 1.22
         indent = 0.35 if p.level else 0.0
-        n = est_lines(ptxt, max(0.4, W - 0.24 - indent), fs, bool(r0.font.bold), font)
+        n = est_lines(ptxt, max(0.4, W - indent), fs, bool(r0.font.bold), font)
         total += n * fs * max(ls, 1.15) * INTRINSIC / 72.0
         total += ((p.space_before.pt if p.space_before else 0)
                   + (p.space_after.pt if p.space_after else 0)) / 72.0
@@ -88,6 +122,22 @@ def is_container(sh):
     except Exception:
         pass
     return False
+
+
+def enclosing(sh, L, T, W, H, boxes):
+    """The smallest visible container this shape sits inside, if any."""
+    best = None
+    for o, oL, oT, oW, oH in boxes:
+        if o is sh or not is_container(o):
+            continue
+        if oW < 0.2 or oH < 0.2:            # accent bars and rules, not cards
+            continue
+        if not (oL - 0.02 <= L and oT - 0.02 <= T
+                and L + W <= oL + oW + 0.02 and T <= oT + oH + 0.02):
+            continue
+        if best is None or oW * oH < best[3] * best[4]:
+            best = (o, oL, oT, oW, oH)
+    return best
 
 
 def main():
@@ -119,6 +169,23 @@ def main():
                 issues.append(f"S{idx:02d} OVERFLOWS BORDER  need {need:.2f}\" have {H:.2f}\" :: {label!r}")
                 continue
 
+            # A textbox with no fill is still bounded by whatever it sits
+            # inside. Its overflow escapes that container's border just as
+            # visibly as if the text belonged to the container itself, and
+            # checking only filled shapes is how a card's body spilling out of
+            # its own card went unreported.
+            host = enclosing(sh, L, T, W, H, boxes)
+            if host is not None:
+                hostL, hostT, hostW, hostH = host[1:]
+                # The same 0.06" tolerance every other check here uses: the
+                # estimator simulates wrapping rather than measuring it, and a
+                # check tighter than its own error reports noise.
+                if T + need > hostT + hostH + 0.06:
+                    issues.append(
+                        f"S{idx:02d} ESCAPES ITS CARD  text to {T + need:.2f}\" "
+                        f"card ends {hostT + hostH:.2f}\" :: {label!r}")
+                    continue
+
             bottom = T + max(need, H)
             # only content that STARTS above the rule can collide with it;
             # the footer's own label starts below it, by design
@@ -129,14 +196,23 @@ def main():
                 issues.append(f"S{idx:02d} PAST SLIDE    bottom {bottom:.2f}\" :: {label!r}")
                 continue
 
-            # a free textbox only matters if its overflow lands on something else
+            # A free textbox only matters if its overflow lands on something
+            # else. Any shape that carries text is a target, not only a filled
+            # one: text printed over text is the defect a reader actually sees,
+            # and a bare textbox below is just as ruined as a card.
             if need > H + 0.06:
                 for o, oL, oT, oW, oH in boxes:
-                    if o is sh or not is_container(o):
+                    if o is sh:
+                        continue
+                    carries = (o.has_text_frame and o.text_frame.text.strip())
+                    if not (is_container(o) or carries):
                         continue
                     if oT < T + H - 0.02:            # not below us
                         continue
-                    if oL > L + W - 0.05 or oL + oW < L + 0.05:   # no horizontal overlap
+                    # Require real horizontal overlap rather than a shared edge,
+                    # so columns standing side by side are not reported.
+                    share = min(L + W, oL + oW) - max(L, oL)
+                    if share < 0.25 * min(W, oW):
                         continue
                     if T + need > oT + 0.04:
                         issues.append(
