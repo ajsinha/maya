@@ -549,6 +549,88 @@ CREATE TABLE feature_contract_item (
     PRIMARY KEY (feature_contract_id, feature_view_version_id, feature_id)
 );
 
+-- A feature computed from other features: Z = f(X, Y). The definition lives here
+-- so lineage, the leakage check and the retirement guard all work whether or not
+-- MAYA is the thing that evaluates it. Corrections are new definition versions,
+-- never edits, because somebody may already have trained against the old one.
+CREATE TABLE derived_feature (
+    id                 text PRIMARY KEY,
+    feature_id         text NOT NULL REFERENCES feature(id),
+    name               text NOT NULL,
+    expression         text NOT NULL,
+    inputs             jsonb NOT NULL DEFAULT '[]',
+    evaluator          text NOT NULL DEFAULT 'internal',   -- internal | external
+    on_error           text NOT NULL DEFAULT 'null',
+    definition_version integer NOT NULL DEFAULT 1,
+    digest             text NOT NULL,
+    created_by         text NOT NULL,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (name, definition_version)
+);
+
+-- A featureset declares a SCHEMA: named slots with types. That schema is what a
+-- kernel is defined over, which is what lets two versions draw on entirely
+-- different features and still be the same input space.
+CREATE TABLE featureset (
+    id                  text PRIMARY KEY,
+    name                text NOT NULL UNIQUE,
+    entity              text NOT NULL,
+    owner               text NOT NULL,
+    slots               jsonb NOT NULL DEFAULT '{}',   -- slot -> {dtype, nullable}
+    label_slot          text,
+    outcome_window_days integer NOT NULL DEFAULT 0,
+    grain               text NOT NULL DEFAULT '',
+    created_at          timestamptz NOT NULL DEFAULT now()
+);
+
+-- A version FILLS the schema. Every binding pins the feature AND the view
+-- version supplying its values -- finding C-2 one level out from the view: a set
+-- naming views without pinning them would resolve to different bytes next month
+-- with its digest unchanged.
+CREATE TABLE featureset_version (
+    id            text PRIMARY KEY,
+    featureset_id text NOT NULL REFERENCES featureset(id),
+    version       integer NOT NULL,
+    bindings      jsonb NOT NULL DEFAULT '{}',
+    label_binding jsonb NOT NULL DEFAULT '{}',
+    digest        text NOT NULL,
+    created_by    text NOT NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (featureset_id, version)
+);
+
+-- An inhabitant of P. Fitting does not change the kernel; it picks a point in
+-- the parameter object -- so a fit produces one of these and NOT a model
+-- version. Accepted only against a warrant MAYA issued, and approved by somebody
+-- other than whoever recorded it before anything may run on it.
+CREATE TABLE parameter_set (
+    id                    text PRIMARY KEY,
+    model_id              text NOT NULL REFERENCES model(id),
+    model_version_id      text NOT NULL REFERENCES model_version(id),
+    name                  text NOT NULL,
+    version               integer NOT NULL DEFAULT 1,
+    kind                  text NOT NULL,          -- estimated_coefficients | ...
+    provenance            text NOT NULL,          -- fitted | calibrated | declared
+    values_inline         jsonb NOT NULL DEFAULT '{}',   -- a record, up to 4096
+    values_uri            text,                   -- beyond that, an artifact
+    cardinality           integer NOT NULL DEFAULT 0,
+    diagnostics           jsonb NOT NULL DEFAULT '{}',
+    featureset_version_id text REFERENCES featureset_version(id),
+    window_from           timestamptz,
+    window_to             timestamptz,
+    as_of                 timestamptz,
+    snapshot_id           text REFERENCES dataset_snapshot(id),
+    warrant_id            text,                   -- required when fitted
+    digest                text NOT NULL,
+    state                 text NOT NULL DEFAULT 'proposed',
+    created_by            text NOT NULL,
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    approved_by           text,                   -- never equal to created_by
+    approved_at           timestamptz,
+    superseded_by         text REFERENCES parameter_set(id),
+    UNIQUE (model_version_id, name, version)
+);
+
 CREATE TABLE dataset_snapshot (
     id             text PRIMARY KEY,
     name           text NOT NULL,

@@ -22,14 +22,21 @@ flowchart LR
     OFF --> SPINE["PIT join with a<br/>label spine"]
     SPINE --> SNAP["Dataset Snapshot<br/><i>immutable, verified</i>"]
     SNAP --> FIT["Fitting run φ"]
-    FVV --> FC["Feature Contract"]
+    FVV --> FS["Featureset Version<br/><i>a schema, filled with<br/>pinned constituents</i>"]
+    FS --> SPINE
+    FS --> FC["Feature Contract"]
     FC --> MV["Model Version"]
+    FIT --> PS["Parameter Set<br/><i>an inhabitant of P</i>"]
+    FS --> PS
+    PS --> SERVE
     ONL --> SERVE["Serving"]
     FC --> SERVE
     SNAP -.reference distributions.-> DRIFT["Drift & skew<br/>detection"]
     ONL -.observed.-> DRIFT
 
     style FC fill:#1f3a5f,color:#fff
+    style FS fill:#1f3a5f,color:#fff
+    style PS fill:#5f1f3a,color:#fff
     style SNAP fill:#2d5016,color:#fff
 ```
 
@@ -38,7 +45,10 @@ flowchart LR
 | **Feature** | A named, typed, semantically defined signal about an entity, with an owner and a business definition. Not a column — a *meaning*. |
 | **Feature View** | A group of features for one entity, produced by one versioned transformation, materialised to one Delta table. |
 | **Feature View Version** | An immutable pinning of (transformation version, schema, Delta table version). |
-| **Feature Contract** | The exact set of feature-view versions a model version was fitted on and must be served. Digest-addressed. |
+| **Derived Feature** | A feature computed from other features, `Z = f(X, Y)`, in a small whitelisted expression language. Carries its lineage, inherits `ingest_ts` as the **maximum** over its inputs, and may never read the label. |
+| **Featureset** | A named, versioned presentation of `X`: a declared *schema* of slots, and versions that fill each slot with a feature and the exact feature view version supplying it. Two versions may hold entirely different features and still be the same input space, because the kernel reads the slot. |
+| **Feature Contract** | The exact set of feature-view versions a model version was fitted on and must be served. Digest-addressed. Where a featureset exists it names one rather than enumerating items. |
+| **Parameter Set** | An inhabitant of `P`. Produced by a fit and bound to the model version, featureset version and window that produced it — **not** a new model version, because fitting does not change the kernel. |
 | **Dataset Snapshot** | An immutable, PIT-verified materialisation used by a fitting run. |
 | **Entity** | The key a feature is about: customer, account, facility, instrument, counterparty, transaction, desk, book. |
 
@@ -355,3 +365,23 @@ The economics of a feature store are determined by reuse. MAYA optimises for it:
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
 *Not legal, regulatory or financial advice — see NOTICE §4.*
+
+
+---
+
+## 10. Featuresets and the parameter object
+
+The material above describes features, views and contracts. Two further objects
+sit on top of them and are specified separately, in
+[15](15-featuresets-and-parameters.md):
+
+- a **featureset** — the schema-and-constituents separation that makes `X`
+  nameable, shareable and comparable across models;
+- a **parameter set** — the inhabitant of `P` an execution engine returns, which
+  MAYA accepts only against a warrant it issued and only when it names the
+  featureset version that produced it.
+
+Together they close the loop a feature platform exists to serve: a warrant can
+now say *train this model on that data* and mean something checkable, and the
+resulting coefficients carry provenance all the way back through the pinned view
+versions to the rows that were true and known at a stated moment.

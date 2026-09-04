@@ -97,4 +97,4 @@ curl -u svc/engine:pw localhost:5006/api/v1/grammar/schema > warrant.schema.json
 ```
 
 A contract nobody can check is a convention. See
-[the warrant grammar](/help/warrant-grammar) for the design.
+[the warrant grammar](/help/warrants#the-four-axes) for the design.

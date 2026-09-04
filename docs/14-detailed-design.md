@@ -700,6 +700,45 @@ none accepted by a second person — and every compiled document carries a
 
 ## 10. Feature platform
 
+### 10.0 Featuresets, derived features and the parameter object
+
+Specified in full in [15](15-featuresets-and-parameters.md). The three interfaces
+that matter here:
+
+```python
+def publish(name, bindings, label=None) -> FeaturesetVersion:
+    refuse_if_slots_unfilled(bindings)          # not a version of THIS set
+    refuse_if_bindings_name_no_slot(bindings)   # adding a slot changes X
+    refuse_leakage(bindings, label)             # BEFORE resolution, on purpose
+    resolved = {slot: pin(feature, view, view_version) for slot in slots}
+    return version(bindings=resolved, digest=canonical(resolved))
+
+def compute(name, rows) -> rows:                # Z = f(X, Y)
+    return [{**r, name: expr.evaluate(r),
+             "ingest_ts": max(ingest_ts of inputs)} for r in rows]
+
+def record(urn, semver, values, provenance, warrant_id, featureset, ...):
+    refuse_unless_warrant_is_ours(warrant_id)   # fitted only
+    refuse_unless_featureset_named(featureset)  # fitted only
+    return parameter_set(state="proposed")      # approved by a second person
+```
+
+Three points worth stating at design level.
+
+**A featureset version pins, it does not name.** Each slot resolves to
+`(feature, view, view_version, namespace)`. Naming a view without a version would
+recreate finding **C-2** one level out: a stable identifier resolving to moving
+data, digest unchanged, monitors green.
+
+**`ingest_ts(Z) = max(ingest_ts(X), ingest_ts(Y))`.** A derived value was not
+knowable before its inputs were. Taking the minimum, or stamping the computation
+time, makes every PIT assembly built on it invisibly early. It is arithmetic, so
+it is computed rather than trusted.
+
+**A fit produces a parameter set, not a model version.** `f : P × X → D(Y)` is
+unchanged by fitting; only `P` is re-inhabited. The parameter set is immutable,
+versioned, and gated by an approval from somebody other than whoever recorded it.
+
 ### 10.1 Point-in-time assembly
 
 ```python
@@ -1125,7 +1164,7 @@ tested by injecting the failure they must catch — not by examples they are kno
 | §7 Lifecycle | `FR-LC-001..014`; finding C-5 |
 | §8 Validation | `FR-VAL-001..014`, `FR-TRN-008` |
 | §9 Documents | `FR-DOC-001..010`, `L-11`; §9.3 closes `FR-DOC-009` (external evidence, hashed, with provenance) |
-| §10 Features | `FR-FEA-001..017`, `L-10`, `L-17`; findings C-2, H-6 |
+| §10 Features | `FR-FEA-001..020`, `FR-PAR-001..004`, `L-10`, `L-17`, `L-W8`, `L-W9`; findings C-2, H-6; featuresets and the parameter object in [15](15-featuresets-and-parameters.md) |
 | §11 Monitoring | `FR-MON-001..016` |
 | §12 Warrants | `FR-WARRANT-001..017`; findings C-1, C-6, H-1, H-2 |
 | §13 Assistance | [00 §12a](00-mathematical-foundations.md); `FR-AI-001..020` |

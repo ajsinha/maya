@@ -58,7 +58,8 @@ class WarrantBuilder:
               environment: str, epoch: int, *, verb: str = "score",
               realisation: Optional[Dict[str, Any]] = None,
               data: Optional[Dict[str, Any]] = None,
-              governance: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+              governance: Optional[Dict[str, Any]] = None,
+              parameter_set: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         now = time.time()
         ttl = self.signer.jittered(grant["ttl_seconds"])
         manifest = version.get("manifest") or {}
@@ -78,7 +79,8 @@ class WarrantBuilder:
             },
 
             "operation": self._operation(verb, version, kernel),
-            "parameters": self._parameters(version, kernel),
+            "parameters": self._parameters(version, kernel, verb,
+                                           parameter_set),
             "realisation": realisation or self._realisation(version, kernel),
             "data": data or self._data(verb),
 
@@ -137,11 +139,12 @@ class WarrantBuilder:
                 "mode": "batch"}
 
     @staticmethod
-    def _parameters(version: Dict[str, Any], kernel: Dict[str, Any]) -> Dict[str, Any]:
+    def _parameters(version: Dict[str, Any], kernel: Dict[str, Any],
+                    verb: str = "score",
+                    parameter_set: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         kind = version.get("parameter_kind", "none")
         return {"kind": kind,
-                "source": ({"binding": "artifact", "uri": version.get("artifact_uri")}
-                           if kind != "none" else {}),
+                "source": _parameter_source(kind, verb, version, parameter_set),
                 "digest": version.get("artifact_digest"),
                 # Parameters are immutable for every verb except fit, and a fit
                 # writes a NEW parameter object rather than editing this one.
@@ -163,3 +166,27 @@ class WarrantBuilder:
         outputs. Anything richer is passed in by whoever knows the contract."""
         return {"inputs": [{"name": "features", "binding": "request"}],
                 "outputs": [{"name": "prediction", "sink": "response"}]}
+
+
+def _parameter_source(kind: str, verb: str, version: Dict[str, Any],
+                      parameter_set: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Which point in the parameter object this run is at.
+
+    A fit does not read a parameter object, it writes one — so declaring that its
+    parameters come from the artifact would describe the wrong direction. Where a
+    registered parameter set is supplied it is named and digested, because that
+    is what makes the run attributable to numbers somebody approved.
+    """
+    if kind == "none":
+        return {}                      # T0: nothing to bind, and nothing to name
+    if kind == "opaque":
+        return {"binding": "vendor_internal"}
+    if verb == "fit":
+        return {"binding": "to_be_fitted"}
+    if parameter_set:
+        return {"binding": "parameter_set",
+                "parameter_set": parameter_set["id"],
+                "name": parameter_set.get("name"),
+                "version": parameter_set.get("version"),
+                "digest": parameter_set["digest"]}
+    return {"binding": "artifact", "uri": version.get("artifact_uri")}

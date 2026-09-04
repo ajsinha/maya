@@ -106,7 +106,7 @@ anything, ask who still depends on it:
 ```bash
 curl -u a.mehta:pw \
   localhost:5006/api/v1/feature-views/sb_financials/versions/1/retirable
-# → {"retirable": false, "consumers": ["01a06a0a079c..."]}
+# → {"retirable": false, "pinned_by": ["01a06a0a079c..."]}
 ```
 
 And the model itself is **retired**, never deleted:

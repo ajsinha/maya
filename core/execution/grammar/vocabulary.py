@@ -110,6 +110,12 @@ BINDING_KEYS: Dict[str, Tuple[str, ...]] = {
     "inline": ("values",),                       # carried in the warrant itself
     "request": (),                               # supplied by the caller at run time
     "feature_namespace": ("namespace",),         # a pinned feature view version
+    # A named, versioned presentation of X. The engine resolves it and assembles,
+    # which is what a recurring retrain wants; a snapshot is what an audit replay
+    # wants, because it recomputes nothing.
+    # as_of is NOT required here: scoring may legitimately read a featureset at
+    # whatever is current. Training may not, and L-W9 requires it there.
+    "featureset": ("featureset", "version"),
     "dataset_snapshot": ("snapshot",),           # a digested, PIT-verified dataset
     "delta_table": ("table",),
     "sql_query": ("statement", "dialect"),
@@ -125,10 +131,32 @@ BINDINGS: Tuple[str, ...] = tuple(BINDING_KEYS)
 # one of these, because a training set assembled from a source that cannot be
 # read as-of cannot be shown point-in-time correct.
 BITEMPORAL_BINDINGS: FrozenSet[str] = frozenset(
-    {"feature_namespace", "dataset_snapshot"})
+    {"feature_namespace", "featureset", "dataset_snapshot"})
 
 SINKS: Tuple[str, ...] = ("response", "delta_table", "stream", "artifact",
                           "parameter_object", "evidence")
+
+# ---------------------------------------------------------------------------
+# Where a run's parameters come from. Training does not change the kernel; it
+# picks a point in P, so a run has to say WHICH point it is running at.
+# ---------------------------------------------------------------------------
+# These are the values ``parameters.source.binding`` may take. It is the same
+# shape the section already had; what is new is that the vocabulary is closed and
+# checked, so a run cannot decline to say which point in P it is running at.
+PARAMETER_SOURCE_KEYS: Dict[str, Tuple[str, ...]] = {
+    # The artifact carries them -- an ONNX graph, a PMML document. Where it
+    # LIVES is realisation's job; saying it twice would let the two disagree.
+    "artifact": (),
+    "parameter_set": ("parameter_set", "digest"),   # a registered inhabitant of P
+    "declared": ("values",),      # carried in the warrant: a closed form's constants
+    "to_be_fitted": (),           # this warrant is the fit that produces them
+    "vendor_internal": (),        # T6: they exist and are not ours to see
+}
+PARAMETER_SOURCES: Tuple[str, ...] = tuple(PARAMETER_SOURCE_KEYS)
+
+# Only a fit may leave the parameters unfilled; everything else must say which
+# point in P it is running at, or the result is not attributable to anything.
+UNFITTED_SOURCES: FrozenSet[str] = frozenset({"to_be_fitted"})
 
 # ---------------------------------------------------------------------------
 # The document's sections. Each answers exactly one question.

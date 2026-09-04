@@ -1,0 +1,85 @@
+{
+  "_comment": "The other half of the cycle. The kernel did not change when it was fitted — only P was inhabited — so this scores the same model version at a named point in the parameter object. Model version and parameter set are both pinned, which is what makes the run determined: same kernel, same point in P, same input, same answer.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06d4c1e07",
+  "issued_at": 1767312000.0,
+  "subject": {
+    "urn": "maya://model/re.price.nj_linear@1.0.0",
+    "model_urn": "maya://model/re.price.nj_linear",
+    "version": "1.0.0",
+    "version_id": "01a06d1c4472",
+    "model_class": "real_estate.price.hedonic",
+    "trainability_class": "T2",
+    "tier": 3
+  },
+  "operation": {"verb": "score", "deterministic": true},
+  "parameters": {
+    "kind": "estimated_coefficients",
+    "source": {
+      "binding": "parameter_set",
+      "parameter_set": "01a06d51f9c3",
+      "name": "nj-core-2025q1",
+      "version": 1,
+      "digest": "sha256:c4e7b019af26385d7c0e4192bb6d38a71f0954ce2d8b6a37419e0cf5d21b8a64",
+      "note": "fitted from nj_home_core@v1 over 2019-01-01 to 2024-12-31, as of 2025-01-15, and approved by somebody other than whoever fitted it"
+    },
+    "digest": "sha256:c4e7b019af26385d7c0e4192bb6d38a71f0954ce2d8b6a37419e0cf5d21b8a64",
+    "mutable": false
+  },
+  "realisation": {
+    "runtime": "python.callable",
+    "entry": {"module": "nj.estimators", "attr": "ols_score"}
+  },
+  "data": {
+    "inputs": [
+      {
+        "name": "subject_property",
+        "binding": "request",
+        "description": "Scoring reads the caller's row, not the feature store. The featureset was how the coefficients were produced; it is not how a single valuation is served."
+      }
+    ],
+    "outputs": [{"sink": "response"}]
+  },
+  "io_contract": {
+    "input_schema": {
+      "fields": [
+        {"name": "log_living_area", "dtype": "numeric"},
+        {"name": "lot_to_living_ratio", "dtype": "numeric"},
+        {"name": "bedrooms", "dtype": "integer"},
+        {"name": "bathrooms", "dtype": "numeric"},
+        {"name": "property_age", "dtype": "numeric"},
+        {"name": "municipality_code", "dtype": "categorical"}
+      ]
+    },
+    "output_schema": {"fields": [{"name": "predicted_price", "dtype": "numeric"}]}
+  },
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        "Residential sales in New Jersey only",
+        "The coefficients were estimated on 2019-2024; a 2027 valuation is outside the period they were fitted over"
+      ],
+      "input_bounds": {
+        "log_living_area": {"minimum": 6.2, "maximum": 9.2},
+        "bedrooms": {"minimum": 1, "maximum": 8}
+      }
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 5, "memory_mb": 512}
+  },
+  "authority": {
+    "principal": "svc/valuation-api",
+    "declared_use": "collateral_valuation",
+    "environment": "prod",
+    "granted_at": 1767312000.0,
+    "expires_at": 1767315600.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 41, "check": "required"}
+  },
+  "governance": {"tier": 3, "model_status": "active", "version_status": "approved"},
+  "signature": {
+    "algorithm": "hmac-sha256",
+    "key_id": "maya-dev-key",
+    "value": "8b3e6f1a29d70c45e8f1b3a06d925c74e0af38b1265dc90743e8a1f6b502d9c8"
+  }
+}

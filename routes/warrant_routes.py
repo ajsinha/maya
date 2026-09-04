@@ -17,6 +17,17 @@ from pydantic import BaseModel, Field
 from routes.base import Routes
 
 
+class FitIn(BaseModel):
+    urn: str
+    environment: str = "lab"
+    principal: str
+    declared_use: str = "model_development"
+    featureset: str
+    featureset_version: int
+    window: dict
+    as_of: float
+
+
 class IssueIn(BaseModel):
     urn: str
     principal: str
@@ -44,6 +55,36 @@ class RevokeIn(BaseModel):
 class WarrantRoutes(Routes):
     def register(self) -> None:
         warrants, engine = self.ctx["warrants"], self.ctx.get("engine")
+
+        @self.app.post(f"{self.api}/fit-warrants", status_code=201,
+                       tags=["warrants"])
+        def fit(request: Request, body: FitIn):
+            """A signed descriptor to fit this version from that featureset.
+
+            Law L-W10 is checked here: a featureset a warrant names must provide
+            what the kernel declares it reads. Adding a regressor is a model
+            change, not a data change, and this is where that is enforced rather
+            than remembered.
+            """
+            self.authorise(request, "warrant:issue")
+            return self.guard(lambda: warrants.resolve_fit(
+                body.urn, body.environment, body.principal, body.declared_use,
+                body.featureset, body.featureset_version, body.window,
+                body.as_of))
+
+        @self.app.get(f"{self.api}/engine", tags=["warrants"])
+        def engine_boundary(request: Request):
+            """What the captive engine is, and what its isolation does not cover.
+
+            Published rather than implied. An engine that runs artifacts owes its
+            callers a statement of the boundary, and a name like "sandbox" left
+            unexplained implies a guarantee the process model does not provide.
+            """
+            self.principal(request)
+            if engine is None:
+                return {"captive_engine": "not enabled",
+                        "detail": "this instance issues warrants and runs nothing"}
+            return {"captive_engine": "enabled", **engine.isolation()}
 
         @self.app.post(f"{self.api}/warrants", status_code=201, tags=["warrants"])
         def issue(request: Request, body: IssueIn):

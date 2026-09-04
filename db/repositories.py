@@ -170,6 +170,57 @@ class SnapshotRepository(Repository):
     TABLE, JSON, ORDER = "dataset_snapshot", ("pit_report",), "created_at"
 
 
+class DerivedFeatureRepository(Repository):
+    """Definitions of features computed from other features."""
+    TABLE, JSON, ORDER = "derived_feature", ("inputs",), "created_at"
+
+    def current(self, name: str):
+        """The newest definition of a name. A definition is corrected by adding
+        a version, never by editing one somebody already trained against."""
+        return self.first("definition_version", desc=True, name=name)
+
+    def depending_on(self, feature_name: str):
+        """Every derived definition that reads this feature, at any version.
+        Answering it is what makes retiring a primitive a governed act."""
+        return [d for d in self.many() if feature_name in (d["inputs"] or [])]
+
+
+class FeaturesetRepository(Repository):
+    TABLE, JSON, ORDER = "featureset", ("slots",), "created_at"
+
+
+class FeaturesetVersionRepository(Repository):
+    TABLE, JSON = "featureset_version", ("bindings", "label_binding")
+
+    def latest(self, featureset_id: str):
+        return self.first("version", desc=True, featureset_id=featureset_id)
+
+    def consumers_of_view(self, view_id: str, version: int) -> List[str]:
+        """Featureset versions pinning this view version. The retirement guard
+        now walks contracts -> featuresets -> views rather than scanning."""
+        return [v["id"] for v in self.many()
+                if any(b.get("feature_view_id") == view_id and b.get("view_version") == version
+                       for b in (v["bindings"] or {}).values())]
+
+
+class ParameterSetRepository(Repository):
+    """Inhabitants of P. A fit produces one of these, not a model version."""
+    TABLE = "parameter_set"
+    JSON = ("values_inline", "diagnostics")
+    ORDER = "created_at"
+
+    def for_version(self, model_version_id: str) -> List[Dict[str, Any]]:
+        return self.many(model_version_id=model_version_id)
+
+    def approved_for(self, model_version_id: str) -> List[Dict[str, Any]]:
+        return [p for p in self.for_version(model_version_id) if p["state"] == "approved"]
+
+    def next_version(self, model_version_id: str, name: str) -> int:
+        prior = self.first("version", desc=True,
+                           model_version_id=model_version_id, name=name)
+        return (prior["version"] + 1) if prior else 1
+
+
 class ValidationRepository(Repository):
     TABLE, ORDER = "validation", "started_at"
     JSON = ("scope", "plan", "validators", "independence", "conditions")

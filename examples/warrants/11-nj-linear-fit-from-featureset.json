@@ -1,0 +1,97 @@
+{
+  "_comment": "A multiple linear regression fitted from a named featureset. This is what a featureset is for: the warrant names nj_home_core@v1 rather than enumerating six columns, so the same selection can train another model, and two warrants differing only in their featureset are an honest A/B on data. The featureset fixes the columns; the warrant fixes the period.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06d3f8b21",
+  "issued_at": 1767225600.0,
+  "subject": {
+    "urn": "maya://model/re.price.nj_linear@1.0.0",
+    "model_urn": "maya://model/re.price.nj_linear",
+    "version": "1.0.0",
+    "version_id": "01a06d1c4472",
+    "model_class": "real_estate.price.hedonic",
+    "trainability_class": "T2",
+    "tier": 3
+  },
+  "operation": {
+    "verb": "fit",
+    "deterministic": true,
+    "note": "Ordinary least squares. T2 because the parameter object is inhabited by estimation rather than by training or calibration, and that class is derived from how P is inhabited rather than declared."
+  },
+  "parameters": {
+    "kind": "estimated_coefficients",
+    "source": {
+      "binding": "to_be_fitted",
+      "note": "this warrant is the fit; the coefficients it produces come back as a parameter set naming this warrant, and a scoring warrant names that set"
+    },
+    "digest": null,
+    "mutable": false
+  },
+  "realisation": {
+    "runtime": "python.callable",
+    "entry": {"module": "nj.estimators", "attr": "ols_fit"},
+    "note": "MAYA does not fit anything. It issues this and takes delivery of the result."
+  },
+  "data": {
+    "inputs": [
+      {
+        "name": "training_set",
+        "binding": "featureset",
+        "featureset": "nj_home_core",
+        "version": 1,
+        "digest": "sha256:4c1f9d7e2b6a08c3517fbe94a2d0631c8f75ae30bd41c92e6708a5f3db2c40e1",
+        "as_of": 1736899200.0,
+        "window": {"from": 1546300800.0, "to": 1735603200.0},
+        "description": "Six slots and a label, each pinned to an exact feature view version. Publishing a newer view version changes nothing here: rolling forward is a deliberate act that mints v2 and reports what moved."
+      }
+    ],
+    "outputs": [
+      {
+        "sink": "parameter_object",
+        "description": "Law L-W4: a fit must say where the parameters go. They come back to MAYA as a parameter set bound to this model version, this featureset version and this window — and cannot be run on until somebody other than whoever fitted them has approved."
+      }
+    ]
+  },
+  "io_contract": {
+    "input_schema": {
+      "fields": [
+        {"name": "log_living_area", "dtype": "numeric"},
+        {"name": "lot_to_living_ratio", "dtype": "numeric"},
+        {"name": "bedrooms", "dtype": "integer"},
+        {"name": "bathrooms", "dtype": "numeric"},
+        {"name": "property_age", "dtype": "numeric"},
+        {"name": "municipality_code", "dtype": "categorical"}
+      ]
+    },
+    "output_schema": {"fields": [{"name": "predicted_price", "dtype": "numeric"}]}
+  },
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        "Residential sales in New Jersey only; the municipality dummies are NJ codes",
+        "Arm's length transactions; foreclosure and intra-family sales are excluded upstream",
+        "Log-linear in area, which is why the slot holds log_living_area and not the raw square footage"
+      ]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 600, "memory_mb": 4096}
+  },
+  "authority": {
+    "principal": "svc/model-lab",
+    "declared_use": "model_development",
+    "environment": "lab",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767232800.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 41, "check": "required"}
+  },
+  "governance": {
+    "tier": 3,
+    "model_status": "active",
+    "version_status": "approved"
+  },
+  "signature": {
+    "algorithm": "hmac-sha256",
+    "key_id": "maya-dev-key",
+    "value": "d41f8a0c7e93b25610fd8ac4e7b0392f1c5d6e8a4b207f93cd1e5a80b6473f92"
+  }
+}

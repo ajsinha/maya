@@ -3,7 +3,6 @@
   "maya_warrant": "1.0",
   "warrant_id": "wrt_01a06c7a1f63",
   "issued_at": 1767225600.0,
-
   "subject": {
     "urn": "maya://model/fincrime.aml.vendor#champion",
     "model_urn": "maya://model/fincrime.aml.vendor",
@@ -13,21 +12,21 @@
     "binding_kind": "alias",
     "trainability_class": "T6"
   },
-
   "operation": {
     "verb": "score",
     "determinism": "deterministic",
     "seed": null,
     "mode": "batch"
   },
-
   "parameters": {
     "kind": "opaque",
-    "source": {"note": "inside the vendor product; not obtainable under the licence"},
+    "source": {
+      "binding": "vendor_internal",
+      "note": "inside the vendor product; not obtainable under the licence"
+    },
     "digest": null,
     "mutable": false
   },
-
   "realisation": {
     "runtime": "descriptor_only",
     "entry": {},
@@ -37,43 +36,88 @@
       "format": "vendor_binary",
       "note": "MAYA records the vendor release identifier and cannot verify a digest. That limitation is recorded rather than papered over: nothing here asserts an assurance the platform does not have."
     },
-    "environment": {"vendor": "Example AML Ltd", "release": "2024.3", "support_until": "2027-06-30"}
+    "environment": {
+      "vendor": "Example AML Ltd",
+      "release": "2024.3",
+      "support_until": "2027-06-30"
+    }
   },
-
   "data": {
     "inputs": [
-      {"name": "transactions", "binding": "stream", "topic": "payments.cleared"},
-      {"name": "party_features", "binding": "feature_namespace",
-       "namespace": "features/party/aml_profile/v4"}
+      {
+        "name": "transactions",
+        "binding": "stream",
+        "topic": "payments.cleared"
+      },
+      {
+        "name": "party_features",
+        "binding": "feature_namespace",
+        "namespace": "features/party/aml_profile/v4"
+      }
     ],
     "outputs": [
-      {"name": "alert_score", "sink": "response"},
-      {"name": "alerts", "sink": "delta_table", "table": "fincrime/alerts"}
+      {
+        "name": "alert_score",
+        "sink": "response"
+      },
+      {
+        "name": "alerts",
+        "sink": "delta_table",
+        "table": "fincrime/alerts"
+      }
     ]
   },
-
   "io_contract": {
     "input_schema": [
-      {"name": "amount", "dtype": "float", "minimum": 0.0},
-      {"name": "corridor", "dtype": "string"},
-      {"name": "party_risk_band", "dtype": "string"}
+      {
+        "name": "amount",
+        "dtype": "float",
+        "minimum": 0.0
+      },
+      {
+        "name": "corridor",
+        "dtype": "string"
+      },
+      {
+        "name": "party_risk_band",
+        "dtype": "string"
+      }
     ],
-    "output_schema": [{"name": "alert_score", "dtype": "float", "minimum": 0.0, "maximum": 100.0}]
+    "output_schema": [
+      {
+        "name": "alert_score",
+        "dtype": "float",
+        "minimum": 0.0,
+        "maximum": 100.0
+      }
+    ]
   },
-
   "constraints": {
     "operating_boundary": {
-      "assumptions": [{"key": "amount", "minimum": 0.0, "maximum": 100000000.0}],
+      "assumptions": [
+        {
+          "key": "amount",
+          "minimum": 0.0,
+          "maximum": 100000000.0
+        }
+      ],
       "guarantees": [
-        {"key": "alert_rate", "maximum": 0.04},
-        {"key": "own_outcomes_precision", "minimum": 0.12,
-         "note": "SS1/23 2.6 -- vendor performance is monitored using OUR outcomes, since the internals cannot be inspected"}
+        {
+          "key": "alert_rate",
+          "maximum": 0.04
+        },
+        {
+          "key": "own_outcomes_precision",
+          "minimum": 0.12,
+          "note": "SS1/23 2.6 -- vendor performance is monitored using OUR outcomes, since the internals cannot be inspected"
+        }
       ]
     },
     "on_boundary_violation": "flag",
-    "resources": {"max_seconds": 3}
+    "resources": {
+      "max_seconds": 3
+    }
   },
-
   "authority": {
     "principal": "svc/transaction-monitoring",
     "declared_use": "alert_generation",
@@ -81,19 +125,23 @@
     "granted_at": 1767225600.0,
     "expires_at": 1767229200.0,
     "grace_seconds": 900,
-    "revocation": {"epoch": 3, "check": "required"}
+    "revocation": {
+      "epoch": 3,
+      "check": "required"
+    }
   },
-
   "governance": {
     "tier": 1,
     "model_status": "attested",
     "version_status": "approved",
     "descriptor_only": true,
-    "compensating_controls": ["own_outcomes_analysis", "benchmark_divergence",
-                              "vendor_release_change_detection"],
+    "compensating_controls": [
+      "own_outcomes_analysis",
+      "benchmark_divergence",
+      "vendor_release_change_detection"
+    ],
     "open_blocking_findings": 0
   },
-
   "signature": {
     "alg": "HMAC-SHA256",
     "key_id": "maya-prod-2026",

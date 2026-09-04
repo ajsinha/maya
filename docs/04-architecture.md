@@ -223,8 +223,12 @@ maya/
 │   └── aggregate.py            # Lax monoidal ρ ; concentration analytics
 ├── features/
 │   ├── registry.py  views.py  materialise.py
+│   ├── derived.py  expressions.py   # Z = f(X, Y); a small whitelisted language
+│   ├── sets.py                 # Featuresets: a schema, and versions that fill it
 │   ├── pit.py                  # Bitemporal PIT verifier
 │   └── skew.py                 # Training-serving skew detection
+├── parameters/                 # Inhabitants of P — a fit makes one, not a version
+│   └── register.py             # Recorded under a warrant, approved by a second person
 ├── lifecycle/
 │   ├── machine.py              # Free category on the lifecycle graph
 │   ├── guards.py  workflow.py  campaigns.py

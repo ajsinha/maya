@@ -4,7 +4,7 @@ slug: quickstart
 section: Getting started
 order: 20
 icon: rocket-takeoff
-summary: Register a model, version it, assess its risk, approve it, point an alias, and resolve a signed warrant — the whole governed path, end to end.
+summary: Register a model, version it, assess its risk, approve it, point an alias, and resolve a signed warrant — then watch the whole thing fail closed on a finding.
 audience: Engineers
 ---
 
@@ -14,7 +14,7 @@ This walks the complete governed path. Every step is a real API call against a
 running instance; nothing here is illustrative pseudocode.
 
 Sign in at `/login` with the development credentials (`admin` / `admin123`), or
-call the API directly as shown.
+call the API directly as shown. The server listens on port 5006 by default.
 
 ## 1. Register the model
 
@@ -35,7 +35,7 @@ curl -X POST localhost:5006/api/v1/models -H 'Content-Type: application/json' -d
 ```
 
 The **URN** is the permanent handle. Consumers hold it and nothing else — see
-[Warrants](/help/warrants) for why that matters.
+[Warrants and execution](/help/warrants) for why that matters.
 
 ## 2. Create a version
 
@@ -62,7 +62,8 @@ curl -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/versions \
 
 Note what you did **not** send: a trainability class. It is derived from
 `parameter_kind` and `fit_procedure`, because a class you can declare is a class
-someone will declare conveniently.
+someone will declare conveniently. See
+[Registering a model](/help/registering-a-model#trainability-classes-t0-to-t8).
 
 Versions are immutable. Creating `3.2.1` twice is refused.
 
@@ -75,8 +76,8 @@ curl -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/assess \
 ```
 
 The response carries the **derivation**, not just the tier — which facts were
-used, which lattice they landed in, and which ruleset version decided. See
-[Risk tiering](/help/risk-tiering).
+used, which lattices they landed in, the required control set, and which ruleset
+version decided. See [Risk tiering](/help/risk-tiering).
 
 ## 4. Approve, then point an alias
 
@@ -90,8 +91,9 @@ curl -X PUT localhost:5006/api/v1/models/credit.pd.smallbiz/aliases \
 
 The alias move is the most dangerous operation in the platform, so it is a
 **proof obligation** rather than a judgement call. If there were an incumbent, the
-replacement's contract would have to refine it and its schemas would have to
-satisfy variance, or the move is refused naming the clause that failed.
+replacement's contract would have to refine it (law L-7) and its schemas would
+have to satisfy variance (law L-12), or the move is refused naming the clause
+that failed.
 
 ## 5. Issue and resolve a warrant
 
@@ -111,8 +113,9 @@ curl -X POST localhost:5006/api/v1/resolve -H 'Content-Type: application/json' -
 }'
 ```
 
-The second call returns a **signed, expiring warrant**. Your execution engine acts
-on it. MAYA never touches the model.
+The first call issues a standing **grant**. The second mints a **signed, expiring
+warrant** against it. Your execution engine acts on that. MAYA never touches the
+model.
 
 ## 6. Watch it fail closed
 
@@ -138,4 +141,5 @@ on the next call.
 ## Next
 
 - [Features and the two clocks](/help/features-and-two-clocks) — before you train anything.
-- [Validation](/help/validation) — how challenge is recorded and enforced.
+- [Validation and findings](/help/validation) — how challenge is recorded and enforced.
+- [End to end](/tutorials/end-to-end) — the same path as a worked tutorial, taken through attestation.

@@ -133,6 +133,25 @@ every section cites what it rests on, staleness is computed from the chain rathe
 than remembered, and a section that cannot be filled says what is missing instead
 of leaving a blank heading.
 
+**A featureset is an object, not a list inside a model.** Every platform in the
+survey binds features to a model and stops there — the selection has no name, so
+it cannot be shared, compared, or reasoned about. Here a featureset declares a
+*schema* of named slots and a version fills each with a feature and the exact
+feature view version supplying it. Two versions may draw on entirely different
+features and still be the same input space, because the kernel reads the slot;
+and a version that cannot fill the schema is refused as a different set or a
+model change, which is the difference between a data refresh and an unversioned
+model change nobody noticed.
+
+**The parameters are in the register.** MLOps platforms store the artifact and
+GRC platforms store a document about it; neither holds the coefficients as a
+governed object. Fitting does not change the kernel — it inhabits `P` — so here a
+fit produces a *parameter set*, accepted only against a warrant MAYA issued,
+naming the featureset version that produced it, and approved by somebody other
+than whoever recorded it. A retrain is therefore a governed event with lineage
+back to the rows that were true and known at a stated moment, rather than a file
+that changed on a Tuesday.
+
 **Filed documents behave like evidence.** The compiled document is only half of
 it; the other half is what people actually wrote, and most platforms hold those
 on a share drive with a link. Here a document is filed against the *version* it

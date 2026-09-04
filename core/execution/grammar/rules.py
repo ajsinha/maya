@@ -23,9 +23,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, FrozenSet, List, Optional, Tuple
 
-from core.execution.grammar.vocabulary import (BITEMPORAL_BINDINGS, FIT, GENERATE,
-                                               MONITOR, OPTIMISE, SCORE, SIMULATE,
-                                               STOCHASTIC_RUNTIMES, BACKTEST, VERBS)
+from core.execution.grammar.vocabulary import (BACKTEST, BITEMPORAL_BINDINGS, FIT,
+                                               GENERATE, MONITOR, OPTIMISE,
+                                               PARAMETER_SOURCE_KEYS,
+                                               PARAMETER_SOURCES, SCORE, SIMULATE,
+                                               STOCHASTIC_RUNTIMES,
+                                               UNFITTED_SOURCES, VERBS)
 
 # ---------------------------------------------------------------------------
 # Which verbs each trainability class admits.
@@ -136,6 +139,78 @@ def check_fit_output(verb: str, outputs: List[Dict[str, Any]]) -> Optional[Probl
             "a 'fit' produces a new parameter object and must say where it goes",
             "add an output with sink 'parameter_object'")
     return None
+
+
+def check_parameter_source(verb: str, parameters: Dict[str, Any]) -> Optional[Problem]:
+    """L-W8. Every run must say which point in P it is running at.
+
+    Training does not change the kernel; it inhabits the parameter object. So a
+    warrant that asks a model to do anything other than fit has to name the
+    inhabitant, or its output is not attributable to a set of parameters anybody
+    approved. Only a fit may leave it unfilled, because the fit is what produces it.
+    """
+    source = (parameters.get("source") or {}).get("binding")
+    if source is None:
+        # A terminal parameter object has nothing to bind: T0 carries its
+        # constants in the kernel, and there is no point in P to name.
+        return None
+    if source not in PARAMETER_SOURCES:
+        return Problem(
+            "L-W8", "parameters.source",
+            f"'{source}' is not a known parameter source",
+            f"use one of {', '.join(PARAMETER_SOURCES)}")
+    if verb == FIT and source not in UNFITTED_SOURCES:
+        return Problem(
+            "L-W8", "parameters.source",
+            f"a 'fit' produces the parameter object, so it cannot also run from "
+            f"'{source}'",
+            "a fit warrant binds its parameters as 'to_be_fitted'")
+    if verb != FIT and source in UNFITTED_SOURCES:
+        return Problem(
+            "L-W8", "parameters.source",
+            f"a '{verb}' has to run at some point in the parameter object, and "
+            f"'to_be_fitted' names none",
+            "name the parameter set this run uses, or declare the values")
+    missing = [k for k in PARAMETER_SOURCE_KEYS[source]
+               if (parameters.get("source") or {}).get(k) is None]
+    if missing:
+        return Problem(
+            "L-W8", "parameters.source",
+            f"a '{source}' parameter source needs {', '.join(missing)}",
+            f"a '{source}' source carries "
+            f"{', '.join(PARAMETER_SOURCE_KEYS[source]) or 'nothing'}")
+    return None
+
+
+def check_featureset_bounds(verb: str, inputs: List[Dict[str, Any]]) -> List[Problem]:
+    """L-W9. A featureset read for training must be bounded in both clocks.
+
+    The featureset itself fixes the point-in-time rule; what it deliberately does
+    not fix is the window, because the same set is meant to be reusable across
+    periods. So the warrant supplies it — and a warrant that supplies neither an
+    as_of nor a window is asking for "everything we know now", which cannot be
+    shown point-in-time correct however carefully the set was pinned.
+    """
+    if verb != FIT:
+        return []
+    problems = []
+    for i, binding in enumerate(inputs):
+        if binding.get("binding") != "featureset":
+            continue
+        if not binding.get("as_of"):
+            problems.append(Problem(
+                "L-W9", f"data.inputs[{i}].as_of",
+                "a featureset read for fitting must say as of when it is read; "
+                "without it the assembly reads whatever has since arrived",
+                "pin as_of to the moment the training set is assembled at"))
+        window = binding.get("window") or {}
+        if not window.get("from") or not window.get("to"):
+            problems.append(Problem(
+                "L-W9", f"data.inputs[{i}].window",
+                "a featureset read for fitting must bound the period it covers",
+                "give the window a from and a to; the featureset fixes the "
+                "columns, the warrant fixes the period"))
+    return problems
 
 
 def check_determinism(operation: Dict[str, Any], runtime: str) -> Optional[Problem]:

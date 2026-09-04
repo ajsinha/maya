@@ -78,7 +78,7 @@ Two things happened that you did not ask for. The **trainability class** was
 derived — `estimated_coefficients` fitted by `estimate` is **T2** — and the
 **manifest digest** was computed over the whole specification. Neither is
 declarable, which is the point: see
-[Trainability classes](/help/trainability-classes).
+[Trainability classes](/help/registering-a-model#trainability-classes-t0-to-t8).
 
 Declaring `runtime` and `entry` is optional but worth doing. Without them the
 warrant is issued **descriptor-only** — MAYA holds the governance, and the
@@ -151,7 +151,7 @@ curl -u s.iqbal:pw -X PUT \
 
 `d.raman` cannot do either of these — not because of their role but because the
 evidence chain records that they created this version. See
-[segregation of duties](/help/authorisation).
+[segregation of duties](/help/approval-and-attestation#segregation-of-duties).
 
 ## 7. The record: submit, approve, attest
 

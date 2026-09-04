@@ -1,9 +1,8 @@
 {
-  "_comment": "T1 calibration. Same runtime as the pricer above, different coordinates on the other three axes: the parameter object IS inhabited, by solving against market instruments each morning. `fit` is admissible here and inadmissible for the T0 pricer — the grammar reads that off the trainability class, which is itself derived from how the parameter object is inhabited.",
+  "_comment": "T1 calibration. Same runtime as the pricer above, different coordinates on the other three axes: the parameter object IS inhabited, by solving against market instruments each morning. `fit` is admissible here and inadmissible for the T0 pricer \u2014 the grammar reads that off the trainability class, which is itself derived from how the parameter object is inhabited.",
   "maya_warrant": "1.0",
   "warrant_id": "wrt_01a06c50113d",
   "issued_at": 1767225600.0,
-
   "subject": {
     "urn": "maya://model/rates.term.hullwhite@2.3.0",
     "model_urn": "maya://model/rates.term.hullwhite",
@@ -13,21 +12,21 @@
     "binding_kind": "pinned_version",
     "trainability_class": "T1"
   },
-
   "operation": {
     "verb": "fit",
     "determinism": "deterministic",
     "seed": 20260101,
     "mode": "batch"
   },
-
   "parameters": {
     "kind": "calibration_set",
-    "source": {"binding": "artifact", "uri": "delta://parameters/hullwhite/2026-01-01"},
-    "digest": "sha256:4e8a17c0b96d3f524a1c8e0b73df6a92c015be84d7392f0a6b1c5e83409df2a7",
+    "source": {
+      "binding": "to_be_fitted",
+      "note": "a calibration produces the parameter object rather than reading one; the solved set is recorded against this warrant and approved before anything runs on it"
+    },
+    "digest": null,
     "mutable": false
   },
-
   "realisation": {
     "runtime": "quantlib",
     "entry": {
@@ -35,7 +34,10 @@
       "pricing_engine": "JamshidianSwaptionEngine",
       "calibration_helpers": "SwaptionHelper",
       "optimiser": "LevenbergMarquardt",
-      "end_criteria": {"max_iterations": 1000, "function_epsilon": 1e-8},
+      "end_criteria": {
+        "max_iterations": 1000,
+        "function_epsilon": 1e-08
+      },
       "calendar": "TARGET",
       "day_count": "Actual365Fixed"
     },
@@ -44,9 +46,10 @@
       "digest": "sha256:c1d0b8ea4f39a72e5b6104cd8f2e93a170bb4d6c8e5f210937ac4be1d05f8362",
       "format": "shared_object"
     },
-    "environment": {"image": "reg.internal/quant/quantlib:1.34-py312"}
+    "environment": {
+      "image": "reg.internal/quant/quantlib:1.34-py312"
+    }
   },
-
   "data": {
     "inputs": [
       {
@@ -62,32 +65,66 @@
         "sink": "parameter_object",
         "description": "a (mean_reversion, sigma) pair, written as a new parameter object rather than over the old one"
       },
-      {"name": "calibration_report", "sink": "evidence"}
+      {
+        "name": "calibration_report",
+        "sink": "evidence"
+      }
     ]
   },
-
   "io_contract": {
     "input_schema": [
-      {"name": "expiry", "dtype": "float"},
-      {"name": "tenor", "dtype": "float"},
-      {"name": "market_vol", "dtype": "float", "minimum": 0.0001, "maximum": 3.0}
+      {
+        "name": "expiry",
+        "dtype": "float"
+      },
+      {
+        "name": "tenor",
+        "dtype": "float"
+      },
+      {
+        "name": "market_vol",
+        "dtype": "float",
+        "minimum": 0.0001,
+        "maximum": 3.0
+      }
     ],
     "output_schema": [
-      {"name": "mean_reversion", "dtype": "float"},
-      {"name": "sigma", "dtype": "float"},
-      {"name": "rmse_bp", "dtype": "float"}
+      {
+        "name": "mean_reversion",
+        "dtype": "float"
+      },
+      {
+        "name": "sigma",
+        "dtype": "float"
+      },
+      {
+        "name": "rmse_bp",
+        "dtype": "float"
+      }
     ]
   },
-
   "constraints": {
     "operating_boundary": {
-      "assumptions": [{"key": "market_vol", "minimum": 0.0001, "maximum": 3.0}],
-      "guarantees": [{"key": "rmse_bp", "maximum": 2.0}]
+      "assumptions": [
+        {
+          "key": "market_vol",
+          "minimum": 0.0001,
+          "maximum": 3.0
+        }
+      ],
+      "guarantees": [
+        {
+          "key": "rmse_bp",
+          "maximum": 2.0
+        }
+      ]
     },
     "on_boundary_violation": "reject",
-    "resources": {"max_seconds": 300, "max_memory_mb": 4096}
+    "resources": {
+      "max_seconds": 300,
+      "max_memory_mb": 4096
+    }
   },
-
   "authority": {
     "principal": "svc/rates-calibration",
     "declared_use": "daily_recalibration",
@@ -95,16 +132,17 @@
     "granted_at": 1767225600.0,
     "expires_at": 1767229200.0,
     "grace_seconds": 0,
-    "revocation": {"epoch": 3, "check": "required"}
+    "revocation": {
+      "epoch": 3,
+      "check": "required"
+    }
   },
-
   "governance": {
     "tier": 1,
     "model_status": "attested",
     "version_status": "approved",
     "open_blocking_findings": 0
   },
-
   "signature": {
     "alg": "HMAC-SHA256",
     "key_id": "maya-prod-2026",

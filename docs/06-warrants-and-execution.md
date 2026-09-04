@@ -605,3 +605,30 @@ and one that describes reality.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
 *Not legal, regulatory or financial advice — see NOTICE §4.*
+
+
+---
+
+## Featuresets, and naming the point in P
+
+Two additions, specified in [15](15-featuresets-and-parameters.md).
+
+**`data.inputs[].binding: featureset`** names a versioned presentation of `X`
+rather than enumerating namespaces. It joins `feature_namespace` and
+`dataset_snapshot` as a bitemporal binding, so **L-W3** admits training from it,
+and **L-W9** requires a fit reading one to bound both clocks — an `as_of` and a
+`from`/`to` window. The featureset fixes the columns; the warrant fixes the
+period, which is what lets one set serve *train on 2019–2023* and *train on
+2020–2024* without becoming two sets.
+
+**`parameters.source.binding`** becomes a closed vocabulary — `artifact` ·
+`parameter_set` · `declared` · `to_be_fitted` · `vendor_internal` — checked by
+**L-W8**. Every run must say which point in `P` it is running at, because
+training does not change the kernel and a run that will not name its inhabitant
+produces a number attributable to nothing. A `fit` binds `to_be_fitted` and
+nothing else; it *writes* the parameter object, so declaring that it reads one
+describes the wrong direction.
+
+That law found a real error in `examples/warrants/02-quantlib-hullwhite-calibrate`,
+which claimed its calibration set came from an artifact while its verb produced
+it.
