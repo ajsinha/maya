@@ -838,3 +838,73 @@ class TestTutorialsArea:
     def test_help_still_works_alongside_tutorials(self, client):
         assert client.get("/help").status_code == 200
         assert client.get("/help/warrant-grammar").status_code == 200
+
+
+class TestDocumentApi:
+    def test_the_document_kinds_are_published(self, client, people):
+        body = client.get("/api/v1/document-kinds", auth=people["d.raman"]).json()
+        kinds = {k["kind"] for k in body["kinds"]}
+        assert {"model_development_document", "validation_report", "model_card",
+                "annex_iv"} == kinds
+        assert all(k["purpose"] for k in body["kinds"])
+
+    def test_compile_and_read_back(self, registered, people):
+        r = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                            params={"urn": URN, "kind": "model_development_document"})
+        assert r.status_code == 201
+        doc = r.json()
+        assert doc["citations"] and doc["sections"]
+
+        full = registered.get(f"/api/v1/documents/{doc['id']}",
+                              auth=people["a.mehta"]).json()
+        assert full["citations_verified"]["sound"] is True
+        assert full["staleness"]["stale"] is False
+
+    def test_it_renders_as_markdown(self, registered, people):
+        doc = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                              params={"urn": URN, "kind": "model_card"}).json()
+        text = registered.get(f"/api/v1/documents/{doc['id']}/markdown",
+                              auth=people["a.mehta"]).text
+        assert text.startswith("# Model Card")
+        assert "## Identity and ownership" in text
+
+    def test_a_governance_event_makes_it_stale(self, registered, people):
+        doc = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                              params={"urn": URN,
+                                      "kind": "model_development_document"}).json()
+        registered.post("/api/v1/findings", auth=people["a.mehta"], json={
+            "urn": URN, "severity": "Medium", "title": "Docs stale",
+            "owner": "person/j.okafor"})
+        stale = registered.get(f"/api/v1/documents/{doc['id']}",
+                               auth=people["a.mehta"]).json()["staleness"]
+        assert stale["stale"] is True and "finding_raised" in stale["kinds_since"]
+
+    def test_a_developer_cannot_compile(self, registered, people):
+        r = registered.post("/api/v1/documents", auth=people["d.raman"],
+                            params={"urn": URN, "kind": "model_card"})
+        assert r.status_code == 403
+
+    def test_an_unknown_kind_is_refused(self, registered, people):
+        r = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                            params={"urn": URN, "kind": "poem"})
+        assert r.status_code == 422 and r.json()["error"] == "unknown_document_kind"
+
+    def test_the_document_renders_in_the_interface(self, registered, people):
+        doc = registered.post("/api/v1/documents", auth=people["a.mehta"],
+                              params={"urn": URN,
+                                      "kind": "model_development_document"}).json()
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/document/{doc['id']}").text
+        assert "Model Development Document" in body
+        assert "<h2" in body, "the markdown should be rendered, not escaped"
+        assert "Required sections not filled" in body or "sections" in body
+
+    def test_the_model_page_lists_documents(self, registered, people):
+        registered.post("/api/v1/documents", auth=people["a.mehta"],
+                        params={"urn": URN, "kind": "model_card"})
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert "Documentation" in body and "Model Card" in body
+        assert 'id="compile-doc"' in body

@@ -34,7 +34,8 @@ from core.execution import WarrantService
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
 from core.config import PropertiesConfigurator
-from core.content import ContentLibrary
+from core.docs import ContextBuilder, DocumentCompiler
+from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
@@ -42,6 +43,7 @@ from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttestationRepository, BreachRepository, ContractRepository, Database,
+                DocumentRepository,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
@@ -129,6 +131,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                FeatureViewVersionRepository(db), ContractRepository(db),
                                SnapshotRepository(db), DeltaStore(delta.root), evidence)
 
+    documents = DocumentCompiler(
+        DocumentRepository(db), evidence,
+        ContextBuilder(registry, evidence, RiskRepository(db), features,
+                       validation, findings, monitoring, lifecycle, warrants))
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "warrants": warrants,
@@ -137,6 +144,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
+                           "documents": documents, "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
                            "replayer": Replayer(validation, catalogue)}

@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 10. This section is the authoritative record of what
+*Last updated after milestone 11. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -35,7 +35,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. The model page shows versions, pinned feature contracts, validation episodes, findings, warrants and evidence. Every asset vendored — no CDN |
 | ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 18 help topics in 6 sections (~12,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
 | ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and warrant resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
-| ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
+| ✅ | **Documentation compiler** (`core/docs/`) | **Complete** | Four document kinds compiled from the register and the evidence graph by twelve lenses. Every section records the evidence it rested on, so citation soundness is a Boolean evaluation rather than a claim. Staleness is *computed* from the chain head at compile time, not remembered. A lens that cannot fill its section says so in the document, so a gap in the model's evidence is visible rather than blank. Rendered through the same markdown pipeline as the help system |
 | ✅ | **Monitoring** (`core/monitoring/`) | **Complete** | Four monitor kinds, each admitting only the tests that can answer it, checked at definition time. Delayed labels are first-class: a performance monitor must declare its outcome window, maturity is decided per row, and evaluation over an immature cohort is refused with the date it becomes measurable. A breach raises a finding, escalating with persistence; recovery closes the breach and deliberately leaves the finding open |
 | ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
 | ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
@@ -67,6 +67,9 @@ number.
 
 ### Honest gaps
 
+- **No document rendering beyond markdown.** No PDF, no house template, no
+  signature page, no export pack. Turning the compiled markdown into a firm's
+  document standard is deliberately outside what the platform tries to own.
 - **No telemetry ingestion or scheduler.** Scored rows are passed in; there is no
   streaming collector, no sampling strategy, no automatic reference-window
   management, and nothing calls `monitors.due()` on a cadence.
