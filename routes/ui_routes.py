@@ -61,7 +61,8 @@ class UIRoutes(Routes):
                 flow=self.ctx["lifecycle"].state(urn), now=time.time(),
                 monitoring=self.ctx["monitoring"].status(m["id"]),
                 documents=[{**d, "staleness": docs.staleness(d["id"])}
-                           for d in docs.for_model(m["id"])])
+                           for d in docs.for_model(m["id"])],
+                overlays=self.ctx["overlays"].status(m["id"]))
 
         @self.app.get("/document/{document_id}", response_class=HTMLResponse,
                       tags=["ui"])

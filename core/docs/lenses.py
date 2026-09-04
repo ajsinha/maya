@@ -262,6 +262,32 @@ def execution(ctx: Dict[str, Any]) -> Rendered:
         _cite(ctx["evidence"], "warrant_issued", "warrant_revoked")
 
 
+def overlays(ctx: Dict[str, Any]) -> Rendered:
+    status = ctx.get("overlays") or {}
+    rows_in = status.get("detail_rows") or []
+    if not rows_in:
+        return None, []
+    rows = "\n".join(
+        f"| {o['reference']} | {o['name']} | {o['kind']} | {o['status']} | "
+        f"{o['renewals']} | "
+        + (f"{o['assessment']['materiality']['magnitude']:,.2f}"
+           if o["assessment"]["materiality"].get("measured") else "*unmeasured*")
+        + f" | {'**yes**' if o['assessment']['escalate'] else 'no'} |"
+        for o in rows_in)
+    text = ("A post-model adjustment is part of the number the model produces, so "
+            "a document that omits them describes a model nobody runs.\n\n"
+            "| Ref | Adjustment | Kind | Status | Renewals | Magnitude | Persistent |\n"
+            "|---|---|---|---|---|---|---|\n" + rows + "\n\n"
+            f"{status.get('detail', '')}.\n")
+    persistent = [o for o in rows_in if o["assessment"]["escalate"]]
+    if persistent:
+        text += ("\nAn overlay past its renewal limit is an unversioned model "
+                 "change: either the model should be corrected, or the adjustment "
+                 "built into it and validated.\n")
+    return text, _cite(ctx["evidence"], "overlay_proposed", "overlay_approved",
+                       "overlay_renewed", "overlay_measured")
+
+
 def provenance(ctx: Dict[str, Any]) -> Rendered:
     nodes = ctx["evidence"]
     chain = ctx.get("chain") or {}

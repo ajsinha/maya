@@ -236,3 +236,11 @@ class BreachRepository(Repository):
 class DocumentRepository(Repository):
     TABLE, ORDER = "document", "compiled_at"
     JSON = ("sections", "citations", "coverage")
+
+
+class OverlayRepository(Repository):
+    TABLE, JSON, ORDER = "overlay", ("basis",), "created_at"
+
+
+class MeasurementRepository(Repository):
+    TABLE, ORDER = "overlay_measurement", "measured_at"
