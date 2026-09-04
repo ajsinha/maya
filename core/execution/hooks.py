@@ -3,126 +3,89 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Hook issuance and resolution.
+Hook resolution — the platform's boundary with anything that runs a model.
 
 MAYA does not execute models. It issues a signed, expiring, entitlement-bound
-execution CONTRACT, and an execution engine acts on it. A consumer holds only a
-URN; artifact location, schemas, operating boundaries and policy are resolved at
-runtime, so a governed version move never requires a consumer to redeploy.
+execution CONTRACT, and an execution engine acts on it. That separation is the
+reason a governed version move never requires a consumer to redeploy: the
+consumer holds a URN, and everything else is resolved here, at the moment of
+use, against the policy in force at that moment.
 
-Two properties are load-bearing:
+Resolution fails closed. No entitlement, no approved use, no approved version —
+and it refuses with a reason and a remediation hint rather than degrading
+quietly into something that looks like it worked.
 
-  * The revocation floor. A descriptor on the local revocation list is refused
-    regardless of grace state. Grace extends authorisation currency; it never
-    extends revocation ignorance (adversarial review, finding C-1).
-  * Fail closed. No entitlement, no approved use, no approved version, or a
-    blocking finding, and resolution refuses with a reason and a remediation
-    hint rather than degrading quietly.
+The work is delegated: HookGrants owns entitlements and revocation, the
+DescriptorSigner owns signatures and expiry, the DescriptorFactory owns the
+shape of what an engine receives. What lives here is the ORDER of the checks,
+which is the part that has to be right.
 """
 from __future__ import annotations
 
-import hmac
-import random
-import time
-from dataclasses import dataclass, field
-from hashlib import sha256
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
+from core.execution.descriptors import DescriptorFactory
+from core.execution.errors import HookError
+from core.execution.grants import HookGrants
+from core.execution.signing import DescriptorSigner
+from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
 from core.log import get_logger
 from core.registry import ModelRegistry, RegistryError
 from db import HookRepository
 
 logger = get_logger(__name__)
-from db.database import digest as canonical_digest, new_id
-
-
-class HookError(RuntimeError):
-    """Resolution or issuance refused. ``code`` maps to the error taxonomy."""
-
-    def __init__(self, code: str, detail: str, remediation: str = ""):
-        super().__init__(detail)
-        self.code, self.detail, self.remediation = code, detail, remediation
-
-    def as_problem(self) -> Dict[str, Any]:
-        return {"error": self.code, "detail": self.detail, "remediation": self.remediation}
-
-
-def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
-    """``maya://model/<name>[@<semver>][#<alias>]`` -> (name, semver, alias)."""
-    if not urn.startswith("maya://model/"):
-        raise HookError("validation_failed", f"not a MAYA model URN: {urn}",
-                        "expected maya://model/<name>[@<semver>|#<alias>]")
-    body = urn[len("maya://model/"):]
-    aliasname = semver = None
-    if "#" in body:
-        body, aliasname = body.split("#", 1)
-    if "@" in body:
-        body, semver = body.split("@", 1)
-    if not body:
-        raise HookError("validation_failed", f"empty model name in {urn}", "")
-    return body, semver, aliasname
 
 
 class HookService:
     """Issues and resolves hook descriptors. Signs them; never runs a model."""
 
-    def __init__(self, repo: HookRepository, registry: ModelRegistry, evidence: EvidenceEngine,
-                 signing_key: str = "maya-dev-key",
+    def __init__(self, repo: HookRepository, registry: ModelRegistry,
+                 evidence: EvidenceEngine, signing_key: str = "maya-dev-key",
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20):
-        self.repo, self.registry, self.evidence = repo, registry, evidence
-        self._key = signing_key.encode()
-        self._ttl = ttl_by_tier or {1: 60, 2: 300, 3: 3600, 4: 3600}
-        self._grace = grace_by_tier or {1: 0, 2: 0, 3: 900, 4: 900}
-        self._jitter = max(0, min(jitter_pct, 50))
-        self.epoch = 0
+        self.registry = registry
+        self.grants = HookGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
+        self.signer = DescriptorSigner(signing_key, jitter_pct)
+        self.descriptors = DescriptorFactory(self.signer)
 
-    # ------------------------------------------------------------------ issue
-    def issue(self, urn: str, environment: str, principal: str, declared_use: str,
-              flavour: str = "descriptor_only", actor: str = "system") -> Dict[str, Any]:
-        name, semver, aliasname = parse_urn(urn)
-        m = self.registry.require(f"maya://model/{name}")
-        tier = m.get("tier") or 1
-        if semver is None and aliasname is None:
-            aliasname = "champion"
-        row = {"model_id": m["id"], "environment": environment,
-               "binding_kind": "pinned_version" if semver else "alias",
-               "alias_name": aliasname, "version_id": None, "flavour": flavour,
-               "principal": principal, "declared_use": declared_use,
-               "ttl_seconds": self._ttl.get(tier, 300),
-               "grace_seconds": self._grace.get(tier, 0),
-               "revoked": False, "revoke_reason": None, "epoch": self.epoch,
-               "created_at": time.time()}
-        if semver:
-            v = self.registry.version(m["urn"], semver)
-            if not v:
-                raise HookError("validation_failed", f"no version {semver} for {m['urn']}", "")
-            row["version_id"] = v["id"]
-        self.repo.add(row)
-        self.evidence.append("hook_issued", "model", m["id"],
-                             {"urn": urn, "principal": principal, "use": declared_use,
-                              "environment": environment}, actor=actor)
-        return row
+    @property
+    def epoch(self) -> int:
+        """Bumped by every revocation. Descriptors carry the epoch they were
+        minted under, so an engine can tell a stale credential from a current one."""
+        return self.grants.epoch
 
     # ---------------------------------------------------------------- resolve
     def resolve(self, urn: str, environment: str, principal: str,
                 declared_use: str) -> Dict[str, Any]:
         """Return a signed descriptor, or refuse with a reason. Never executes."""
         name, semver, aliasname = parse_urn(urn)
-        model_urn = f"maya://model/{name}"
+        m = self._model(urn, model_urn(name))
+        grant = self._grant(m, environment, principal, declared_use)
+        version = self._version(m["urn"], environment, semver,
+                                aliasname or grant["alias_name"], urn)
+        return self.descriptors.build(urn, m, version, grant, principal,
+                                      declared_use, environment, self.epoch)
+
+    def _model(self, urn: str, model_urn_: str) -> Dict[str, Any]:
         try:
-            m = self.registry.require(model_urn)
+            return self.registry.require(model_urn_)
         except RegistryError as exc:
             logger.info("hook resolution for %s hit an unregistered model: %s", urn, exc)
             raise HookError("not_found", str(exc), "register the model first") from exc
 
-        grant = self.repo.one(model_id=m["id"], environment=environment,
-                              principal=principal)
+    def _grant(self, model: Dict[str, Any], environment: str, principal: str,
+               declared_use: str) -> Dict[str, Any]:
+        """Entitlement, then withdrawal, then declared use — in that order.
+
+        Revocation is checked before the use comparison on purpose: a withdrawn
+        hook is withdrawn whatever the caller claims to be doing with it.
+        """
+        grant = self.grants.find(model["id"], environment, principal)
         if grant is None:
             raise HookError("no_entitlement",
-                            f"{principal} holds no hook for {model_urn} in {environment}",
+                            f"{principal} holds no hook for {model['urn']} in {environment}",
                             "request a hook grant for this principal and approved use")
         if grant["revoked"]:
             raise HookError("revoked", grant["revoke_reason"] or "hook revoked",
@@ -132,10 +95,13 @@ class HookService:
                             f"declared use '{declared_use}' is not the approved use "
                             f"'{grant['declared_use']}'",
                             "seek approval for this use, or declare the approved one")
+        return grant
 
-        version = (self.registry.version(model_urn, semver) if semver
-                   else self.registry.resolve_alias(model_urn, environment,
-                                                    aliasname or grant["alias_name"] or "champion"))
+    def _version(self, model_urn_: str, environment: str, semver: Optional[str],
+                 aliasname: Optional[str], urn: str) -> Dict[str, Any]:
+        version = (self.registry.version(model_urn_, semver) if semver
+                   else self.registry.resolve_alias(model_urn_, environment,
+                                                    aliasname or DEFAULT_ALIAS))
         if version is None:
             raise HookError("not_found", f"nothing bound for {urn} in {environment}",
                             "point the alias at an approved version")
@@ -143,77 +109,26 @@ class HookService:
             raise HookError("restricted",
                             f"version {version['semver']} is '{version['status']}'",
                             "an approved version is required in this environment")
+        return version
 
-        return self._descriptor(urn, m, version, grant, principal, declared_use,
-                                environment)
+    # ------------------------------------------------------- delegated surface
+    def issue(self, *a, **kw) -> Dict[str, Any]:
+        return self.grants.issue(*a, **kw)
 
-    def _descriptor(self, urn: str, model: Dict[str, Any], version: Dict[str, Any],
-                    grant: Dict[str, Any], principal: str, declared_use: str,
-                    environment: str) -> Dict[str, Any]:
-        ttl, now = self._jittered(grant["ttl_seconds"]), time.time()
-        descriptor = {
-            "maya_descriptor_version": "1.0", "descriptor_id": new_id(), "urn": urn,
-            "resolved": {"model_urn": model["urn"], "version": version["semver"],
-                         "version_id": version["id"],
-                         "manifest_digest": version["manifest_digest"],
-                         "binding_kind": grant["binding_kind"],
-                         "trainability_class": version["trainability_class"]},
-            "authorization": {"principal": principal, "declared_use": declared_use,
-                              "environment": environment, "granted_at": now,
-                              "expires_at": now + ttl,
-                              "grace_seconds": grant["grace_seconds"]},
-            "execution": {"flavour": grant["flavour"],
-                          "artifact_digest": version["artifact_digest"],
-                          "deterministic": version["deterministic"]},
-            "io_contract": {"input_schema": version["input_schema"],
-                            "output_schema": version["output_schema"]},
-            "constraints": version["contract"],
-            "governance_snapshot": {"tier": model.get("tier"), "model_status": model["status"],
-                                    "version_status": version["status"]},
-            "revocation": {"epoch": self.epoch},
-        }
-        descriptor["signature"] = self.sign(descriptor)
-        return descriptor
+    def grants_for(self, urn: str) -> List[Dict[str, Any]]:
+        return self.grants.of_model(urn)
 
-    # ----------------------------------------------------------------- crypto
-    def sign(self, descriptor: Dict[str, Any]) -> str:
-        body = {k: v for k, v in descriptor.items() if k != "signature"}
-        return hmac.new(self._key, canonical_digest(body).encode(), sha256).hexdigest()
-
-    def verify(self, descriptor: Dict[str, Any]) -> bool:
-        claimed = descriptor.get("signature", "")
-        return hmac.compare_digest(claimed, self.sign(descriptor))
-
-    def _jittered(self, ttl: int) -> int:
-        """+/- jitter so a fleet does not expire in lockstep and stampede."""
-        if not self._jitter:
-            return ttl
-        delta = ttl * self._jitter / 100.0
-        return max(1, int(ttl + random.uniform(-delta, delta)))
-
-    # ------------------------------------------------------------- revocation
     def revoke(self, hook_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
-        row = self.repo.one(id=hook_id)
-        if not row:
-            raise HookError("not_found", f"no hook {hook_id}", "")
-        self.epoch += 1
-        self.repo.set({"revoked": True, "revoke_reason": reason,
-                       "epoch": self.epoch}, id=hook_id)
-        self.evidence.append("hook_revoked", "model", row["model_id"],
-                             {"hook_id": hook_id, "reason": reason}, actor=actor)
-        return {"hook_id": hook_id, "revoked": True, "reason": reason, "epoch": self.epoch}
+        return self.grants.revoke(hook_id, reason, actor)
 
     def revoke_model(self, urn: str, reason: str, actor: str = "system") -> int:
-        """Kill switch for every hook on a model."""
-        m = self.registry.require(urn)
-        rows = self.repo.many(model_id=m["id"])
-        for r in rows:
-            self.revoke(r["id"], reason, actor)
-        return len(rows)
+        return self.grants.revoke_model(urn, reason, actor)
+
+    def sign(self, descriptor: Dict[str, Any]) -> str:
+        return self.signer.sign(descriptor)
+
+    def verify(self, descriptor: Dict[str, Any]) -> bool:
+        return self.signer.verify(descriptor)
 
     def is_expired(self, descriptor: Dict[str, Any], now: Optional[float] = None) -> bool:
-        auth = descriptor["authorization"]
-        return (now or time.time()) > auth["expires_at"] + auth.get("grace_seconds", 0)
-
-    def grants(self, urn: str) -> List[Dict[str, Any]]:
-        return self.repo.many(model_id=self.registry.require(urn)["id"])
+        return self.signer.is_expired(descriptor, now)
