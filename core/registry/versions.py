@@ -37,6 +37,7 @@ class VersionService:
                  evidence: EvidenceEngine, gate: Optional[LifecycleGate] = None):
         self.versions, self.catalogue, self.evidence = versions, catalogue, evidence
         self.gate = gate
+        self.policy = None
 
     @staticmethod
     def kernel_of(spec: Dict[str, Any], artifact_digest: Optional[str]) -> ParametricKernel:
@@ -108,6 +109,13 @@ class VersionService:
 
     def approve(self, urn: str, semver: str, actor: str = "system") -> Dict[str, Any]:
         v = self.require(urn, semver)
+        if self.policy is not None:
+            model = self.catalogue.require(urn)
+            self.policy.check("version:approve", {
+                "tier": model.get("tier"), "status": v["status"],
+                "has_artifact_digest": bool(v.get("artifact_digest")),
+                "has_contract": bool(v.get("contract"))},
+                f"{urn}@{semver}")
         self.versions.set({"status": "approved"}, id=v["id"])
         self.evidence.append("version_approved", "version", v["id"],
                              {"semver": semver}, actor=actor)

@@ -43,6 +43,16 @@ class ModelRegistry:
         # and has not been reached. Injected rather than imported so the registry
         # keeps knowing nothing about lifecycle workflows.
         self.approvals: Optional[Callable[[str, str], None]] = None
+        # A policy gate, consulted AFTER the checks above and only ever to
+        # refuse. Policy tightens; the invariants written here are the floor.
+        self.policy = None
+
+    def attach_policy(self, gate) -> None:
+        """Wire a policy gate. It adds conditions; it never removes them."""
+        self.policy = gate
+        self.version_service.policy = gate
+        self.alias_service.policy = gate
+        self.catalogue.policy = gate
 
     def attach_quorum(self, check) -> None:
         """Wire the version-approval quorum after construction.

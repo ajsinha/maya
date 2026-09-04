@@ -45,6 +45,9 @@ class AliasService:
         self.aliases, self.history = aliases, history
         self.catalogue, self.versions, self.evidence = catalogue, versions, evidence
         self.blocking = blocking
+        # A policy gate, consulted after the proofs above and only
+        # ever to refuse. Policy tightens; these proofs are the floor.
+        self.policy = None
 
     # ------------------------------------------------------------------ proof
     @staticmethod
@@ -76,6 +79,15 @@ class AliasService:
         if not (proof["refinement"]["holds"] and proof["variance"]["ok"]):
             raise RegistryError(f"alias move refused: {proof['refinement']['reason']} / "
                                 f"{proof['variance']['reason']}")
+
+        if self.policy is not None:
+            self.policy.check("alias:move", {
+                "tier": m.get("tier"), "environment": environment, "alias": name,
+                "to_status": new["status"],
+                "refinement_holds": bool(proof["refinement"]["holds"]),
+                "variance_ok": bool(proof["variance"]["ok"]),
+                "attested": m.get("status") == "attested"},
+                f"{urn} {environment}/{name}")
 
         now = time.time()
         self.aliases.point(m["id"], environment, name, new["id"], now, actor)

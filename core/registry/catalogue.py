@@ -34,6 +34,7 @@ class ModelCatalogue:
                  gate: Optional[LifecycleGate] = None):
         self.models, self.evidence = models, evidence
         self.gate = gate
+        self.policy = None
 
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
@@ -76,6 +77,12 @@ class ModelCatalogue:
             allowed, why = self.gate.may_mutate(model["id"])
             if not allowed:
                 raise RegistryError(f"cannot change {urn}: {why}")
+        if self.policy is not None:
+            self.policy.check("model:mutate", {
+                "tier": model.get("tier"),
+                "lifecycle_state": model.get("status"),
+                "attested": model.get("status") == "attested",
+                "amending": model.get("status") == "amending"}, urn)
         unknown = set(fields) - set(self.EDITABLE)
         if unknown:
             raise RegistryError(

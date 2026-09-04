@@ -226,6 +226,29 @@ CREATE TABLE IF NOT EXISTS feature_contract (
 -- derived from the register, and this records only that a delivery was
 -- attempted. A failed delivery is kept because silence about a failed send is
 -- how somebody concludes they were never told.
+-- A versioned gate. A policy carries its own test cases and cannot be published
+-- until they pass: a gate that can be changed without a release is a gate that
+-- can be weakened without one, and the cases are what stops that being silent.
+CREATE TABLE IF NOT EXISTS policy_rule (
+    id           text PRIMARY KEY,
+    gate         text NOT NULL,
+    version      integer NOT NULL,
+    rule         text NOT NULL,
+    reason       text NOT NULL,
+    cases        text NOT NULL DEFAULT '[]',
+    facts_read   text NOT NULL DEFAULT '[]',
+    test_report  text NOT NULL DEFAULT '{}',
+    state        text NOT NULL DEFAULT 'draft',
+    note         text NOT NULL DEFAULT '',
+    digest       text NOT NULL,
+    created_by   text NOT NULL,
+    created_at   double precision NOT NULL,
+    published_at double precision,
+    published_by text,
+    UNIQUE (gate, version)
+);
+CREATE INDEX IF NOT EXISTS ix_policy_gate ON policy_rule (gate, state);
+
 CREATE TABLE IF NOT EXISTS notification (
     id         text PRIMARY KEY,
     principal  text NOT NULL,

@@ -224,6 +224,12 @@ class ParameterSetRepository(Repository):
         return (prior["version"] + 1) if prior else 1
 
 
+class PolicyRuleRepository(Repository):
+    """Versioned gates, with the cases each one carries."""
+    TABLE, ORDER = "policy_rule", "created_at"
+    JSON = ("cases", "facts_read", "test_report")
+
+
 class NotificationRepository(Repository):
     """Deliveries attempted, and what came of them."""
     TABLE, ORDER = "notification", "sent_at"
