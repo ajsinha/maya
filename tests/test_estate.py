@@ -93,13 +93,26 @@ class TestWorkIsComputed:
         assert "no longer describes the model" in item.detail
         assert item.href.startswith("/document/")
 
-    def test_unplanned_baseline_debt_appears(self, worklist, baseline, registry):
+    def test_baseline_debt_is_summarised_not_enumerated(self, worklist, baseline,
+                                                        registry):
+        """Eleven rows all saying 'this model arrived without its evidence'
+        would bury every other kind of work."""
         baseline.import_models("csv", [{"urn": "maya://model/legacy.x",
                                         "name": "Legacy", "owner": "person/o",
                                         "tier": 1}])
         model = registry.get("maya://model/legacy.x")
         items = [i for i in worklist.for_model(model) if i.kind == "debt"]
-        assert items and "no dated plan" in items[0].detail
+        assert len(items) == 1, "one item per model, not one per gap"
+        assert "item(s) outstanding" in items[0].title
+        assert "without a dated plan" in items[0].detail
+        assert "most material is" in items[0].detail
+
+    def test_the_debt_item_names_the_worst_gap(self, worklist, baseline, registry):
+        baseline.import_models("csv", [{"urn": "maya://model/legacy.z",
+                                        "name": "Legacy", "owner": "", "tier": 1}])
+        model = registry.get("maya://model/legacy.z")
+        item = next(i for i in worklist.for_model(model) if i.kind == "debt")
+        assert "Critical" in item.detail, "the most material gap leads"
 
     def test_a_subsystem_that_fails_does_not_blank_the_list(self, registry,
                                                             a_model):
@@ -202,3 +215,18 @@ class TestEstateSummary:
         summary = estate.of([])
         assert summary["models"] == 0
         assert summary["adjustments"]["aggregate_magnitude"] == 0.0
+
+
+class TestRowsReadWithoutClicking:
+    def test_every_item_names_its_model(self, worklist, registry, lifecycle,
+                                        ready_model, findings, a_model):
+        lifecycle.submit(ready_model, "j.okafor")
+        findings.raise_finding(a_model["id"], "Critical", "Leakage", "person/o")
+        items = worklist.for_model(registry.get(URN))
+        assert items
+        for i in items:
+            assert i.model == "SB PD", f"{i.kind} does not say which model"
+
+    def test_the_name_survives_into_the_rendered_shape(self, worklist, a_model):
+        item = worklist.for_model(a_model)[0].as_dict()
+        assert item["model"] and item["href"].startswith("/model/")
