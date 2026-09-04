@@ -23,6 +23,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
+from core.baseline import BaselineError
 from core.authz import AuthzError
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
@@ -79,6 +80,9 @@ STATUS: Dict[str, int] = {
     "oracle_failed": 422, "nothing_grounded": 422,
     "already_decided": 409, "self_attestation": 403,
     "no_capability": 404, "no_generation": 404,
+    # baseline import
+    "unknown_gap": 422, "plan_required": 422, "nothing_to_import": 422,
+    "already_recorded": 409, "already_registered": 409, "no_debt": 404,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -144,7 +148,7 @@ class Routes:
         try:
             return fn()
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
-                OverlayError, AssistError) as exc:
+                OverlayError, AssistError, BaselineError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

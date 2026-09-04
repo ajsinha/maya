@@ -253,3 +253,16 @@ class CapabilityRepository(Repository):
 class GenerationRepository(Repository):
     TABLE, ORDER = "ai_generation", "created_at"
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
+
+
+class ImportRepository(Repository):
+    TABLE, ORDER = "baseline_import", "imported_at"
+
+
+class DebtRepository(Repository):
+    TABLE, ORDER = "compliance_debt", "raised_at"
+
+    def open_for(self, model_id: str) -> List[Dict[str, Any]]:
+        return [self._decode(r) for r in self.db.query(
+            f"SELECT * FROM {self.TABLE} WHERE model_id = :m AND status = 'open' "
+            "ORDER BY expires_at", {"m": model_id})]

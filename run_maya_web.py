@@ -32,6 +32,7 @@ from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService, LifecycleService)
 from core.execution import WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
+from core.baseline import BaselineImporter, DebtRegister
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
 from core.config import PropertiesConfigurator
@@ -45,12 +46,13 @@ from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
-                ContractRepository, Database,
+                ContractRepository, Database, DebtRepository,
                 DocumentRepository,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
-                GenerationRepository, MeasurementRepository, MonitorRepository,
+                GenerationRepository, ImportRepository, MeasurementRepository,
+                MonitorRepository,
                 ObservationRepository,
                 OverlayRepository, PrincipalRepository,
                 SignatureRepository, TestResultRepository,
@@ -150,6 +152,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                        validation, findings, monitoring, lifecycle, warrants,
                        overlays))
 
+    debts = DebtRegister(DebtRepository(db), evidence, findings)
+    baseline = BaselineImporter(ImportRepository(db), debts, registry, evidence,
+                                documents.build_context)
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "warrants": warrants,
@@ -160,6 +166,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "lifecycle": lifecycle, "monitoring": monitoring,
                            "documents": documents, "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
+                           "debts": debts, "baseline": baseline,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),

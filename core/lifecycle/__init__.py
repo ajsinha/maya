@@ -15,12 +15,14 @@ from core.lifecycle.attestation import AttestationService
 from core.lifecycle.common import (ATTESTATION_KINDS, DECISIONS, DEFAULT_REQUIRED_ROLES,
                                    LifecycleError)
 from core.lifecycle.service import LifecycleService
-from core.lifecycle.states import (AMENDING, APPROVED, ATTESTED, DRAFT, MEANING,
+from core.lifecycle.states import (AMENDING, APPROVED, ATTESTED, BASELINED,
+                                   DRAFT, MEANING,
                                    MUTABLE, RETIRED, STATES, SUBMITTED, TRANSITIONS,
                                    allowed_from, describe, is_mutable, transition)
 
 __all__ = ["LifecycleService", "AmendmentService", "AttestationService",
            "LifecycleError", "STATES", "TRANSITIONS", "MUTABLE", "MEANING",
-           "DRAFT", "SUBMITTED", "APPROVED", "ATTESTED", "AMENDING", "RETIRED",
+           "DRAFT", "BASELINED", "SUBMITTED", "APPROVED", "ATTESTED", "AMENDING",
+           "RETIRED",
            "DECISIONS", "ATTESTATION_KINDS", "DEFAULT_REQUIRED_ROLES",
            "is_mutable", "allowed_from", "transition", "describe"]

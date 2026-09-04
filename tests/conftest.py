@@ -329,3 +329,19 @@ def generations(db, capabilities, evidence):
     from core.assist import GenerationLog
     from db import GenerationRepository
     return GenerationLog(GenerationRepository(db), capabilities, evidence)
+
+
+# --------------------------------------------------------------- baseline import
+@pytest.fixture
+def debts(db, evidence, findings):
+    from core.baseline import DebtRegister
+    from db import DebtRepository
+    return DebtRegister(DebtRepository(db), evidence, findings)
+
+
+@pytest.fixture
+def baseline(db, debts, registry, evidence, doc_context):
+    from core.baseline import BaselineImporter
+    from db import ImportRepository
+    return BaselineImporter(ImportRepository(db), debts, registry, evidence,
+                            doc_context)
