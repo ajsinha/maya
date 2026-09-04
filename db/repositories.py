@@ -24,7 +24,7 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified")
+                 "protected_basis", "pit_verified", "passed", "blocking")
 
 
 class Repository:
@@ -168,3 +168,31 @@ class ContractRepository(Repository):
 
 class SnapshotRepository(Repository):
     TABLE, JSON, ORDER = "dataset_snapshot", ("pit_report",), "created_at"
+
+
+class ValidationRepository(Repository):
+    TABLE, ORDER = "validation", "started_at"
+    JSON = ("scope", "plan", "validators", "independence", "conditions")
+
+
+class TestResultRepository(Repository):
+    TABLE, ORDER = "test_result", "computed_at"
+    JSON = ("parameters", "slice", "threshold")
+
+
+class FindingRepository(Repository):
+    TABLE, ORDER = "finding", "raised_at"
+    JSON = ("closure_evidence",)
+
+    def open_for(self, model_id: str, blocking: Optional[bool] = None) -> List[Dict[str, Any]]:
+        """Open findings for a model, optionally only the blocking ones.
+
+        A dedicated method rather than a keyword filter because "open" is
+        `status <> 'closed'`, which the generated equality queries cannot say.
+        """
+        sql = f"SELECT * FROM {self.TABLE} WHERE model_id = :m AND status <> 'closed'"
+        params: Dict[str, Any] = {"m": model_id}
+        if blocking is not None:
+            sql += " AND blocking = :b"
+            params["b"] = int(blocking)
+        return [self._decode(r) for r in self.db.query(sql + " ORDER BY raised_at", params)]

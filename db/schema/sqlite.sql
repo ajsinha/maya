@@ -206,3 +206,73 @@ CREATE TABLE IF NOT EXISTS dataset_snapshot (
     digest         TEXT NOT NULL,
     created_at     REAL NOT NULL
 );
+
+-- --------------------------------------------------------------------------
+-- Validation, test results and findings
+-- --------------------------------------------------------------------------
+-- A validation is an episode of independent challenge against one version.
+-- Test results are the measurements it produced. Findings are what it concluded
+-- that somebody now has to do something about.
+--
+-- `blocking` on a finding is the load-bearing column in this file. An open
+-- blocking finding stops an alias move and refuses hook resolution, so a model
+-- that failed challenge cannot reach production by a route that does not pass
+-- through the register. That is the difference between a findings log and a
+-- control.
+
+CREATE TABLE IF NOT EXISTS validation (
+    id               TEXT PRIMARY KEY,
+    model_id         TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    kind             TEXT NOT NULL DEFAULT 'initial',
+    scope            TEXT NOT NULL DEFAULT '[]',
+    plan             TEXT NOT NULL DEFAULT '{}',
+    validators       TEXT NOT NULL DEFAULT '[]',
+    independence     TEXT NOT NULL DEFAULT '{}',
+    status           TEXT NOT NULL DEFAULT 'planned',
+    outcome          TEXT,
+    conditions       TEXT NOT NULL DEFAULT '[]',
+    snapshot_id      TEXT,
+    started_at       REAL NOT NULL,
+    completed_at     REAL,
+    due_at           REAL
+);
+
+CREATE TABLE IF NOT EXISTS test_result (
+    id            TEXT PRIMARY KEY,
+    validation_id TEXT NOT NULL,
+    test_key      TEXT NOT NULL,
+    parameters    TEXT NOT NULL DEFAULT '{}',
+    slice         TEXT NOT NULL DEFAULT '{}',
+    value         REAL,
+    threshold     TEXT NOT NULL DEFAULT '{}',
+    passed        INTEGER NOT NULL DEFAULT 0,
+    detail        TEXT NOT NULL DEFAULT '',
+    digest        TEXT NOT NULL,
+    computed_at   REAL NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_test_result_validation ON test_result (validation_id, test_key);
+
+CREATE TABLE IF NOT EXISTS finding (
+    id                 TEXT PRIMARY KEY,
+    model_id           TEXT NOT NULL,
+    model_version_id   TEXT,
+    validation_id      TEXT,
+    source             TEXT NOT NULL DEFAULT 'validation',
+    severity           TEXT NOT NULL,
+    category           TEXT NOT NULL DEFAULT 'general',
+    title              TEXT NOT NULL,
+    description        TEXT NOT NULL DEFAULT '',
+    affected_component TEXT,
+    blocking           INTEGER NOT NULL DEFAULT 0,
+    owner              TEXT NOT NULL,
+    raised_at          REAL NOT NULL,
+    due_at             REAL NOT NULL,
+    status             TEXT NOT NULL DEFAULT 'open',
+    closed_at          REAL,
+    closure_verified_by TEXT,
+    closure_evidence   TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS ix_finding_open ON finding (model_id, status, severity);

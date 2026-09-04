@@ -24,6 +24,7 @@ from core.execution import HookError
 from core.features import AssemblyRejected, FeatureError
 from core.log import get_logger
 from core.registry import RegistryError
+from core.validation import ValidationError
 
 API = "/api/v1"
 
@@ -34,12 +35,14 @@ STATUS: Dict[str, int] = {
     "not_found": 404, "validation_failed": 422, "assembly_rejected": 422,
     "no_entitlement": 403, "use_not_approved": 403, "signature_invalid": 403,
     "registry_refused": 409, "feature_refused": 409, "restricted": 423,
-    "revoked": 410, "expired": 410, "boundary_violation": 422, "no_runtime": 501,
+    "validation_refused": 409,
+    "revoked": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
     FeatureError: "correct the feature definition or the view version and retry",
     AssemblyRejected: "bound the assembly on both valid time and transaction time",
+    ValidationError: "the refusal names the rule that was not satisfied; satisfy it and retry",
 }
 
 
@@ -76,9 +79,10 @@ class Routes:
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)
             raise HTTPException(STATUS.get(exc.code, 400), exc.as_problem()) from exc
-        except (RegistryError, FeatureError, AssemblyRejected) as exc:
+        except (RegistryError, FeatureError, AssemblyRejected, ValidationError) as exc:
             code = {RegistryError: "registry_refused", FeatureError: "feature_refused",
-                    AssemblyRejected: "assembly_rejected"}[type(exc)]
+                    AssemblyRejected: "assembly_rejected",
+                    ValidationError: "validation_refused"}[type(exc)]
             logger.warning("refused (%s): %s", code, exc)
             raise HTTPException(STATUS[code], {
                 "error": code, "detail": str(exc), "remediation": REMEDY[type(exc)]}) from exc

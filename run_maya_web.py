@@ -33,10 +33,13 @@ from core.execution import HookService
 from core.config import PropertiesConfigurator
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
+from core.validation import (FindingRegister, Replayer, TestCatalogue,
+                             ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, ContractRepository, Database,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
-                FeatureViewRepository, FeatureViewVersionRepository, HookRepository,
-                ModelRepository, RiskRepository, SnapshotRepository, VersionRepository)
+                FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
+                HookRepository, ModelRepository, RiskRepository, SnapshotRepository,
+                TestResultRepository, ValidationRepository, VersionRepository)
 from routes import ALL_ROUTES
 
 ROOT = Path(__file__).resolve().parent
@@ -65,13 +68,22 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         {p: cfg.get_int(f"risk.purpose_ranks.{p}", 1)
          for p in ("commercial", "risk_management", "financial_reporting", "regulatory_capital")},
         _tier_map(cfg, "risk.review_months", {1: 12, 2: 18, 3: 24, 4: 36}))
+    # The register is the BlockingSource for both gates. It is built after the
+    # registry because both need the evidence engine, and attached explicitly.
+    findings = FindingRegister(FindingRepository(db), evidence)
+    registry.attach_blocking(findings)
+    catalogue = TestCatalogue()
+    validation = ValidationService(ValidationRepository(db), TestResultRepository(db),
+                                   registry, catalogue, evidence, findings)
+
     hooks = HookService(HookRepository(db), registry, evidence,
                         signing_key=cfg.get("hooks.signing_key_id", "maya-dev-key"),
                         ttl_by_tier=_tier_map(cfg, "hooks.ttl_seconds",
                                               {1: 60, 2: 300, 3: 3600, 4: 3600}),
                         grace_by_tier=_tier_map(cfg, "hooks.grace_seconds",
                                                 {1: 0, 2: 0, 3: 900, 4: 900}),
-                        jitter_pct=cfg.get_int("hooks.jitter_pct", 20))
+                        jitter_pct=cfg.get_int("hooks.jitter_pct", 20),
+                        blocking=findings)
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
                                FeatureViewVersionRepository(db), ContractRepository(db),
@@ -80,7 +92,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "hooks": hooks,
-                           "risk_repo": RiskRepository(db), "engine": None}
+                           "risk_repo": RiskRepository(db), "engine": None,
+                           "findings": findings, "validation": validation,
+                           "test_catalogue": catalogue,
+                           "replayer": Replayer(validation, catalogue)}
     if cfg.get_bool("execution.captive.enabled", True):
         # A consumer of the public hook contract, nothing more.
         ctx["engine"] = CaptiveEngine(hooks, cfg.get_float("execution.captive.max_seconds", 30.0))
