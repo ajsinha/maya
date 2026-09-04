@@ -186,3 +186,34 @@ def scored():
     scores = [0.02, 0.05, 0.09, 0.12, 0.18, 0.21, 0.24, 0.33,
               0.41, 0.48, 0.52, 0.61, 0.70, 0.78, 0.85, 0.94]
     return labels, scores
+
+
+# ------------------------------------------------------------------ authorisation
+@pytest.fixture
+def principals(db, evidence):
+    from core.authz import PrincipalService
+    from db import PrincipalRepository
+    # A cheap KDF: these tests are about the decision, not about the key derivation.
+    return PrincipalService(PrincipalRepository(db), evidence, iterations=1000)
+
+
+@pytest.fixture
+def segregation(evidence):
+    from core.authz import SegregationPolicy
+    return SegregationPolicy(evidence)
+
+
+@pytest.fixture
+def authz(segregation):
+    from core.authz import AuthorizationPolicy
+    return AuthorizationPolicy(segregation)
+
+
+@pytest.fixture
+def staff(principals):
+    """One principal per duty, as a real deployment would have."""
+    principals.create("d.raman", "D Raman", ["model_developer"], "dev-pw")
+    principals.create("j.okafor", "J Okafor", ["model_owner"], "owner-pw")
+    principals.create("a.mehta", "A Mehta", ["validator"], "val-pw")
+    principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "mrm-pw")
+    return {u: principals.get(u) for u in ("d.raman", "j.okafor", "a.mehta", "s.iqbal")}
