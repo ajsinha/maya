@@ -1,0 +1,125 @@
+{
+  "_comment": "T5 foundation-based. The weights are external and were not trained here; behaviour is CONFIGURED by a prompt, a retrieval corpus and decoding settings. Two grammar laws bite: `generate` needs a generative runtime, and an operation claiming determinism from a stochastic runtime must pin a seed. Here it declares itself stochastic, which is the honest answer at temperature 0.2.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c6f2b81",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/ops.kyc.summariser#champion",
+    "model_urn": "maya://model/ops.kyc.summariser",
+    "version": "1.4.0",
+    "version_id": "01a06a0f118e",
+    "manifest_digest": "sha256:d71f0a5c93e2b846017ac4f2e05b39d7648c1a0eb7f5d3926041ac8b5e37f0d2",
+    "binding_kind": "alias",
+    "trainability_class": "T5"
+  },
+
+  "operation": {
+    "verb": "generate",
+    "determinism": "stochastic",
+    "seed": null,
+    "mode": "single"
+  },
+
+  "parameters": {
+    "kind": "llm_configuration",
+    "source": {
+      "binding": "artifact",
+      "uri": "git://internal/kyc-prompts@a71f0c9",
+      "components": ["system_prompt", "few_shot_examples", "output_schema", "tool_manifest"]
+    },
+    "digest": "sha256:7c1b04ea8f2d59360a1e7b4c02d8f931654ab07de2f1a389c05b6472ed318fa0",
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "llm.prompt",
+    "entry": {
+      "provider": "anthropic",
+      "base_model": "claude-opus-5",
+      "prompt_digest": "sha256:7c1b04ea8f2d59360a1e7b4c02d8f931654ab07de2f1a389c05b6472ed318fa0",
+      "decoding": {"temperature": 0.2, "top_p": 0.95, "max_tokens": 1500},
+      "output_format": "json_schema",
+      "tools": [],
+      "guardrails": ["pii_redaction", "refusal_on_out_of_scope", "citation_required"]
+    },
+    "artifact": {
+      "uri": "git://internal/kyc-prompts@a71f0c9",
+      "digest": "sha256:7c1b04ea8f2d59360a1e7b4c02d8f931654ab07de2f1a389c05b6472ed318fa0",
+      "format": "prompt_bundle"
+    },
+    "environment": {"region": "eu-west-1", "data_residency": "EU"}
+  },
+
+  "data": {
+    "inputs": [
+      {"name": "kyc_pack", "binding": "request",
+       "description": "the document set to summarise"},
+      {
+        "name": "policy_corpus",
+        "binding": "document_corpus",
+        "corpus": "kyc-policy",
+        "revision": "2026-01-01",
+        "description": "The retrieval corpus is PINNED by revision. A RAG pipeline whose corpus moves is a model whose behaviour changed without a version, which is the generative equivalent of feature-store finding C-2."
+      }
+    ],
+    "outputs": [
+      {"name": "summary", "sink": "response"},
+      {"name": "citations", "sink": "response"},
+      {"name": "generation_record", "sink": "evidence"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "document", "dtype": "string"},
+      {"name": "customer_ref", "dtype": "string"}
+    ],
+    "output_schema": [
+      {"name": "summary", "dtype": "string"},
+      {"name": "citations", "dtype": "string"},
+      {"name": "confidence", "dtype": "float", "minimum": 0.0, "maximum": 1.0}
+    ]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        {"key": "document_tokens", "maximum": 120000},
+        {"key": "language", "allowed": ["en", "fr", "de"]}
+      ],
+      "guarantees": [
+        {"key": "groundedness", "minimum": 0.95},
+        {"key": "unsupported_claim_rate", "maximum": 0.02},
+        {"key": "pii_leakage_rate", "maximum": 0.0}
+      ]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 120, "max_cost_usd": 0.75}
+  },
+
+  "authority": {
+    "principal": "svc/kyc-workbench",
+    "declared_use": "analyst_review_assistance",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767229200.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 3,
+    "model_status": "attested",
+    "version_status": "approved",
+    "human_in_the_loop": true,
+    "eu_ai_act_role": "limited_risk",
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "a05c8f1b7e3d492067ac1b5e04f8d236b91c7a0e5d38f461072cbe9a4f13d825"
+  }
+}

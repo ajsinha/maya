@@ -161,7 +161,10 @@
           finding is open.</div>
       {% endif %}</div>
 
-    <div class="card mb-3"><div class="card-header">Warrants</div>
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Warrants</span>
+        <button id="gen-warrant" class="btn btn-sm btn-danger py-0 px-2"
+                style="font-size:.72rem">Generate</button></div>
       <div class="card-body p-0"><table class="table maya mb-0">
         <tbody>
         {% for h in warrants %}
@@ -173,7 +176,19 @@
         {% else %}
           <tr><td class="text-muted small p-3">No warrants issued.</td></tr>
         {% endfor %}
-        </tbody></table></div></div>
+        </tbody></table></div>
+      <div id="warrant-out" class="card-body py-2" style="display:none">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="kicker mb-0">RESOLVED WARRANT</span>
+          <button id="copy-warrant" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.7rem">Copy</button></div>
+        <pre class="mono" style="font-size:.68rem;max-height:22rem;overflow:auto;
+             background:#FBF9F7;border:1px solid var(--rule);border-left:3px solid var(--crimson);
+             border-radius:3px;padding:.6rem"><code id="warrant-json"></code></pre>
+        <div class="small text-muted">This is the whole contract an execution engine
+          acts on. Validate it against
+          <span class="mono">/api/v1/grammar/schema</span>.</div>
+      </div></div>
 
     <div class="card"><div class="card-header">Evidence ({{ evidence|length }})</div>
       <div class="card-body p-0" style="max-height:22rem;overflow:auto">
@@ -200,6 +215,42 @@ $(function () {
     "amend":  {url: "/amend",  ask: "What is being changed, and why?", field: "reason"},
     "retire": {url: "/retire", ask: "Why is this model being retired?", field: "reason"}
   };
+
+  // Generate a warrant: issue the standing entitlement if needed, then resolve
+  // one. Both calls are the same public endpoints an external engine uses.
+  $("#gen-warrant").on("click", function () {
+    var verb = window.prompt(
+      "Operation verb (score, fit, validate, backtest, explain, simulate, " +
+      "stress, optimise, generate, monitor)", "score");
+    if (!verb) { return; }
+    var principal = window.prompt("Principal (the identity acting)", "svc/origination");
+    if (!principal) { return; }
+    var use = window.prompt("Declared use", "origination_decision");
+    if (!use) { return; }
+    var env = window.prompt("Environment", "prod") || "prod";
+    var urn = "{{ model.urn }}#champion";
+    var body = {urn: urn, environment: env, principal: principal, declared_use: use};
+
+    var show = function (doc) {
+      $("#warrant-json").text(JSON.stringify(doc, null, 2));
+      $("#warrant-out").show();
+    };
+    var resolve = function () {
+      $.ajax({url: "/api/v1/resolve?verb=" + encodeURIComponent(verb), method: "POST",
+              contentType: "application/json", data: JSON.stringify(body)})
+        .done(show)
+        .fail(function (xhr) { show(xhr.responseJSON || {error: "refused"}); });
+    };
+    // Issue first; a duplicate grant is harmless and resolution needs one.
+    $.ajax({url: "/api/v1/warrants", method: "POST", contentType: "application/json",
+            data: JSON.stringify(body)}).always(resolve);
+  });
+
+  $("#copy-warrant").on("click", function () {
+    var text = $("#warrant-json").text();
+    if (navigator.clipboard) { navigator.clipboard.writeText(text); }
+    $(this).text("Copied");
+  });
 
   $("[data-action]").on("click", function () {
     var act = $(this).data("action");

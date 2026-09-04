@@ -1,23 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Help — {{ app_name }}{% endblock %}
+{% block title %}{{ area_title }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
-<p class="kicker mt-2 mb-1">HELP</p>
-<h1>Documentation</h1>
+<p class="kicker mt-2 mb-1">{{ area_kicker }}</p>
+<h1>{{ area_heading }}</h1>
 <div class="rule"></div>
 <p class="text-muted" style="max-width:44rem">
-  Everything below is available over the API; nothing requires this interface.
-  These pages are markdown files under <span class="mono">content/help/</span>,
-  rendered at request time &mdash; so they are versioned, reviewable in a pull
-  request alongside the behaviour they describe, and cannot drift from the
-  release that shipped them.</p>
+{{ area_blurb }}</p>
 
 {% for section, topics in sections %}
   <div class="section-label">{{ section }}</div>
   <div class="row g-3">
     {% for t in topics %}
       <div class="col-md-6 col-lg-4">
-        <a class="card topic-card" href="/help/{{ t.slug }}">
+        <a class="card topic-card" href="{{ area_path }}/{{ t.slug }}">
           <div class="card-body">
             <i class="bi bi-{{ t.icon }}" style="color:var(--crimson)"></i>
             <div class="t mt-1">{{ t.title }}</div>
@@ -31,6 +27,6 @@
 {% else %}
   <div class="card"><div class="card-body text-muted small">
     No help content found. Expected markdown files under
-    <span class="mono">{{ content_dir }}/help/</span>.</div></div>
+    <span class="mono">{{ content_dir }}/{{ area }}/</span>.</div></div>
 {% endfor %}
 {% endblock %}

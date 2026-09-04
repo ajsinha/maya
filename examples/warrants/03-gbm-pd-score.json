@@ -1,0 +1,108 @@
+{
+  "_comment": "T3 machine-learned. Same document, different coordinates: learned weights, an ONNX graph, scoring, and features read from a PINNED feature view version rather than from 'latest'.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c5a77e2",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/credit.pd.smallbiz#champion",
+    "model_urn": "maya://model/credit.pd.smallbiz",
+    "version": "3.2.1",
+    "version_id": "01a06a0a079c",
+    "manifest_digest": "sha256:35808193a078a72167756ca0c893fa266ed691a747d06def088e2dde3bce795f",
+    "binding_kind": "alias",
+    "trainability_class": "T3"
+  },
+
+  "operation": {
+    "verb": "score",
+    "determinism": "deterministic",
+    "seed": null,
+    "mode": "batch"
+  },
+
+  "parameters": {
+    "kind": "learned_weights",
+    "source": {"binding": "artifact", "uri": "s3://maya-artifacts/credit/pd_smallbiz_3.2.1.onnx"},
+    "digest": "sha256:9f2c1a7e4b3d0865ca19e2f7b04d3a61c8e5079fb2d4a136e0c85719ad3f2b4c",
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "onnx",
+    "entry": {
+      "graph": "pd_smallbiz_3.2.1.onnx",
+      "opset": 18,
+      "input_names": ["features"],
+      "output_names": ["probability"],
+      "providers": ["CPUExecutionProvider"]
+    },
+    "artifact": {
+      "uri": "s3://maya-artifacts/credit/pd_smallbiz_3.2.1.onnx",
+      "digest": "sha256:9f2c1a7e4b3d0865ca19e2f7b04d3a61c8e5079fb2d4a136e0c85719ad3f2b4c",
+      "format": "onnx"
+    },
+    "environment": {"image": "reg.internal/ml/onnxruntime:1.20-py312"}
+  },
+
+  "data": {
+    "inputs": [
+      {
+        "name": "customer_features",
+        "binding": "feature_namespace",
+        "namespace": "features/customer/sb_financials/v1",
+        "description": "The PINNED view version from the feature contract. Publishing v2 does not move what this warrant reads — that is adversarial-review finding C-2, designed out rather than monitored for."
+      },
+      {"name": "entities", "binding": "request"}
+    ],
+    "outputs": [
+      {"name": "pd_12m", "sink": "response"},
+      {"name": "inference_log", "sink": "delta_table", "table": "telemetry/inference_log"}
+    ]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "dscr", "dtype": "float", "minimum": -5.0, "maximum": 20.0},
+      {"name": "revenue_ttm", "dtype": "float", "minimum": 0.0},
+      {"name": "months_on_book", "dtype": "float", "minimum": 0.0, "maximum": 600.0}
+    ],
+    "output_schema": [{"name": "pd_12m", "dtype": "float", "minimum": 0.0, "maximum": 1.0}]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [
+        {"key": "dscr", "minimum": -5.0, "maximum": 20.0},
+        {"key": "months_on_book", "minimum": 0.0, "maximum": 600.0}
+      ],
+      "guarantees": [{"key": "gini", "minimum": 0.42}]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 2, "max_memory_mb": 1024}
+  },
+
+  "authority": {
+    "principal": "svc/origination",
+    "declared_use": "origination_decision",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767225900.0,
+    "grace_seconds": 0,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 2,
+    "model_status": "attested",
+    "version_status": "approved",
+    "last_validation": {"outcome": "approved", "at": 1759190400.0},
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "e21d7f0a4c96b358e07f1a2db4c68309751ea0bd3f826c94017a5de2b83f406c"
+  }
+}

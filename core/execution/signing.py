@@ -28,20 +28,29 @@ from db.database import digest as canonical_digest
 MAX_JITTER_PCT = 50
 
 
-class DescriptorSigner:
-    """Signs, verifies and ages warrant descriptors."""
+class WarrantSigner:
+    """Signs, verifies and ages warrants."""
+
+    ALGORITHM = "HMAC-SHA256"
 
     def __init__(self, signing_key: str = "maya-dev-key", jitter_pct: int = 20):
         self._key = signing_key.encode()
+        self.key_id = signing_key
         self.jitter = max(0, min(jitter_pct, MAX_JITTER_PCT))
 
-    def sign(self, descriptor: Dict[str, Any]) -> str:
-        """HMAC over the canonical form, with any existing signature excluded."""
-        body = {k: v for k, v in descriptor.items() if k != "signature"}
+    def sign(self, warrant: Dict[str, Any]) -> str:
+        """HMAC over the canonical form, with the signature block excluded.
+
+        The block is excluded whole rather than blanked, so a warrant signed
+        before the block existed and one signed after produce the same digest
+        over the same content.
+        """
+        body = {k: v for k, v in warrant.items() if k != "signature"}
         return hmac.new(self._key, canonical_digest(body).encode(), sha256).hexdigest()
 
-    def verify(self, descriptor: Dict[str, Any]) -> bool:
-        return hmac.compare_digest(descriptor.get("signature", ""), self.sign(descriptor))
+    def verify(self, warrant: Dict[str, Any]) -> bool:
+        claimed = (warrant.get("signature") or {}).get("value", "")
+        return hmac.compare_digest(claimed, self.sign(warrant))
 
     def jittered(self, ttl: int) -> int:
         """+/- jitter so a fleet does not expire in lockstep and stampede."""
@@ -51,7 +60,7 @@ class DescriptorSigner:
         return max(1, int(ttl + random.uniform(-delta, delta)))
 
     @staticmethod
-    def is_expired(descriptor: Dict[str, Any], now: Optional[float] = None) -> bool:
+    def is_expired(warrant: Dict[str, Any], now: Optional[float] = None) -> bool:
         import time
-        auth = descriptor["authorization"]
+        auth = warrant["authority"]
         return (now or time.time()) > auth["expires_at"] + auth.get("grace_seconds", 0)
