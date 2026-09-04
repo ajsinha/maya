@@ -719,3 +719,83 @@ class TestReplayFromStorageOverTheApi:
             f"/api/v1/validations/{episode['id']}/replayable").json()
         assert body["readable"] is False
         assert "pins no dataset snapshot" in body["detail"]
+
+
+class TestLoadingFeatureValuesFromAFile:
+    """A person defining a feature has a file, not an Arrow stream.
+
+    The endpoint an execution engine posts to already took Arrow, Parquet and
+    NDJSON; CSV was missing, which is the one format somebody actually has —
+    and refusing it means they convert by hand, and the conversion is where the
+    mistakes live. The interface posts to the SAME endpoint, so the browser
+    exercises the contract rather than a convenience beside it.
+    """
+
+    CSV = (b"entity_id,event_ts,ingest_ts,dscr\n"
+           b"B1,1717200000.0,1717200000.0,1.4\n"
+           b"B2,1717200000.0,1717200000.0,2.1\n")
+
+    def _view(self, client, auth, name="upload_view"):
+        client.post("/api/v1/features", auth=auth, json={
+            "name": "dscr", "entity": "borrower_id", "dtype": "numeric",
+            "description": "d", "owner": "person/j.okafor"})
+        client.post("/api/v1/feature-views", auth=auth, json={
+            "name": name, "entity": "borrower_id", "owner": "person/j.okafor",
+            "features": ["dscr"]})
+        return name
+
+    def test_a_csv_becomes_a_feature_view_version(self, registered, people):
+        view = self._view(registered, people["d.raman"])
+        r = registered.post(f"/api/v1/feature-views/{view}/data",
+                            auth=people["d.raman"], content=self.CSV,
+                            headers={"Content-Type": "text/csv"})
+        assert r.status_code == 201, r.text
+        assert r.json()["row_count"] == 2 and r.json()["version"] == 1
+
+    def test_the_values_read_back_typed(self, registered, people):
+        """A CSV carries no types, so they are inferred — and a column that read
+        as text rather than a number would be a silent defect in a training
+        set."""
+        view = self._view(registered, people["d.raman"], "typed_view")
+        registered.post(f"/api/v1/feature-views/{view}/data",
+                        auth=people["d.raman"], content=self.CSV,
+                        headers={"Content-Type": "text/csv"})
+        rows = registered.get(f"/api/v1/feature-views/{view}/versions/1/data",
+                              auth=people["d.raman"]).json()["rows"]
+        assert rows[0]["dscr"] == 1.4, "a number, not the string '1.4'"
+
+    def test_a_file_missing_the_second_clock_is_refused(self, registered, people):
+        """A file with no `ingest_ts` cannot be read point-in-time, and guessing
+        it is how the future gets into a training set."""
+        view = self._view(registered, people["d.raman"], "clockless_view")
+        r = registered.post(
+            f"/api/v1/feature-views/{view}/data", auth=people["d.raman"],
+            content=b"entity_id,event_ts,dscr\nB1,1717200000.0,1.4\n",
+            headers={"Content-Type": "text/csv"})
+        assert r.status_code == 409
+        assert "ingest_ts" in r.text
+
+    def test_a_format_maya_does_not_read_is_refused_by_name(self, registered,
+                                                            people):
+        view = self._view(registered, people["d.raman"], "xls_view")
+        r = registered.post(f"/api/v1/feature-views/{view}/data",
+                            auth=people["d.raman"], content=b"\x00\x01",
+                            headers={"Content-Type": "application/vnd.ms-excel"})
+        assert r.status_code == 409
+        assert "not a format this accepts" in r.text
+
+
+class TestTheUploadFormIsOnThePage:
+    def test_the_features_page_offers_a_file_upload(self, registered):
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/features").text
+        assert 'id="load-values"' in body
+        assert ".csv,.jsonl,.ndjson,.parquet,.arrow" in body
+
+    def test_it_posts_to_the_same_endpoint_an_engine_uses(self, registered):
+        """Not a second upload path beside the contract."""
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/features").text
+        assert '"/api/v1/feature-views/" + encodeURIComponent(view) + "/data"' in body

@@ -97,3 +97,53 @@ def test_every_shared_column_has_an_equivalent_type():
     assert not divergent, (
         "these columns are declared with types that are not equivalent across "
         "the dialects:\n    " + "\n    ".join(divergent))
+
+
+def test_no_relational_table_holds_bulk_values():
+    """Feature and featureset DATA lives in Delta. The database holds pointers.
+
+    The relational store is the control plane: models, versions, findings,
+    evidence — things a person reads one at a time. Feature values are the data
+    plane and can run to hundreds of millions of rows per view, so they live in
+    Delta and the register keeps a `delta_table` and a `delta_version` that
+    together name exactly which bytes a read gets.
+
+    This is already true and this test is here so it stays true. The failure it
+    guards against is somebody adding a `rows` or `values` column "just for a
+    preview" — at which point the register grows without bound, backups stop
+    fitting, and a governance database becomes a data lake nobody chose.
+    """
+    import re
+
+    bulk = {"rows", "values", "data", "records", "sample", "observations",
+            "payload_rows", "frame", "dataset"}
+    offenders = []
+    for path in (SQLITE, POSTGRES):
+        text = path.read_text(encoding="utf-8")
+        for table, body in re.findall(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
+                                      text, re.S):
+            for line in body.splitlines():
+                column = line.strip().split("--")[0].strip().rstrip(",")
+                if not column or column.upper().startswith(CONSTRAINTS):
+                    continue
+                if column.split()[0] in bulk:
+                    offenders.append(f"{path.name}: {table}.{column.split()[0]}")
+    assert not offenders, (
+        "these columns look like they hold bulk data rather than a pointer to "
+        "it:\n    " + "\n    ".join(offenders)
+        + "\nFeature values belong in Delta; the register keeps delta_table and "
+          "delta_version, which name exactly which bytes a read gets.")
+
+
+def test_the_data_plane_is_addressed_by_pointer():
+    """The positive half: the tables that own bulk data say where it is."""
+    import re
+
+    text = SQLITE.read_text(encoding="utf-8")
+    tables = dict(re.findall(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
+                             text, re.S))
+    for table, needs in (("feature_view", "delta_table"),
+                         ("feature_view_version", "delta_version"),
+                         ("dataset_snapshot", "delta_table"),
+                         ("telemetry_batch", "delta_table")):
+        assert needs in tables[table], f"{table} must name its Delta location"

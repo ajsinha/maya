@@ -28,13 +28,11 @@ published until they pass.</p>
 
 <div class="card mb-3"><div class="card-header">What a policy can and cannot do</div>
   <div class="card-body py-2">
-    <table data-plain class="table maya mb-0" style="font-size:.8rem">
-      <tbody>
-        <tr><td style="width:7rem">Applies</td>
-            <td class="text-muted">{{ policy.applies }}</td></tr>
-        <tr><td>Can</td><td class="text-muted">{{ policy.can }}</td></tr>
-        <tr><td>Cannot</td><td class="text-muted">{{ policy.cannot }}</td></tr>
-      </tbody></table>
+    <dl class="maya-terms" style="font-size:.8rem">
+        <div><dt style="width:7rem">Applies</dt><dd>{{ policy.applies }}</dd></div>
+        <div><dt style="width:7rem">Can</dt><dd>{{ policy.can }}</dd></div>
+        <div><dt style="width:7rem">Cannot</dt><dd>{{ policy.cannot }}</dd></div>
+      </dl>
   </div></div>
 
 <!-- ------------------------------------------------------------- the gates -->
@@ -235,13 +233,12 @@ published until they pass.</p>
     <p class="text-muted mb-0"><span class="fw-bold text-body">Excluded</span>
       {{ language.excluded }}.</p>
   </div>
-  <table data-plain class="table maya mb-0">
-    <tbody>
+  <dl class="maya-terms">
     {% for f in language.functions %}
-      <tr><td class="small mono" style="width:7rem">{{ f.name }}</td>
-          <td class="small text-muted">{{ f.means }}</td></tr>
+      <div><dt class="mono" style="width:7rem">{{ f.name }}</dt>
+           <dd>{{ f.means }}</dd></div>
     {% endfor %}
-    </tbody></table></div>
+    </dl></div>
 {% endblock %}
 {% block scripts %}
 <script>

@@ -16,11 +16,16 @@ reader who wants the worst finding first should not have to count rows. Search
 and paging appear once a table is long enough for them to earn the space — a
 pager under four rows is noise, and noise is what stops people reading a page.
 
-A table that is genuinely a key/value reference list — "what each stream means",
-"what this policy can and cannot do" — carries `data-plain` and is left alone.
-That is a deliberate exemption and this file holds it to being deliberate: a
-table is enhanced if it has a header row, and every table must be one or the
-other, so nothing can drift into being neither.
+**Every table has a header row, with no exemption.** There was briefly an opt-out
+for "key/value reference lists", and the exemption was the wrong answer to the
+right observation: those were not tables. A term beside its definition — what a
+stream holds, what a policy can and cannot do, what a diagnostic means — is a
+description list, and rendering it as a two-column table with no header is
+layout-by-table. A screen reader announces "table, two columns" and then offers
+no headers to orient by, which is worse than no markup at all.
+
+They are `<dl class="maya-terms">` now, and a table with no header is simply a
+defect.
 """
 from __future__ import annotations
 
@@ -35,10 +40,24 @@ TEMPLATES = ROOT / "web" / "templates"
 SCRIPT = ROOT / "web" / "static" / "js" / "tables.js"
 
 
+def _markup(text: str) -> str:
+    """The template with comments removed.
+
+    A CSS or Jinja comment mentioning table markup is prose, not a table, and
+    scanning the raw file reported one of this suite's own explanatory comments
+    as a defect.
+    """
+    for opening, closing in (("<!--", "-->"), ("/*", "*/"), ("{#", "#}")):
+        while opening in text and closing in text.split(opening, 1)[1]:
+            head, rest = text.split(opening, 1)
+            text = head + rest.split(closing, 1)[1]
+    return text
+
+
 def _tables():
     for path in sorted(TEMPLATES.glob("*.html")):
-        for number, chunk in enumerate(path.read_text(encoding="utf-8")
-                                       .split("<table")[1:], 1):
+        markup = _markup(path.read_text(encoding="utf-8"))
+        for number, chunk in enumerate(markup.split("<table")[1:], 1):
             yield path.name, number, chunk.split("</table>")[0], chunk[:40]
 
 
@@ -52,24 +71,36 @@ def test_the_enhancer_is_served_from_disk():
     assert "https://" not in SCRIPT.read_text(encoding="utf-8")
 
 
-def test_every_table_is_either_enhanced_or_deliberately_plain():
-    undecided = [f"{name} #{number}"
-                 for name, number, body, opening in _tables()
-                 if "<thead" not in body and "data-plain" not in opening]
-    assert not undecided, (
-        "these tables have no header row and are not marked `data-plain`, so "
-        "they can be neither sorted nor searched and nobody decided that:\n    "
-        + "\n    ".join(undecided)
-        + "\nGive it a <thead> if it holds data, or `data-plain` if it is a "
-          "key/value reference list.")
+def test_every_table_has_a_header_row():
+    """No exemption. A table without headers cannot be sorted, cannot be read
+    by anybody using a screen reader, and is almost always a description list
+    wearing table markup."""
+    headless = [f"{name} #{number}" for name, number, body, _ in _tables()
+                if "<thead" not in body]
+    assert not headless, (
+        "these tables have no header row:\n    " + "\n    ".join(headless)
+        + "\nIf it holds data, give it a <thead>. If it is a term beside its "
+          "definition, it is not a table — use <dl class=\"maya-terms\">.")
 
 
-def test_a_headed_table_is_never_also_marked_plain():
-    """The two are alternatives. A table with both says one thing in its markup
-    and another in its attribute."""
-    both = [f"{name} #{number}" for name, number, body, opening in _tables()
-            if "<thead" in body and "data-plain" in opening]
-    assert not both, both
+def test_nothing_opts_out_of_being_a_real_table():
+    """`data-plain` was an escape hatch for tables that should have been
+    description lists. Once they were, the hatch had nothing left to cover."""
+    plain = [f"{name} #{number}" for name, number, _, opening in _tables()
+             if "data-plain" in opening]
+    assert not plain, plain
+
+
+def test_definition_lists_are_used_where_they_belong():
+    """The positive half: the conversion happened rather than the markup simply
+    being deleted."""
+    import pathlib as _p
+    templates = list(TEMPLATES.glob("*.html"))
+    with_terms = [f.name for f in templates
+                  if "maya-terms" in f.read_text(encoding="utf-8")]
+    assert len(with_terms) >= 4, with_terms
+    base = (TEMPLATES / "base.html").read_text(encoding="utf-8")
+    assert "dl.maya-terms" in base, "the style has to exist or they render bare"
 
 
 def test_the_long_tables_carry_headers():
