@@ -1,0 +1,204 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+
+Principals: people and services.
+
+Passwords are PBKDF2-HMAC-SHA256 with a per-principal salt and a high iteration
+count. Not because this is the last word in credential storage — a real
+deployment should be behind SSO — but because a development default that stores
+plaintext is a default somebody ships.
+
+Comparison is constant-time throughout, including the miss. An authentication
+path that returns faster for an unknown username than for a wrong password
+leaks the user list, and the user list of a model risk platform is an
+organisational chart.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import secrets
+import time
+from typing import Any, Dict, List, Optional, Sequence
+
+from core.authz.common import AuthzError
+from core.authz.roles import ROLES, conflicts, permissions_for
+from core.evidence import EvidenceEngine
+from core.log import get_logger
+from db import PrincipalRepository
+
+logger = get_logger(__name__)
+
+ITERATIONS = 200_000
+ALGORITHM = "sha256"
+# How long a successful Basic verification is trusted without re-deriving.
+VERIFICATION_TTL = 60.0
+# Compared against on a miss, so an unknown username costs the same as a wrong
+# password. The value is irrelevant; the work it forces is the point.
+DUMMY_SALT = "0" * 32
+
+
+class PrincipalService:
+    """Creates, authenticates and describes principals."""
+
+    def __init__(self, principals: PrincipalRepository, evidence: EvidenceEngine,
+                 iterations: int = ITERATIONS, verification_ttl: float = VERIFICATION_TTL):
+        self.principals, self.evidence = principals, evidence
+        self.iterations = iterations
+        self.verification_ttl = verification_ttl
+        # A deliberately expensive KDF is right for a login form and wrong for
+        # an API called a thousand times a minute: at 200k iterations every
+        # request would spend more time deriving a key than doing the work.
+        # Successful verifications are therefore trusted for a short window,
+        # keyed by a peppered digest of the presented secret rather than by the
+        # secret itself, so the cache never holds a password. A revoked or
+        # suspended principal is still re-read from the store on every request,
+        # so the cache shortens the KDF and never the authorisation decision.
+        self._pepper = secrets.token_bytes(32)
+        self._verified: Dict[str, float] = {}
+
+    # ------------------------------------------------------------ credentials
+    def hash_password(self, password: str, salt: str) -> str:
+        return hashlib.pbkdf2_hmac(ALGORITHM, password.encode(), salt.encode(),
+                                   self.iterations).hex()
+
+    def _cache_key(self, username: str, password: str) -> str:
+        return hmac.new(self._pepper, f"{username}\x00{password}".encode(),
+                        hashlib.sha256).hexdigest()
+
+    def _recently_verified(self, key: str, now: float) -> bool:
+        expiry = self._verified.get(key)
+        if expiry is None:
+            return False
+        if expiry < now:
+            del self._verified[key]
+            return False
+        return True
+
+    def authenticate(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+        """The principal, or None. Never says which half was wrong."""
+        now = time.time()
+        row = self.principals.one(username=username)
+        key = self._cache_key(username, password)
+
+        if row is None or not row.get("password_hash"):
+            # Do the work anyway: a fast negative is a username oracle.
+            self.hash_password(password, DUMMY_SALT)
+            logger.info("authentication failed for an unknown or passwordless principal")
+            return None
+
+        if not self._recently_verified(key, now):
+            if not hmac.compare_digest(self.hash_password(password, row["password_salt"]),
+                                       row["password_hash"]):
+                logger.info("authentication failed for %s: password mismatch", username)
+                return None
+            self._verified[key] = now + self.verification_ttl
+
+        # Status is re-read every time, cache or no cache: suspending a
+        # principal must take effect on the next request, not in a minute.
+        if row["status"] != "active":
+            logger.warning("authentication refused for %s: status is %s",
+                           username, row["status"])
+            return None
+        self.principals.set({"last_seen_at": now}, id=row["id"])
+        return row
+
+    def forget(self, username: str) -> None:
+        """Drop cached verifications. Called when a credential or status changes."""
+        self._verified.clear()
+        logger.info("cleared cached credential verifications after a change to %s",
+                    username)
+
+    # ---------------------------------------------------------------- create
+    def create(self, username: str, display_name: str, roles: Sequence[str],
+               password: Optional[str] = None, kind: str = "person",
+               email: Optional[str] = None,
+               legal_entities: Optional[Sequence[str]] = None,
+               domains: Optional[Sequence[str]] = None,
+               actor: str = "system", allow_conflicts: bool = False) -> Dict[str, Any]:
+        if self.principals.one(username=username):
+            raise AuthzError("duplicate_principal",
+                             f"a principal named '{username}' already exists",
+                             "choose another username, or update the existing principal")
+        roles = list(roles)
+        permissions_for(roles)                       # refuses an unknown role
+        if (found := conflicts(roles)) and not allow_conflicts:
+            raise AuthzError(
+                "incompatible_roles",
+                f"{username} would hold incompatible roles: {'; '.join(found)}",
+                "split the duties between two principals, or grant explicitly "
+                "with allow_conflicts if this is a deliberate, documented exception")
+
+        salt = secrets.token_hex(16)
+        row = {"username": username, "display_name": display_name, "kind": kind,
+               "email": email, "roles": roles,
+               "legal_entities": list(legal_entities or []),
+               "domains": list(domains or []), "status": "active",
+               "password_hash": self.hash_password(password, salt) if password else None,
+               "password_salt": salt if password else None,
+               "created_at": time.time(), "last_seen_at": None}
+        self.principals.add(row)
+        self.evidence.append("principal_created", "principal", row["id"],
+                             {"username": username, "roles": roles, "kind": kind,
+                              "legal_entities": row["legal_entities"],
+                              "domains": row["domains"]}, actor=actor)
+        return self.public(self.principals.one(id=row["id"]))
+
+    def set_roles(self, username: str, roles: Sequence[str], actor: str = "system",
+                  allow_conflicts: bool = False) -> Dict[str, Any]:
+        row = self.require(username)
+        roles = list(roles)
+        permissions_for(roles)
+        if (found := conflicts(roles)) and not allow_conflicts:
+            raise AuthzError("incompatible_roles",
+                             f"{username} would hold incompatible roles: {'; '.join(found)}",
+                             "split the duties between two principals")
+        self.principals.set({"roles": roles}, id=row["id"])
+        self.evidence.append("principal_roles_changed", "principal", row["id"],
+                             {"username": username, "from": row["roles"], "to": roles},
+                             actor=actor)
+        return self.public(self.principals.one(id=row["id"]))
+
+    def suspend(self, username: str, actor: str = "system") -> Dict[str, Any]:
+        row = self.require(username)
+        self.principals.set({"status": "suspended"}, id=row["id"])
+        self.forget(username)
+        self.evidence.append("principal_suspended", "principal", row["id"],
+                             {"username": username}, actor=actor)
+        return self.public(self.principals.one(id=row["id"]))
+
+    # ----------------------------------------------------------------- query
+    def get(self, username: str) -> Optional[Dict[str, Any]]:
+        return self.principals.one(username=username)
+
+    def require(self, username: str) -> Dict[str, Any]:
+        row = self.get(username)
+        if row is None:
+            raise AuthzError("no_such_principal", f"no principal '{username}'", "")
+        return row
+
+    def list(self) -> List[Dict[str, Any]]:
+        return [self.public(r) for r in self.principals.many()]
+
+    @staticmethod
+    def public(row: Dict[str, Any]) -> Dict[str, Any]:
+        """A principal without its credential material. The only shape that
+        leaves this service, so a hash cannot escape through a new endpoint."""
+        return {k: v for k, v in row.items()
+                if k not in ("password_hash", "password_salt")}
+
+    # ------------------------------------------------------------- bootstrap
+    def bootstrap(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+        """Create the first administrator, once, if there are no principals.
+
+        Returns None when principals already exist, so restarting a live
+        deployment can never resurrect a development password.
+        """
+        if self.principals.many():
+            return None
+        logger.warning("no principals exist; creating bootstrap administrator '%s'. "
+                       "Change this password before exposing the instance.", username)
+        return self.create(username, "Administrator", ["admin"], password=password,
+                           actor="system")

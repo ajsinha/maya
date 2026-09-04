@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence
 
+from fastapi import Request
 from pydantic import BaseModel, Field
 
 from routes.base import Routes
@@ -76,19 +77,23 @@ class ValidationRoutes(Routes):
 
         # ------------------------------------------------------------ catalogue
         @self.app.get(f"{api}/tests", tags=["validation"])
-        def list_tests():
+        def list_tests(request: Request):
+            self.authorise(request, "validation:read")
             """The registered test catalogue. A validation may only run these."""
             return {"tests": catalogue.describe()}
 
         # ----------------------------------------------------------- validations
         @self.app.post(f"{api}/validations", status_code=201, tags=["validation"])
-        def open_validation(body: OpenValidationIn):
+        def open_validation(request: Request, body: OpenValidationIn):
+            model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "validation:open", model=model)
             return self.guard(lambda: service.open(
                 body.urn, body.semver, body.kind, body.validators, body.scope,
-                body.plan, body.due_at, body.snapshot_id))
+                body.plan, body.due_at, body.snapshot_id, actor=self.actor(who)))
 
         @self.app.get(f"{api}/validations/{{validation_id}}", tags=["validation"])
-        def get_validation(validation_id: str):
+        def get_validation(request: Request, validation_id: str):
+            self.authorise(request, "validation:read")
             v = service.get(validation_id)
             if not v:
                 raise self.not_found(f"no validation {validation_id}")
@@ -97,18 +102,26 @@ class ValidationRoutes(Routes):
 
         @self.app.post(f"{api}/validations/{{validation_id}}/results",
                        status_code=201, tags=["validation"])
-        def record_result(validation_id: str, body: RecordTestIn):
+        def record_result(request: Request, validation_id: str, body: RecordTestIn):
+            who = self.authorise(request, "validation:record")
             return self.guard(lambda: service.record(
                 validation_id, body.test_key, body.left, body.right,
-                body.threshold, body.parameters, body.slice))
+                body.threshold, body.parameters, body.slice, actor=self.actor(who)))
 
         @self.app.post(f"{api}/validations/{{validation_id}}/conclude", tags=["validation"])
-        def conclude(validation_id: str, body: ConcludeIn):
+        def conclude(request: Request, validation_id: str, body: ConcludeIn):
+            episode = self.guard(lambda: service.require(validation_id))
+            # Segregation is checked against the VERSION: the evidence chain
+            # recorded who created it, and that person may not conclude its
+            # challenge however their roles are arranged.
+            who = self.authorise(request, "validation:conclude",
+                                 subject_id=episode["model_version_id"])
             return self.guard(lambda: service.conclude(
-                validation_id, body.outcome, body.conditions))
+                validation_id, body.outcome, body.conditions, actor=self.actor(who)))
 
         @self.app.post(f"{api}/validations/{{validation_id}}/replay", tags=["validation"])
-        def replay(validation_id: str, body: ReplayIn):
+        def replay(request: Request, validation_id: str, body: ReplayIn):
+            self.authorise(request, "validation:read")
             """Recompute the recorded tests and compare digests."""
             def provider(test_key: str, _slice: Dict[str, Any]):
                 pair = body.data.get(test_key)
@@ -117,15 +130,16 @@ class ValidationRoutes(Routes):
 
         # -------------------------------------------------------------- findings
         @self.app.post(f"{api}/findings", status_code=201, tags=["findings"])
-        def raise_finding(body: FindingIn):
+        def raise_finding(request: Request, body: FindingIn):
             model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "finding:raise", model=model)
             return self.guard(lambda: register.raise_finding(
                 model["id"], body.severity, body.title, body.owner, body.description,
                 body.category, body.source, None, body.validation_id,
-                body.affected_component, body.blocking))
+                body.affected_component, body.blocking, actor=self.actor(who)))
 
         @self.app.get(f"{api}/findings", tags=["findings"])
-        def model_findings(urn: str):
+        def model_findings(request: Request, urn: str):
             """Findings for one model.
 
             A query parameter rather than a path nested under /models, because
@@ -133,11 +147,14 @@ class ValidationRoutes(Routes):
             slashes) and would otherwise swallow the suffix.
             """
             model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "finding:read", model=model)
             return {"model": model["urn"], "summary": register.summary(model["id"]),
                     "open": register.open_for(model["id"]),
                     "blocking": register.blocking_for(model["id"])}
 
         @self.app.post(f"{api}/findings/{{finding_id}}/close", tags=["findings"])
-        def close_finding(finding_id: str, body: CloseFindingIn):
+        def close_finding(request: Request, finding_id: str, body: CloseFindingIn):
+            finding = self.guard(lambda: register.require(finding_id))
+            who = self.authorise(request, "finding:close", subject_id=finding_id)
             return self.guard(lambda: register.close(
-                finding_id, body.verified_by, body.evidence))
+                finding_id, body.verified_by, body.evidence, actor=self.actor(who)))

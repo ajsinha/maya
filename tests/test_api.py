@@ -46,24 +46,52 @@ logging: {{level: WARNING}}
     from run_maya_web import create_app
     app = create_app(PropertiesConfigurator(str(cfg_file), reload_interval=0))
     with TestClient(app) as c:
+        # Every API endpoint now requires an authenticated principal. The
+        # bootstrap administrator is created on first start from configuration;
+        # tests that care about authorisation override these credentials.
+        c.auth = ("admin", "admin123")
         yield c
 
 
+# Duties are separated in the fixtures because they are separated in the system.
+# One account can no longer walk the whole path: the person who creates a version
+# may not approve it, promote it, or conclude its validation.
+PEOPLE = {
+    "d.raman":  (["model_developer"],    "dev-pw"),
+    "j.okafor": (["model_owner"],        "owner-pw"),
+    "a.mehta":  (["validator"],          "val-pw"),
+    "s.iqbal":  (["model_risk_manager"], "mrm-pw"),
+}
+
+
 @pytest.fixture
-def registered(client):
-    client.post("/api/v1/models", json={
+def people(client):
+    """Create one principal per duty and return their credentials."""
+    for username, (roles, password) in PEOPLE.items():
+        r = client.post("/api/v1/principals", json={
+            "username": username, "display_name": username, "roles": roles,
+            "password": password})
+        assert r.status_code == 201, r.text
+    return {u: (u, pw) for u, (roles, pw) in PEOPLE.items()}
+
+
+@pytest.fixture
+def registered(client, people):
+    """A model taken through the whole governed path by four different people."""
+    owner, dev, mrm = people["j.okafor"], people["d.raman"], people["s.iqbal"]
+    client.post("/api/v1/models", auth=owner, json={
         "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
         "domain": "credit", "owner": "person/j.okafor", "legal_entity": "LE-US-01",
         "purpose": "12-month PD at origination"})
-    client.post(f"/api/v1/models/{NAME}/versions",
+    client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                 json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
                       "artifact_digest": "sha256:abc"})
-    client.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve")
-    client.post(f"/api/v1/models/{NAME}/assess",
+    client.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve", auth=mrm)
+    client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
                 json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
-    client.put(f"/api/v1/models/{NAME}/aliases",
+    client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})
-    client.post("/api/v1/warrants", json={
+    client.post("/api/v1/warrants", auth=owner, json={
         "urn": f"{URN}#champion", "environment": "prod",
         "principal": "svc/origination", "declared_use": "origination_decision"})
     return client
@@ -122,14 +150,16 @@ class TestModelApi:
         assert len(registered.get("/api/v1/models?domain=credit").json()["models"]) == 1
         assert registered.get("/api/v1/models?domain=markets").json()["models"] == []
 
-    def test_alias_move_is_refused_when_incompatible(self, registered):
+    def test_alias_move_is_refused_when_incompatible(self, registered, people):
+        dev, mrm = people["d.raman"], people["s.iqbal"]
         weak = {**CONTRACT, "guarantees": [{"key": "gini", "minimum": 0.10}]}
-        registered.post(f"/api/v1/models/{NAME}/versions",
+        registered.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                         json={"semver": "3.3.0", "kernel": KERNEL, "contract": weak})
-        registered.post(f"/api/v1/models/{NAME}/versions/3.3.0/approve")
-        r = registered.put(f"/api/v1/models/{NAME}/aliases",
+        registered.post(f"/api/v1/models/{NAME}/versions/3.3.0/approve", auth=mrm)
+        r = registered.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                            json={"environment": "prod", "alias": "champion", "semver": "3.3.0"})
-        assert r.status_code == 409 and "gini" in r.json()["detail"]
+        assert r.status_code == 409 and "gini" in r.json()["detail"], \
+            "the refusal must be about the contract, not about who asked"
 
     def test_evidence_chain_endpoint(self, registered):
         assert registered.get("/api/v1/evidence/chain").json()["valid"] is True
@@ -343,11 +373,13 @@ class TestValidationApi:
                                json={"outcome": "approved"})
         assert done.status_code == 200 and done.json()["outcome"] == "approved"
 
-    def test_the_builder_cannot_validate_their_own_version(self, registered):
-        r = registered.post("/api/v1/validations", json={
-            "urn": URN, "semver": "3.2.1", "validators": ["system"]})
+    def test_the_builder_cannot_validate_their_own_version(self, registered, people):
+        """The version was created by d.raman, so naming them as validator fails."""
+        r = registered.post("/api/v1/validations", auth=people["a.mehta"], json={
+            "urn": URN, "semver": "3.2.1", "validators": ["d.raman"]})
         assert r.status_code == 409
         assert "independence failed" in r.json()["detail"]
+        assert "d.raman built this version" in r.json()["detail"]
 
     def test_approval_over_a_failed_test_is_refused_with_the_route_out(self, registered):
         vid = registered.post("/api/v1/validations", json={
@@ -441,3 +473,107 @@ class TestFindingsApi:
         r = registered.post("/api/v1/findings", json={
             "urn": URN, "severity": "Catastrophic", "title": "x", "owner": "person/o"})
         assert r.status_code == 409
+
+
+class TestAuthorisationApi:
+    def test_an_unauthenticated_call_is_401_with_a_challenge(self, client):
+        anon = TestClient(client.app)
+        r = anon.get("/api/v1/models")
+        assert r.status_code == 401
+        assert r.json()["error"] == "unauthenticated"
+        assert "Basic" in r.headers.get("www-authenticate", "")
+
+    def test_public_pages_stay_open(self, client):
+        anon = TestClient(client.app)
+        for path in ("/", "/about", "/help", "/health", "/login"):
+            assert anon.get(path).status_code == 200, path
+
+    def test_me_reports_roles_permissions_and_scope(self, client, people):
+        body = client.get("/api/v1/me", auth=people["a.mehta"]).json()
+        assert body["roles"] == ["validator"]
+        assert "validation:conclude" in body["permissions"]
+        assert "version:approve" not in body["permissions"]
+
+    def test_the_role_catalogue_is_published(self, client, people):
+        body = client.get("/api/v1/roles", auth=people["d.raman"]).json()
+        names = {r["name"] for r in body["roles"]}
+        assert {"model_developer", "validator", "model_risk_manager", "auditor"} <= names
+        assert body["incompatible"] and body["segregation"]
+
+    def test_a_developer_cannot_approve_a_version(self, registered, people):
+        r = registered.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve",
+                            auth=people["d.raman"])
+        assert r.status_code == 403 and r.json()["error"] == "forbidden"
+        assert "model_developer" in r.json()["detail"]
+
+    def test_a_validator_cannot_create_a_version(self, registered, people):
+        r = registered.post(f"/api/v1/models/{NAME}/versions", auth=people["a.mehta"],
+                            json={"semver": "9.9.9", "kernel": KERNEL})
+        assert r.status_code == 403
+
+    def test_the_builder_cannot_approve_their_own_version(self, client, people):
+        """Segregation catches what role separation alone cannot.
+
+        A small firm grants one person both hats as a documented exception. Role
+        checks then pass for both acts -- and segregation still refuses, because
+        it reads the evidence chain rather than the role list.
+        """
+        client.post("/api/v1/principals", json={
+            "username": "solo", "display_name": "Solo", "password": "pw",
+            "roles": ["model_developer", "model_risk_manager"],
+            "allow_conflicts": True})
+        solo = ("solo", "pw")
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": "maya://model/sod.demo", "name": "SoD", "model_class": "c",
+            "domain": "credit", "owner": "person/o", "legal_entity": "LE-US-01",
+            "purpose": "p"})
+        r = client.post("/api/v1/models/sod.demo/versions", auth=solo,
+                        json={"semver": "1.0.0", "kernel": KERNEL})
+        assert r.status_code == 201, "both roles are held, so creation is permitted"
+
+        r = client.post("/api/v1/models/sod.demo/versions/1.0.0/approve", auth=solo)
+        assert r.status_code == 403
+        assert r.json()["error"] == "segregation_of_duties"
+        assert "evidence #" in r.json()["detail"], "cite the record that disqualifies them"
+
+        # And somebody else can, which is the remediation the refusal names.
+        assert client.post("/api/v1/models/sod.demo/versions/1.0.0/approve",
+                           auth=people["s.iqbal"]).status_code == 200
+
+    def test_the_inventory_is_filtered_by_entity_scope(self, registered, client):
+        client.post("/api/v1/principals", json={
+            "username": "uk.auditor", "display_name": "UK", "roles": ["auditor"],
+            "password": "pw", "legal_entities": ["LE-UK-02"]})
+        body = registered.get("/api/v1/models", auth=("uk.auditor", "pw")).json()
+        assert body["models"] == [], "a US model must not be visible to a UK-scoped auditor"
+
+    def test_a_model_out_of_scope_is_refused_by_name_too(self, registered, client):
+        client.post("/api/v1/principals", json={
+            "username": "uk.auditor", "display_name": "UK", "roles": ["auditor"],
+            "password": "pw", "legal_entities": ["LE-UK-02"]})
+        r = registered.get(f"/api/v1/models/{NAME}", auth=("uk.auditor", "pw"))
+        assert r.status_code == 403 and r.json()["error"] == "out_of_scope"
+
+    def test_creating_a_principal_needs_principal_manage(self, client, people):
+        r = client.post("/api/v1/principals", auth=people["s.iqbal"], json={
+            "username": "x", "display_name": "X", "roles": ["auditor"]})
+        assert r.status_code == 403
+
+    def test_incompatible_roles_are_refused_over_the_api(self, client):
+        r = client.post("/api/v1/principals", json={
+            "username": "x", "display_name": "X",
+            "roles": ["model_developer", "model_risk_manager"], "password": "pw"})
+        assert r.status_code == 409 and r.json()["error"] == "incompatible_roles"
+
+    def test_a_suspended_principal_loses_access_immediately(self, client, people):
+        assert client.get("/api/v1/me", auth=people["a.mehta"]).status_code == 200
+        client.post("/api/v1/principals/a.mehta/suspend")
+        assert client.get("/api/v1/me", auth=people["a.mehta"]).status_code == 401
+
+    def test_acts_are_attributed_to_the_principal_not_to_system(self, registered, people):
+        chain = registered.get("/api/v1/evidence/chain").json()
+        assert chain["valid"] is True
+        body = registered.get(f"/api/v1/models/{NAME}").json()
+        actors = {n["recorded_by"] for n in body["evidence"]}
+        assert "j.okafor" in actors, "registration must be attributed to whoever did it"
+        assert "system" not in actors

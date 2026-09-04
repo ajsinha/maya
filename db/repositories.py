@@ -196,3 +196,8 @@ class FindingRepository(Repository):
             sql += " AND blocking = :b"
             params["b"] = int(blocking)
         return [self._decode(r) for r in self.db.query(sql + " ORDER BY raised_at", params)]
+
+
+class PrincipalRepository(Repository):
+    TABLE, ORDER = "principal", "username"
+    JSON = ("roles", "legal_entities", "domains")
