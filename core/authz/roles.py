@@ -35,7 +35,7 @@ MODEL_DEVELOPER = {
     # The first line reads everything about its own models. Being able to act
     # on something you cannot read is a permission set nobody can reason about.
     "warrant:read", "monitor:read", "document:read", "overlay:read",
-    "assist:read", "assist:generate", "baseline:read",
+    "assist:read", "assist:generate", "baseline:read", "regime:read",
 }
 MODEL_OWNER = MODEL_DEVELOPER | {
     "model:register", "model:retire", "risk:assess",
@@ -65,7 +65,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     # Cannot submit or amend: that is the first line's act.
     "model:approve", "model:attest", "monitor:define", "document:compile",
     "overlay:approve", "assist:register", "assist:attest",
-    "baseline:import", "baseline:plan",
+    "baseline:import", "baseline:plan", "regime:activate",
 }
 
 # ---------------------------------------------------------------------------

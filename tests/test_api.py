@@ -1138,3 +1138,52 @@ class TestBaselineApi:
         r = client.post("/api/v1/baseline/imports", auth=people["d.raman"], json={
             "source": "csv", "models": self.BATCH})
         assert r.status_code == 403
+
+
+class TestRegimeApi:
+    def test_the_regime_catalogue_is_published(self, client, people):
+        body = client.get("/api/v1/regimes", auth=people["d.raman"]).json()
+        keys = {r["key"] for r in body["regimes"]}
+        assert {"sr-26-2", "ss1-23", "eu-ai-act"} <= keys
+        sr = next(r for r in body["regimes"] if r["key"] == "sr-26-2")
+        assert sr["active"] is True
+        assert all(o["citation"] for o in sr["obligations"])
+
+    def test_each_regime_publishes_its_own_vocabulary(self, client, people):
+        body = client.get("/api/v1/regimes", auth=people["d.raman"]).json()
+        by_key = {r["key"]: set(r["vocabulary"]) for r in body["regimes"]}
+        assert "affects_natural_persons" in by_key["eu-ai-act"]
+        assert "affects_natural_persons" not in by_key["sr-26-2"]
+
+    def test_the_satisfaction_condition_is_checkable_over_the_api(self, client,
+                                                                  people):
+        r = client.get("/api/v1/regimes/sr-26-2/satisfaction",
+                       auth=people["d.raman"]).json()
+        assert r["holds"] is True and r["checked"] > 0
+        assert "invariant under translation" in r["detail"]
+
+    def test_an_unknown_regime_is_404(self, client, people):
+        r = client.get("/api/v1/regimes/atlantis/satisfaction",
+                       auth=people["d.raman"])
+        assert r.status_code == 404 and r.json()["error"] == "no_regime"
+
+    def test_determinations_are_returned_per_regime_with_their_derivation(
+            self, registered, people):
+        body = registered.get("/api/v1/regimes/determinations",
+                              params={"urn": URN}, auth=people["d.raman"]).json()
+        assert body["regimes"], "activated regimes should produce verdicts"
+        first = body["regimes"][0]
+        assert first["read_as"], "the regime-eye view of the model must be shown"
+        assert all("citation" in o for o in first["obligations"])
+        assert body["core_state"]["has_version"] is True
+
+    def test_a_developer_cannot_activate_a_regime(self, client, people):
+        r = client.post("/api/v1/regimes/ss1-23/activate", auth=people["d.raman"])
+        assert r.status_code == 403
+
+    def test_regimes_render_on_the_model_page(self, registered):
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert "Supervisory regimes" in body
+        assert "sr-26-2" in body or "eu-ai-act" in body

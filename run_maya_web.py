@@ -40,6 +40,7 @@ from core.docs import ContextBuilder, DocumentCompiler
 from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
+from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
@@ -146,11 +147,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         max_days=cfg.get_int("overlays.max_days", 180),
         renewal_limit=cfg.get_int("overlays.renewal_limit", 2))
 
+    # Activated before the compiler is built, because a document states which
+    # supervisors apply and an inactive regime has nothing to say.
+    regimes = RegimeEngine(evidence)
+    for key in cfg.get_list("regimes.active", ["sr-26-2"]):
+        regimes.activate(key)
+
     documents = DocumentCompiler(
         DocumentRepository(db), evidence,
         ContextBuilder(registry, evidence, RiskRepository(db), features,
                        validation, findings, monitoring, lifecycle, warrants,
-                       overlays))
+                       overlays, regimes))
 
     debts = DebtRegister(DebtRepository(db), evidence, findings)
     baseline = BaselineImporter(ImportRepository(db), debts, registry, evidence,
@@ -167,6 +174,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "documents": documents, "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,
+                           "regimes": regimes,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),
