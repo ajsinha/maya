@@ -47,6 +47,7 @@ from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
+from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
 from core.risk import TieringEngine
 from core.telemetry import TelemetryCollector
@@ -225,6 +226,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                         documents, debts, validation)
     # Delivery, not a queue: the work is derived, and this makes it arrive
     # somewhere rather than waiting to be looked at.
+    # None unless an issuer is configured: local credentials only is the
+    # default, because an instance that silently required a directory to be
+    # reachable would lock everybody out the first time it was not.
+    oidc = build_oidc(cfg)
+
     notifications = NotificationService(
         NotificationRepository(db), worklist, principals, authz, registry,
         evidence, build_channels(cfg),
@@ -254,7 +260,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "documents": documents, "attachments": attachments,
                            "parameters": parameters, "replayer": replayer,
                            "approvals": approvals, "telemetry": telemetry,
-                           "notifications": notifications,
+                           "notifications": notifications, "oidc": oidc,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,

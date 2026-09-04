@@ -96,6 +96,19 @@ STATUS: Dict[str, int] = {
     # version approval as a quorum
     # telemetry
     # notification
+    # single sign-on
+    "sso_not_configured": 501, "discovery_incomplete": 502,
+    "issuer_mismatch": 403, "audience_mismatch": 403,
+    "state_mismatch": 403, "nonce_mismatch": 403,
+    "login_expired": 403, "no_login_in_progress": 403,
+    "token_expired": 403, "token_from_the_future": 403,
+    "bad_signature": 403, "unsupported_algorithm": 403,
+    "unknown_key": 403, "ambiguous_key": 403,
+    "no_signing_keys": 502, "unsupported_key": 502,
+    "weak_key": 502, "malformed_token": 502,
+    "no_id_token": 502, "provider_unreachable": 503,
+    "not_provisioned": 403, "no_roles_mapped": 403,
+    "no_subject": 502,
     "unknown_channel": 422, "channel_not_built": 501,
     "channel_unavailable": 503,
     "unknown_stream": 422, "empty_batch": 422,

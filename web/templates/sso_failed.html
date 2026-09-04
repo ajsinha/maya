@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Sign-in refused — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">SINGLE SIGN-ON</p>
+<h1>The sign-in was refused</h1>
+<div class="rule"></div>
+
+<div class="card mb-3"><div class="card-body">
+  <p class="mb-2"><span class="evidence-bad">{{ reason }}</span></p>
+  {% if remediation %}<p class="text-muted small mb-0">{{ remediation }}</p>{% endif %}
+</div></div>
+
+<p class="small text-muted">
+  A refused sign-in is refused here rather than half-completed. If your directory
+  places you in groups that map to incompatible roles, that is a question for
+  whoever administers the directory &mdash; accepting both would let it decide
+  segregation of duties, and quietly dropping one would hide that it had.
+</p>
+<a class="btn btn-sm btn-danger py-0 px-3" style="font-size:.8rem" href="/login">
+  Sign in with local credentials</a>
+{% endblock %}
