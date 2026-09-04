@@ -47,13 +47,20 @@ from core.log import get_logger
 logger = get_logger(__name__)
 
 ARROW, PARQUET, NDJSON, JSON = "arrow", "parquet", "ndjson", "json"
+CSV = "csv"
 FORMATS: Tuple[str, ...] = (ARROW, PARQUET, NDJSON, JSON)
+# Formats a caller may SEND. CSV is here and not in FORMATS on purpose: MAYA
+# will read one, because it is what somebody has, and will not write one --
+# a CSV cannot carry a type, so a feature exported as CSV comes back as text
+# and the two clocks come back as strings.
+UPLOAD_FORMATS: Tuple[str, ...] = (ARROW, PARQUET, NDJSON, CSV)
 
 MEDIA_TYPE: Dict[str, str] = {
     ARROW: "application/vnd.apache.arrow.stream",
     PARQUET: "application/vnd.apache.parquet",
     NDJSON: "application/x-ndjson",
     JSON: "application/json",
+    CSV: "text/csv",
 }
 BY_MEDIA_TYPE: Dict[str, str] = {v: k for k, v in MEDIA_TYPE.items()}
 
@@ -63,6 +70,9 @@ FORMAT_MEANING: Dict[str, str] = {
     PARQUET: "columnar and compressed; use this when the data is going to disk",
     NDJSON: "one JSON object per line; streams, and anything can read it",
     JSON: "a single document, hard-capped; use this for a page, not for a job",
+    CSV: "accepted on the way IN only. It is what a person has, so refusing it "
+         "means somebody converts by hand and the conversion is where the "
+         "mistakes live. Never written: a CSV cannot carry a type",
 }
 
 # Rows per Arrow batch. Large enough that the per-batch overhead disappears,
@@ -317,6 +327,15 @@ class FeatureTransfer:
             if fmt == ARROW:
                 reader = pa.ipc.open_stream(pa.BufferReader(data))
                 for batch in reader:
+                    yield batch
+            elif fmt == CSV:
+                # Types are inferred, because a CSV does not carry any. The
+                # clocks are then checked like every other upload, so a column
+                # that read as text rather than a number is refused here rather
+                # than discovered in a training set.
+                import pyarrow.csv as pcsv
+                table = pcsv.read_csv(pa.BufferReader(data))
+                for batch in table.to_batches(self.batch_rows):
                     yield batch
             elif fmt == PARQUET:
                 table = pq.read_table(pa.BufferReader(data))
