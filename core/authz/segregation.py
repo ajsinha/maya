@@ -69,6 +69,12 @@ RULES: Tuple[Incompatibility, ...] = (
         "the person who raised a finding may not close it",
         "closure must be attested by someone other than the raiser",
         payload_key="finding_id"),
+    Incompatibility(
+        "finding:extend", ("finding_acknowledged",),
+        "the person who accepted a finding may not move the date they accepted",
+        "an extension is where somebody independent asks whether the date was "
+        "ever realistic; route it to the second line",
+        payload_key="finding_id"),
 )
 
 BY_ACT: Dict[str, Incompatibility] = {r.act: r for r in RULES}

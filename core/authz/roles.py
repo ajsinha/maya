@@ -32,6 +32,10 @@ MODEL_DEVELOPER = {
     "model:read", "version:create",
     "feature:read", "feature:define", "feature:materialise", "feature:assemble",
     "feature:contract", "validation:read", "finding:read", "evidence:read",
+    # A finding can be owned by whoever has to fix it, and the first line does
+    # most of the fixing: accept what is yours and write down what you will do.
+    # Never extend — that is the one act the person with the deadline may not do.
+    "finding:acknowledge", "finding:plan",
     # The first line reads everything about its own models. Being able to act
     # on something you cannot read is a permission set nobody can reason about.
     "warrant:read", "monitor:read", "document:read", "overlay:read",
@@ -43,6 +47,9 @@ MODEL_DEVELOPER = {
 MODEL_OWNER = MODEL_DEVELOPER | {
     "model:register", "model:retire", "risk:assess",
     "warrant:issue", "warrant:execute", "finding:raise",
+    # The owner hands remediation to whoever will do it, on the record. They
+    # still cannot move the date it is due.
+    "finding:assign",
     # The owner puts the record forward, opens amendments to it, and signs the
     # owner half of the attestation. They never approve it.
     "model:submit", "model:amend", "model:attest", "baseline:plan",
@@ -58,6 +65,10 @@ MODEL_OWNER = MODEL_DEVELOPER | {
 VALIDATOR = READ_PERMISSIONS | {
     "validation:open", "validation:record", "validation:conclude",
     "finding:raise", "finding:close", "document:compile",
+    # Extension sits in the second line and nowhere else. Moving a remediation
+    # date is the moment somebody independent asks whether the date was ever
+    # realistic, and the first line asking itself is not that moment.
+    "finding:extend", "finding:assign", "finding:acknowledge", "finding:plan",
     # The second line accepts or rejects what the first line filed -- and
     # approves the parameters it fitted, which change what the model does.
     "document:review", "parameter:approve", "version:sign",
