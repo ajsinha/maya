@@ -30,7 +30,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.evidence import EvidenceEngine
 from core.registry import ModelRegistry, RegistryError
-from core.store import Store, _ulid, canonical_digest, hook
+from db import HookRepository
+from db.database import digest as canonical_digest, new_id
 
 
 class HookError(RuntimeError):
@@ -63,12 +64,12 @@ def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
 class HookService:
     """Issues and resolves hook descriptors. Signs them; never runs a model."""
 
-    def __init__(self, store: Store, registry: ModelRegistry, evidence: EvidenceEngine,
+    def __init__(self, repo: HookRepository, registry: ModelRegistry, evidence: EvidenceEngine,
                  signing_key: str = "maya-dev-key",
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20):
-        self.store, self.registry, self.evidence = store, registry, evidence
+        self.repo, self.registry, self.evidence = repo, registry, evidence
         self._key = signing_key.encode()
         self._ttl = ttl_by_tier or {1: 60, 2: 300, 3: 3600, 4: 3600}
         self._grace = grace_by_tier or {1: 0, 2: 0, 3: 900, 4: 900}
@@ -83,7 +84,7 @@ class HookService:
         tier = m.get("tier") or 1
         if semver is None and aliasname is None:
             aliasname = "champion"
-        row = {"id": _ulid(), "model_id": m["id"], "environment": environment,
+        row = {"model_id": m["id"], "environment": environment,
                "binding_kind": "pinned_version" if semver else "alias",
                "alias_name": aliasname, "version_id": None, "flavour": flavour,
                "principal": principal, "declared_use": declared_use,
@@ -96,7 +97,7 @@ class HookService:
             if not v:
                 raise HookError("validation_failed", f"no version {semver} for {m['urn']}", "")
             row["version_id"] = v["id"]
-        self.store.insert(hook, row)
+        self.repo.add(row)
         self.evidence.append("hook_issued", "model", m["id"],
                              {"urn": urn, "principal": principal, "use": declared_use,
                               "environment": environment}, actor=actor)
@@ -113,9 +114,7 @@ class HookService:
         except RegistryError as exc:
             raise HookError("not_found", str(exc), "register the model first") from exc
 
-        grant = self.store.one(hook, (hook.c.model_id == m["id"])
-                               & (hook.c.environment == environment)
-                               & (hook.c.principal == principal))
+        grant = self.repo.grant_for(m["id"], environment, principal)
         if grant is None:
             raise HookError("no_entitlement",
                             f"{principal} holds no hook for {model_urn} in {environment}",
@@ -144,7 +143,7 @@ class HookService:
         now = time.time()
         descriptor = {
             "maya_descriptor_version": "1.0",
-            "descriptor_id": _ulid(),
+            "descriptor_id": new_id(),
             "urn": urn,
             "resolved": {"model_urn": model_urn, "version": version["semver"],
                          "version_id": version["id"],
@@ -185,12 +184,11 @@ class HookService:
 
     # ------------------------------------------------------------- revocation
     def revoke(self, hook_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
-        row = self.store.one(hook, hook.c.id == hook_id)
+        row = self.repo.by_id(hook_id)
         if not row:
             raise HookError("not_found", f"no hook {hook_id}", "")
         self._epoch += 1
-        self.store.update(hook, hook.c.id == hook_id,
-                          {"revoked": True, "revoke_reason": reason, "epoch": self._epoch})
+        self.repo.revoke(hook_id, reason, self._epoch)
         self.evidence.append("hook_revoked", "model", row["model_id"],
                              {"hook_id": hook_id, "reason": reason}, actor=actor)
         return {"hook_id": hook_id, "revoked": True, "reason": reason, "epoch": self._epoch}
@@ -198,7 +196,7 @@ class HookService:
     def revoke_model(self, urn: str, reason: str, actor: str = "system") -> int:
         """Kill switch for every hook on a model."""
         m = self.registry.require(urn)
-        rows = self.store.many(hook, hook.c.model_id == m["id"])
+        rows = self.repo.for_model(m["id"])
         for r in rows:
             self.revoke(r["id"], reason, actor)
         return len(rows)
@@ -208,5 +206,4 @@ class HookService:
         return (now or time.time()) > auth["expires_at"] + auth.get("grace_seconds", 0)
 
     def grants(self, urn: str) -> List[Dict[str, Any]]:
-        m = self.registry.require(urn)
-        return self.store.many(hook, hook.c.model_id == m["id"])
+        return self.repo.for_model(self.registry.require(urn)["id"])

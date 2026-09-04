@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Help — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">HELP</p>
+<h1>Getting a model into the register</h1>
+<div class="rule"></div>
+
+<p class="text-muted">Six steps, all available over the API. Nothing below requires the interface.</p>
+
+{% for n, title, body, code in [
+  ('1','Register the model','Identity, ownership, domain and purpose. The URN is permanent.',
+   'POST /api/v1/models\n{"urn": "maya://model/credit.pd.smallbiz", "name": "SB PD",\n "model_class": "credit.pd.scorecard", "domain": "credit",\n "owner": "person/j.okafor", "legal_entity": "LE-US-01",\n "purpose": "12-month PD at origination"}'),
+  ('2','Create a version','Immutable. The trainability class is derived from the kernel, never declared.',
+   'POST /api/v1/models/credit.pd.smallbiz/versions\n{"semver": "3.2.1",\n "kernel": {"parameter_kind": "estimated_coefficients",\n            "fit_procedure": "estimate", "input_schema": [...]},\n "contract": {"assumptions": [...], "guarantees": [...]}}'),
+  ('3','Assess the risk','Materiality x complexity, monotone. The rationale is stored with the tier.',
+   'POST /api/v1/models/credit.pd.smallbiz/assess\n{"exposure": 2000000000, "purpose_class": "regulatory_capital"}'),
+  ('4','Approve, then point an alias','An alias may only point at an approved version, and the move must refine the incumbent.',
+   'POST /api/v1/models/credit.pd.smallbiz/versions/3.2.1/approve\nPUT  /api/v1/models/credit.pd.smallbiz/aliases\n{"environment": "prod", "alias": "champion", "semver": "3.2.1"}'),
+  ('5','Issue a hook','Bound to a principal and an approved use. Consumers hold only the URN.',
+   'POST /api/v1/hooks\n{"urn": "maya://model/credit.pd.smallbiz#champion",\n "environment": "prod", "principal": "svc/origination",\n "declared_use": "origination_decision"}'),
+  ('6','Resolve and execute','Your engine resolves, verifies the signature, checks the boundary, and runs.',
+   'POST /api/v1/resolve\n{"urn": "maya://model/credit.pd.smallbiz#champion",\n "environment": "prod", "principal": "svc/origination",\n "declared_use": "origination_decision"}')] %}
+<div class="card mb-3"><div class="card-body">
+  <div class="d-flex gap-3">
+    <div class="serif" style="font-size:1.6rem;color:var(--crimson);min-width:1.6rem">{{ n }}</div>
+    <div class="flex-grow-1">
+      <div class="serif" style="font-size:1.08rem">{{ title }}</div>
+      <div class="small text-muted mb-2">{{ body }}</div>
+      <pre class="mono mb-0 p-2" style="background:var(--parch);border-radius:3px;font-size:.78rem"><code>{{ code }}</code></pre>
+    </div>
+  </div>
+</div></div>
+{% endfor %}
+
+<div class="card"><div class="card-header">Why a resolution can be refused</div>
+<table class="table maya mb-0">
+  <thead><tr><th>Code</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td class="mono small">no_entitlement</td><td class="small">No hook for this principal</td><td class="small">Request a grant</td></tr>
+    <tr><td class="mono small">use_not_approved</td><td class="small">The declared use is not the approved one</td><td class="small">Seek approval, or declare the approved use</td></tr>
+    <tr><td class="mono small">restricted</td><td class="small">The bound version is not approved</td><td class="small">Approve it, or point the alias elsewhere</td></tr>
+    <tr><td class="mono small">revoked</td><td class="small">The hook was withdrawn</td><td class="small">Stop. Do not retry</td></tr>
+    <tr><td class="mono small">boundary_violation</td><td class="small">Inputs fall outside the operating boundary</td><td class="small">The guarantee is void there; refer or widen it</td></tr>
+  </tbody></table></div>
+{% endblock %}

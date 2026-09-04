@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}{{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">{{ model.domain|upper }}</p>
+<div class="d-flex align-items-baseline gap-3 flex-wrap">
+  <h1 class="mb-0">{{ model.name }}</h1>
+  <span class="tier {{ 'tier-' ~ model.tier if model.tier else 'tier-none' }}">
+    {{ 'TIER ' ~ model.tier if model.tier else 'UNTIERED' }}</span>
+  <span class="chip">{{ model.status }}</span>
+</div>
+<div class="mono text-muted">{{ model.urn }}</div>
+<div class="rule"></div>
+
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="card mb-3"><div class="card-header">Purpose</div>
+      <div class="card-body"><p class="mb-0">{{ model.purpose }}</p></div></div>
+
+    <div class="card mb-3"><div class="card-header">Versions</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Version</th><th>Class</th><th>Fit</th><th>Status</th><th>Digest</th></tr></thead>
+        <tbody>
+        {% for v in versions %}
+          <tr><td class="mono">{{ v.semver }}</td>
+              <td><span class="chip">{{ v.trainability_class }}</span></td>
+              <td class="small">{{ v.fit_procedure }}</td>
+              <td class="small">{{ v.status }}</td>
+              <td class="mono small text-muted">{{ v.manifest_digest[:22] }}…</td></tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted small">No versions yet.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+
+    <div class="card mb-3"><div class="card-header">Alias history — every move carries its proofs</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Env</th><th>Alias</th><th>To</th><th>Refinement</th><th>Variance</th></tr></thead>
+        <tbody>
+        {% for h in history %}
+          <tr><td class="small">{{ h.environment }}</td><td class="small">{{ h.name }}</td>
+              <td class="mono small">{{ h.to_version_id[:10] }}…</td>
+              <td class="small">{{ 'holds' if h.refinement.holds else h.refinement.reason }}</td>
+              <td class="small">{{ 'ok' if h.variance.ok else h.variance.reason }}</td></tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted small">No alias moves yet.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card mb-3"><div class="card-header">Governance</div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between"><span class="text-muted">Owner</span>
+          <span>{{ model.owner }}</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Legal entity</span>
+          <span>{{ model.legal_entity }}</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Origin</span>
+          <span>{{ model.origin }}</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Class</span>
+          <span>{{ model.model_class }}</span></div>
+      </div></div>
+
+    <div class="card mb-3"><div class="card-header">Hooks</div>
+      <div class="card-body p-0"><table class="table maya mb-0">
+        <tbody>
+        {% for h in hooks %}
+          <tr><td class="small">{{ h.principal }}<div class="text-muted">{{ h.declared_use }}</div></td>
+              <td class="text-end small">
+                {% if h.revoked %}<span class="evidence-bad">revoked</span>
+                {% else %}<span class="evidence-ok">active</span>{% endif %}
+                <div class="text-muted">{{ h.environment }}</div></td></tr>
+        {% else %}
+          <tr><td class="text-muted small p-3">No hooks issued.</td></tr>
+        {% endfor %}
+        </tbody></table></div></div>
+
+    <div class="card"><div class="card-header">Evidence ({{ evidence|length }})</div>
+      <div class="card-body p-0" style="max-height:22rem;overflow:auto">
+        <table class="table maya mb-0"><tbody>
+        {% for e in evidence %}
+          <tr><td class="small"><span class="chip">{{ e.kind }}</span>
+              <div class="mono text-muted" style="font-size:.7rem">#{{ e.seq }} {{ e.chain_hash[7:19] }}</div></td></tr>
+        {% else %}
+          <tr><td class="text-muted small p-3">No evidence recorded.</td></tr>
+        {% endfor %}
+        </tbody></table></div></div>
+  </div>
+</div>
+{% endblock %}
