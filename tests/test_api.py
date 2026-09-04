@@ -1078,3 +1078,63 @@ class TestAssistApi:
         assert assist, "the assistance surface should exist"
         for path in assist:
             assert "approve" not in path and "conclude" not in path
+
+
+class TestBaselineApi:
+    BATCH = [{"urn": "maya://model/legacy.pd.corporate", "name": "Corporate PD",
+              "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+              "purpose": "PD for corporate lending", "domain": "credit", "tier": 1}]
+
+    def test_the_gap_catalogue_is_published(self, client, people):
+        body = client.get("/api/v1/baseline/gaps", auth=people["d.raman"]).json()
+        keys = {g["key"] for g in body["gaps"]}
+        assert {"owner", "version", "tier", "validation", "monitoring"} <= keys
+
+    def test_import_a_batch_and_read_its_debt(self, client, people):
+        mrm = people["s.iqbal"]
+        r = client.post("/api/v1/baseline/imports", auth=mrm, json={
+            "source": "legacy-inventory.csv", "models": self.BATCH})
+        assert r.status_code == 201
+        assert r.json()["models"] == 1 and r.json()["debt_items"] > 0
+        assert "existing use is not blocked" in r.json()["detail"]
+
+        debt = client.get("/api/v1/baseline/debt", auth=mrm,
+                          params={"urn": self.BATCH[0]["urn"]}).json()
+        assert debt["baselined"] is True and debt["debt_open"] > 0
+        assert debt["breached"] == 0, "debt is not breach"
+
+    def test_a_baselined_model_is_in_the_inventory(self, client, people):
+        client.post("/api/v1/baseline/imports", auth=people["s.iqbal"], json={
+            "source": "csv", "models": self.BATCH})
+        listed = client.get("/api/v1/models", auth=people["s.iqbal"]).json()["models"]
+        found = next(m for m in listed if m["urn"] == self.BATCH[0]["urn"])
+        assert found["status"] == "baselined"
+
+    def test_reconcile_closes_debt_when_the_evidence_arrives(self, client, people):
+        mrm, dev = people["s.iqbal"], people["d.raman"]
+        client.post("/api/v1/baseline/imports", auth=mrm, json={
+            "source": "csv", "models": self.BATCH})
+        urn = self.BATCH[0]["urn"]
+        name = urn.rsplit("/", 1)[-1]
+        before = client.get("/api/v1/baseline/debt", auth=mrm,
+                            params={"urn": urn}).json()["debt_open"]
+
+        client.post(f"/api/v1/models/{name}/versions", auth=dev, json={
+            "semver": "1.0.0", "kernel": KERNEL, "contract": CONTRACT,
+            "artifact_digest": "sha256:abc"})
+        r = client.post("/api/v1/baseline/reconcile", auth=mrm, params={"urn": urn})
+        assert r.status_code == 200 and r.json()["closed"]
+        after = client.get("/api/v1/baseline/debt", auth=mrm,
+                           params={"urn": urn}).json()["debt_open"]
+        assert after < before
+
+    def test_the_portfolio_reports_the_burn_down(self, client, people):
+        client.post("/api/v1/baseline/imports", auth=people["s.iqbal"], json={
+            "source": "csv", "models": self.BATCH})
+        body = client.get("/api/v1/baseline", auth=people["s.iqbal"]).json()
+        assert body["models_baselined"] == 1 and "burn_down" in body
+
+    def test_a_developer_cannot_import(self, client, people):
+        r = client.post("/api/v1/baseline/imports", auth=people["d.raman"], json={
+            "source": "csv", "models": self.BATCH})
+        assert r.status_code == 403

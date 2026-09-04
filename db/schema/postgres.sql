@@ -570,3 +570,51 @@ CREATE TABLE IF NOT EXISTS ai_generation (
 );
 
 CREATE INDEX IF NOT EXISTS ix_generation_capability ON ai_generation (capability_id, state);
+
+-- --------------------------------------------------------------------------
+-- Baseline import and compliance debt
+-- --------------------------------------------------------------------------
+-- Adversarial review, finding C-5: on import day 1,200 existing models arrive
+-- with no evidence graph, no feature contracts and documentation in Word files.
+-- Every gate fails, every dashboard is red, and the programme dies in month
+-- seven. That was judged the single most likely cause of total failure.
+--
+-- The answer is not to lower the gates. It is to make the register HONEST about
+-- what it does not know. A baselined model is in the inventory and governed
+-- going forward, and carries explicit debt for each piece of evidence it does
+-- not have — dated, tiered, and burning down.
+--
+-- Debt is not breach. A Tier 1 model with baseline debt and a Tier 1 model with
+-- a missed validation must never render the same colour. Debt becomes a
+-- breach only when it passes its expiry.
+
+CREATE TABLE IF NOT EXISTS baseline_import (
+    id           TEXT PRIMARY KEY,
+    reference    TEXT NOT NULL,
+    source       TEXT NOT NULL,
+    note         TEXT NOT NULL DEFAULT '',
+    models       INTEGER NOT NULL DEFAULT 0,
+    debt_items   INTEGER NOT NULL DEFAULT 0,
+    imported_by  TEXT NOT NULL,
+    imported_at  DOUBLE PRECISION NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS compliance_debt (
+    id          TEXT PRIMARY KEY,
+    model_id    TEXT NOT NULL,
+    import_id   TEXT,
+    gap_key     TEXT NOT NULL,
+    description TEXT NOT NULL,
+    materiality TEXT NOT NULL DEFAULT 'Medium',
+    tier        INTEGER,
+    status      TEXT NOT NULL DEFAULT 'open',
+    plan        TEXT NOT NULL DEFAULT '',
+    owner       TEXT NOT NULL,
+    finding_id  TEXT,
+    raised_at   DOUBLE PRECISION NOT NULL,
+    expires_at  DOUBLE PRECISION NOT NULL,
+    closed_at   DOUBLE PRECISION,
+    closed_by   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_debt_model ON compliance_debt (model_id, status);

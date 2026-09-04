@@ -33,23 +33,30 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 DRAFT = "draft"
+# An existing model imported into the register. It is governed going forward and
+# carries explicit debt for what it does not have (adversarial review, C-5). It
+# is MUTABLE, because closing that debt is exactly what changing it means.
+BASELINED = "baselined"
 SUBMITTED = "submitted"
 APPROVED = "approved"
 ATTESTED = "attested"
 AMENDING = "amending"
 RETIRED = "retired"
 
-STATES: Tuple[str, ...] = (DRAFT, SUBMITTED, APPROVED, ATTESTED, AMENDING, RETIRED)
+STATES: Tuple[str, ...] = (DRAFT, BASELINED, SUBMITTED, APPROVED, ATTESTED,
+                           AMENDING, RETIRED)
 
 # The states in which the record may be changed at all. Everything else is
 # frozen, including the addition of new versions: a new version IS a change to
 # the model, and pretending otherwise is how an attested record quietly stops
 # describing what runs.
-MUTABLE: Tuple[str, ...] = (DRAFT, AMENDING)
+MUTABLE: Tuple[str, ...] = (DRAFT, BASELINED, AMENDING)
 
 # What each state means, in the words someone would use to explain it.
 MEANING: Dict[str, str] = {
     DRAFT: "being written; open to change and not yet in force",
+    BASELINED: ("imported from an existing estate; governed going forward, "
+                "carrying explicit debt for the evidence it does not have"),
     SUBMITTED: "submitted for approval; frozen while it is being considered",
     APPROVED: "approved but not yet attested; not in force until it is",
     ATTESTED: "in force and immutable; open an amendment to change it",
@@ -69,7 +76,7 @@ class Transition:
 
 
 TRANSITIONS: Tuple[Transition, ...] = (
-    Transition("submit", (DRAFT, AMENDING), SUBMITTED, "model:submit",
+    Transition("submit", (DRAFT, BASELINED, AMENDING), SUBMITTED, "model:submit",
                "the owner puts the record forward for approval"),
     Transition("return", (SUBMITTED,), DRAFT, "model:approve",
                "the reviewer sends it back for more work, with a reason"),
@@ -79,7 +86,8 @@ TRANSITIONS: Tuple[Transition, ...] = (
                "the required roles sign; the record becomes immutable and in force"),
     Transition("amend", (ATTESTED,), AMENDING, "model:amend",
                "an amendment is opened; the record becomes changeable again"),
-    Transition("retire", (ATTESTED, APPROVED, DRAFT), RETIRED, "model:retire",
+    Transition("retire", (ATTESTED, APPROVED, DRAFT, BASELINED), RETIRED,
+               "model:retire",
                "the model is withdrawn from use; nothing is deleted"),
 )
 
