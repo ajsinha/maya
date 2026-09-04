@@ -28,3 +28,9 @@ of object; they are nine answers to *how `P` is inhabited*, characterised by a f
   to `maya/domain/` and documenting it in [00](../00-mathematical-foundations.md).
 - **−** Some models (heavily stateful simulation engines) fit awkwardly. Handled by making state part of `X`
   and documenting the modelling choice.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

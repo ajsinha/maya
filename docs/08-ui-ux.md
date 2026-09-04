@@ -382,3 +382,9 @@ anything.
 | **Density** | Compact tables by default (banks look at hundreds of rows); a comfortable mode is available. |
 | **Print** | Every detail page has a print stylesheet producing a clean, dated, watermarked document — because people take these into meetings. |
 | **Responsive** | Full functionality ≥ 1280px; read and approve on tablet; alerts and approvals on phone. |
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

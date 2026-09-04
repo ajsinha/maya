@@ -1082,3 +1082,9 @@ guards jsonb, status), and `document` (see §11) — flagged as missing by findi
 **Expand/contract discipline.** Add nullable → backfill → dual-write → switch reads → drop old, across
 at least two releases. Every migration ships with a tested down-path and is exercised against a
 production-shaped dataset in CI.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

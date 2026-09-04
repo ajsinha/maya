@@ -1031,3 +1031,9 @@ See [`docs/adr/`](adr/INDEX.md) for the full set. Summary:
 > [11 — Adversarial Design Review](11-adversarial-review.md): 27 findings, 17 requiring redesign. The
 > most consequential were **C-2** (the online feature store was unversioned, silently defeating the
 > feature contract) and **C-5** (day-one adoption with 1,200 evidence-less legacy models).
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

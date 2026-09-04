@@ -436,3 +436,9 @@ That combination is the product.
 - [Model Risk Management for Generative AI in Financial Institutions (arXiv 2503.15668)](https://arxiv.org/pdf/2503.15668)
 - [GAF-Guard: an agentic framework for risk management and governance in LLMs (arXiv)](https://arxiv.org/pdf/2507.02986)
 - [Evaluation and benchmarking suite for financial LLMs and agents (arXiv)](https://arxiv.org/pdf/2602.19073)
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

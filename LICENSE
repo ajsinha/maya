@@ -1,0 +1,88 @@
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+
+PROPRIETARY LICENSE
+
+1. OWNERSHIP
+
+   All materials in this repository — including but not limited to the
+   specification documents, architecture and design documents, data models,
+   protocol definitions, source code, build tooling, presentation decks, brand
+   assets, the MAYA name, and the MAYA mark — are the exclusive property of
+   Ashutosh Sinha ("the Author") and are protected by copyright and other
+   intellectual property laws.
+
+   Copyright © 2026 Ashutosh Sinha. All rights reserved.
+
+2. NO LICENCE GRANTED
+
+   Except as expressly stated in Section 3, no licence, right, title or
+   interest in these materials is granted, whether by implication, estoppel or
+   otherwise. Without the Author's prior written permission you may not:
+
+     (a) copy, reproduce, publish, distribute, transmit or make available;
+     (b) modify, adapt, translate or create derivative works;
+     (c) use in or for any commercial product, service or offering;
+     (d) sublicense, sell, rent, lease or otherwise transfer;
+     (e) reverse engineer, decompile or disassemble any compiled artefact;
+     (f) remove, obscure or alter any copyright, trademark or other notice.
+
+   Access to this repository does not itself confer any of the above rights.
+
+3. CARVE-OUT — RESEARCH MATERIALS
+
+   The contents of the docs/research/ directory — specifically the paper
+   "Models as Parametric Kernels, Governance as Verified Automation" and the
+   article "Most of Your Models Were Never Trained" — are licensed separately
+   under Creative Commons Attribution-NonCommercial-NoDerivatives 4.0
+   International (CC BY-NC-ND 4.0).
+
+   See docs/research/LICENSE for the terms that apply to those files. Where
+   this LICENSE and docs/research/LICENSE conflict as to those files,
+   docs/research/LICENSE governs.
+
+4. PERMITTED INTERNAL EVALUATION
+
+   A person or organisation to whom the Author has granted access may read
+   these materials and may make a reasonable number of internal copies for the
+   sole purpose of evaluating them. This permission is revocable at will, does
+   not extend to implementation, and confers no other right under Section 2.
+
+5. TRADEMARKS
+
+   "MAYA", the MAYA mark, the tagline "Model & AI Lifecycle Assurance" and the
+   slogan "Evidence, not assertion." are used as trademarks of the Author.
+   Nothing in this LICENCE grants any right to use them.
+
+6. THIRD-PARTY AND QUOTED MATERIAL
+
+   These materials quote and cite supervisory guidance, regulation and
+   scholarly work owned by others. Those quotations remain the property of
+   their respective owners and are used for identification, commentary,
+   criticism and research. See NOTICE for details and attributions.
+
+7. NO WARRANTY
+
+   THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE, ACCURACY AND NON-INFRINGEMENT.
+
+8. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE MATERIALS OR THEIR USE.
+
+9. NOT LEGAL, REGULATORY OR FINANCIAL ADVICE
+
+   These materials discuss and interpret financial regulation. They are
+   engineering and research documents. They are not legal, regulatory,
+   compliance, accounting, actuarial or financial advice, and must not be
+   relied upon as such. Regulatory obligations depend on jurisdiction, entity
+   and facts, and change over time. Obtain qualified professional advice before
+   acting. See NOTICE, Section 4.
+
+10. CONTACT
+
+   Requests for permission, licensing enquiries and all other correspondence:
+   Ashutosh Sinha — ajsinha@gmail.com

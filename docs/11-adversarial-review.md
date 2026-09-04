@@ -424,3 +424,9 @@ questions systematically rather than reviewing for correctness.
 
 That is the argument for running this review before writing code, and again after each major phase.
 It is scheduled accordingly in [12 — Implementation Plan](12-implementation-plan.md).
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

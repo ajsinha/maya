@@ -493,3 +493,9 @@ Two consequences MAYA implements directly:
 This taxonomy ships as reference data: `seed/model_classes.yaml`, containing for each family the
 default trainability class, lifecycle template, evidence schema, monitoring metric set, documentation
 template set, and default tiering hints. Banks fork it. See [10 — Roadmap](10-roadmap.md) Phase 1.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -46,3 +46,9 @@ elements or sitting outside its enclosing rectangle.
 3. content crossing the footer rule.
 
 It must report **no geometry issues** before the deck ships.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

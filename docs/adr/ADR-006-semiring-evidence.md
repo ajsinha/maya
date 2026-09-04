@@ -26,3 +26,9 @@ evaluating other semirings by homomorphism on demand.
   depth limits, memoisation and periodic normalisation.
 - **−** The abstraction is unfamiliar. Mitigated by confining it to `maya/evidence/` behind a plain
   `EvidenceQuery.evaluate(semiring)` API.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

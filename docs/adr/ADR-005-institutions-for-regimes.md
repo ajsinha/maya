@@ -27,3 +27,9 @@ regime version — not as flags.
   SR 26-2 supersedes it.
 - **−** Conceptually heavier than a tag column. Justified by the frequency of regulatory change and the
   cost of getting scope wrong.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

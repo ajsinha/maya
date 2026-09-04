@@ -1084,3 +1084,9 @@ tested by injecting the failure they must catch — not by examples they are kno
 | §14–16 Interfaces | `FR-PLT-001..010`; ADR-011 |
 | §17–19 | `NFR-DATA-*`, `NFR-PERF-*`; findings H-7, H-9, M-3 |
 | §20–23 | `NFR-OPS-*`, `NFR-MNT-*`; ADR-010 |
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -1,3 +1,8 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+"""
 # -*- coding: utf-8 -*-
 exec(open(__file__.replace("slides.py","theme.py")).read())
 
@@ -537,6 +542,9 @@ para(tf, "Ashutosh Sinha", size=18, color=WHITE, bold=True, first=True, space_af
 para(tf, "Independent Researcher   ·   ajsinha@gmail.com", size=12, color=RGBColor(0xF2,0xD8,0xDC), space_after=14)
 para(tf, "Full treatment — including the impossibility proof, the conservative-extension and satisfaction-condition results, the semiring construction for assurance evidence, and what was deliberately not adopted — in the accompanying paper.",
      size=10.5, color=RGBColor(0xE8,0xC4,0xCA), line=1.3)
+para(tf, "© 2026 Ashutosh Sinha. Licensed CC BY-NC-ND 4.0. Quoted regulation and scholarship remain their owners'. "
+         "A research document — not legal, regulatory or financial advice.",
+     size=8.5, color=RGBColor(0xD8,0xA0,0xAC), space_before=10, line=1.25)
 
 import sys
 prs.save(sys.argv[1])

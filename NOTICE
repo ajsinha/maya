@@ -1,0 +1,148 @@
+NOTICE
+
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+
+This file records legal notices, attributions and disclaimers that apply to
+this repository. It is referenced by LICENSE and by docs/research/LICENSE, and
+must be retained and reproduced with any permitted copy.
+
+--------------------------------------------------------------------------------
+1. OWNERSHIP AND LICENSING
+--------------------------------------------------------------------------------
+
+Author and copyright holder:   Ashutosh Sinha <ajsinha@gmail.com>
+Repository:                    github.com/ajsinha/maya
+
+  Everything except docs/research/   Proprietary, All Rights Reserved (LICENSE)
+  docs/research/                     CC BY-NC-ND 4.0 (docs/research/LICENSE)
+
+--------------------------------------------------------------------------------
+2. TRADEMARKS
+--------------------------------------------------------------------------------
+
+The following are used as unregistered trademarks of the Author:
+
+  MAYA                                the platform name
+  the MAYA mark                       a square inscribed in a circle
+  "Model & AI Lifecycle Assurance"    tagline
+  "Evidence, not assertion."          slogan
+
+No licence to use these is granted by LICENSE or by docs/research/LICENSE.
+Fair use for identification, reference and commentary is unaffected.
+
+All other product, service and company names are trademarks of their respective
+owners and are used for identification only. Their mention does not imply
+endorsement, affiliation or sponsorship. This includes, without limitation:
+IBM OpenPages, SAS, MetricStream, Moody's, ValidMind, ModelOp, Yields.io,
+Mitratech ClusterSeven, CIMCON, Apparity, FICO, Databricks, MLflow, Unity
+Catalog, Amazon SageMaker, Google Vertex AI, Domino Data Lab, Dataiku,
+DataRobot, H2O, Feast, Tecton, Hopsworks, KServe, Seldon, BentoML, Arize,
+Fiddler, Arthur, Evidently, WhyLabs, NannyML, ServiceNow, Collibra, Alation,
+Microsoft Purview, Archer, PostgreSQL, Delta Lake, Apache Spark, Apache Kafka,
+Redis, Kubernetes, HashiCorp Vault, Sigstore and GitHub.
+
+--------------------------------------------------------------------------------
+3. QUOTED REGULATORY AND SCHOLARLY MATERIAL
+--------------------------------------------------------------------------------
+
+These materials quote, cite and summarise supervisory guidance, regulation and
+scholarly publications owned by others. Such material remains the property of
+its respective owner and is reproduced for identification, commentary,
+criticism, teaching and research.
+
+  SR 26-2 / OCC Bulletin 2026-13 / FDIC — "Supervisory Guidance on Model Risk
+  Management" (17 April 2026). Works of the United States federal government;
+  not subject to copyright in the United States (17 U.S.C. § 105).
+
+  SR 11-7 (2011) and SR 21-8 (2021), superseded by SR 26-2. As above.
+
+  PRA Supervisory Statement SS1/23, "Model risk management principles for
+  banks" (Bank of England, May 2023; amended April 2026). © Bank of England.
+  Quoted under fair dealing for criticism, review, quotation and reporting
+  (UK CDPA 1988 ss. 29–30) and consistent with the Bank of England's terms of
+  use for its publications.
+
+  Regulation (EU) 2024/1689 (the AI Act) and other EU legal texts. © European
+  Union. Reproduction authorised provided the source is acknowledged.
+
+  NIST AI RMF 1.0 (AI 100-1) and the Generative AI Profile (AI 600-1). Works of
+  the United States federal government; not subject to domestic copyright.
+
+  Basel Committee, IFRS Foundation, FASB, EBA, CFPB and other standard-setting
+  and supervisory publications, cited by title and reference.
+
+  Scholarly works are cited in the bibliography of
+  docs/research/models-as-parametric-kernels.tex. Copyright in each remains
+  with its authors and publishers. Ideas are attributed in the text; no
+  substantial portion of any such work is reproduced.
+
+If you are a rights holder and consider any quotation to exceed fair use or
+fair dealing, contact ajsinha@gmail.com and it will be addressed promptly.
+
+--------------------------------------------------------------------------------
+4. NOT LEGAL, REGULATORY OR FINANCIAL ADVICE
+--------------------------------------------------------------------------------
+
+These materials discuss, interpret and formalise financial regulation and
+supervisory expectations. They are engineering and research documents produced
+by the Author in a personal capacity.
+
+They are NOT legal, regulatory, compliance, accounting, actuarial, audit,
+investment or financial advice, and must not be relied upon as such.
+
+  • Regulatory obligations depend on jurisdiction, legal entity, activity,
+    scale and facts, and they change. Statements here reflect the Author's
+    reading at the time of writing (September 2026) and may be wrong, outdated
+    or inapplicable to you.
+  • Any encoding of a regulation in this work is a CLAIM ABOUT that regulation,
+    not the regulation. The formalism makes the claim explicit and testable for
+    internal consistency; it does not make it correct. This limitation is
+    stated in docs/00-mathematical-foundations.md and in the research paper.
+  • Nothing here creates an attorney–client, advisory or fiduciary relationship.
+  • Obtain qualified professional advice before acting on anything in this
+    repository.
+
+--------------------------------------------------------------------------------
+5. NO AFFILIATION
+--------------------------------------------------------------------------------
+
+The Author is an independent researcher. This work is not produced, endorsed,
+sponsored, reviewed or approved by any bank, regulator, supervisory authority,
+standard-setting body, vendor or employer. Views are the Author's own.
+
+The colour palette used in the presentation decks is a common crimson. Neither
+it nor any element of this work implies affiliation with, or endorsement by,
+any university or institution.
+
+--------------------------------------------------------------------------------
+6. THIRD-PARTY TOOLING USED TO PRODUCE THIS WORK
+--------------------------------------------------------------------------------
+
+The tools in tools/deck/ depend on the following, which are not distributed
+here and remain under their own licences:
+
+  python-pptx        MIT Licence
+  Pillow             MIT-CMU Licence
+  LaTeX / TeX Live   LaTeX Project Public Licence and others
+  Liberation Fonts   SIL Open Font Licence 1.1
+
+Fonts referenced by name in the decks and documents (Georgia, Calibri,
+Consolas) are the property of their owners and are not distributed here.
+
+--------------------------------------------------------------------------------
+7. AI ASSISTANCE DISCLOSURE
+--------------------------------------------------------------------------------
+
+Portions of these materials were drafted with the assistance of an AI system
+under the Author's direction. The Author has reviewed the work, directed its
+structure and conclusions, and is responsible for its content. Copyright is
+claimed in the Author's original selection, arrangement, expression and
+judgement.
+
+--------------------------------------------------------------------------------
+8. CONTACT
+--------------------------------------------------------------------------------
+
+Ashutosh Sinha — ajsinha@gmail.com
+Licensing, permissions, corrections and rights enquiries.

@@ -599,3 +599,9 @@ and one that describes reality.
 | Artifact digest mismatch | **Fail closed**, raise a security incident | Possible tampering |
 | Signature verification failure | **Fail closed**, raise a security incident | Possible forged descriptor |
 | Quota or budget exhausted | Fail closed with `429` and a clear message | Cost control, especially for T5 |
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

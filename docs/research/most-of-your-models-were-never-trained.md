@@ -492,3 +492,9 @@ and satisfaction-condition propositions, the semiring construction for assurance
 automation-admissibility and citation-soundness results, and a full account of what I deliberately
 didn't adopt and why — is in the accompanying paper,* **Models as Parametric Kernels, Governance as
 Verified Automation.**
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>.
+Licensed under [CC BY-NC-ND 4.0](LICENSE). See [NOTICE](../../NOTICE) for quoted material and disclaimers.
+*Not legal, regulatory or financial advice — see NOTICE §4.*

@@ -76,3 +76,9 @@ Supporting decisions:
 No client-side business logic; accessibility via semantic HTML; server-rendered, printable, archivable
 documents. The stack constraint (Bootstrap 5, jQuery) is unchanged — it now runs against an API rather
 than against templates.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*

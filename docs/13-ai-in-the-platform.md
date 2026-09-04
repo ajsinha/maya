@@ -342,3 +342,9 @@ is precisely the kind of claim the system exists to eliminate.
 The recursion is the best part. A platform that governs models, governed by itself, using models it
 governs. If that turns out to be uncomfortable in practice, we will have learned something important
 about the GenAI track before a single business unit does.
+
+---
+
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE).
+*Not legal, regulatory or financial advice — see NOTICE §4.*
