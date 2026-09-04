@@ -21,8 +21,8 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
-from core.domain import Bound, Contract
-from core.hooks import HookError, HookService
+from core.domain.contracts import Bound, Contract
+from core.execution.hooks import HookError, HookService
 
 
 @dataclass
