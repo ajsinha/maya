@@ -37,6 +37,11 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "feature:materialise", "feature:contract", "feature:assemble",
     # execution
     "warrant:read", "warrant:issue", "warrant:revoke", "warrant:execute",
+    # Obtaining a signed descriptor is not the same act as reading which grants
+    # exist. It was authorised as `warrant:read` -- which sits in the read set
+    # and is therefore held by every role, the auditor included -- so any
+    # authenticated principal could mint a production execution credential.
+    "warrant:resolve",
     # assurance
     "validation:read", "validation:open", "validation:record", "validation:conclude",
     "finding:read", "finding:raise", "finding:close",

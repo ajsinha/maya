@@ -14,7 +14,14 @@ from typing import Any, Dict
 from fastapi import Request
 from pydantic import BaseModel, Field
 
+from core.authz.common import AuthzError, same_person
+from core.execution.urn import model_urn, parse_urn
 from routes.base import Routes
+
+
+def strip_qualifier(urn: str) -> str:
+    """The bare model urn, with any @semver or #alias removed."""
+    return model_urn(parse_urn(urn)[0])
 
 
 class FitIn(BaseModel):
@@ -53,8 +60,30 @@ class RevokeIn(BaseModel):
 
 
 class WarrantRoutes(Routes):
+    def _must_be_self_or_delegated(self, who: Dict[str, Any],
+                                   principal: str) -> None:
+        """A credential is minted for the caller, or by somebody entitled to
+        mint for others.
+
+        `principal` arrives in the request body and used to be taken on trust,
+        so any authenticated caller could obtain a signed descriptor naming any
+        service account. Holding `warrant:issue` is what makes minting for a
+        third party a deliberate, permissioned act rather than a request field.
+        """
+        if same_person(principal, who.get("username")):
+            return
+        if "warrant:issue" in self.ctx["authz"].permissions(who):
+            return
+        raise AuthzError(
+            "principal_not_self",
+            f"{who.get('username')} asked for a warrant naming '{principal}', "
+            f"which is somebody else",
+            "resolve a warrant for yourself, or hold warrant:issue to mint one "
+            "on another principal's behalf")
+
     def register(self) -> None:
         warrants, engine = self.ctx["warrants"], self.ctx.get("engine")
+        registry = self.ctx["registry"]
 
         @self.app.post(f"{self.api}/fit-warrants", status_code=201,
                        tags=["warrants"])
@@ -95,8 +124,23 @@ class WarrantRoutes(Routes):
 
         @self.app.post(f"{self.api}/resolve", tags=["warrants"])
         def resolve(request: Request, body: ResolveIn, verb: str = "score"):
-            self.authorise(request, "warrant:read")
-            """The hot path. A signed descriptor, or a refusal with a reason."""
+            """The hot path. A signed descriptor, or a refusal with a reason.
+
+            Two things had to change here. It authorised against `warrant:read`,
+            which is in the read set and therefore held by every role including
+            the auditor -- so anybody could obtain an execution credential. And
+            it minted the descriptor for `body.principal` without ever checking
+            that against the caller, so anybody could obtain one for anybody.
+            Passing no `model=` meant scope was skipped as well, so it worked
+            across legal entities.
+            """
+            # `get`, not `require`: an unknown model is a 404 here, and
+            # `require` refuses with a conflict shaped for a different caller.
+            model = self.guard(lambda: registry.get(strip_qualifier(body.urn)))
+            if model is None:
+                raise self.not_found(f"no model {body.urn}")
+            who = self.authorise(request, "warrant:resolve", model=model)
+            self._must_be_self_or_delegated(who, body.principal)
             return self.guard(lambda: warrants.resolve(
                 body.urn, body.environment, body.principal, body.declared_use, verb))
 
@@ -110,7 +154,11 @@ class WarrantRoutes(Routes):
 
         @self.app.post(f"{self.api}/execute", tags=["execution"])
         def execute(request: Request, body: ExecuteIn):
-            self.authorise(request, "warrant:execute")
+            model = self.guard(lambda: registry.get(strip_qualifier(body.urn)))
+            if model is None:
+                raise self.not_found(f"no model {body.urn}")
+            who = self.authorise(request, "warrant:execute", model=model)
+            self._must_be_self_or_delegated(who, body.principal)
             """Convenience only: the captive engine, reached through the same
             contract an external engine uses. Disable it and nothing else changes."""
             if engine is None:
