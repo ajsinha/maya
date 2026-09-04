@@ -185,6 +185,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # warrant this register issued, and named by the featureset that produced them.
     parameters = ParameterRegister(ParameterSetRepository(db), registry, evidence,
                                    warrants, features.sets)
+    # Late-bound in the other direction too, and for the same reason: the two
+    # refer to each other. A warrant names the point of P a run is at; the
+    # register knows which point is approved.
+    warrants.parameters = parameters
 
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
@@ -299,7 +303,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         ctx["engine"] = CaptiveEngine(
             warrants, cfg.get_float("execution.captive.max_seconds", 30.0),
             artifact_dir=Path(cfg.get("data.artifacts", str(ROOT / "data" / "artifacts"))),
-            sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox())
+            sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox(),
+            # So a warrant naming a point of P can be honoured: the engine reads
+            # the values and checks their digest before anything runs at them.
+            parameters=parameters)
         # Fitting needs an engine to run the estimator in, so it is wired here
         # rather than beside the register: an instance with the captive engine
         # switched off can still record a fit performed elsewhere, and cannot

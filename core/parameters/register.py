@@ -267,6 +267,21 @@ class ParameterRegister:
         return self.parameters.one(id=parameter_set_id)
 
     # ------------------------------------------------------------------ query
+    @staticmethod
+    def digest_of(row: Dict[str, Any]) -> str:
+        """Re-derive a parameter set's digest from what it currently holds.
+
+        Recomputed rather than read back. A check that compares the stored
+        digest against the warrant's compares two copies of the same claim and
+        would pass over values somebody had edited underneath it -- which is
+        precisely the defect the scale suite found in the evidence chain, where
+        verify_chain re-linked the stored hash instead of re-deriving it.
+        """
+        return canonical_digest({"values": row.get("values_inline") or {},
+                                 "uri": row.get("values_uri"),
+                                 "kind": row.get("kind"),
+                                 "model_version": row.get("model_version_id")})
+
     def get(self, parameter_set_id: str) -> Optional[Dict[str, Any]]:
         return self.parameters.one(id=parameter_set_id)
 

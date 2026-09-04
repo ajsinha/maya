@@ -121,6 +121,13 @@ STATUS: Dict[str, int] = {
     "column_missing": 422, "value_not_numeric": 422,
     "not_identified": 422, "collinear_regressors": 422,
     "series_is_constant": 422, "fit_did_not_converge": 422,
+    # running at a point of P
+    # `parameter_mismatch` is 409 and not 422: nothing about the request is
+    # wrong. The numbers in the register stopped matching what was approved,
+    # which is a conflict in the platform's own state and a security event.
+    "parameter_mismatch": 409, "no_parameter_register": 501,
+    "no_parameters_supplied": 409, "parameter_missing": 409,
+    "no_features": 422, "state_required": 422, "state_not_a_variance": 422,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,

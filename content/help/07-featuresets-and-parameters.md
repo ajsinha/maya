@@ -587,11 +587,16 @@ Anything else is estimated in an execution engine and delivered back, which is
 the same boundary drawn everywhere else. It is not a modelling library and does
 not want to become one.
 
-**It fits and does not score.** A fitted parameter set *is* the linear model, so
-scoring from it is arithmetic — but the engine would have to hold the *approved*
-values and be able to show they are the ones somebody signed, and that is a
-question about how a runtime obtains and proves them rather than about the
-arithmetic. Left undone rather than guessed at.
+**It runs at the point of P that was approved, and checks.** Once a fitted set
+is approved, a run warrant for that version binds *it* rather than the artifact
+— which for a fitted model is the only truthful thing the warrant can say, there
+being no artifact. Before anything runs, the engine reads the values and
+**re-derives** their digest. It does not compare the stored digest against the
+warrant's: those are two copies of the same claim, and they would agree happily
+over values somebody had edited underneath them.
+
+A runtime never fetches its own parameters. One that did would be choosing which
+numbers it ran on, and that is the decision the approval exists to make.
 
 **It does not choose your features.** No automatic selection, no importance
 ranking, no suggestion engine. It records what you chose, pins it so it cannot

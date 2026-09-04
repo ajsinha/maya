@@ -43,6 +43,11 @@ def fitting(engine_for_fit, warrants_with_features, parameters, full_features,
             db, delta, evidence):
     from core.parameters import FittingService
     from db import SnapshotRepository
+    # The two refer to each other, exactly as they do in the application: a
+    # warrant names the point of P a run is at, and the register knows which
+    # point is approved.
+    warrants_with_features.parameters = parameters
+    engine_for_fit.parameters = parameters
     return FittingService(engine_for_fit, warrants_with_features, parameters,
                           full_features, SnapshotRepository(db), delta, evidence)
 
@@ -255,9 +260,12 @@ class TestTheEstimatorRefusesRatherThanGuesses:
                                            "regressors": ["a", "b"]})
         assert exc.value.code == "too_few_rows"
 
-    def test_a_runtime_that_scores_is_not_one_that_fits(self):
+    def test_a_verb_it_does_not_implement_is_refused_by_name(self):
+        """It fits and it scores. A backtest is a different operation with a
+        different notion of correctness, and pretending otherwise would return a
+        number of the same shape."""
         from core.execution.runtimes import EstimatorRuntime, Invocation
-        warrant = {"operation": {"verb": "score"},
+        warrant = {"operation": {"verb": "backtest"},
                    "realisation": {"entry": {"family": "ols"}}}
         with pytest.raises(WarrantError) as exc:
             EstimatorRuntime().invoke(Invocation(warrant, {"rows": []}))
@@ -319,3 +327,116 @@ class TestGarch:
         with pytest.raises(WarrantError) as exc:
             self._fit([{"r": 1.0} for _ in range(60)])
         assert exc.value.code == "series_is_constant"
+
+
+class TestRunningAtAnApprovedPointOfP:
+    """Fit, approve, then actually run it.
+
+    This is the step the loop stopped short of. A fitted parameter set IS a
+    linear model -- there is no artifact and nothing else to run -- so a version
+    that could be fitted and approved but not scored was a governed object that
+    could never do the thing it was governed for.
+    """
+
+    def _approved(self, fitting, parameters, snapshot):
+        fitted = fitting.fit(URN, snapshot["id"], "prod", "svc/model-lab",
+                             "model_development", WINDOW, name="ols_v1",
+                             actor="person/d.raman")
+        return parameters.approve(fitted["id"], "person/s.iqbal", "reviewed")
+
+    def test_the_run_warrant_names_the_point_of_p_and_not_the_artifact(
+            self, fitting, parameters, warrants_with_features, fittable,
+            snapshot, entitled):
+        """Law L-W8. For a model whose parameters live in the register, an
+        artifact binding would be a false statement: there is no artifact, and
+        the numbers deciding what it does are somewhere the warrant did not
+        name."""
+        approved = self._approved(fitting, parameters, snapshot)
+        warrant = warrants_with_features.resolve(
+            URN, "prod", "svc/model-lab", "model_development")
+        source = warrant["parameters"]["source"]
+        assert source["binding"] == "parameter_set"
+        assert source["parameter_set"] == approved["id"]
+        assert source["digest"] == approved["digest"]
+
+    def test_it_scores_at_the_coefficients_that_were_approved(
+            self, fitting, parameters, engine_for_fit, fittable, snapshot,
+            entitled):
+        self._approved(fitting, parameters, snapshot)
+        out = engine_for_fit.execute(
+            URN, "prod", "svc/model-lab", "model_development",
+            {"features": {"dscr": 2.0, "turnover": 100.0}})
+        # spend = 5 + 2*dscr - 0.5*turnover = 5 + 4 - 50
+        assert out.prediction["prediction"] == pytest.approx(-41.0, abs=1e-6)
+        assert out.prediction["family"] == "ols"
+
+    def test_the_engine_checks_the_digest_before_running_at_the_numbers(
+            self, fitting, parameters, engine_for_fit, fittable, snapshot,
+            entitled, db):
+        """The same act as verifying an artifact's digest, one object over. An
+        engine that took the register's word for it would have a chain of
+        custody whose last link is the one that touches what actually runs."""
+        approved = self._approved(fitting, parameters, snapshot)
+        from db import ParameterSetRepository
+        ParameterSetRepository(db).set(
+            {"values_inline": {"intercept": 999.0, "dscr": 0.0,
+                               "turnover": 0.0}}, id=approved["id"])
+        with pytest.raises(WarrantError) as exc:
+            engine_for_fit.execute(URN, "prod", "svc/model-lab",
+                                   "model_development",
+                                   {"features": {"dscr": 2.0, "turnover": 100.0}})
+        assert exc.value.code == "parameter_mismatch"
+
+    def test_a_missing_regressor_is_refused_rather_than_treated_as_zero(
+            self, fitting, parameters, engine_for_fit, fittable, snapshot,
+            entitled):
+        """Treating it as zero would return a number, and a number is what the
+        caller will use."""
+        self._approved(fitting, parameters, snapshot)
+        with pytest.raises(WarrantError) as exc:
+            engine_for_fit.execute(URN, "prod", "svc/model-lab",
+                                   "model_development",
+                                   {"features": {"dscr": 2.0}})
+        assert exc.value.code == "column_missing"
+
+    def test_an_unapproved_fit_cannot_be_run(self, fitting, engine_for_fit,
+                                             fittable, snapshot, entitled):
+        """The fit exists and is proposed. Until somebody else approves it there
+        is no point of P to run at, and the warrant must not invent one."""
+        fitting.fit(URN, snapshot["id"], "prod", "svc/model-lab",
+                    "model_development", WINDOW, actor="person/d.raman")
+        with pytest.raises(WarrantError) as exc:
+            engine_for_fit.execute(URN, "prod", "svc/model-lab",
+                                   "model_development",
+                                   {"features": {"dscr": 2.0, "turnover": 100.0}})
+        assert exc.value.code in ("no_runtime", "artifact_unverifiable",
+                                  "no_parameters_supplied")
+
+
+class TestGarchScoring:
+    def _score(self, values, features):
+        from core.execution.runtimes import EstimatorRuntime, Invocation
+        warrant = {"operation": {"verb": "score"},
+                   "realisation": {"runtime": "estimator",
+                                   "entry": {"family": "garch11"}}}
+        return EstimatorRuntime().invoke(
+            Invocation(warrant, {"parameters": values, "features": features}))
+
+    VALUES = {"omega": 0.02, "alpha": 0.10, "beta": 0.85}
+
+    def test_it_forecasts_the_next_conditional_variance(self):
+        out = self._score(self.VALUES, {"last_shock": 0.5, "last_variance": 0.4})
+        # 0.02 + 0.10*0.25 + 0.85*0.4
+        assert out["conditional_variance"] == pytest.approx(0.385)
+        assert out["conditional_volatility"] == pytest.approx(0.385 ** 0.5)
+
+    def test_the_state_it_used_is_reported_back(self):
+        """A forecast that hid which state produced it would not be
+        reproducible, which is exactly the trap a stateful artefact sets."""
+        out = self._score(self.VALUES, {"last_shock": 0.5, "last_variance": 0.4})
+        assert out["from_state"] == {"last_shock": 0.5, "last_variance": 0.4}
+
+    def test_state_is_required_and_never_invented(self):
+        with pytest.raises(WarrantError) as exc:
+            self._score(self.VALUES, {"last_shock": 0.5})
+        assert exc.value.code == "state_required"

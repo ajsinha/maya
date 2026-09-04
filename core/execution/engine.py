@@ -29,12 +29,15 @@ from core.execution.runtimes import (CallableRuntime, EstimatorRuntime, Invocati
 from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
                                     describe as describe_sandbox)
 from core.execution.warrants import WarrantError, WarrantService
+from core.log import get_logger
 
 # Runtimes that load an artifact from disk, and therefore run isolated.
 # QuantLib is not here on purpose. It loads no artifact — the instrument and the
 # curve arrive in the warrant — so there is no untrusted file to isolate from,
 # and paying a process spawn per valuation would buy nothing.
 SANDBOXED_RUNTIMES = frozenset({"onnx", "pmml"})
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -61,7 +64,8 @@ class CaptiveEngine:
     def __init__(self, warrants: WarrantService, max_seconds: float = 30.0,
                  artifact_dir: Optional[Path] = None,
                  runtimes: Optional[RuntimeRegistry] = None,
-                 sandbox: Optional[Sandbox] = None):
+                 sandbox: Optional[Sandbox] = None,
+                 parameters=None):
         self.warrants = warrants
         self.max_seconds = max_seconds
         self.artifact_dir = Path(artifact_dir) if artifact_dir else None
@@ -77,6 +81,11 @@ class CaptiveEngine:
         # cannot: you cannot isolate a function handed to you in your own address
         # space, which is one more reason not to use them for anything real.
         self.sandbox = sandbox or SubprocessSandbox()
+        # Optional: an engine with no parameter register can still run every
+        # artifact-backed runtime, and refuses by name the one binding it cannot
+        # honour. That is better than a hard dependency for a capability most
+        # deployments of the captive engine do not use.
+        self.parameters = parameters
         self._revoked_locally: set = set()
 
     def register_runtime(self, version_id: str, fn: Callable[[Dict[str, Any]], Any]) -> None:
@@ -96,6 +105,48 @@ class CaptiveEngine:
         runtime = (warrant.get("realisation") or {}).get("runtime")
         bound = self._callables.is_bound(warrant.get("subject", {}).get("version_id"))
         return runtime in SANDBOXED_RUNTIMES and not bound
+
+    def _with_parameters(self, warrant: Dict[str, Any],
+                         inputs: Dict[str, Any]) -> Dict[str, Any]:
+        """Resolve the parameter set the warrant names, digest-checked.
+
+        The same act as verifying an artifact's digest, one object over: the
+        warrant says which point of P this run is at, and an engine that took
+        the register's word for it without checking would have a chain of
+        custody whose last link is the one that touches what actually runs.
+        """
+        source = (warrant.get("parameters") or {}).get("source") or {}
+        if source.get("binding") != "parameter_set":
+            return inputs
+        if self.parameters is None:
+            raise WarrantError(
+                "no_parameter_register",
+                "this warrant runs at a registered parameter set and the engine "
+                "was built without a register to read it from",
+                "wire the parameter register into the engine, or resolve a "
+                "warrant whose parameters come from the artifact")
+        row = self.parameters.get(source.get("parameter_set"))
+        if row is None:
+            raise WarrantError(
+                "no_parameter_set",
+                f"the warrant names parameter set {source.get('parameter_set')} "
+                f"and the register does not have it",
+                "the set was removed after the warrant was minted; re-resolve")
+        # RE-DERIVED from the values, not read off the row. Comparing the stored
+        # digest against the warrant's compares two copies of the same claim and
+        # would pass over values edited underneath it.
+        actual = self.parameters.digest_of(row)
+        if actual != source.get("digest") or actual != row.get("digest"):
+            logger.error("parameter digest mismatch for %s: warrant %s, "
+                         "stored %s, recomputed %s", source.get("parameter_set"),
+                         source.get("digest"), row.get("digest"), actual)
+            raise WarrantError(
+                "parameter_mismatch",
+                "the parameter set does not match the digest in the warrant, so "
+                "the numbers about to run are not the numbers that were approved",
+                "do not run it; re-resolve the warrant and raise a security "
+                "incident if the values moved without an approval")
+        return {**(inputs or {}), "parameters": row.get("values_inline") or {}}
 
     def note_revocation(self, descriptor_id: str) -> None:
         """The revocation floor: honoured regardless of grace state."""
@@ -134,6 +185,13 @@ class CaptiveEngine:
         # is checked without touching an artifact, which is the order that makes
         # a refusal cheap and stops an artifact loading on an authorisation that
         # was never valid.
+        # A warrant that names a point of P is a warrant whose values have to be
+        # read and checked before anything runs at them. Done here rather than in
+        # the runtime because a runtime that resolved its own parameters would be
+        # choosing which numbers it ran on, and that is the decision the approval
+        # exists to make.
+        inputs = self._with_parameters(warrant, inputs)
+
         if self._sandboxed(warrant):
             prediction = self.sandbox.run(warrant, inputs, self.artifact_dir,
                                           Limits.of(warrant))
