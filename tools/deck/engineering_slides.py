@@ -588,9 +588,9 @@ data = [["", ""],
         ["view_version", "which version of that view"],
         ["delta_version", "which write to that path"],
         ["namespace", "the resolved Delta location"]]
-table(sl, data, x, y + 0.40, CW * 0.40, col_w=[1.5, 3.4], header=False,
-      row_h=0.29, fs=9.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, x, y + 2.32, CW * 0.40, 1.30,
+th = table(sl, data, x, y + 0.40, CW * 0.40, col_w=[1.5, 3.4], header=False,
+           row_h=0.29, fs=9.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, x, y + 0.40 + th + 0.18, CW * 0.40, 1.30,
      "A path is mutable. ",
      "A set that named views without pinning them would resolve to different "
      "bytes next month with its digest unchanged \u2014 which is adversarial "
@@ -902,9 +902,9 @@ data = [["Law", "Asks"],
         ["L-W3", "is the binding one that can answer 'what was known at t'?"],
         ["L-W9", "is the read bounded in BOTH clocks?"],
         ["L-W4", "does it say where the parameters go?"]]
-table(sl, data, x, y + 0.40, CW * 0.42, col_w=[0.95, 4.55], row_h=0.29, fs=9,
-      hfs=9, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, x, y + 2.42, CW * 0.42, 1.1)
+th = table(sl, data, x, y + 0.40, CW * 0.42, col_w=[0.95, 4.55], row_h=0.29, fs=9,
+           hfs=9, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + 0.40 + th + 0.20, CW * 0.42, 1.1)
 para(tf, "MAYA does not fit anything. It signs this and waits.",
      size=11.5, color=INK, bold=True, first=True, space_after=6, line=1.24)
 para(tf, "The estimation happens in an execution engine \u2014 the same "

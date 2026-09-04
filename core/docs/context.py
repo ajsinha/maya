@@ -48,7 +48,14 @@ class ContextBuilder:
 
         ctx: Dict[str, Any] = {
             "model": model, "versions": versions, "version": version,
-            "evidence": self.evidence.for_subject(model["id"]),
+            # The model AND every version. Approvals, validations, test
+            # results and parameter sets are recorded against the version, so a
+            # document built from the model's id alone cited none of them: a
+            # fully governed model compiled fifteen sections with two citations,
+            # and Classification, Methodology, Assumptions and Validation
+            # rendered as filled while citing nothing.
+            "evidence": self.evidence.for_subjects(
+                [model["id"], *(v["id"] for v in versions)]),
             "chain": self.evidence.verify_chain(),
             "alias_history": self.registry.alias_history(urn),
         }

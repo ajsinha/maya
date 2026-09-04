@@ -74,3 +74,35 @@ It must report **no geometry issues** before the deck ships.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See [LICENSE](../../LICENSE) and [NOTICE](../../NOTICE).
 *Not legal, regulatory or financial advice — see NOTICE §4.*
+
+
+## What the audit measures, and what it once did not
+
+It was presented as the shipping gate and was wired into no test, and it was
+wrong in the same direction twice.
+
+The first time it measured chevrons as rectangles, assumed one text margin for
+every shape, and checked only filled shapes as collision targets — so a card's
+unfilled body textbox could escape its card unreported.
+
+The second time it could not see **tables**. A `GraphicFrame` has no text frame,
+so the loop that measures everything skipped every table before measuring
+anything, and excluded them as collision targets too. The three decks hold
+twelve, sixty-two and twenty-eight tables, and seven real collisions were behind
+that one `continue` — three of them an opaque shape drawn over a table, which
+does not crowd the reader but deletes a row from the page.
+
+So it now measures:
+
+* a table's **real** height, summed from its row heights, because PowerPoint
+  treats a declared row height as a minimum and grows the row to fit;
+* whether an opaque shape drawn later covers something drawn earlier, measured
+  against the covered shape's **text extent** rather than its box, since a
+  caption's box is usually taller than its text;
+* whether anything overlaps a table.
+
+**`row_h` is a floor, not a height.** `theme.table()` adds padding plus one text
+line on top of it, so any value below about a third of an inch is inoperative
+and an author's mental `rows x row_h` is always short. Take the height the
+function returns and place what follows from it; thirty-one of fifty-one call
+sites did not, and every collision found was at one of them.

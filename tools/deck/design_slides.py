@@ -389,8 +389,8 @@ data = [["Semiring", "Used by"],
         ["cost", "Remediation planning, capacity"],
         ["freshness", "Document staleness"],
         ["— not built —", "ℕ[X], classification, regime admissibility"]]
-table(sl, data, x, y, CW * 0.41, col_w=[1.6, 3.2], row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, x, y + 2.45, CW * 0.41, 0.95)
+th = table(sl, data, x, y, CW * 0.41, col_w=[1.6, 3.2], row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + th + 0.22, CW * 0.41, 0.95)
 runs(tf, [("Without ℕ[X] there is no universal object, ", CRIMSON, True),
           ("so each semiring is its own traversal of the same memoised DAG rather than a "
            "homomorphic image of one. Six questions, one implementation — and the honest count.",
@@ -1009,8 +1009,8 @@ data = [["Control", "What it prevents"],
         ["Single-flight coalescing", "N concurrent misses become one backend call"],
         ["TTL jitter ±20%", "Synchronised expiry across the fleet"],
         ["Stale-while-revalidate 5 s", "A latency cliff during rebuild"]]
-table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[2.2, 3.3], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, ML, y + 2.25, CW * 0.47, 1.4)
+th = table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[2.2, 3.3], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, ML, y + 0.40 + th + 0.20, CW * 0.47, 1.4)
 runs(tf, [("Why it matters. ", CRIMSON, True),
           ("An alias move on a model taking 14,000 requests/second causes every in-flight consumer to miss simultaneously. "
            "Without pre-warming, a governed, routine operation takes the database down.", INK, False)],
@@ -1023,10 +1023,11 @@ data = [["Path", "Latency"],
         ["Kafka event → SDKs drop the descriptor", "≈ 1 s"],
         ["Epoch on every response → polling engines re-resolve", "≤ 30 s"],
         ["TTL expiry → fully partitioned engine", "≤ 60 s (Tier 1)"]]
-table(sl, data, x, y + 0.40, CW * 0.47, col_w=[4.0, 1.5], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-rect(sl, x, y + 2.20, CW * 0.47, 1.50, fill=PARCH)
-rect(sl, x, y + 2.20, 0.045, 1.50, fill=CRIMSON)
-tf = txt(sl, x + 0.26, y + 2.34, CW * 0.47 - 0.5, 1.25)
+th = table(sl, data, x, y + 0.40, CW * 0.47, col_w=[4.0, 1.5], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
+cy = y + 0.40 + th + 0.20
+rect(sl, x, cy, CW * 0.47, 1.50, fill=PARCH)
+rect(sl, x, cy, 0.045, 1.50, fill=CRIMSON)
+tf = txt(sl, x + 0.26, cy + 0.14, CW * 0.47 - 0.5, 1.25)
 runs(tf, [("The revocation floor. ", CRIMSON, True),
           ("SDKs persist a local revocation list. A descriptor on that list is refused ", INK, False),
           ("regardless of grace state", INK, True),
@@ -1196,21 +1197,23 @@ runs(tf, [("An identity provider that grants MAYA roles is one that ", INK, Fals
           (" — and the person administering it is very often the person whose duties are being segregated.",
            INK, False)], size=11.5, first=True, space_after=0, line=1.26)
 data = [["Rule", "Because"],
-        ["Group claims are MAPPED, never obeyed",
-         "A group with no mapping grants nothing, and never grants itself"],
-        ["The incompatible-roles check applies to a directory exactly as to a local principal",
-         "A group mapping to a conflicting pair refuses the LOGIN — not accepting both, not quietly reducing to one"],
-        ["Checked BEFORE provisioning",
-         "So the lesser problem cannot hide the greater"],
-        ["Provisioning on first login is OFF by default",
-         "Otherwise everybody in the directory has a foothold in the model register"],
-        ["Issuer, subject and the groups that produced the roles are recorded",
-         "“Why did this person hold that role in March” survives the directory moving on. The token is not recorded"]]
-table(sl, data, x, y + 1.68, CW * 0.44, col_w=[2.4, 2.9], row_h=0.60, fs=8.5, hfs=9,
-      bold_col0=True, first_col_color=CRIMSON)
-rect(sl, ML, y + 4.42, CW, 0.62, fill=PARCH)
-rect(sl, ML, y + 4.42, 0.045, 0.62, fill=CRIMSON)
-tf = txt(sl, ML + 0.30, y + 4.52, CW - 0.6, 0.50)
+        ["Groups are MAPPED, never obeyed",
+         "An unmapped group grants nothing"],
+        ["Identity binds to (issuer, subject)",
+         "A username is not an identity: claiming to be called admin once made you one"],
+        ["Incompatible roles refuse the LOGIN",
+         "Checked before provisioning, so the lesser problem cannot hide the greater"],
+        ["Issuer, subject and groups recorded",
+         "“Why did they hold that role in March” survives the directory moving on"]]
+# row_h is a FLOOR, not a height: theme.table() adds padding plus one text line
+# on top of it, so a generous floor makes every row taller than its content and
+# the table taller than its slide. Let the content decide.
+th = table(sl, data, x, y + 1.55, CW * 0.44, col_w=[2.2, 3.1], row_h=0.34, fs=8.5, hfs=9,
+           bold_col0=True, first_col_color=CRIMSON)
+cy = y + 1.55 + th + 0.20
+rect(sl, ML, cy, CW, 0.62, fill=PARCH)
+rect(sl, ML, cy, 0.045, 0.62, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, cy + 0.10, CW - 0.6, 0.50)
 runs(tf, [("No SAML and no SCIM. ", CRIMSON, True),
           ("OIDC is supported; a SAML-only directory and automatic deprovisioning are not, so ", INK, False),
           ("a leaver is suspended by hand", INK, True),
@@ -1374,8 +1377,8 @@ data = [["Suite", "Proves"],
         ["Adversarial", "Leakage injection · RLS negative tests · stampede load · malicious artifacts"],
         ["Migration", "Up and down against production-shaped data"],
         ["Performance", "The SLOs, or the build fails"]]
-table(sl, data, x, y + 0.40, CW * 0.47, col_w=[1.8, 4.0], row_h=0.36, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, x, y + 3.10, CW * 0.47, 0.9)
+th = table(sl, data, x, y + 0.40, CW * 0.47, col_w=[1.8, 4.0], row_h=0.36, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + 0.40 + th + 0.20, CW * 0.47, 0.9)
 runs(tf, [("Why adversarial tests are not optional. ", CRIMSON, True),
           ("A PIT verifier that silently stops detecting leakage, or an RLS policy that silently stops isolating, is a catastrophic "
            "invisible regression. Both are tested by injecting the failure they must catch.", INK, False)],
