@@ -113,6 +113,21 @@ class TestRenewing:
         assert exc.value.code == "self_renewal"
         assert "whether the model should be fixed instead" in exc.value.remediation
 
+    def test_the_owner_cannot_renew_under_the_name_they_sign_in_with(
+            self, overlays, active):
+        """The test above passed for the wrong reason for as long as it existed.
+
+        It hands the check the owner spelled exactly as stored --
+        `person/j.okafor` -- which is a string no route ever produces. The route
+        layer passes `principal["username"]`, so the human who owns this overlay
+        arrives as `j.okafor`, the comparison found two different strings, and
+        the renewal control was inert everywhere except in this test.
+        """
+        overlays.measure(active["id"], "2026-Q1", 1_000.0, 1_100.0)
+        with pytest.raises(OverlayError) as exc:
+            overlays.renew(active["id"], "j.okafor")
+        assert exc.value.code == "self_renewal"
+
     def test_a_measured_overlay_renews_and_counts(self, overlays, active):
         overlays.measure(active["id"], "2026-Q1", 1_000.0, 1_100.0)
         renewed = overlays.renew(active["id"], "s.iqbal")

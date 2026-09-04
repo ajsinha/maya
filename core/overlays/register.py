@@ -28,6 +28,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
+from core.authz.common import same_person
 from core.evidence import EvidenceEngine
 from core.overlays import analysis
 from core.overlays.common import (DAY, DEFAULT_MAX_DAYS, DEFAULT_RENEWAL_LIMIT,
@@ -100,7 +101,7 @@ class OverlayRegister:
         if row["status"] != "proposed":
             raise OverlayError("not_proposed",
                                f"this overlay is '{row['status']}', not proposed", "")
-        if actor == row["proposed_by"]:
+        if same_person(actor, row["proposed_by"]):
             raise OverlayError(
                 "self_approval",
                 f"{actor} proposed this overlay and cannot also approve it",
@@ -151,7 +152,12 @@ class OverlayRegister:
         if row["status"] != "active":
             raise OverlayError("not_active",
                                f"this overlay is '{row['status']}', not active", "")
-        if actor == row["owner"]:
+        # An owner is written `person/j.okafor` and authenticated as
+        # `j.okafor`, so `==` here compared two spellings of the same human and
+        # found them different. The renewal control -- the moment somebody
+        # independent asks whether the model should be fixed instead of adjusted
+        # -- was inert over HTTP for as long as it has existed.
+        if same_person(actor, row["owner"]):
             raise OverlayError(
                 "self_renewal",
                 f"{actor} owns this overlay and cannot also renew it",
