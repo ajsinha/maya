@@ -32,6 +32,49 @@
         {% endfor %}
         </tbody></table></div>
 
+
+    <div class="card mb-3"><div class="card-header">Features — the view versions each model version is pinned to</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Version</th><th>Feature view</th><th>Pinned</th><th>Serving namespace</th></tr></thead>
+        <tbody>
+        {% set ns = namespace(any=false) %}
+        {% for v, contract in contracts %}
+          {% if contract %}
+            {% for item in contract['items'] %}
+              {% set ns.any = true %}
+              <tr><td class="mono small">{{ v.semver }}</td>
+                  <td class="small">{{ item.view }}</td>
+                  <td class="small"><span class="chip">v{{ item.version }}</span></td>
+                  <td class="mono small text-muted">{{ item.namespace }}</td></tr>
+            {% endfor %}
+          {% endif %}
+        {% endfor %}
+        {% if not ns.any %}
+          <tr><td colspan="4" class="text-muted small">
+            No feature contract bound yet. A version with no contract reads no
+            governed features &mdash; bind one with
+            <span class="mono">POST /api/v1/features/contracts</span> so serving
+            is pinned to exact view versions rather than &ldquo;latest&rdquo;.</td></tr>
+        {% endif %}
+        </tbody></table></div>
+
+    <div class="card mb-3"><div class="card-header">Validation</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Kind</th><th>Validators</th><th>Status</th><th>Outcome</th></tr></thead>
+        <tbody>
+        {% for v in validations %}
+          <tr><td class="small">{{ v.kind }}</td>
+              <td class="small">{{ v.validators|join(', ') }}</td>
+              <td class="small">{{ v.status }}</td>
+              <td class="small">
+                {% if v.outcome == 'approved' %}<span class="evidence-ok">{{ v.outcome }}</span>
+                {% elif v.outcome == 'rejected' %}<span class="evidence-bad">{{ v.outcome }}</span>
+                {% else %}{{ v.outcome or '—' }}{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">No validation episodes recorded.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+
     <div class="card mb-3"><div class="card-header">Alias history — every move carries its proofs</div>
       <table class="table maya mb-0">
         <thead><tr><th>Env</th><th>Alias</th><th>To</th><th>Refinement</th><th>Variance</th></tr></thead>
@@ -59,6 +102,30 @@
         <div class="d-flex justify-content-between"><span class="text-muted">Class</span>
           <span>{{ model.model_class }}</span></div>
       </div></div>
+
+
+    <div class="card mb-3"><div class="card-header">
+        Findings
+        {% if finding_summary.blocking %}
+          <span class="evidence-bad">&nbsp;{{ finding_summary.blocking }} blocking</span>
+        {% endif %}</div>
+      <div class="card-body p-0"><table class="table maya mb-0">
+        <tbody>
+        {% for f in findings %}
+          <tr><td class="small">
+                {% if f.blocking %}<span class="evidence-bad">{{ f.severity }}</span>
+                {% else %}<span class="chip">{{ f.severity }}</span>{% endif %}
+                {{ f.title }}
+                <div class="text-muted">{{ f.owner }}</div></td></tr>
+        {% else %}
+          <tr><td class="text-muted small p-3">Nothing open.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% if finding_summary.blocking %}
+        <div class="card-body small text-muted border-top">
+          Warrant resolution and alias moves are refused while a blocking
+          finding is open.</div>
+      {% endif %}</div>
 
     <div class="card mb-3"><div class="card-header">Warrants</div>
       <div class="card-body p-0"><table class="table maya mb-0">

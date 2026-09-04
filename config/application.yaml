@@ -126,6 +126,13 @@ execution:
     enabled: true
     max_seconds: 30
 
+content:
+  # Help and about pages are markdown files rendered at request time. They live
+  # in the repository rather than the database so that a change to what the
+  # platform says about itself is reviewable in the same pull request as the
+  # change to what it does.
+  dir: ./content
+
 logging:
   level: INFO
   format: "%(asctime)s %(levelname)-7s %(name)s | %(message)s"

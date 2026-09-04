@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 5. This section is the authoritative record of what
+*Last updated after milestone 6. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -32,7 +32,8 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Captive engine** (`core/execution/engine.py`) | **Complete** | A consumer of the public warrant contract. Verifies signature, expiry and operating boundary before touching an artifact |
 | ✅ | **Feature platform** (`core/features/`) | **Complete** | Bitemporal Delta storage, version-namespaced serving (fixes C-2), PIT assembly with three-layer verification, contracts, retirement guard |
 | ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, warrants, features, health. RFC-9457-shaped refusals carrying remediation |
-| ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. Every asset vendored — no CDN |
+| ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. The model page shows versions, pinned feature contracts, validation episodes, findings, warrants and evidence. Every asset vendored — no CDN |
+| ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 18 help topics in 6 sections (~12,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
 | ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and warrant resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
 | ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
 | ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
@@ -82,6 +83,11 @@ number.
 - **File size, not total size.** The governing rule is that no Python source file
   exceeds 1,500 code lines; every file is well inside it, and the packages are
   split by responsibility rather than by length.
+- **The warrant document is not yet grammar-checked.** It has a fixed shape and
+  covers scoring. The general grammar — operation verbs (fit, calibrate,
+  validate, backtest, explain), runtime bindings for QuantLib, ONNX, PMML,
+  spreadsheets, LLM prompts and agent graphs, and admissibility rules deriving
+  from the trainability class — is the next milestone.
 
 ## 1. Engineering principles
 

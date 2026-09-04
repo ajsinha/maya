@@ -75,6 +75,9 @@ class FeatureRegistry:
     def bind_contract(self, *a, **kw) -> Dict[str, Any]:
         return self.contracts.bind(*a, **kw)
 
+    def contract_for(self, model_version_id: str) -> Optional[Dict[str, Any]]:
+        return self.contracts.for_version(model_version_id)
+
     def serving_namespaces(self, model_version_id: str) -> Dict[str, str]:
         return self.contracts.serving_namespaces(model_version_id)
 

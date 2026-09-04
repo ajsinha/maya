@@ -24,13 +24,25 @@ class PublicRoutes(Routes):
             return self.page(request, "landing.html",
                              model_count=len(self.ctx["registry"].list()))
 
+        content = self.ctx["content"]
+
         @self.app.get("/about", response_class=HTMLResponse, tags=["public"])
         def about(request: Request):
-            return self.page(request, "about.html")
+            return self.page(request, "about.html", topics=content.topics("about"))
 
         @self.app.get("/help", response_class=HTMLResponse, tags=["public"])
-        def help_page(request: Request):
-            return self.page(request, "help.html")
+        def help_index(request: Request):
+            """Cards, grouped by section, from the markdown on disk."""
+            return self.page(request, "help.html", sections=content.sections("help"),
+                             content_dir=str(content.root))
+
+        @self.app.get("/help/{slug}", response_class=HTMLResponse, tags=["public"])
+        def help_topic(request: Request, slug: str):
+            topic = content.get("help", slug)
+            if topic is None:
+                return self.page(request, "not_found.html", status=404, name=f"help/{slug}")
+            related = [t for t in content.topics("help") if t.section == topic.section]
+            return self.page(request, "help_topic.html", topic=topic, related=related)
 
         @self.app.get("/health", tags=["health"])
         def health():

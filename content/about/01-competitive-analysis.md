@@ -1,0 +1,111 @@
+---
+title: Competitive analysis
+slug: competitive-analysis
+section: Positioning
+order: 10
+icon: graph-up
+summary: The market is split in two and neither half is whole. Where the existing categories are strong, where they stop, and what MAYA is betting on.
+audience: Everyone
+---
+
+# Competitive analysis
+
+## The split
+
+Model management today is served by two categories of product that were built
+for different buyers and barely overlap.
+
+**GRC and MRM platforms** — IBM OpenPages, SAS Model Risk Management,
+MetricStream, Moody's — were built for the second line. They have the workflow: a
+model inventory, validation cycles, findings, attestations, committee routing,
+regulatory reporting. What they do not have is any connection to the thing being
+governed. The metadata is hand-keyed. Nothing in the platform can tell you
+whether the version described in the record is the version running in
+production, because nothing in the platform ever touched the artifact.
+
+**MLOps platforms** — MLflow with Unity Catalog, SageMaker, Vertex, Domino,
+Databricks — were built for the first line. They have the artifact: experiment
+tracking, model registries, aliases, lineage from version to run to notebook to
+dataset, serving, monitoring. What they do not have is model risk management. No
+validation findings with blocking semantics, no overlay register, no tiering, no
+regulatory documents — and, critically, no coverage of anything that is not a
+trainable ML asset.
+
+## Where each stops
+
+| Category | Strong | Stops at |
+|---|---|---|
+| **IBM OpenPages** | Enterprise GRC breadth on one platform; scales to global estates; mature workflow | Metadata is hand-keyed; **no binding to the artifact**; no feature store; no execution |
+| **SAS MRM** | Deep MRM domain model; strong validation workflow and reporting | SAS-ecosystem gravity; weak for Python/OSS estates; artifact link by reference only |
+| **MetricStream / LogicManager** | GRC workflow, mid-market friendly | A generic risk register with a "model" object type; no technical depth |
+| **MLflow / Unity Catalog** | Excellent tracking and registry; aliases as mutable pointers; real lineage | No MRM workflow, no findings, no overlays, no tiering, no vendor / EUC / quant coverage |
+| **Databricks** | The strongest single *substrate* — Delta, lineage, monitoring, serving | Platform lock-in; no MRM domain objects; assumes everything is a trainable ML asset |
+| **Domino Governance** | Policy templates for the EU AI Act and NIST AI RMF; governance placed in the IDE, which is the right *placement* | Tied to Domino workspaces; not an estate-wide inventory across SAS, C++, vendor and spreadsheet models |
+| **Dataiku / DataRobot / H2O** | Broad AutoML with governance modules | Governance covers their own platform's models only |
+| **Arize / Fiddler / Arthur / Evidently** | Drift, performance, explainability, fairness, LLM observability | Monitoring only, disconnected from approval state and validation findings |
+
+## The gap nobody covers
+
+Six capabilities recur as gaps across the whole market:
+
+1. **Evidence bound to the artifact.** Everywhere else, "validated" is a field
+   somebody set. It should be a claim you can verify against a digest.
+2. **Non-ML models as first-class citizens.** Pricing libraries, capital
+   engines, rulebooks, spreadsheets and vendor black boxes are models by every
+   supervisory definition, and they are usually the *majority* of the estate by
+   count. MLOps tools cannot hold them; GRC tools hold only a description of
+   them.
+3. **Controls that refuse.** A finding that does not stop a promotion is a log
+   entry. A tier that does not change what is required is a label.
+4. **Point-in-time correctness as an enforced property.** Feature stores offer
+   PIT joins; almost none *refuse* an assembly that cannot be shown correct.
+5. **An execution contract, not an execution monopoly.** Governance platforms
+   that also run models become a single point of failure for the trading day.
+   Registries that do not touch execution cannot enforce anything at the point
+   of use.
+6. **Generative and agentic systems in the same register.** Bolt-on LLM
+   observability sits beside the model inventory rather than inside it, so the
+   estate has two populations and two sets of controls.
+
+## What MAYA bets on
+
+**Bind the record to the artifact.** Every governance claim is a node in an
+append-only hash chain, keyed by digest. Tamper detection is structural, and
+`/health/ready` fails if the chain does not reconcile.
+
+**One definition of "model" that actually stretches.** Trainability classes
+T0–T8 classify by *how the parameter object is inhabited*, not by whether
+something was trained. Black–Scholes, a Hull–White calibration, a gradient
+boosting model, a prompt bundle, a vendor black box and a credit policy rulebook
+are all models, all in one register, with class-appropriate evidence
+expectations rather than one-size-fits-none.
+
+**Refusal as the primary control surface.** An alias will not move to a version
+whose contract does not refine the incumbent's. A warrant will not resolve for a
+model with an open blocking finding. A validation will not conclude "approved"
+over a failed test. These are refusals in the code path with reasons and
+remediation, not warnings in a dashboard.
+
+**Warrants, not execution.** MAYA issues a signed, expiring, entitlement-bound
+document that an execution engine acts on. A captive engine ships as a reference
+consumer of the same public contract, so a deployment works out of the box
+without that ever becoming the only way to run.
+
+## Where MAYA is weaker today
+
+Stated plainly, because a positioning page that only lists strengths is
+marketing rather than analysis.
+
+- **Workflow depth.** OpenPages and SAS have two decades of committee routing,
+  attestation cycles and regulatory report templates. MAYA has none of that yet.
+- **Authorisation.** One account, no roles, no segregation of duties, no
+  per-entity row filtering.
+- **Monitoring.** Drift, delayed labels and breach detection are designed but
+  not built; Arize and Fiddler do this well today and MAYA does not do it at all.
+- **Scale.** The design targets a large estate; it has not been run against one.
+- **Ecosystem.** Databricks and Domino arrive with connectors, an installed base
+  and a support organisation.
+
+The bet is that the *first* four items are architecture and the last five are
+work — that a platform built on evidence and refusal can add workflow, but a
+platform built on workflow cannot retrofit evidence.
