@@ -91,6 +91,14 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Overlays treated as model defects, not management judgement.** Every bank has
+post-model adjustments and almost none can say how large they are in aggregate or
+which have quietly become permanent. Here each is time-boxed, approved by someone
+other than the proposer, and cannot be renewed without a measured magnitude — and
+one renewed past its limit raises a finding, because a persistent overlay is an
+unversioned model change. No MLOps platform models this at all; the GRC platforms
+hold it as a list.
+
 **Documentation compiled, not written.** The model development document is the
 artifact a supervisor reads and, in most banks, the one that has drifted furthest
 from the model. Here it is generated from the register and the evidence graph:

@@ -42,6 +42,7 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "finding:read", "finding:raise", "finding:close",
     "monitor:read", "monitor:define", "monitor:evaluate",
     "document:read", "document:compile",
+    "overlay:read", "overlay:propose", "overlay:approve", "overlay:measure",
     "evidence:read",
     # the platform itself
     "principal:read", "principal:manage",

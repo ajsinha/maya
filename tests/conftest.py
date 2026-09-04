@@ -294,10 +294,10 @@ def performance_monitor(monitors, a_model):
 # --------------------------------------------------------------------- documents
 @pytest.fixture
 def doc_context(registry, evidence, repos, features, validation, findings,
-                monitoring, lifecycle, warrants):
+                monitoring, lifecycle, warrants, overlays):
     from core.docs import ContextBuilder
     return ContextBuilder(registry, evidence, repos["risk"], features, validation,
-                          findings, monitoring, lifecycle, warrants)
+                          findings, monitoring, lifecycle, warrants, overlays)
 
 
 @pytest.fixture
@@ -305,3 +305,12 @@ def compiler(db, evidence, doc_context):
     from core.docs import DocumentCompiler
     from db import DocumentRepository
     return DocumentCompiler(DocumentRepository(db), evidence, doc_context)
+
+
+# ---------------------------------------------------------------------- overlays
+@pytest.fixture
+def overlays(db, evidence, findings):
+    from core.overlays import OverlayRegister
+    from db import MeasurementRepository, OverlayRepository
+    return OverlayRegister(OverlayRepository(db), MeasurementRepository(db),
+                           evidence, findings, max_days=180, renewal_limit=2)
