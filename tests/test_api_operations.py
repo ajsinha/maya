@@ -105,7 +105,10 @@ class TestSchedulerApi:
         keys = {j["job"] for j in body["jobs"]}
         assert {"attestation.lapsed", "monitoring.stalled", "overlays.expire",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
-                "notify.outstanding"} == keys
+                "notify.outstanding",
+                # Readiness only checks what arrived since the last full walk,
+                # so the full walk has to be something that happens.
+                "evidence.verify"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
 

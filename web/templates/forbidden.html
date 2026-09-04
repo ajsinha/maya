@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Not available to you{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card mt-5">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">This is outside your scope</h1>
+        <p class="text-muted mb-3">
+          {{ what }} exists, and your account is not entitled to see it. Scope is
+          set per principal by legal entity and by domain, so this is a statement
+          about your entitlement rather than about the record.
+        </p>
+        <p class="text-muted small mb-4">
+          The interface applies the same rule as the API. If a page showed you
+          something <code>/api/v1</code> refuses, one of them would be wrong —
+          and the page would be the one telling you something you are not
+          cleared for.
+        </p>
+        <a class="btn btn-outline-secondary btn-sm" href="/dashboard">Back to the dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

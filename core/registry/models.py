@@ -96,6 +96,12 @@ class ModelRegistry:
     def require(self, urn: str) -> Dict[str, Any]:
         return self.catalogue.require(urn)
 
+    def by_id(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """A model by its identifier rather than its urn. Rows that reference a
+        model hold the id, so anything checking scope from such a row needs
+        this to get back to the model the scope is about."""
+        return self.catalogue.by_id(model_id)
+
     def list(self, domain: Optional[str] = None,
              tier: Optional[int] = None) -> List[Dict[str, Any]]:
         return self.catalogue.list(domain, tier)

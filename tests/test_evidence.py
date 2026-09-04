@@ -27,7 +27,8 @@ class TestAppendChain:
         assert evidence.verify_chain()["valid"] is True
 
     def test_empty_chain_is_valid(self, evidence):
-        assert evidence.verify_chain() == {"valid": True, "length": 0,
+        assert evidence.verify_chain() == {"valid": True, "scope": "full",
+                                           "length": 0,
                                            "head": evidence.head()[1]}
 
     def test_deleting_a_node_breaks_the_chain(self, evidence, repos):
@@ -216,3 +217,86 @@ class TestTheChainCoversWhoDidIt:
         # The conflict is gone -- and now the chain says so out loud.
         assert segregation.conflict("d.raman", "version:approve", "v1") is None
         assert evidence.verify_chain()["valid"] is False
+
+
+class TestReadinessAsksTheCheapQuestion:
+    """Verifying the whole chain on every readiness probe was O(chain).
+
+    Measured: 2.9 seconds and 83 MB at forty thousand nodes, and the same call
+    sat on the dashboard. A busy instance reaches a million nodes in half an
+    hour, at which point an orchestrator takes the node out of service for being
+    slow to answer whether it is healthy.
+
+    So readiness now asks a narrower question — has anything broken SINCE the
+    chain was last verified in full — and the full walk runs on the schedule,
+    where its cost is somebody's decision rather than a side effect.
+    """
+
+    @pytest.fixture
+    def checkpointed(self, db):
+        from core.evidence import EvidenceEngine
+        from db import EvidenceCheckpointRepository, EvidenceRepository
+        return EvidenceEngine(EvidenceRepository(db),
+                              EvidenceCheckpointRepository(db))
+
+    def test_the_first_call_falls_back_to_the_full_walk(self, checkpointed):
+        """With nothing recorded, there is no shortcut to take and pretending
+        otherwise would be verifying nothing."""
+        checkpointed.append("model_registered", "model", "m", {}, actor="p")
+        report = checkpointed.verify_since_checkpoint()
+        assert report["valid"] is True and report["scope"] == "full"
+
+    def test_afterwards_it_checks_only_what_arrived(self, checkpointed):
+        for i in range(5):
+            checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
+        checkpointed.verify_since_checkpoint()
+        checkpointed.append("tier_assigned", "model", "m0", {"tier": 1}, actor="p")
+        report = checkpointed.verify_since_checkpoint()
+        assert report["scope"] == "incremental"
+        assert report["checked"] == 1, "one node arrived; one node is checked"
+
+    def test_a_break_after_the_checkpoint_is_still_caught(self, checkpointed, db):
+        from db import EvidenceRepository
+        for i in range(3):
+            checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
+        checkpointed.verify_since_checkpoint()
+        node = checkpointed.append("risk_assessed", "model", "m0", {"tier": 3},
+                                   actor="p")
+        EvidenceRepository(db).set({"payload": {"tier": 1}}, seq=node["seq"])
+        assert checkpointed.verify_since_checkpoint()["valid"] is False
+
+    def test_a_broken_chain_does_not_advance_the_checkpoint(self, checkpointed, db):
+        """Otherwise the mark moves past the damage and every subsequent cheap
+        check starts after it and reports health."""
+        from db import EvidenceRepository
+        checkpointed.append("model_registered", "model", "m", {}, actor="p")
+        checkpointed.verify_since_checkpoint()
+        before = checkpointed.checkpoint()["seq"]
+        node = checkpointed.append("risk_assessed", "model", "m", {"tier": 3},
+                                   actor="p")
+        EvidenceRepository(db).set({"payload": {"tier": 1}}, seq=node["seq"])
+        checkpointed.verify_since_checkpoint()
+        assert checkpointed.checkpoint()["seq"] == before
+
+    def test_the_full_walk_is_still_available_and_still_the_real_control(
+            self, checkpointed, db):
+        """The cheap question trusts the checkpoint. Only this one answers
+        whether the whole chain is intact, which is why it runs on a schedule."""
+        from db import EvidenceRepository
+        for i in range(4):
+            checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
+        checkpointed.verify_since_checkpoint()
+        EvidenceRepository(db).set({"payload": {"tampered": True}}, seq=1)
+        assert checkpointed.verify_since_checkpoint()["valid"] is True, \
+            "the cheap check starts after the checkpoint, by construction"
+        assert checkpointed.verify_chain()["valid"] is False, \
+            "the full walk sees it, which is the whole reason it stays"
+
+    def test_the_probe_does_not_get_slower_as_the_chain_grows(self, checkpointed):
+        """The property that matters operationally: cost tracks what arrived,
+        not what is stored."""
+        for i in range(400):
+            checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
+        checkpointed.verify_since_checkpoint()
+        checkpointed.append("tier_assigned", "model", "m0", {}, actor="p")
+        assert checkpointed.verify_since_checkpoint()["checked"] == 1

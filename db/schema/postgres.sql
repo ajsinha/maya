@@ -99,6 +99,23 @@ CREATE TABLE IF NOT EXISTS alias_history (
 );
 CREATE INDEX IF NOT EXISTS ix_alias_history_model ON alias_history (model_id);
 
+-- How far the evidence chain has been verified, and what its head hash was at
+-- that point. Readiness asks "has anything broken SINCE we last checked", which
+-- is O(new nodes); the full walk stays available and runs on a schedule,
+-- because only the full walk can answer "is the whole chain intact".
+--
+-- Verifying the whole chain on every readiness probe was O(chain): 2.9 seconds
+-- and 83 MB at forty thousand nodes, and a busy instance reaches a million in
+-- half an hour. Kubernetes would have taken the node out of service for being
+-- slow to answer whether it was healthy.
+CREATE TABLE IF NOT EXISTS evidence_checkpoint (
+    id             TEXT PRIMARY KEY,
+    seq            integer NOT NULL,
+    chain_hash     TEXT NOT NULL,
+    verified_at    DOUBLE PRECISION NOT NULL,
+    verified_by    TEXT NOT NULL DEFAULT 'system'
+);
+
 -- Append-only and hash-chained. The application role gets INSERT and SELECT.
 CREATE TABLE IF NOT EXISTS evidence_node (
     id                     TEXT PRIMARY KEY,
