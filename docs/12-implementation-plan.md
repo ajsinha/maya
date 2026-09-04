@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 9. This section is the authoritative record of what
+*Last updated after milestone 10. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -41,6 +41,8 @@ is built; the phases below are the plan it is being built against.*
 | ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
 | ✅ | **Authorisation** (`core/authz/`) | **Complete** | Eight roles across three lines of defence, refused incompatible pairs, entity and domain scope that filters listings as well as detail pages, and segregation of duties read from the evidence chain rather than a second who-did-what table. HTTP Basic for services against the same principal register; PBKDF2 with a short verification cache that shortens the key derivation and never the decision |
 | ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Six-state record machine: draft → submitted → approved → attested, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
+| ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (17 runtimes) × what is asked of it (10 verbs) × where its data comes from (11 bindings). Seven admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Ten worked examples spanning QuantLib pricing and calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet and a VaR backtest, all validated on every test run |
+| ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | Five worked walkthroughs rendered at request time: a model end to end with four separated principals, storing artifacts, running several versions, features end to end, and warrants by model family |
 | ⬜ | **Machine assistance** | **Not started** | Capability registry, grounding gate, oracle-backed generation |
 | ⬜ | **Baseline import** | **Not started** | Compliance-debt tracking for legacy models (finding C-5) |
 
@@ -92,11 +94,10 @@ number.
 - **File size, not total size.** The governing rule is that no Python source file
   exceeds 1,500 code lines; every file is well inside it, and the packages are
   split by responsibility rather than by length.
-- **The warrant document is not yet grammar-checked.** It has a fixed shape and
-  covers scoring. The general grammar — operation verbs (fit, calibrate,
-  validate, backtest, explain), runtime bindings for QuantLib, ONNX, PMML,
-  spreadsheets, LLM prompts and agent graphs, and admissibility rules deriving
-  from the trainability class — is the next milestone.
+- **The captive engine implements one runtime.** The grammar describes
+  seventeen; the bundled engine runs registered Python callables and nothing
+  else. It is a reference implementation of the *protocol*, not of artifact
+  execution, and a real estate needs a real engine.
 
 ## 1. Engineering principles
 

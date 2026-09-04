@@ -59,6 +59,8 @@ STATUS: Dict[str, int] = {
     "label_delay_required": 422, "unknown_status": 422, "no_reference": 422,
     "cohort_immature": 409, "monitor_inactive": 409, "duplicate_monitor": 409,
     "no_monitor": 404, "unknown_severity": 422,
+    # grammar
+    "grammar_violation": 422,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",

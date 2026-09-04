@@ -16,7 +16,7 @@ and it refuses with a reason and a remediation hint rather than degrading
 quietly into something that looks like it worked.
 
 The work is delegated: WarrantGrants owns entitlements and revocation, the
-DescriptorSigner owns signatures and expiry, the DescriptorFactory owns the
+WarrantSigner owns signatures and expiry, the DescriptorFactory owns the
 shape of what an engine receives. What lives here is the ORDER of the checks,
 which is the part that has to be right.
 """
@@ -25,10 +25,10 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
-from core.execution.descriptors import DescriptorFactory
+from core.execution.builder import WarrantBuilder
 from core.execution.errors import WarrantError
 from core.execution.grants import WarrantGrants
-from core.execution.signing import DescriptorSigner
+from core.execution.signing import WarrantSigner
 from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
 from core.log import get_logger
 from core.ports import BlockingSource
@@ -48,8 +48,8 @@ class WarrantService:
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None):
         self.registry, self.blocking = registry, blocking
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
-        self.signer = DescriptorSigner(signing_key, jitter_pct)
-        self.descriptors = DescriptorFactory(self.signer)
+        self.signer = WarrantSigner(signing_key, jitter_pct)
+        self.builder = WarrantBuilder(self.signer)
 
     @property
     def epoch(self) -> int:
@@ -59,7 +59,7 @@ class WarrantService:
 
     # ---------------------------------------------------------------- resolve
     def resolve(self, urn: str, environment: str, principal: str,
-                declared_use: str) -> Dict[str, Any]:
+                declared_use: str, verb: str = "score") -> Dict[str, Any]:
         """Return a signed descriptor, or refuse with a reason. Never executes."""
         name, semver, aliasname = parse_urn(urn)
         m = self._model(urn, model_urn(name))
@@ -67,8 +67,8 @@ class WarrantService:
         grant = self._grant(m, environment, principal, declared_use)
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
-        return self.descriptors.build(urn, m, version, grant, principal,
-                                      declared_use, environment, self.epoch)
+        return self.builder.build(urn, m, version, grant, principal,
+                                  declared_use, environment, self.epoch, verb=verb)
 
     def _model(self, urn: str, model_urn_: str) -> Dict[str, Any]:
         try:

@@ -174,3 +174,27 @@ class TestTheShippedContent:
     def test_the_about_area_carries_the_competitive_analysis(self, library):
         titles = [t.title for t in library.topics("about")]
         assert "Competitive analysis" in titles
+
+    def test_tutorials_exist_and_are_complete(self, library):
+        tutorials = library.topics("tutorials")
+        assert len(tutorials) >= 5
+        for t in tutorials:
+            assert t.title and t.summary and t.html.strip(), t.source
+
+    def test_tutorial_slugs_are_unique(self, library):
+        slugs = [t.slug for t in library.topics("tutorials")]
+        assert len(slugs) == len(set(slugs))
+
+    def test_cross_area_links_resolve(self, library):
+        """Tutorials link into help and back; both directions must land."""
+        import re
+        known = {"/help/" + t.slug for t in library.topics("help")}
+        known |= {"/tutorials/" + t.slug for t in library.topics("tutorials")}
+        broken = []
+        for area in ("help", "tutorials", "about"):
+            for t in library.topics(area):
+                for target in re.findall(r'href="(/(?:help|tutorials)/[a-z0-9-]+)"',
+                                         t.html):
+                    if target not in known:
+                        broken.append(f"{t.source} -> {target}")
+        assert not broken, "broken cross-area links:\n  " + "\n  ".join(broken)

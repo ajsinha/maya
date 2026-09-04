@@ -1,0 +1,94 @@
+{
+  "_comment": "T8 authored. A spreadsheet maintained by a person in the business is a model by every supervisory definition, and it is the population no MLOps platform can hold. Here it has a URN, a version, a schema, an operating boundary and a warrant -- the same governance as the swaption pricer.",
+  "maya_warrant": "1.0",
+  "warrant_id": "wrt_01a06c81b207",
+  "issued_at": 1767225600.0,
+
+  "subject": {
+    "urn": "maya://model/treasury.lcr.overlay@1.12",
+    "model_urn": "maya://model/treasury.lcr.overlay",
+    "version": "1.12",
+    "version_id": "01a06c204a91",
+    "manifest_digest": "sha256:4d0a83f1c25e7b96041af38e0b7c2d5619a4f70be3c81d260594ab7f0e2c8d31",
+    "binding_kind": "pinned_version",
+    "trainability_class": "T8"
+  },
+
+  "operation": {"verb": "score", "determinism": "deterministic", "seed": null, "mode": "single"},
+
+  "parameters": {
+    "kind": "rule_set",
+    "source": {"binding": "artifact", "uri": "sp://treasury/LCR_Overlay_v1.12.xlsx"},
+    "digest": "sha256:e70b4a15c9d3f8206e1ab74f025d3986c14b0e7fa2d63594078bce1a5f30d284",
+    "mutable": false
+  },
+
+  "realisation": {
+    "runtime": "spreadsheet",
+    "entry": {
+      "workbook": "LCR_Overlay_v1.12.xlsx",
+      "sheet": "Overlay",
+      "input_cells": {"outflow_rate": "B4", "haircut": "B5", "buffer": "B6"},
+      "output_cells": {"adjusted_lcr": "D12", "overlay_bp": "D13"},
+      "recalculation": "full",
+      "macros": "disabled"
+    },
+    "artifact": {
+      "uri": "sp://treasury/LCR_Overlay_v1.12.xlsx",
+      "digest": "sha256:e70b4a15c9d3f8206e1ab74f025d3986c14b0e7fa2d63594078bce1a5f30d284",
+      "format": "xlsx"
+    },
+    "environment": {"engine": "libreoffice-headless-24.8", "network": "none"}
+  },
+
+  "data": {
+    "inputs": [{"name": "positions", "binding": "request"}],
+    "outputs": [{"name": "adjusted_lcr", "sink": "response"},
+                {"name": "overlay_record", "sink": "evidence"}]
+  },
+
+  "io_contract": {
+    "input_schema": [
+      {"name": "outflow_rate", "dtype": "float", "minimum": 0.0, "maximum": 1.0},
+      {"name": "haircut", "dtype": "float", "minimum": 0.0, "maximum": 0.5}
+    ],
+    "output_schema": [
+      {"name": "adjusted_lcr", "dtype": "float", "minimum": 0.0},
+      {"name": "overlay_bp", "dtype": "float"}
+    ]
+  },
+
+  "constraints": {
+    "operating_boundary": {
+      "assumptions": [{"key": "haircut", "minimum": 0.0, "maximum": 0.5}],
+      "guarantees": [{"key": "overlay_bp", "maximum": 50.0,
+                      "note": "an overlay beyond 50bp needs its own approval, not this warrant"}]
+    },
+    "on_boundary_violation": "reject",
+    "resources": {"max_seconds": 30}
+  },
+
+  "authority": {
+    "principal": "person/t.abiola",
+    "declared_use": "monthly_lcr_overlay",
+    "environment": "prod",
+    "granted_at": 1767225600.0,
+    "expires_at": 1767232800.0,
+    "grace_seconds": 900,
+    "revocation": {"epoch": 3, "check": "required"}
+  },
+
+  "governance": {
+    "tier": 2,
+    "model_status": "attested",
+    "version_status": "approved",
+    "euc": true,
+    "open_blocking_findings": 0
+  },
+
+  "signature": {
+    "alg": "HMAC-SHA256",
+    "key_id": "maya-prod-2026",
+    "value": "1d84b0e7a25c93f60814ae7bd0f3c29657a1eb04d38f95c2701ba6e4f8d013c7"
+  }
+}

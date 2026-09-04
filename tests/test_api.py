@@ -171,7 +171,7 @@ class TestWarrantApi:
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
         d = r.json()
-        assert d["resolved"]["version"] == "3.2.1" and d["signature"]
+        assert d["subject"]["version"] == "3.2.1" and d["signature"]
 
     def test_unentitled_principal_gets_403_with_remediation(self, registered):
         r = registered.post("/api/v1/resolve", json={
@@ -756,3 +756,85 @@ class TestMonitoringApi:
         body = registered.get(f"/model/{NAME}").text
         assert "Monitoring" in body and "score drift" in body
         assert "stability.psi" in body
+
+
+class TestGrammarApi:
+    def test_the_grammar_is_published(self, client, people):
+        v = client.get("/api/v1/grammar", auth=people["d.raman"]).json()
+        assert v["warrant_version"] == "1.0"
+        assert len(v["operations"]) == 10 and len(v["runtimes"]) >= 15
+        assert "fit" not in v["admissibility"]["by_trainability_class"]["T0"]
+
+    def test_the_json_schema_is_published(self, client, people):
+        s = client.get("/api/v1/grammar/schema", auth=people["d.raman"]).json()
+        assert s["$schema"].startswith("https://json-schema.org/")
+        assert "subject" in s["properties"] and "signature" in s["properties"]
+
+    def test_a_document_can_be_checked_before_it_is_acted_on(self, client, people):
+        r = client.post("/api/v1/grammar/validate", auth=people["d.raman"],
+                        json={"maya_warrant": "1.0"}).json()
+        assert r["valid"] is False and r["problem_count"] == 10
+        assert all(p["remediation"] for p in r["problems"])
+
+    def test_a_shipped_example_validates_over_the_api(self, client, people):
+        import json, pathlib
+        path = (pathlib.Path(__file__).resolve().parent.parent / "examples" /
+                "warrants" / "01-quantlib-swaption-price.json")
+        r = client.post("/api/v1/grammar/validate", auth=people["d.raman"],
+                        json=json.loads(path.read_text())).json()
+        assert r["valid"] is True
+
+    def test_a_resolved_warrant_conforms_to_the_published_grammar(self, registered):
+        """The strongest check: what MAYA hands out passes its own grammar."""
+        from core.execution.grammar import validate
+        warrant = registered.post("/api/v1/resolve", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"}).json()
+        assert validate(warrant).valid, validate(warrant).as_dict()["detail"]
+
+    def test_the_verb_is_carried_through_to_the_warrant(self, registered):
+        warrant = registered.post("/api/v1/resolve?verb=explain", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"}).json()
+        assert warrant["operation"]["verb"] == "explain"
+
+    def test_an_inadmissible_verb_is_refused_at_issue(self, registered):
+        """A T2 scorecard registered without a locatable artifact is
+        descriptor-only, and a descriptor-only model cannot be warranted to fit."""
+        r = registered.post("/api/v1/resolve?verb=fit", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination", "declared_use": "origination_decision"})
+        assert r.status_code == 422
+        assert r.json()["error"] == "grammar_violation"
+
+    def test_the_generate_button_is_on_the_model_page(self, registered):
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert 'id="gen-warrant"' in body and "RESOLVED WARRANT" in body
+
+
+class TestTutorialsArea:
+    def test_the_tutorials_index_renders_cards(self, client):
+        body = client.get("/tutorials").text
+        assert "Working through MAYA" in body
+        assert "/tutorials/end-to-end" in body
+        assert "/tutorials/warrants-by-family" in body
+
+    def test_a_tutorial_renders_its_markdown(self, client):
+        body = client.get("/tutorials/features-end-to-end").text
+        assert "<table>" in body and body.count("<h2") >= 3
+
+    def test_an_unknown_tutorial_is_404(self, client):
+        assert client.get("/tutorials/nope").status_code == 404
+
+    def test_tutorials_are_public(self, client):
+        anon = TestClient(client.app)
+        assert anon.get("/tutorials").status_code == 200
+        assert anon.get("/tutorials/end-to-end").status_code == 200
+
+    def test_help_still_works_alongside_tutorials(self, client):
+        assert client.get("/help").status_code == 200
+        assert client.get("/help/warrant-grammar").status_code == 200

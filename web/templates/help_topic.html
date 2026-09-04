@@ -2,15 +2,15 @@
 {% block title %}{{ topic.title }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
-<p class="kicker mt-2 mb-1"><a href="/help" style="color:var(--crimson);text-decoration:none">HELP</a>
+<p class="kicker mt-2 mb-1"><a href="{{ area_path }}" style="color:var(--crimson);text-decoration:none">{{ area_kicker }}</a>
   &nbsp;&rsaquo;&nbsp; {{ topic.section|upper }}</p>
 <div class="row g-4">
   <div class="col-lg-8">
     <div class="prose">{{ topic.html|safe }}</div>
     <div class="rule mt-4"></div>
     <p class="small text-muted">
-      Source: <span class="mono">content/help/{{ topic.source }}</span>
-      &nbsp;&middot;&nbsp; <a href="/help" style="color:var(--crimson)">All topics</a></p>
+      Source: <span class="mono">content/{{ topic.source }}</span>
+      &nbsp;&middot;&nbsp; <a href="{{ area_path }}" style="color:var(--crimson)">All topics</a></p>
   </div>
   <div class="col-lg-4">
     {% if topic.anchors %}
@@ -23,7 +23,7 @@
       <div class="card mt-3"><div class="card-header">{{ topic.section }}</div>
         <div class="card-body toc py-2">
           {% for r in related %}
-            <a href="/help/{{ r.slug }}"{% if r.slug == topic.slug %} style="color:var(--crimson);font-weight:600"{% endif %}>{{ r.title }}</a>
+            <a href="{{ area_path }}/{{ r.slug }}"{% if r.slug == topic.slug %} style="color:var(--crimson);font-weight:600"{% endif %}>{{ r.title }}</a>
           {% endfor %}
         </div></div>
     {% endif %}
