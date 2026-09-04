@@ -642,3 +642,45 @@ CREATE TABLE IF NOT EXISTS scheduled_run (
 );
 
 CREATE INDEX IF NOT EXISTS ix_scheduled_run_job ON scheduled_run (job, ran_at);
+
+-- --------------------------------------------------------------------------
+-- Attached documents
+-- --------------------------------------------------------------------------
+-- The documents somebody wrote, as opposed to the ones the platform compiles: a
+-- model development document in Word, a vendor's validation report, a committee
+-- minute, a signed attestation. A register that holds only what it can compute
+-- quietly excludes most of the evidence a supervisor will ask to see.
+--
+-- `model_version_id` is the point. "The model development document" is about a
+-- particular version, and one filed at model level floats free of what it
+-- describes -- which is how a bank ends up with an MDD for v2.1 against a model
+-- serving v2.4. Version-level is the default; model-level has to be asked for.
+--
+-- `digest` is content-addressed storage, so the same board paper across forty
+-- models is one object, and editing a document in place is impossible: a changed
+-- byte is a changed digest, which is a supersession somebody declares.
+
+CREATE TABLE IF NOT EXISTS attachment (
+    id               TEXT PRIMARY KEY,
+    model_id         TEXT NOT NULL,
+    model_version_id TEXT,
+    kind             TEXT NOT NULL,
+    title            TEXT NOT NULL,
+    filename         TEXT NOT NULL,
+    media_type       TEXT NOT NULL DEFAULT 'application/octet-stream',
+    digest           TEXT NOT NULL,
+    size_bytes       INTEGER NOT NULL DEFAULT 0,
+    text_indexed     INTEGER NOT NULL DEFAULT 0,
+    state            TEXT NOT NULL DEFAULT 'attached',
+    note             TEXT NOT NULL DEFAULT '',
+    attached_by      TEXT NOT NULL,
+    attached_at      REAL NOT NULL,
+    reviewed_by      TEXT,
+    reviewed_at      REAL,
+    review_note      TEXT NOT NULL DEFAULT '',
+    supersedes       TEXT,
+    superseded_by    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS ix_attachment_model ON attachment (model_id, state);
+CREATE INDEX IF NOT EXISTS ix_attachment_version ON attachment (model_version_id, kind);

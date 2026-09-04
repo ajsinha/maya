@@ -25,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 
-from core.execution import CaptiveEngine
+from core.execution import CaptiveEngine, InProcessSandbox, SubprocessSandbox
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
@@ -33,6 +33,7 @@ from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService, LifecycleService)
 from core.execution import WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
+from core.attachments import AttachmentRegister, DocumentStore
 from core.baseline import BaselineImporter, DebtRegister
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
@@ -48,6 +49,7 @@ from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
+                AttachmentRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
                 DeltaStore, DocumentRepository, EvidenceRepository,
@@ -153,11 +155,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     for key in cfg.get_list("regimes.active", ["sr-26-2"]):
         regimes.activate(key)
 
+    attachments = AttachmentRegister(
+        AttachmentRepository(db),
+        DocumentStore(Path(cfg.get("data.attachments",
+                                   str(ROOT / "data" / "attachments")))),
+        registry, evidence)
+
     documents = DocumentCompiler(
         DocumentRepository(db), evidence,
         ContextBuilder(registry, evidence, RiskRepository(db), features,
                        validation, findings, monitoring, lifecycle, warrants,
-                       overlays, regimes))
+                       overlays, regimes, attachments))
 
     debts = DebtRegister(DebtRepository(db), evidence, findings)
     baseline = BaselineImporter(ImportRepository(db), debts, registry, evidence,
@@ -184,7 +192,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
-                           "documents": documents, "overlays": overlays,
+                           "documents": documents, "attachments": attachments,
+                           "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
@@ -195,9 +204,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "replayer": Replayer(validation, catalogue)}
     if cfg.get_bool("execution.captive.enabled", True):
         # A consumer of the public warrant contract, nothing more.
+        chosen = cfg.get("execution.captive.sandbox", "subprocess")
         ctx["engine"] = CaptiveEngine(
             warrants, cfg.get_float("execution.captive.max_seconds", 30.0),
-            artifact_dir=Path(cfg.get("data.artifacts", str(ROOT / "data" / "artifacts"))))
+            artifact_dir=Path(cfg.get("data.artifacts", str(ROOT / "data" / "artifacts"))),
+            sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox())
     return ctx
 
 

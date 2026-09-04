@@ -53,6 +53,8 @@ class TestGapsAreComputed:
             "feature_contract": {"items": []}, "validations": [{"id": "v"}],
             "monitoring": {"monitors": 1}, "documents": [{"id": "d"}],
             "lifecycle": {"attested_at": 1.0},
+            "attachments": [{"kind": "model_development_document",
+                             "state": "accepted"}],
         }
         assert gaps.find(state) == []
 
@@ -153,6 +155,8 @@ class TestBurnDown:
             "validations": [{"id": "v"}], "monitoring": {"monitors": 1},
             "documents": [{"id": "d"}], "feature_contract": {"items": []},
             "lifecycle": {"attested_at": 1.0},
+            "attachments": [{"kind": "model_development_document",
+                             "state": "accepted"}],
         }
         report = debts.reconcile(imported["id"], filled)
         assert len(report["closed"]) == before and report["remaining"] == 0

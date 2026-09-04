@@ -133,6 +133,17 @@ every section cites what it rests on, staleness is computed from the chain rathe
 than remembered, and a section that cannot be filled says what is missing instead
 of leaving a blank heading.
 
+**Filed documents behave like evidence.** The compiled document is only half of
+it; the other half is what people actually wrote, and most platforms hold those
+on a share drive with a link. Here a document is filed against the *version* it
+describes, stored under the digest of its bytes so it cannot be edited
+underneath a reviewer, and accepted by somebody other than whoever filed it —
+checked in the register, not only in the role grant. Rejections stay on file with
+their reason, because the papers that did not pass are the ones a supervisor asks
+about. Each attachment also records whether the platform can genuinely read it,
+which is what makes later machine review honest about a scanned PDF rather than
+confidently summarising nothing.
+
 **The chain of custody reaches the bytes.** The captive engine verifies the
 artifact's digest against the warrant before loading it, so the registry, the
 warrant and the signature describe the thing that actually runs rather than

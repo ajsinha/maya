@@ -60,6 +60,18 @@ GAPS: Sequence[Gap] = (
         "High", lambda s: bool((s.get("monitoring") or {}).get("monitors"))),
     Gap("documentation", "no compiled documentation", "Medium",
         lambda s: bool(s.get("documents"))),
+    # Compiling a document from the register and filing the one somebody wrote
+    # are different acts, and a model can have either without the other.
+    Gap("model_development_document",
+        "no model development document is on file, so the method is undocumented",
+        "High",
+        lambda s: any(a["kind"] == "model_development_document"
+                      for a in s.get("attachments") or [])),
+    Gap("accepted_documentation",
+        "documents are on file but none has been accepted by a second person",
+        "Medium",
+        lambda s: not (s.get("attachments") or [])
+        or any(a["state"] == "accepted" for a in s.get("attachments") or [])),
     Gap("attestation", "the record has never been attested", "High",
         lambda s: bool((s.get("lifecycle") or {}).get("attested_at"))),
 )

@@ -646,6 +646,54 @@ test per template. Staleness is a lens-law consequence, not a heuristic.
 Server-side only (ADR-011): Jinja2 → HTML → WeasyPrint → PDF; DOCX via a template writer. Rendered
 fragments are cached keyed by `evidence_digest`, so unchanged evidence never re-renders.
 
+### 9.3 Attached documents
+
+The compiler answers *what does the register know*. It cannot answer *what did
+the quant write*, and the two are held as separate entities rather than one with
+a flag.
+
+```python
+def attach(urn, kind, title, filename, data, semver=None, model_level=False, actor):
+    version_id = current_version(urn) if not model_level else None   # version-level default
+    digest, size = store.put(data)                                   # content-addressed
+    refuse_if_identical_document_already_on(version_id, digest)
+    return register.add(state="attached", attached_by=actor, digest=digest, ...)
+
+def review(attachment_id, accept, actor, note):
+    refuse_if(actor == row.attached_by, "self_review")               # second line, in the register
+    refuse_if(not accept and not note, "reason_required")
+    return register.set(state="accepted" if accept else "rejected", reviewed_by=actor)
+```
+
+**Version-level by default.** A model development document describes the
+coefficients it printed, not their replacement. Model-level filing exists — a
+board paper genuinely is about the model — but it is asked for, because the
+ambiguous case should not be the default.
+
+**Content-addressed.** `store.put` returns `sha256(bytes)` and writes under it,
+staged beside and moved into place so a reader never sees a half-written object
+under a digest that promises the whole one. `store.get` re-hashes before
+returning: *what was reviewed is what is served* is checked, not assumed. A
+mismatch is `document_corrupt` with a remediation that says raise an incident.
+
+**Segregation is checked twice.** The role grant separates `document:attach`
+(first line) from `document:review` (second). The register checks the identity
+again, because a role grant is a policy that can change and segregation of duty
+is not.
+
+**What can be read is recorded.** `text_indexed` is set from the media type. A
+PDF is stored and served faithfully but reported as not machine-readable, so
+`text()` returns `None` rather than a guess. Machine validation of documents
+depends on knowing what has genuinely been read.
+
+**Supersession, not edit.** A revised document is a new attachment naming what it
+replaces; the prior row moves to `superseded` and links forward. Superseding the
+same document twice is refused, because the chain would fork.
+
+Two baseline gaps read the register — no MDD on file, and documents on file with
+none accepted by a second person — and every compiled document carries a
+*Documents on file* section that lists rejections alongside acceptances.
+
 ---
 
 # Part III — Data and execution
@@ -1076,7 +1124,7 @@ tested by injecting the failure they must catch — not by examples they are kno
 | §6 Regimes | [00 §8](00-mathematical-foundations.md); `FR-INV-004`, `L-8`, `L-16` |
 | §7 Lifecycle | `FR-LC-001..014`; finding C-5 |
 | §8 Validation | `FR-VAL-001..014`, `FR-TRN-008` |
-| §9 Documents | `FR-DOC-001..010`, `L-11` |
+| §9 Documents | `FR-DOC-001..010`, `L-11`; §9.3 closes `FR-DOC-009` (external evidence, hashed, with provenance) |
 | §10 Features | `FR-FEA-001..017`, `L-10`, `L-17`; findings C-2, H-6 |
 | §11 Monitoring | `FR-MON-001..016` |
 | §12 Warrants | `FR-WARRANT-001..017`; findings C-1, C-6, H-1, H-2 |

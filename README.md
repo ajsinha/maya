@@ -283,7 +283,8 @@ maya/
 │   ├── validation/  monitoring/     tests and findings; drift and delayed labels
 │   ├── lifecycle/                   approval, attestation, amendment
 │   ├── authz/                       roles, scope, segregation of duties
-│   ├── docs/  overlays/             compiled documentation; post-model adjustments
+│   ├── docs/  attachments/          documentation compiled, and documentation filed
+│   ├── overlays/                    post-model adjustments, time-boxed
 │   ├── regimes/                     supervisory regimes as institutions
 │   ├── assist/  baseline/           machine assistance; cold-start import
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
@@ -296,7 +297,7 @@ maya/
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
-│   └── MAYA-System-Design.pptx              49-slide engineering deck
+│   └── MAYA-System-Design.pptx              50-slide engineering deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```

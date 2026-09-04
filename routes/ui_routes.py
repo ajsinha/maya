@@ -62,6 +62,10 @@ class UIRoutes(Routes):
                 monitoring=self.ctx["monitoring"].status(m["id"]),
                 documents=[{**d, "staleness": docs.staleness(d["id"])}
                            for d in docs.for_model(m["id"])],
+                # Compiled documents and filed ones are different things and
+                # are shown as different things: one MAYA wrote, one somebody did.
+                attachments=self.ctx["attachments"].for_model(m["id"]),
+                attachment_status=self.ctx["attachments"].status(m["id"]),
                 overlays=self.ctx["overlays"].status(m["id"]),
                 regimes=self.ctx["regimes"].determine_all(
                     self.ctx["regimes"].core_state(docs.build_context(urn))))

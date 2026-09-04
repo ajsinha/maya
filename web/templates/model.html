@@ -127,6 +127,53 @@
         {% endfor %}
         </tbody></table></div>
 
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Documents on file</span>
+        <span class="small text-muted">{{ attachment_status.detail }}</span></div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Document</th><th>Applies to</th><th>State</th><th></th></tr></thead>
+        <tbody>
+        {% for a in attachments %}
+          <tr><td class="small">{{ a.title }}
+                <div class="text-muted">{{ a.kind.replace('_', ' ') }}
+                  &middot; {{ a.filename }}</div></td>
+              <td class="small">
+                {% if a.model_version_id %}
+                  {% for v in versions %}{% if v.id == a.model_version_id %}
+                    v{{ v.semver }}{% endif %}{% endfor %}
+                {% else %}<span class="text-muted">the model</span>{% endif %}</td>
+              <td class="small">
+                {% if a.state == 'accepted' %}
+                  <span class="evidence-ok">accepted</span>
+                  <div class="text-muted">by {{ a.reviewed_by }}</div>
+                {% elif a.state == 'rejected' %}
+                  <span class="evidence-bad">rejected</span>
+                  <div class="text-muted">{{ a.review_note }}</div>
+                {% else %}
+                  <span class="text-muted">awaiting review</span>
+                {% endif %}
+                {% if not a.text_indexed %}
+                  <div class="text-muted">not machine-readable</div>
+                {% endif %}</td>
+              <td class="small text-end">
+                <a href="/api/v1/attachments/{{ a.id }}/content"
+                   style="color:var(--crimson);text-decoration:none">download</a></td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">
+            Nothing filed. These are the documents people wrote &mdash; the
+            development document, the validation report, the committee minute
+            &mdash; stored under the digest of their bytes and accepted by
+            somebody other than whoever filed them. A document filed here is
+            attached to the version it describes, not to the model in general.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      {% if attachment_status.rejected %}
+        <div class="card-body py-2 small text-muted border-top">
+          {{ attachment_status.rejected }} rejected document{{ '' if attachment_status.rejected == 1 else 's' }}
+          remain{{ 's' if attachment_status.rejected == 1 else '' }} in the register.
+          What was refused is part of the record.</div>
+      {% endif %}</div>
+
     <div class="card mb-3"><div class="card-header">
         Monitoring
         {% if monitoring.open_breaches %}

@@ -8,6 +8,7 @@ share: the services, the brand context, the domain-refusal mapping, and the
 login check. Routers hold no domain logic.
 """
 from routes.assist_routes import AssistRoutes
+from routes.attachment_routes import AttachmentRoutes
 from routes.baseline_routes import BaselineRoutes
 from routes.auth_routes import AuthRoutes
 from routes.base import API, Routes, current_user, login_required
@@ -32,10 +33,11 @@ from routes.validation_routes import ValidationRoutes
 ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               ModelRoutes, LifecycleRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, MonitoringRoutes,
-              DocumentRoutes, OverlayRoutes, AssistRoutes, BaselineRoutes,
+              DocumentRoutes, AttachmentRoutes, OverlayRoutes, AssistRoutes,
+              BaselineRoutes,
               RegimeRoutes, SchedulerRoutes,
               UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]

@@ -24,7 +24,7 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok")
+                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed")
 
 
 class Repository:
@@ -270,3 +270,17 @@ class DebtRepository(Repository):
 
 class ScheduledRunRepository(Repository):
     TABLE, JSON, ORDER = "scheduled_run", ("outcome",), "ran_at"
+
+
+class AttachmentRepository(Repository):
+    TABLE, ORDER = "attachment", "attached_at"
+
+    def for_version(self, version_id: str) -> List[Dict[str, Any]]:
+        return [self._decode(r) for r in self.db.query(
+            f"SELECT * FROM {self.TABLE} WHERE model_version_id = :v "
+            "AND state <> 'superseded' ORDER BY attached_at", {"v": version_id})]
+
+    def current_for_model(self, model_id: str) -> List[Dict[str, Any]]:
+        return [self._decode(r) for r in self.db.query(
+            f"SELECT * FROM {self.TABLE} WHERE model_id = :m "
+            "AND state <> 'superseded' ORDER BY attached_at", {"m": model_id})]
