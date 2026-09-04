@@ -152,7 +152,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                    registry, catalogue, evidence, findings)
 
     warrants = WarrantService(WarrantRepository(db), registry, evidence,
-                        signing_key=cfg.get("warrants.signing_key_id", "maya-dev-key"),
+                        signing_key=cfg.get("warrants.signing_key", "maya-dev-key"),
                         ttl_by_tier=_tier_map(cfg, "warrants.ttl_seconds",
                                               {1: 60, 2: 300, 3: 3600, 4: 3600}),
                         grace_by_tier=_tier_map(cfg, "warrants.grace_seconds",
@@ -327,6 +327,33 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     return ctx
 
 
+# Session secrets that ship in this repository, and are therefore public. A
+# deployment on one of these can have its session cookie forged by anybody with
+# a copy of the source -- no password required.
+PUBLISHED_SESSION_SECRETS = frozenset({
+    "maya-development-secret", "maya-development-secret-change-me", "", "changeme"})
+
+
+def _session_secret(cfg) -> str:
+    """The cookie-signing secret, and a loud complaint if it is a published one.
+
+    It used to fall back silently to a constant in this file, which meant a
+    deployment that simply did not set the key got a signing secret anybody
+    could look up. Forging `session={"username": "admin"}` then needed no
+    credentials at all. The fallback stays -- refusing to start would be worse
+    for a workstation -- but it is now impossible to do by accident quietly.
+    """
+    secret = cfg.get("auth.session_secret", "maya-development-secret")
+    if secret in PUBLISHED_SESSION_SECRETS:
+        get_logger("maya").warning(
+            "the session cookie is signed with a PUBLISHED secret. Anyone with "
+            "a copy of this repository can forge a signed-in session as any "
+            "user, including admin, with no password. Set auth.session_secret "
+            "(or MAYA_SESSION_SECRET) before this instance is reachable by "
+            "anybody else.")
+    return secret
+
+
 def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     cfg = cfg or PropertiesConfigurator(str(ROOT / "config" / "application.yaml"))
     configure(cfg.get("logging.level", "INFO"))
@@ -338,9 +365,13 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                   openapi_url="/api/v1/openapi.json")
     app.state.ctx = ctx
     app.add_middleware(SessionMiddleware,
-                       secret_key=cfg.get("auth.session_secret", "maya-development-secret"),
+                       secret_key=_session_secret(cfg),
                        max_age=cfg.get_int("auth.session_max_age", 28800),
-                       same_site="strict", https_only=False)
+                       same_site="strict",
+                       # Configurable, and it was not: `https_only` was hard
+                       # coded False, so the session cookie never carried
+                       # `Secure` even behind TLS and there was no key to set.
+                       https_only=cfg.get_bool("auth.session_https_only", False))
 
     # Vendored assets only: the interface renders with no external network.
     app.mount("/static", StaticFiles(directory=str(ROOT / "web" / "static")), name="static")

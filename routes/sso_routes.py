@@ -82,7 +82,12 @@ class SsoRoutes(Routes):
                 return self.page(request, "sso_failed.html", http_status=403,
                                  reason=exc.detail,
                                  remediation=exc.remediation)
-            request.session["user"] = principal["username"]
+            # "username", which is the key current_user() reads and the local
+            # login writes. This said "user", so a successful directory login
+            # set a key nothing read, the redirect to /dashboard found no
+            # session and bounced back to /login -- the entire SSO path had
+            # never signed anybody in, and no test asserted on the session.
+            request.session["username"] = principal["username"]
             return RedirectResponse((pending or {}).get("redirect_to", "/dashboard"),
                                     status_code=303)
 

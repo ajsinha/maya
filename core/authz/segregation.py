@@ -24,7 +24,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.authz.common import AuthzError
+from core.authz.common import same_person, AuthzError
 from core.evidence import EvidenceEngine
 from core.log import get_logger
 
@@ -103,7 +103,11 @@ class SegregationPolicy:
         for node in self.evidence.for_subject(subject_id):
             if node["kind"] not in rule.conflicting_kinds:
                 continue
-            if node["recorded_by"] != actor:
+            # The one duties check that was still comparing identities with
+            # `!=` while eleven others routed through same_person. It decides
+            # every rule in this module, so an actor spelled two ways here
+            # disables all of them at once.
+            if not same_person(node.get("recorded_by"), actor):
                 continue
             if rule.payload_key is not None:
                 if about is None:

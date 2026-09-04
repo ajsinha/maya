@@ -534,7 +534,7 @@ risk:
   purpose_ranks: {{commercial: 1, risk_management: 2, financial_reporting: 3,
                   regulatory_capital: 4}}
   review_months: {{1: 12, 2: 18, 3: 24, 4: 36}}
-warrants: {{jitter_pct: 0, signing_key_id: test-key,
+warrants: {{jitter_pct: 0, signing_key: test-signing-secret,
          ttl_seconds: {{1: 60, 2: 300, 3: 3600, 4: 3600}},
          grace_seconds: {{1: 0, 2: 0, 3: 900, 4: 900}}}}
 execution: {{captive: {{enabled: true, max_seconds: 5}}}}

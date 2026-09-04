@@ -178,3 +178,41 @@ class TestCitationVerification:
         cited = {"tests", "report", "committee", "extra"}
         assert evidence.evaluate("authorised", CLAIM, BOOLEAN,
                                  evidence.cited_valuation(cited)).value is True
+
+
+class TestTheChainCoversWhoDidIt:
+    """Segregation of duties is decided by reading `recorded_by` off these
+    nodes. The content hash did not cover it, so one UPDATE reassigning
+    authorship turned the control off for that subject -- and `verify_chain`
+    went on reporting the chain intact, because it was, over the fields it
+    happened to hash."""
+
+    def test_reassigning_authorship_breaks_the_chain(self, evidence, db):
+        from db import EvidenceRepository
+        evidence.append("version_created", "version", "v1", {"semver": "1.0.0"},
+                        actor="d.raman")
+        assert evidence.verify_chain()["valid"] is True
+        EvidenceRepository(db).set({"recorded_by": "somebody.else"}, seq=1)
+        report = evidence.verify_chain()
+        assert report["valid"] is False
+        assert "content_hash" in report["reason"]
+
+    def test_reweighting_trust_breaks_the_chain(self, evidence, db):
+        """Trust weights the TRUST semiring, so a silently re-weighted node is a
+        conclusion nobody can check."""
+        from db import EvidenceRepository
+        evidence.append("test_result_recorded", "version", "v1", {"gini": 0.5},
+                        actor="a.mehta", trust=0.5)
+        EvidenceRepository(db).set({"trust": 1.0}, seq=1)
+        assert evidence.verify_chain()["valid"] is False
+
+    def test_the_duties_check_cannot_be_cleared_by_an_update(self, evidence,
+                                                             segregation, db):
+        """The end-to-end statement, which is the one that matters."""
+        from db import EvidenceRepository
+        evidence.append("version_created", "version", "v1", {}, actor="d.raman")
+        assert segregation.conflict("d.raman", "version:approve", "v1") is not None
+        EvidenceRepository(db).set({"recorded_by": "someone.harmless"}, seq=1)
+        # The conflict is gone -- and now the chain says so out loud.
+        assert segregation.conflict("d.raman", "version:approve", "v1") is None
+        assert evidence.verify_chain()["valid"] is False

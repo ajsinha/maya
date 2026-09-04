@@ -44,7 +44,7 @@ class WarrantService:
     """Issues and resolves warrant descriptors. Signs them; never runs a model."""
 
     def __init__(self, repo: WarrantRepository, registry: ModelRegistry,
-                 evidence: EvidenceEngine, signing_key: str = "maya-dev-key",
+                 evidence: EvidenceEngine, signing_key: str = "maya-dev-key", key_id: Optional[str] = None,
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None,
@@ -62,7 +62,7 @@ class WarrantService:
         # ever to refuse.
         self.policy = None
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
-        self.signer = WarrantSigner(signing_key, jitter_pct)
+        self.signer = WarrantSigner(signing_key, key_id, jitter_pct)
         self.builder = WarrantBuilder(self.signer)
 
     @property

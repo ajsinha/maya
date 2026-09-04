@@ -32,6 +32,7 @@ from core.evidence import EvidenceEngine
 from core.ports import BlockingSource
 from core.registry import ModelRegistry
 from core.validation.catalogue import TestCatalogue
+from core.authz.common import same_person
 from core.validation.common import KINDS, OUTCOMES, ValidationError
 from db import TestResultRepository, ValidationRepository
 
@@ -86,7 +87,13 @@ class ValidationService:
     def attest(validators: Sequence[str], version: Dict[str, Any]) -> Dict[str, Any]:
         """Record who validated and whether they were independent of the build."""
         builder = version.get("created_by")
-        conflicted = [v for v in validators if v == builder]
+        # `same_person`, not `==`. Production writes created_by as the bare
+        # authenticated username and validators are conventionally written
+        # `person/...`, so the two spellings of one human never matched and
+        # effective challenge -- the control this whole module exists for --
+        # was inert over HTTP. The unit test passed because it constructed the
+        # version with an actor the route layer never produces.
+        conflicted = [v for v in validators if same_person(v, builder)]
         return {"independent": not conflicted, "validators": list(validators),
                 "version_created_by": builder,
                 "reason": (f"{', '.join(conflicted)} built this version"

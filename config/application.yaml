@@ -48,6 +48,37 @@ auth:
   session_secret: "${MAYA_SESSION_SECRET:maya-development-secret-change-me}"
   session_max_age: 28800
 
+
+  # Single sign-on lives UNDER this key rather than opening a second
+  # top-level `auth:`. It used to open one, and YAML keeps only the last
+  # mapping for a duplicated key -- so the bootstrap password and the
+  # session-signing secret above were silently discarded, and the comments
+  # telling a deployer to set MAYA_AUTH_PASSWORD and MAYA_SESSION_SECRET
+  # described settings that had no effect at all.
+  # Single sign-on. Empty issuer means local credentials only, which is the
+  # default: an instance that silently required a directory to be reachable
+  # would lock everybody out of the register the first time it was not.
+  oidc:
+    issuer: ""
+    client_id: ""
+    client_secret: ""
+    redirect_uri: "http://localhost:5006/auth/callback"
+    scopes: "openid, profile, email"
+    group_claim: groups
+    username_claim: preferred_username
+    # Create a principal on first login? Off by default. Auto-provisioning gives
+    # everybody in the directory a foothold in the model register, and that is a
+    # decision somebody should make deliberately rather than inherit.
+    provision: false
+    # Group -> roles. The group name is the key because that is what the
+    # directory controls; the roles are the value because that is what MAYA
+    # controls, and the direction of that arrow is the point. A group with no
+    # entry grants nothing; it does not grant itself.
+    roles:
+      # maya-developers: model_developer
+      # maya-validators: validator
+      # maya-risk: model_risk_manager
+
 database:
   # There are no migrations. The schema is db/schema/sqlite.sql and
   # db/schema/postgres.sql, applied idempotently at start-up; the dialect is
@@ -142,31 +173,6 @@ execution:
     # runaway or crashing artifact; it does NOT protect against a hostile one,
     # which needs a container or a VM. Bound callables cannot be isolated at all.
     sandbox: subprocess          # or "none", deliberately and visibly
-
-auth:
-  # Single sign-on. Empty issuer means local credentials only, which is the
-  # default: an instance that silently required a directory to be reachable
-  # would lock everybody out of the register the first time it was not.
-  oidc:
-    issuer: ""
-    client_id: ""
-    client_secret: ""
-    redirect_uri: "http://localhost:5006/auth/callback"
-    scopes: "openid, profile, email"
-    group_claim: groups
-    username_claim: preferred_username
-    # Create a principal on first login? Off by default. Auto-provisioning gives
-    # everybody in the directory a foothold in the model register, and that is a
-    # decision somebody should make deliberately rather than inherit.
-    provision: false
-    # Group -> roles. The group name is the key because that is what the
-    # directory controls; the roles are the value because that is what MAYA
-    # controls, and the direction of that arrow is the point. A group with no
-    # entry grants nothing; it does not grant itself.
-    roles:
-      # maya-developers: model_developer
-      # maya-validators: validator
-      # maya-risk: model_risk_manager
 
 notifications:
   # Nothing reaches out by default over anything but the log. An instance that

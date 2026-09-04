@@ -272,3 +272,25 @@ class TestBlockingGate:
         registry.move_alias(URN, "prod", "champion", "3.2.1")
         warrants.issue(URN, "prod", "svc/pricing", "origination_decision")
         assert warrants.resolve(URN, "prod", "svc/pricing", "origination_decision")
+
+
+class TestIndependenceIsCheckedAgainstWhatProductionWrites:
+    """Effective challenge, over the spelling a route actually produces.
+
+    `attest` compared the builder to each validator with `==`. Production writes
+    `created_by` as the bare authenticated username and validators are written
+    `person/...`, so the two spellings of one human never matched and the check
+    was inert everywhere except in a test that constructed the version with an
+    actor no route emits.
+    """
+
+    def test_the_builder_cannot_validate_their_own_version_however_spelled(
+            self, validation):
+        version = {"created_by": "d.raman"}          # as Routes.actor writes it
+        out = validation.attest(["person/d.raman"], version)
+        assert out["independent"] is False
+        assert "person/d.raman" in out["reason"]
+
+    def test_the_same_check_still_passes_somebody_independent(self, validation):
+        out = validation.attest(["person/a.mehta"], {"created_by": "d.raman"})
+        assert out["independent"] is True
