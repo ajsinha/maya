@@ -224,6 +224,11 @@ class ParameterSetRepository(Repository):
         return (prior["version"] + 1) if prior else 1
 
 
+class NotificationRepository(Repository):
+    """Deliveries attempted, and what came of them."""
+    TABLE, ORDER = "notification", "sent_at"
+
+
 class TelemetryBatchRepository(Repository):
     """Which batches have been taken in, so redelivery is a no-op."""
     TABLE, ORDER = "telemetry_batch", "at"

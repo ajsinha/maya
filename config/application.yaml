@@ -143,6 +143,29 @@ execution:
     # which needs a container or a VM. Bound callables cannot be isolated at all.
     sandbox: subprocess          # or "none", deliberately and visibly
 
+notifications:
+  # Nothing reaches out by default over anything but the log. An instance that
+  # quietly needed an SMTP relay to function would fail in a way nobody could
+  # diagnose from the outside.
+  channel: log                 # log | webhook | email
+  # An unchanged worklist stays quiet for this long. Nothing is more certain to
+  # be ignored than a daily message that says exactly what yesterday's said.
+  quiet_hours: 24
+  # An item overdue and unactioned for this long stops being only its owner's
+  # problem and is escalated to the second line -- by role, because MAYA does
+  # not know who reports to whom and should not pretend to.
+  escalate_after_days: 7
+  base_url: "http://localhost:5006"
+  webhook:
+    url: ""
+  email:
+    host: ""
+    port: 25
+    sender: "maya@localhost"
+    username: ""
+    password: ""
+    use_tls: false
+
 lifecycle:
   # A version approval is a quorum where the tier says it should be. The model
   # record was already attested by several people; the version is what actually

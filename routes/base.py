@@ -24,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
 from core.attachments import AttachmentError
+from core.notify import NotifyError
 from core.parameters import ParameterError
 from core.telemetry import TelemetryError
 from core.baseline import BaselineError
@@ -94,6 +95,9 @@ STATUS: Dict[str, int] = {
     "schema_not_satisfied": 409, "no_featureset_registry": 501,
     # version approval as a quorum
     # telemetry
+    # notification
+    "unknown_channel": 422, "channel_not_built": 501,
+    "channel_unavailable": 503,
     "unknown_stream": 422, "empty_batch": 422,
     "batch_too_large": 413, "bad_sample_rate": 422,
     "malformed_row": 422, "no_telemetry": 501,
@@ -211,7 +215,7 @@ class Routes:
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
-                ParameterError, TelemetryError) as exc:
+                ParameterError, TelemetryError, NotifyError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

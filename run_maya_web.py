@@ -47,13 +47,15 @@ from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
+from core.notify import NotificationService, build as build_channels
 from core.risk import TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, Replayer, SnapshotProvider,
                              TestCatalogue, ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
-                TelemetryBatchRepository, VersionApprovalRepository,
+                NotificationRepository, TelemetryBatchRepository,
+                VersionApprovalRepository,
                 VersionApprovalSignatureRepository,
                 FeaturesetRepository, FeaturesetVersionRepository,
                 ParameterSetRepository,
@@ -221,6 +223,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # own: a task table or a summary table would be a second source of truth.
     worklist = WorkList(registry, lifecycle, findings, monitoring, overlays,
                         documents, debts, validation)
+    # Delivery, not a queue: the work is derived, and this makes it arrive
+    # somewhere rather than waiting to be looked at.
+    notifications = NotificationService(
+        NotificationRepository(db), worklist, principals, authz, registry,
+        evidence, build_channels(cfg),
+        cfg.get("notifications.channel", "log"),
+        cfg.get_float("notifications.quiet_hours", 24.0),
+        cfg.get_float("notifications.escalate_after_days", 7.0),
+        cfg.get("notifications.base_url", ""))
+
     estate = EstateSummary(registry, findings, monitoring, overlays, debts,
                            baseline, lifecycle, regimes, documents)
 
@@ -228,7 +240,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
                    findings=findings, monitoring=monitoring, overlays=overlays,
-                   debts=debts, documents=documents))
+                   debts=debts, documents=documents,
+                   notifications=notifications))
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
@@ -241,6 +254,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "documents": documents, "attachments": attachments,
                            "parameters": parameters, "replayer": replayer,
                            "approvals": approvals, "telemetry": telemetry,
+                           "notifications": notifications,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,

@@ -358,3 +358,63 @@ evidence chain, and on nothing else.
 `scheduled_run` records what ran and what it did. It is not a work queue and
 nothing reads it to decide what to do next — every job derives its own work from
 the register. Deleting every row would change nothing about the next run.
+
+
+## Being told, rather than having to look
+
+The worklist reaches whoever logs in and looks at it. An item nobody happens to
+look at simply sits there, which is a control that operates only when somebody
+remembers it.
+
+`POST /api/v1/notifications/run` reaches out. It is an ordinary authenticated
+call like every other scheduled act here — cron, a CronJob or a person produce
+identical results — and it is one of the scheduler's jobs.
+
+**A digest, not a firehose.** One message per person per run, summarising what is
+outstanding *for them*, from the same call the dashboard makes. Two views of one
+derivation, not two derivations. A message per finding is how somebody starts
+filtering the sender, at which point the platform has made itself invisible while
+appearing diligent.
+
+**Silence when nothing has changed.** Each delivery records the digest of the
+work it described — the work, not the prose — and an unchanged worklist is
+*suppressed* until the quiet period has passed:
+
+```json
+{"state": "suppressed",
+ "detail": "the same outstanding work was notified 3.2 hours ago; a message that
+            repeats yesterday's is a message somebody filters"}
+```
+
+**Escalation is by role, not by hierarchy.** MAYA does not know who reports to
+whom and should not pretend to. What it does know is that an item overdue and
+unactioned for a week has stopped being only its owner's problem, so the second
+line is told as well — and never about items already on their own list, because
+that is noise.
+
+### Channels
+
+| Channel | What it needs |
+|---|---|
+| `log` | nothing; always available |
+| `webhook` | a URL — Slack, Teams, a ticketing system, anything that accepts JSON |
+| `email` | an SMTP relay |
+
+None of them is a dependency: the webhook and email channels use the standard
+library. And **nothing but the log is enabled by default**, because an instance
+that quietly needed an SMTP relay to work would fail in a way nobody could
+diagnose from the outside.
+
+**A failed delivery is recorded**, and raises evidence against the principal who
+should have been told. Silence about a failed send is how somebody concludes they
+were never told — which is worse than not having sent at all, because then they
+would at least have known.
+
+```bash
+curl -su you:… localhost:5006/api/v1/notifications/preview   # what you would get
+curl -su you:… -X POST localhost:5006/api/v1/notifications/run \
+     -H 'Content-Type: application/json' -d '{"dry_run": true}'
+```
+
+`GET /api/v1/notifications` says which channels actually work and whether
+anything is reaching anybody, and leads with failures when there are any.

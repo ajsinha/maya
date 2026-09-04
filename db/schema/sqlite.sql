@@ -220,6 +220,24 @@ CREATE TABLE IF NOT EXISTS feature_contract (
 -- Ingested telemetry batches, by the digest of their own rows. Real collectors
 -- deliver at least once; a monitor that double-counts a redelivered batch
 -- reports a population that never existed.
+-- What was sent to whom, and what happened. Not a copy of the work: the work is
+-- derived from the register, and this records only that a delivery was
+-- attempted. A failed delivery is kept because silence about a failed send is
+-- how somebody concludes they were never told.
+CREATE TABLE IF NOT EXISTS notification (
+    id         TEXT PRIMARY KEY,
+    principal  TEXT NOT NULL,
+    channel    TEXT NOT NULL,
+    state      TEXT NOT NULL,
+    digest     TEXT NOT NULL,
+    item_count INTEGER NOT NULL DEFAULT 0,
+    overdue    INTEGER NOT NULL DEFAULT 0,
+    summary    TEXT NOT NULL DEFAULT '',
+    detail     TEXT NOT NULL DEFAULT '',
+    sent_at    REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_notification_principal ON notification (principal);
+
 CREATE TABLE IF NOT EXISTS telemetry_batch (
     id      TEXT PRIMARY KEY,
     digest  TEXT NOT NULL UNIQUE,

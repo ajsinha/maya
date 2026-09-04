@@ -457,3 +457,13 @@ def telemetry(db, delta, registry, evidence):
     from db import TelemetryBatchRepository
     return TelemetryCollector(delta, registry, evidence,
                               TelemetryBatchRepository(db))
+
+
+@pytest.fixture
+def notifications(db, worklist, principals, authz, registry, evidence):
+    from core.notify import LogChannel, NotificationService
+    from db import NotificationRepository
+    return NotificationService(
+        NotificationRepository(db), worklist, principals, authz, registry,
+        evidence, {"log": LogChannel()}, "log", quiet_hours=24.0,
+        escalate_days=7.0, base_url="http://localhost:5006")
