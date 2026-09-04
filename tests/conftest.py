@@ -314,3 +314,18 @@ def overlays(db, evidence, findings):
     from db import MeasurementRepository, OverlayRepository
     return OverlayRegister(OverlayRepository(db), MeasurementRepository(db),
                            evidence, findings, max_days=180, renewal_limit=2)
+
+
+# ------------------------------------------------------------ machine assistance
+@pytest.fixture
+def capabilities(db, evidence):
+    from core.assist import CapabilityRegistry
+    from db import CapabilityRepository
+    return CapabilityRegistry(CapabilityRepository(db), evidence)
+
+
+@pytest.fixture
+def generations(db, capabilities, evidence):
+    from core.assist import GenerationLog
+    from db import GenerationRepository
+    return GenerationLog(GenerationRepository(db), capabilities, evidence)

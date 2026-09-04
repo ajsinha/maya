@@ -35,6 +35,7 @@ MODEL_DEVELOPER = {
     # The first line reads everything about its own models. Being able to act
     # on something you cannot read is a permission set nobody can reason about.
     "warrant:read", "monitor:read", "document:read", "overlay:read",
+    "assist:read", "assist:generate",
 }
 MODEL_OWNER = MODEL_DEVELOPER | {
     "model:register", "model:retire", "risk:assess",
@@ -54,6 +55,8 @@ MODEL_OWNER = MODEL_DEVELOPER | {
 VALIDATOR = READ_PERMISSIONS | {
     "validation:open", "validation:record", "validation:conclude",
     "finding:raise", "finding:close", "document:compile",
+    # The second line asks the machine for a draft and attests what it produced.
+    "assist:generate", "assist:attest",
 }
 MODEL_RISK_MANAGER = VALIDATOR | {
     "risk:assess", "version:approve", "alias:move",
@@ -61,7 +64,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     # Approves the record, and signs the second-line half of the attestation.
     # Cannot submit or amend: that is the first line's act.
     "model:approve", "model:attest", "monitor:define", "document:compile",
-    "overlay:approve",
+    "overlay:approve", "assist:register", "assist:attest",
 }
 
 # ---------------------------------------------------------------------------

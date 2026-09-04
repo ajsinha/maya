@@ -31,6 +31,7 @@ from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService, LifecycleService)
 from core.execution import WarrantService
+from core.assist import CapabilityRegistry, GenerationLog
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
 from core.config import PropertiesConfigurator
@@ -43,12 +44,14 @@ from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
-                AttestationRepository, BreachRepository, ContractRepository, Database,
+                AttestationRepository, BreachRepository, CapabilityRepository,
+                ContractRepository, Database,
                 DocumentRepository,
                 DeltaPaths, DeltaStore, EvidenceRepository, FeatureRepository,
                 FeatureViewRepository, FeatureViewVersionRepository, FindingRepository,
                 WarrantRepository, ModelRepository, RiskRepository, SnapshotRepository,
-                MeasurementRepository, MonitorRepository, ObservationRepository,
+                GenerationRepository, MeasurementRepository, MonitorRepository,
+                ObservationRepository,
                 OverlayRepository, PrincipalRepository,
                 SignatureRepository, TestResultRepository,
                 ValidationRepository,
@@ -133,6 +136,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                FeatureViewVersionRepository(db), ContractRepository(db),
                                SnapshotRepository(db), DeltaStore(delta.root), evidence)
 
+    capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
+    generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
+
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
         max_days=cfg.get_int("overlays.max_days", 180),
@@ -153,6 +159,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
                            "documents": documents, "overlays": overlays,
+                           "capabilities": capabilities, "generations": generations,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),

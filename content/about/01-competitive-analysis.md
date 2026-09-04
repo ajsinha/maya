@@ -91,6 +91,15 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**AI admitted only where it can be checked.** The platform's own machine
+assistance is registrable at two tiers — an oracle checks the output, or every
+claim cites evidence a person then approves — and the third tier, output that can
+be neither checked nor grounded, cannot be registered at all. The grounding gate
+removes unsupported claims rather than flagging them, nothing becomes evidence
+until a person attests it, and a reviewer's falling edit distance is treated as
+the control failure it is. Bolt-on LLM features elsewhere ship the capability and
+leave the control to the operator.
+
 **Overlays treated as model defects, not management judgement.** Every bank has
 post-model adjustments and almost none can say how large they are in aggregate or
 which have quietly become permanent. Here each is time-boxed, approved by someone
