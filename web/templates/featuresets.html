@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Featuresets — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">A PRESENTATION OF X</p>
+<h1>Featuresets</h1>
+<div class="rule"></div>
+<p class="text-muted small">A featureset declares a <strong>schema</strong> &mdash;
+named slots with types &mdash; and a version <em>fills</em> it, binding each slot
+to a feature and to the exact feature view version supplying its values. Two
+versions may hold entirely different features and still be the same input space,
+because the kernel reads the slot.</p>
+
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Declare a featureset</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#new-set">Show</button></div>
+  <div class="collapse" id="new-set"><div class="card-body">
+    <form id="define-set" class="small">
+      <div class="row g-2">
+        <div class="col-md-4"><input class="form-control form-control-sm" name="name"
+               placeholder="name, e.g. nj_home_core" required></div>
+        <div class="col-md-4"><input class="form-control form-control-sm" name="entity"
+               placeholder="entity, e.g. property_id" required></div>
+        <div class="col-md-4"><input class="form-control form-control-sm" name="label_slot"
+               placeholder="label slot (optional)"></div>
+        <div class="col-12">
+          <textarea class="form-control form-control-sm" name="slots" rows="4"
+            placeholder='{"log_living_area": "numeric", "bedrooms": "integer", "sale_price": "numeric"}'
+            required></textarea>
+          <div class="text-muted mt-1" style="font-size:.72rem">
+            The slots are the schema. Adding one later changes X, which is a model
+            change rather than a data change &mdash; so it is a different
+            featureset, and the register says so rather than letting it happen quietly.
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Declare</button>
+    </form>
+    <div id="set-result" class="small mt-2"></div>
+  </div></div></div>
+
+<div class="card mb-3"><div class="card-header">Declared featuresets</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Featureset</th><th>Entity</th><th>Slots</th><th>Versions</th>
+               <th>Newest</th><th></th></tr></thead>
+    <tbody>
+    {% for s in featuresets %}
+      <tr><td class="small"><a href="/featureset/{{ s.name }}"
+                 style="color:var(--crimson);text-decoration:none">{{ s.name }}</a>
+            <div class="text-muted">{{ s.description or s.grain }}</div></td>
+          <td class="small">{{ s.entity }}</td>
+          <td class="small">{{ s.slots|length }}
+            {% if s.label_slot %}<div class="text-muted">label: {{ s.label_slot }}</div>{% endif %}</td>
+          <td class="small">{{ s.versions|length }}</td>
+          <td class="small">
+            {% if s.latest %}v{{ s.latest.version }}
+              <div class="text-muted"><code style="font-size:.7rem">{{ s.latest.digest[7:19] }}&hellip;</code></div>
+            {% else %}<span class="text-muted">unfilled</span>{% endif %}</td>
+          <td class="small text-end">
+            {% if s.latest %}
+              <a href="/api/v1/featuresets/{{ s.name }}/versions/{{ s.latest.version }}/data?format=parquet"
+                 style="color:var(--crimson);text-decoration:none">parquet</a>
+            {% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted small">
+        None declared. A featureset is what lets a warrant say <em>train this
+        model on that data</em> and mean something checkable.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+$("#define-set").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this));
+  var body;
+  try { body = {name: f.name, entity: f.entity, slots: JSON.parse(f.slots)}; }
+  catch (err) {
+    $("#set-result").html('<span class="evidence-bad">The slots are not valid JSON &mdash; ' +
+      err.message + '</span>');
+    return;
+  }
+  if (f.label_slot) { body.label_slot = f.label_slot; }
+  $.ajax({url: "/api/v1/featuresets", method: "POST",
+          contentType: "application/json", data: JSON.stringify(body)})
+    .done(function () { location.reload(); })
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      $("#set-result").html('<span class="evidence-bad">Refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>' +
+        (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+    });
+});
+</script>
+{% endblock %}

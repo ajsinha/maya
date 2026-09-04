@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}New model — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE REGISTER</p>
+<h1>Create a model, or upload a version</h1>
+<div class="rule"></div>
+<p class="text-muted small">A model is a <strong>parametric kernel</strong>,
+<code>f : P &times; X &rarr; D(Y)</code>. Registering one declares the kernel;
+uploading a version declares what will actually run. An execution engine that has
+just finished a fit uses the same two endpoints.</p>
+
+<div class="row g-3">
+  <!-- ------------------------------------------------------ the model -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">1 &mdash; Register the model</div>
+      <div class="card-body">
+        <form id="new-model" class="small">
+          <div class="row g-2">
+            <div class="col-12"><input class="form-control form-control-sm" name="urn"
+                   placeholder="maya://model/credit.pd.smallbiz" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+                   placeholder="name" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="model_class"
+                   placeholder="class, e.g. credit.pd.scorecard" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="domain"
+                   placeholder="domain" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="legal_entity"
+                   placeholder="legal entity" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="owner"
+                   placeholder="owner, e.g. person/j.okafor" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="purpose"
+                   placeholder="what it is for" required></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Register</button>
+        </form>
+        <div id="model-result" class="small mt-2"></div>
+        <div class="text-muted mt-3" style="font-size:.72rem">
+          Assess the risk tier next. The tier decides how many signatures a
+          version's approval needs, so a version cannot be approved before the
+          model is assessed &mdash; approving first would be choosing your own
+          control depth.
+        </div>
+      </div></div>
+  </div>
+
+  <!-- ------------------------------------------------------ the version -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">2 &mdash; Upload a version</div>
+      <div class="card-body">
+        <form id="new-version" class="small">
+          <div class="row g-2">
+            <div class="col-md-8">
+              <select class="form-select form-select-sm" name="urn" required>
+                <option value="">choose a model…</option>
+                {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" name="semver"
+                   placeholder="1.0.0" required></div>
+
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="parameter_kind">
+                {% for k in parameter_kinds %}<option>{{ k }}</option>{% endfor %}
+              </select>
+              <div class="text-muted" style="font-size:.7rem">how P is inhabited</div></div>
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="fit_procedure">
+                {% for f in fit_procedures %}<option>{{ f }}</option>{% endfor %}
+              </select>
+              <div class="text-muted" style="font-size:.7rem">the trainability class is derived from these two</div></div>
+
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="runtime">
+                <option value="">descriptor_only — MAYA holds the governance, not the artifact</option>
+                {% for r in runtimes %}<option>{{ r }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="output_kind">
+                {% for o in output_kinds %}<option>{{ o }}</option>{% endfor %}
+              </select></div>
+
+            <div class="col-12"><input class="form-control form-control-sm" name="entry"
+                   placeholder='entry, e.g. {"module": "nj.estimators", "attr": "ols_score"}'></div>
+            <div class="col-md-7"><input class="form-control form-control-sm" name="artifact_uri"
+                   placeholder="artifact uri (where to look)"></div>
+            <div class="col-md-5"><input class="form-control form-control-sm" name="artifact_digest"
+                   placeholder="sha256:… (what should be there)"></div>
+
+            <div class="col-12"><textarea class="form-control form-control-sm" name="input_schema" rows="2"
+                   placeholder='input schema, e.g. [{"name": "dscr", "dtype": "float"}]'></textarea></div>
+            <div class="col-12"><textarea class="form-control form-control-sm" name="output_schema" rows="2"
+                   placeholder='output schema, e.g. [{"name": "pd_12m", "dtype": "float"}]'></textarea></div>
+            <div class="col-12"><textarea class="form-control form-control-sm" name="contract" rows="2"
+                   placeholder='operating contract, e.g. {"assumptions": [], "guarantees": []}'></textarea></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Upload version</button>
+        </form>
+        <div id="version-result" class="small mt-2"></div>
+        <div class="text-muted mt-3" style="font-size:.72rem">
+          A digest with no location cannot be fetched; a location with no digest
+          cannot be checked. Supply neither and the version is
+          <code>descriptor_only</code>: MAYA holds the governance and the engine
+          supplies the model &mdash; a legitimate state, and one the warrant says
+          out loud rather than guessing around.
+        </div>
+      </div></div>
+  </div>
+</div>
+
+<div class="card mt-3"><div class="card-header">From an execution engine</div>
+  <div class="card-body small">
+    <p class="mb-2 text-muted">The same two endpoints. An engine that has just
+    fitted a model registers the version and then records the parameters against
+    the warrant it fitted under:</p>
+<pre class="small mb-0" style="background:#F4F2EF;padding:.8rem;border-radius:.25rem"><code>POST /api/v1/models                      # once, when the model first exists
+POST /api/v1/models/{name}/versions      # the kernel that will run
+POST /api/v1/parameters                  # the inhabitant of P it produced
+     {"warrant_id": "…", "featureset": "…", "featureset_version": 1, …}</code></pre>
+    <p class="mt-2 mb-0 text-muted">The parameters are accepted only against a
+    warrant MAYA issued, and only when they name the featureset version that
+    produced them. Somebody other than the engine's operator approves them before
+    anything runs on them.</p>
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+function fail(where) {
+  return function (x) {
+    var e = x.responseJSON || {};
+    $(where).html('<span class="evidence-bad">Refused &mdash; ' +
+      (e.detail || x.statusText) + '</span>' +
+      (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+  };
+}
+$("#new-model").on("submit", function (e) {
+  e.preventDefault();
+  $.ajax({url: "/api/v1/models", method: "POST", contentType: "application/json",
+          data: JSON.stringify(Object.fromEntries(new FormData(this)))})
+    .done(function () { location.reload(); }).fail(fail("#model-result"));
+});
+$("#new-version").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this));
+  var kernel = {parameter_kind: f.parameter_kind, fit_procedure: f.fit_procedure,
+                output_kind: f.output_kind};
+  try {
+    if (f.runtime) { kernel.runtime = f.runtime; }
+    if (f.entry) { kernel.entry = JSON.parse(f.entry); }
+    if (f.input_schema) { kernel.input_schema = JSON.parse(f.input_schema); }
+    if (f.output_schema) { kernel.output_schema = JSON.parse(f.output_schema); }
+  } catch (err) {
+    $("#version-result").html('<span class="evidence-bad">Not valid JSON &mdash; ' +
+      err.message + '</span>');
+    return;
+  }
+  var body = {semver: f.semver, kernel: kernel};
+  if (f.artifact_uri) { body.artifact_uri = f.artifact_uri; }
+  if (f.artifact_digest) { body.artifact_digest = f.artifact_digest; }
+  if (f.contract) { try { body.contract = JSON.parse(f.contract); } catch (err) {} }
+  var name = f.urn.replace("maya://model/", "");
+  $.ajax({url: "/api/v1/models/" + name + "/versions", method: "POST",
+          contentType: "application/json", data: JSON.stringify(body)})
+    .done(function () { window.location = "/model/" + name; })
+    .fail(fail("#version-result"));
+});
+</script>
+{% endblock %}

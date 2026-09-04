@@ -346,3 +346,82 @@ GET /api/v1/featuresets/{name}/versions/{n}/restatements
 A restatement is not automatically wrong. Correcting a row that was stale is a
 legitimate act. What matters is that a reader who dropped the pin would now see
 something else, and that anybody comparing two runs knows which case they are in.
+
+
+## Moving feature values in and out
+
+Everything else in this platform moves small documents: a warrant, a contract, a
+finding. Feature values are not small. A featureset over a few million entities
+is the ordinary case, and an API that turns it into JSON objects — one dictionary
+per row, keys repeated on every line — spends most of its time and nearly all of
+its memory on punctuation.
+
+So the rule here is different from everywhere else: **nothing is materialised
+whole.** Reads iterate Arrow record batches straight off the Delta files and
+write them out as they go; writes parse a batch at a time and append. Peak memory
+is one batch, not one dataset.
+
+A batch is sized by **cells rather than rows**, because sixteen thousand rows of
+six columns is a few megabytes and sixteen thousand rows of two thousand columns
+is not. A wide table is read in narrower slices, so the claim holds for both
+shapes.
+
+### Four formats, and the choice is not cosmetic
+
+| Format | Media type | When |
+|---|---|---|
+| `arrow` | `application/vnd.apache.arrow.stream` | From an execution engine. Zero-copy, and the only one that is genuinely incremental in both directions |
+| `parquet` | `application/vnd.apache.parquet` | When the data is going to disk. Columnar and compressed — typically less than half of NDJSON for the same rows |
+| `ndjson` | `application/x-ndjson` | The lowest common denominator. Streams, and anything can read it |
+| `json` | `application/json` | For a page, not a job. Hard-capped, because a browser asking for ten million rows is a mistake and answering it is not a kindness |
+
+Parquet is assembled to a temporary file and streamed from it, because a Parquet
+file's footer holds the row-group index and cannot be written until the last row
+is known. The file still never holds more than one batch in memory on the way in.
+
+### Copying a version out
+
+```bash
+curl -u you:… -o sb_credit.parquet \
+  'http://localhost:5006/api/v1/feature-views/sb_credit/versions/1/data?format=parquet'
+```
+
+The read uses the **pinned** Delta version, not whatever the namespace currently
+holds. What comes out is what that version *is*, not what the path has since
+become.
+
+A whole featureset version comes out joined on the entity key:
+
+```
+GET /api/v1/featuresets/{name}/versions/{n}/data?format=parquet
+```
+
+An engine that wants to pull a large set in parallel should read `/parts`
+instead, which names each namespace and the Delta version it is pinned at, and
+fetch them itself rather than waiting on a join.
+
+### Loading values in
+
+```bash
+curl -u you:… -X POST \
+  -H 'Content-Type: application/vnd.apache.parquet' \
+  --data-binary @sb_credit.parquet \
+  http://localhost:5006/api/v1/feature-views/sb_credit/data
+```
+
+**The whole upload becomes one version**, because a version is what a featureset
+pins and half a version is not something anybody can pin.
+
+Every row carries `entity_id`, `event_ts` and `ingest_ts`. An upload missing
+either clock is refused *here*, at the upload, rather than accepted to be helpful
+and failed two layers later during assembly — which is where it stops being
+fixable. A body whose bytes and declared content type disagree is refused too,
+rather than guessed at.
+
+### Through the interface
+
+The **Features** page defines primitives and derived features and lists what each
+view holds. A view's own page uploads a file and offers each version in every
+format. The **Featuresets** page declares a schema; a featureset's page fills it,
+rolls it forward to newer view versions with a diff of what moved, and shows each
+version's pins alongside whether anything underneath them has been restated.

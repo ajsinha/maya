@@ -79,6 +79,89 @@ class UIRoutes(Routes):
                 regimes=self.ctx["regimes"].determine_all(
                     self.ctx["regimes"].core_state(docs.build_context(urn))))
 
+        # ------------------------------------------------------- features
+        @self.app.get("/features", response_class=HTMLResponse, tags=["ui"])
+        def features_page(request: Request):
+            """The catalogue: what is defined, what is derived, what is served."""
+            if (r := login_required(request)) is not None:
+                return r
+            f = self.ctx["features"]
+            catalogue = f.list_features()
+            derived = {d["name"]: d for d in f.derived.list()} if f.derived else {}
+            views = []
+            for view in f.views.views.many():
+                versions = f.views.versions_of(view["name"])
+                views.append({**view, "versions": versions,
+                              "latest": versions[-1] if versions else None})
+            return self.page(
+                request, "features.html", features=catalogue, derived=derived,
+                views=views,
+                language=__import__("core.features.expressions",
+                                    fromlist=["describe"]).describe())
+
+        @self.app.get("/feature-views/{name}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def feature_view_page(request: Request, name: str):
+            if (r := login_required(request)) is not None:
+                return r
+            f = self.ctx["features"]
+            view = f.views.views.one(name=name)
+            if not view:
+                return self.page(request, "not_found.html", status=404, name=name)
+            versions = f.views.versions_of(name)
+            return self.page(request, "feature_view.html", view=view,
+                             versions=[{**v, **f.views.restated(name, v["version"])}
+                                       for v in versions])
+
+        # ---------------------------------------------------- featuresets
+        @self.app.get("/featuresets", response_class=HTMLResponse, tags=["ui"])
+        def featuresets_page(request: Request):
+            if (r := login_required(request)) is not None:
+                return r
+            f = self.ctx["features"]
+            rows = []
+            for row in f.sets.list():
+                versions = f.sets.versions_of(row["name"])
+                rows.append({**row, "versions": versions,
+                             "latest": versions[-1] if versions else None})
+            return self.page(request, "featuresets.html", featuresets=rows,
+                             catalogue=f.list_features())
+
+        @self.app.get("/featureset/{name}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def featureset_page(request: Request, name: str):
+            if (r := login_required(request)) is not None:
+                return r
+            f = self.ctx["features"]
+            row = f.sets.get(name)
+            if not row:
+                return self.page(request, "not_found.html", status=404, name=name)
+            versions = f.sets.versions_of(name)
+            return self.page(
+                request, "featureset.html", featureset=row, versions=versions,
+                plans={v["version"]: f.featureset_plan(name, v["version"])
+                       for v in versions},
+                restatements={v["version"]: f.restatements(name, v["version"])
+                              for v in versions},
+                catalogue=f.list_features())
+
+        # -------------------------------------------------------- new model
+        @self.app.get("/models/new", response_class=HTMLResponse, tags=["ui"])
+        def new_model_page(request: Request):
+            """Create a model, or upload a version of one that already exists."""
+            if (r := login_required(request)) is not None:
+                return r
+            from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
+            from core.execution.grammar import RUNTIME_ENTRY
+            return self.page(
+                request, "new_model.html",
+                models=self.ctx["registry"].list(),
+                parameter_kinds=[k.value for k in ParameterKind],
+                fit_procedures=[p.value for p in FitProcedure],
+                output_kinds=[k.value for k in OutputKind],
+                runtimes=sorted(RUNTIME_ENTRY),
+                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()})
+
         @self.app.get("/document/{document_id}", response_class=HTMLResponse,
                       tags=["ui"])
         def document(request: Request, document_id: str):

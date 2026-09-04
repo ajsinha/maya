@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Features — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE CATALOGUE</p>
+<h1>Features</h1>
+<div class="rule"></div>
+<p class="text-muted small">A feature is a <em>meaning</em>, not a column: an
+entity, a type, an owner and a definition. Values live in Delta, in a namespace
+pinned by the view version that wrote them.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ features|length }}</div>
+    <div class="stat-l">features defined</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ derived|length }}</div>
+    <div class="stat-l">computed from others</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ views|length }}</div>
+    <div class="stat-l">views materialised</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ views|sum(attribute='latest.row_count', start=0) or 0 }}</div>
+    <div class="stat-l">rows in the newest versions</div></div></div></div>
+</div>
+
+<!-- ------------------------------------------------------------ define -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Define a feature</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#define-forms">Show</button></div>
+  <div class="collapse" id="define-forms"><div class="card-body">
+    <div class="row g-4">
+      <div class="col-md-6">
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">A primitive</p>
+        <form id="define-primitive" class="small">
+          <div class="row g-2">
+            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
+            <div class="col-6">
+              <select class="form-select form-select-sm" name="dtype">
+                <option>numeric</option><option>integer</option>
+                <option>categorical</option><option>boolean</option><option>string</option>
+              </select></div>
+            <div class="col-6"><input class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Define</button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">A derived feature &mdash; Z = f(X, Y)</p>
+        <form id="define-derived" class="small">
+          <div class="row g-2">
+            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6">
+              <select class="form-select form-select-sm" name="dtype">
+                <option>numeric</option><option>integer</option>
+              </select></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="expression"
+                   placeholder="lot_size_sqft / living_area_sqft" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Define</button>
+        </form>
+        <div class="text-muted mt-2" style="font-size:.72rem">
+          Arithmetic, comparison and
+          {% for f in language.functions %}<code>{{ f.name }}</code>{{ "" if loop.last else " · " }}{% endfor %}.
+          The row's own clock is <code>year(event_ts)</code>. Anything more is
+          <code>external</code>: the definition is kept, the values are uploaded.
+        </div>
+      </div>
+    </div>
+    <div id="define-result" class="small mt-3"></div>
+  </div></div></div>
+
+<!-- ------------------------------------------------------------ catalogue -->
+<div class="card mb-3"><div class="card-header">The catalogue</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Feature</th><th>Entity</th><th>Type</th><th>How it is produced</th>
+               <th>Certification</th></tr></thead>
+    <tbody>
+    {% for f in features %}
+      <tr><td class="small">{{ f.name }}
+            <div class="text-muted">{{ f.description }}</div></td>
+          <td class="small">{{ f.entity }}</td>
+          <td class="small">{{ f.dtype }}</td>
+          <td class="small">
+            {% if f.name in derived %}
+              <code style="font-size:.72rem">{{ derived[f.name].expression }}</code>
+              <div class="text-muted">
+                {{ derived[f.name].evaluator }} · def v{{ derived[f.name].definition_version }}
+                · reads {{ derived[f.name].inputs|join(', ') }}</div>
+            {% else %}<span class="text-muted">materialised</span>{% endif %}</td>
+          <td class="small">{{ f.certification }}</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="text-muted small">
+        Nothing defined yet. A feature is declared before it has values, because
+        the declaration is what a featureset pins and what an owner is
+        accountable for.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+
+<!-- ------------------------------------------------------------ views -->
+<div class="card mb-3"><div class="card-header">Views &mdash; where the values live</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>View</th><th>Entity</th><th>Versions</th><th>Newest</th><th></th></tr></thead>
+    <tbody>
+    {% for v in views %}
+      <tr><td class="small"><a href="/feature-views/{{ v.name }}"
+                 style="color:var(--crimson);text-decoration:none">{{ v.name }}</a>
+            <div class="text-muted">{{ v.description or '' }}</div></td>
+          <td class="small">{{ v.entity }}</td>
+          <td class="small">{{ v.versions|length }}</td>
+          <td class="small">
+            {% if v.latest %}v{{ v.latest.version }}
+              <div class="text-muted">{{ "{:,}".format(v.latest.row_count) }} rows
+                · delta v{{ v.latest.delta_version }}</div>
+            {% else %}<span class="text-muted">never materialised</span>{% endif %}</td>
+          <td class="small text-end">
+            {% if v.latest %}
+              <a href="/api/v1/feature-views/{{ v.name }}/versions/{{ v.latest.version }}/data?format=parquet"
+                 style="color:var(--crimson);text-decoration:none">parquet</a>
+              &middot;
+              <a href="/api/v1/feature-views/{{ v.name }}/versions/{{ v.latest.version }}/data?format=arrow"
+                 style="color:var(--crimson);text-decoration:none">arrow</a>
+            {% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="text-muted small">No views yet.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Publishing a new version never changes what an older one serves &mdash; they
+    are different Delta paths. A read is pinned to the version, not to the path.
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+function post(url, body, kind) {
+  return $.ajax({url: url, method: "POST", contentType: "application/json",
+                 data: JSON.stringify(body)})
+    .done(function () { location.reload(); })
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      $("#define-result").html('<span class="evidence-bad">' + kind + ' refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>' +
+        (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+    });
+}
+$("#define-primitive").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this));
+  post("/api/v1/features", f, "Definition");
+});
+$("#define-derived").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this));
+  post("/api/v1/derived-features", f, "Definition");
+});
+</script>
+{% endblock %}

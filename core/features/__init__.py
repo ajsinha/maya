@@ -21,9 +21,11 @@ from core.features.pit import (AssemblyRejected, AssemblyRequest, PitReport,
                               detect_leakage, static_check, verify_sampled)
 from core.features.registry import FeatureRegistry
 from core.features.sets import PIT_RULE, FeaturesetRegistry
+from core.features.transfer import FORMATS, FeatureTransfer
 from core.features.views import ViewManager
 
 __all__ = ["FeatureRegistry", "FeatureError", "FeatureCatalogue", "ViewManager",
            "ContractBinder", "TrainingSetBuilder", "AssemblyRejected", "AssemblyRequest",
            "DerivedFeatures", "FeaturesetRegistry", "Expression", "PIT_RULE",
+           "FeatureTransfer", "FORMATS",
            "PitReport", "detect_leakage", "static_check", "verify_sampled", "VALID_TIME", "INGEST_TIME", "ENTITY"]

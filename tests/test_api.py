@@ -2,6 +2,7 @@
 MAYA — HTTP API and UI tests, exercised through the real application.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
+import json
 import pytest
 from fastapi.testclient import TestClient
 
@@ -1811,3 +1812,193 @@ class TestReplayFromStorageOverTheApi:
             f"/api/v1/validations/{episode['id']}/replayable").json()
         assert body["readable"] is False
         assert "pins no dataset snapshot" in body["detail"]
+
+
+class TestFeatureAndFeaturesetPages:
+    """Managing features through the interface, not only through curl."""
+
+    def _catalogue(self, client, auth):
+        for name, dtype in [("dscr", "numeric"), ("turnover", "numeric")]:
+            client.post("/api/v1/features", auth=auth, json={
+                "name": name, "entity": "borrower_id", "dtype": dtype,
+                "description": f"SB {name}", "owner": "person/j.okafor"})
+
+    def test_the_features_page_lists_the_catalogue(self, registered, people):
+        self._catalogue(registered, people["d.raman"])
+        registered.post("/api/v1/derived-features", auth=people["d.raman"], json={
+            "name": "coverage", "expression": "turnover / dscr",
+            "dtype": "numeric", "description": "turnover per unit of cover"})
+        _login(registered)
+        page = registered.get("/features").text
+        assert "dscr" in page and "coverage" in page
+        assert "turnover / dscr" in page, "a derived feature shows its expression"
+
+    def test_the_featuresets_page_lists_declared_sets(self, registered, people):
+        self._catalogue(registered, people["d.raman"])
+        registered.post("/api/v1/featuresets", auth=people["d.raman"], json={
+            "name": "sb_core", "entity": "borrower_id",
+            "slots": {"dscr": "numeric"}})
+        _login(registered)
+        assert "sb_core" in registered.get("/featuresets").text
+
+    def test_a_featureset_page_shows_its_schema_and_pins(self, registered, people):
+        dev = people["d.raman"]
+        self._catalogue(registered, dev)
+        registered.post("/api/v1/feature-views", auth=dev, json={
+            "name": "sb_credit", "entity": "borrower_id",
+            "owner": "person/j.okafor", "features": ["dscr", "turnover"]})
+        registered.post("/api/v1/feature-views/sb_credit/materialise", auth=dev,
+                        json={"rows": [{"entity_id": "B1", "event_ts": 1.0,
+                                        "ingest_ts": 1.0, "dscr": 1.4,
+                                        "turnover": 250000.0}]})
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "sb_core", "entity": "borrower_id",
+            "slots": {"dscr": "numeric"}})
+        registered.post("/api/v1/featuresets/sb_core/versions", auth=dev,
+                        json={"bindings": {"dscr": "dscr"}})
+        _login(registered)
+        page = registered.get("/featureset/sb_core").text
+        assert "features/borrower_id/sb_credit/v1" in page
+        assert "delta v" in page, "the page shows the pin, not only the path"
+
+    def test_a_feature_view_page_offers_the_bulk_formats(self, registered, people):
+        dev = people["d.raman"]
+        self._catalogue(registered, dev)
+        registered.post("/api/v1/feature-views", auth=dev, json={
+            "name": "sb_credit", "entity": "borrower_id",
+            "owner": "person/j.okafor", "features": ["dscr"]})
+        registered.post("/api/v1/feature-views/sb_credit/materialise", auth=dev,
+                        json={"rows": [{"entity_id": "B1", "event_ts": 1.0,
+                                        "ingest_ts": 1.0, "dscr": 1.4}]})
+        _login(registered)
+        page = registered.get("/feature-views/sb_credit").text
+        assert "parquet" in page and "arrow" in page
+
+    def test_the_new_model_page_offers_the_kernel_vocabulary(self, registered):
+        _login(registered)
+        page = registered.get("/models/new").text
+        assert "estimated_coefficients" in page
+        assert "descriptor_only" in page
+
+
+class TestBulkTransfer:
+    """Feature values are the one thing here that is not small."""
+
+    def _view(self, client, auth, rows=500):
+        client.post("/api/v1/features", auth=auth, json={
+            "name": "dscr", "entity": "borrower_id", "dtype": "numeric",
+            "description": "d", "owner": "person/j.okafor"})
+        client.post("/api/v1/feature-views", auth=auth, json={
+            "name": "sb_credit", "entity": "borrower_id",
+            "owner": "person/j.okafor", "features": ["dscr"]})
+        client.post("/api/v1/feature-views/sb_credit/materialise", auth=auth,
+                    json={"rows": [{"entity_id": f"B{i}", "event_ts": float(i),
+                                    "ingest_ts": float(i), "dscr": 1.0 + i}
+                                   for i in range(rows)]})
+
+    def test_the_formats_are_published(self, registered):
+        body = registered.get("/api/v1/transfer").json()
+        assert {f["format"] for f in body["formats"]} == {
+            "arrow", "parquet", "ndjson", "json"}
+        assert body["required_columns"] == ["entity_id", "event_ts", "ingest_ts"]
+        assert "one batch rather than one dataset" in body["note"]
+
+    def test_a_view_version_streams_as_parquet(self, registered, people):
+        self._view(registered, people["d.raman"])
+        r = registered.get(
+            "/api/v1/feature-views/sb_credit/versions/1/data?format=parquet")
+        assert r.status_code == 200
+        assert r.headers["content-type"] == "application/vnd.apache.parquet"
+        assert r.content[:4] == b"PAR1", "that is not a parquet file"
+        assert "sb_credit-v1.parquet" in r.headers["content-disposition"]
+
+    def test_it_streams_as_arrow_and_as_ndjson(self, registered, people):
+        self._view(registered, people["d.raman"])
+        arrow = registered.get(
+            "/api/v1/feature-views/sb_credit/versions/1/data?format=arrow")
+        assert arrow.status_code == 200 and len(arrow.content) > 0
+        lines = registered.get(
+            "/api/v1/feature-views/sb_credit/versions/1/data?format=ndjson"
+        ).text.strip().splitlines()
+        assert len(lines) == 500
+        assert json.loads(lines[0])["entity_id"].startswith("B")
+
+    def test_json_is_capped_and_says_so(self, registered, people):
+        self._view(registered, people["d.raman"])
+        body = registered.get(
+            "/api/v1/feature-views/sb_credit/versions/1/data"
+            "?format=json&limit=25").json()
+        assert body["returned"] == 25 and body["total"] == 500
+        assert body["truncated"]
+        assert "ask for arrow or parquet" in body["detail"]
+
+    def test_a_column_that_is_not_there_is_refused(self, registered, people):
+        """Asking for an absent column is a different request from asking for an
+        empty one, and answering the second would hide the first."""
+        self._view(registered, people["d.raman"])
+        r = registered.get("/api/v1/feature-views/sb_credit/versions/1/data"
+                           "?format=ndjson&columns=dscr,nonexistent")
+        assert r.status_code == 409
+
+    def test_a_round_trip_preserves_every_row(self, registered, people):
+        """Out as parquet, back in as parquet, and the count survives."""
+        dev = people["d.raman"]
+        self._view(registered, dev)
+        blob = registered.get(
+            "/api/v1/feature-views/sb_credit/versions/1/data?format=parquet"
+        ).content
+        r = registered.post("/api/v1/feature-views/sb_credit/data", auth=dev,
+                            content=blob,
+                            headers={"Content-Type":
+                                     "application/vnd.apache.parquet"})
+        assert r.status_code == 201, r.text
+        assert r.json()["uploaded_rows"] == 500 and r.json()["version"] == 2
+
+    def test_an_upload_without_both_clocks_is_refused(self, registered, people):
+        """Accepting it here would move the failure two layers away from the
+        upload that caused it, which is where it stops being fixable."""
+        self._view(registered, people["d.raman"])
+        body = json.dumps([{"entity_id": "B1", "dscr": 2.0}]).encode()
+        r = registered.post("/api/v1/feature-views/sb_credit/data",
+                            auth=people["d.raman"], content=body,
+                            headers={"Content-Type": "application/json"})
+        assert r.status_code == 409
+        assert "two clocks" in r.json()["detail"]
+
+    def test_a_body_that_is_not_what_it_claims_is_refused(self, registered,
+                                                          people):
+        self._view(registered, people["d.raman"])
+        r = registered.post("/api/v1/feature-views/sb_credit/data",
+                            auth=people["d.raman"], content=b"not parquet",
+                            headers={"Content-Type":
+                                     "application/vnd.apache.parquet"})
+        assert r.status_code == 409
+        assert "does not parse" in r.json()["detail"]
+
+    def test_a_featureset_reports_its_parts_for_a_parallel_pull(self, registered,
+                                                                people):
+        dev = people["d.raman"]
+        self._view(registered, dev)
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "sb_core", "entity": "borrower_id",
+            "slots": {"dscr": "numeric"}})
+        registered.post("/api/v1/featuresets/sb_core/versions", auth=dev,
+                        json={"bindings": {"dscr": "dscr"}})
+        parts = registered.get(
+            "/api/v1/featuresets/sb_core/versions/1/parts").json()
+        assert parts["parts"][0]["namespace"] == \
+            "features/borrower_id/sb_credit/v1"
+        assert parts["parts"][0]["delta_version"] is not None
+        assert "in parallel" in parts["detail"]
+
+    def test_a_featureset_version_streams_joined(self, registered, people):
+        dev = people["d.raman"]
+        self._view(registered, dev)
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "sb_core", "entity": "borrower_id",
+            "slots": {"dscr": "numeric"}})
+        registered.post("/api/v1/featuresets/sb_core/versions", auth=dev,
+                        json={"bindings": {"dscr": "dscr"}})
+        r = registered.get(
+            "/api/v1/featuresets/sb_core/versions/1/data?format=parquet")
+        assert r.status_code == 200 and r.content[:4] == b"PAR1"
