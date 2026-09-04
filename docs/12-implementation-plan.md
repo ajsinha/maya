@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 4. This section is the authoritative record of what
+*Last updated after milestone 5. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -27,13 +27,13 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Persistence** (`db/`) | **Complete** | Two hand-written schemas, no migrations. SQLite default, PostgreSQL switchable by URL alone. Repositories are the only interface; no SQL above this package |
 | ✅ | **Evidence engine** (`core/evidence/`) | **Complete** | Append-only hash chain with tamper and deletion detection; six semirings over one traversal; citation verification |
 | ✅ | **Risk tiering** (`core/risk/`) | **Complete** | Separate materiality and complexity lattices, monotone τ (L-4), Galois-adjoint control sets (L-5), derivation stored with every assessment |
-| ✅ | **Registry** (`core/registry/`) | **Complete** | Immutable versions, governed aliases gated on refinement and variance proofs, full move history |
-| ✅ | **Hooks** (`core/execution/hooks.py`) | **Complete** | Signed, expiring, entitlement-bound descriptors. Fails closed on unknown principal, unapproved use, unapproved version, revocation |
+| ✅ | **Registry** (`core/registry/`) | **Complete** | Immutable versions, governed aliases gated on refinement and variance proofs *and* on the findings register, full move history |
+| ✅ | **Hooks** (`core/execution/`) | **Complete** | Signed, expiring, entitlement-bound descriptors. Fails closed on unknown principal, unapproved use, unapproved version, revocation, and open blocking findings |
 | ✅ | **Captive engine** (`core/execution/engine.py`) | **Complete** | A consumer of the public hook contract. Verifies signature, expiry and operating boundary before touching an artifact |
 | ✅ | **Feature platform** (`core/features/`) | **Complete** | Bitemporal Delta storage, version-namespaced serving (fixes C-2), PIT assembly with three-layer verification, contracts, retirement guard |
 | ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, hooks, features, health. RFC-9457-shaped refusals carrying remediation |
 | ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. Every asset vendored — no CDN |
-| ⬜ | **Validation & findings** | **Not started** | Test catalogue, findings register, blocking semantics, reproducibility replay |
+| ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and hook resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
 | ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
 | ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
 | ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
@@ -51,6 +51,15 @@ closed. Features can be defined, materialised bitemporally into Delta, pinned by
 contract, and assembled into a point-in-time-correct training set that is refused
 outright if either temporal bound is missing.
 
+The validation path runs alongside it: open an episode against a version (refused
+if a validator built it) → record catalogue tests with declared thresholds → try
+to conclude `approved` (refused if any test failed, refused again if a blocking
+finding is open) → raise a finding and watch both the alias gate and hook
+resolution fail closed → close it with an independent verifier and evidence, and
+watch service resume. Any recorded result can be replayed and compared on its
+digest, which catches a threshold moved after the fact as readily as a changed
+number.
+
 ### Honest gaps
 
 - **No authorisation model beyond a single account.** One username and password;
@@ -64,10 +73,15 @@ outright if either temporal bound is missing.
 - **No Delta time-travel on reads yet.** `DeltaStore` supports `as_of_version`,
   but assemblies pin a namespace rather than a table version, so restatement
   handling is not implemented.
-- **Line budget.** Source stands over the 1,500-line target set at the outset.
-  The overrun is auth, the landing flow and the persistence split, all added
-  after the target was set. It is reported here rather than hidden by compressing
-  docstrings.
+- **Findings have no workflow.** They are raised, tracked and closed, but there
+  is no assignment, escalation, reminder or reporting cycle around them.
+- **Replay supplies its own data.** The caller passes the series back in; the
+  platform does not yet re-read the pinned dataset snapshot to replay from
+  storage, which is what would make replay an unattended control rather than an
+  assisted one.
+- **File size, not total size.** The governing rule is that no Python source file
+  exceeds 1,500 code lines; every file is well inside it, and the packages are
+  split by responsibility rather than by length.
 
 ## 1. Engineering principles
 

@@ -14,8 +14,10 @@ from routes.hook_routes import HookRoutes
 from routes.model_routes import ModelRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_routes import UIRoutes
+from routes.validation_routes import ValidationRoutes
 
-ALL_ROUTES = (PublicRoutes, AuthRoutes, ModelRoutes, HookRoutes, FeatureRoutes, UIRoutes)
+ALL_ROUTES = (PublicRoutes, AuthRoutes, ModelRoutes, HookRoutes, FeatureRoutes,
+              ValidationRoutes, UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "HookRoutes",
-           "ModelRoutes", "PublicRoutes", "UIRoutes", "current_user", "login_required"]
+           "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "current_user", "login_required"]
