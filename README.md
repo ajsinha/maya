@@ -328,7 +328,7 @@ The ideas behind this system are written up independently of the product:
 
 | Artefact | Audience |
 |---|---|
-| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 29-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
+| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 34-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
 | **[Most of Your Models Were Never Trained](docs/research/most-of-your-models-were-never-trained.md)** | General technical readers |
 | **[Models as Parametric Kernels](docs/Models-as-Parametric-Kernels.pptx)** — 27 slides | Conversation-starter deck mirroring the paper: the problem, the formal foundation, automation and its oracles, and six questions worth arguing about |
 

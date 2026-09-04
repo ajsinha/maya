@@ -39,6 +39,7 @@
 \newcommand{\ie}{\emph{i.e.}\ }
 \newcommand{\eg}{\emph{e.g.}\ }
 \newcommand{\defn}[1]{\emph{#1}}
+\newcommand{\beh}{\mathsf{beh}}
 
 % ---- expository environments ---------------------------------------------
 \definecolor{plainbg}{RGB}{246,246,244}
@@ -115,7 +116,7 @@ computation evaluated in different semirings.
 
 The contribution is conceptual and integrative rather than deep: each mathematical instrument is
 borrowed, and we are explicit about which. What is new is their assembly into a coherent theory of
-a domain that presently has none, together with five results that this assembly makes available.
+a domain that presently has none, together with the results that this assembly makes available.
 We state the limitations candidly, including the absence of an implementation study, and identify
 what would falsify the account.
 \end{abstract}
@@ -189,7 +190,10 @@ We give a mathematical foundation addressing all four. Concretely:
       definition of a model. \Cref{prop:refit} draws the operational corollary --- refitting
       produces a new \emph{point} of $P$ and not a new morphism --- which separates two events that
       standard versioning practice conflates, and makes ``did this model change?'' a question with
-      one answer.
+      one answer. \Cref{sec:stateful} extends the definition to artefacts that carry state and shows
+      that this is not a routine generalisation: \Cref{prop:stateprobe} and
+      \Cref{cor:probelength} establish that no probe set of individual cases, at any size, can
+      support an equivalence claim about an artefact that remembers.
 \item \Cref{sec:composition} proves that no aggregate risk assignment can be compositional
       (\Cref{thm:noncomp}), and identifies the obstruction as the comonoid copy map. This gives
       formal content to the supervisory expectation regarding interactions and common dependencies,
@@ -222,6 +226,18 @@ We give a mathematical foundation addressing all four. Concretely:
       governance tasks are oracle-backed and which constitutively cannot be
       (\Cref{obs:constitutive}), and show that a governing system may use governed models without
       circularity provided generation crosses the strata and acceptance does not.
+\item \Cref{sec:reviewer} takes the automation argument to the boundary it does not cover. A
+      decision procedure guarantees that no incorrect output is accepted \emph{by the oracle}, while
+      acceptance in a governance process is an act by a person, and machine-drafted text is fluent in
+      a way that suppresses the finding of defects. We set out what the framework offers there --- a
+      formally determined division of the reviewer's attention, adversarial presentation with a
+      constructed rather than rhetorical witness, and four measurable quantities of which two exist
+      only because evidence is a derivation structure --- and are explicit that all of it is
+      hypothesis.
+\item \Cref{sec:adoption} answers the objection that the apparatus demands a vocabulary no
+      institution will acquire, by exhibiting the surface form each construction already has in a
+      model risk function and an order of adoption that the conservative-extension results of
+      \Cref{prop:conservative} and \Cref{prop:stability} are what make possible.
 \end{enumerate}
 
 \Cref{sec:laws} observes that every result above can be stated as an executable law and enforced by
@@ -258,6 +274,12 @@ questions into one; (v) the probe-relative treatment of artefact identity and it
 for version increments, together with \Cref{prop:refit} and the reading of an inhabitant of $P$ as an
 object of the record in its own right; and (vi) the oracle analysis of \Cref{sec:automation},
 including \Cref{prop:citation} and the constitutivity argument of \Cref{obs:constitutive}.
+We claim as new (vii) \Cref{prop:stateprobe} and \Cref{cor:probelength}, and specifically their
+use as a scope condition on the probe-relative semantics of version increments: the observation is
+elementary as a statement about stochastic transducers, and what appears to be new is that a
+governance practice universally stated over individual test cases is thereby unsound for a
+substantial and growing part of the population. Coalgebra and the theory of Mealy machines are of
+course not ours, and we develop neither.
 \Cref{prop:monoid} is elementary and we claim only its \emph{use}: as a scope boundary on
 \Cref{thm:noncomp}, and as the observation that whether an assignment composes is decided by which
 structure it must respect rather than by the domain it is drawn from.
@@ -522,6 +544,136 @@ the recalibration \emph{procedure} once, instead of pretending that a fresh comm
 happens every morning. And when somebody asks which numbers produced a decision made two years ago,
 there is something to point at.
 \end{plain}
+
+\subsection{Stateful and interactive artefacts}\label{sec:stateful}
+
+The definition so far describes an artefact whose output depends on its parameters and its input and
+on nothing else. A simulation engine that carries a random-number state across calls, a system that
+adapts online, and an agentic application that takes an action and observes its consequence all
+violate that description. They are governed artefacts in every institution we are aware of, so the
+framework must say something about them.
+
+\begin{definition}[Stateful parametric kernel]\label{def:stateful}
+A \defn{stateful parametric kernel} is a triple $(S, s_0, f)$ where $S$ is a state object,
+$s_0 \colon I \to S$ is an initial state in $\Stoch$, and
+\[
+  f \colon P \otimes S \otimes X \longrightarrow S \otimes Y
+\]
+is a Markov kernel. Fixing a parameter point $p \colon I \to P$ yields $f_p \colon S \otimes X \to S
+\otimes Y$, an $X$-indexed family of state transitions with output --- a stochastic Mealy machine.
+\end{definition}
+
+Two encodings are available and they are not equivalent for our purposes. The first, which the
+account has used implicitly until now, absorbs state into the interface: take $X' = S \otimes X$ and
+$Y' = S \otimes Y$ and the artefact is a morphism of $\Para(\Stoch)$ again. This is faithful and it
+is what \Cref{sec:limits} refers to as inelegant, but the objection is sharper than inelegance. The
+input object of a governed artefact is meant to be what the caller supplies, and under this encoding
+it contains something the caller does not supply and generally cannot see. Every downstream
+construction that quantifies over inputs --- contracts, probe sets, the admissibility condition of
+\Cref{prop:pit} --- then quantifies over a set the institution does not control.
+
+The second encoding keeps the state where it belongs. For fixed $p$, iterating $f_p$ from $s_0$ and
+marginalising the state gives, for each $n$, a kernel on input sequences
+\[
+  \beh_n(p) \colon X^{\otimes n} \longrightarrow Y^{\otimes n},
+\]
+and the family $\beh(p) = (\beh_n(p))_{n \geq 1}$ is the artefact's observable content: it is
+everything an outside party can learn by using it. This is the behaviour map of the coalgebra
+$f_p$, and $\beh$ is the arrow into the final coalgebra when one exists.
+
+The distinction is not decorative. It changes a result already stated.
+
+\begin{proposition}[Single-shot probes are unsound for stateful artefacts]\label{prop:stateprobe}
+There exist stateful parametric kernels $v_1, v_2$ with the same signature such that
+$\beh_1(v_1) = \beh_1(v_2)$ while $\beh_2(v_1) \neq \beh_2(v_2)$. Consequently
+$\Pi$-equivalence over probes whose inputs are single elements of $X$ does not imply behavioural
+equivalence, and the \textsc{patch} clause of \Cref{prop:version} is unsound for stateful artefacts
+unless the probes in $\Pi$ are input \emph{sequences}.
+\end{proposition}
+
+\begin{proof}
+Let $X = \{\ast\}$ and $Y = \{0,1\}$. Let $v_1$ have $S = \{a\}$ and emit $0$ or $1$ with probability
+$\tfrac12$ each on every call. Let $v_2$ have $S = \{a, b\}$ with $s_0$ uniform on $S$, and let it
+emit $0$ and remain in $a$ when in $a$, and emit $1$ and remain in $b$ when in $b$. Then
+$\beh_1(v_1) = \beh_1(v_2)$ is uniform on $Y$. But $\beh_2(v_1)$ is uniform on $Y^{\otimes 2}$ while
+$\beh_2(v_2)$ puts mass $\tfrac12$ on $(0,0)$ and $\tfrac12$ on $(1,1)$ and none on the mixed pairs.
+\end{proof}
+
+\begin{corollary}[No finite probe length is separating]\label{cor:probelength}
+For every $n$ there exist stateful kernels agreeing on all probes of input length at most $n$ and
+differing at length $n+1$. Hence no bound on probe length is adequate in general, and the limiting
+clause of \Cref{prop:version} --- equality of artefacts under a separating probe set --- requires an
+unbounded family, whereas for stateless kernels over a finite $X$ a finite separating set exists.
+\end{corollary}
+
+\begin{proof}
+Take $S = \{0, 1, \dots, n\}$ with $s_0 = 0$, each call incrementing the state until it reaches
+$n$. Let both kernels emit $0$ while the state is at most $n-1$, and let $v_1$ emit $0$ thereafter
+while $v_2$ emits $1$. The $i$-th emission occurs in state $i-1$, so the two agree on every input
+sequence of length at most $n$ and differ on every longer one.
+\end{proof}
+
+\begin{plain}
+\pt If a thing remembers, you cannot learn what it does by asking it questions one at a time.
+
+Two systems can give identical answers to every single question you ask and still be completely
+different systems --- because what distinguishes them is not any one answer but how the answers
+relate to each other. The proof above is the smallest possible case: one system flips a fresh coin
+every time; the other flips one coin at start-up and then repeats it forever. Ask each of them once
+and they are indistinguishable. Ask twice and they could not be more different.
+
+The consequence for governance is specific. A ``patch'' release is a claim that nothing observable
+changed, and \Cref{prop:version} makes that claim mean ``nothing changed with respect to this named
+test set''. For an artefact that carries state, a test set of individual cases cannot support the
+claim no matter how large it is. The tests have to be \emph{sequences}, and \Cref{cor:probelength}
+says there is no length at which you can stop and declare yourself safe.
+\end{plain}
+
+\begin{worked}
+\wk{a seed policy that was a patch release}
+A counterparty simulation engine draws its random numbers from a generator seeded once at process
+start. A performance change replaces it with a generator seeded per request, which removes a lock and
+halves latency. Nothing about the model, the calibration or the parameters changes, and the release
+is labelled a patch.
+
+The nightly regression suite runs eleven thousand single-trade valuations and reproduces every one
+within tolerance, because a single valuation averages over paths either way. What changes is the
+correlation \emph{between} valuations in one batch: previously two trades in the same netting set
+were simulated against common paths, and now they are not. Exposure at the netting-set level moves by
+a material amount, in the direction of understatement.
+
+Eleven thousand probes could not detect it, and no number of probes of that shape could have. One
+probe consisting of two trades evaluated in sequence would have. The defect is not that the suite was
+too small; it is that every element of it had length one.
+\end{worked}
+
+\begin{remark}[What survives unchanged]
+\Cref{thm:noncomp} holds a fortiori: stateless kernels are the case $S = I$, so a compositional and
+fragility-sensitive risk assignment on stateful artefacts would restrict to one on stateless
+artefacts, which the theorem forbids. The trainability classification of
+\Cref{prop:classification} is likewise untouched, since it classifies how $P$ is inhabited and $S$ is
+not part of $P$ --- which is the substantive claim that state is not a parameter. An artefact whose
+behaviour drifts because it is learning online has a fitting morphism; one whose behaviour drifts
+because it is accumulating state does not, and conflating the two is the error the separation exists
+to prevent.
+\end{remark}
+
+\begin{remark}[Time]
+\Cref{prop:pit} characterises causally admissible training assemblies over a bitemporal store, and
+its statement quantifies over inputs. For a stateful artefact the state at the moment of a decision
+is an input in every sense that matters to a replay, and it is one that no data store records unless
+somebody decided it should. Reproducing a decision therefore requires the state to have been
+checkpointed with its own event timestamp, not merely the request. A replay that restores the inputs
+and restarts the machine reproduces neither the decision nor, in general, its distribution.
+\end{remark}
+
+We do not develop this further here. A full treatment would give the coalgebraic semantics properly
+--- bisimulation as the equivalence, the final coalgebra as the space of behaviours, and the
+comparison with open games for artefacts that act rather than merely respond --- and we make no claim
+to have done so. What we claim is \Cref{def:stateful}, the observation that state must not be encoded
+as input if the constructions downstream are to quantify over anything the institution controls, and
+\Cref{prop:stateprobe} with \Cref{cor:probelength}, which are the reasons a governance system cannot
+treat a stateful artefact as a stateless one with a larger test suite.
 
 \section{Composition and the impossibility of compositional risk}\label{sec:composition}
 
@@ -1531,6 +1683,64 @@ These are not weakly-checkable tasks that we conservatively withhold from automa
 with no notion of correctness independent of the authority exercising them, and \Cref{prop:automation}
 therefore has nothing to offer.
 
+\subsection{The reviewer is part of the system}\label{sec:reviewer}
+
+\Cref{prop:automation} guarantees that no incorrect output is accepted \emph{by the oracle}. In a
+governance process acceptance is an act performed by a person, and the composite that actually runs
+includes them. The guarantee therefore covers a proper part of the system that matters, and the
+uncovered part has a documented failure mode: machine-drafted text is fluent, fluency is read as
+care, and reviewers of polished artefacts find fewer defects than reviewers of rough ones. An oracle
+over the citations of a document says nothing about the document's rhetorical effect on the person
+attesting to it.
+
+We cannot dissolve this, but the framework does more than name it. It changes what a reviewer is
+\emph{for}, and it makes some things measurable that otherwise are not.
+
+\paragraph{Division of attention.} Where an oracle exists, the reviewer is no longer checking
+correctness --- that is what \Cref{prop:automation} disposed of --- but authority: whether the thing
+ought to be done, which by \Cref{obs:constitutive} admits no oracle at all. Presenting a
+machine-drafted artefact without marking which of its claims were checked invites the reviewer to
+spend attention on the checked part, where fluency does its damage, and to arrive at the unchecked
+part depleted. Marking the boundary in the interface is itself a mitigation, and it is available only
+because the boundary is formally determined rather than a matter of taste.
+
+\paragraph{Adversarial presentation.} A reviewer shown a draft alone is asked to find fault in fluent
+prose, which is the task fluency defeats. A reviewer shown the draft \emph{together with} the
+strongest available case against it is asked to adjudicate between two accounts, which it does not.
+Where the derivation structure supports it the attack need not be rhetorical: an uncited claim is a
+failing conjunct under \Cref{prop:citation}, and a summary that is unsound in the sense of
+\Cref{prop:sound} exhibits a witness --- an artefact behaviour the summary excludes. Both are
+constructions rather than opinions, and both survive being stated in prose as fluent as the draft's.
+
+\paragraph{Instrumenting acceptance rather than the artefact.} Reviewer edit distance is one signal
+and a weak one: it cannot distinguish a reviewer who changed nothing because the draft was right from
+one who changed nothing because they did not read it. Three further quantities are available, and the
+third is available only because evidence is a derivation structure:
+\begin{enumerate}[leftmargin=*,itemsep=1pt]
+\item time to first substantive edit, which separates reading from skimming more sharply than total
+      time, since total time is inflated by interruption;
+\item disagreement rate under blind duplicate review on a sample, which estimates the reliability of
+      the review process rather than the quality of any one review, and is standard practice in other
+      assurance settings;
+\item \emph{retrieval of the derivation a claim rests on}. A claim in a generated document is
+      supported by a set of nodes in the structure of \Cref{sec:evidence}. Whether those nodes were
+      fetched during the review is a fact about the session, not an inference about the reviewer, and
+      a pattern of attestations to claims whose support was never opened is the clearest available
+      indicator of the failure mode in question.
+\end{enumerate}
+The sharpest signal is the fourth: the rate at which a reviewer accepts drafts \emph{conditional on
+the oracle having refused them}. It is exactly the population where the reviewer and the decision
+procedure disagree, and it exists as a measurable quantity only in a system that has an oracle to
+disagree with.
+
+\begin{remark}[Status of these proposals]
+None of this has been evaluated. They are hypotheses the framework generates rather than results it
+establishes, and the reason to record them is that two of them --- adversarial presentation with a
+witness, and retrieval of supporting derivations --- are unavailable to a governance system that does
+not represent evidence as a derivation structure. That is a testable claim about the framework's
+usefulness, and \Cref{sec:limits} states it as one of the things that would falsify the account.
+\end{remark}
+
 \subsection{Stratification: is a governing system that uses governed models circular?}
 
 If machine assistance is admitted into a system that governs machines, one should ask whether the
@@ -1616,6 +1826,85 @@ The point of the example is that a single formal apparatus handles five artefact
 implementation technology, no fitting procedure, no output type, and no regulatory classification ---
 and then tells us, without further argument, which of the work of governing them a machine may do.
 
+\section{Adoption without a rewrite}\label{sec:adoption}
+
+The most common objection to an account of this kind is not mathematical. It is that risk committees,
+validators and engineers do not share a categorical vocabulary, will not acquire one, and that an
+apparatus requiring them to is an apparatus that will not be adopted whatever its guarantees. The
+objection is sound as stated and we take it seriously. Our answer has three parts.
+
+\paragraph{The vocabulary is not the interface.} Every construction here has a surface form that
+regulated institutions already maintain, usually badly. The mathematics is a claim about what those
+existing artefacts \emph{are}, not a proposal to replace them.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.40\linewidth}p{0.54\linewidth}@{}}
+\toprule
+\textbf{Construction} & \textbf{The artefact an institution already keeps} \\
+\midrule
+Parameter object $P$ & the configuration or parameter record attached to a version \\
+Fitting morphism $\varphi \colon D \to P$ & the ``how were these obtained'' field of the inventory:
+  estimated, calibrated, elicited, vendor-supplied \\
+Point of $P$ (\Cref{prop:refit}) & the recalibration log, kept separately from the change log \\
+Probe set $\Pi$ (\Cref{prop:version}) & the regression or benchmark suite registered against a
+  version, with its coverage recorded \\
+Contract $(A, G)$ & the approved-use, limitations and conditions sections of a validation report \\
+Fibre over an artefact kind & the kind-specific questionnaire the inventory already branches on \\
+Institution & the regulatory applicability determination and its rationale \\
+Semiring derivation (\Cref{sec:evidence}) & the evidence log, once its entries carry links to what
+  they rest on rather than free text \\
+Monotone map to control intensity & the tiering matrix \\
+Bitemporal store (\Cref{prop:pit}) & the as-of policy governing training and backtesting data \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The one row that is a genuine addition is the eighth. An evidence log whose entries are
+prose is not a derivation structure and cannot be evaluated in any semiring; requiring each entry to
+name what it depends on is the single change that unlocks \Cref{prop:semiring}, and it is a change to
+a data model rather than to anyone's vocabulary.
+
+\paragraph{Adoption is incremental because the extensions are conservative.}
+\Cref{prop:conservative} states that adding an artefact kind does not disturb the fibres already
+present, and \Cref{prop:stability} that adding a regime does not silently reclassify what another
+regime had settled. Together they license onboarding one kind and one regime at a time with nothing
+already approved being invalidated --- which is the property that makes a staged programme possible
+at all, and its absence is why inventory rebuilds are usually attempted as a single migration and
+usually fail. A defensible order, each stage delivering something before the next begins:
+
+\begin{enumerate}[leftmargin=*,itemsep=2pt]
+\item Record every artefact as a $(P, \varphi)$ pair. This alone dissolves P1: the rule-based
+      scorecard and the vendor black box stop being exceptions to a schema built for trained models.
+      It requires no new mathematics of anyone and is mostly a re-reading of fields already
+      populated.
+\item Record $\Pi$ with every equivalence claim, and its coverage against the declared input domain.
+      Version numbers become claims with witnesses. For stateful artefacts, \Cref{prop:stateprobe}
+      makes this the stage at which a real defect class becomes visible.
+\item Make evidence entries name their support. The issue log becomes a derivation structure and the
+      questions of \Cref{sec:evidence} become one traversal.
+\item Encode regimes as institutions. Worth doing only once more than one regime genuinely applies to
+      a shared inventory; before that the machinery costs more than the plurality it manages.
+\item Admit oracle-backed automation. Last, because \Cref{prop:citation} presupposes stage three: a
+      citation can be verified against a derivation structure and cannot be verified against prose.
+\end{enumerate}
+
+\paragraph{What a practitioner must learn is nothing.} The laws of \Cref{sec:laws} are enforced by
+the system, not by its users. A validator does not compute in a semiring; they read an answer that a
+traversal produced, and the traversal is right because a property test says so. The population that
+must understand the mathematics is the one building the platform, and there is roughly one such team
+per institution rather than one per model. This is the same division that lets an accountant use
+double-entry bookkeeping without deriving its invariants, and the comparison is not merely
+rhetorical: double-entry is a small algebraic constraint that became invisible infrastructure
+precisely because it was enforced by the ledger rather than taught to every clerk.
+
+\begin{remark}[Status]
+This is an argument and not evidence. We have no adoption study, and the claim that a staged
+programme in this order succeeds where a rebuild fails is exactly the sort of claim that sounds
+obvious and is regularly falsified. \Cref{sec:limits} records it among the things we have not
+established.
+\end{remark}
+
 \section{Related work}\label{sec:related}
 
 \paragraph{Categorical foundations for learning.} The $\Para$ construction and its use in
@@ -1681,11 +1970,16 @@ principal missing evidence, and we regard a longitudinal implementation study --
 extension claims of \Cref{prop:conservative} and \Cref{prop:stability} under real regulatory change
 --- as the natural sequel.
 
-\paragraph{Expressiveness.} $\Para(\Stoch)$ accommodates the population we have described, but
-stateful and interactive artefacts --- simulation engines carrying internal state across invocations,
-agentic systems that take actions and observe consequences --- are handled only by absorbing state
-into the input object, which is faithful but inelegant. A treatment in terms of coalgebra or open
-games may be more natural, and we do not claim to have settled the question.
+\paragraph{Expressiveness.} $\Para(\Stoch)$ accommodates the population we have described.
+Stateful and interactive artefacts --- simulation engines carrying internal state across invocations,
+agentic systems that take actions and observe consequences --- are treated in \Cref{sec:stateful},
+where we give the stateful kernel explicitly and show that encoding state as input is not merely
+inelegant but unsound for the constructions downstream. What we establish there is narrow:
+\Cref{prop:stateprobe} and \Cref{cor:probelength}, which say that a probe set of individual cases
+cannot support an equivalence claim about an artefact that remembers, at any size. We do not develop
+the coalgebraic semantics --- bisimulation, the final coalgebra, the comparison with open games for
+artefacts that act rather than respond --- and we do not claim to have settled the question of the
+right ambient setting for interactive systems.
 
 \paragraph{Formalising normative text is lossy and contestable.} Encoding a regime as an institution
 requires committing to a reading of regulatory prose that is deliberately open-textured. The encoding
@@ -1705,9 +1999,13 @@ output is \emph{accepted}; it says nothing about what an unchecked output does t
 There is a documented human-factors risk we can identify but not dissolve: machine-drafted governance
 text is fluent, fluency reads as quality, and reviewers of polished artefacts find fewer defects than
 reviewers of rough ones. An oracle that covers the citations of a document does not cover its
-rhetorical effect on the person attesting to it. We regard measuring reviewer edit distance --- and
-treating a reviewer who changes nothing as a signal rather than a success --- as a partial mitigation
-and not a solution.
+rhetorical effect on the person attesting to it. \Cref{sec:reviewer} sets out what the framework
+offers here --- a formally determined division of the reviewer's attention, adversarial presentation
+with a constructed witness rather than a rhetorical objection, and four measurable quantities of
+which two are available only because evidence is a derivation structure. All of it is hypothesis. We
+have evaluated none of it, and reviewer edit distance, which we previously offered as a partial
+mitigation, is the weakest of the four: it cannot distinguish a reviewer who changed nothing because
+the draft was right from one who changed nothing because they did not read it.
 
 \paragraph{The oracle boundary may be drawn too conveniently.} \Cref{obs:constitutive} classifies the
 decisions that matter most as admitting no oracle, which is a comfortable conclusion for anyone who
@@ -1715,7 +2013,14 @@ would prefer humans to retain them. We believe the argument is sound --- a rule 
 standard cannot be checked against that standard --- but note that it is exactly the sort of argument
 whose conclusion should be scrutinised in proportion to how much one likes it.
 
-\paragraph{What would falsify the account.} Three things. First, an artefact class in the domain that
+\paragraph{No adoption study.} \Cref{sec:adoption} argues that the apparatus can be adopted in
+stages without a rewrite, that its vocabulary surfaces as fields institutions already keep, and that
+the conservative-extension results are what make a staged programme possible where a single migration
+is not. That is an argument, and the claim that this ordering succeeds where inventory rebuilds
+usually fail is precisely the kind of claim that sounds obvious and is regularly falsified. We have
+no evidence for it.
+
+\paragraph{What would falsify the account.} Five things. First, an artefact class in the domain that
 cannot be presented as a $(P, \varphi)$ pair without distortion. Second, a fragility-sensitive
 aggregate risk measure that is nonetheless compositional --- which \Cref{thm:noncomp} forbids, so a
 purported example would indicate an error in our failure semantics rather than in the theorem.
@@ -1724,8 +2029,12 @@ manual work, which would indicate that \Cref{prop:automation} abstracts away som
 most plausibly the tacit knowledge a person acquires \emph{by} doing the task, which the composite
 discards. Fourth, and most likely, a demonstration that practitioners cannot use the derivations the
 formalism produces --- that a scope determination presented as a failing conjunct with a citation is no more
-defensible in practice than a flag with a comment. The third is an empirical question about human
-factors and we cannot settle it from the armchair.
+defensible in practice than a flag with a comment. Fifth, a finding that the review instruments of
+\Cref{sec:reviewer} do not move the fluency effect --- in particular that retrieval of supporting
+derivations fails to separate careful review from rubber-stamping --- which would indicate that
+representing evidence as a derivation structure buys less at the human boundary than we suggest. The
+third and fifth are empirical questions about human factors and we cannot settle either from the
+armchair.
 
 \section{Conclusion}\label{sec:conclusion}
 
