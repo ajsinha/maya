@@ -69,7 +69,7 @@ tf = txt(sl, x0, 4.82, CW * 0.45, 2.25)
 para(tf, "CHAPTERS", size=9.5, color=CRIMSON, bold=True, first=True, space_after=6)
 for i, c in enumerate(["Overview and design rules", "Core domain and registry",
                        "Governance subsystems", "Data and features",
-                       "Execution and hooks", "Machine assistance",
+                       "Execution and warrants", "Machine assistance",
                        "Interfaces", "Cross-cutting and operations"], 1):
     runs(tf, [(f"{i}   ", CRIMSON, True), (c, SLATE, False)], size=10.5, space_after=3)
 
@@ -81,7 +81,7 @@ data = [["Document", "Level", "Answers"],
         ["04 — Architecture", "What the containers are, and why", "Deployable units, bounded contexts, extensibility, failure modes"],
         ["14 — Detailed design  ← this deck", "What each component does internally",
          "Interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity"],
-        ["05–09 — Annexes", "Specific surfaces in depth", "Data model, hooks, features, UI, security"],
+        ["05–09 — Annexes", "Specific surfaces in depth", "Data model, warrants, features, UI, security"],
         ["11 — Adversarial review", "What was wrong with all of it", "27 findings; 17 required redesign — folded in here"]]
 th = table(sl, data, ML, y, CW, col_w=[3.3, 3.0, 5.3], row_h=0.46, fs=11, bold_col0=True, first_col_color=CRIMSON)
 rect(sl, ML, y + th + 0.30, CW, 0.95, fill=PARCH)
@@ -102,7 +102,7 @@ LAYERS = [
     ("Interfaces", NAVY, ["maya-web (static)", "REST API v1", "SDK / CLI", "Event stream"]),
     ("Governance subsystems", CRIMSON, ["Registry", "Evidence engine", "Risk & tiering", "Regimes & policy",
                                         "Lifecycle", "Validation", "Doc compiler", "Overlays"]),
-    ("Data & execution", RGBColor(0x2D,0x50,0x16), ["Feature platform", "Monitoring", "Hook service", "Machine assistance"]),
+    ("Data & execution", RGBColor(0x2D,0x50,0x16), ["Feature platform", "Monitoring", "Warrant service", "Machine assistance"]),
     ("Core domain — no I/O, no framework", RGBColor(0x1F,0x3A,0x5F),
      ["model_algebra", "contracts", "schemas", "identity", "composition"]),
     ("Platform", RGBColor(0x4A,0x3A,0x1F), ["config", "db & outbox", "telemetry", "plugin loader", "sandbox client"]),
@@ -138,7 +138,7 @@ data = [["Component", "Owns", "Does NOT own"],
         ["Validation", "Plans, test execution, findings, remediation", "Computing metrics at scale"],
         ["Feature platform", "Registry, materialisation, PIT, contracts, skew", "Model semantics"],
         ["Monitoring", "Monitor definitions, evaluation, breaches, health", "Deciding consequences"],
-        ["Hook service", "Resolution, signing, revocation, telemetry ingest", "Any governance decision — it reads a projection"],
+        ["Warrant service", "Resolution, signing, revocation, telemetry ingest", "Any governance decision — it reads a projection"],
         ["Machine assistance", "Capabilities, grounding, citation checking, oracles", "Any governance state transition"]]
 table(sl, data, ML, y, CW, col_w=[2.4, 4.9, 4.3], row_h=0.315, fs=10, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 
@@ -158,7 +158,7 @@ sl, y = content("Process model", "Overview · deployable units")
 data = [["Unit", "Scaling", "Why it is separate", "Fails independently?"],
         ["maya-web", "Static, CDN + 2 pods", "Separate process and pipeline (ADR-011); the API is the only interface", "Yes — stops human review only"],
         ["maya-api", "3–10 pods, CPU-bound", "The bulk of the domain; deploys together for transactional integrity", "—"],
-        ["maya-hooks", "10–100 pods, regional", "10× tighter SLA; reads only the hook projection; survives control-plane outage", "Yes — by design"],
+        ["maya-warrants", "10–100 pods, regional", "10× tighter SLA; reads only the warrant projection; survives control-plane outage", "Yes — by design"],
         ["maya-worker", "Queue-depth autoscaled", "Long-running, retryable, at-least-once", "Yes"],
         ["maya-sandbox", "Job per task, gVisor", "Never runs untrusted code in-process with the control plane", "Yes"],
         ["Spark / Databricks", "Cluster-managed", "Data-plane compute: PIT joins, materialisation, monitoring", "Yes"]]
@@ -255,7 +255,7 @@ tf = txt(sl, ML, y + h + 0.32, CW, 0.4)
 para(tf, "Where the four operations are used", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Operation", "Question it answers", "Used at"],
         ["Refinement  ⪯", "May version B replace version A?", "Every alias move — a proof obligation, not a meeting"],
-        ["Composition  ⊗", "What does this model chain promise end to end?", "Composite hooks"],
+        ["Composition  ⊗", "What does this model chain promise end to end?", "Composite warrants"],
         ["Conjunction  ∧", "Satisfy performance and fairness and latency together", "Merging viewpoints on one model"],
         ["Quotient  /", "Given the target and what we have, what must the missing piece guarantee?", "Turns a validation gap into a specification"]]
 table(sl, data, ML, y + h + 0.72, CW, col_w=[2.0, 4.6, 5.0], row_h=0.34, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
@@ -280,7 +280,7 @@ h = code(sl, ML, y, CW * 0.58, [
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.4)
 para(tf, "Nine extension points", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
-para(tf, "model class · regime · semiring · artifact format · validation test · metric · document template · hook flavour · connector",
+para(tf, "model class · regime · semiring · artifact format · validation test · metric · document template · warrant flavour · connector",
      size=11, color=SLATE, space_after=12, line=1.3)
 para(tf, "Why refuse to boot?", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
 para(tf, "A half-registered fibre would otherwise surface as a confusing runtime error weeks later, in the one place the platform has to be trustworthy. Failing loudly at startup is the cheaper failure.",
@@ -312,10 +312,10 @@ h = code(sl, ML, y, CW, [
  "    ref  = new.contract.refines(cur.contract)            # law L-7",
  "    var  = substitutable(new.schema, cur.schema)         # law L-12",
  "    if not (ref.holds and var.ok):",
- "        raise AliasMoveRefused(ref, var, consumers=hooks.consumers_of(...))",
+ "        raise AliasMoveRefused(ref, var, consumers=warrants.consumers_of(...))",
  "    if not policy.evaluate(\"gates.alias_move\", ctx).allow: raise PolicyDenied(...)",
  "",
- "    hook_projection.rebuild(model_id, env, name, new)    # PRE-WARM before invalidate",
+ "    warrant_projection.rebuild(model_id, env, name, new)    # PRE-WARM before invalidate",
  "    aliases.point(model_id, env, name, new)",
  "    alias_history.append(cur, new, ref, var, actor, justification)",
  "    outbox.put(CacheInvalidate(...), AliasMoved(...))",
@@ -375,7 +375,7 @@ h = code(sl, ML, y, CW * 0.55, [
 ], fs=9.5, title="maya/evidence/query.py")
 x = ML + CW * 0.59
 data = [["Semiring", "Used by"],
-        ["Boolean", "Lifecycle gates, hook resolution"],
+        ["Boolean", "Lifecycle gates, warrant resolution"],
         ["Why(X)", "Examiner packs — what must be shown"],
         ["ℕ[X]", "Tier 1 audit reconstruction"],
         ["Trust", "Health score, AI-draft discounting"],
@@ -587,7 +587,7 @@ runs(tf, [("Law L-17 checks this in production, continuously. ", CRIMSON, True),
 sl, y = content("Monitoring pipeline", "Data · evaluation at scale")
 boxes = [("inference_log\nDelta + CDF", RGBColor(0x4A,0x3A,0x1F)), ("Incremental reader\nchanged partitions only", SLATE),
          ("Metric compute\nSpark · per monitor × slice", SLATE), ("observations\nDelta", RGBColor(0x4A,0x3A,0x1F)),
-         ("Threshold ladder\nper tier", SLATE), ("Correlated finding", CRIMSON), ("Hook restriction", RGBColor(0x2D,0x50,0x16))]
+         ("Threshold ladder\nper tier", SLATE), ("Correlated finding", CRIMSON), ("Warrant restriction", RGBColor(0x2D,0x50,0x16))]
 bw = (CW - 0.22 * (len(boxes) - 1)) / len(boxes)
 for i, (t, col) in enumerate(boxes):
     xx = ML + i * (bw + 0.22)
@@ -617,12 +617,90 @@ data = [["Class", "Default metrics"],
 table(sl, data, x, y + 1.58, CW * 0.47, col_w=[1.7, 4.0], row_h=0.32, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 
 # ============================================================ CH 5
-divider("5", "Execution and Hooks", "How a governed model actually gets run — and stopped.",
-        ["Resolution algorithm", "Caching and stampede control", "Revocation", "Use reconciliation"])
+divider("5", "Execution and Warrants", "How a governed model actually gets run — and stopped.",
+        ["The warrant grammar", "Resolution algorithm", "Caching and stampede control",
+         "Revocation", "Use reconciliation"])
 
-sl, y = content("Hook resolution", "Execution · the hot path")
+sl, y = content("The warrant grammar — a product, not a union", "Execution · the contract")
+tf = txt(sl, ML, y, CW, 0.62)
+para(tf, "Every model a bank runs differs along exactly four independent axes. The grammar is their PRODUCT, "
+         "so a new model technology is a new value in one vocabulary — not a new document type.",
+     size=12.5, color=SLATE, first=True, space_after=0, line=1.3)
+yy = y + 0.72
+AXES = [("1  Parameter object", "how P is inhabited",
+         "none · calibration_set · estimated_coefficients · learned_weights · llm_configuration · rule_set · elicited_weights · opaque"),
+        ("2  Realisation", "how the kernel becomes runnable",
+         "quantlib · onnx · pmml · python.callable · container · sql · spreadsheet · rules · solver · llm.prompt · llm.agent · descriptor_only"),
+        ("3  Operation", "what is asked of it",
+         "score · fit · validate · backtest · explain · simulate · stress · optimise · generate · monitor"),
+        ("4  Data binding", "where its data comes from",
+         "request · feature_namespace · dataset_snapshot · market_data · document_corpus · stream · scenario_set · sql_query")]
+for i, (name, gloss, values) in enumerate(AXES):
+    rect(sl, ML, yy, CW, 0.80, fill=PARCH if i % 2 == 0 else None,
+         line=RGBColor(0xD8,0xD4,0xCF))
+    rect(sl, ML, yy, 0.045, 0.80, fill=CRIMSON)
+    tf = txt(sl, ML + 0.22, yy + 0.06, CW * 0.28, 0.68)
+    para(tf, name, size=11.5, color=CRIMSON, bold=True, first=True, space_after=1)
+    para(tf, gloss, size=9.5, color=MUTED, italic=True, space_after=0)
+    tf = txt(sl, ML + CW * 0.30, yy + 0.10, CW * 0.68, 0.62)
+    para(tf, values, size=9.5, color=INK, first=True, space_after=0, line=1.25)
+    yy += 0.86
+
+tf = txt(sl, ML, yy + 0.24, CW, 0.5)
+runs(tf, [("Extends the right way. ", CRIMSON, True),
+          ("A model technology nobody anticipated is a new value in one vocabulary \u2014 almost always a runtime "
+           "\u2014 not a new section, not a new document type, and not a change to anything that already works.",
+           INK, False)],
+     size=11.5, first=True, space_after=0, line=1.26)
+
+sl, y = content("The same document, at different coordinates", "Execution · one grammar")
+COORDS = [["Model", "1  parameters", "2  runtime", "3  verb", "4  data"],
+          ["Black swaption pricer", "none  (T0)", "quantlib", "score", "market_data"],
+          ["Hull-White calibration", "calibration_set  (T1)", "quantlib", "fit", "dataset_snapshot"],
+          ["Gradient-boosted PD", "learned_weights  (T3)", "onnx", "score", "feature_namespace"],
+          ["KYC summariser", "llm_configuration  (T5)", "llm.prompt", "generate", "document_corpus"],
+          ["Vendor AML engine", "opaque  (T6)", "descriptor_only", "score", "stream"]]
+COORDS += [["Behaviour scorecard", "estimated_coefficients  (T2)", "pmml", "score", "feature_namespace"],
+           ["Credit-memo agent", "llm_configuration  (T5)", "llm.agent", "generate", "document_corpus"],
+           ["Treasury spreadsheet", "rule_set  (T8)", "spreadsheet", "score", "request"],
+           ["VaR backtest", "calibration_set  (T1)", "python.callable", "backtest", "dataset_snapshot"]]
+th = table(sl, COORDS, ML, y, CW, col_w=[3.0, 3.1, 2.4, 1.5, 1.7], row_h=0.42,
+           fs=10.5, bold_col0=True, first_col_color=CRIMSON)
+rect(sl, ML, y + th + 0.26, CW, 0.86, fill=PARCH)
+rect(sl, ML, y + th + 0.26, 0.045, 0.86, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, y + th + 0.38, CW - 0.6, 0.68)
+runs(tf, [("The first two rows are the argument. ", CRIMSON, True),
+          ("Same library, same runtime, and the grammar treats them completely differently — because the "
+           "parameter axis differs. \u201cIs it AI?\u201d puts both in one bucket; \u201chow is P inhabited?\u201d separates them "
+           "correctly, and that is what makes the evidence expectations right for each.", INK, False)],
+     size=11, first=True, space_after=0, line=1.26)
+
+sl, y = content("What the grammar refuses, and why", "Execution · admissibility")
+tf = txt(sl, ML, y, CW, 0.56)
+para(tf, "The load-bearing laws are not invented for the grammar. They fall out of the algebra: the trainability "
+         "class is DERIVED from how the parameter object is inhabited, so what a class admits is what the class means.",
+     size=12.5, color=SLATE, first=True, space_after=0, line=1.3)
+data = [["Law", "Refuses", "Because"],
+        ["L-W1", "fit on T0 or T6", "T0's parameters come from theory; T6's are inside a vendor black box"],
+        ["L-W2", "generate on a non-generative runtime", "an ONNX graph does not produce prose"],
+        ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so not shown leak-free"],
+        ["L-W4", "a fit with no parameter_object sink", "a fit produces a NEW parameter object, it does not edit the old one"],
+        ["L-W5", "claimed determinism with no seed", "an LLM at temperature 0.7 is not reproducible, and would be believed"],
+        ["L-W6", "fit on a descriptor-only model", "you cannot inhabit what nothing on this side can reach"],
+        ["L-W7", "a backtest with no outcomes", "that is a re-score wearing a backtest's name"]]
+th = table(sl, data, ML, y + 0.66, CW, col_w=[1.1, 3.6, 6.9], row_h=0.44, fs=10.5,
+           bold_col0=True, first_col_color=CRIMSON)
+rect(sl, ML, y + 0.66 + th + 0.24, CW, 0.72, fill=PARCH)
+rect(sl, ML, y + 0.66 + th + 0.24, 0.045, 0.72, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, y + 0.66 + th + 0.36, CW - 0.6, 0.56)
+runs(tf, [("Validated before signed, never after. ", CRIMSON, True),
+          ("A signature over a non-conforming document would assure that it is authentic and not that it is "
+           "usable — and an engine would reasonably read it as both.", INK, False)],
+     size=11.5, first=True, space_after=0, line=1.26)
+
+sl, y = content("Warrant resolution", "Execution · the hot path")
 h = code(sl, ML, y, CW * 0.60, [
- "def resolve(req) -> HookDescriptor:",
+ "def resolve(req) -> WarrantDescriptor:",
  "    principal = authn.verify(req.token)      # workload identity",
  "    key = (req.urn, principal.id, req.environment, req.declared_use_id)",
  "",
@@ -630,7 +708,7 @@ h = code(sl, ML, y, CW * 0.60, [
  "    if revocations.contains(d): raise Revoked(...)   # floor beats every cache",
  "",
  "    with singleflight(key):                  # coalesce concurrent misses",
- "        row = hook_projection.get(req.urn, req.environment)  # ONLY table read",
+ "        row = warrant_projection.get(req.urn, req.environment)  # ONLY table read",
  "        if row.revoked:                     raise Revoked(...)",
  "        ent = row.entitlements.get(principal.id)",
  "        if ent is None or ent.model_use_id != req.declared_use_id:",
@@ -639,11 +717,11 @@ h = code(sl, ML, y, CW * 0.60, [
  "        d = sign(build_descriptor(row, ent, req))",
  "        redis.setex(key, ttl_with_jitter(row.tier), d)",
  "    return d",
-], fs=9, title="maya/hooks/resolver.py")
+], fs=9, title="maya/warrants/resolver.py")
 x = ML + CW * 0.64
 tf = txt(sl, x, y, CW * 0.36, 3.7)
 para(tf, "How p99 < 50 ms is met", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
-bullets(tf, [("Never touch the primary", "hook_projection is served from a read replica — and it is the ONLY table this service knows"),
+bullets(tf, [("Never touch the primary", "warrant_projection is served from a read replica — and it is the ONLY table this service knows"),
              ("Common case is a Redis GET", "plus one Ed25519 verification"),
              ("Two cache tiers", "in-process LRU in front of Redis"),
              ("Schema decoupling", "the projection is a published contract with its own version, so a control-plane migration cannot break the one component that must never break")],
@@ -684,7 +762,7 @@ runs(tf, [("The revocation floor. ", CRIMSON, True),
 sl, y = content("Approved use versus actual use", "Execution · the capability nobody else has")
 tf = txt(sl, ML, y, CW, 0.45)
 runs(tf, [("SS1/23 asks the inventory to record intended use ", INK, False), ("compared to actual use", CRIMSON, True, True),
-          (". Hook telemetry makes that observable rather than aspirational. A nightly job compares the observed context "
+          (". Warrant telemetry makes that observable rather than aspirational. A nightly job compares the observed context "
            "distribution against approved model_use rows.", INK, False)], size=12.5, first=True, space_after=0, line=1.28)
 data = [["Exception", "Example", "Becomes"],
         ["Off-label portfolio", "223 calls for a portfolio that is not an approved use", "Finding, owner, due date"],
@@ -692,7 +770,7 @@ data = [["Exception", "Example", "Becomes"],
         ["Volume anomaly", "40× expected daily volume — suggests a new, unassessed use", "Investigation task"],
         ["Boundary violation rate", "0.26% of inputs outside declared operating boundaries", "Contract assumption A is failing"],
         ["Dormant approval", "An approved use with zero calls for 180 days", "Candidate for withdrawal"],
-        ["Undeclared consumer", "A new principal resolving the hook", "Entitlement review"]]
+        ["Undeclared consumer", "A new principal resolving the warrant", "Entitlement review"]]
 table(sl, data, ML, y + 0.62, CW, col_w=[2.7, 5.6, 3.3], row_h=0.38, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
 
 # ============================================================ CH 6
@@ -806,7 +884,7 @@ data = [["Group", "Endpoints"],
         ["Validation", "/validations · /validations/{id}/tests · /findings · /findings/{id}/remediation"],
         ["Overlays", "/overlays · /overlays/{id}/measurements"],
         ["Monitoring", "/monitors · /observations · /breaches · /health/{urn}"],
-        ["Hooks", "/hooks · /v1/resolve (hook service) · /hooks/{id}/revoke · /telemetry"],
+        ["Warrants", "/warrants · /v1/resolve (warrant service) · /warrants/{id}/revoke · /telemetry"],
         ["Documents", "/documents/compile · /documents/{id} · /documents/{id}/render · /export-packs"],
         ["Policy", "/policies · /policies/evaluate · /obligations"],
         ["Assistance", "/ai/capabilities · /ai/{capability}/draft · /ai/generations/{id}/attest"],
@@ -892,8 +970,8 @@ x = ML + CW * 0.57
 tf = txt(sl, x, y, CW * 0.43, 0.35)
 para(tf, "Cache inventory", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Cache", "TTL", "Invalidation"],
-        ["Hook descriptor (Redis)", "60 s – 1 h by tier", "Pre-warm, then swap"],
-        ["Hook descriptor (LRU)", "≤ TTL", "Epoch bump"],
+        ["Warrant descriptor (Redis)", "60 s – 1 h by tier", "Pre-warm, then swap"],
+        ["Warrant descriptor (LRU)", "≤ TTL", "Epoch bump"],
         ["Inventory summary", "materialised", "Domain event"],
         ["Rendered documents", "indefinite", "evidence_digest change"],
         ["Blast-radius closure", "24 h", "Edge change"],
@@ -909,7 +987,7 @@ data = [["Code", "HTTP", "Meaning", "Client action"],
         ["no_entitlement", "403", "No grant for this principal and use", "Request a grant"],
         ["use_not_approved", "403", "Declared use is not an approved use", "Seek approval"],
         ["restricted", "423", "Blocking finding or suspension", "Remediate, or break-glass"],
-        ["revoked", "410", "Hook revoked", "Stop — do not retry"],
+        ["revoked", "410", "Warrant revoked", "Stop — do not retry"],
         ["step_up_required", "403", "Re-authentication needed", "Re-authenticate with intent"],
         ["precondition_failed", "412", "ETag mismatch", "Refetch, merge, retry"],
         ["quota_exceeded", "429", "Rate, quota or cost budget", "Back off"],
@@ -923,8 +1001,8 @@ runs(tf, [("Anything unmapped ", INK, False),
 
 sl, y = content("SLOs and golden signals", "Operations")
 data = [["SLO", "Target", "Error budget"],
-        ["Hook resolution availability", "99.99%", "4.3 min / month"],
-        ["Hook resolution p99 (cached)", "< 50 ms", "1% of requests"],
+        ["Warrant resolution availability", "99.99%", "4.3 min / month"],
+        ["Warrant resolution p99 (cached)", "< 50 ms", "1% of requests"],
         ["Control plane availability", "99.9%", "43 min / month"],
         ["Inventory read p95", "< 500 ms", "5%"],
         ["Training-set build (1B × 500)", "< 30 min", "10%"],
@@ -935,7 +1013,7 @@ x = ML + CW * 0.54
 tf = txt(sl, x, y, CW * 0.46, 0.35)
 para(tf, "Golden signals, per component", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 tf = txt(sl, x, y + 0.42, CW * 0.46, 2.6)
-bullets(tf, [("Hook service", "resolutions/s · cache hit ratio · p50/p99 · denial rate · revocation lag · degraded-mode volume"),
+bullets(tf, [("Warrant service", "resolutions/s · cache hit ratio · p50/p99 · denial rate · revocation lag · degraded-mode volume"),
              ("Control plane", "request rate · latency · error rate by taxonomy code · transaction duration · outbox lag"),
              ("Workers", "queue depth · job duration · retry rate · sandbox failures"),
              ("Data plane", "job duration · rows processed · small-file count · skew divergence · PIT rejections")],
@@ -957,7 +1035,7 @@ data = [["Dimension", "Year 1", "Year 3"],
         ["Audit rows", "60 M", "400 M"],
         ["Delta features", "15 TB", "80 TB"],
         ["Inference log rows", "8 B", "60 B"],
-        ["Hook resolutions, peak", "400/s", "2,500/s"]]
+        ["Warrant resolutions, peak", "400/s", "2,500/s"]]
 table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[2.9, 1.4, 1.4], row_h=0.31, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 x = ML + CW * 0.53
 tf = txt(sl, x, y, CW * 0.47, 0.35)
