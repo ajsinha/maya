@@ -121,8 +121,8 @@ Both bounds are required. Set either to `false` and the request is **rejected
 before any data is read**:
 
 ```
-assembly rejected: transaction_time_bound is false, so the assembly would
-use facts restated after as_of
+assembly lacks a bound on transaction_time; without both, leakage
+cannot be excluded
 ```
 
 ## What actually came out

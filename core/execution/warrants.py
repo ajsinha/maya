@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
+from core.domain.schemas import Field, Schema
 from core.execution.builder import WarrantBuilder
 from core.execution.errors import WarrantError
 from core.execution.grants import WarrantGrants
@@ -45,8 +46,14 @@ class WarrantService:
                  evidence: EvidenceEngine, signing_key: str = "maya-dev-key",
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
-                 jitter_pct: int = 20, blocking: Optional[BlockingSource] = None):
+                 jitter_pct: int = 20, blocking: Optional[BlockingSource] = None,
+                 featuresets=None):
         self.registry, self.blocking = registry, blocking
+        # A fit warrant names a featureset, and whether that featureset provides
+        # what the kernel declares it reads is a question with an answer. Left
+        # unchecked it becomes a claim, and the model is fitted over a different
+        # X than the one its version declares.
+        self.featuresets = featuresets
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
         self.signer = WarrantSigner(signing_key, jitter_pct)
         self.builder = WarrantBuilder(self.signer)
@@ -69,6 +76,66 @@ class WarrantService:
                                 aliasname or grant["alias_name"], urn)
         return self.builder.build(urn, m, version, grant, principal,
                                   declared_use, environment, self.epoch, verb=verb)
+
+    # ------------------------------------------------------------------- fit
+    def resolve_fit(self, urn: str, environment: str, principal: str,
+                    declared_use: str, featureset: str, featureset_version: int,
+                    window: Dict[str, float], as_of: float) -> Dict[str, Any]:
+        """A signed descriptor to fit this version from that featureset version.
+
+        The schema check happens here and not at publish time, because a
+        featureset does not belong to a model: whether it provides what a
+        particular kernel reads is only answerable once both are named.
+        """
+        name, semver, aliasname = parse_urn(urn)
+        m = self._model(urn, model_urn(name))
+        self._check_not_blocked(m)
+        grant = self._grant(m, environment, principal, declared_use)
+        version = self._version(m["urn"], environment, semver,
+                                aliasname or grant["alias_name"], urn)
+        plan = self._check_schema(version, featureset, featureset_version)
+        data = {
+            "inputs": [{"name": "training_set", "binding": "featureset",
+                        "featureset": featureset, "version": featureset_version,
+                        "digest": plan["digest"], "as_of": as_of,
+                        "window": window,
+                        "namespaces": plan["namespaces"],
+                        "pit_rule": plan["pit_rule"]}],
+            "outputs": [{"sink": "parameter_object"}],
+        }
+        return self.builder.build(urn, m, version, grant, principal,
+                                  declared_use, environment, self.epoch,
+                                  verb="fit", data=data)
+
+    def _check_schema(self, version: Dict[str, Any], featureset: str,
+                      featureset_version: int) -> Dict[str, Any]:
+        """Law L-W10. A featureset a warrant names must provide what the kernel
+        declares it reads — contravariance in inputs, the same variance rule
+        (L-12) that gates alias promotion, applied one level out.
+
+        Adding a regressor is a model change, not a data change, and this is
+        where that distinction is enforced rather than remembered.
+        """
+        if self.featuresets is None:
+            raise WarrantError(
+                "no_featureset_registry",
+                "this warrant service was built without a featureset registry, "
+                "so it cannot check that the set provides what the kernel reads",
+                "wire the featureset registry before issuing fit warrants")
+        plan = self.featuresets.plan(featureset, featureset_version)
+        declared = Schema(tuple(
+            Field(f["name"], f["dtype"], f.get("nullable", False))
+            for f in (version.get("input_schema") or [])))
+        ok, missing = self.featuresets.satisfies(featureset, declared)
+        if not ok:
+            raise WarrantError(
+                "schema_not_satisfied",
+                f"'{featureset}' does not provide "
+                f"{', '.join(missing)}, which this version declares it reads",
+                "bind a featureset whose schema covers the kernel's inputs, or "
+                "create a model version whose input schema matches this set — "
+                "adding a regressor is a model change, not a data change")
+        return plan
 
     def _model(self, urn: str, model_urn_: str) -> Dict[str, Any]:
         try:
@@ -137,6 +204,15 @@ class WarrantService:
 
     def grants_for(self, urn: str) -> List[Dict[str, Any]]:
         return self.grants.of_model(urn)
+
+    def get(self, grant_id: str) -> Optional[Dict[str, Any]]:
+        """The standing entitlement behind an issued warrant, or None.
+
+        A resolved descriptor is minted per request and not stored; the grant is
+        what MAYA persists and can therefore vouch for. Anything asking 'did this
+        come from us' is asking about the grant.
+        """
+        return self.grants.repo.one(id=grant_id)
 
     def revoke(self, warrant_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
         return self.grants.revoke(warrant_id, reason, actor)

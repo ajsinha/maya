@@ -51,7 +51,7 @@ container registry.
 
 The `realisation.runtime` says how an engine turns an artifact into something
 callable, and each runtime declares the keys it needs. This is the second of the
-grammar's four axes — see [the warrant grammar](/help/warrant-grammar).
+grammar's four axes — see [the warrant grammar](/help/warrants#the-four-axes).
 
 | Artifact | `runtime` | `entry` carries |
 |---|---|---|
@@ -115,7 +115,7 @@ other source:
 A prompt change is a **version change**. A RAG corpus that moves without one is a
 model whose behaviour changed without a version, which is the generative
 equivalent of the feature-store failure that
-[feature contracts](/help/feature-contracts) exist to prevent — which is why the
+[feature contracts](/help/features-and-two-clocks#feature-contracts) exist to prevent — which is why the
 corpus is pinned by revision too.
 
 ## Documents are stored, and stored differently
@@ -161,7 +161,7 @@ curl -u a.mehta:… -X POST \
   -d '{"accept": true, "note": "back-testing section complete"}'
 ```
 
-See [Documents on file](/help/attached-documents) for supersession, rejection and
+See [Documents on file](/help/documentation#documents-on-file) for supersession, rejection and
 what the platform can and cannot read.
 
 ## What is never stored

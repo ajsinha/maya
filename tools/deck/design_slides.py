@@ -659,6 +659,100 @@ data = [["Class", "Default metrics"],
         ["T8 authored", "Rule-fire distribution, exception rate"]]
 table(sl, data, x, y + 1.58, CW * 0.47, col_w=[1.7, 4.0], row_h=0.32, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 
+sl, y = content("Featuresets — X becomes an object", "Data \u00b7 the feature platform")
+tf = txt(sl, ML, y, CW * 0.56, 0.35)
+para(tf, "A featureset declares a schema; a version fills it", size=12.5,
+     color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
+h = code(sl, ML, y + 0.42, CW * 0.56, [
+ "inflation   slots: {gb_index, us_index, daily_index}",
+ "",
+ "@v1  gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192DAILY_INFL",
+ "@v2  gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192EUHICP",
+ "",
+ "# the model reads daily_index, and always did.",
+ "# a version that CANNOT fill the schema is refused:",
+ "# it is a different set, or it is a model change.",
+], fs=9.5)
+tf = txt(sl, ML, y + 0.42 + h + 0.26, CW * 0.56, 1.8)
+para(tf, "Every slot pins the feature AND the feature view version supplying it. A set "
+         "that named views without pinning them would resolve to different bytes next "
+         "month with its digest unchanged \u2014 finding C-2, one level out from the view.",
+     size=10.5, color=SLATE, first=True, space_after=6, line=1.24)
+para(tf, "The set owns the shape; the warrant owns the window. Otherwise \u201csame "
+         "features, 2019\u201323 vs 2020\u201324\u201d would be two featuresets.",
+     size=10.5, color=SLATE, space_after=0, line=1.24)
+
+x = ML + CW * 0.60
+tf = txt(sl, x, y, CW * 0.40, 0.35)
+para(tf, "Derived features: Z = f(X, Y)", size=12.5, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=0)
+data = [["Rule", "What it prevents"],
+        ["Lineage is transitive", "A primitive retired under something deriving from it"],
+        ["ingest_ts(Z) = max(inputs)", "A value appearing knowable before its inputs were"],
+        ["No slot from the label", "Leakage with a division sign in front"],
+        ["Certification is the meet", "Laundering an uncertified input"]]
+table(sl, data, x, y + 0.42, CW * 0.40, col_w=[1.75, 2.55], row_h=0.32, fs=9.5,
+      hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+
+rect(sl, ML, y + 4.02, CW, 0.72, fill=PARCH)
+rect(sl, ML, y + 4.02, 0.045, 0.72, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, y + 4.14, CW - 0.5, 0.6)
+runs(tf, [("The language is small on purpose. ", CRIMSON, True),
+          ("Arithmetic, nine total functions, the row\u2019s own clock \u2014 whitelisted at the "
+           "AST, so what cannot be expressed cannot be smuggled in. MAYA transforms features it "
+           "holds; ", INK, False),
+          ("it does not run models.", INK, True)],
+     size=11, first=True, space_after=0, line=1.24)
+
+sl, y = content("The parameter object \u2014 an inhabitant of P",
+                "Data \u00b7 the feature platform")
+tf = txt(sl, ML, y, CW * 0.52, 0.35)
+para(tf, "Fitting does not change the kernel", size=12.5, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=0)
+h = code(sl, ML, y + 0.42, CW * 0.52, [
+ "f : P \u2297 X \u2192 D(Y)      the kernel",
+ "fit           picks a point in P",
+ "",
+ "\u21d2 a fit produces a PARAMETER SET,",
+ "  not a model version.",
+ "",
+ "warrant(fit)   model_version \u00d7 featureset@v \u00d7 window",
+ "warrant(score) model_version \u00d7 parameter_set@v",
+], fs=9.5)
+tf = txt(sl, ML, y + 0.42 + h + 0.26, CW * 0.52, 1.9)
+para(tf, "Minting a model version per retrain would make \u201cthe model changed\u201d mean two "
+         "different things. But a parameter set changes behaviour, so it is immutable, "
+         "versioned, and cannot be run on until somebody other than whoever recorded it "
+         "has approved \u2014 the gate that governs versions, applied to the other half of the pair.",
+     size=10.5, color=SLATE, first=True, space_after=0, line=1.24)
+
+x = ML + CW * 0.57
+tf = txt(sl, x, y, CW * 0.43, 0.35)
+para(tf, "Three routes, three depths of governance", size=12.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=0)
+data = [["Provenance", "Evidence", "Governed"],
+        ["fitted", "A warrant MAYA issued", "Each set"],
+        ["calibrated", "Market data, daily", "The procedure"],
+        ["declared", "A person\u2019s assertion", "Attestation"]]
+table(sl, data, x, y + 0.42, CW * 0.43, col_w=[1.35, 1.95, 1.35], row_h=0.32,
+      fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + 1.95, CW * 0.43, 1.9)
+para(tf, "The middle row is why provenance is not cosmetic: a Hull\u2013White model "
+         "recalibrated every morning would drown the register if each day needed a "
+         "committee. The bottom row is the model that never trains \u2014 a closed form "
+         "arrives with its parameters, and L-W1 refuses it a fit warrant as a type error.",
+     size=10.5, color=SLATE, first=True, space_after=0, line=1.24)
+
+rect(sl, ML, y + 4.02, CW, 0.72, fill=PARCH)
+rect(sl, ML, y + 4.02, 0.045, 0.72, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, y + 4.14, CW - 0.5, 0.6)
+runs(tf, [("Accepted only against a warrant we issued. ", CRIMSON, True),
+          ("No back door. Without it, ", INK, False),
+          ("\u201cwhich data produced these numbers\u201d has no answer", INK, True),
+          (", and the lineage the pinned versions and bitemporal clocks exist to establish "
+           "stops one step short of the thing it was for.", INK, False)],
+     size=11, first=True, space_after=0, line=1.24)
+
 # ============================================================ CH 5
 divider("5", "Execution and Warrants", "How a governed model actually gets run — and stopped.",
         ["The warrant grammar", "Resolution algorithm", "Caching and stampede control",

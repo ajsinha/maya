@@ -127,6 +127,51 @@
         {% endfor %}
         </tbody></table></div>
 
+    <div class="card mb-3"><div class="card-header">
+        Parameters &mdash; what each version runs on</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Parameter set</th><th>Version</th><th>How it was inhabited</th>
+                   <th>State</th></tr></thead>
+        <tbody>
+        {% for p in parameter_sets %}
+          <tr><td class="small">{{ p.name }} <span class="text-muted">v{{ p.version }}</span>
+                <div class="text-muted">{{ p.cardinality }} value{{ '' if p.cardinality == 1 else 's' }}
+                  &middot; <code>{{ p.digest[7:19] }}&hellip;</code></div></td>
+              <td class="small">
+                {% for v in versions %}{% if v.id == p.model_version_id %}v{{ v.semver }}{% endif %}{% endfor %}</td>
+              <td class="small">{{ p.provenance }}
+                {% if p.featureset_version_id %}
+                  <div class="text-muted">from a pinned featureset version</div>
+                {% elif p.provenance == 'declared' %}
+                  <div class="text-muted">asserted, not fitted</div>
+                {% endif %}</td>
+              <td class="small">
+                {% if p.state == 'approved' %}
+                  <span class="evidence-ok">approved</span>
+                  <div class="text-muted">by {{ p.approved_by }}</div>
+                {% elif p.state == 'rejected' %}
+                  <span class="evidence-bad">rejected</span>
+                  <div class="text-muted">{{ p.review_note }}</div>
+                {% elif p.state == 'superseded' %}
+                  <span class="text-muted">superseded</span>
+                {% else %}
+                  <span class="text-muted">awaiting approval</span>
+                {% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">
+            No parameter sets recorded. A model is a parametric kernel &mdash;
+            fitting does not change it, it picks a point in the parameter object.
+            A version with no approved parameters cannot be run, unless its
+            parameter object is terminal and its constants come from theory.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      {% for semver, status in parameters.items() %}
+        {% if status.recorded or not status.ready %}
+          <div class="card-body py-2 small text-muted border-top">
+            v{{ semver }} &mdash; {{ status.detail }}.</div>
+        {% endif %}
+      {% endfor %}</div>
+
     <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
         <span>Documents on file</span>
         <span class="small text-muted">{{ attachment_status.detail }}</span></div>

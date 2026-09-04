@@ -354,6 +354,13 @@ Each requirement carries regulatory traceability where applicable.
 | FR-FEA-015 | Support **on-demand / request-time features** (computed from the request payload) declared in the contract and validated at serve time. | S | — |
 | FR-FEA-016 | **Backfill** and **restatement** handling: when a source is restated, identify affected snapshots, models and decisions. | S | BCBS 239 |
 | FR-FEA-017 | Delta Lake **time travel** and retention configured per feature view; minimum retention by regulatory class. | M | 01 §5.3 |
+| FR-FEA-018 | **Derived features**: a feature computed from others, `Z = f(X, Y)`, with a declared and versioned expression, recorded lineage, an ingest clock inherited as the maximum over its inputs, and refusal of any derivation that reads a label. | M | — |
+| FR-FEA-019 | **Featuresets**: a named, versioned presentation of `X` — a declared schema of slots, and versions binding each slot to a feature and to the exact feature view version supplying it. Reusable across models; checked against a kernel's declared input schema before a warrant may name it. | M | — |
+| FR-FEA-020 | **Roll-forward**: mint a featureset version re-resolved to current feature view versions, reporting the slots that moved. Publishing a view version must never alter an existing featureset version. | M | — |
+| FR-PAR-001 | **Parameter sets**: store the inhabitant of `P` an execution engine returns, bound to the model version, featureset version, window and `as_of` that produced it. A fit produces a parameter set and **not** a model version. | M | — |
+| FR-PAR-002 | A fitted parameter set is accepted **only** against a warrant MAYA issued, and only when it names the featureset version it was fitted from. | M | — |
+| FR-PAR-003 | Provenance is `fitted`, `calibrated` or `declared`, governed to different depths: each fitted set approved individually, a calibration procedure approved once, declared parameters attested. | M | — |
+| FR-PAR-004 | A parameter set is immutable and approved by somebody other than whoever recorded it; resolution refuses rather than guesses when a version has more than one approved set. | M | — |
 
 ### 6.5 Module: Lifecycle & Workflow (`FR-LC`)
 
@@ -706,7 +713,8 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | Post-market monitoring, serious incident reporting | EU AI Act Art. 72, 73 | FR-MON-006/014; FR-VAL-010 |
 | Adverse action: specific, accurate principal reasons | ECOA/Reg B; CFPB | FR-DOC-002 (reason-code dictionary); FR-VAL-002 (fairness); FR-MON-005 |
 | Search for less discriminatory alternatives | CFPB | FR-TRN-009; FR-VAL-002 |
-| Risk data aggregation: accuracy, completeness, timeliness, lineage | BCBS 239 | FR-FEA-008; evidence graph |
+| Risk data aggregation: accuracy, completeness, timeliness, lineage | BCBS 239 | FR-FEA-008/018/019; evidence graph |
+| Reproducibility of a model's parameters and the data that produced them | SR 26-2 V; SS1/23 4.3 | FR-PAR-001..004; `L-W8`, `L-W9` |
 | AI risk management functions (Govern/Map/Measure/Manage) | NIST AI RMF | Control library mapping (see 09) |
 | AI management system clauses | ISO/IEC 42001 | Control library mapping (see 09) |
 

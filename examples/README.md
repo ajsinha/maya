@@ -34,6 +34,8 @@ curl -u a.mehta:pw -X POST localhost:5006/api/v1/grammar/validate \
 | `08-vendor-blackbox-score` | `opaque` (T6) | `descriptor_only` | `score` | `stream` |
 | `09-spreadsheet-euc` | `rule_set` (T8) | `spreadsheet` | `score` | `request` |
 | `10-var-backtest` | `calibration_set` (T1) | `python.callable` | `backtest` | `dataset_snapshot` |
+| `11-nj-linear-fit-from-featureset` | `estimated_coefficients` (T2) | `python.callable` | `fit` | `featureset` |
+| `12-nj-linear-score-on-parameters` | `estimated_coefficients` (T2) | `python.callable` | `score` | `request` |
 
 Nothing there is a special case. Each row is a different point in one product
 space.
@@ -59,3 +61,29 @@ inhabited?" separates them correctly.
   resolution time.
 - `tests/test_grammar.py` validates every file in this directory on every run,
   so an example that stops conforming fails the build.
+
+
+---
+
+## The pair at the end
+
+`11` and `12` are one cycle rather than two examples, and they are the clearest
+statement of what the grammar is for.
+
+**11 fits.** It names `nj_home_core@v1` — a featureset — rather than enumerating
+six columns. That is the whole point of naming a presentation of X: the same
+selection can train another model, and two warrants differing only in their
+featureset are an honest A/B on data rather than two scripts somebody hopes
+agree. The featureset fixes the columns; the warrant fixes the period, which is
+why `window` and `as_of` are here and not in the set.
+
+**12 scores.** Fitting did not change the kernel; it inhabited `P`. So `12` runs
+the *same model version* at a **named point in the parameter object**, pinned by
+digest. Model version and parameter set together determine the run: same kernel,
+same point in P, same input, same answer.
+
+Read the two `parameters.source` blocks against each other. `11` binds
+`to_be_fitted` — it produces the parameter object and cannot also read one. `12`
+binds `parameter_set` and names the digest a second person approved. Law **L-W8**
+refuses each of those in the other's position, because a run that will not say
+which inhabitant of P it is using produces a number attributable to nothing.

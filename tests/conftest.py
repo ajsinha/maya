@@ -394,3 +394,27 @@ def attachments(db, tmp_path, registry, evidence):
     return AttachmentRegister(AttachmentRepository(db),
                               DocumentStore(tmp_path / "attachments"),
                               registry, evidence)
+
+
+@pytest.fixture
+def full_features(db, delta, evidence):
+    """A feature registry with derived features and featuresets wired in."""
+    from core.features import FeatureRegistry
+    from db import (ContractRepository, DerivedFeatureRepository, FeatureRepository,
+                    FeatureViewRepository, FeatureViewVersionRepository,
+                    FeaturesetRepository, FeaturesetVersionRepository,
+                    SnapshotRepository)
+    return FeatureRegistry(
+        FeatureRepository(db), FeatureViewRepository(db),
+        FeatureViewVersionRepository(db), ContractRepository(db),
+        SnapshotRepository(db), delta, evidence,
+        DerivedFeatureRepository(db), FeaturesetRepository(db),
+        FeaturesetVersionRepository(db))
+
+
+@pytest.fixture
+def parameters(db, registry, evidence, warrants, full_features):
+    from core.parameters import ParameterRegister
+    from db import ParameterSetRepository
+    return ParameterRegister(ParameterSetRepository(db), registry, evidence,
+                             warrants, full_features.sets)

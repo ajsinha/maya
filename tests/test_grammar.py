@@ -243,3 +243,85 @@ class TestPublishedSchema:
         v = vocabulary()
         assert {o["verb"] for o in v["operations"]} == set(VERBS)
         assert all(o["means"] for o in v["operations"])
+
+
+class TestEveryRunSaysWhichPointInPItIsAt:
+    """L-W8. Training does not change the kernel; it inhabits the parameter
+    object. A run that will not say which inhabitant it is using produces a
+    number attributable to nothing."""
+
+    def test_a_score_naming_no_parameter_source_is_refused(self, score_warrant):
+        score_warrant["parameters"]["source"] = {"binding": "to_be_fitted"}
+        report = validate(score_warrant)
+        assert not report.valid
+        assert any("has to run at some point" in p.detail for p in report.problems)
+
+    def test_a_fit_cannot_also_read_its_parameters_from_the_artifact(
+            self, fit_warrant):
+        """A fit writes the parameter object; declaring that it reads one
+        describes the wrong direction."""
+        fit_warrant["parameters"]["source"] = {"binding": "artifact"}
+        report = validate(fit_warrant)
+        assert not report.valid
+        assert any("produces the parameter object" in p.detail
+                   for p in report.problems)
+
+    def test_a_run_may_name_a_registered_parameter_set(self, score_warrant):
+        score_warrant["parameters"]["source"] = {
+            "binding": "parameter_set", "parameter_set": "ps_01",
+            "digest": "sha256:" + "c" * 64}
+        assert validate(score_warrant).valid
+
+    def test_naming_a_parameter_set_without_a_digest_is_refused(self, score_warrant):
+        score_warrant["parameters"]["source"] = {"binding": "parameter_set",
+                                                 "parameter_set": "ps_01"}
+        report = validate(score_warrant)
+        assert not report.valid
+        assert any("needs digest" in p.detail for p in report.problems)
+
+    def test_an_unknown_binding_is_refused_with_the_list(self, score_warrant):
+        score_warrant["parameters"]["source"] = {"binding": "vibes"}
+        report = validate(score_warrant)
+        assert not report.valid
+        assert any("not a known parameter source" in p.detail
+                   for p in report.problems)
+
+    def test_a_terminal_parameter_object_binds_nothing(self, score_warrant):
+        """T0 carries its constants in the kernel; there is no point to name."""
+        score_warrant["parameters"] = {"kind": "none", "source": {}}
+        assert validate(score_warrant).valid
+
+
+class TestAFeaturesetReadForFittingIsBounded:
+    """L-W9. The featureset fixes the columns; the warrant fixes the period."""
+
+    def _fit_from_featureset(self, fit_warrant, **binding):
+        doc = copy.deepcopy(fit_warrant)
+        doc["data"]["inputs"] = [{"name": "training_set", "binding": "featureset",
+                                  "featureset": "nj_home_core", "version": 1,
+                                  **binding}]
+        return doc
+
+    def test_a_bounded_read_is_admitted(self, fit_warrant):
+        doc = self._fit_from_featureset(
+            fit_warrant, as_of=1767139200.0,
+            window={"from": 1546300800.0, "to": 1735603200.0})
+        assert validate(doc).valid
+
+    def test_a_read_with_no_as_of_is_refused(self, fit_warrant):
+        doc = self._fit_from_featureset(
+            fit_warrant, window={"from": 1546300800.0, "to": 1735603200.0})
+        report = validate(doc)
+        assert not report.valid
+        assert any("as of when it is read" in p.detail for p in report.problems)
+
+    def test_a_read_with_no_window_is_refused(self, fit_warrant):
+        doc = self._fit_from_featureset(fit_warrant, as_of=1767139200.0)
+        report = validate(doc)
+        assert not report.valid
+        assert any("bound the period" in p.detail for p in report.problems)
+
+    def test_a_featureset_is_a_bitemporal_binding(self):
+        """So L-W3 admits training from it at all."""
+        from core.execution.grammar.vocabulary import BITEMPORAL_BINDINGS
+        assert "featureset" in BITEMPORAL_BINDINGS

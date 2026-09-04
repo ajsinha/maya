@@ -24,6 +24,7 @@ from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
 from core.attachments import AttachmentError
+from core.parameters import ParameterError
 from core.baseline import BaselineError
 from core.regimes import RegimeError
 from core.scheduler import SchedulerError
@@ -79,6 +80,17 @@ STATUS: Dict[str, int] = {
     "no_version_for_document": 404,
     "no_such_attachment": 404, "document_missing": 404,
     "document_corrupt": 500,
+    # featuresets and the parameters a fit produces
+    "unknown_provenance": 422, "no_such_version": 404,
+    "nothing_to_fit": 422, "parameters_not_reachable": 422,
+    "warrant_required": 422, "unknown_warrant": 404,
+    "warrant_revoked": 410, "warrant_names_another_model": 409,
+    "warrant_names_another_version": 409,
+    "no_parameters": 422, "parameters_too_large": 413,
+    "featureset_required": 422, "self_approval": 403,
+    "no_parameter_set": 404, "no_approved_parameters": 409,
+    "ambiguous_parameters": 409, "different_version": 409,
+    "schema_not_satisfied": 409, "no_featureset_registry": 501,
     # overlays
     "unknown_direction": 422, "rationale_required": 422,
     "window_too_long": 422, "unknown_closure": 422,
@@ -166,7 +178,8 @@ class Routes:
             return fn()
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
-                RegimeError, SchedulerError, AttachmentError) as exc:
+                RegimeError, SchedulerError, AttachmentError,
+                ParameterError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

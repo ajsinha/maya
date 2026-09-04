@@ -261,6 +261,7 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 | **12** | [Implementation Plan](docs/12-implementation-plan.md) | Repo topology, module contracts, CI gates, workstreams, definitions of done |
 | **13** | [AI, LLMs and Agents Inside the Platform](docs/13-ai-in-the-platform.md) | Where AI belongs in the system itself — and where it must not go |
 | **14** | [Detailed System Design](docs/14-detailed-design.md) ★ | The level below the architecture: component interfaces, algorithms, transaction boundaries, error taxonomy, SLOs, capacity |
+| **15** | [Featuresets and the Parameter Object](docs/15-featuresets-and-parameters.md) | A named, versioned presentation of X; derived features; and the fitted parameters an engine returns |
 | — | [Architecture Decision Records](docs/adr/INDEX.md) | Eleven ADRs |
 
 **Reading paths**
@@ -278,7 +279,8 @@ maya/
 ├── README.md                        ← the only README; this file
 ├── core/                            the platform, split by responsibility
 │   ├── domain/                      the algebra: kernels, schemas, contracts
-│   ├── registry/  features/         models, versions, aliases; the feature platform
+│   ├── registry/  features/         models, versions, aliases; features, featuresets
+│   ├── parameters/                  inhabitants of P: fitted, calibrated, declared
 │   ├── execution/                   warrants, the grammar, the captive engine
 │   ├── validation/  monitoring/     tests and findings; drift and delayed labels
 │   ├── lifecycle/                   approval, attestation, amendment
@@ -291,13 +293,13 @@ maya/
 ├── db/                              the only package that knows about storage
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
-├── examples/warrants/               ten worked warrants across the model estate
-├── docs/                            15 specification documents + ADRs
-│   ├── 00 … 14-*.md                 the specification
+├── examples/warrants/               twelve worked warrants across the model estate
+├── docs/                            16 specification documents + ADRs
+│   ├── 00 … 15-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
-│   └── MAYA-System-Design.pptx              50-slide engineering deck
+│   └── MAYA-System-Design.pptx              52-slide engineering deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```

@@ -159,10 +159,12 @@ class GrammarValidator:
             rules.check_generative(verb, runtime),
             rules.check_fit_output(verb, outputs),
             rules.check_determinism(doc["operation"], runtime),
+            rules.check_parameter_source(verb, doc.get("parameters") or {}),
             rules.check_outcomes(verb, inputs),
         ]
         problems = [p for p in found if p is not None]
         problems += rules.check_training_bindings(verb, inputs)
+        problems += rules.check_featureset_bounds(verb, inputs)
         return problems
 
 

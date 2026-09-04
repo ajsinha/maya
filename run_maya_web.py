@@ -34,6 +34,7 @@ from core.lifecycle import (AmendmentService, AttestationService, LifecycleServi
 from core.execution import WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
 from core.attachments import AttachmentRegister, DocumentStore
+from core.parameters import ParameterRegister
 from core.baseline import BaselineImporter, DebtRegister
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
@@ -49,7 +50,9 @@ from core.risk import TieringEngine
 from core.validation import (FindingRegister, Replayer, TestCatalogue,
                              ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
-                AttachmentRepository,
+                AttachmentRepository, DerivedFeatureRepository,
+                FeaturesetRepository, FeaturesetVersionRepository,
+                ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
                 DeltaStore, DocumentRepository, EvidenceRepository,
@@ -139,7 +142,19 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
                                FeatureViewVersionRepository(db), ContractRepository(db),
-                               SnapshotRepository(db), DeltaStore(delta.root), evidence)
+                               SnapshotRepository(db), DeltaStore(delta.root), evidence,
+                               DerivedFeatureRepository(db), FeaturesetRepository(db),
+                               FeaturesetVersionRepository(db))
+
+    # Assigned rather than injected: the warrant service is built before the
+    # feature registry because a warrant is resolvable without features, but a
+    # FIT warrant is not checkable without them.
+    warrants.featuresets = features.sets
+
+    # Parameters are recorded against the version that was fitted, only under a
+    # warrant this register issued, and named by the featureset that produced them.
+    parameters = ParameterRegister(ParameterSetRepository(db), registry, evidence,
+                                   warrants, features.sets)
 
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
@@ -193,6 +208,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
                            "documents": documents, "attachments": attachments,
+                           "parameters": parameters,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,

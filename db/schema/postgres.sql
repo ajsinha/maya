@@ -200,6 +200,96 @@ CREATE TABLE IF NOT EXISTS feature_contract (
     UNIQUE (model_version_id)
 );
 
+-- ---------------------------------------------------------------- derived features
+-- A feature whose values are computed from other features: Z = f(X, Y). The
+-- definition lives here so lineage, the leakage check and the retirement guard
+-- all work whether or not MAYA is the thing that evaluates it.
+CREATE TABLE IF NOT EXISTS derived_feature (
+    id                 text PRIMARY KEY,
+    feature_id         text NOT NULL,
+    name               text NOT NULL,
+    expression         text NOT NULL,
+    inputs             text NOT NULL DEFAULT '[]',
+    evaluator          text NOT NULL DEFAULT 'internal',   -- internal | external
+    on_error           text NOT NULL DEFAULT 'null',
+    definition_version integer NOT NULL DEFAULT 1,
+    digest             text NOT NULL,
+    note               text NOT NULL DEFAULT '',
+    created_by         text NOT NULL,
+    created_at         double precision NOT NULL,
+    UNIQUE (name, definition_version)
+);
+CREATE INDEX IF NOT EXISTS ix_derived_feature ON derived_feature (feature_id);
+
+-- ---------------------------------------------------------------- featuresets
+-- A featureset declares a SCHEMA -- named slots with types. That schema is what
+-- a kernel is defined over, which is what lets two versions draw on entirely
+-- different features and still be the same input space.
+CREATE TABLE IF NOT EXISTS featureset (
+    id                  text PRIMARY KEY,
+    name                text NOT NULL UNIQUE,
+    entity              text NOT NULL,
+    owner               text NOT NULL,
+    description         text NOT NULL DEFAULT '',
+    slots               text NOT NULL DEFAULT '{}',        -- slot -> {dtype, nullable}
+    label_slot          text,
+    outcome_window_days integer NOT NULL DEFAULT 0,
+    grain               text NOT NULL DEFAULT '',
+    created_by          text NOT NULL,
+    created_at          double precision NOT NULL
+);
+
+-- A version FILLS the schema. Every binding pins a feature AND the feature view
+-- version supplying its values, so the same version always resolves to the same
+-- bytes -- finding C-2, one level out from the view.
+CREATE TABLE IF NOT EXISTS featureset_version (
+    id             text PRIMARY KEY,
+    featureset_id  text NOT NULL,
+    version        integer NOT NULL,
+    bindings       text NOT NULL DEFAULT '{}',             -- slot -> resolved binding
+    label_binding  text NOT NULL DEFAULT '{}',
+    digest         text NOT NULL,
+    note           text NOT NULL DEFAULT '',
+    created_by     text NOT NULL,
+    created_at     double precision NOT NULL,
+    UNIQUE (featureset_id, version)
+);
+CREATE INDEX IF NOT EXISTS ix_fsv_set ON featureset_version (featureset_id);
+
+-- ---------------------------------------------------------------- parameters
+-- An inhabitant of P. Training does not change the kernel; it picks a point in
+-- the parameter object, so a fit produces one of these and NOT a model version.
+CREATE TABLE IF NOT EXISTS parameter_set (
+    id                    text PRIMARY KEY,
+    model_id              text NOT NULL,
+    model_version_id      text NOT NULL,
+    name                  text NOT NULL,
+    version               integer NOT NULL DEFAULT 1,
+    kind                  text NOT NULL,
+    provenance            text NOT NULL,                   -- fitted | calibrated | declared
+    values_inline         text NOT NULL DEFAULT '{}',
+    values_uri            text,
+    cardinality           integer NOT NULL DEFAULT 0,
+    diagnostics           text NOT NULL DEFAULT '{}',
+    featureset_version_id text,
+    window_from           double precision,
+    window_to             double precision,
+    as_of                 double precision,
+    snapshot_id           text,
+    warrant_id            text,
+    digest                text NOT NULL,
+    state                 text NOT NULL DEFAULT 'proposed',
+    note                  text NOT NULL DEFAULT '',
+    created_by            text NOT NULL,
+    created_at            double precision NOT NULL,
+    approved_by           text,
+    approved_at           double precision,
+    review_note           text NOT NULL DEFAULT '',
+    superseded_by         text,
+    UNIQUE (model_version_id, name, version)
+);
+CREATE INDEX IF NOT EXISTS ix_parameter_set_version ON parameter_set (model_version_id);
+
 CREATE TABLE IF NOT EXISTS dataset_snapshot (
     id             TEXT PRIMARY KEY,
     name           TEXT NOT NULL,

@@ -64,6 +64,13 @@ class UIRoutes(Routes):
                            for d in docs.for_model(m["id"])],
                 # Compiled documents and filed ones are different things and
                 # are shown as different things: one MAYA wrote, one somebody did.
+                # Fitting does not change the kernel; it inhabits P. So the page
+                # shows the parameter sets a version may run at, per version.
+                parameters={v["semver"]: self.ctx["parameters"].status(urn, v["semver"])
+                            for v in versions},
+                parameter_sets=[p for v in versions
+                                for p in self.ctx["parameters"].for_version(
+                                    urn, v["semver"])],
                 attachments=self.ctx["attachments"].for_model(m["id"]),
                 attachment_status=self.ctx["attachments"].status(m["id"]),
                 overlays=self.ctx["overlays"].status(m["id"]),
