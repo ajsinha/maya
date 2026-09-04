@@ -425,3 +425,280 @@ view holds. A view's own page uploads a file and offers each version in every
 format. The **Featuresets** page declares a schema; a featureset's page fills it,
 rolls it forward to newer view versions with a diff of what moved, and shows each
 version's pins alongside whether anything underneath them has been restated.
+
+
+## A feature is not always a number
+
+A yield curve is a vector. A correlation structure is a matrix. A scenario grid
+is a tensor. Storing all of them as "numeric" and hoping the consumer knows
+better is how a model receives ten tenors where it expected eleven and produces
+an answer rather than an error.
+
+So a feature carries a **shape**, and along its first axis optional **component
+names**:
+
+```json
+{"name": "usd_curve", "entity": "book_id", "dtype": "numeric",
+ "shape": [10],
+ "components": ["1m","3m","6m","1y","2y","3y","5y","7y","10y","30y"]}
+```
+
+| Shape | Kind |
+|---|---|
+| `[]` | scalar — one number per row |
+| `[10]` | vector |
+| `[10, 10]` | matrix |
+| `[5, 10, 10]` | tensor |
+
+**The component order is the axis order.** A curve whose tenors came back
+alphabetically would be a different curve, and one nobody would notice was wrong.
+
+The names are what make composition mean something. *Add a tenor*, *drop the
+50-year point*, *override the 3-month with an OIS-based one* are operations on
+named things; on an anonymous array they are operations on an index, and an index
+is not a meaning.
+
+A declared shape is **checked against the values** that arrive. A shape nobody
+verifies is a comment.
+
+## Composing features and featuresets
+
+Inheriting from one parent and combining several are the same operation with a
+different number of parents, so there is one mechanism:
+
+> **A left-to-right fold in which the rightmost wins. An object's own operations
+> are applied last, and are therefore the most prominent of all.**
+
+Nothing else would be defensible. If a parent could override a child, naming a
+parent would be an act of surrender.
+
+That rule is not a convention. Merge-with-rightmost-wins is **associative** and
+the empty map is its **identity**, so composition is a *monoid* — which is
+exactly why "a combination of features is a feature" is a true statement rather
+than an aspiration.
+
+### Inheriting
+
+```json
+{"name": "usd_curve_extended",
+ "composes": [{"name": "usd_curve"}],
+ "operations": [
+   {"op": "add",      "name": "50y", "value": {"dtype": "numeric"}},
+   {"op": "drop",     "name": "1m"},
+   {"op": "override", "name": "3m",  "value": {"dtype": "numeric",
+                                               "source": "OIS"}}]}
+```
+
+`GET /api/v1/features/usd_curve_extended/resolved` returns what it *actually is*
+— components, shape, lineage and, for each component, who decided it:
+
+```json
+{"components": ["3m","6m","1y","2y","5y","10y","30y","50y"],
+ "shape": [8],
+ "provenance": {"3m": {"from": "usd_curve_extended (override)",
+                       "overrode": "usd_curve"}}}
+```
+
+Working that out is MAYA's job. The row holds what the object *declares*;
+resolution happens on read.
+
+### Combining
+
+```json
+{"name": "blended", "composes": [{"name": "usd_curve"},
+                                 {"name": "gbp_curve"}]}
+```
+
+Left to right, so `gbp_curve` wins any component both define — and the
+provenance says so.
+
+### Every operation is total
+
+| Refused | Because |
+|---|---|
+| `drop` of something absent | a drop that quietly does nothing leaves a child differing from what its author wrote |
+| `add` of something present | say `override`; the two read differently to a reviewer and should |
+| `override` of something absent | say `add` |
+| a cycle | there is no fixed point to resolve to |
+| composing an ephemeral parent | it resolves today and dangles tomorrow |
+
+## Sealing
+
+A **sealed** feature or featureset is final. No amendment, no further versions, no
+change of owner — and **it can still be composed from**.
+
+That combination is the whole point. Sealing is what makes a parent safe to build
+on, because a sealed parent is one that cannot move. Evolution does not stop; it
+moves to a child, where it is visible.
+
+> **409** — 'usd_curve' was sealed by person/s.iqbal and cannot be amended.
+> *Compose a new feature from it instead — that is what sealing is for.*
+
+`feature:seal` is its own permission, held by the second line. Whoever may define
+a thing is not automatically who may end it. Breaking a seal is
+administrators-only and needs a reason; both acts stay in the chain.
+
+## Ephemeral features and featuresets
+
+Created for one purpose, read, and destroyed — by TTL, or on request.
+
+```json
+{"name": "scratch_pull", "ephemeral": true, "ttl_days": 0.5}
+```
+
+Two rules follow, and both are refusals:
+
+- **Nothing may depend on one.** Composing from something that will be destroyed
+  leaves a child that resolves today and dangles tomorrow, and a dangling pin is
+  worse than no pin because it looks like one.
+- **It cannot be sealed.** Permanent and temporary are not two flags that happen
+  to be set; one of them is wrong.
+
+Longer than thirty days is refused: something needed for longer is not ephemeral,
+and declaring it so is a way of avoiding the governance a durable object owes.
+
+**Destruction is recorded.** The rows go and the evidence stays, with the version
+digests. A throwaway featureset somebody pulled a million rows through is exactly
+what an examiner asks about, and *"it was ephemeral"* is not an answer.
+
+## Who made it, and who answers for it
+
+Two facts, kept apart. **`created_by`** is history and never changes.
+**`owner`** is a responsibility and can be transferred, to somebody named, by
+somebody entitled, with the handover in the chain.
+
+An owner field that quietly becomes a leaver's username is how a model ends up
+accountable to nobody.
+
+
+## What MAYA does to values on the way out
+
+Filling gaps, normalising and aligning onto an axis are decisions somebody has to
+make. Leaving them to every caller has two failure modes: either each consumer
+decides differently and the same feature means different things in two models, or
+the awkward columns get skipped and somebody downstream turns the nulls into
+zeros without saying so.
+
+So the decision can be attached to the feature or featureset as its **default
+behaviour**, and a request may override it:
+
+```json
+{"defaults": {
+   "align":     {"axis": "event_ts", "rule": "flat_forward"},
+   "fill":      {"dscr": "median", "utilisation": "zero"},
+   "normalise": {"dscr": "zscore"}}}
+```
+
+**The precedence is the composition rule again**, deliberately:
+
+```
+parents (left to right)  →  the object's own defaults  →  the request
+```
+
+Merged **section by section and column by column**, so a parent that fills three
+columns and a child that normalises one end up doing both. Replacing the section
+wholesale would silently drop the parent's decision and the child's author would
+never see it go. The resolved policy comes back saying which layer decided each
+column.
+
+### Point-in-time normalisation
+
+Statistics are fitted from rows where `event_ts <= as_of AND ingest_ts <= as_of`,
+and from nothing else.
+
+A z-score fitted over the whole column encodes what the mean *turned out* to be,
+including the part of the history that had not happened when the row was scored.
+That is leakage, and it is invisible afterwards because the column looks
+unremarkable. So:
+
+> **A request with no `as_of` is refused.** The leaky answer is the one somebody
+> would get by accident, so it is the one that must not be the default.
+
+`zscore` · `minmax` · `robust` (median/IQR) · `rank`. Vectors and tensors
+normalise elementwise. Fewer than thirty observations is refused — a statistic on
+fewer is a guess with a decimal point. A constant column returns zeros and says so
+rather than dividing by zero quietly.
+
+**The fitted statistics come back with the data.** Whoever scores one row
+tomorrow has to apply the same transform, and a reviewer asking what was done to
+a column deserves a number rather than a method name.
+
+### Missing values
+
+Null, NaN and infinity arrive by different routes — no observation, a division
+with no answer, an overflow — and are equally unusable, so all three count as
+missing. A NaN is never folded into a statistic: doing so makes the statistic a
+NaN, which then propagates through everything it touches.
+
+`keep` · `constant` · `zero` · `mean` · `median` · `most_frequent`. The last three
+fit a statistic and so need an `as_of`, for the same reason.
+
+**The fill rate is part of the answer**, and loud past a fifth of the column:
+
+> 40 of 100 values (40.0%) filled with zero — past a fifth of the column, what
+> comes back is mostly invention, and a model will train on it without complaint.
+
+### The order, and why it is the order
+
+> **Fit on observed → fill → normalise.**
+
+Fitting the normalisation *after* filling would shrink the spread by exactly the
+amount that was invented, because every filled cell sits at the centre and pulls
+the variance down. So the statistics are fitted on what was observed and then
+applied to everything, including what was filled.
+
+### Aligning onto an axis
+
+Features arrive on their own clocks — a balance monthly, a rating annually, a
+price daily and not at weekends. Aligning them onto one axis and filling the gaps
+hands an execution engine a rectangle instead of a ragged frame:
+
+```json
+{"align": {"axis": "event_ts", "rule": "flat_forward",
+           "carry_limit": 7776000}}
+```
+
+| Rule | Fills from | Safe for training |
+|---|---|---|
+| `flat_forward` | the last observation | **yes** |
+| `flat_backward` | the next observation | no |
+| `linear` | both neighbours | no |
+| `nearest` | whichever is closer | no |
+
+The last three reach into the future. They are the right answer for drawing a
+curve, for an explicitly retrospective backtest, for showing a history to a
+person — and wrong for training a model.
+
+**They are not refused. They are stamped honestly.** A value derived from a later
+observation inherits that observation's `ingest_ts`, because that is genuinely
+when it became knowable:
+
+```
+grid point  t=1   value 400.0   ingest_ts 3.0   ← filled from the observation at t=3
+```
+
+An ordinary point-in-time read at `as_of = 1` then excludes it, by the same rule
+that governs everything else here, with nobody having to remember a flag. The
+leakage is not caught by a check; it is made arithmetically impossible to hide.
+
+A **carry limit** bounds how far an observation may travel. A balance from
+eighteen months ago is not this month's balance, and carrying it forever turns a
+stale observation into a fabricated one. And interpolation will not
+*extrapolate* from one side under the name of interpolating: that is a different
+act with a different error, and doing it silently would hide which was done.
+
+### Asking for it
+
+```bash
+curl -u you:… -X POST \
+  localhost:5006/api/v1/featuresets/rates_core/versions/1/prepared \
+  -H 'Content-Type: application/json' -d '{
+    "as_of": 1767139200,
+    "align": {"axis": "event_ts", "rule": "flat_forward"},
+    "fill": {"dscr": "median"},
+    "normalise": {"dscr": "zscore"}}'
+```
+
+The response carries the rows, the policy that was actually applied, what each
+step did, and the statistics it fitted. `GET /api/v1/retrieval` publishes the
+whole vocabulary and the rules it obeys.

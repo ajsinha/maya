@@ -30,11 +30,14 @@ adversarial finding C-2 exactly, one level out from the view.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.domain.schemas import Field, Schema
 from core.evidence import EvidenceEngine
 from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
+from core.features.composition import Resolver
+from core.features.lifecycle import Lifecycle
+from core.features import policy
 from core.log import get_logger
 from db import FeaturesetRepository, FeaturesetVersionRepository
 from db.database import digest as canonical_digest
@@ -55,23 +58,36 @@ class FeaturesetRegistry:
         self.sets, self.versions = sets, versions
         self.catalogue, self.views = catalogue, views
         self.derived, self.evidence = derived, evidence
+        self.lifecycle = Lifecycle(evidence, "featureset")
+        # The same fold as a feature's components, over slots instead. Sharing
+        # it is what keeps "a combination of featuresets is a featureset" and
+        # "a combination of features is a feature" the same statement.
+        self.resolver = Resolver(lambda n, v: self.sets.one(name=n),
+                                 lambda row: row.get("slots") or {},
+                                 what="slot", noun="featureset")
 
     # ----------------------------------------------------------------- define
     def define(self, name: str, entity: str, owner: str, slots: Dict[str, Any],
                label_slot: Optional[str] = None, outcome_window_days: int = 0,
                grain: str = "", description: str = "",
+               composes: Optional[Sequence[Any]] = None,
+               operations: Optional[Sequence[Dict[str, Any]]] = None,
+               ephemeral: bool = False, ttl_days: Optional[float] = None,
+               defaults: Optional[Dict[str, Any]] = None,
                actor: str = "system") -> Dict[str, Any]:
-        """Declare the schema. Constituents come later, with a version."""
+        """Declare the schema. Constituents come later, with a version.
+
+        A featureset composed from others inherits their slots by the same
+        left-to-right fold a feature's components use, so it may declare none of
+        its own and still have a schema.
+        """
         if self.sets.one(name=name):
             raise FeatureError(f"featureset '{name}' already exists")
-        if not slots:
+        if not slots and not composes:
             raise FeatureError(
                 f"'{name}' declares no slots; a featureset is a schema, and a "
                 f"schema with nothing in it is not one")
-        normalised = {k: self._slot(k, v) for k, v in slots.items()}
-        if label_slot and label_slot not in normalised:
-            raise FeatureError(
-                f"the label slot '{label_slot}' is not one of the declared slots")
+        normalised = {k: self._slot(k, v) for k, v in (slots or {}).items()}
         if outcome_window_days < 0:
             raise FeatureError("an outcome window cannot be negative")
         row = {"name": name, "entity": entity, "owner": owner,
@@ -79,7 +95,20 @@ class FeaturesetRegistry:
                "label_slot": label_slot,
                "outcome_window_days": outcome_window_days,
                "grain": grain or f"one row per {entity}",
+               "composes": list(composes or []),
+               "operations": list(operations or []),
+               "defaults": policy.check(defaults),
+               "ephemeral": int(ephemeral),
+               "expires_at": (self.lifecycle.expiry(ttl_days) if ephemeral
+                              else None),
                "created_by": actor, "created_at": time.time()}
+        # Resolved once here, so a composition that cannot resolve is refused at
+        # declaration rather than the first time somebody publishes against it.
+        resolved = self.resolver.resolve(row) if (composes or operations) else normalised
+        if label_slot and label_slot not in resolved:
+            raise FeatureError(
+                f"the label slot '{label_slot}' is not one of the slots this "
+                f"featureset resolves to")
         self.sets.add(row)
         self.evidence.append("featureset_defined", "featureset", row["id"],
                              {"name": name, "entity": entity,
@@ -99,6 +128,97 @@ class FeaturesetRegistry:
     def get(self, name: str) -> Optional[Dict[str, Any]]:
         return self.sets.one(name=name)
 
+    # -------------------------------------------------------------- resolution
+    def slots_of(self, name: str) -> Dict[str, Any]:
+        """The slots this featureset actually has, parents included.
+
+        What a caller is told is not what the row says; it is what the row plus
+        its parents plus its own operations say. Working that out is MAYA's job.
+        """
+        return self.resolver.resolve(self.require(name))
+
+    def _parents(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
+        out = []
+        for parent in row.get("composes") or []:
+            spec = {"name": parent} if isinstance(parent, str) else parent
+            found = self.sets.one(name=spec.get("name"))
+            if found:
+                out.append(found)
+        return out
+
+    def resolved(self, name: str,
+                 request: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Everything a caller needs to know about this featureset as it stands."""
+        row = self.require(name)
+        members = self.resolver.resolve(row)
+        # A slot this featureset added through its own operation is its own,
+        # not something it inherited. Calling it inherited would credit a parent
+        # with a decision it did not make.
+        own = set(row.get("slots") or {}) | {
+            op.get("name") for op in (row.get("operations") or [])
+            if op.get("op") in ("add", "override") and op.get("name")}
+        return {
+            **row, "slots": members,
+            "declared_slots": sorted(own & set(members)),
+            "inherited_slots": sorted(set(members) - own),
+            "lineage": self.resolver.lineage(row),
+            "provenance": self.resolver.explain(row) if row.get("composes") else {},
+            "ownership": self.lifecycle.provenance(row),
+            "lifetime": self.lifecycle.remaining(row),
+            "sealed": bool(row.get("sealed_at")),
+            "policy": policy.explain(row, self._parents(row), request),
+        }
+
+    # --------------------------------------------------------------- lifecycle
+    def seal(self, name: str, actor: str, note: str = "") -> Dict[str, Any]:
+        row = self.require(name)
+        self.sets.set(self.lifecycle.seal(row, actor, note), id=row["id"])
+        return self.sets.one(id=row["id"])
+
+    def break_seal(self, name: str, actor: str, reason: str) -> Dict[str, Any]:
+        row = self.require(name)
+        self.sets.set(self.lifecycle.break_seal(row, actor, reason), id=row["id"])
+        return self.sets.one(id=row["id"])
+
+    def transfer(self, name: str, to: str, actor: str,
+                 reason: str = "") -> Dict[str, Any]:
+        row = self.require(name)
+        self.sets.set(self.lifecycle.transfer(row, to, actor, reason), id=row["id"])
+        return self.sets.one(id=row["id"])
+
+    def set_policy(self, name: str, defaults: Dict[str, Any],
+                   actor: str = "system") -> Dict[str, Any]:
+        """Attach default retrieval behaviour, which a request may still override."""
+        row = self.require(name)
+        self.lifecycle.refuse_if_sealed(row, "have its policy changed")
+        checked = policy.check(defaults)
+        self.sets.set({"defaults": checked}, id=row["id"])
+        self.evidence.append("featureset_policy_set", "featureset", row["id"],
+                             {"name": name, "policy": checked}, actor=actor)
+        return self.sets.one(id=row["id"])
+
+    def destroy(self, name: str, why: str = "expired",
+                actor: str = "system") -> Dict[str, Any]:
+        """Remove an ephemeral featureset and its versions. The record stays."""
+        row = self.require(name)
+        if not row.get("ephemeral"):
+            raise FeatureError(
+                f"'{name}' is not ephemeral. a durable featureset that a contract "
+                f"or a warrant pinned cannot simply stop existing")
+        versions = self.versions.many(featureset_id=row["id"])
+        self.lifecycle.record_destruction(
+            row, why, {"versions": len(versions),
+                       "digests": [v["digest"] for v in versions]}, actor)
+        for version in versions:
+            self.versions.remove(id=version["id"])
+        self.sets.remove(id=row["id"])
+        return {"name": name, "destroyed": True, "why": why,
+                "versions_removed": len(versions)}
+
+    def expired(self, now: Optional[float] = None) -> List[Dict[str, Any]]:
+        from core.features.lifecycle import reap
+        return reap(self.sets.many(), now)
+
     def require(self, name: str) -> Dict[str, Any]:
         row = self.get(name)
         if row is None:
@@ -114,7 +234,10 @@ class FeaturesetRegistry:
                 actor: str = "system") -> Dict[str, Any]:
         """Fill the schema with exact, pinned constituents."""
         featureset = self.require(name)
-        slots = featureset["slots"]
+        self.lifecycle.refuse_if_sealed(featureset, "take another version")
+        # The schema to fill is the RESOLVED one: a featureset composed from
+        # others owes the slots it inherited as much as the ones it declared.
+        slots = self.resolver.resolve(featureset)
 
         if missing := sorted(set(slots) - set(bindings)):
             raise FeatureError(

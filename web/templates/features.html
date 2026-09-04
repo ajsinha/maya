@@ -44,9 +44,26 @@ pinned by the view version that wrote them.</p>
               </select></div>
             <div class="col-6"><input class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
             <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
+            <div class="col-6"><input class="form-control form-control-sm" name="shape"
+                   placeholder="shape — blank=scalar, 10=vector, 10,10=matrix"></div>
+            <div class="col-6"><input class="form-control form-control-sm" name="components"
+                   placeholder="component names, comma separated"></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="defaults"
+                   placeholder='default policy, e.g. {"fill": {"x": "zero"}}'></div>
+            <div class="col-6 form-check ms-2">
+              <input class="form-check-input" type="checkbox" name="ephemeral" id="eph">
+              <label class="form-check-label small" for="eph">ephemeral</label></div>
+            <div class="col-5"><input class="form-control form-control-sm" name="ttl_days"
+                   placeholder="days to live"></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Define</button>
         </form>
+        <div class="text-muted mt-2" style="font-size:.72rem">
+          The components name the first axis, so a composition can speak about a
+          tenor rather than about an index. An ephemeral feature cannot be sealed
+          and cannot be composed from &mdash; a child that resolves today and
+          dangles tomorrow is worse than no child.
+        </div>
       </div>
       <div class="col-md-6">
         <p class="small fw-bold mb-2" style="color:var(--crimson)">A derived feature &mdash; Z = f(X, Y)</p>
@@ -71,30 +88,76 @@ pinned by the view version that wrote them.</p>
         </div>
       </div>
     </div>
+    <div class="row g-4 mt-1">
+      <div class="col-md-6">
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">Compose from others</p>
+        <form id="define-composed" class="small">
+          <div class="row g-2">
+            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="composes"
+                   placeholder="parents, comma separated — left to right, rightmost wins" required></div>
+            <div class="col-12"><textarea class="form-control form-control-sm" name="operations" rows="2"
+                   placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op": "drop", "name": "1m"}]'></textarea></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Compose</button>
+        </form>
+      </div>
+      <div class="col-md-6">
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">The rule</p>
+        <p class="text-muted mb-1" style="font-size:.72rem">{{ composition.rule }}</p>
+        <p class="text-muted mb-1" style="font-size:.72rem"><em>{{ composition.why }}</em></p>
+        <table class="table maya mb-0" style="font-size:.72rem">
+          <tbody>
+          {% for o in composition.operations %}
+            <tr><td style="width:6rem"><code>{{ o.op }}</code></td>
+                <td class="text-muted">{{ o.means }}</td></tr>
+          {% endfor %}
+          </tbody></table>
+      </div>
+    </div>
     <div id="define-result" class="small mt-3"></div>
   </div></div></div>
 
 <!-- ------------------------------------------------------------ catalogue -->
 <div class="card mb-3"><div class="card-header">The catalogue</div>
   <table class="table maya mb-0">
-    <thead><tr><th>Feature</th><th>Entity</th><th>Type</th><th>How it is produced</th>
-               <th>Certification</th></tr></thead>
+    <thead><tr><th>Feature</th><th>Shape</th><th>How it is produced</th>
+               <th>Ownership</th><th>State</th><th></th></tr></thead>
     <tbody>
     {% for f in features %}
       <tr><td class="small">{{ f.name }}
             <div class="text-muted">{{ f.description }}</div></td>
-          <td class="small">{{ f.entity }}</td>
-          <td class="small">{{ f.dtype }}</td>
+          <td class="small">{{ f.dimensionality.kind }}
+            <div class="text-muted">{{ f.dimensionality.detail[:60] }}</div></td>
           <td class="small">
             {% if f.name in derived %}
               <code style="font-size:.72rem">{{ derived[f.name].expression }}</code>
-              <div class="text-muted">
-                {{ derived[f.name].evaluator }} · def v{{ derived[f.name].definition_version }}
-                · reads {{ derived[f.name].inputs|join(', ') }}</div>
+              <div class="text-muted">{{ derived[f.name].evaluator }}
+                · def v{{ derived[f.name].definition_version }}</div>
+            {% elif f.composes %}
+              <span style="color:var(--crimson)">composed</span>
+              <div class="text-muted">from
+                {% for l in f.lineage %}{{ l.name }}{{ "" if loop.last else " → " }}{% endfor %}</div>
             {% else %}<span class="text-muted">materialised</span>{% endif %}</td>
-          <td class="small">{{ f.certification }}</td></tr>
+          <td class="small">{{ f.ownership.owner }}
+            {% if f.ownership.transferred %}
+              <div class="text-muted">created by {{ f.ownership.created_by }}</div>
+            {% endif %}</td>
+          <td class="small">
+            {% if f.sealed %}<span class="evidence-ok">sealed</span>
+              <div class="text-muted">by {{ f.sealed_by }}</div>
+            {% elif f.lifetime.ephemeral %}
+              <span class="evidence-bad">ephemeral</span>
+              <div class="text-muted">{{ f.lifetime.detail }}</div>
+            {% else %}<span class="text-muted">{{ f.certification }}</span>{% endif %}</td>
+          <td class="small text-end">
+            {% if not f.sealed and not f.lifetime.ephemeral %}
+              <a href="#" class="seal-feature" data-name="{{ f.name }}"
+                 style="color:var(--crimson);text-decoration:none">seal</a>
+            {% endif %}</td></tr>
     {% else %}
-      <tr><td colspan="5" class="text-muted small">
+      <tr><td colspan="6" class="text-muted small">
         Nothing defined yet. A feature is declared before it has values, because
         the declaration is what a featureset pins and what an owner is
         accountable for.</td></tr>
@@ -150,12 +213,53 @@ function post(url, body, kind) {
 $("#define-primitive").on("submit", function (e) {
   e.preventDefault();
   var f = Object.fromEntries(new FormData(this));
-  post("/api/v1/features", f, "Definition");
+  var body = {name: f.name, entity: f.entity, dtype: f.dtype,
+              description: f.description, owner: f.owner};
+  if (f.shape) { body.shape = f.shape; }
+  if (f.components) {
+    body.components = f.components.split(",").map(function (s) { return s.trim(); });
+  }
+  if (f.defaults) {
+    try { body.defaults = JSON.parse(f.defaults); }
+    catch (err) {
+      $("#define-result").html('<span class="evidence-bad">The policy is not valid JSON &mdash; ' +
+        err.message + '</span>');
+      return;
+    }
+  }
+  if (f.ephemeral) { body.ephemeral = true; }
+  if (f.ttl_days) { body.ttl_days = parseFloat(f.ttl_days); }
+  post("/api/v1/features", body, "Definition");
 });
 $("#define-derived").on("submit", function (e) {
   e.preventDefault();
   var f = Object.fromEntries(new FormData(this));
   post("/api/v1/derived-features", f, "Definition");
+});
+$("#define-primitive").on("submit", function () {});
+$("#define-composed").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this));
+  var body = {name: f.name, entity: f.entity, dtype: "numeric",
+              description: "composed", owner: "",
+              composes: f.composes.split(",").map(function (s) {
+                return {name: s.trim()}; })};
+  if (f.operations) {
+    try { body.operations = JSON.parse(f.operations); }
+    catch (err) {
+      $("#define-result").html('<span class="evidence-bad">The operations are not valid JSON &mdash; ' +
+        err.message + '</span>');
+      return;
+    }
+  }
+  post("/api/v1/features", body, "Composition");
+});
+$(".seal-feature").on("click", function (e) {
+  e.preventDefault();
+  var name = $(this).data("name");
+  if (!confirm("Seal '" + name + "'? It becomes final and cannot be amended. " +
+               "It can still be composed from — that is what sealing is for.")) { return; }
+  post("/api/v1/features/" + name + "/seal", {note: ""}, "Seal");
 });
 </script>
 {% endblock %}

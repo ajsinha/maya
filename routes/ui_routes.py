@@ -86,7 +86,8 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             f = self.ctx["features"]
-            catalogue = f.list_features()
+            catalogue = [f.catalogue.resolved(row["name"])
+                         for row in f.list_features()]
             derived = {d["name"]: d for d in f.derived.list()} if f.derived else {}
             views = []
             for view in f.views.views.many():
@@ -97,7 +98,13 @@ class UIRoutes(Routes):
                 request, "features.html", features=catalogue, derived=derived,
                 views=views,
                 language=__import__("core.features.expressions",
-                                    fromlist=["describe"]).describe())
+                                    fromlist=["describe"]).describe(),
+                retrieval=__import__("core.features.preparation",
+                                     fromlist=["describe"]).describe(),
+                alignment=__import__("core.features.alignment",
+                                     fromlist=["describe"]).describe(),
+                composition=__import__("core.features.composition",
+                                       fromlist=["describe"]).describe())
 
         @self.app.get("/feature-views/{name}", response_class=HTMLResponse,
                       tags=["ui"])
@@ -122,10 +129,15 @@ class UIRoutes(Routes):
             rows = []
             for row in f.sets.list():
                 versions = f.sets.versions_of(row["name"])
-                rows.append({**row, "versions": versions,
+                rows.append({**f.sets.resolved(row["name"]), "versions": versions,
                              "latest": versions[-1] if versions else None})
-            return self.page(request, "featuresets.html", featuresets=rows,
-                             catalogue=f.list_features())
+            return self.page(
+                request, "featuresets.html", featuresets=rows,
+                catalogue=f.list_features(),
+                retrieval=__import__("core.features.preparation",
+                                     fromlist=["describe"]).describe(),
+                alignment=__import__("core.features.alignment",
+                                     fromlist=["describe"]).describe())
 
         @self.app.get("/featureset/{name}", response_class=HTMLResponse,
                       tags=["ui"])
@@ -133,9 +145,9 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             f = self.ctx["features"]
-            row = f.sets.get(name)
-            if not row:
+            if not f.sets.get(name):
                 return self.page(request, "not_found.html", status=404, name=name)
+            row = f.sets.resolved(name)
             versions = f.sets.versions_of(name)
             return self.page(
                 request, "featureset.html", featureset=row, versions=versions,

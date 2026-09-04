@@ -108,6 +108,20 @@ class FeatureRegistry:
     def define_derived(self, *a, **kw) -> Dict[str, Any]:
         return self._derived().define(*a, **kw)
 
+    def resolved_feature(self, name: str) -> Dict[str, Any]:
+        """A feature as it actually stands: composition, shape, policy, lifetime."""
+        return self.catalogue.resolved(name)
+
+    def resolved_featureset(self, name: str,
+                            request: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self._sets().resolved(name, request)
+
+    def seal_feature(self, name: str, actor: str, note: str = "") -> Dict[str, Any]:
+        return self.catalogue.seal(name, actor, note)
+
+    def seal_featureset(self, name: str, actor: str, note: str = "") -> Dict[str, Any]:
+        return self._sets().seal(name, actor, note)
+
     def derived_feature(self, name: str) -> Optional[Dict[str, Any]]:
         return self._derived().get(name)
 

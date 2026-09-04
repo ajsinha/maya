@@ -2002,3 +2002,134 @@ class TestBulkTransfer:
         r = registered.get(
             "/api/v1/featuresets/sb_core/versions/1/data?format=parquet")
         assert r.status_code == 200 and r.content[:4] == b"PAR1"
+
+
+class TestCompositionAndPolicyOverTheApi:
+    """A feature is not always a number, is not always defined in one place, and
+    does not always outlive the request that made it."""
+
+    TENORS = ["1m", "3m", "1y", "5y", "10y"]
+
+    def _curve(self, client, auth, name="usd_curve"):
+        return client.post("/api/v1/features", auth=auth, json={
+            "name": name, "entity": "book_id", "dtype": "numeric",
+            "description": "USD zero curve", "owner": "person/j.okafor",
+            "shape": [5], "components": self.TENORS})
+
+    def test_a_vector_feature_reports_its_own_dimensionality(self, registered,
+                                                             people):
+        assert self._curve(registered, people["d.raman"]).status_code == 201
+        body = registered.get("/api/v1/features/usd_curve/resolved").json()
+        assert body["dimensionality"]["kind"] == "vector"
+        assert body["components"] == self.TENORS, "the axis order is the order"
+
+    def test_a_composed_feature_resolves_through_its_parents(self, registered,
+                                                             people):
+        dev = people["d.raman"]
+        self._curve(registered, dev)
+        r = registered.post("/api/v1/features", auth=dev, json={
+            "name": "usd_extended", "entity": "book_id", "dtype": "numeric",
+            "description": "with a 30y point", "owner": "person/j.okafor",
+            "composes": [{"name": "usd_curve"}],
+            "operations": [{"op": "add", "name": "30y",
+                            "value": {"dtype": "numeric"}},
+                           {"op": "drop", "name": "1m"}]})
+        assert r.status_code == 201, r.text
+        body = registered.get("/api/v1/features/usd_extended/resolved").json()
+        assert "30y" in body["components"] and "1m" not in body["components"]
+        assert body["lineage"][0]["name"] == "usd_curve"
+
+    def test_an_operation_that_would_do_nothing_is_refused(self, registered,
+                                                           people):
+        dev = people["d.raman"]
+        self._curve(registered, dev)
+        r = registered.post("/api/v1/features", auth=dev, json={
+            "name": "bad", "entity": "book_id", "dtype": "numeric",
+            "description": "x", "owner": "person/o",
+            "composes": [{"name": "usd_curve"}],
+            "operations": [{"op": "drop", "name": "99y"}]})
+        assert r.status_code == 409 and "cannot drop" in r.json()["detail"]
+
+    def test_sealing_makes_it_final_and_still_composable(self, registered,
+                                                         people):
+        dev, mrm = people["d.raman"], people["s.iqbal"]
+        self._curve(registered, dev)
+        sealed = registered.post("/api/v1/features/usd_curve/seal", auth=mrm,
+                                 json={"note": "signed off"})
+        assert sealed.status_code == 200 and sealed.json()["sealed_by"]
+
+        amended = registered.post("/api/v1/features/usd_curve/amend", auth=dev,
+                                  json={"fields": {"description": "changed"}})
+        assert amended.status_code == 409
+        assert "compose a new feature from it" in amended.json()["detail"]
+
+        child = registered.post("/api/v1/features", auth=dev, json={
+            "name": "child", "entity": "book_id", "dtype": "numeric",
+            "description": "x", "owner": "person/o",
+            "composes": [{"name": "usd_curve"}]})
+        assert child.status_code == 201, "a sealed parent is the point"
+
+    def test_a_developer_may_not_seal(self, registered, people):
+        self._curve(registered, people["d.raman"])
+        r = registered.post("/api/v1/features/usd_curve/seal",
+                            auth=people["d.raman"], json={})
+        assert r.status_code == 403
+
+    def test_an_ephemeral_feature_reports_its_lifetime_and_can_be_destroyed(
+            self, registered, people):
+        dev = people["d.raman"]
+        registered.post("/api/v1/features", auth=dev, json={
+            "name": "scratch", "entity": "book_id", "dtype": "numeric",
+            "description": "one-off", "owner": "person/o",
+            "ephemeral": True, "ttl_days": 0.5})
+        body = registered.get("/api/v1/features/scratch/resolved").json()
+        assert body["lifetime"]["ephemeral"]
+        assert registered.delete("/api/v1/features/scratch",
+                                 auth=dev).status_code == 200
+        assert registered.get(
+            "/api/v1/features/scratch/resolved").status_code == 409
+
+    def test_ownership_is_two_facts_not_one(self, registered, people):
+        dev = people["d.raman"]
+        self._curve(registered, dev)
+        registered.post("/api/v1/features/usd_curve/transfer", auth=dev,
+                        json={"to": "person/a.mehta", "reason": "team move"})
+        own = registered.get("/api/v1/features/usd_curve/resolved"
+                             ).json()["ownership"]
+        assert own["created_by"] == "d.raman" and own["owner"] == "person/a.mehta"
+        assert own["transferred"]
+
+    def test_a_featureset_inherits_slots_and_policy(self, registered, people):
+        dev = people["d.raman"]
+        self._curve(registered, dev)
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "rates_core", "entity": "book_id",
+            "slots": {"usd_curve": "numeric"},
+            "defaults": {"normalise": {"usd_curve": "zscore"}}})
+        registered.post("/api/v1/featuresets", auth=dev, json={
+            "name": "rates_plus", "entity": "book_id", "slots": {},
+            "composes": [{"name": "rates_core"}]})
+        body = registered.get("/api/v1/featuresets/rates_plus/resolved").json()
+        assert body["inherited_slots"] == ["usd_curve"]
+        assert body["policy"]["policy"]["normalise"] == {"usd_curve": "zscore"}
+        assert body["policy"]["decided_by"]["normalise"]["usd_curve"] == "rates_core"
+
+    def test_the_retrieval_rules_are_published(self, registered):
+        body = registered.get("/api/v1/retrieval").json()
+        assert body["preparation"]["as_of_required_for"]
+        assert any(r["rule"] == "flat_backward" and not r["point_in_time_safe"]
+                   for r in body["alignment"]["rules"])
+        assert "monoid" in body["composition"]["why"]
+
+    def test_the_features_page_shows_shape_lineage_and_state(self, registered,
+                                                             people):
+        dev, mrm = people["d.raman"], people["s.iqbal"]
+        self._curve(registered, dev)
+        registered.post("/api/v1/features", auth=dev, json={
+            "name": "usd_extended", "entity": "book_id", "dtype": "numeric",
+            "description": "x", "owner": "person/o",
+            "composes": [{"name": "usd_curve"}]})
+        registered.post("/api/v1/features/usd_curve/seal", auth=mrm, json={})
+        _login(registered)
+        page = registered.get("/features").text
+        assert "vector" in page and "composed" in page and "sealed" in page

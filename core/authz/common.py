@@ -45,6 +45,9 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "document:attach", "document:review",
     # features, featuresets and the parameters a fit produces
     "featureset:define", "featureset:publish",
+    # Sealing is a distinct act: it makes something final, and
+    # whoever may define a thing is not automatically who may end it.
+    "feature:seal", "featureset:seal",
     # Signing a quorum is not the same act as approving alone: a
     # validator signs one and may never do the other.
     "version:sign",

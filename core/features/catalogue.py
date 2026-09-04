@@ -13,10 +13,14 @@ cheap, rather than in an audit two years later.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Sequence
 
 from core.evidence import EvidenceEngine
+from core.features import shapes
 from core.features.common import FeatureError
+from core.features.composition import Resolver
+from core.features.lifecycle import Lifecycle
+from core.features import policy
 from db import FeatureRepository
 
 LEVELS = ("experimental", "certified", "deprecated")
@@ -28,24 +32,109 @@ class FeatureCatalogue:
 
     def __init__(self, features: FeatureRepository, evidence: EvidenceEngine):
         self.features, self.evidence = features, evidence
+        self.lifecycle = Lifecycle(evidence, "feature")
+        # Components fold the same way a featureset's slots do, so the machinery
+        # is shared and the two cannot drift apart in behaviour.
+        self.resolver = Resolver(self._load, self._own_components,
+                                 what="component", noun="feature")
 
     def define(self, name: str, entity: str, dtype: str, description: str, owner: str,
                business_definition: str = "", source_system: str = "",
                sensitivity: str = "internal", pii: bool = False,
                protected_basis: bool = False, proxy_risk: str = "none",
+               shape: Any = None, components: Optional[Sequence[str]] = None,
+               composes: Optional[Sequence[Any]] = None,
+               operations: Optional[Sequence[Dict[str, Any]]] = None,
+               ephemeral: bool = False, ttl_days: Optional[float] = None,
+               defaults: Optional[Dict[str, Any]] = None,
                actor: str = "system") -> Dict[str, Any]:
         if self.features.one(name=name):
             raise FeatureError(f"feature '{name}' is already defined")
+        dims = shapes.parse(shape)
+        named = shapes.check_components(dims, components)
         row = {"name": name, "entity": entity, "dtype": dtype, "description": description,
                "business_definition": business_definition, "owner": owner,
+               "created_by": actor,
                "source_system": source_system, "sensitivity": sensitivity,
                "pii": int(pii), "protected_basis": int(protected_basis),
                "proxy_risk": proxy_risk, "certification": "experimental",
+               "shape": list(dims), "components": named,
+               "composes": list(composes or []),
+               "operations": list(operations or []),
+               "definition_version": 1,
+               "defaults": policy.check(defaults),
+               "ephemeral": int(ephemeral),
+               "expires_at": (self.lifecycle.expiry(ttl_days) if ephemeral
+                              else None),
                "created_at": time.time()}
         self.features.add(row)
+        stored = self.features.one(id=row["id"])
+        if row["composes"] or row["operations"]:
+            # Resolved once here so a composition that cannot resolve is refused
+            # now rather than the first time somebody reads it — but NOT written
+            # back. The row holds what this feature declares; resolution is a
+            # read-time act, and storing its result would apply the operations
+            # a second time on the next read.
+            self.resolve(stored)
         self.evidence.append("feature_defined", "feature", row["id"],
-                             {"name": name, "entity": entity}, actor=actor)
-        return {**row, "pii": pii, "protected_basis": protected_basis}
+                             {"name": name, "entity": entity,
+                              "shape": list(dims),
+                              "composes": [c if isinstance(c, str) else c.get("name")
+                                           for c in row["composes"]],
+                              "ephemeral": ephemeral}, actor=actor)
+        return stored
+
+    # -------------------------------------------------------------- composition
+    def _load(self, name: str, version: Optional[int]) -> Optional[Dict[str, Any]]:
+        return self.features.one(name=name)
+
+    @staticmethod
+    def _own_components(row: Dict[str, Any]) -> Dict[str, Any]:
+        """A feature's own contribution: its named components, as a keyed map."""
+        return {c: {"dtype": row.get("dtype"), "from": row.get("name")}
+                for c in (row.get("components") or [])}
+
+    def _parents(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """The parent rows, in fold order, for explaining where a policy came from."""
+        out = []
+        for parent in row.get("composes") or []:
+            spec = {"name": parent} if isinstance(parent, str) else parent
+            found = self.features.one(name=spec.get("name"))
+            if found:
+                out.append(found)
+        return out
+
+    def resolve(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        """The components this feature actually has, parents included."""
+        return self.resolver.resolve(row)
+
+    def resolved(self, name: str) -> Dict[str, Any]:
+        """What a caller asking for this feature should be told it is.
+
+        The whole point of composition is that the answer is not what the row
+        says; it is what the row plus its parents plus its own operations say.
+        Working that out is MAYA's job and not the caller's.
+        """
+        row = self.require(name)
+        members = self.resolve(row)
+        declared = shapes.parse(row.get("shape") or [])
+        # The first axis follows the components: composing a tenor onto a curve
+        # makes it longer, and a shape that disagreed would be the stale half.
+        effective = ((len(members),) + tuple(declared[1:])) if members else declared
+        return {
+            # Insertion order, never sorted. For a vector the component order IS
+            # the axis order — a curve whose tenors came back alphabetically
+            # would be a different curve, and one nobody would notice was wrong.
+            **row, "components": list(members),
+            "shape": list(effective),
+            "dimensionality": shapes.describe(effective, list(members)),
+            "lineage": self.resolver.lineage(row),
+            "provenance": self.resolver.explain(row) if row.get("composes") else {},
+            "ownership": self.lifecycle.provenance(row),
+            "policy": policy.explain(row, self._parents(row)),
+            "lifetime": self.lifecycle.remaining(row),
+            "sealed": bool(row.get("sealed_at")),
+        }
 
     def get(self, name: str) -> Dict[str, Any]:
         return self.features.one(name=name)
@@ -93,3 +182,75 @@ class FeatureCatalogue:
         self.require(name)
         self.features.set({"certification": level}, name=name)
         return self.features.one(name=name)
+
+    # ---------------------------------------------------------------- lifecycle
+    def seal(self, name: str, actor: str, note: str = "") -> Dict[str, Any]:
+        """Declare a feature final. It can still be composed from — that is why."""
+        row = self.require(name)
+        self.features.set(self.lifecycle.seal(row, actor, note), id=row["id"])
+        return self.features.one(id=row["id"])
+
+    def break_seal(self, name: str, actor: str, reason: str) -> Dict[str, Any]:
+        row = self.require(name)
+        self.features.set(self.lifecycle.break_seal(row, actor, reason),
+                          id=row["id"])
+        return self.features.one(id=row["id"])
+
+    def transfer(self, name: str, to: str, actor: str,
+                 reason: str = "") -> Dict[str, Any]:
+        """Hand on the responsibility. The creator does not move; they are history."""
+        row = self.require(name)
+        self.features.set(self.lifecycle.transfer(row, to, actor, reason),
+                          id=row["id"])
+        return self.features.one(id=row["id"])
+
+    def amend(self, name: str, fields: Dict[str, Any],
+              actor: str = "system") -> Dict[str, Any]:
+        """Change a feature's definition, which a sealed one refuses.
+
+        Every amendment advances the definition version, because somebody may
+        already have composed against the previous one and a composition pins.
+        """
+        row = self.require(name)
+        self.lifecycle.refuse_if_sealed(row, "be amended")
+        allowed = {"description", "business_definition", "source_system",
+                   "sensitivity", "proxy_risk", "shape", "components",
+                   "composes", "operations", "defaults"}
+        if unknown := sorted(set(fields) - allowed):
+            raise FeatureError(
+                f"these fields are not amendable: {', '.join(unknown)}. a "
+                f"feature's name, entity and type are what other things pinned "
+                f"it by; changing them would be a new feature wearing an old name")
+        patch = dict(fields)
+        if "defaults" in patch:
+            patch["defaults"] = policy.check(patch["defaults"])
+        if "shape" in patch or "components" in patch:
+            dims = shapes.parse(patch.get("shape", row.get("shape")))
+            patch["shape"] = list(dims)
+            patch["components"] = shapes.check_components(
+                dims, patch.get("components", row.get("components")))
+        patch["definition_version"] = (row.get("definition_version") or 1) + 1
+        self.features.set(patch, id=row["id"])
+        self.evidence.append("feature_amended", "feature", row["id"],
+                             {"name": name, "changed": sorted(fields),
+                              "definition_version": patch["definition_version"]},
+                             actor=actor)
+        return self.features.one(id=row["id"])
+
+    def destroy(self, name: str, why: str = "expired",
+                actor: str = "system") -> Dict[str, Any]:
+        """Remove an ephemeral feature. The rows go; the record does not."""
+        row = self.require(name)
+        if not row.get("ephemeral"):
+            raise FeatureError(
+                f"'{name}' is not ephemeral, so it is not destroyed but retired; "
+                f"a durable feature that something composed from cannot simply "
+                f"stop existing")
+        self.lifecycle.record_destruction(row, why, actor=actor)
+        self.features.remove(id=row["id"])
+        return {"name": name, "destroyed": True, "why": why}
+
+    def expired(self, now: Optional[float] = None) -> List[Dict[str, Any]]:
+        """Ephemeral features that have outlived their declared lifetime."""
+        from core.features.lifecycle import reap
+        return reap(self.features.many(), now)

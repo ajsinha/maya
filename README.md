@@ -262,6 +262,7 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 | **13** | [AI, LLMs and Agents Inside the Platform](docs/13-ai-in-the-platform.md) | Where AI belongs in the system itself — and where it must not go |
 | **14** | [Detailed System Design](docs/14-detailed-design.md) ★ | The level below the architecture: component interfaces, algorithms, transaction boundaries, error taxonomy, SLOs, capacity |
 | **15** | [Featuresets and the Parameter Object](docs/15-featuresets-and-parameters.md) | A named, versioned presentation of X; derived features; and the fitted parameters an engine returns |
+| **16** | [Features Composed, Shaped and Prepared](docs/16-features-composed-and-shaped.md) | Dimensionality, the composition monoid, sealing and ephemerality, ownership, and point-in-time retrieval |
 | — | [Architecture Decision Records](docs/adr/INDEX.md) | Eleven ADRs |
 
 **Reading paths**
@@ -294,8 +295,8 @@ maya/
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               twelve worked warrants across the model estate
-├── docs/                            16 specification documents + ADRs
-│   ├── 00 … 15-*.md                 the specification
+├── docs/                            17 specification documents + ADRs
+│   ├── 00 … 16-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
