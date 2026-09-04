@@ -176,7 +176,7 @@ divider("2", "Core Domain and Registry", "The algebra in code, and the registry 
         ["The model algebra", "Trainability is derived", "Contract algebra",
          "The fibre registry", "Version creation", "Alias moves"])
 
-sl, y = content("The model algebra", "Core domain · maya/domain/model_algebra.py")
+sl, y = content("The model algebra", "Core domain · core/domain/algebra.py")
 h = code(sl, ML, y, CW * 0.56, [
  "@dataclass(frozen=True)",
  "class ParameterObject:",
@@ -216,7 +216,7 @@ h = code(sl, ML, y, CW, [
  "    return {\"calibrate\": \"T1\", \"estimate\": \"T2\",",
  "            \"train\": \"T4\" if adaptive else \"T3\",",
  "            \"configure\": \"T5\", \"elicit\": \"T7\", \"author\": \"T8\"}[fit]",
-], fs=10.5, title="maya/domain/model_algebra.py")
+], fs=10.5, title="core/domain/algebra.py")
 tf = txt(sl, ML, y + h + 0.30, CW * 0.47, 2.4)
 para(tf, "What this buys", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=8)
 bullets(tf, ["The class is a function of the parameter object and the fitting procedure — never an enum a user picks",
@@ -284,7 +284,14 @@ para(tf, "model class · regime · semiring · artifact format · validation tes
      size=11, color=SLATE, space_after=12, line=1.3)
 para(tf, "Why refuse to boot?", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
 para(tf, "A half-registered fibre would otherwise surface as a confusing runtime error weeks later, in the one place the platform has to be trustworthy. Failing loudly at startup is the cheaper failure.",
-     size=11, color=SLATE, space_after=0, line=1.3)
+     size=11, color=SLATE, space_after=12, line=1.3)
+runs(tf, [("Not built. ", CRIMSON, True),
+          ("A model class is a string on the register today; there is no plugin loader and no "
+           "totality check, so L-15 is stated and not enforced. The extensibility that ", INK, False),
+          ("is", INK, True),
+          (" built is the warrant grammar's: a new model technology is a new value in one "
+           "vocabulary, not a new document type.", INK, False)],
+     size=10.5, space_after=0, line=1.26)
 
 sl, y = content("Version creation — the full path", "Core domain · registry")
 steps(sl, ML, y, CW, [
@@ -320,7 +327,7 @@ h = code(sl, ML, y, CW, [
  "    alias_history.append(cur, new, ref, var, actor, justification)",
  "    outbox.put(CacheInvalidate(...), AliasMoved(...))",
  "monitoring.schedule_post_move_comparison(model_id, env, window=\"P7D\")",
-], fs=9.5, title="maya/registry/aliases.py")
+], fs=9.5, title="core/registry/aliases.py")
 tf = txt(sl, ML, y + h + 0.30, CW, 1.1)
 runs(tf, [("Three things are happening. ", CRIMSON, True),
           ("Substitutability is a ", INK, False), ("proof", INK, True),
@@ -358,7 +365,7 @@ bullets(tf, [("The DAG expresses derivation", "what supports what"),
              ("Personal data is never inline", "only an erasable pointer, so crypto-shredding leaves the chain valid")],
         size=11, gap=7, indent_size=9.5)
 
-sl, y = content("One engine, nine questions", "Governance · semiring evaluation")
+sl, y = content("One engine, six questions", "Governance · semiring evaluation")
 h = code(sl, ML, y, CW * 0.55, [
  "def evaluate(claim, K: Semiring[T], valuation) -> T:",
  "    def go(node):",
@@ -372,26 +379,31 @@ h = code(sl, ML, y, CW * 0.55, [
  "            r = K.plus(r, t)",
  "        return r",
  "    return go(claim.root)                     # memoised",
-], fs=9.5, title="maya/evidence/query.py")
+], fs=9.5, title="core/evidence/engine.py")
 x = ML + CW * 0.59
 data = [["Semiring", "Used by"],
-        ["Boolean", "Lifecycle gates, warrant resolution"],
-        ["Why(X)", "Examiner packs — what must be shown"],
-        ["ℕ[X]", "Tier 1 audit reconstruction"],
-        ["Trust", "Health score, AI-draft discounting"],
-        ["Tropical", "Remediation planning, capacity"],
-        ["Classification", "PII propagation"],
-        ["Admissibility", "Which regulators accept it"],
-        ["Freshness", "Document staleness"]]
+        ["boolean", "Lifecycle gates, warrant resolution"],
+        ["why", "Examiner packs — what must be shown"],
+        ["counting", "Corroboration depth"],
+        ["trust", "Health score, AI-draft discounting"],
+        ["cost", "Remediation planning, capacity"],
+        ["freshness", "Document staleness"],
+        ["— not built —", "ℕ[X], classification, regime admissibility"]]
 table(sl, data, x, y, CW * 0.41, col_w=[1.6, 3.2], row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + 2.45, CW * 0.41, 0.95)
+runs(tf, [("Without ℕ[X] there is no universal object, ", CRIMSON, True),
+          ("so each semiring is its own traversal of the same memoised DAG rather than a "
+           "homomorphic image of one. Six questions, one implementation — and the honest count.",
+           INK, False)], size=10, first=True, space_after=0, line=1.22)
 rect(sl, ML, y + h + 0.28, CW, 0.95, fill=PARCH)
 rect(sl, ML, y + h + 0.28, 0.045, 0.95, fill=CRIMSON)
 tf = txt(sl, ML + 0.30, y + h + 0.42, CW - 0.6, 0.75)
 runs(tf, [("Complexity, stated honestly. ", CRIMSON, True),
-          ("Why-provenance is worst-case exponential in the number of alternatives. Controls: canonical form with absorption, "
-           "memoisation, depth cap, and a hard 4,096-term cap beyond which evaluation degrades to Boolean ⊕ Trust and emits "
-           "truncated=true. ", INK, False), ("A silently partial answer is never returned.", CRIMSON, True)],
-     size=11.5, first=True, space_after=0, line=1.26)
+          ("Why-provenance is worst-case exponential in the number of alternatives. Controls: absorption "
+           "(a ⊕ ab = a), memoisation, and a hard 4,096-term cap beyond which evaluation stops accumulating "
+           "and returns truncated=true. ", INK, False),
+          ("It marks the answer partial — it does not fall back to a cheaper semiring. The marker is the control.", CRIMSON, True)],
+     size=11, first=True, space_after=0, line=1.24)
 
 sl, y = content("The tiering algorithm", "Governance · risk")
 h = code(sl, ML, y, CW * 0.58, [
@@ -411,7 +423,7 @@ h = code(sl, ML, y, CW * 0.58, [
  "return RiskAssessment(fact_snapshot=..., ruleset_version=...,",
  "                      rationale=rules.explain(m, c, tier),   # DR-4",
  "                      next_review_due=..., triggers=...)",
-], fs=9.5, title="maya/risk/tiering.py")
+], fs=9.5, title="core/risk/tiering.py")
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.6)
 para(tf, "Two axes, never one score", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
@@ -456,7 +468,7 @@ h = code(sl, ML, y, CW, [
  "                      \"failing_conjunct\": result.first_false_conjunct,",
  "                      \"facts\": local.as_dict(), \"citation\": result.citation},",
  "        obligations = [s.key for s in inst.sentences if s.is_obligation and s.evaluate(local).value])",
-], fs=9.5, title="maya/regimes/engine.py")
+], fs=9.5, title="core/regimes/engine.py")
 tf = txt(sl, ML, y + h + 0.28, CW * 0.52, 1.9)
 para(tf, "A determination is a derivation, not a flag", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
 para(tf, "“Why is this out of scope?” is answered by the failing conjunct and a clause citation — the same answer, every time it is asked, including in five years by someone who was not there.",
@@ -482,11 +494,16 @@ h = code(sl, ML, y + 0.40, CW * 0.47, [
  "    # each entry carries a remediation link — DR-7",
 ], fs=9.5)
 tf = txt(sl, ML, y + 0.40 + h + 0.26, CW * 0.47, 1.6)
-para(tf, "Six SoD rules, checked twice", size=12, color=INK, bold=True, font=SERIF, first=True, space_after=6)
-para(tf, "developer ≠ validator · owner not sole approver · no self-closure of findings · policy author ≠ publisher · overlay proposer ≠ approver · platform admin has no governance rights",
+para(tf, "Four SoD rules, read from the chain", size=12, color=INK, bold=True, font=SERIF, first=True, space_after=6)
+para(tf, "creator ≠ approver · creator ≠ promoter · creator ≠ concluder of its validation · raiser ≠ closer of a finding",
      size=10.5, color=SLATE, space_after=6, line=1.24)
-para(tf, "Checked at the API and re-checked nightly — a role change creates a retrospective conflict the point-in-time check never sees.",
-     size=10.5, color=SLATE, space_after=0, line=1.24)
+runs(tf, [("Read from the evidence chain, not a second table. ", CRIMSON, True),
+          ("A rule may name the payload field carrying the identity it is about — a finding is raised "
+           "against the model, while the act concerns one finding. Without that, raiser ≠ closer was ",
+           SLATE, False),
+          ("inert over HTTP", INK, True),
+          (": it searched under the finding's own id, found nothing, and permitted everything.", SLATE, False)],
+     size=10.5, space_after=0, line=1.24)
 x = ML + CW * 0.53
 tf = txt(sl, x, y, CW * 0.47, 0.35)
 para(tf, "Baseline import — the day-one problem", size=12.5, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
@@ -502,6 +519,51 @@ runs(tf, [("Why this exists. ", CRIMSON, True),
           ("On import, 1,200 legacy models arrive with no evidence. Without a baseline path every gate fails, every dashboard is "
            "red, and the programme dies by month seven. Debt is a tracked burn-down with a board-approved expiry — ", INK, False),
           ("never rendered in the same colour as a breach.", INK, True)], size=11, first=True, space_after=0, line=1.24)
+
+sl, y = content("Versioned gates — changing a control without weakening it quietly",
+                "Governance · policy")
+tf = txt(sl, ML, y, CW, 0.52)
+runs(tf, [("A gate that cannot change without a release is a gate people work around. A gate that ", INK, False),
+          ("can", INK, True),
+          (" change without one is a gate that can be ", INK, False),
+          ("weakened", CRIMSON, True),
+          (" without one, which is worse. Everything here makes the first possible without making the second silent.", INK, False)],
+     size=12, first=True, space_after=0, line=1.26)
+h = code(sl, ML, y + 0.62, CW * 0.53, [
+ "# a rule is a PREDICATE, not a program",
+ "blocking_findings == 0 and tier is not None",
+ "  and all(d in accepted for d in required_docs)",
+ "",
+ "# whitelisted at the AST: comparison, membership,",
+ "#   and / or / not, any / all, six functions.",
+ "# NO loops, assignment, def, attribute access,",
+ "#   subscripting.",
+], fs=9, title="core/policy/language.py")
+tf = txt(sl, ML, y + 0.62 + h + 0.22, CW * 0.53, 1.25)
+runs(tf, [("Rego was the obvious answer and was not taken. ", CRIMSON, True),
+          ("A gate written in a general language is a program, and a reviewer signing off a "
+           "governance control would have to run it to know what it does.", INK, False)],
+     size=10.5, first=True, space_after=0, line=1.24)
+x = ML + CW * 0.57
+data = [["Property", "What it prevents"],
+        ["A fact the gate does not publish is refused when the rule is WRITTEN",
+         "A rule failing at the moment of a governance decision"],
+        ["A policy ships with its cases, and one must REFUSE",
+         "A policy nobody has shown to be a gate"],
+        ["Publishing replays the OUTGOING version's cases against the new rule",
+         "A loosened gate discovered rather than decided"],
+        ["Authoring and publishing are separate; a published version supersedes, never edits",
+         "One person changing a control end to end"]]
+table(sl, data, x, y + 0.62, CW * 0.43, col_w=[2.6, 2.7], row_h=0.70, fs=9, hfs=9.5,
+      bold_col0=True, first_col_color=CRIMSON)
+rect(sl, ML, y + 4.02, CW, 0.70, fill=CRIMSON)
+tf = txt(sl, ML + 0.32, y + 4.13, CW - 0.64, 0.56)
+runs(tf, [("The honest boundary. ", WHITE, True),
+          ("Policy tightens; the code's invariants are the floor. A rule runs in addition to the "
+           "registry's checks, never instead of them — because replacing an invariant with a line of "
+           "configuration means a typo can weaken the platform while the deployment looks successful.",
+           RGBColor(0xF6,0xE0,0xE4), False)],
+     size=11, first=True, space_after=0, line=1.24)
 
 sl, y = content("Documentation — two kinds, held apart", "Governance \u00b7 documentation")
 tf = txt(sl, ML, y, CW * 0.47, 0.35)
@@ -565,7 +627,7 @@ h = code(sl, ML, y, CW * 0.56, [
  "report = verify_pit(snap, spine, views, as_of)       # LAYER 2",
  "if not report.passed:",
  "    findings.raise_(severity=\"Critical\", category=\"leakage\", ...)",
-], fs=9.5, title="maya/features/assembly.py")
+], fs=9.5, title="core/features/assembly.py")
 x = ML + CW * 0.60
 h2 = code(sl, x, y, CW * 0.40, [
  "LEFT JOIN LATERAL (",
@@ -658,6 +720,78 @@ data = [["Class", "Default metrics"],
         ["T6 opaque", "Own-outcomes divergence"],
         ["T8 authored", "Rule-fire distribution, exception rate"]]
 table(sl, data, x, y + 1.58, CW * 0.47, col_w=[1.7, 4.0], row_h=0.32, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
+
+sl, y = content("Telemetry — monitoring's missing half", "Data · ingestion")
+tf = txt(sl, ML, y, CW, 0.50)
+runs(tf, [("Monitors could always be evaluated. They had to be ", INK, False), ("handed", INK, True),
+          (" their rows — which made monitoring something somebody remembered to do, and left the "
+           "scheduler able only to record that a monitor had stopped.", INK, False)],
+     size=12.5, first=True, space_after=0, line=1.28)
+bw = (CW - 0.5) / 2
+rect(sl, ML, y + 0.62, bw, 1.15, fill=WHITE, line=RULE)
+rect(sl, ML, y + 0.62, bw, 0.05, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, y + 0.76, bw - 0.52, 0.95)
+para(tf, "scores", size=13, color=CRIMSON, bold=True, font=MONO, first=True, space_after=3)
+para(tf, "What the model produced, when it produced it. entity_id · scored_at · score",
+     size=10.5, color=SLATE, space_after=0, line=1.2)
+rect(sl, ML + bw + 0.5, y + 0.62, bw, 1.15, fill=WHITE, line=RULE)
+rect(sl, ML + bw + 0.5, y + 0.62, bw, 0.05, fill=NAVY)
+tf = txt(sl, ML + bw + 0.76, y + 0.76, bw - 0.52, 0.95)
+para(tf, "outcomes", size=13, color=NAVY, bold=True, font=MONO, first=True, space_after=3)
+para(tf, "What actually happened, learned later. entity_id · label · label_ts",
+     size=10.5, color=SLATE, space_after=0, line=1.2)
+tf = txt(sl, ML, y + 1.90, CW, 0.42)
+runs(tf, [("Two streams, never one. ", CRIMSON, True),
+          ("The gap between them is precisely what the delayed-label discipline reasons about, so "
+           "flattening them would take that reasoning away before it started.", INK, False)],
+     size=11.5, first=True, space_after=0, line=1.26)
+data = [["Rule", "The failure it prevents"],
+        ["Idempotent on the digest of the batch's own rows",
+         "Real collectors deliver at least once. A monitor that double-counts a redelivered batch reports a population that never existed"],
+        ["A row without its OWN timestamp is refused",
+         "Stamping it with the batch's arrival time is how every window silently becomes wrong"],
+        ["The sample rate travels on every row",
+         "A statistic that cannot say what population it speaks for"],
+        ["The join happens at READ time against a stated moment, and unlabelled rows come back unlabelled",
+         "A cohort that looks complete and is not — the monitor decides maturity per row, and a join that dropped the unlabelled would decide for it"],
+        ["A drift monitor's reference window is STATED",
+         "“What is this drifting from” being part of whoever ran it rather than part of the record"]]
+table(sl, data, ML, y + 2.40, CW, col_w=[3.6, 8.0], row_h=0.50, fs=10, hfs=10.5,
+      bold_col0=True, first_col_color=CRIMSON)
+
+sl, y = content("Version approval is a quorum, and its depth follows the tier",
+                "Governance · approval")
+tf = txt(sl, ML, y, CW, 0.48)
+runs(tf, [("The model ", INK, False), ("record", INK, True),
+          (" was attested by several people while the ", INK, False), ("version", INK, True),
+          (" — the thing that actually runs — was approved by one.", INK, False)],
+     size=12.5, first=True, space_after=0, line=1.28)
+data = [["Tier", "Who must sign", "Why"],
+        ["1 and 2", "model_risk_manager AND validator",
+         "The same adjunction (L-5) that decides every other control set. Depth of control follows materiality"],
+        ["3 and 4", "one authorised person",
+         "Saying so beats pretending a scheduling heuristic deserves the ceremony of a capital model"],
+        ["no tier", "— refused outright —",
+         "Approving first and assessing afterwards would be a way of choosing your own control depth, and it is the obvious way to game a rule like this one"]]
+th = table(sl, data, ML, y + 0.58, CW, col_w=[1.3, 3.4, 6.9], row_h=0.62, fs=10.5,
+           bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, ML, y + 0.58 + th + 0.24, CW * 0.48, 1.7)
+para(tf, "Three refusals worth the code", size=12, color=INK, bold=True, font=SERIF,
+     first=True, space_after=6)
+bullets(tf, [("One decline closes it", "the version returns to its author, and the decline is counted before the quorum is"),
+             ("No signing twice under two roles", "a quorum is a number of people, not a number of hats"),
+             ("Signing is its own permission", "a validator signs a quorum and may never approve alone")],
+        size=10, gap=5, indent_size=9)
+x = ML + CW * 0.53
+rect(sl, x, y + 0.58 + th + 0.24, CW * 0.47, 1.45, fill=PARCH)
+rect(sl, x, y + 0.58 + th + 0.24, 0.045, 1.45, fill=CRIMSON)
+tf = txt(sl, x + 0.26, y + 0.58 + th + 0.36, CW * 0.47 - 0.5, 1.22)
+runs(tf, [("The schema does half of it. ", CRIMSON, True),
+          ("UNIQUE (approval, role) enforces one signature per role. The other half — that one "
+           "person may not sign twice under two hats — ", INK, False),
+          ("cannot be a constraint", INK, True),
+          (" and lives in the service, because it is about people rather than about rows.",
+           INK, False)], size=10.5, first=True, space_after=0, line=1.22)
 
 sl, y = content("Featuresets — X becomes an object", "Data \u00b7 the feature platform")
 tf = txt(sl, ML, y, CW * 0.56, 0.35)
@@ -764,14 +898,14 @@ para(tf, "Every model a bank runs differs along exactly four independent axes. T
          "so a new model technology is a new value in one vocabulary — not a new document type.",
      size=12.5, color=SLATE, first=True, space_after=0, line=1.3)
 yy = y + 0.72
-AXES = [("1  Parameter object", "how P is inhabited",
+AXES = [("1  Parameter object  ·  8", "how P is inhabited",
          "none · calibration_set · estimated_coefficients · learned_weights · llm_configuration · rule_set · elicited_weights · opaque"),
-        ("2  Realisation", "how the kernel becomes runnable",
-         "quantlib · onnx · pmml · python.callable · container · sql · spreadsheet · rules · solver · llm.prompt · llm.agent · descriptor_only"),
-        ("3  Operation", "what is asked of it",
+        ("2  Realisation  ·  17", "how the kernel becomes runnable",
+         "quantlib · onnx · pmml · pfa · python.callable · container · rest · sql · spreadsheet · rules · solver · sas · r · matlab · llm.prompt · llm.agent · descriptor_only"),
+        ("3  Operation  ·  10", "what is asked of it",
          "score · fit · validate · backtest · explain · simulate · stress · optimise · generate · monitor"),
-        ("4  Data binding", "where its data comes from",
-         "request · feature_namespace · dataset_snapshot · market_data · document_corpus · stream · scenario_set · sql_query")]
+        ("4  Data binding  ·  12", "where its data comes from",
+         "inline · request · feature_namespace · featureset · dataset_snapshot · delta_table · sql_query · stream · market_data · document_corpus · scenario_set · artifact")]
 for i, (name, gloss, values) in enumerate(AXES):
     rect(sl, ML, yy, CW, 0.80, fill=PARCH if i % 2 == 0 else None,
          line=RGBColor(0xD8,0xD4,0xCF))
@@ -814,26 +948,29 @@ runs(tf, [("The first two rows are the argument. ", CRIMSON, True),
 
 sl, y = content("What the grammar refuses, and why", "Execution · admissibility")
 tf = txt(sl, ML, y, CW, 0.56)
-para(tf, "The load-bearing laws are not invented for the grammar. They fall out of the algebra: the trainability "
-         "class is DERIVED from how the parameter object is inhabited, so what a class admits is what the class means.",
-     size=12.5, color=SLATE, first=True, space_after=0, line=1.3)
+para(tf, "Not invented for the grammar. They fall out of the algebra: the trainability class is DERIVED from how "
+         "the parameter object is inhabited, so what a class admits is what the class means.",
+     size=11.5, color=SLATE, first=True, space_after=0, line=1.25)
 data = [["Law", "Refuses", "Because"],
+        ["L-W0", "a malformed document", "ten sections, a known verb, a runtime without its entry keys"],
         ["L-W1", "fit on T0 or T6", "T0's parameters come from theory; T6's are inside a vendor black box"],
         ["L-W2", "generate on a non-generative runtime", "an ONNX graph does not produce prose"],
         ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so not shown leak-free"],
         ["L-W4", "a fit with no parameter_object sink", "a fit produces a NEW parameter object, it does not edit the old one"],
         ["L-W5", "claimed determinism with no seed", "an LLM at temperature 0.7 is not reproducible, and would be believed"],
         ["L-W6", "fit on a descriptor-only model", "you cannot inhabit what nothing on this side can reach"],
-        ["L-W7", "a backtest with no outcomes", "that is a re-score wearing a backtest's name"]]
-th = table(sl, data, ML, y + 0.66, CW, col_w=[1.1, 3.6, 6.9], row_h=0.44, fs=10.5,
+        ["L-W7", "a backtest with no outcomes", "that is a re-score wearing a backtest's name"],
+        ["L-W8", "a run that will not name its point in P", "training does not change the kernel, so a run declining to say which inhabitant it runs at produces a number attributable to nothing"],
+        ["L-W9", "a featureset read for training, unbounded in either clock", "the set fixes the columns; the warrant must fix the period"],
+        ["L-W10", "a featureset that does not provide what the kernel reads", "contravariance in inputs — L-12, one level out. Checked at issuance: it needs the register, not the document"]]
+th = table(sl, data, ML, y + 0.44, CW, col_w=[0.85, 3.15, 7.6], row_h=0.26, fs=8.5, hfs=9,
            bold_col0=True, first_col_color=CRIMSON)
-rect(sl, ML, y + 0.66 + th + 0.24, CW, 0.72, fill=PARCH)
-rect(sl, ML, y + 0.66 + th + 0.24, 0.045, 0.72, fill=CRIMSON)
-tf = txt(sl, ML + 0.30, y + 0.66 + th + 0.36, CW - 0.6, 0.56)
+tf = txt(sl, ML, y + 0.44 + th + 0.06, CW, 0.44)
 runs(tf, [("Validated before signed, never after. ", CRIMSON, True),
-          ("A signature over a non-conforming document would assure that it is authentic and not that it is "
-           "usable — and an engine would reasonably read it as both.", INK, False)],
-     size=11.5, first=True, space_after=0, line=1.26)
+          ("A signature over a non-conforming document would assure it is authentic and not that it is usable, "
+           "and an engine would read it as both. ", INK, False),
+          ("L-W8 caught a real error in a shipped example the day it was written.", INK, True)],
+     size=9.5, first=True, space_after=0, line=1.18)
 
 sl, y = content("Warrant resolution", "Execution · the hot path")
 h = code(sl, ML, y, CW * 0.60, [
@@ -854,12 +991,12 @@ h = code(sl, ML, y, CW * 0.60, [
  "        d = sign(build_descriptor(row, ent, req))",
  "        redis.setex(key, ttl_with_jitter(row.tier), d)",
  "    return d",
-], fs=9, title="maya/warrants/resolver.py")
+], fs=9, title="core/execution/warrants.py")
 x = ML + CW * 0.64
 tf = txt(sl, x, y, CW * 0.36, 3.7)
 para(tf, "How p99 < 50 ms is met", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
 bullets(tf, [("Never touch the primary", "warrant_projection is served from a read replica — and it is the ONLY table this service knows"),
-             ("Common case is a Redis GET", "plus one Ed25519 verification"),
+             ("Common case is a Redis GET", "plus one signature check — HMAC-SHA256 today, Ed25519 the production target"),
              ("Two cache tiers", "in-process LRU in front of Redis"),
              ("Schema decoupling", "the projection is a published contract with its own version, so a control-plane migration cannot break the one component that must never break")],
         size=11, gap=7, indent_size=9.5)
@@ -932,7 +1069,7 @@ h = code(sl, ML, y, CW * 0.58, [
  "        draft = grounding_gate(draft, ctx)",
  "    ai_generations.record(cap, draft, ctx)",
  "    return CapabilityResult(draft=draft, requires_attestation=True)",
-], fs=9.5, title="maya/ai/runner.py")
+], fs=9.5, title="core/assist/capabilities.py")
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.6)
 para(tf, "Two tiers, one criterion", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
@@ -955,7 +1092,7 @@ h = code(sl, ML, y, CW * 0.58, [
  "    draft.numbers = interpolate_from_evidence(draft.number_slots, ctx)",
  "    draft.mark_unverified(draft.unmapped_sentences)",
  "    return draft",
-], fs=9.5, title="maya/ai/grounding.py")
+], fs=9.5, title="core/assist/grounding.py")
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.6)
 para(tf, "Verification, not another model call", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
@@ -1028,6 +1165,58 @@ data = [["Group", "Endpoints"],
         ["Admin", "/model-classes · /lifecycles · /templates · /regimes · /connectors · /users"]]
 table(sl, data, ML, y, CW, col_w=[1.8, 9.8], row_h=0.275, fs=10, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 
+sl, y = content("Single sign-on — and the part of it that is not mechanical",
+                "Interfaces · identity")
+tf = txt(sl, ML, y, CW * 0.52, 0.35)
+para(tf, "The mechanical half", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
+h = code(sl, ML, y + 0.40, CW * 0.52, [
+ "# authorisation code + PKCE + state + nonce",
+ "recovered = pow(sig, e, n)",
+ "expected  = b\"\\x00\\x01\" + b\"\\xff\" * pad + b\"\\x00\" \\",
+ "          + SHA256_DIGEST_INFO + digest",
+ "return hmac.compare_digest(recovered, expected)",
+ "",
+ "# and the algorithm is DECIDED, never read:",
+ "if header[\"alg\"] != \"RS256\": raise unsupported",
+], fs=9, title="core/authz/jws.py — standard library only")
+tf = txt(sl, ML, y + 0.40 + h + 0.24, CW * 0.52, 2.0)
+bullets(tf, [("CONSTRUCT the padded block, never parse what you recover",
+              "that is the difference between correct PKCS#1 v1.5 and the Bleichenbacher forgery, which works precisely against verifiers that parse"),
+             ("Decide the algorithm; do not read alg from the token",
+              "the other famous way a JWT is accepted with no signature at all"),
+             ("No crypto dependency, by design",
+              "a governance system that cannot be deployed air-gapped is one somebody works around — the same reason every front-end asset is vendored")],
+        size=10.5, gap=7, indent_size=9.5)
+x = ML + CW * 0.56
+tf = txt(sl, x, y, CW * 0.44, 0.35)
+para(tf, "The half that is not", size=12.5, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
+tf = txt(sl, x, y + 0.42, CW * 0.44, 1.15)
+runs(tf, [("An identity provider that grants MAYA roles is one that ", INK, False),
+          ("decides segregation of duties", CRIMSON, True),
+          (" — and the person administering it is very often the person whose duties are being segregated.",
+           INK, False)], size=11.5, first=True, space_after=0, line=1.26)
+data = [["Rule", "Because"],
+        ["Group claims are MAPPED, never obeyed",
+         "A group with no mapping grants nothing, and never grants itself"],
+        ["The incompatible-roles check applies to a directory exactly as to a local principal",
+         "A group mapping to a conflicting pair refuses the LOGIN — not accepting both, not quietly reducing to one"],
+        ["Checked BEFORE provisioning",
+         "So the lesser problem cannot hide the greater"],
+        ["Provisioning on first login is OFF by default",
+         "Otherwise everybody in the directory has a foothold in the model register"],
+        ["Issuer, subject and the groups that produced the roles are recorded",
+         "“Why did this person hold that role in March” survives the directory moving on. The token is not recorded"]]
+table(sl, data, x, y + 1.68, CW * 0.44, col_w=[2.4, 2.9], row_h=0.60, fs=8.5, hfs=9,
+      bold_col0=True, first_col_color=CRIMSON)
+rect(sl, ML, y + 4.42, CW, 0.62, fill=PARCH)
+rect(sl, ML, y + 4.42, 0.045, 0.62, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, y + 4.52, CW - 0.6, 0.50)
+runs(tf, [("No SAML and no SCIM. ", CRIMSON, True),
+          ("OIDC is supported; a SAML-only directory and automatic deprovisioning are not, so ", INK, False),
+          ("a leaver is suspended by hand", INK, True),
+          (" — which is an operational obligation worth stating here rather than discovering in an access review.", INK, False)],
+     size=11, first=True, space_after=0, line=1.24)
+
 sl, y = content("Front end and SDK", "Interfaces · clients")
 tf = txt(sl, ML, y, CW * 0.47, 0.35)
 para(tf, "maya-web — a separate process", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
@@ -1069,7 +1258,7 @@ h = code(sl, ML, y, CW * 0.52, [
  "    tx.outbox.put(event)           # the only way out",
  "",
  "# commit → relay → Kafka / Delta / cache invalidation",
-], fs=10, title="maya/platform/db.py")
+], fs=10, title="db/database.py")
 tf = txt(sl, ML, y + h + 0.28, CW * 0.52, 2.2)
 para(tf, "Rules that follow", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
 bullets(tf, ["Nothing outside platform/db opens a transaction — components receive a UnitOfWork",
@@ -1179,7 +1368,7 @@ tf = txt(sl, x, y, CW * 0.47, 0.35)
 para(tf, "Test suites and what each proves", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Suite", "Proves"],
         ["Unit", "Domain algebra correctness (≥90% on domain/)"],
-        ["Laws L-1…L-18", "The formal properties hold under generated inputs"],
+        ["Laws — the executable ones", "L-4, L-5, L-7, L-12, L-18, L-19 and the eleven warrant laws. The rest are stated and not yet executable, and 00 §12 says which"],
         ["Integration", "Repository and service paths against real infrastructure"],
         ["Contract", "API matches the spec; SDK round-trips"],
         ["Adversarial", "Leakage injection · RLS negative tests · stampede load · malicious artifacts"],
@@ -1206,7 +1395,7 @@ outs = [("Immutability is enforced, not asserted",
         ("The compliant path is the fast path",
          "SDK-first, schema-generated forms, compiled documentation. If governance is slower than the workaround, the inventory rots."),
         ("The theory is tested",
-         "Eighteen laws as property tests. A failing law fails the build — which is what stops a foundation decaying into decoration.")]
+         "Seventeen laws run today and a failing one fails the build. The remaining twelve are stated and marked as not yet executable — because a document claiming all of them run is the decay it was written to prevent.")]
 cw2 = (CW - 0.30 * 2) / 3
 for i, (t, d) in enumerate(outs):
     card(sl, ML + (i % 3) * (cw2 + 0.30), y + (i // 3) * 2.30, cw2, 2.10, f"0{i+1}", t, d)

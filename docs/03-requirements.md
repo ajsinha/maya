@@ -356,6 +356,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-FEA-017 | Delta Lake **time travel** and retention configured per feature view; minimum retention by regulatory class. | M | 01 §5.3 |
 | FR-FEA-018 | **Derived features**: a feature computed from others, `Z = f(X, Y)`, with a declared and versioned expression, recorded lineage, an ingest clock inherited as the maximum over its inputs, and refusal of any derivation that reads a label. | M | — |
 | FR-FEA-019 | **Featuresets**: a named, versioned presentation of `X` — a declared schema of slots, and versions binding each slot to a feature and to the exact feature view version supplying it. Reusable across models; checked against a kernel's declared input schema before a warrant may name it. | M | — |
+| FR-FEA-020 | **Roll-forward**: mint a featureset version re-resolved to current feature view versions, reporting the slots that moved. Publishing a view version must never alter an existing featureset version. | M | — |
 | FR-FEA-021 | **Dimensionality**: a feature declares a shape (scalar, vector, matrix, tensor) and optional component names for its first axis; the component order is the axis order, and the declared shape is checked against the values that arrive. | M | — |
 | FR-FEA-022 | **Composition**: a feature or featureset may compose from one or more others, resolved by a left-to-right fold in which the rightmost wins, with the object's own operations applied last. | M | — |
 | FR-FEA-023 | Composition operations (`add`, `drop`, `override`) are **total**: each is refused when it would have no effect. Cycles and compositions of ephemeral objects are refused. | M | — |
@@ -368,11 +369,45 @@ Each requirement carries regulatory traceability where applicable.
 | FR-FEA-030 | **Point-in-time normalisation**: statistics are fitted only from rows knowable at a stated `as_of`; a request without one is refused. The fitted statistics are returned with the data. | M | — |
 | FR-FEA-031 | **Missing values**: null, NaN and infinity are treated alike; fitted fill strategies require an `as_of`; the fill rate is reported and flagged past a threshold. Statistics are fitted on observed values before anything is filled. | M | — |
 | FR-FEA-032 | **Alignment** onto a chosen axis with a stated fill rule. Rules that fill from a later observation are permitted and stamped with the ingest time at which the value became knowable, so a point-in-time read excludes them. | M | — |
-| FR-FEA-020 | **Roll-forward**: mint a featureset version re-resolved to current feature view versions, reporting the slots that moved. Publishing a view version must never alter an existing featureset version. | M | — |
+
+### 6.4a Module: The Parameter Object (`FR-PAR`)
+
+*Split out of `FR-FEA` because it is the other letter of `f : P ⊗ X → D(Y)`, and filing it under
+feature management was how a fit came to be discussed as though it were a data-preparation step.*
+
+| ID | Requirement | Pri | Traceability |
+|---|---|---|---|
 | FR-PAR-001 | **Parameter sets**: store the inhabitant of `P` an execution engine returns, bound to the model version, featureset version, window and `as_of` that produced it. A fit produces a parameter set and **not** a model version. | M | — |
 | FR-PAR-002 | A fitted parameter set is accepted **only** against a warrant MAYA issued, and only when it names the featureset version it was fitted from. | M | — |
 | FR-PAR-003 | Provenance is `fitted`, `calibrated` or `declared`, governed to different depths: each fitted set approved individually, a calibration procedure approved once, declared parameters attested. | M | — |
 | FR-PAR-004 | A parameter set is immutable and approved by somebody other than whoever recorded it; resolution refuses rather than guesses when a version has more than one approved set. | M | — |
+
+### 6.4b Module: Bulk Feature Transfer (`FR-XFR`)
+
+*A feature value is not a governance document, and an API shaped for one is the wrong shape for the
+other. This module exists because that difference has consequences a requirement has to state.*
+
+| ID | Requirement | Pri | Traceability |
+|---|---|---|---|
+| FR-XFR-001 | **Nothing is materialised whole.** Reads iterate record batches off the store and writes parse a batch at a time; peak memory is one batch rather than one dataset. | M | — |
+| FR-XFR-002 | Batches are sized by **cells rather than rows**, because a fixed row count means one thing at six columns and another at two thousand. | M | — |
+| FR-XFR-003 | Four formats — `arrow` for an execution engine, `parquet` for disk, `ndjson` for anything, `json` hard-capped for a page — negotiated by explicit parameter or `Accept`. | M | — |
+| FR-XFR-004 | Reads use the **pinned** Delta version, so what comes out is what a version *is* rather than what its path has since become. A featureset exposes its parts and their pins so an engine can read them in parallel. | M | FR-FEA-019 |
+| FR-XFR-005 | An upload missing either clock is refused **at the upload**, not two layers later during assembly where it stops being fixable. | M | FR-FEA-003 |
+
+### 6.4c Module: Telemetry Ingestion (`FR-TEL`)
+
+*Monitoring could always be evaluated; it had to be handed its rows, which made it something somebody
+remembered to do.*
+
+| ID | Requirement | Pri | Traceability |
+|---|---|---|---|
+| FR-TEL-001 | **Two bitemporal streams per version** — a *score* exists when the model runs, an *outcome* is learned later. Flattening them into one removes the distinction the delayed-label discipline reasons about. | M | FR-MON-004 |
+| FR-TEL-002 | Ingestion is **idempotent on the digest of the batch's own rows**: real collectors deliver at least once, and a monitor that double-counts a redelivered batch reports a population that never existed. | M | — |
+| FR-TEL-003 | A row without its **own** timestamp is refused rather than stamped with the batch's arrival time. | M | — |
+| FR-TEL-004 | The **sample rate travels on every row**, so a statistic can say what population it speaks for. | M | — |
+| FR-TEL-005 | The join happens **at read time against a stated moment**, and unlabelled rows come back unlabelled rather than dropped — the monitor decides maturity per row. | M | FR-MON-004 |
+| FR-TEL-006 | A drift monitor's reference distribution is drawn from a **stated** earlier window, so *what is this drifting from* is part of the record rather than part of whoever ran it. | M | FR-FEA-012 |
 
 ### 6.5 Module: Lifecycle & Workflow (`FR-LC`)
 
@@ -392,6 +427,13 @@ Each requirement carries regulatory traceability where applicable.
 | FR-LC-012 | **Campaign engine** for periodic activities (revalidation, attestation, monitoring review) that generates, assigns and tracks populations. | S | — |
 | FR-LC-013 | **Model intake / use-case triage** for new proposals, including build-vs-buy, GenAI boundary determination, and early scope determination. | S | GAICF |
 | FR-LC-014 | Reference-data-driven **notification and escalation** (email, Teams/Slack, webhook) on state changes, SLA breach, and breaches. | M | — |
+| FR-LC-015 | **Version approval is a quorum whose depth follows the tier**, by the same adjunction (`L-5`) that decides every other control set: Tier 1 and 2 require the second line *and* an independent validator; Tier 3 and 4 require one authorised person. | M | SR 26-2 VI |
+| FR-LC-016 | One decline returns the version to its author. The same person may not sign twice under two roles — a quorum is a number of people, not a number of roles. | M | — |
+| FR-LC-017 | **A version whose model has no tier cannot be approved at all**: approving first and assessing afterwards is a way of choosing your own control depth. | M | FR-TIER-001 |
+| FR-LC-018 | **Signing a quorum is its own permission**, distinct from approving alone: a validator signs and may never approve unilaterally. | M | FR-SEC-005 |
+| FR-LC-019 | **Delivery, not a queue.** Outstanding work is already derived from the register; what a digest adds is that something reaches out. A **digest per person per run**, never a message per item, because a message per finding is how somebody starts filtering the sender. | M | FR-LC-014 |
+| FR-LC-020 | **Silence when nothing has changed**: each delivery records the digest of the work it described, and an unchanged worklist is suppressed until a quiet period passes. A control everybody ignores is not a control. | M | — |
+| FR-LC-021 | Escalation is **by role rather than hierarchy** — MAYA does not know who reports to whom. A failed delivery is recorded and raises evidence: silence about a failed send is how somebody concludes they were never told. | M | — |
 
 ### 6.6 Module: Training, Calibration & Experimentation (`FR-TRN`)
 
@@ -518,8 +560,12 @@ Detailed protocol in [06 — Warrants and Execution](06-warrants-and-execution.m
 
 | ID | Requirement | Pri |
 |---|---|---|
-| FR-SEC-001 | SSO via OIDC/SAML; SCIM provisioning; MFA enforcement for privileged actions. | M |
-| FR-SEC-002 | **RBAC + ABAC**: roles (developer, owner, validator, approver, auditor, admin, examiner, service) combined with attributes (legal entity, business unit, domain, data classification, geography). | M |
+| FR-SEC-001 | **SSO via OIDC**: the authorisation-code flow with PKCE, a state parameter and a nonce, all checked. SAML, SCIM and MFA are **out of scope for release 1** (see §11) — a leaver is suspended by hand, and saying so is better than implying a deprovisioning path that does not exist. | M |
+| FR-SEC-001a | **Group claims are mapped, never obeyed.** A group with no mapping grants nothing. An identity provider that grants MAYA roles is one that decides segregation of duties, and the person administering it is very often the person whose duties are being segregated. | M |
+| FR-SEC-001b | **The incompatible-roles check applies to a directory exactly as to a local principal**, and is evaluated *before* provisioning so the lesser problem cannot hide the greater. A group mapping to a conflicting pair refuses the login rather than accepting both or quietly reducing to one. | M |
+| FR-SEC-001c | Provisioning on first login is **off by default**: it hands everybody in the directory a foothold in the model register. The issuer, subject and the groups that produced the roles are recorded, so *why did this person hold that role in March* survives the directory moving on. | M |
+| FR-SEC-001d | Token signature verification must not depend on an external cryptography service or on the token's own `alg` claim, and a governance system must be deployable air-gapped. | M | 
+| FR-SEC-002 | **RBAC + ABAC**: eight roles across three lines of defence, over a closed vocabulary of named permissions, combined with scope attributes. Incompatible role pairs are refused at assignment. | M |
 | FR-SEC-003 | Row-level and field-level authorisation, enforced in the data layer (Postgres RLS) as well as the API. | M |
 | FR-SEC-004 | **Immutable, hash-chained audit log** of every read of sensitive data and every write, with actor, timestamp, before/after, request id and justification where required. | M |
 | FR-SEC-005 | **Segregation of duties** rule engine with periodic access recertification. | M |
@@ -528,6 +574,28 @@ Detailed protocol in [06 — Warrants and Execution](06-warrants-and-execution.m
 | FR-SEC-008 | **Examiner/auditor read-only persona** with scoped, time-boxed, fully-logged access. | M |
 | FR-SEC-009 | Encryption at rest (KMS/CMK) and in transit (TLS 1.3); optional field-level encryption for PII in feature stores. | M |
 | FR-SEC-010 | **Break-glass** access with dual authorisation, automatic expiry and mandatory post-hoc review. | M |
+| FR-SEC-011 | **Segregation of duties is read from the evidence chain**, not from a second who-did-what table. Two records of who did what are two records that can disagree. | M |
+| FR-SEC-012 | A duty rule may name the **payload field** carrying the identity it is about, because an evidence node's subject is not always the thing an act concerns — a finding is raised against the *model*, while the act being checked is about one *finding*. | M |
+| FR-SEC-013 | **Documents attached to a version are content-addressed and re-hashed on read**: what an approver accepted is what a reader fetches, checked rather than assumed. | M |
+| FR-SEC-014 | **Attachment review is segregated twice** — by role grant and again in the register — so the person who filed a document cannot accept or reject it. Rejection requires a reason and the rejected document stays on file. | M |
+| FR-SEC-015 | Each attachment records whether its bytes are text the platform can genuinely read, so later machine review knows what has been read and what has only been stored. | M |
+
+### 6.13aa Module: Versioned Policy Gates (`FR-POL`)
+
+*A gate that cannot be changed without a release is a gate people work around; a gate that can be
+changed without one is a gate that can be **weakened** without one. These requirements make the first
+possible without making the second silent.*
+
+| ID | Requirement | Pri |
+|---|---|---|
+| FR-POL-001 | A rule is a **predicate over a closed vocabulary of published facts** — comparison, membership, boolean connectives, two quantifiers — with no loops, assignment, function definitions, attribute access or subscripting. A rule must be something a reviewer can reason about rather than something they have to run. | M |
+| FR-POL-002 | A fact a gate does not publish is refused **when the rule is written**. A rule that failed at the moment of a governance decision would have failed at the worst possible time. | M |
+| FR-POL-003 | **A policy ships with its own cases and cannot be published until they pass**, and at least one must be a case it *refuses*: a policy nobody has shown to refuse anything is a policy nobody has shown to be a gate. | M |
+| FR-POL-004 | **Weakening is allowed and never quiet.** On publication the register replays the outgoing version's cases against the incoming rule and reports every verdict that flipped, so a change that loosens a gate is something somebody decided rather than something somebody discovered. | M |
+| FR-POL-005 | Authoring and publishing are **separate permissions**; a published version is immutable and superseded rather than edited. | M |
+| FR-POL-006 | **An instance that publishes nothing runs exactly what it ran before**: the built-in rules are the default for every gate, expressed in the same language. | M |
+| FR-POL-007 | **Policy tightens; the code's invariants are the floor.** A rule runs in addition to the registry's checks, never instead of them — replacing an invariant with configuration means a typo can weaken the platform while the deployment looks successful. | M |
+| FR-POL-008 | There is no `warn` verdict. A gate that warns is a gate that is not a gate. | M |
 
 ### 6.13a Module: Machine Assistance (`FR-AI`)
 
@@ -704,7 +772,9 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | Clear roles, accountability, conflict-of-interest management | SR 26-2 VI | FR-INV-008; FR-LC-004; FR-VAL-011; FR-SEC-005 |
 | Effective challenge by competent, independent, empowered reviewers | SR 26-2 III, V | FR-VAL-001..011 |
 | Development: clear statement of purpose, testing commensurate with risk | SR 26-2 IV; SS1/23 3.1, 3.3 | FR-INV-005; FR-TRN-001/002; FR-VAL-002 |
-| Data suitability, representativeness, bias, adjustments, alternative data | SS1/23 3.2 | FR-FEA-001/011/013/016; FR-INV-002 |
+| Data suitability, representativeness, bias, adjustments, alternative data | SS1/23 3.2 | FR-FEA-001/011/013/016; FR-FEA-021/029..032 (shape, retrieval policy, point-in-time normalisation and alignment); FR-INV-002 |
+| Data definitions understood and consistently applied across models | SS1/23 3.2; BCBS 239 | FR-FEA-019/020 (one named schema, filled per version); FR-FEA-022..024 (composition, resolved at read time, with the layer that decided each member) |
+| Records survive the departure of the people who made them | SR 26-2 VI | FR-FEA-025..028 (sealing, ephemerality, creator against owner); FR-SEC-001c |
 | Validation: conceptual soundness, outcomes analysis, ongoing monitoring | SR 26-2 V | FR-VAL-001/002/012; FR-MON-* |
 | Risk-based validation timing (no fixed annual rule) | SR 26-2 V | FR-VAL-008 |
 | Use before validation permitted with limits and closer monitoring | SR 26-2 V | FR-LC-006; FR-WARRANT-006 |
@@ -726,7 +796,12 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 | Adverse action: specific, accurate principal reasons | ECOA/Reg B; CFPB | FR-DOC-002 (reason-code dictionary); FR-VAL-002 (fairness); FR-MON-005 |
 | Search for less discriminatory alternatives | CFPB | FR-TRN-009; FR-VAL-002 |
 | Risk data aggregation: accuracy, completeness, timeliness, lineage | BCBS 239 | FR-FEA-008/018/019; evidence graph |
-| Reproducibility of a model's parameters and the data that produced them | SR 26-2 V; SS1/23 4.3 | FR-PAR-001..004; `L-W8`, `L-W9` |
+| Reproducibility of a model's parameters and the data that produced them | SR 26-2 V; SS1/23 4.3 | FR-PAR-001..004; FR-XFR-004 (reads at the pinned version); `L-W8`, `L-W9`, `L-W10` |
+| Ongoing monitoring requires the observations to reach the monitor | SR 26-2 V; SS1/23 4.x | FR-TEL-001..006 |
+| Approval commensurate with materiality; conflicts of interest managed | SR 26-2 VI; SS1/23 1.3 | FR-LC-015..018 |
+| Outstanding items are actioned rather than merely recorded | SS1/23 1.2(c)(iii) | FR-LC-019..021 |
+| Change to a control must itself be controlled | SR 26-2 VI; SOX | FR-POL-001..008 |
+| Documentation supporting continuity, including documents the firm wrote | SR 26-2 VI; SS1/23 4.x | FR-DOC-001..010; FR-SEC-013..015 |
 | AI risk management functions (Govern/Map/Measure/Manage) | NIST AI RMF | Control library mapping (see 09) |
 | AI management system clauses | ISO/IEC 42001 | Control library mapping (see 09) |
 
@@ -751,6 +826,22 @@ Detailed schemas in [05 — Data Model](05-data-model.md).
 - Automated model *development* (AutoML).
 - Real-time payment-scale inference serving as the primary path (MAYA-hosted serving is for convenience; high-TPS models keep their own runtime and use descriptor-only warrants).
 - Non-model EUC remediation tooling (ingest scan results only).
+- **SAML and SCIM.** OIDC is supported; a SAML-only directory is not, and there is no automatic
+  deprovisioning, so a leaver is suspended by hand.
+- **MFA enforcement.** Delegated to the identity provider, where the second factor already lives.
+- **Extraction and retrieval over attached documents.** A markdown or text attachment is indexed; a PDF
+  or Word file is stored faithfully and reported as *not machine-readable*, because it is. The register
+  is shaped to support machine review of filed documents; that review is not built.
+- **Calling a language model.** MAYA records what one produced, gates it, holds it until a person
+  signs, and measures whether that person is still reading. Generation happens wherever you run models
+  — the same boundary the platform draws everywhere else.
+- **Estimating, training or calibrating anything.** MAYA records what a fit returned and refuses it
+  unless a warrant it issued produced it. The fitting happens in an execution engine.
+- **Document rendering beyond markdown.** No PDF, no house template, no signature page, no export
+  pack. Turning compiled markdown into a firm's document standard is deliberately outside what the
+  platform tries to own.
+- **Loosening a gate by configuration.** A policy can tighten a gate and cannot loosen one; the checks
+  written in the registry are the floor (`FR-POL-007`).
 
 ---
 

@@ -15,7 +15,7 @@ Format: context → decision → consequences. Status is one of `proposed`, `acc
 | [007](ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors | accepted |
 | [008](ADR-008-server-rendered-ui.md) | Server-rendered Jinja2 + Bootstrap + jQuery, no SPA | accepted |
 | [009](ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading and a format policy | accepted |
-| [010](ADR-010-laws-as-tests.md) | The sixteen laws enforced by property-based tests in CI | accepted |
+| [010](ADR-010-laws-as-tests.md) | The laws enforced by tests in CI | accepted |
 
 ---
 

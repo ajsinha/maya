@@ -6,6 +6,34 @@
 
 ---
 
+## 0. What this document is now
+
+**This is a programme plan for a bank deployment, not a record of what has been built.** The two had
+drifted far enough apart to mislead: the phases below are dated from October 2026 and describe as
+future work a great deal that exists today, so a reader taking §2 at face value would conclude that
+the registry, the warrant protocol and the feature platform are ahead rather than behind.
+
+The authoritative record of what exists is
+[**12 §0, Build status**](12-implementation-plan.md#0-build-status). Read that first. Against it:
+
+| Phase | Status of its component list |
+|---|---|
+| **0 — Foundations** | Domain core built. The law harness exists in a different shape (no `tests/laws/`; see [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces)). No plugin loader, no Alembic, no IaC, and the three spikes were not run |
+| **1 — Inventory and evidence spine** | Built, except: no connectors (MLflow, Unity Catalog, git), no discovery, no bulk import from those sources, no RLS, no Python SDK |
+| **2 — Versions, features and warrants** | Built, and overtaken — the warrant *grammar*, featuresets, parameter sets and bulk transfer are all beyond what this phase asked for. Not built: the online store, and therefore skew detection |
+| **3 — Validation, findings and documentation** | Built, including replay from the pinned snapshot. Not built: export packs, an examiner portal, PDF or any rendering beyond markdown |
+| **4 — Monitoring, overlays and reporting** | Built, including telemetry ingestion, delayed labels and the overlay register. Not built: the board pack, KRI dashboards, Spark-scale evaluation |
+| **5 — GenAI, discovery and intelligence** | **Inverted.** Machine assistance is built and governed; the *generation* is not — MAYA records what a language model produced and never calls one. No discovery, no EUC scanner, no semantic search |
+| **6 — Scale-out and estate migration** | Not started, and correctly so: it is a deployment phase |
+
+Three whole subsystems appear in no phase below, because they were not foreseen when this was written:
+**versioned policy gates**, **single sign-on**, and **notification**. Each is in 12 §0.
+
+The sequencing argument in §1 and the build/buy record in §5 are unaffected by any of this and are the
+reason to keep the document.
+
+---
+
 ## 1. Strategy
 
 Three principles shape the sequencing.
@@ -49,13 +77,13 @@ gantt
 |---|---|
 | Repository, CI/CD, IaC | Two repositories ([ADR-011](adr/ADR-011-decoupled-frontend.md)), Docker, Helm, Terraform, environments |
 | Domain core | `Para(Stoch)` types, trainability classes, contract algebra, schema lattice |
-| Law harness | `tests/laws/` with Hypothesis; L-2, L-4, L-12 implemented first |
+| Law harness | Law tests beside the code they constrain, Hypothesis where a generated input earns it; L-4, L-7 and L-12 implemented first |
 | Plugin loader | Entry points, fibre totality validation (L-15) |
 | Postgres baseline | Core DDL, RLS pattern, audit chain, Alembic |
 | Delta baseline | Table layouts, retention classes, write path |
 | **Spikes** | PIT join at 1B rows; warrant resolution p99 under load; sandbox escape testing; ONNX/PMML introspection breadth |
 
-**Exit:** the sixteen laws exist as tests (most failing); a model can be created and read; the spikes have
+**Exit:** the executable laws exist as tests (most failing); a model can be created and read; the spikes have
 answered the three questions that could invalidate the architecture.
 
 ### Phase 1 — Inventory and evidence spine (4 months) — *MVP*

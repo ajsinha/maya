@@ -11,16 +11,19 @@ ragged frame full of holes it has to reason about. Aligning them onto one axis �
 usually a date — and filling the gaps by a stated rule gives an execution engine
 a rectangle instead, which is a far easier thing to be handed.
 
-Three fill rules, and **they are not equivalent**:
+Five fill rules, and **they are not equivalent**:
 
+- **none** fills nothing. Safe, and often the honest answer.
 - **flat forward** carries the last observation forward. It uses only what had
-  already happened, and it is the only one of the three that is safe for training.
+  already happened, and it is the only *filling* rule safe for training.
 - **flat backward** carries the next observation back. To fill a gap in March it
   reaches for an observation from April.
 - **linear** interpolates between the neighbours on each side. It reaches for
   April as well, and dresses the result up as a smooth line.
+- **nearest** takes whichever neighbour is closer, so it reaches forward
+  whenever the next observation is nearer than the last.
 
-The last two are leakage. Not a policy against them — they are the right answer
+The last three are leakage. Not a policy against them — they are the right answer
 for drawing a curve, for a backtest that is explicitly retrospective, for
 presenting a history to a person — but a model trained on a back-filled column
 has been shown values that did not exist when the row it is learning from was

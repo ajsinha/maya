@@ -25,7 +25,7 @@ of object; they are nine answers to *how `P` is inhabited*, characterised by a f
 - **+** Composition is inherited from the monoidal structure, so feeder graphs and composite warrants are
   typed and checkable.
 - **−** The team must learn a small amount of category theory. Mitigated by keeping the vocabulary confined
-  to `maya/domain/` and documenting it in [00](../00-mathematical-foundations.md).
+  to `core/domain/` and documenting it in [00](../00-mathematical-foundations.md).
 - **−** Some models (heavily stateful simulation engines) fit awkwardly. Handled by making state part of `X`
   and documenting the modelling choice.
 

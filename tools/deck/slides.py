@@ -235,6 +235,53 @@ runs(tf, [("Both networks contain the same component risks {a, b, b}, so any com
           ("The difference is exactly one thing: Network 1 copies. Shared dependency is the copy map — invisible in ordinary function composition, explicit in a Markov category.",
            WHITE, True)], size=11.5, space_after=0, line=1.25)
 
+sl, y = content("Two consequences of taking P seriously", "A formal foundation · what follows")
+tf = txt(sl, ML, y, CW, 0.45)
+runs(tf, [("If the parameter object is a genuine object and not a field, two things follow that "
+           "ordinary practice gets wrong. Both are elementary. Both are ", INK, False),
+          ("routinely violated", CRIMSON, True), (".", INK, False)],
+     size=12.5, first=True, space_after=0, line=1.28)
+
+hw = (CW - 0.55) / 2
+rect(sl, ML, y + 0.62, hw, 3.55, fill=WHITE, line=RULE)
+rect(sl, ML, y + 0.62, hw, 0.055, fill=CRIMSON)
+tf = txt(sl, ML + 0.28, y + 0.86, hw - 0.56, 3.1)
+para(tf, "Refitting does not make a new model", size=15, color=INK, bold=True, font=SERIF,
+     first=True, space_after=4)
+para(tf, "A point of P, not a morphism", size=10, color=CRIMSON, bold=True, space_after=10)
+para(tf, "φ has codomain P. Fitting on this year's data picks a different point; f is untouched. "
+         "So the pair (version, inhabitant) determines behaviour — not the version alone.",
+     size=11, color=SLATE, space_after=9, line=1.24)
+runs(tf, [("Standard practice mints a version per refit, so ", SLATE, False),
+          ("“did this model change?”", INK, True, True),
+          (" has two answers: the morphism changed, or the numbers did. A supervisor asking it "
+           "across two dates gets whichever the system happened to record.", SLATE, False)],
+     size=11, space_after=9, line=1.24)
+runs(tf, [("What separating them buys: ", CRIMSON, True),
+          ("govern a daily recalibration by approving the procedure once, and answer "
+           "“which numbers produced this decision” with a point rather than a version number "
+           "that has since been reused.", INK, False)], size=11, line=1.24)
+
+x2 = ML + hw + 0.55
+rect(sl, x2, y + 0.62, hw, 3.55, fill=WHITE, line=RULE)
+rect(sl, x2, y + 0.62, hw, 0.055, fill=NAVY)
+tf = txt(sl, x2 + 0.28, y + 0.86, hw - 0.56, 3.1)
+para(tf, "What does compose: specifications", size=15, color=INK, bold=True, font=SERIF,
+     first=True, space_after=4)
+para(tf, "A monoid, and the contrast is the point", size=10, color=NAVY, bold=True, space_after=10)
+para(tf, "Inheriting from one specification and combining several are one operation at different "
+         "arities: a left-to-right fold in which the rightmost wins.",
+     size=11, color=SLATE, space_after=9, line=1.24)
+runs(tf, [("Right-biased union is associative with the empty map as identity — a monoid. So "
+           "“a combination of specifications is a specification” is a theorem, and ", SLATE, False),
+          ("a reviewer parsing a chain and a system resolving it cannot disagree", INK, True),
+          (".", SLATE, False)], size=11, space_after=9, line=1.24)
+runs(tf, [("Why this composes and risk did not: ", NAVY, True),
+          ("risk must respect shared dependency, and shared dependency is the copy map. "
+           "Specifications have no copy map — two parents naming one field are resolved by the "
+           "bias, not accumulated.", INK, False)],
+     size=11, line=1.24)
+
 sl, y = content("Contracts, fibrations, institutions", "A formal foundation · pillars 3–5")
 cw3 = (CW - 0.5 * 2) / 3
 items = [("Contracts", "Assume–guarantee algebra",

@@ -12,6 +12,16 @@ algorithms, transaction boundaries, error taxonomy, concurrency, caching, and op
 front end of [ADR-011](adr/ADR-011-decoupled-frontend.md), and the oracle criterion of
 [00 §12a](00-mathematical-foundations.md).
 
+> **How to read the code in this document.** The listings are *design* — the shape of an interface and
+> the order of its steps — and they are close to but not identical with the source. Where a listing
+> names a file, the file exists and the path is real. Where it names infrastructure the reference
+> implementation does not run — Redis, Kafka, Celery, Spark, Postgres row-level security, an online
+> feature store — that is the production target rather than the current build, and
+> [12 §0](12-implementation-plan.md#0-build-status) is the authoritative record of the difference. Two
+> gaps are worth carrying into every section below rather than restating in each: **descriptor signing
+> is HMAC-SHA256, not Ed25519**, and **there is no online store**, so the caching, revocation and skew
+> machinery described here is designed and not running.
+
 ---
 
 ## Table of contents
@@ -92,9 +102,10 @@ flowchart TB
 |---|---|---|
 | **Core domain** | The algebra: parametric kernels, contracts, schema lattice, probe equivalence, composition | Persistence, HTTP, orchestration |
 | **Registry** | Models, versions, artifacts, aliases, fibres, introspection | Deciding whether a version may be promoted |
-| **Evidence engine** | The append chain, semiring evaluation, gluing | Interpreting what evidence means for a gate |
+| **Evidence engine** | The append chain, and semiring evaluation over six semirings | Interpreting what evidence means for a gate. Sheaf gluing is designed and not built (`L-13`) |
 | **Risk & tiering** | Lattices, τ, control adequacy, derivation traces | Overriding a tier (that is a workflow action) |
-| **Regimes & policy** | Institutions, comorphisms, Rego gates, MTL obligations | Executing a transition |
+| **Regimes** | Institutions, comorphisms, the satisfaction condition checked before activation | Executing a transition |
+| **Policy** | Four versioned gates, each a predicate over the facts that gate publishes, shipped with the cases that prove it refuses something | Replacing an invariant. Policy tightens; the code's checks are the floor. There are no MTL obligations — five named scheduler jobs do that work |
 | **Lifecycle** | State machines, transitions, guards, approvals, SoD | Guard *content* (that is policy) |
 | **Validation** | Plans, test execution, findings, remediation | Computing metrics at scale (that is monitoring) |
 | **Doc compiler** | Lenses, templates, rendering, staleness | Authoring narrative |
@@ -120,12 +131,12 @@ flowchart TB
 
 ## 2. Core domain
 
-`maya/domain/` — no FastAPI, no SQLAlchemy, no network. Fully unit-testable.
+`core/domain/` — no FastAPI, no SQLAlchemy, no network. Fully unit-testable.
 
 ### 2.1 Model algebra
 
 ```python
-# maya/domain/model_algebra.py
+# core/domain/algebra.py
 from typing import Protocol, Literal, Mapping, Sequence
 from dataclasses import dataclass
 
@@ -157,28 +168,43 @@ class ParameterObject:
 @dataclass(frozen=True)
 class ParametricKernel:
     """A model: f : P ⊗ X → Y."""
-    parameters: ParameterObject
-    input:  ObjectSpec
-    output: ObjectSpec
-    deterministic: bool                   # copy ∘ f = (f ⊗ f) ∘ copy  — law L-3
+    parameters:    ParameterObject
+    input_schema:  Schema
+    output_schema: Schema
+    output_kind:   OutputKind = OutputKind.POINT_ESTIMATE
+    deterministic: bool = True            # copy ∘ f = (f ⊗ f) ∘ copy  — law L-3
+    fit:           FitProcedure = FitProcedure.NONE
+    adaptive:      bool = False
 
-    def trainability_class(self, fit: FitProcedure, adaptive: bool) -> str:
-        if not self.parameters.is_accessible:            return "T6"
-        if self.parameters.is_terminal:                  return "T0"
-        return {"calibrate": "T1", "estimate": "T2",
-                "train": "T4" if adaptive else "T3",
-                "configure": "T5", "elicit": "T7", "author": "T8"}[fit]
+    @property
+    def trainability_class(self) -> str:
+        """T0-T8, derived from how P is inhabited. Never stored, never declared."""
+        if not self.parameters.is_accessible:                    return "T6"
+        if self.parameters.is_terminal:                          return "T0"
+        if self.fit is FitProcedure.TRAIN and self.adaptive:     return "T4"
+        return _FIT_TO_CLASS.get(self.fit, "T0")   # calibrate→T1 estimate→T2 train→T3
+                                                   # configure→T5 elicit→T7 author→T8
 ```
 
-**Why this shape.** `trainability_class` is a *derived* function of the parameter object and the fitting
+**Why this shape.** `trainability_class` is a *derived property* of the parameter object and the fitting
 procedure, never a stored enum the user picks. That is the direct encoding of
 [00 §4.2](00-mathematical-foundations.md) and is what prevents the estate from drifting into
 mislabelled records.
 
+Three details of the derivation carry weight and are easy to get subtly wrong:
+
+- **Inaccessibility wins over everything, including a declared fit.** A kernel with `opaque`
+  parameters and `fit=train` is `T6`, not `T3`. A vendor who tells you they train it has told you
+  something about their process and nothing you can govern; what you can observe is the composite.
+- **`T4` requires both `fit=train` *and* `adaptive`.** `adaptive` with any other fit is ignored,
+  because "continuously updating" without a training procedure is not a class, it is a description.
+- **`T0` is also the fallback.** An unmapped or absent fit derives `T0`, which is right: no fitting
+  procedure and no parameters to fit are the same statement from two directions.
+
 ### 2.2 Contract algebra
 
 ```python
-# maya/domain/contracts.py
+# core/domain/contracts.py
 @dataclass(frozen=True)
 class Contract:
     assumptions: "Predicate"      # A — operating boundaries, population, regime, upstream freshness
@@ -487,9 +513,15 @@ def determine(model_id: str, inst: Institution) -> ScopeDetermination:
     )
 ```
 
-**Law L-8 in CI.** Hypothesis generates inventory states; for each regime and each sentence, evaluating
-natively and evaluating the translation must agree. A disagreement is a defective encoding — the exact
-class of bug that produces an indefensible scope determination.
+**Law L-8, and where it runs.** For each regime and each sentence, evaluating natively and evaluating
+the translation must agree. A disagreement is a defective encoding — the exact class of bug that
+produces an indefensible scope determination.
+
+The check is real and it is not a Hypothesis property test. It runs against **probe states spanning the
+corners** of each regime's vocabulary, and it runs at *activation*: **a regime whose encoding fails the
+satisfaction condition cannot be activated.** That is stronger than a CI assertion in the way that
+matters — a failing law fails a build somebody can override, while a failing activation refuses to put
+the encoding into service.
 
 ### 6.2 Policy evaluation
 
@@ -497,21 +529,50 @@ Two engines, deliberately separate:
 
 | Engine | Language | Answers | Latency budget |
 |---|---|---|---|
-| **Gate engine** | Rego (OPA) | "May this transition happen *now*?" | < 20 ms, in-process |
-| **Obligation engine** | MTL → synthesised monitors | "What is owed, by when?" | Batch, nightly + event-driven |
+| **Gate engine** | A predicate language over a closed fact vocabulary | "May this transition happen *now*?" | < 20 ms, in-process |
+| **Obligation engine** | Five named idempotent jobs | "What is owed, by when?" | Batch, on an ordinary authenticated call |
+
+Rego was the original choice and was **not** taken. The reason is worth keeping, because Rego is the
+obvious answer: a gate written in a general language is a *program*, and a reviewer signing off a
+governance control has to run it to know what it does. So a rule here is a **predicate** — comparison,
+membership, boolean connectives, `any` and `all` over a generator, and six other functions, whitelisted
+at the AST. No loops, no assignment, no function definitions, no attribute access, no subscripting.
+What cannot be expressed cannot be smuggled in.
 
 ```python
-verdict = policy.evaluate("gates.promote_to_production", {
-    "model": model.as_policy_input(), "validation": validation.summary(),
-    "findings": findings.open_summary(), "documents": docs.completeness(),
-    "approvals": approvals.summary(), "evidence": evidence.evaluate(claim, BOOLEAN),
+verdict = gate.decide("version:approve", {
+    "tier": 1, "status": "draft", "blocking_findings": 0, "validated": True,
+    "validation_outcome": "approved", "documents": 3, "accepted_documents": 2,
+    "quorum_signatures": 2, "actor_roles": ["model_risk_manager"],
 })
-# verdict.allow: bool ; verdict.deny_reason: list[{code, message, remediation_url}]   (DR-7)
+# {"decision": "refuse"|"allow", "allowed": bool, "policy_version": int,
+#  "policy_source": "built-in"|"published", "rule": str, "reason": str,
+#  "facts_read": {name: value},   # ONLY the facts the rule actually read
+#  "detail": str}                                                      (DR-7)
 ```
 
-Policy bundles are versioned artifacts with their own test corpus, a canary environment, and a rollback
-path. A policy change that would newly block more than a configured fraction of the estate requires
-explicit acknowledgement — the safeguard against estate-wide gridlock.
+Four gates — `version:approve`, `alias:move`, `model:mutate`, `warrant:resolve` — and each publishes
+its own fact vocabulary. Two properties of that arrangement do the real work:
+
+**A fact the gate does not publish is refused when the rule is written.** Not at evaluation. A rule
+that failed at the moment of a governance decision would have failed at the worst possible time, and
+`facts_read` is computed from the rule's own AST rather than declared, so it cannot drift from what the
+rule does. Every gate call fills the *complete* fact set from defaults, so behaviour never depends on
+which call site evaluated the rule.
+
+**A policy ships with its cases, and at least one must be a refusal.** Publication re-runs them — it
+does not trust the draft's report — and then replays the **outgoing** version's cases against the
+incoming rule, bucketing every flipped verdict as `loosened` or `tightened` into the evidence node and
+the log. Weakening is allowed and never quiet: a change that loosens a gate becomes something somebody
+decided rather than something somebody discovered. A published version is never edited; it is
+superseded, and `history(gate)` returns every version.
+
+And the boundary, which is the reason this can be safe at all: **policy tightens; it cannot loosen.** A
+rule runs in addition to the checks written in the registry, never instead of them. An instance that
+publishes nothing runs exactly what it ran before, because the built-in rules are the default for every
+gate and are written in the same language.
+
+There is no `warn` verdict. A gate that warns is a gate that is not a gate.
 
 ## 7. Lifecycle and workflow
 

@@ -257,7 +257,7 @@ reaches into other modules.
 
 ```mermaid
 flowchart TB
-    subgraph AICTX["maya/ai/ — a bounded context, not a layer"]
+    subgraph AICTX["core/assist/ — a bounded context, not a layer"]
         CAP["Capability registry<br/>one entry per AI capability,<br/>each a T5 model in the inventory"]
         GRD["Grounding service<br/>retrieve over the evidence graph;<br/>verify citations via Why-provenance"]
         GATE["Output gate<br/>claim → citation mapping ·<br/>unverified-narrative flagging ·<br/>numeric interpolation only"]
