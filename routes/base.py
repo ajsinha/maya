@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from core.authz import AuthzError
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
+from core.lifecycle import LifecycleError
 from core.log import get_logger
 from core.registry import RegistryError
 from core.validation import ValidationError
@@ -45,6 +46,13 @@ STATUS: Dict[str, int] = {
     "segregation_of_duties": 403, "incompatible_roles": 409,
     "duplicate_principal": 409, "no_such_principal": 404, "unknown_role": 422,
     "unknown_permission": 422,
+    # lifecycle
+    "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,
+    "not_tiered": 409, "amendment_open": 409, "attestation_open": 409,
+    "attestation_closed": 409, "already_signed": 409, "no_attestation_open": 409,
+    "reason_required": 422, "unknown_decision": 422,
+    "role_not_required": 403, "role_not_held": 403, "deletion_refused": 403,
+    "no_attestation": 404, "no_amendment": 404,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -109,7 +117,7 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
-        except WarrantError as exc:
+        except (WarrantError, LifecycleError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

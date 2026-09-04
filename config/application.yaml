@@ -132,6 +132,14 @@ execution:
     enabled: true
     max_seconds: 30
 
+lifecycle:
+  attestation:
+    # Who must sign before a model record is in force. Attestation is a quorum,
+    # not a signature: every role named here signs, and one decline ends it.
+    # This is a policy question, so it is configuration.
+    required_roles: [model_owner, model_risk_manager]
+    validity_days: 365
+
 content:
   # Help and about pages are markdown files rendered at request time. They live
   # in the repository rather than the database so that a change to what the

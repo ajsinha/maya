@@ -91,6 +91,13 @@ document that an execution engine acts on. A captive engine ships as a reference
 consumer of the same public contract, so a deployment works out of the box
 without that ever becoming the only way to run.
 
+**Immutability with a declared way out.** An attested record cannot be edited and
+cannot take a new version — because a new version *is* a change to the model, and
+allowing it is exactly how a record quietly stops describing what runs. The only
+route out is an amendment that says what is changing and why, and which must
+itself be approved and attested. Nothing is ever deleted: retirement is a state,
+and even administrator deletion leaves the whole evidence chain behind.
+
 **Segregation of duties read from the evidence chain.** Most platforms enforce
 separation with a second table of who-did-what, which becomes a second source of
 truth the moment it disagrees with the record. Here the append-only chain that
@@ -105,10 +112,10 @@ incompatible-roles check and not from history.
 Stated plainly, because a positioning page that only lists strengths is
 marketing rather than analysis.
 
-- **Workflow depth.** OpenPages and SAS have two decades of committee routing,
-  attestation cycles and regulatory report templates. MAYA has roles,
-  segregation of duties and gated transitions, but not the routing and
-  attestation cycles built on top of them.
+- **Workflow routing.** MAYA has the lifecycle — gated transitions, a quorum
+  attestation, amendments that must themselves be attested — but nobody is *told*
+  their signature is outstanding. OpenPages and SAS have two decades of task
+  inboxes, reminders, escalation and regulatory report templates.
 - **Monitoring.** Drift, delayed labels and breach detection are designed but
   not built; Arize and Fiddler do this well today and MAYA does not do it at all.
 - **Scale.** The design targets a large estate; it has not been run against one.
