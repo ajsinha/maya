@@ -35,6 +35,9 @@ class CallableRuntime:
     def bind(self, version_id: str, fn: Callable[[Dict[str, Any]], Any]) -> None:
         self._bound[version_id] = fn
 
+    def is_bound(self, version_id: Optional[str]) -> bool:
+        return bool(version_id) and version_id in self._bound
+
     def available(self) -> Optional[str]:
         return None
 

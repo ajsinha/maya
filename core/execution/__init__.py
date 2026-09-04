@@ -14,6 +14,8 @@ contract, bundled so a deployment works out of the box.
 from core.execution.builder import WarrantBuilder
 from core.execution.engine import CaptiveEngine, ExecutionResult
 from core.execution.errors import WarrantError
+from core.execution.sandbox import (InProcessSandbox, Limits, Sandbox,
+                                    SubprocessSandbox)
 from core.execution.grants import WarrantGrants
 from core.execution.warrants import WarrantService
 from core.execution.signing import WarrantSigner
@@ -25,4 +27,5 @@ from core.execution.urn import build_urn, model_urn, parse_urn
 __all__ = ["WarrantService", "WarrantError", "parse_urn", "build_urn", "model_urn",
            "WarrantGrants", "WarrantSigner", "WarrantBuilder",
            "GrammarValidator", "validate_warrant", "warrant_grammar",
-           "CaptiveEngine", "ExecutionResult"]
+           "CaptiveEngine", "ExecutionResult", "Sandbox", "SubprocessSandbox",
+           "InProcessSandbox", "Limits"]
