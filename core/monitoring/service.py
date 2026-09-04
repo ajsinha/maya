@@ -38,9 +38,13 @@ class MonitoringService:
 
     def __init__(self, registry: MonitorRegistry, observations: ObservationRepository,
                  breaches: BreachRegister, catalogue: TestCatalogue,
-                 evidence: EvidenceEngine):
+                 evidence: EvidenceEngine, telemetry=None, models=None):
         self.registry, self.observations = registry, observations
         self.breaches, self.catalogue, self.evidence = breaches, catalogue, evidence
+        # Optional. Without them a monitor can only be handed its rows, which is
+        # how monitoring stays a thing somebody remembers to do; with them the
+        # scheduler can actually run one.
+        self.telemetry, self.models = telemetry, models
 
     # ------------------------------------------------------------- evaluate
     def evaluate(self, monitor_id: str, rows: Sequence[Dict[str, Any]],
@@ -67,6 +71,71 @@ class MonitoringService:
 
         record = self._record(monitor, outcome, rows, moment, actor)
         return self._react(monitor, record, actor)
+
+    # ----------------------------------------------------- from stored telemetry
+    def evaluate_from_telemetry(self, monitor_id: str,
+                                since: Optional[float] = None,
+                                until: Optional[float] = None,
+                                reference_from: Optional[float] = None,
+                                reference_to: Optional[float] = None,
+                                now: Optional[float] = None,
+                                actor: str = "system") -> Dict[str, Any]:
+        """Evaluate a monitor against telemetry the platform already holds.
+
+        The window is read at the moment it names, not at the moment the read
+        happens: outcomes that arrived after ``until`` are excluded, because a
+        review of last quarter should see the population last quarter saw.
+
+        A drift monitor's reference distribution is drawn from a *stated* earlier
+        window rather than passed in, so "what is this drifting from" is part of
+        the record instead of part of whoever ran it.
+        """
+        if self.telemetry is None:
+            raise MonitorError(
+                "no_telemetry",
+                "this service was built without a telemetry collector, so a "
+                "monitor can only be evaluated against rows supplied by the caller",
+                "ingest telemetry for this version, or pass the rows in")
+        monitor = self.registry.require(monitor_id)
+        urn, semver = self._subject_of(monitor)
+        moment = now if now is not None else time.time()
+
+        rows = self.telemetry.cohort(urn, semver, since, until, known_by=until)
+        if not rows:
+            raise MonitorError(
+                "no_telemetry_in_window",
+                f"no telemetry for {urn}@{semver} in this window",
+                "widen the window, or check that the model is still sending")
+
+        reference = None
+        if reference_from is not None or reference_to is not None:
+            earlier = self.telemetry.cohort(urn, semver, reference_from,
+                                            reference_to, known_by=reference_to)
+            reference = [r["score"] for r in earlier if r.get("score") is not None]
+            if not reference:
+                raise MonitorError(
+                    "empty_reference_window",
+                    "the reference window holds no scored rows, so there is "
+                    "nothing to compare against",
+                    "name a window in which this version was actually running")
+        return self.evaluate(monitor_id, rows, reference, moment, actor)
+
+    def _subject_of(self, monitor: Dict[str, Any]) -> tuple:
+        """Which model version's telemetry this monitor watches."""
+        if self.models is None:
+            raise MonitorError(
+                "no_registry",
+                "this service cannot resolve which model version a monitor "
+                "watches", "wire the model registry")
+        version = self.models.version_by_id(monitor["model_version_id"]) \
+            if monitor.get("model_version_id") else None
+        if version is None or not version.get("urn"):
+            raise MonitorError(
+                "monitor_has_no_version",
+                f"monitor '{monitor['name']}' is not bound to a model version, "
+                f"so there is no telemetry stream to read",
+                "define the monitor against a version")
+        return version["urn"], version["semver"]
 
     def _performance(self, monitor: Dict[str, Any], rows: Sequence[Dict[str, Any]],
                      now: float) -> Dict[str, Any]:

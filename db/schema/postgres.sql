@@ -207,6 +207,17 @@ CREATE TABLE IF NOT EXISTS feature_contract (
 -- A version approval that needs more than one signature. The depth of control
 -- follows the risk tier, which is the same adjunction (L-5) that decides every
 -- other control set: a Tier 1 model's version is not approved by one person.
+-- Ingested telemetry batches, by the digest of their own rows. Real collectors
+-- deliver at least once; a monitor that double-counts a redelivered batch
+-- reports a population that never existed.
+CREATE TABLE IF NOT EXISTS telemetry_batch (
+    id      text PRIMARY KEY,
+    digest  text NOT NULL UNIQUE,
+    delta_table text NOT NULL,
+    row_count integer NOT NULL DEFAULT 0,
+    at      double precision NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS version_approval (
     id               text PRIMARY KEY,
     model_id         text NOT NULL,

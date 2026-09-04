@@ -270,12 +270,15 @@ def monitors(db, catalogue, evidence):
 
 
 @pytest.fixture
-def monitoring(db, monitors, findings, catalogue, evidence):
+def monitoring(db, monitors, findings, catalogue, evidence, telemetry, registry):
+    """Wired as the application wires it: with telemetry, so a monitor can be
+    evaluated from what the platform holds rather than only from what a caller
+    hands it."""
     from core.monitoring import BreachRegister, MonitoringService
     from db import BreachRepository, ObservationRepository
     return MonitoringService(monitors, ObservationRepository(db),
                              BreachRegister(BreachRepository(db), findings, evidence),
-                             catalogue, evidence)
+                             catalogue, evidence, telemetry, registry)
 
 
 @pytest.fixture
@@ -446,3 +449,11 @@ def approvals(db, registry, evidence):
 
 def person(username, *roles):
     return {"username": username, "roles": list(roles)}
+
+
+@pytest.fixture
+def telemetry(db, delta, registry, evidence):
+    from core.telemetry import TelemetryCollector
+    from db import TelemetryBatchRepository
+    return TelemetryCollector(delta, registry, evidence,
+                              TelemetryBatchRepository(db))

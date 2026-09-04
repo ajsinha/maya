@@ -25,6 +25,7 @@ from fastapi.templating import Jinja2Templates
 from core.assist import AssistError
 from core.attachments import AttachmentError
 from core.parameters import ParameterError
+from core.telemetry import TelemetryError
 from core.baseline import BaselineError
 from core.regimes import RegimeError
 from core.scheduler import SchedulerError
@@ -92,6 +93,12 @@ STATUS: Dict[str, int] = {
     "ambiguous_parameters": 409, "different_version": 409,
     "schema_not_satisfied": 409, "no_featureset_registry": 501,
     # version approval as a quorum
+    # telemetry
+    "unknown_stream": 422, "empty_batch": 422,
+    "batch_too_large": 413, "bad_sample_rate": 422,
+    "malformed_row": 422, "no_telemetry": 501,
+    "no_telemetry_in_window": 404, "empty_reference_window": 422,
+    "no_registry": 501, "monitor_has_no_version": 409,
     "quorum_required": 409, "no_quorum_required": 409,
     "approval_open": 409, "approval_closed": 409,
     "already_approved": 409, "no_approval": 404,
@@ -198,7 +205,7 @@ class Routes:
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
-                ParameterError) as exc:
+                ParameterError, TelemetryError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

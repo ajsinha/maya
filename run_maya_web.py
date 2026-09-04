@@ -48,11 +48,12 @@ from core.regimes import RegimeEngine
 from core.registry import ModelRegistry
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.risk import TieringEngine
+from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, Replayer, SnapshotProvider,
                              TestCatalogue, ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
-                VersionApprovalRepository,
+                TelemetryBatchRepository, VersionApprovalRepository,
                 VersionApprovalSignatureRepository,
                 FeaturesetRepository, FeaturesetVersionRepository,
                 ParameterSetRepository,
@@ -143,11 +144,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                         jitter_pct=cfg.get_int("warrants.jitter_pct", 20),
                         blocking=findings)
 
+    # Telemetry is what turns monitoring from something somebody remembers to
+    # do into something the scheduler can actually run.
+    telemetry = TelemetryCollector(DeltaStore(delta.root), registry, evidence,
+                                   TelemetryBatchRepository(db))
+
     monitoring = MonitoringService(
         MonitorRegistry(MonitorRepository(db), catalogue, evidence),
         ObservationRepository(db),
         BreachRegister(BreachRepository(db), findings, evidence),
-        catalogue, evidence)
+        catalogue, evidence, telemetry, registry)
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
                                FeatureViewVersionRepository(db), ContractRepository(db),
@@ -234,7 +240,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "lifecycle": lifecycle, "monitoring": monitoring,
                            "documents": documents, "attachments": attachments,
                            "parameters": parameters, "replayer": replayer,
-                           "approvals": approvals,
+                           "approvals": approvals, "telemetry": telemetry,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,

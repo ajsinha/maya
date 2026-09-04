@@ -221,6 +221,11 @@ class ParameterSetRepository(Repository):
         return (prior["version"] + 1) if prior else 1
 
 
+class TelemetryBatchRepository(Repository):
+    """Which batches have been taken in, so redelivery is a no-op."""
+    TABLE, ORDER = "telemetry_batch", "at"
+
+
 class VersionApprovalRepository(Repository):
     """Approvals that need more than one signature."""
     TABLE, JSON, ORDER = "version_approval", ("required_roles",), "opened_at"
