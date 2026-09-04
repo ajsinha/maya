@@ -26,6 +26,16 @@ class FeatureIn(BaseModel):
     pii: bool = False
     protected_basis: bool = False
     proxy_risk: str = "none"
+    # A feature is not always a number: a shape of [10] is a vector, [10, 10] a
+    # matrix, and the components name the first axis so composition can speak
+    # about a tenor rather than about an index.
+    shape: Any = None
+    components: Optional[List[str]] = None
+    composes: Optional[List[Any]] = None
+    operations: Optional[List[Dict[str, Any]]] = None
+    defaults: Optional[Dict[str, Any]] = None
+    ephemeral: bool = False
+    ttl_days: Optional[float] = None
 
 
 class ViewIn(BaseModel):
@@ -65,9 +75,13 @@ class FeatureRoutes(Routes):
 
         @self.app.post(f"{self.api}/features", status_code=201, tags=["features"])
         def define(request: Request, body: FeatureIn):
-            self.authorise(request, "feature:define")
+            who = self.authorise(request, "feature:define")
             near = [x["name"] for x in f.similar(body.name, body.description)]
-            return {"feature": self.guard(lambda: f.define(**body.model_dump())),
+            # The actor is who is CREATING it, which is a different fact from
+            # the owner they nominate and is recorded separately.
+            return {"feature": self.guard(
+                        lambda: f.define(**body.model_dump(),
+                                         actor=self.actor(who))),
                     "possible_duplicates": near}
 
         @self.app.post(f"{self.api}/features/{{name}}/certify", tags=["features"])

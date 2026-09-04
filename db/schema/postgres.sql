@@ -157,6 +157,18 @@ CREATE TABLE IF NOT EXISTS feature (
     pii                BOOLEAN NOT NULL DEFAULT FALSE,
     protected_basis    BOOLEAN NOT NULL DEFAULT FALSE,
     proxy_risk         TEXT NOT NULL DEFAULT 'none',
+    defaults           text NOT NULL DEFAULT '{}',
+    shape              text NOT NULL DEFAULT '[]',
+    components         text NOT NULL DEFAULT '[]',
+    composes           text NOT NULL DEFAULT '[]',
+    operations         text NOT NULL DEFAULT '[]',
+    definition_version integer NOT NULL DEFAULT 1,
+    sealed_at          double precision,
+    sealed_by          text,
+    seal_note          text NOT NULL DEFAULT '',
+    ephemeral          integer NOT NULL DEFAULT 0,
+    expires_at         double precision,
+    created_by         text NOT NULL DEFAULT 'system',
     certification      TEXT NOT NULL DEFAULT 'experimental',
     created_at         DOUBLE PRECISION NOT NULL
 );
@@ -274,6 +286,14 @@ CREATE TABLE IF NOT EXISTS featureset (
     slots               text NOT NULL DEFAULT '{}',        -- slot -> {dtype, nullable}
     label_slot          text,
     outcome_window_days integer NOT NULL DEFAULT 0,
+    defaults            text NOT NULL DEFAULT '{}',
+    composes            text NOT NULL DEFAULT '[]',
+    operations          text NOT NULL DEFAULT '[]',
+    sealed_at           double precision,
+    sealed_by           text,
+    seal_note           text NOT NULL DEFAULT '',
+    ephemeral           integer NOT NULL DEFAULT 0,
+    expires_at          double precision,
     grain               text NOT NULL DEFAULT '',
     created_by          text NOT NULL,
     created_at          double precision NOT NULL

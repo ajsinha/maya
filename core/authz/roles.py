@@ -61,6 +61,8 @@ VALIDATOR = READ_PERMISSIONS | {
     # The second line accepts or rejects what the first line filed -- and
     # approves the parameters it fitted, which change what the model does.
     "document:review", "parameter:approve", "version:sign",
+    "feature:seal", "featureset:seal",
+    "feature:seal", "featureset:seal",
     # The second line asks the machine for a draft and attests what it produced.
     "assist:generate", "assist:attest",
 }

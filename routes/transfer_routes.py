@@ -15,8 +15,47 @@ from typing import Optional
 from fastapi import Request
 from fastapi.responses import StreamingResponse
 
+from typing import Any, Dict, List
+
+from pydantic import BaseModel
+
+from core.features.alignment import align
+from core.features.preparation import prepare
 from core.features.transfer import MEDIA_TYPE, describe as describe_transfer
 from core.features.transfer import normalise
+
+
+class PrepareIn(BaseModel):
+    """What a caller asks MAYA to do to the values on the way out."""
+    as_of: Any = None
+    fill: Dict[str, Any] = {}
+    normalise: Dict[str, str] = {}
+    align: Dict[str, Any] = {}
+    limit: Any = None
+
+    def policy(self) -> Dict[str, Any]:
+        return {k: v for k, v in
+                {"fill": self.fill, "normalise": self.normalise,
+                 "align": self.align}.items() if v}
+
+
+def _prepare(rows: List[Dict[str, Any]], policy: Dict[str, Any],
+             body: "PrepareIn") -> Dict[str, Any]:
+    """Align, then fill, then normalise — and say what each step did."""
+    report: Dict[str, Any] = {"rows_in": len(rows)}
+    spec = policy.get("align") or {}
+    if spec:
+        columns = sorted({k for r in rows for k in r} -
+                         {"entity_id", "event_ts", "ingest_ts"})
+        aligned = align(rows, columns, spec.get("axis", "event_ts"),
+                        spec.get("rule", "flat_forward"),
+                        spec.get("grid"), limit=spec.get("carry_limit"))
+        rows = aligned["rows"]
+        report["aligned"] = {k: v for k, v in aligned.items() if k != "rows"}
+    out = prepare(rows, policy.get("fill"), policy.get("normalise"), body.as_of)
+    report.update({k: v for k, v in out.items() if k != "rows"})
+    return {"rows": out["rows"], "count": len(out["rows"]),
+            "policy_applied": policy, "report": report}
 from routes.base import Routes
 
 
@@ -90,6 +129,30 @@ class TransferRoutes(Routes):
             return self._stream(
                 transfer.featureset_stream(name, version, chosen, limit),
                 chosen, f"{name}-v{version}")
+
+        @self.app.post(f"{api}/featuresets/{{name}}/versions/{{version}}/prepared",
+                       tags=["features"])
+        def prepared(request: Request, name: str, version: int,
+                     body: PrepareIn):
+            """The featureset with MAYA's preparation applied.
+
+            Aligned onto an axis if asked, gaps filled, and normalised — with the
+            statistics fitted from what was knowable at the stated moment, and
+            returned alongside the rows so the same transform can be applied to
+            one row tomorrow.
+
+            The policy is the featureset's own default, overridden column by
+            column by anything in the request.
+            """
+            self.authorise(request, "feature:read")
+            resolved = self.guard(
+                lambda: features.sets.resolved(name, body.policy()))
+            effective = resolved["policy"]["policy"]
+            rows = self.guard(lambda: [
+                r for batch in transfer.featureset_batches(
+                    name, version, body.limit or 50_000)
+                for r in batch.to_pylist()])
+            return self.guard(lambda: _prepare(rows, effective, body))
 
         @self.app.get(f"{api}/featuresets/{{name}}/versions/{{version}}/parts",
                       tags=["features"])

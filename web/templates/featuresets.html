@@ -24,10 +24,24 @@ because the kernel reads the slot.</p>
                placeholder="entity, e.g. property_id" required></div>
         <div class="col-md-4"><input class="form-control form-control-sm" name="label_slot"
                placeholder="label slot (optional)"></div>
+        <div class="col-md-6"><input class="form-control form-control-sm" name="composes"
+               placeholder="compose from (comma separated, rightmost wins)"></div>
+        <div class="col-md-3 form-check ms-2">
+          <input class="form-check-input" type="checkbox" name="ephemeral" id="eph-set">
+          <label class="form-check-label small" for="eph-set">ephemeral</label></div>
+        <div class="col-md-2"><input class="form-control form-control-sm" name="ttl_days"
+               placeholder="days"></div>
+        <div class="col-12"><textarea class="form-control form-control-sm" name="defaults" rows="2"
+               placeholder='default retrieval policy, e.g. {"fill": {"dscr": "flat_forward"}, "normalise": {"dscr": "zscore"}, "align": {"axis": "event_ts", "rule": "flat_forward"}}'></textarea>
+          <div class="text-muted mt-1" style="font-size:.72rem">
+            Attached to the featureset as its default behaviour; a request may
+            still override it, column by column. A child inherits it and may
+            override part &mdash; the same left-to-right fold, with the rightmost
+            winning.</div></div>
         <div class="col-12">
           <textarea class="form-control form-control-sm" name="slots" rows="4"
             placeholder='{"log_living_area": "numeric", "bedrooms": "integer", "sale_price": "numeric"}'
-            required></textarea>
+></textarea>
           <div class="text-muted mt-1" style="font-size:.72rem">
             The slots are the schema. Adding one later changes X, which is a model
             change rather than a data change &mdash; so it is a different
@@ -42,17 +56,28 @@ because the kernel reads the slot.</p>
 
 <div class="card mb-3"><div class="card-header">Declared featuresets</div>
   <table class="table maya mb-0">
-    <thead><tr><th>Featureset</th><th>Entity</th><th>Slots</th><th>Versions</th>
+    <thead><tr><th>Featureset</th><th>Slots</th><th>Owner</th><th>State</th>
                <th>Newest</th><th></th></tr></thead>
     <tbody>
     {% for s in featuresets %}
       <tr><td class="small"><a href="/featureset/{{ s.name }}"
                  style="color:var(--crimson);text-decoration:none">{{ s.name }}</a>
             <div class="text-muted">{{ s.description or s.grain }}</div></td>
-          <td class="small">{{ s.entity }}</td>
           <td class="small">{{ s.slots|length }}
+            {% if s.inherited_slots %}
+              <div class="text-muted">{{ s.inherited_slots|length }} inherited from
+                {% for l in s.lineage %}{{ l.name }}{{ "" if loop.last else " → " }}{% endfor %}</div>
+            {% endif %}
             {% if s.label_slot %}<div class="text-muted">label: {{ s.label_slot }}</div>{% endif %}</td>
-          <td class="small">{{ s.versions|length }}</td>
+          <td class="small">{{ s.ownership.owner }}
+            {% if s.ownership.transferred %}
+              <div class="text-muted">created by {{ s.ownership.created_by }}</div>
+            {% endif %}</td>
+          <td class="small">
+            {% if s.sealed %}<span class="evidence-ok">sealed</span>
+            {% elif s.lifetime.ephemeral %}<span class="evidence-bad">ephemeral</span>
+              <div class="text-muted">{{ s.lifetime.detail }}</div>
+            {% else %}<span class="text-muted">{{ s.versions|length }} versions</span>{% endif %}</td>
           <td class="small">
             {% if s.latest %}v{{ s.latest.version }}
               <div class="text-muted"><code style="font-size:.7rem">{{ s.latest.digest[7:19] }}&hellip;</code></div>
@@ -75,13 +100,27 @@ $("#define-set").on("submit", function (e) {
   e.preventDefault();
   var f = Object.fromEntries(new FormData(this));
   var body;
-  try { body = {name: f.name, entity: f.entity, slots: JSON.parse(f.slots)}; }
+  try { body = {name: f.name, entity: f.entity,
+                slots: f.slots ? JSON.parse(f.slots) : {}}; }
   catch (err) {
     $("#set-result").html('<span class="evidence-bad">The slots are not valid JSON &mdash; ' +
       err.message + '</span>');
     return;
   }
   if (f.label_slot) { body.label_slot = f.label_slot; }
+  if (f.composes) {
+    body.composes = f.composes.split(",").map(function (s) { return {name: s.trim()}; });
+  }
+  if (f.ephemeral) { body.ephemeral = true; }
+  if (f.ttl_days) { body.ttl_days = parseFloat(f.ttl_days); }
+  if (f.defaults) {
+    try { body.defaults = JSON.parse(f.defaults); }
+    catch (err) {
+      $("#set-result").html('<span class="evidence-bad">The policy is not valid JSON &mdash; ' +
+        err.message + '</span>');
+      return;
+    }
+  }
   $.ajax({url: "/api/v1/featuresets", method: "POST",
           contentType: "application/json", data: JSON.stringify(body)})
     .done(function () { location.reload(); })

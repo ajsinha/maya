@@ -5,18 +5,72 @@
 <p class="kicker mt-2 mb-1">FEATURESET</p>
 <h1>{{ featureset.name }}</h1>
 <div class="rule"></div>
-<p class="text-muted small">{{ featureset.grain }} &middot; entity
+<p class="text-muted small">
+{% if featureset.sealed %}<span class="evidence-ok">sealed by {{ featureset.sealed_by }}</span> &middot;
+{% elif featureset.lifetime.ephemeral %}<span class="evidence-bad">ephemeral &mdash; {{ featureset.lifetime.detail }}</span> &middot;
+{% endif %}
+owned by {{ featureset.ownership.owner }}
+{% if featureset.ownership.transferred %}(created by {{ featureset.ownership.created_by }}){% endif %}
+&middot; {{ featureset.grain }} &middot; entity
 <code>{{ featureset.entity }}</code>
 {% if featureset.label_slot %}&middot; label <code>{{ featureset.label_slot }}</code>
   {% if featureset.outcome_window_days %}with a
   {{ featureset.outcome_window_days }}-day outcome window{% endif %}{% endif %}</p>
 
+{% if featureset.lineage %}
+<div class="card mb-3"><div class="card-header">Composed from</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Parent</th><th>Depth</th><th>Contributes</th><th>Sealed</th></tr></thead>
+    <tbody>
+    {% for l in featureset.lineage %}
+      <tr><td class="small"><a href="/featureset/{{ l.name }}"
+             style="color:var(--crimson);text-decoration:none">{{ l.name }}</a></td>
+          <td class="small">{{ l.depth }}</td>
+          <td class="small">{{ l.contributes|join(', ') }}</td>
+          <td class="small">{% if l.sealed %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Folded left to right, the rightmost winning; this featureset's own slots and
+    operations are applied last and are therefore the most prominent of all.
+  </div></div>
+{% endif %}
+
+{% if featureset.policy.policy %}
+<div class="card mb-3"><div class="card-header">Default retrieval policy</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Section</th><th>Column</th><th>Treatment</th><th>Decided by</th></tr></thead>
+    <tbody>
+    {% for section, columns in featureset.policy.policy.items() %}
+      {% if section != 'align' %}
+        {% for column, treatment in columns.items() %}
+          <tr><td class="small">{{ section }}</td>
+              <td class="small">{{ column }}</td>
+              <td class="small">{{ treatment }}</td>
+              <td class="small text-muted">
+                {{ featureset.policy.decided_by[section][column] }}</td></tr>
+        {% endfor %}
+      {% else %}
+        <tr><td class="small">align</td><td class="small">{{ columns.axis or 'event_ts' }}</td>
+            <td class="small">{{ columns.rule }}</td>
+            <td class="small text-muted">&mdash;</td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    {{ featureset.policy.precedence }}. A request may override any of it.
+  </div></div>
+{% endif %}
+
 <div class="card mb-3"><div class="card-header">The schema &mdash; what a kernel is defined over</div>
   <table class="table maya mb-0">
     <thead><tr><th>Slot</th><th>Type</th><th>Nullable</th><th>Role</th></tr></thead>
     <tbody>
-    {% for slot, spec in featureset.slots.items()|sort %}
-      <tr><td class="small">{{ slot }}</td>
+    {% for slot, spec in featureset.slots.items() %}
+      <tr><td class="small">{{ slot }}
+            {% if slot in featureset.inherited_slots %}
+              <div class="text-muted">inherited</div>{% endif %}</td>
           <td class="small">{{ spec.dtype }}</td>
           <td class="small">{{ 'yes' if spec.nullable else 'no' }}</td>
           <td class="small">
@@ -48,6 +102,10 @@
       <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Publish</button>
       <button type="button" id="roll" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"
               style="font-size:.75rem">Roll forward to newest views</button>
+      {% if not featureset.sealed %}
+        <button type="button" id="seal" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"
+                style="font-size:.75rem">Seal</button>
+      {% endif %}
     </form>
     <div id="publish-result" class="small mt-2"></div>
   </div></div></div>
@@ -109,6 +167,14 @@ $("#publish-version").on("submit", function (e) {
   }
   $.ajax({url: "/api/v1/featuresets/{{ featureset.name }}/versions", method: "POST",
           contentType: "application/json", data: JSON.stringify({bindings: bindings})})
+    .done(function () { location.reload(); }).fail(show);
+});
+$("#seal").on("click", function () {
+  if (!confirm("Seal this featureset? It becomes final and takes no further " +
+               "versions. It can still be composed from — that is what sealing " +
+               "is for.")) { return; }
+  $.ajax({url: "/api/v1/featuresets/{{ featureset.name }}/seal", method: "POST",
+          contentType: "application/json", data: JSON.stringify({note: ""})})
     .done(function () { location.reload(); }).fail(show);
 });
 $("#roll").on("click", function () {

@@ -19,6 +19,41 @@ from core.parameters import PROVENANCE_MEANING
 from routes.base import Routes
 
 
+class FeatureIn(BaseModel):
+    name: str
+    entity: str
+    dtype: str = "numeric"
+    description: str = ""
+    shape: Any = None
+    components: Optional[List[str]] = None
+    composes: Optional[List[Any]] = None
+    operations: Optional[List[Dict[str, Any]]] = None
+    defaults: Optional[Dict[str, Any]] = None
+    ephemeral: bool = False
+    ttl_days: Optional[float] = None
+
+
+class AmendIn(BaseModel):
+    fields: Dict[str, Any]
+
+
+class SealIn(BaseModel):
+    note: str = ""
+
+
+class BreakSealIn(BaseModel):
+    reason: str
+
+
+class TransferIn(BaseModel):
+    to: str
+    reason: str = ""
+
+
+class PolicyIn(BaseModel):
+    defaults: Dict[str, Any]
+
+
 class DerivedIn(BaseModel):
     name: str
     expression: str
@@ -32,7 +67,12 @@ class DerivedIn(BaseModel):
 class FeaturesetIn(BaseModel):
     name: str
     entity: str
-    slots: Dict[str, Any]
+    slots: Dict[str, Any] = {}
+    composes: Optional[List[Any]] = None
+    operations: Optional[List[Dict[str, Any]]] = None
+    defaults: Optional[Dict[str, Any]] = None
+    ephemeral: bool = False
+    ttl_days: Optional[float] = None
     label_slot: Optional[str] = None
     outcome_window_days: int = 0
     grain: str = ""
@@ -92,6 +132,18 @@ class FeaturesetRoutes(Routes):
             self.authorise(request, "feature:read")
             return {"derived": features.derived.list()}
 
+        @self.app.get(f"{api}/retrieval", tags=["features"])
+        def retrieval(request: Request):
+            """What MAYA can do to values on the way out, and the rules it obeys."""
+            self.principal(request)
+            from core.features import alignment, policy, preparation
+            return {"preparation": preparation.describe(),
+                    "alignment": alignment.describe(),
+                    "policy": policy.describe(),
+                    "composition": __import__(
+                        "core.features.composition",
+                        fromlist=["describe"]).describe()}
+
         @self.app.post(f"{api}/derived-features", status_code=201, tags=["features"])
         def define_derived(request: Request, body: DerivedIn):
             """Declare Z = f(X, Y). Corrections are new definition versions."""
@@ -110,6 +162,51 @@ class FeaturesetRoutes(Routes):
                 "rests_on": features.lineage(name),
                 "depended_on_by": features.dependants_of(name)})
 
+        @self.app.get(f"{api}/features/{{name}}/resolved", tags=["features"])
+        def resolved_feature(request: Request, name: str):
+            """The feature as it actually stands.
+
+            Not what the row says — what the row plus its parents plus its own
+            operations say, with its shape, its retrieval policy and how long it
+            has left. Working that out is MAYA's job, not the caller's.
+            """
+            self.authorise(request, "feature:read")
+            return self.guard(lambda: features.resolved_feature(name))
+
+        @self.app.post(f"{api}/features/{{name}}/amend", tags=["features"])
+        def amend_feature(request: Request, name: str, body: AmendIn):
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: features.catalogue.amend(
+                name, body.fields, self.actor(who)))
+
+        @self.app.post(f"{api}/features/{{name}}/seal", tags=["features"])
+        def seal_feature(request: Request, name: str, body: SealIn):
+            """Declare it final. It can still be composed from — that is why."""
+            who = self.authorise(request, "feature:seal")
+            return self.guard(lambda: features.seal_feature(
+                name, self.actor(who), body.note))
+
+        @self.app.post(f"{api}/features/{{name}}/break-seal", tags=["features"])
+        def break_feature_seal(request: Request, name: str, body: BreakSealIn):
+            """Administrators only, and never quietly."""
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: features.catalogue.break_seal(
+                name, self.actor(who), body.reason))
+
+        @self.app.post(f"{api}/features/{{name}}/transfer", tags=["features"])
+        def transfer_feature(request: Request, name: str, body: TransferIn):
+            """Hand on the responsibility. The creator does not move."""
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: features.catalogue.transfer(
+                name, body.to, self.actor(who), body.reason))
+
+        @self.app.delete(f"{api}/features/{{name}}", tags=["features"])
+        def destroy_feature(request: Request, name: str):
+            """Remove an ephemeral feature. The rows go; the record does not."""
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: features.catalogue.destroy(
+                name, "asked for", self.actor(who)))
+
         # -------------------------------------------------------------- featuresets
         @self.app.get(f"{api}/featuresets", tags=["features"])
         def list_sets(request: Request):
@@ -123,7 +220,8 @@ class FeaturesetRoutes(Routes):
             return self.guard(lambda: features.define_featureset(
                 body.name, body.entity, self.actor(who), body.slots,
                 body.label_slot, body.outcome_window_days, body.grain,
-                body.description, self.actor(who)))
+                body.description, body.composes, body.operations,
+                body.ephemeral, body.ttl_days, body.defaults, self.actor(who)))
 
         @self.app.get(f"{api}/featuresets/{{name}}", tags=["features"])
         def read_set(request: Request, name: str):
@@ -133,6 +231,37 @@ class FeaturesetRoutes(Routes):
                 "versions": [{"version": v["version"], "digest": v["digest"],
                               "created_at": v["created_at"], "note": v["note"]}
                              for v in features.sets.versions_of(name)]})
+
+        @self.app.get(f"{api}/featuresets/{{name}}/resolved", tags=["features"])
+        def resolved_set(request: Request, name: str):
+            """The slots this featureset actually has, and who decided each."""
+            self.authorise(request, "feature:read")
+            return self.guard(lambda: features.resolved_featureset(name))
+
+        @self.app.post(f"{api}/featuresets/{{name}}/seal", tags=["features"])
+        def seal_set(request: Request, name: str, body: SealIn):
+            who = self.authorise(request, "featureset:seal")
+            return self.guard(lambda: features.seal_featureset(
+                name, self.actor(who), body.note))
+
+        @self.app.post(f"{api}/featuresets/{{name}}/transfer", tags=["features"])
+        def transfer_set(request: Request, name: str, body: TransferIn):
+            who = self.authorise(request, "featureset:define")
+            return self.guard(lambda: features.sets.transfer(
+                name, body.to, self.actor(who), body.reason))
+
+        @self.app.put(f"{api}/featuresets/{{name}}/policy", tags=["features"])
+        def set_policy(request: Request, name: str, body: PolicyIn):
+            """Attach default retrieval behaviour. A request may still override."""
+            who = self.authorise(request, "featureset:define")
+            return self.guard(lambda: features.sets.set_policy(
+                name, body.defaults, self.actor(who)))
+
+        @self.app.delete(f"{api}/featuresets/{{name}}", tags=["features"])
+        def destroy_set(request: Request, name: str):
+            who = self.authorise(request, "featureset:define")
+            return self.guard(lambda: features.sets.destroy(
+                name, "asked for", self.actor(who)))
 
         @self.app.post(f"{api}/featuresets/{{name}}/versions", status_code=201,
                        tags=["features"])

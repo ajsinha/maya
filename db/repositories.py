@@ -24,7 +24,8 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed")
+                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed",
+                 "ephemeral")
 
 
 class Repository:
@@ -145,6 +146,7 @@ class WarrantRepository(Repository):
 
 class FeatureRepository(Repository):
     TABLE, ORDER = "feature", "name"
+    JSON = ("shape", "components", "composes", "operations", "defaults")
 
 
 class FeatureViewRepository(Repository):
@@ -186,7 +188,8 @@ class DerivedFeatureRepository(Repository):
 
 
 class FeaturesetRepository(Repository):
-    TABLE, JSON, ORDER = "featureset", ("slots",), "created_at"
+    TABLE, ORDER = "featureset", "created_at"
+    JSON = ("slots", "composes", "operations", "defaults")
 
 
 class FeaturesetVersionRepository(Repository):
