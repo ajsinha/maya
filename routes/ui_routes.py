@@ -57,4 +57,5 @@ class UIRoutes(Routes):
                 findings=register.open_for(m["id"]),
                 finding_summary=register.summary(m["id"]),
                 validations=self.ctx["validation"].for_model(urn),
-                flow=self.ctx["lifecycle"].state(urn), now=time.time())
+                flow=self.ctx["lifecycle"].state(urn), now=time.time(),
+                monitoring=self.ctx["monitoring"].status(m["id"]))

@@ -26,6 +26,7 @@ from core.authz import AuthzError
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
 from core.lifecycle import LifecycleError
+from core.monitoring import MonitorError
 from core.log import get_logger
 from core.registry import RegistryError
 from core.validation import ValidationError
@@ -53,6 +54,11 @@ STATUS: Dict[str, int] = {
     "reason_required": 422, "unknown_decision": 422,
     "role_not_required": 403, "role_not_held": 403, "deletion_refused": 403,
     "no_attestation": 404, "no_amendment": 404,
+    # monitoring
+    "unknown_kind": 422, "test_not_admissible": 422, "threshold_required": 422,
+    "label_delay_required": 422, "unknown_status": 422, "no_reference": 422,
+    "cohort_immature": 409, "monitor_inactive": 409, "duplicate_monitor": 409,
+    "no_monitor": 404, "unknown_severity": 422,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -117,7 +123,7 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
-        except (WarrantError, LifecycleError) as exc:
+        except (WarrantError, LifecycleError, MonitorError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

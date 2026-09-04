@@ -40,6 +40,7 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     # assurance
     "validation:read", "validation:open", "validation:record", "validation:conclude",
     "finding:read", "finding:raise", "finding:close",
+    "monitor:read", "monitor:define", "monitor:evaluate",
     "evidence:read",
     # the platform itself
     "principal:read", "principal:manage",
