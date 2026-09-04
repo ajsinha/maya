@@ -11,14 +11,20 @@ of a leaf and insertion into the past detectable.
 """
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Generic, List, Optional, Set, Tuple, TypeVar
 
 from core.evidence.semirings import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST,
                                      WHY, MAX_TERMS, Semiring)
+from sqlalchemy.exc import IntegrityError
+
+from core.log import get_logger, swallowed
 from db import EvidenceRepository
 from db.database import digest as canonical_digest
+
+logger = get_logger(__name__)
 
 GENESIS = "sha256:" + "0" * 64
 
@@ -40,6 +46,13 @@ class EvaluationResult:
     truncated: bool = False
 
 
+# How many times an append re-reads the head before giving up. Contention is on
+# one integer, so a handful of attempts covers far more concurrency than a
+# governance platform will ever see; the cap exists so a genuine defect surfaces
+# as a failure rather than as a hang.
+APPEND_ATTEMPTS = 8
+
+
 class EvidenceEngine:
     """Append-only, hash-chained evidence with semiring evaluation over it."""
 
@@ -55,6 +68,45 @@ class EvidenceEngine:
                payload: Optional[Dict[str, Any]] = None, parents: Optional[List[str]] = None,
                *, personal_data: bool = False, trust: float = 1.0,
                actor: str = "system") -> Dict[str, Any]:
+        # The chain is a read-then-write -- take the head, insert head+1 -- and
+        # that was neither atomic nor retried. Every statement opened its own
+        # transaction, so two concurrent governance acts read the same head and
+        # the loser hit the UNIQUE on `seq`. Measured at four threads: 7% of
+        # appends raised, and every service commits its own row BEFORE appending
+        # evidence, so the model existed and the record of its registration did
+        # not. Twenty-four concurrent registrations produced twenty-four models
+        # and fourteen evidence nodes.
+        #
+        # The consequence was worse than a missing row. Segregation of duties is
+        # decided by reading the chain, so a lost `version_created` node did not
+        # fail closed -- it meant "you cannot approve what you created" had
+        # nothing to read, and the developer could approve their own version.
+        #
+        # Atomic now, and retried on contention: the sequence is the only thing
+        # two writers contend for, so re-reading the head is always sufficient.
+        for attempt in range(APPEND_ATTEMPTS):
+            try:
+                with self.repo.db.transaction():
+                    return self._append(kind, subject_type, subject_id, payload,
+                                        parents, personal_data=personal_data,
+                                        trust=trust, actor=actor)
+            except IntegrityError as exc:
+                if attempt == APPEND_ATTEMPTS - 1:
+                    logger.error("evidence append lost the sequence race %d "
+                                 "times for %s/%s; giving up",
+                                 APPEND_ATTEMPTS, subject_type, subject_id)
+                    raise
+                swallowed(logger, exc, "appended to the evidence chain",
+                          detail=f"another writer took sequence first; "
+                                 f"retrying ({attempt + 1}/{APPEND_ATTEMPTS})",
+                          level=logging.DEBUG)
+
+    def _append(self, kind: str, subject_type: str, subject_id: str,
+                payload: Optional[Dict[str, Any]] = None,
+                parents: Optional[List[str]] = None,
+                *, personal_data: bool = False, trust: float = 1.0,
+                actor: str = "system") -> Dict[str, Any]:
+        """One attempt, inside a transaction the caller opened."""
         payload, parents = payload or {}, sorted(parents or [])
         # Hashed over what is STORED, not over what was passed: a node carrying
         # personal data stores an empty payload (law L-18), and hashing the
