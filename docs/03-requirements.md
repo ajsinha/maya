@@ -169,19 +169,19 @@ sequenceDiagram
     Dev->>API: Create model proposal (intake form, intended use)
     API->>POL: Pre-screen scope + provisional tier
     POL-->>Dev: Provisional Tier 1, obligations checklist, EU AI Act = high-risk
-    Dev->>FS: Search / reuse features; declare new features
+    Dev->>FS: Search / reuse features, declare new features
     FS-->>Dev: Feature view versions (PIT-correct training set)
     Dev->>SDK: run = maya.start_run(model, purpose="fit")
     SDK->>EV: Log dataset snapshot, feature contract, params, code commit
-    Dev->>SDK: maya.log_artifact(onnx) ; maya.log_metrics(...)
+    Dev->>SDK: maya.log_artifact(onnx) · maya.log_metrics(...)
     SDK->>API: Create model version 1.0.0 (immutable, signed)
     API->>EV: Bind artifact hash ↔ run ↔ feature contract ↔ dataset
     Dev->>API: Compile Model Development Document
     API-->>Dev: MDD draft from evidence + narrative gaps flagged
     Dev->>API: Submit for validation
     API->>Val: Validation assignment (SLA by tier)
-    Val->>API: Replay run in sandbox; independent recode; challenger
-    Val->>API: Raise findings; issue validation report
+    Val->>API: Replay run in sandbox, independent recode, challenger
+    Val->>API: Raise findings, issue validation report
     API->>POL: Evaluate promotion gate
     POL-->>API: PASS (no open High findings) / conditional
     Own->>API: Approve use: {purpose, portfolio, entity, geography}

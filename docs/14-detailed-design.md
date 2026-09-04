@@ -289,8 +289,8 @@ sequenceDiagram
     else accepted
         A->>F: reconcile declared features against the registry
         F-->>A: matched / fuzzy / unknown
-        A->>R: create version (immutable; trigger-enforced)
-        A->>O: promote from quarantine; cosign sign; record SLSA attestation
+        A->>R: create version (immutable, trigger-enforced)
+        A->>O: promote from quarantine, cosign sign, record SLSA attestation
         A->>E: append nodes {artifact, introspection, scans, contract, manifest}
         A-->>C: 201 + provisional tier + obligations + next actions
     end

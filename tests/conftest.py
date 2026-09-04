@@ -105,3 +105,36 @@ def approved_version(registry, a_model, kernel_spec, contract_spec):
 def hooks(repos, registry, evidence):
     from core.execution import HookService
     return HookService(repos["hooks"], registry, evidence, jitter_pct=0)
+
+
+@pytest.fixture
+def delta(tmp_path):
+    from db import DeltaStore
+    return DeltaStore(tmp_path / "delta")
+
+
+@pytest.fixture
+def features(db, delta, evidence):
+    from core.features import FeatureRegistry
+    from db import (ContractRepository, FeatureRepository, FeatureViewRepository,
+                    SnapshotRepository)
+    return FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
+                           ContractRepository(db), SnapshotRepository(db), delta, evidence)
+
+
+@pytest.fixture
+def sb_view(features):
+    """A materialised view with a restatement in it: the borrower's Q1 figure is
+    revised months later, which is the case point-in-time correctness exists for."""
+    features.define("dscr", "customer", "float", "Debt service coverage ratio", "person/d.raman")
+    features.define("revenue", "customer", "float", "Trailing twelve month revenue", "person/d.raman")
+    features.create_view("sb_financials", "customer", "person/d.raman", ["dscr", "revenue"])
+    features.materialise("sb_financials", [
+        # C1: filed 31 Mar (t=100), landed 20 May (t=110)
+        {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0, "dscr": 1.20, "revenue": 5.0},
+        # C1: the SAME period, restated downward in August (t=900)
+        {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 900.0, "dscr": 0.40, "revenue": 3.0},
+        {"entity_id": "C2", "event_ts": 100.0, "ingest_ts": 110.0, "dscr": 2.10, "revenue": 9.0},
+        {"entity_id": "C3", "event_ts": 100.0, "ingest_ts": 110.0, "dscr": 0.90, "revenue": 4.0},
+    ])
+    return features

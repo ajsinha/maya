@@ -686,15 +686,15 @@ sequenceDiagram
     alt cache hit and not revoked
         R-->>H: signed descriptor (TTL 300s)
     else miss
-        H->>P: resolve alias → version; check approval, entitlement, findings, policy
+        H->>P: resolve alias → version, check approval, entitlement, findings, policy
         P-->>H: version + contract + policy verdict
         H->>H: build + sign descriptor (Ed25519)
         H->>R: cache with TTL and revocation tag
     end
     H-->>E: 200 HookDescriptor{artifact_uri, digest, schemas, feature_contract, constraints, expiry, sig}
-    E->>E: verify signature; check declared_use ⊆ approved_uses
+    E->>E: verify signature, check declared_use ⊆ approved_uses
     E->>O: fetch artifact by digest (cached locally)
-    E->>E: verify digest; load in sandbox; execute
+    E->>E: verify digest, load in sandbox, execute
     E-->>H: POST /v1/telemetry {invocations, latency, boundary_violations}
     Note over H,P: telemetry → Delta → approved-use vs actual-use reconciliation (FR-MON-009)
 ```
@@ -861,7 +861,7 @@ sequenceDiagram
     UI->>API: POST /api/v1/models/{urn}/versions (multipart)
     API->>OS: stage artifact (content-addressed, quarantined)
     API->>SB: introspect job (isolated, no egress)
-    SB->>SB: malware + pickle opcode scan; SCA; secret scan
+    SB->>SB: malware + pickle opcode scan, SCA, secret scan
     SB->>SB: parse graph → input/output schema, opset, framework versions
     SB-->>API: IntrospectionResult{schema, features_declared, risks}
     API->>API: format policy check (FR-VER-006)
@@ -871,14 +871,14 @@ sequenceDiagram
         API->>FR: match declared features to registry
         FR-->>API: 38 matched, 4 unknown
         API-->>UI: Feature reconciliation screen
-        D->>UI: Map 3 to existing features; declare 1 new
+        D->>UI: Map 3 to existing features, declare 1 new
         UI->>API: PUT feature contract
         API->>FR: register new feature + view version
         FR->>DL: create/extend feature view (bitemporal schema)
-        API->>DL: materialise; run data-quality assertions
+        API->>DL: materialise, run data-quality assertions
         API->>API: verify PIT correctness of the training snapshot (L-10)
         API->>EV: nodes: artifact, contract, snapshot, introspection, scans
-        API->>OS: promote artifact out of quarantine; sign
+        API->>OS: promote artifact out of quarantine, sign
         API-->>D: Version 1.0.0 created · tier provisional · obligations listed
     end
 ```
@@ -923,7 +923,7 @@ sequenceDiagram
     MON->>VAL: breach → auto-finding (severity from ladder × tier)
     VAL->>POL: re-evaluate production gate
     POL-->>HK: verdict RESTRICT (Critical open finding)
-    HK->>HK: revoke prod hook grants; mark alias champion suspended
+    HK->>HK: revoke prod hook grants, mark alias champion suspended
     HK-->>OWN: notification + break-glass instructions
     MON-->>OWN: breach detail, affected slices, downstream blast radius
 ```
