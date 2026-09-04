@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from core.properties_configurator import PropertiesConfigurator  # noqa: E402
+from core.config import PropertiesConfigurator  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -103,5 +103,5 @@ def approved_version(registry, a_model, kernel_spec, contract_spec):
 
 @pytest.fixture
 def hooks(repos, registry, evidence):
-    from core.hooks import HookService
+    from core.execution import HookService
     return HookService(repos["hooks"], registry, evidence, jitter_pct=0)
