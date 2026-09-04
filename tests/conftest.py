@@ -141,3 +141,48 @@ def sb_view(features):
         {"entity_id": "C3", "event_ts": 100.0, "ingest_ts": 110.0, "dscr": 0.90, "revenue": 4.0},
     ])
     return features
+
+
+# --------------------------------------------------------------------- validation
+@pytest.fixture
+def findings(db, evidence):
+    from core.validation import FindingRegister
+    from db import FindingRepository
+    return FindingRegister(FindingRepository(db), evidence)
+
+
+@pytest.fixture
+def gated_registry(repos, evidence, findings):
+    """A registry whose alias moves are gated on the findings register."""
+    from core.registry import ModelRegistry
+    return ModelRegistry(repos["models"], repos["versions"], repos["aliases"],
+                         repos["history"], evidence, blocking=findings)
+
+
+@pytest.fixture
+def catalogue():
+    from core.validation import TestCatalogue
+    return TestCatalogue()
+
+
+@pytest.fixture
+def validation(db, registry, catalogue, evidence, findings):
+    from core.validation import ValidationService
+    from db import TestResultRepository, ValidationRepository
+    return ValidationService(ValidationRepository(db), TestResultRepository(db),
+                             registry, catalogue, evidence, findings)
+
+
+@pytest.fixture
+def replayer(validation, catalogue):
+    from core.validation import Replayer
+    return Replayer(validation, catalogue)
+
+
+@pytest.fixture
+def scored():
+    """A separable but imperfect sample — realistic, not a toy perfect split."""
+    labels = [0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1]
+    scores = [0.02, 0.05, 0.09, 0.12, 0.18, 0.21, 0.24, 0.33,
+              0.41, 0.48, 0.52, 0.61, 0.70, 0.78, 0.85, 0.94]
+    return labels, scores

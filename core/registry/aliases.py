@@ -26,6 +26,7 @@ from typing import Any, Dict, List, Optional
 
 from core.domain import substitutable
 from core.evidence import EvidenceEngine
+from core.ports import BlockingSource
 from core.registry.catalogue import ModelCatalogue
 from core.registry.common import RegistryError
 from core.registry.specs import contract_of, schema_of
@@ -40,9 +41,10 @@ class AliasService:
 
     def __init__(self, aliases: AliasRepository, history: AliasHistoryRepository,
                  catalogue: ModelCatalogue, versions: VersionService,
-                 evidence: EvidenceEngine):
+                 evidence: EvidenceEngine, blocking: Optional[BlockingSource] = None):
         self.aliases, self.history = aliases, history
         self.catalogue, self.versions, self.evidence = catalogue, versions, evidence
+        self.blocking = blocking
 
     # ------------------------------------------------------------------ proof
     @staticmethod
@@ -67,6 +69,7 @@ class AliasService:
             raise RegistryError(f"version {to_semver} is '{new['status']}', not approved; "
                                 f"an alias may only point at an approved version")
 
+        self._check_not_blocked(m)
         current = self.aliases.one(model_id=m["id"], environment=environment, name=name)
         incumbent = self.versions.by_id(current["version_id"]) if current else None
         proof = self.obligations(new, incumbent)
@@ -86,6 +89,22 @@ class AliasService:
                               "to": to_semver, **proof}, actor=actor)
         return {"model": urn, "environment": environment, "alias": name,
                 "version": to_semver, **proof}
+
+    def _check_not_blocked(self, model: Dict[str, Any]) -> None:
+        """An open blocking finding stops promotion.
+
+        Checked before the refinement and variance proofs, because "this model
+        has an unresolved Critical finding" is a more useful refusal than a
+        contract clause, and cheaper to establish.
+        """
+        if not self.blocking:
+            return
+        if open_findings := self.blocking.blocking_for(model["id"]):
+            titles = "; ".join(f["title"] for f in open_findings)
+            raise RegistryError(
+                f"alias move refused: {len(open_findings)} blocking finding(s) open "
+                f"against {model['urn']} ({titles}); close them or downgrade them "
+                "before promoting a version")
 
     # ---------------------------------------------------------------- resolve
     def resolve(self, urn: str, environment: str, name: str) -> Optional[Dict[str, Any]]:

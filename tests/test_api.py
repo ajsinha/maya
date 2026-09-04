@@ -292,3 +292,130 @@ class TestAuthenticatedInterface:
                       "/static/vendor/jquery/jquery.min.js",
                       "/static/img/maya-mark-64.png"):
             assert client.get(asset).status_code == 200, asset
+
+
+SCORED = {"left": [0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 1],
+          "right": [0.02, 0.05, 0.09, 0.12, 0.18, 0.21, 0.24, 0.33,
+                    0.41, 0.48, 0.52, 0.61, 0.70, 0.78, 0.85, 0.94]}
+
+
+class TestValidationApi:
+    def test_the_test_catalogue_is_published(self, client):
+        body = client.get("/api/v1/tests").json()
+        keys = {t["key"] for t in body["tests"]}
+        assert "discrimination.gini" in keys and "stability.psi" in keys
+
+    def test_open_record_and_conclude(self, registered):
+        v = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["person/a.mehta"],
+            "scope": ["discrimination"]})
+        assert v.status_code == 201
+        vid = v.json()["id"]
+
+        r = registered.post(f"/api/v1/validations/{vid}/results",
+                            json={"test_key": "discrimination.gini",
+                                  "threshold": {"min": 0.3}, **SCORED})
+        assert r.status_code == 201 and r.json()["passed"] is True
+
+        done = registered.post(f"/api/v1/validations/{vid}/conclude",
+                               json={"outcome": "approved"})
+        assert done.status_code == 200 and done.json()["outcome"] == "approved"
+
+    def test_the_builder_cannot_validate_their_own_version(self, registered):
+        r = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["system"]})
+        assert r.status_code == 409
+        assert "independence failed" in r.json()["detail"]
+
+    def test_approval_over_a_failed_test_is_refused_with_the_route_out(self, registered):
+        vid = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["person/a.mehta"]}).json()["id"]
+        registered.post(f"/api/v1/validations/{vid}/results",
+                        json={"test_key": "discrimination.gini",
+                              "threshold": {"min": 0.99}, **SCORED})
+        r = registered.post(f"/api/v1/validations/{vid}/conclude",
+                            json={"outcome": "approved"})
+        assert r.status_code == 409
+        assert "approved_with_conditions" in r.json()["detail"]
+
+    def test_a_validation_reads_back_with_its_results_and_summary(self, registered):
+        vid = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["person/a.mehta"]}).json()["id"]
+        registered.post(f"/api/v1/validations/{vid}/results",
+                        json={"test_key": "calibration.brier",
+                              "threshold": {"max": 1.0}, **SCORED})
+        body = registered.get(f"/api/v1/validations/{vid}").json()
+        assert body["summary"]["tests_run"] == 1
+        assert body["results"][0]["test_key"] == "calibration.brier"
+
+    def test_an_unknown_validation_is_404(self, client):
+        assert client.get("/api/v1/validations/nope").status_code == 404
+
+    def test_replay_reproduces_over_the_api(self, registered):
+        vid = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["person/a.mehta"]}).json()["id"]
+        registered.post(f"/api/v1/validations/{vid}/results",
+                        json={"test_key": "discrimination.gini",
+                              "threshold": {"min": 0.3}, **SCORED})
+        report = registered.post(
+            f"/api/v1/validations/{vid}/replay",
+            json={"data": {"discrimination.gini": [SCORED["left"], SCORED["right"]]}}).json()
+        assert report["reproducible"] is True and report["reproduced"] == 1
+
+    def test_replay_without_data_reports_skipped_not_reproduced(self, registered):
+        vid = registered.post("/api/v1/validations", json={
+            "urn": URN, "semver": "3.2.1", "validators": ["person/a.mehta"]}).json()["id"]
+        registered.post(f"/api/v1/validations/{vid}/results",
+                        json={"test_key": "discrimination.gini",
+                              "threshold": {"min": 0.3}, **SCORED})
+        report = registered.post(f"/api/v1/validations/{vid}/replay",
+                                 json={"data": {}}).json()
+        assert report["reproducible"] is False and len(report["skipped"]) == 1
+
+
+class TestFindingsApi:
+    def test_raise_and_read_back_a_finding(self, registered):
+        r = registered.post("/api/v1/findings", json={
+            "urn": URN, "severity": "Critical", "title": "Leakage in training set",
+            "owner": "person/j.okafor"})
+        assert r.status_code == 201 and r.json()["blocking"] is True
+
+        body = registered.get("/api/v1/findings", params={"urn": URN}).json()
+        assert body["summary"]["blocking"] == 1
+        assert body["blocking"][0]["title"] == "Leakage in training set"
+
+    def test_a_blocking_finding_refuses_hook_resolution(self, registered):
+        registered.post("/api/v1/findings", json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor"})
+        r = registered.post("/api/v1/resolve", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination", "declared_use": "origination_decision"})
+        assert r.status_code == 423
+        assert r.json()["error"] == "blocked"
+        assert r.json()["remediation"]
+
+    def test_closing_the_finding_restores_service(self, registered):
+        fid = registered.post("/api/v1/findings", json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor"}).json()["id"]
+        registered.post(f"/api/v1/findings/{fid}/close",
+                        json={"verified_by": "person/a.mehta", "evidence": {"pr": "1420"}})
+        r = registered.post("/api/v1/resolve", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination", "declared_use": "origination_decision"})
+        assert r.status_code == 200
+
+    def test_the_owner_cannot_verify_their_own_closure_over_the_api(self, registered):
+        fid = registered.post("/api/v1/findings", json={
+            "urn": URN, "severity": "High", "title": "Docs stale",
+            "owner": "person/j.okafor"}).json()["id"]
+        r = registered.post(f"/api/v1/findings/{fid}/close",
+                            json={"verified_by": "person/j.okafor",
+                                  "evidence": {"pr": "1"}})
+        assert r.status_code == 409 and "own closure" in r.json()["detail"]
+
+    def test_an_unknown_severity_is_refused(self, registered):
+        r = registered.post("/api/v1/findings", json={
+            "urn": URN, "severity": "Catastrophic", "title": "x", "owner": "person/o"})
+        assert r.status_code == 409

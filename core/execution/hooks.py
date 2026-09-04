@@ -31,6 +31,7 @@ from core.execution.grants import HookGrants
 from core.execution.signing import DescriptorSigner
 from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
 from core.log import get_logger
+from core.ports import BlockingSource
 from core.registry import ModelRegistry, RegistryError
 from db import HookRepository
 
@@ -44,8 +45,8 @@ class HookService:
                  evidence: EvidenceEngine, signing_key: str = "maya-dev-key",
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
-                 jitter_pct: int = 20):
-        self.registry = registry
+                 jitter_pct: int = 20, blocking: Optional[BlockingSource] = None):
+        self.registry, self.blocking = registry, blocking
         self.grants = HookGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
         self.signer = DescriptorSigner(signing_key, jitter_pct)
         self.descriptors = DescriptorFactory(self.signer)
@@ -62,6 +63,7 @@ class HookService:
         """Return a signed descriptor, or refuse with a reason. Never executes."""
         name, semver, aliasname = parse_urn(urn)
         m = self._model(urn, model_urn(name))
+        self._check_not_blocked(m)
         grant = self._grant(m, environment, principal, declared_use)
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
@@ -74,6 +76,24 @@ class HookService:
         except RegistryError as exc:
             logger.info("hook resolution for %s hit an unregistered model: %s", urn, exc)
             raise HookError("not_found", str(exc), "register the model first") from exc
+
+    def _check_not_blocked(self, model: Dict[str, Any]) -> None:
+        """Fail closed on an open blocking finding.
+
+        A model that failed challenge must not be servable, and the only way to
+        guarantee that is to check at resolution — the one point every consumer
+        passes through, however it was entitled.
+        """
+        if not self.blocking:
+            return
+        if open_findings := self.blocking.blocking_for(model["id"]):
+            titles = "; ".join(f["title"] for f in open_findings)
+            logger.warning("resolution refused for %s: %d blocking finding(s)",
+                           model["urn"], len(open_findings))
+            raise HookError("blocked",
+                            f"{len(open_findings)} blocking finding(s) open against "
+                            f"{model['urn']} ({titles})",
+                            "close the blocking findings, or withdraw the model from service")
 
     def _grant(self, model: Dict[str, Any], environment: str, principal: str,
                declared_use: str) -> Dict[str, Any]:

@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
+from core.ports import BlockingSource
 from core.registry.aliases import AliasService
 from core.registry.catalogue import ModelCatalogue
 from core.registry.common import RegistryError
@@ -31,12 +32,21 @@ class ModelRegistry:
 
     def __init__(self, models: ModelRepository, versions: VersionRepository,
                  aliases: AliasRepository, history: AliasHistoryRepository,
-                 evidence: EvidenceEngine):
+                 evidence: EvidenceEngine, blocking: Optional[BlockingSource] = None):
         self.catalogue = ModelCatalogue(models, evidence)
         self.version_service = VersionService(versions, self.catalogue, evidence)
         self.alias_service = AliasService(aliases, history, self.catalogue,
-                                          self.version_service, evidence)
+                                          self.version_service, evidence, blocking)
         self.evidence = evidence
+
+    def attach_blocking(self, blocking: BlockingSource) -> None:
+        """Wire the gate after construction.
+
+        The findings register needs the evidence engine, which the registry also
+        needs, so one of the two has to be connected second. Doing it explicitly
+        beats a lazy import or a circular constructor.
+        """
+        self.alias_service.blocking = blocking
 
     # ---------------------------------------------------------------- models
     def register(self, *a, **kw) -> Dict[str, Any]:
