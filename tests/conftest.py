@@ -355,3 +355,20 @@ def baseline(db, debts, registry, evidence, doc_context):
 def regimes(evidence):
     from core.regimes import RegimeEngine
     return RegimeEngine(evidence)
+
+
+# ------------------------------------------------------------------ estate view
+@pytest.fixture
+def worklist(registry, lifecycle, findings, monitoring, overlays, compiler, debts,
+             validation):
+    from core.estate import WorkList
+    return WorkList(registry, lifecycle, findings, monitoring, overlays, compiler,
+                    debts, validation)
+
+
+@pytest.fixture
+def estate(registry, findings, monitoring, overlays, debts, baseline, lifecycle,
+           regimes, compiler):
+    from core.estate import EstateSummary
+    return EstateSummary(registry, findings, monitoring, overlays, debts, baseline,
+                         lifecycle, regimes, compiler)
