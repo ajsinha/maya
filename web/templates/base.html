@@ -152,6 +152,10 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 </div></footer>
 <script src="/static/vendor/jquery/jquery.min.js"></script>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Search, sort and paging for every table. Written rather than vendored:
+     this platform must run air-gapped, and a table plugin is a hundred lines
+     of arithmetic wearing eighty kilobytes. -->
+<script src="/static/js/tables.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+ data-plain{% extends "base.html" %}
 {% block title %}Parameters — {{ model.name }} v{{ version.semver }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
@@ -75,7 +75,7 @@ change behaviour, so it is approved the way a version is.</p>
           <span class="open-badge">awaiting approval</span>
         {% endif %}</span></div>
 
-    <table class="table maya mb-0">
+    <table data-plain class="table maya mb-0">
       <tbody>
         <tr><td class="small" style="width:11rem">Provenance</td>
             <td class="small">{{ p.provenance }}
@@ -142,7 +142,7 @@ change behaviour, so it is approved the way a version is.</p>
     {% if p.diagnostics %}
       <div class="card-body py-2 border-top">
         <p class="small fw-bold mb-2" style="color:var(--crimson)">Diagnostics</p>
-        <table class="table maya mb-0">
+        <table data-plain class="table maya mb-0">
           <tbody>
           {% for key, value in p.diagnostics.items() %}
             <tr><td class="small mono" style="width:14rem">{{ key }}</td>
