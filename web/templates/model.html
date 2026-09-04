@@ -60,6 +60,35 @@
         {% endif %}
         </tbody></table></div>
 
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Documentation</span>
+        <button id="compile-doc" class="btn btn-sm btn-danger py-0 px-2"
+                style="font-size:.72rem">Compile</button></div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Document</th><th>Coverage</th><th>Citations</th><th>Freshness</th></tr></thead>
+        <tbody>
+        {% for d in documents %}
+          <tr><td class="small"><a href="/document/{{ d.id }}"
+                 style="color:var(--crimson);text-decoration:none">{{ d.title }}</a>
+                <div class="text-muted">{{ d.kind.replace('_', ' ') }}</div></td>
+              <td class="small">{{ d.coverage.filled }}/{{ d.coverage.sections }}
+                {% if d.coverage.missing_required %}
+                  <div class="evidence-bad">{{ d.coverage.missing_required|length }} required missing</div>
+                {% endif %}</td>
+              <td class="small">{{ d.citations|length }}</td>
+              <td class="small">
+                {% if d.staleness.stale %}
+                  <span class="evidence-bad">stale</span>
+                  <div class="text-muted">{{ d.staleness.events_since }} events since</div>
+                {% else %}<span class="evidence-ok">current</span>{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">
+            No documents compiled. A document here is generated from the register
+            and the evidence graph &mdash; every section cites what it rests on,
+            and staleness is computed rather than remembered.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+
     <div class="card mb-3"><div class="card-header">
         Monitoring
         {% if monitoring.open_breaches %}
@@ -244,6 +273,20 @@ $(function () {
     // Issue first; a duplicate grant is harmless and resolution needs one.
     $.ajax({url: "/api/v1/warrants", method: "POST", contentType: "application/json",
             data: JSON.stringify(body)}).always(resolve);
+  });
+
+  $("#compile-doc").on("click", function () {
+    var kind = window.prompt(
+      "Document kind (model_development_document, validation_report, " +
+      "model_card, annex_iv)", "model_development_document");
+    if (!kind) { return; }
+    $.ajax({url: "/api/v1/documents?urn=" + encodeURIComponent("{{ model.urn }}") +
+                 "&kind=" + encodeURIComponent(kind), method: "POST"})
+      .done(function (doc) { window.location = "/document/" + doc.id; })
+      .fail(function (xhr) {
+        var d = xhr.responseJSON || {};
+        window.alert((d.detail || "Refused.") + (d.remediation ? "\n\n" + d.remediation : ""));
+      });
   });
 
   $("#copy-warrant").on("click", function () {

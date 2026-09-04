@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.title }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">
+  <a href="/model/{{ model.urn.split('/')[-1] }}"
+     style="color:var(--crimson);text-decoration:none">{{ model.name|upper }}</a>
+  &nbsp;&rsaquo;&nbsp; COMPILED DOCUMENT</p>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    {% if staleness.stale %}
+      <div class="card mb-3" style="border-color:var(--crimson)">
+        <div class="card-body py-2 small">
+          <span class="evidence-bad">Stale.</span> {{ staleness.detail }}.
+          Recompile to bring it back in line with the register.</div></div>
+    {% endif %}
+    <div class="prose">{{ body|safe }}</div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header">This document</div>
+      <div class="card-body small">
+        <div class="d-flex justify-content-between"><span class="text-muted">Kind</span>
+          <span>{{ doc.kind.replace('_', ' ') }}</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Coverage</span>
+          <span>{{ doc.coverage.filled }} of {{ doc.coverage.sections }} sections</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Citations</span>
+          <span>{% if citations.sound %}<span class="evidence-ok">{{ citations.cited }} sound</span>
+                {% else %}<span class="evidence-bad">{{ citations.dangling|length }} dangling</span>
+                {% endif %}</span></div>
+        <div class="d-flex justify-content-between"><span class="text-muted">Freshness</span>
+          <span>{% if staleness.stale %}<span class="evidence-bad">stale</span>
+                {% else %}<span class="evidence-ok">current</span>{% endif %}</span></div>
+        <div class="mt-2"><span class="text-muted">Digest</span><br>
+          <span class="mono" style="font-size:.7rem">{{ doc.digest[:40] }}…</span></div>
+      </div>
+      <div class="card-body border-top py-2">
+        <a class="btn btn-sm btn-outline-secondary"
+           href="/api/v1/documents/{{ doc.id }}/markdown">Markdown</a>
+      </div></div>
+
+    {% if doc.coverage.missing_required %}
+      <div class="card mb-3"><div class="card-header">Required sections not filled</div>
+        <div class="card-body small">
+          {% for k in doc.coverage.missing_required %}
+            <div class="evidence-bad">{{ k.replace('_', ' ') }}</div>
+          {% endfor %}
+          <div class="text-muted mt-2">These are gaps in the model's evidence,
+            not in the compiler.</div>
+        </div></div>
+    {% endif %}
+
+    {% if anchors %}
+      <div class="card"><div class="card-header">Contents</div>
+        <div class="card-body toc py-2">
+          {% for h in anchors %}<a href="#{{ h.id }}">{{ h.name }}</a>{% endfor %}
+        </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
