@@ -19,9 +19,12 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from core.domain.contracts import Bound, Contract
+from core.execution.runtimes import (CallableRuntime, Invocation, OnnxRuntime,
+                                     PmmlRuntime, RuntimeRegistry)
 from core.execution.warrants import WarrantError, WarrantService
 
 
@@ -37,17 +40,35 @@ class ExecutionResult:
 
 
 class CaptiveEngine:
-    """A minimal, honest execution engine. Runs registered Python callables only."""
+    """A reference consumer of the warrant contract, with three real runtimes.
 
-    def __init__(self, warrants: WarrantService, max_seconds: float = 30.0):
+    It implements registered Python callables, ONNX graphs and the regression
+    and scorecard subset of PMML. The grammar names seventeen runtimes, and an
+    engine's usefulness lies in being precise about which it has rather than in
+    having them all: a warrant naming one it does not implement is refused by
+    name, listing what it does.
+    """
+
+    def __init__(self, warrants: WarrantService, max_seconds: float = 30.0,
+                 artifact_dir: Optional[Path] = None,
+                 runtimes: Optional[RuntimeRegistry] = None):
         self.warrants = warrants
         self.max_seconds = max_seconds
-        self._runtimes: Dict[str, Callable[[Dict[str, Any]], Any]] = {}
+        self._callables = CallableRuntime()
+        self.runtimes = runtimes or RuntimeRegistry([
+            self._callables,
+            OnnxRuntime(artifact_dir),
+            PmmlRuntime(artifact_dir),
+        ])
         self._revoked_locally: set = set()
 
     def register_runtime(self, version_id: str, fn: Callable[[Dict[str, Any]], Any]) -> None:
-        """Bind an executable to a version. A real engine would load an artifact."""
-        self._runtimes[version_id] = fn
+        """Bind a callable to a version, for development and for tests."""
+        self._callables.bind(version_id, fn)
+
+    def implements(self) -> list:
+        """What this engine can run, and why it cannot run the rest."""
+        return self.runtimes.describe()
 
     def note_revocation(self, descriptor_id: str) -> None:
         """The revocation floor: honoured regardless of grace state."""
@@ -82,13 +103,11 @@ class CaptiveEngine:
                             f"inputs outside the operating boundary: {', '.join(violations)}",
                             "the guarantee is void outside the assumption; refer or widen it")
 
-        version_id = warrant["subject"]["version_id"]
-        runtime = self._runtimes.get(version_id)
-        if runtime is None:
-            raise WarrantError("no_runtime", f"no runtime registered for version {version_id}",
-                            "register a runtime, or use an external execution engine")
-
-        prediction = runtime(inputs)
+        # Dispatch on the warrant's declared runtime. Everything above this line
+        # is checked without touching an artifact, which is the order that makes
+        # a refusal cheap and stops an artifact loading on an authorisation that
+        # was never valid.
+        prediction = self.runtimes.invoke(Invocation(warrant, inputs))
         return ExecutionResult(
             descriptor_id=warrant["warrant_id"],
             model_urn=warrant["subject"]["model_urn"],
