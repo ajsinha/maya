@@ -122,9 +122,15 @@ deliberately left outside the platform's boundary.
   what by when, and refuses to let the date move quietly; it has no view on
   whether the work is any good, which is what closure evidence and an
   independent verifier are for.
-- **File size, not total size.** The governing rule is that no Python source file
-  exceeds 1,500 code lines; every file is well inside it, and the packages are
-  split by responsibility rather than by length.
+- **File size, not total size.** The governing rule is that no Python source
+  file exceeds 1,500 code lines — blanks, comments and docstrings excluded, so
+  a file that explains itself is not penalised for it. It is now **enforced by
+  `tests/test_size_discipline.py`** rather than by nobody noticing, which is how
+  it was previously kept: the API suite had reached 2,471 code lines, not
+  because anybody decided to break the rule but because everything was appended
+  where the fixtures already were. It is split by subject into five modules, the
+  largest at 758. A second test fails at 90% of the limit, so a split stays a
+  choice rather than becoming a chore for whoever adds the next test.
 - **The captive engine implements five runtimes of eighteen.** No container, no
   spreadsheet, no SQL, no LLM. Each is refused by name; a real estate needs a
   real engine for the rest.
