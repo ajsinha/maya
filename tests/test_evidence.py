@@ -38,11 +38,36 @@ class TestAppendChain:
         assert result["valid"] is False and result["broken_at"] == 4
 
     def test_tampering_with_a_payload_breaks_the_chain(self, evidence, repos):
-        for _ in range(3):
-            evidence.append("k", "version", "v1", {"n": _})
+        """What the name says: the PAYLOAD is altered and nothing else.
+
+        This test previously altered the stored content_hash instead, which is a
+        different act with a different detection path — and the payload case it
+        was named for went undetected for as long as it existed, because
+        verification re-linked the stored hash rather than re-deriving it.
+        """
+        for n in range(3):
+            evidence.append("k", "version", "v1", {"n": n})
+        repos["evidence"].set({"payload": {"n": "altered"}}, seq=2)
+        result = evidence.verify_chain()
+        assert result["valid"] is False
+        assert result["reason"].startswith("content_hash mismatch")
+        assert result["broken_at"] == 2
+
+    def test_tampering_with_the_subject_breaks_it_too(self, evidence, repos):
+        """The content hash covers the kind and the subject, not only the
+        payload: moving a node to another model would otherwise be invisible."""
+        for n in range(3):
+            evidence.append("k", "version", "v1", {"n": n})
+        repos["evidence"].set({"subject_id": "v2"}, seq=2)
+        assert evidence.verify_chain()["valid"] is False
+
+    def test_altering_the_stored_hash_breaks_it_as_well(self, evidence, repos):
+        """The other direction: the links no longer agree with the node."""
+        for n in range(3):
+            evidence.append("k", "version", "v1", {"n": n})
         repos["evidence"].set({"content_hash": "sha256:" + "f" * 64}, seq=2)
         result = evidence.verify_chain()
-        assert result["valid"] is False and result["reason"] == "chain_hash mismatch"
+        assert result["valid"] is False
 
     def test_personal_data_is_never_stored_inline(self, evidence):
         """Law L-18: reconciles append-only evidence with the right to erasure."""

@@ -233,3 +233,33 @@ MAYA does not call a language model. It records what one produced, gates it,
 holds it until a person signs, and measures whether that person is still
 reading. The generation itself happens wherever you run models — which is the
 same boundary the platform draws everywhere else.
+
+
+## What verification actually checks
+
+Walking the chain checks four things about every node, in order:
+
+1. **The sequence has no gap** — a deleted node is a gap, and a gap is a break.
+2. **The previous hash matches** — the links are intact.
+3. **The content hash is what the node's own fields imply** — recomputed, not
+   read.
+4. **The chain hash is what those imply together.**
+
+The third is the one worth dwelling on, because it was missing for a long time
+and the absence was invisible.
+
+Re-linking a *stored* content hash proves that the links are intact. It says
+nothing about whether the thing linked is still what was recorded. With only the
+first, second and fourth checks, somebody editing a node's payload in the
+database left a chain that **verified perfectly** and a record that lied — which
+is worse than a chain that visibly breaks, because the whole point of the
+verification is to be believed.
+
+The unit test that should have caught it was named for payload tampering and
+actually altered the stored hash: a test that passes for a reason other than its
+name. What found it was a test at five thousand nodes, which is the argument for
+running the platform at a size where a difference is visible rather than only at
+a size that is convenient.
+
+The content hash covers the kind, the subject and the payload, so moving a node
+to another model is caught as well as rewriting one.

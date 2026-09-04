@@ -51,15 +51,85 @@ def steps(sl, x, y, w, items, h=1.45):
         para(tf, body, size=8.5, color=SLATE, line=1.15)
 
 
-def node(sl, x, y, w, h, title, body, fill=WHITE, accent=CRIMSON,
-         title_size=10.5, body_size=8.2):
-    """One box in a process diagram: a name, and what it actually is."""
+def arrow(sl, x, y, w, h, fill, line=None):
+    """A right-pointing chevron. A process reads left to right, and a shape
+    that points is worth more than a line that has to be followed."""
+    sh = sl.shapes.add_shape(MSO_SHAPE.CHEVRON, In(x), In(y), In(w), In(h))
+    sh.fill.solid()
+    sh.fill.fore_color.rgb = fill
+    if line is None:
+        sh.line.fill.background()
+    else:
+        sh.line.color.rgb = line
+        sh.line.width = Pt(1.0)
+    sh.shadow.inherit = False
+    sh.adjustments[0] = 0.16
+    sh.text_frame.word_wrap = True
+    sh.text_frame.margin_left = In(0.20)
+    sh.text_frame.margin_right = In(0.10)
+    sh.text_frame.margin_top = sh.text_frame.margin_bottom = In(0.05)
+    return sh
+
+
+def down(sl, x, y, h, color=CRIMSON, w=0.22):
+    """A short downward arrow: one lane handing something to the next."""
+    sh = sl.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, In(x), In(y), In(w), In(h))
+    sh.fill.solid()
+    sh.fill.fore_color.rgb = color
+    sh.line.fill.background()
+    sh.shadow.inherit = False
+    return sh
+
+
+def lane(sl, x, y, w, h, label, sub, tint, accent):
+    """A swimlane: who is doing this, and the band their work happens in."""
+    rect(sl, x, y, w, h, fill=tint)
+    rect(sl, x, y, 0.05, h, fill=accent)
+    tf = txt(sl, x + 0.16, y + 0.14, 1.02, h - 0.28)
+    para(tf, label, size=10.5, color=accent, bold=True, font=SERIF,
+         first=True, space_after=2)
+    para(tf, sub, size=7.6, color=SLATE, line=1.12, space_after=0)
+
+
+def stage(sl, x, y, w, h, title, body, fill, edge, text=INK):
+    """One step in a lane, drawn as a chevron so the direction is the shape."""
+    sh = arrow(sl, x, y, w, h, fill, edge)
+    tf = sh.text_frame
+    para(tf, title, size=9.5, color=text, bold=True, font=SERIF, first=True,
+         space_after=1)
+    para(tf, body, size=7.4, color=text if text != INK else SLATE, line=1.10,
+         space_after=0)
+
+
+def listbox(sl, x, y, w, title, items, sub="", accent=CRIMSON, fill=WHITE,
+            row=0.235, title_size=11):
+    """A named box holding a list of members, each optionally marked.
+
+    ``items`` is a list of (text, colour, marker). The marker is a short label
+    printed on the right — 'new', 'gone', 'was UKRPI' — because the interesting
+    thing about a composed object is never the list, it is which entries somebody
+    here decided.
+    """
+    h = 0.44 + len(items) * row + (0.20 if sub else 0.0)
     rect(sl, x, y, w, h, fill=fill, line=RULE)
     rect(sl, x, y, w, 0.05, fill=accent)
-    tf = txt(sl, x + 0.12, y + 0.14, w - 0.24, h - 0.26)
+    tf = txt(sl, x + 0.14, y + 0.13, w - 0.28, 0.26)
     para(tf, title, size=title_size, color=INK, bold=True, font=SERIF,
-         first=True, space_after=3)
-    para(tf, body, size=body_size, color=SLATE, line=1.14, space_after=0)
+         first=True, space_after=0)
+    yy = y + 0.40
+    if sub:
+        tf = txt(sl, x + 0.14, yy, w - 0.28, 0.20)
+        para(tf, sub, size=7.8, color=SLATE, italic=True, first=True,
+             space_after=0)
+        yy += 0.20
+    for text, colour, marker in items:
+        tf = txt(sl, x + 0.14, yy, w - 0.28, row)
+        parts = [(text, colour, colour is not SLATE)]
+        if marker:
+            parts.append((f"   {marker}", CRIMSON, False))
+        runs(tf, parts, size=8.8, first=True, space_after=0)
+        yy += row
+    return h
 
 
 def note(sl, x, y, w, h, lead, rest, tail=""):
@@ -120,94 +190,164 @@ divider("1", "The Shape of the Whole Thing",
         ["The process end to end", "What each object is for",
          "Where the pins are", "The two clocks"])
 
+# ------------------------------------------------------------- the five words
+sl, y = content("Five words, and how they hold together",
+                "The shape of the whole thing")
+
+# --- the equation is the organising device, so it goes first --------------
+rect(sl, ML, y, CW, 1.16, fill=PARCH)
+rect(sl, ML, y, 0.05, 1.16, fill=CRIMSON)
+tf = txt(sl, ML, y + 0.16, CW, 0.52, align=PP_ALIGN.CENTER)
+runs(tf, [("f", CRIMSON, True), (" :  ", INK, False),
+          ("P", CRIMSON, True), ("  \u2297  ", INK, False),
+          ("X", CRIMSON, True), ("  \u2192  ", INK, False),
+          ("D(Y)", CRIMSON, True)],
+     size=30, first=True, space_after=0)
+EQ = [("f", "the KERNEL", "the shape of the computation"),
+      ("P", "the PARAMETERS", "the numbers it runs with"),
+      ("X", "the FEATURES", "what it reads"),
+      ("D(Y)", "the OUTPUT", "a distribution, not a number")]
+qw = (CW - 0.5) / 4
+for i, (sym, name, gloss) in enumerate(EQ):
+    xx = ML + 0.25 + i * qw
+    tf = txt(sl, xx, y + 0.74, qw - 0.1, 0.36, align=PP_ALIGN.CENTER)
+    runs(tf, [(f"{sym}  ", CRIMSON, True), (name, INK, True)],
+         size=9.5, first=True, space_after=1)
+    para(tf, gloss, size=8.2, color=SLATE, space_after=0, align=PP_ALIGN.CENTER)
+
+# --- the five terms, each with the confusion it is usually mistaken for ---
+CY = y + 1.42
+CH = 2.62
+cw = (CW - 4 * 0.16) / 5
+TERMS = [
+    ("Model", "The register entry: what this is for, who owns it, what tier it "
+              "sits at.",
+     "Not the code, and not the numbers. Those are its versions and its "
+     "parameters."),
+    ("Kernel", "One immutable version of the model \u2014 the morphism "
+               "f : P \u2297 X \u2192 D(Y), pinned by digest.",
+     "Not changed by training. Training picks a point in P; the shape stays."),
+    ("Feature", "A meaning with an entity, a type, a shape and an owner. A "
+                "featureset assembles them into X.",
+     "Not a column. A column is where the values happen to sit today."),
+    ("Parameters", "An inhabitant of P: the coefficients, weights or constants "
+                   "the kernel runs with.",
+     "Not a new model. A retrain gives a new parameter set, not a new version."),
+    ("Warrant", "A signed, expiring document: this kernel, at that point in P, "
+                "over that data, by whom, until when.",
+     "Not an execution. MAYA issues it; an engine acts on it and MAYA never "
+     "runs anything."),
+]
+for i, (name, is_, isnt) in enumerate(TERMS):
+    xx = ML + i * (cw + 0.16)
+    rect(sl, xx, CY, cw, CH, fill=WHITE, line=RULE)
+    rect(sl, xx, CY, cw, 0.05, fill=CRIMSON)
+    tf = txt(sl, xx + 0.14, CY + 0.16, cw - 0.28, CH - 0.32)
+    para(tf, name, size=12, color=INK, bold=True, font=SERIF, first=True,
+         space_after=5)
+    para(tf, is_, size=8.6, color=INK, line=1.18, space_after=7)
+    runs(tf, [("Not  ", CRIMSON, True), (isnt, SLATE, False)],
+         size=8.2, line=1.16, space_after=0)
+
+note(sl, ML, CY + CH + 0.20, CW, 0.80,
+     "How they correlate. ",
+     "A MODEL owns versions; each version is a KERNEL. A FEATURESET presents X. "
+     "A fit inhabits P and returns PARAMETERS. A WARRANT is what names a "
+     "kernel, a point in P and a source of X together \u2014 ",
+     "which is why it is the only one of the five that can be acted on.")
+
 # ---------------------------------------------------------- the big diagram
 sl, y = content("Model, feature and warrant management",
                 "The shape of the whole thing")
 
-BW, BH = 2.28, 0.86          # box width, height
-GAP = 0.32
-ROW1 = y + 0.10
-ROW2 = ROW1 + 1.28
-ROW3 = ROW2 + 1.28
-ROW4 = ROW3 + 1.28
+LANE_X = ML
+LABEL_W = 1.20
+FLOW_X = LANE_X + LABEL_W + 0.10
+FLOW_W = CW - LABEL_W - 0.28      # room so the last tip clears the band
+LH = 1.06                     # lane height
+LGAP = 0.46                   # gap between lanes, where the join arrows sit
+STEPS = 5
+SGAP = 0.10
+BW = (FLOW_W - SGAP * (STEPS - 1)) / STEPS
 
-# --- row 1: the catalogue -------------------------------------------------
-node(sl, ML, ROW1, BW, BH, "Feature",
-     "a meaning, not a column: entity, shape, owner", accent=CRIMSON)
-node(sl, ML + (BW + GAP), ROW1, BW, BH, "Derived feature",
-     "Z = f(X, Y), declared and versioned", accent=CRIMSON)
-node(sl, ML + 2 * (BW + GAP), ROW1, BW, BH, "Feature view version",
-     "where values live: a Delta namespace that never moves", accent=SLATE)
-node(sl, ML + 3 * (BW + GAP), ROW1, BW, BH, "Telemetry",
-     "scores and outcomes, on two clocks", accent=SLATE)
+L1 = y + 0.06
+L2 = L1 + LH + LGAP
+L3 = L2 + LH + LGAP
 
-# --- row 2: the selection -------------------------------------------------
-node(sl, ML, ROW2, BW, BH, "Featureset",
-     "a declared SCHEMA of named slots", accent=CRIMSON)
-node(sl, ML + (BW + GAP), ROW2, BW, BH, "Featureset version",
-     "fills each slot: feature + view version + Delta version",
-     fill=PARCH, accent=CRIMSON)
-node(sl, ML + 2 * (BW + GAP), ROW2, BW, BH, "Dataset snapshot",
-     "assembled point-in-time, digested, PIT-verified", accent=SLATE)
-node(sl, ML + 3 * (BW + GAP), ROW2, BW, BH, "Monitor",
-     "evaluated from telemetry the platform holds", accent=SLATE)
+TINT1 = RGBColor(0xFA, 0xF4, 0xF5)
+TINT2 = RGBColor(0xF6, 0xF3, 0xEF)
+TINT3 = RGBColor(0xF3, 0xF4, 0xF6)
 
-# --- row 3: the model -----------------------------------------------------
-node(sl, ML, ROW3, BW, BH, "Model",
-     "the register entry: owner, purpose, tier", accent=CRIMSON)
-node(sl, ML + (BW + GAP), ROW3, BW, BH, "Model version",
-     "the kernel  f : P × X → D(Y), immutable", fill=PARCH,
-     accent=CRIMSON)
-node(sl, ML + 2 * (BW + GAP), ROW3, BW, BH, "Warrant",
-     "signed, expiring, entitlement-bound: what may be run", fill=PARCH,
-     accent=CRIMSON)
-node(sl, ML + 3 * (BW + GAP), ROW3, BW, BH, "Execution engine",
-     "outside MAYA. reads the warrant, runs nothing else", accent=SLATE)
 
-# --- row 4: what comes back ----------------------------------------------
-node(sl, ML, ROW4, BW, BH, "Parameter set",
-     "an inhabitant of P. a fit makes one, not a version", accent=CRIMSON)
-node(sl, ML + (BW + GAP), ROW4, BW, BH, "Approval",
-     "a quorum whose depth follows the tier", accent=SLATE)
-node(sl, ML + 2 * (BW + GAP), ROW4, BW, BH, "Evidence chain",
-     "append-only, hash-linked: every act above", accent=GOLD)
-node(sl, ML + 3 * (BW + GAP), ROW4, BW, BH, "Compiled document",
-     "generated from the register, citations that resolve", accent=SLATE)
+def col(i):
+    return FLOW_X + i * (BW + SGAP)
 
-# --- the arrows that matter ----------------------------------------------
-COL = [ML + i * (BW + GAP) for i in range(4)]
-MID = [c + BW / 2 for c in COL]
-# catalogue -> view -> featureset version
-connect(sl, COL[0] + BW, ROW1 + BH / 2, COL[1], ROW1 + BH / 2, CRIMSON)
-connect(sl, COL[1] + BW, ROW1 + BH / 2, COL[2], ROW1 + BH / 2, CRIMSON)
-connect(sl, MID[2], ROW1 + BH, MID[1] + 0.5, ROW2, CRIMSON)
-# schema -> version
-connect(sl, COL[0] + BW, ROW2 + BH / 2, COL[1], ROW2 + BH / 2, CRIMSON)
-# featureset version -> snapshot
-connect(sl, COL[1] + BW, ROW2 + BH / 2, COL[2], ROW2 + BH / 2, SLATE)
-# model -> version -> warrant -> engine
-connect(sl, COL[0] + BW, ROW3 + BH / 2, COL[1], ROW3 + BH / 2, CRIMSON)
-connect(sl, COL[1] + BW, ROW3 + BH / 2, COL[2], ROW3 + BH / 2, CRIMSON)
-connect(sl, COL[2] + BW, ROW3 + BH / 2, COL[3], ROW3 + BH / 2, CRIMSON)
-# featureset version -> warrant  (the join that makes a fit meaningful)
-connect(sl, MID[1], ROW2 + BH, MID[2] - 0.4, ROW3, CRIMSON)
-# engine -> parameter set  (what comes back)
-connect(sl, MID[3], ROW3 + BH, MID[0] + 1.0, ROW4, CRIMSON)
-# parameter set -> approval -> back up to warrant
-connect(sl, COL[0] + BW, ROW4 + BH / 2, COL[1], ROW4 + BH / 2, SLATE)
-connect(sl, MID[1] + 0.4, ROW4, MID[2], ROW3 + BH, SLATE)
-# telemetry -> monitor
-connect(sl, MID[3], ROW1 + BH, MID[3], ROW2, SLATE)
 
-tf = txt(sl, ML, ROW4 + BH + 0.10, CW, 0.34)
-runs(tf, [("Read the middle column downwards. ", CRIMSON, True),
-          ("A featureset version and a model version meet in a warrant; the "
-           "engine returns a parameter set; the parameter set is approved and "
-           "the next warrant names it. Everything on the way leaves a node in "
-           "the evidence chain.", SLATE, False)],
-     size=10, first=True, space_after=0, line=1.2)
-footer(sl)
+# --- lane 1: the data -----------------------------------------------------
+lane(sl, LANE_X, L1, CW, LH, "Feature", "what the model reads", TINT1, CRIMSON)
+for i, (t, b) in enumerate([
+        ("Define", "a meaning: entity, shape, owner"),
+        ("Derive", "Z = f(X, Y), lineage recorded"),
+        ("Materialise", "values into a pinned Delta version"),
+        ("Declare a set", "a SCHEMA of named slots"),
+        ("Publish v1", "slots filled, every binding pinned")]):
+    stage(sl, col(i), L1 + 0.09, BW, LH - 0.18, t, b,
+          WHITE if i < 4 else PARCH_D, RULE)
 
+# --- lane 2: the model ----------------------------------------------------
+lane(sl, LANE_X, L2, CW, LH, "Model", "what will run", TINT2, CRIMSON)
+for i, (t, b) in enumerate([
+        ("Register", "owner, purpose, legal entity"),
+        ("Assess", "the tier, which sets the control depth"),
+        ("Create version", "the kernel f : P \u00d7 X \u2192 D(Y)"),
+        ("Approve", "a quorum whose size follows the tier"),
+        ("Point an alias", "refused unless the contract refines")]):
+    stage(sl, col(i), L2 + 0.09, BW, LH - 0.18, t, b,
+          WHITE if i != 2 else PARCH_D, RULE)
+
+# --- lane 3: execution ----------------------------------------------------
+lane(sl, LANE_X, L3, CW, LH, "Execution", "outside MAYA", TINT3, SLATE)
+for i, (t, b) in enumerate([
+        ("Fit warrant", "model version \u00d7 featureset version \u00d7 window"),
+        ("Engine runs", "MAYA signs it and waits"),
+        ("Parameter set", "an inhabitant of P comes back"),
+        ("Approve it", "by somebody other than who recorded it"),
+        ("Score warrant", "names the model AND the parameter set")]):
+    stage(sl, col(i), L3 + 0.09, BW, LH - 0.18, t, b,
+          WHITE if i not in (0, 4) else PARCH_D, RULE)
+
+# --- the joins: the only vertical arrows, and each one is a claim ---------
+JOIN1 = col(4) + BW * 0.42
+down(sl, JOIN1, L1 + LH + 0.05, LGAP - 0.10, CRIMSON)
+tf = txt(sl, FLOW_X, L1 + LH + 0.11, JOIN1 - FLOW_X - 0.14, 0.26)
+para(tf, "the featureset version a fit will read  \u2192", size=8,
+     color=CRIMSON, italic=True, first=True, space_after=0,
+     align=PP_ALIGN.RIGHT)
+
+JOIN2 = col(2) + BW * 0.42
+down(sl, JOIN2, L2 + LH + 0.05, LGAP - 0.10, CRIMSON)
+tf = txt(sl, FLOW_X, L2 + LH + 0.11, JOIN2 - FLOW_X - 0.14, 0.26)
+para(tf, "the model version it is issued against  \u2192", size=8,
+     color=CRIMSON, italic=True, first=True, space_after=0,
+     align=PP_ALIGN.RIGHT)
+
+# --- the band everything lands in ----------------------------------------
+BAND = L3 + LH + 0.20
+rect(sl, ML, BAND, CW, 0.44, fill=CRIMSON)
+tf = txt(sl, ML + 0.20, BAND + 0.09, CW - 0.4, 0.30)
+runs(tf, [("Evidence chain   ", WHITE, True),
+          ("every act above appends a node \u2014 append-only, hash-linked, and "
+           "verified by re-deriving each node rather than re-reading it",
+           RGBColor(0xF4, 0xDF, 0xE3), False)],
+     size=9.5, first=True, space_after=0)
+
+tf = txt(sl, ML, BAND + 0.58, CW, 0.42)
+runs(tf, [("Left to right within a lane; downward where one lane hands "
+           "something to the next. ", CRIMSON, True),
+          ("The two vertical arrows are the whole design: a featureset version "
+           "and a model version meet in a fit warrant, and the parameter set "
+           "that comes back is what the next warrant names.", SLATE, False)],
+     size=9.5, first=True, space_after=0, line=1.2)
 
 # ------------------------------------------------------- what each object is for
 sl, y = content("What each object is for", "The shape of the whole thing")
@@ -234,7 +374,6 @@ note(sl, ML, y + h + 0.24, CW, 0.86,
      "always to a version rather than to a name. That is the single structural "
      "decision this platform makes over and over, and it is why ",
      "the same identifier resolves to the same bytes a year later.")
-footer(sl)
 
 # ------------------------------------------------------------- the two clocks
 sl, y = content("Two clocks, never one", "The shape of the whole thing")
@@ -268,7 +407,6 @@ data = [["", ""],
         ["Telemetry", "a review of last quarter sees last quarter's population"]]
 table(sl, data, x, y + 0.42, CW * 0.40, col_w=[1.35, 3.55], header=False,
       row_h=0.30, fs=9.5, bold_col0=True, first_col_color=CRIMSON)
-footer(sl)
 
 
 # ============================================================ CH 2
@@ -310,7 +448,6 @@ para(tf, "A declared shape is checked against the values that arrive. A shape "
          "nobody verifies is a comment, and a model given ten tenors where it "
          "expected eleven produces an answer rather than an error.",
      size=11, color=SLATE, space_after=0, line=1.25)
-footer(sl)
 
 # ---------------------------------------------------------- derived features
 sl, y = content("Derived features, and the four rules", "Engineering a feature")
@@ -346,7 +483,6 @@ data = [["Rule", "What it prevents"],
          "deriving from an uncertified feature to launder it"]]
 table(sl, data, x, y + 0.40, CW * 0.46, col_w=[2.3, 3.1], row_h=0.30, fs=9,
       hfs=9, bold_col0=True, first_col_color=CRIMSON)
-footer(sl)
 
 # ------------------------------------------------------------------ leakage
 sl, y = content("The one that gets refused", "Engineering a feature")
@@ -385,7 +521,6 @@ para(tf, "The same argument produces the ingest-clock rule, the point-in-time "
          "assembly rule, and the refusal to normalise without an as_of. They "
          "are one idea applied four times.",
      size=11, color=SLATE, space_after=0, line=1.25)
-footer(sl)
 
 # --------------------------------------------------- sealing and ownership
 sl, y = content("Sealed, ephemeral, owned", "Engineering a feature")
@@ -410,7 +545,6 @@ note(sl, ML, y + 2.72, CW, 0.92,
      "sits with the second line. Breaking a seal is administrators-only and "
      "needs a reason \u2014 ",
      "a seal anybody could lift would not be a seal.")
-footer(sl)
 
 
 # ============================================================ CH 3
@@ -458,7 +592,165 @@ note(sl, x, y + 2.32, CW * 0.40, 1.30,
      "bytes next month with its digest unchanged \u2014 which is adversarial "
      "finding C-2, ",
      "one level out from the view.")
-footer(sl)
+
+# --------------------------------------------- worked example: a feature
+sl, y = content("Inheriting a feature: a curve with a tenor added",
+                "Composing a featureset")
+
+CW3 = (CW - 1.30) / 3
+GAPX = 0.65
+
+h1 = listbox(sl, ML, y, CW3, "usd_curve", [
+    ("1m", INK, ""), ("3m", INK, ""), ("1y", INK, ""),
+    ("5y", INK, ""), ("10y", INK, "")],
+    sub="the parent \u2014 sealed, so it cannot move", accent=SLATE,
+    fill=PARCH)
+
+x2 = ML + CW3 + GAPX
+rect(sl, x2, y, CW3, h1, fill=WHITE, line=RULE)
+rect(sl, x2, y, CW3, 0.05, fill=CRIMSON)
+tf = txt(sl, x2 + 0.14, y + 0.13, CW3 - 0.28, 0.26)
+para(tf, "its own operations", size=11, color=INK, bold=True, font=SERIF,
+     first=True, space_after=0)
+tf = txt(sl, x2 + 0.14, y + 0.40, CW3 - 0.28, 0.20)
+para(tf, "applied last, so they beat everything above", size=7.8, color=SLATE,
+     italic=True, first=True, space_after=0)
+yy = y + 0.66
+for op, target, why in [("add", "30y", "the curve now goes further out"),
+                        ("drop", "1m", "no longer quoted"),
+                        ("override", "3m", "an OIS-based fixing")]:
+    tf = txt(sl, x2 + 0.14, yy, CW3 - 0.28, 0.42)
+    runs(tf, [(f"{op}  ", CRIMSON, True), (target, INK, True)],
+         size=9.5, first=True, space_after=1)
+    para(tf, why, size=7.6, color=SLATE, space_after=0)
+    yy += 0.44
+
+x3 = x2 + CW3 + GAPX
+listbox(sl, x3, y, CW3, "usd_curve_plus", [
+    ("3m", INK, "overridden here"), ("1y", SLATE, ""), ("5y", SLATE, ""),
+    ("10y", SLATE, ""), ("30y", INK, "added here")],
+    sub="1m is gone; the shape follows the components", accent=CRIMSON)
+
+# the arrows between the three columns
+down(sl, ML + CW3 + 0.20, y + h1 * 0.42, 0.24, CRIMSON, w=0.24)
+down(sl, x2 + CW3 + 0.20, y + h1 * 0.42, 0.24, CRIMSON, w=0.24)
+
+note(sl, ML, y + h1 + 0.28, CW, 0.92,
+     "Ask the platform, not the row. ",
+     "GET /features/usd_curve_plus/resolved returns the components above AND "
+     "where each came from \u2014 3m says it overrode usd_curve. ",
+     "The row stores what this feature declares; resolving it is MAYA\u2019s job.")
+
+tf = txt(sl, ML, y + h1 + 1.32, CW, 0.44)
+runs(tf, [("The parent is sealed, and that is the point. ", CRIMSON, True),
+          ("A sealed feature takes no amendment and can still be composed from, "
+           "so a parent that cannot move is a parent worth building on \u2014 "
+           "and the change lives in the child, where a reviewer sees it.",
+           SLATE, False)],
+     size=10, first=True, space_after=0, line=1.22)
+
+
+# ------------------------------------------ worked example: two featuresets
+sl, y = content("Combining two featuresets: the rightmost wins",
+                "Composing a featureset")
+
+PW = (CW - 0.60) / 2
+hA = listbox(sl, ML, y, PW, "retail_core", [
+    ("dscr", INK, ""), ("turnover", INK, ""), ("months_on_book", INK, "")],
+    sub="first parent \u2014 least prominent", accent=SLATE, fill=PARCH)
+listbox(sl, ML + PW + 0.60, y, PW, "sme_core", [
+    ("turnover", INK, "3-year average"), ("sector", INK, ""),
+    ("directors", INK, "")],
+    sub="second parent \u2014 wins any clash", accent=CRIMSON, fill=PARCH)
+
+MID = y + hA + 0.26
+rect(sl, ML, MID, CW, 0.40, fill=CRIMSON)
+tf = txt(sl, ML + 0.20, MID + 0.08, CW - 0.4, 0.26)
+runs(tf, [("compose: [retail_core, sme_core]", WHITE, True),
+          ("     folded left to right, later wins     ", RGBColor(0xF4,0xDF,0xE3), False),
+          ("then this set\u2019s own operations, last of all",
+           RGBColor(0xF4,0xDF,0xE3), False)],
+     size=10, first=True, space_after=0)
+
+RES = MID + 0.62
+listbox(sl, ML, RES, PW, "sme_retail", [
+    ("dscr", SLATE, "from retail_core"),
+    ("turnover", INK, "from sme_core \u2014 it overrode retail\u2019s"),
+    ("months_on_book", SLATE, "from retail_core"),
+    ("sector", SLATE, "from sme_core"),
+    ("directors", SLATE, "from sme_core"),
+    ("guarantee_cover", INK, "added by this set")],
+    sub="what a kernel defined over it actually reads", accent=CRIMSON)
+
+x = ML + PW + 0.60
+tf = txt(sl, x, RES, PW, 2.4)
+para(tf, "Only one slot clashed", size=12, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=8)
+para(tf, "Both parents declare turnover. sme_core is named second, so its "
+         "3-year average is what the set holds \u2014 and the resolved set "
+         "SAYS SO, slot by slot.",
+     size=10, color=INK, space_after=10, line=1.24)
+para(tf, "That is the only rule there is. If a parent could beat a child, "
+         "naming a parent would be an act of surrender; if the order did not "
+         "matter, \u2018combine these two\u2019 would be ambiguous whenever "
+         "they disagreed.",
+     size=10, color=SLATE, space_after=10, line=1.24)
+runs(tf, [("A child inherits the parents\u2019 retrieval policy the same way",
+           CRIMSON, True),
+          (" \u2014 one fold, applied to slots, to components and to policy.",
+           SLATE, False)],
+     size=10, space_after=0, line=1.24)
+
+
+# ------------------------------------------ modifying something with children
+sl, y = content("Modifying something other things are built on",
+                "Composing a featureset")
+
+BW4 = (CW - 3 * 0.22) / 4
+for i, (num, title, body) in enumerate([
+    ("1", "Amend it",
+     "Changes the definition and advances its version. Allowed while the "
+     "feature is open, and every child records which version it composed "
+     "against."),
+    ("2", "Seal it",
+     "No amendment, no further versions, no change of owner \u2014 and still "
+     "composable. A parent that cannot move is a parent worth building on."),
+    ("3", "Compose a child",
+     "The way to change a sealed thing. The change lives where a reviewer sees "
+     "it, beside the parent it departs from."),
+    ("4", "Roll forward",
+     "For a featureset: mint a version re-resolved to the newest view "
+     "versions, with a diff naming every slot that moved."),
+]):
+    xx = ML + i * (BW4 + 0.22)
+    card(sl, xx, y, BW4, 2.15, num, title, body)
+
+DY = y + 2.38
+rect(sl, ML, DY, CW, 1.02, fill=PARCH)
+rect(sl, ML, DY, 0.05, 1.02, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, DY + 0.13, CW - 0.5, 0.80)
+para(tf, "And if a parent is amended anyway?", size=11.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=5)
+runs(tf, [("The child says so. ", INK, True),
+          ("A composition records the parent\u2019s definition version at the "
+           "moment it resolved, so a parent that has moved since shows up as "
+           "drift on every child that reads it \u2014 ",
+           INK, False),
+          ("composed against v1, now at v3.", CRIMSON, True),
+          ("  Not a failed read: a child whose parent has moved is something to "
+           "be told about, not something that should stop working. But it is "
+           "never silent, because a stable name over moving contents is the "
+           "failure this platform was built around.", SLATE, False)],
+     size=9.8, space_after=0, line=1.22)
+
+tf = txt(sl, ML, DY + 1.20, CW, 0.40)
+runs(tf, [("Which is why sealing and composing are the same idea from two "
+           "sides. ", CRIMSON, True),
+          ("A sealed parent cannot drift, because the amendment that would "
+           "move it is refused \u2014 so sealing turns a promise about "
+           "stability into a property of the object.", SLATE, False)],
+     size=10, first=True, space_after=0, line=1.22)
+
 
 # ------------------------------------------------------------ the monoid
 sl, y = content("Composition: one fold, two objects", "Composing a featureset")
@@ -496,7 +788,6 @@ data = [["Refused", "Because"],
         ["an ephemeral parent", "it resolves today and dangles tomorrow"]]
 table(sl, data, x, y + 0.40, CW * 0.42, col_w=[2.0, 3.5], row_h=0.29, fs=9,
       hfs=9, bold_col0=True, first_col_color=CRIMSON)
-footer(sl)
 
 # ------------------------------------------------------------- retrieval
 sl, y = content("What MAYA does to values on the way out",
@@ -531,7 +822,6 @@ note(sl, ML, y + 3.42, CW, 0.92,
      "fold, merged column by column, so a parent that fills three columns and a "
      "child that normalises one ",
      "end up doing both.")
-footer(sl)
 
 # --------------------------------------------------------------- alignment
 sl, y = content("Aligning onto an axis, and the leakage that cannot hide",
@@ -569,7 +859,6 @@ para(tf, "A value derived from a later observation inherits that "
 para(tf, "The leakage is not caught by a check. It is made arithmetically "
          "impossible to hide, by the bitemporal machinery already here.",
      size=11, color=SLATE, space_after=0, line=1.25)
-footer(sl)
 
 
 # ============================================================ CH 4
@@ -616,7 +905,6 @@ para(tf, "MAYA does not fit anything. It signs this and waits.",
 para(tf, "The estimation happens in an execution engine \u2014 the same "
          "boundary drawn everywhere else here.",
      size=10.5, color=SLATE, space_after=0, line=1.24)
-footer(sl)
 
 # ------------------------------------------------------- the parameter object
 sl, y = content("A fit produces a parameter set, not a model version",
@@ -659,7 +947,6 @@ para(tf, "The bottom row is the model that never trains. A closed form arrives "
          "and L-W1 refuses it a fit warrant, so nobody has to remember which "
          "models train.",
      size=10.5, color=SLATE, space_after=0, line=1.24)
-footer(sl)
 
 # ------------------------------------------------------- the scoring warrant
 sl, y = content("The run warrant, and why it is determined",
@@ -697,7 +984,6 @@ for step in ["the parameter set that produced it",
          size=10.5, space_after=5)
 para(tf, "Not a claim about lineage. A chain of pins, each of which resolves.",
      size=11, color=INK, bold=True, space_before=8, space_after=0, line=1.24)
-footer(sl)
 
 
 # ============================================================ CH 5
@@ -735,7 +1021,6 @@ note(sl, ML, y + h + 0.22, CW, 0.86,
      "\u201cPolicy violation\u201d tells somebody nothing they can act on, so "
      "each of these names what to do instead \u2014 ",
      "a gate people cannot satisfy is a gate people route around.")
-footer(sl)
 
 # -------------------------------------------------------------- the boundary
 sl, y = content("Where the boundary is", "What MAYA refuses, and why")
@@ -758,7 +1043,6 @@ note(sl, ML, y + 2.82, CW, 0.94,
      "would be believed about the parts it does badly. Stating the boundary is "
      "what makes the rest of it worth relying on \u2014 ",
      "and every honest gap is written down in the implementation plan.")
-footer(sl)
 
 # ============================================================ CLOSING
 sl = blank()

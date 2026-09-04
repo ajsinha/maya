@@ -474,3 +474,9 @@ def policies(db, evidence):
     from core.policy import PolicyRegister
     from db import PolicyRuleRepository
     return PolicyRegister(PolicyRuleRepository(db), evidence)
+
+
+@pytest.fixture
+def summary(registry, findings, monitoring, overlays, debts):
+    from core.estate import EstateSummary
+    return EstateSummary(registry, findings, monitoring, overlays, debts)

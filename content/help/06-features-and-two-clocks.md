@@ -512,6 +512,38 @@ resolution happens on read.
 Left to right, so `gbp_curve` wins any component both define — and the
 provenance says so.
 
+### A worked example
+
+`usd_curve` has five tenors and has been sealed. A child adds one, drops one and
+replaces one:
+
+```json
+{"name": "usd_curve_plus",
+ "composes":   [{"name": "usd_curve"}],
+ "operations": [{"op": "add",      "name": "30y", "value": {"dtype": "numeric"}},
+                {"op": "drop",     "name": "1m"},
+                {"op": "override", "name": "3m",  "value": {"dtype": "numeric",
+                                                            "source": "OIS"}}]}
+```
+
+| parent | operations | result |
+|---|---|---|
+| 1m, 3m, 1y, 5y, 10y | add 30y · drop 1m · override 3m | 3m, 1y, 5y, 10y, 30y |
+
+`GET /api/v1/features/usd_curve_plus/resolved` returns the components **and
+where each came from** — `3m` reports that it overrode `usd_curve`. The row
+stores what this feature *declares*; resolving it is MAYA's job.
+
+Two featuresets combine the same way, and the order is what settles a clash:
+
+```json
+{"name": "sme_retail", "composes": [{"name": "retail_core"},
+                                    {"name": "sme_core"}]}
+```
+
+Both parents declare `turnover`. `sme_core` is named second, so its three-year
+average is what the set holds — and the resolved set says so, slot by slot.
+
 ### Every operation is total
 
 | Refused | Because |
@@ -521,6 +553,35 @@ provenance says so.
 | `override` of something absent | say `add` |
 | a cycle | there is no fixed point to resolve to |
 | composing an ephemeral parent | it resolves today and dangles tomorrow |
+| composing something that does not exist | caught now, not on first read |
+
+### Modifying something other things are built on
+
+Four ways, and which one applies depends on whether the thing is sealed:
+
+| | |
+|---|---|
+| **Amend it** | changes the definition and advances its version. Allowed while the feature is open |
+| **Seal it** | no amendment, no further versions — and still composable |
+| **Compose a child** | the way to change a sealed thing, where a reviewer sees it |
+| **Roll forward** | for a featureset: re-resolve to the newest view versions, with a diff |
+
+**And if a parent is amended anyway, the child says so.** A composition records
+the parent's definition version at the moment it resolved, so a parent that has
+since moved shows up as *drift* on every child that reads it:
+
+```json
+{"drift": [{"parent": "usd_curve", "composed_against": 1, "now_at": 3,
+            "sealed": false}]}
+```
+
+Not a failed read — a child whose parent has moved is something to be told
+about, not something that should stop working. But it is never silent, because a
+stable name over moving contents is the failure this platform was built around.
+
+Which is why sealing and composing are the same idea from two sides: **a sealed
+parent cannot drift**, because the amendment that would move it is refused. That
+turns a promise about stability into a property of the object.
 
 ## Sealing
 
