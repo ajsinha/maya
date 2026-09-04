@@ -30,6 +30,7 @@ class VersionIn(BaseModel):
     kernel: Dict[str, Any] = Field(default_factory=dict)
     contract: Dict[str, Any] = Field(default_factory=dict)
     artifact_digest: Optional[str] = None
+    artifact_uri: Optional[str] = None
 
 
 class AliasIn(BaseModel):
@@ -99,8 +100,8 @@ class ModelRoutes(Routes):
             who = self.authorise(request, "version:create",
                                  model=self.guard(lambda: reg.require(urn(name))))
             return self.guard(lambda: reg.create_version(
-                urn(name), body.semver, body.kernel, body.contract, body.artifact_digest,
-                actor=self.actor(who)))
+                urn(name), body.semver, body.kernel, body.contract,
+                body.artifact_digest, body.artifact_uri, actor=self.actor(who)))
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions/{{semver}}/approve",
                        tags=["versions"])

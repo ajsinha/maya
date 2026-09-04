@@ -53,6 +53,7 @@ class VersionService:
     def create(self, urn: str, semver: str, kernel_spec: Dict[str, Any],
                contract_spec: Optional[Dict[str, Any]] = None,
                artifact_digest: Optional[str] = None,
+               artifact_uri: Optional[str] = None,
                actor: str = "system") -> Dict[str, Any]:
         m = self.catalogue.require(urn)
         # A new version IS a change to the model. Adding one to an attested
@@ -65,7 +66,8 @@ class VersionService:
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
-                    "contract": contract_spec or {}, "artifact_digest": artifact_digest}
+                    "contract": contract_spec or {},
+                    "artifact_digest": artifact_digest, "artifact_uri": artifact_uri}
         row = {"model_id": m["id"], "semver": semver, "manifest": manifest,
                "manifest_digest": canonical_digest(manifest),
                "trainability_class": kernel.trainability_class,
@@ -74,6 +76,7 @@ class VersionService:
                "input_schema": kernel_spec.get("input_schema", []),
                "output_schema": kernel_spec.get("output_schema", []),
                "contract": contract_spec or {}, "artifact_digest": artifact_digest,
+               "artifact_uri": artifact_uri,
                "status": "draft", "created_at": time.time(), "created_by": actor}
         self.versions.add(row)
         self.evidence.append("version_created", "version", row["id"],
