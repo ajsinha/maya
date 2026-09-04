@@ -25,10 +25,10 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 
-from core.engine import CaptiveEngine
+from core.execution import CaptiveEngine
 from core.evidence import EvidenceEngine
-from core.hooks import HookService
-from core.properties_configurator import PropertiesConfigurator
+from core.execution import HookService
+from core.config import PropertiesConfigurator
 from core.registry import ModelRegistry
 from core.risk import TieringEngine
 from db import (AliasRepository, Database, DeltaPaths, EvidenceRepository, HookRepository,

@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from core.properties_configurator import ConfigError, PropertiesConfigurator, config
+from core.config import ConfigError, PropertiesConfigurator, config
 
 BASE = """
 app:
