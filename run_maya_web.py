@@ -53,8 +53,8 @@ from core.notify import NotificationService, build as build_channels
 from core.policy import PolicyGate, PolicyRegister
 from core.risk import TieringEngine
 from core.telemetry import TelemetryCollector
-from core.validation import (FindingRegister, Replayer, SnapshotProvider,
-                             TestCatalogue, ValidationService)
+from core.validation import (FindingRegister, FindingWorkflow, Replayer,
+                             SnapshotProvider, TestCatalogue, ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
                 NotificationRepository, PolicyRuleRepository,
@@ -67,7 +67,8 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
                 DeltaStore, DocumentRepository, EvidenceRepository,
                 FeatureRepository, FeatureViewRepository,
-                FeatureViewVersionRepository, FindingRepository,
+                FeatureViewVersionRepository, FindingActionRepository,
+                FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 OverlayRepository, PrincipalRepository, RiskRepository,
@@ -124,6 +125,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # registry because both need the evidence engine, and attached explicitly.
     findings = FindingRegister(FindingRepository(db), evidence)
     registry.attach_blocking(findings)
+    # Everything between raising a finding and closing it. It writes acts and
+    # derives the rest, so there is no status of its own to disagree with the
+    # register it sits beside.
+    finding_workflow = FindingWorkflow(
+        findings, FindingActionRepository(db), evidence,
+        extension_limit=cfg.get_int("findings.extension_limit", 2),
+        acknowledge_days=cfg.get_float("findings.acknowledge_days", 5.0),
+        escalate_days=cfg.get_float("findings.escalate_after_days", 7.0))
     # The lifecycle needs the registry, and the registry needs the lifecycle's
     # mutation gate, so the gate is attached after both exist.
     lifecycle = LifecycleService(
@@ -226,7 +235,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Both are derived from the services above rather than from tables of their
     # own: a task table or a summary table would be a second source of truth.
     worklist = WorkList(registry, lifecycle, findings, monitoring, overlays,
-                        documents, debts, validation)
+                        documents, debts, validation, finding_workflow)
     # Delivery, not a queue: the work is derived, and this makes it arrive
     # somewhere rather than waiting to be looked at.
     # None unless an issuer is configured: local credentials only is the
@@ -258,13 +267,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=documents,
-                   notifications=notifications))
+                   notifications=notifications,
+                   finding_workflow=finding_workflow))
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
+                           "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,

@@ -78,11 +78,13 @@ class WorkList:
     """Derives the outstanding work across the estate."""
 
     def __init__(self, registry, lifecycle=None, findings=None, monitoring=None,
-                 overlays=None, documents=None, debts=None, validation=None):
+                 overlays=None, documents=None, debts=None, validation=None,
+                 finding_workflow=None):
         self.registry, self.lifecycle = registry, lifecycle
         self.findings, self.monitoring = findings, monitoring
         self.overlays, self.documents = overlays, documents
         self.debts, self.validation = debts, validation
+        self.finding_workflow = finding_workflow
 
     # ------------------------------------------------------------------ build
     def for_model(self, model: Dict[str, Any],
@@ -91,6 +93,7 @@ class WorkList:
         urn = model["urn"]
         items: List[Item] = []
         for source in (self._attestation, self._approval, self._findings,
+                       self._acknowledgements,
                        self._monitors, self._overlays, self._debt, self._documents):
             items.extend(self._safely(source, model, urn, moment))
         # Stamped centrally rather than in each source: a row that does not say
@@ -166,6 +169,31 @@ class WorkList:
                    if f["blocking"] else ""),
                 "finding:close", "overdue" if urgency == "overdue" else "due",
                 due_at=f["due_at"]))
+        return items
+
+    def _acknowledgements(self, model, urn, now) -> List[Item]:
+        """Findings whose owner has never said they are theirs.
+
+        A finding nobody has accepted looks identical, on every dashboard, to
+        one somebody is working on. This is the reminder cycle: it is derived
+        like everything else here, so it clears itself the moment the owner
+        acknowledges, and the notification service delivers it without needing a
+        second delivery path of its own.
+        """
+        if not self.finding_workflow:
+            return []
+        items = []
+        for row in self.finding_workflow.escalated(model["id"], now):
+            if row["acknowledgement"]["acknowledged"]:
+                continue          # escalated for another reason, already listed
+            items.append(Item(
+                "finding_acknowledgement", urn,
+                f"Finding not accepted: {row['title']}",
+                f"{row['acknowledgement']['detail']} — it was raised "
+                f"{row['age_days']:.0f} days ago and is owned by {row['owner']}. "
+                "Accept it with a plan, or hand it to whoever will do the work.",
+                "finding:acknowledge",
+                "overdue" if row["overdue"] else "due", due_at=row["due_at"]))
         return items
 
     def _monitors(self, model, urn, now) -> List[Item]:

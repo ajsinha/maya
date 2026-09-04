@@ -40,7 +40,7 @@ from core.monitoring import MonitorError
 from core.overlays import OverlayError
 from core.log import get_logger
 from core.registry import RegistryError
-from core.validation import ValidationError
+from core.validation import FindingWorkflowError, ValidationError
 
 API = "/api/v1"
 
@@ -170,6 +170,11 @@ STATUS: Dict[str, int] = {
     "satisfaction_condition_failed": 422,
     # scheduler
     "unknown_job": 422,
+    # the workflow around a finding
+    "no_finding": 404, "finding_closed": 409, "owner_required": 422,
+    "already_owned": 409, "not_the_owner": 403, "date_in_the_past": 422,
+    "beyond_the_due_date": 422, "not_acknowledged": 409, "self_extension": 403,
+    "not_an_extension": 422, "extension_too_long": 422,
 }
 REMEDY: Dict[type, str] = {
     RegistryError: "the refusal names the clause that failed; satisfy it and retry",
@@ -234,11 +239,15 @@ class Routes:
         """Run a service call, mapping any domain refusal onto the taxonomy."""
         try:
             return fn()
+        # FindingWorkflowError is a ValidationError, and it is caught HERE
+        # rather than below because it carries a code of its own. Catching it
+        # with the uncoded validation refusals would flatten eleven refusals
+        # that each name a different thing to do into one 409.
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,
-                PolicyError) as exc:
+                FindingWorkflowError, PolicyError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

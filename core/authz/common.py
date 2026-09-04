@@ -40,6 +40,11 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     # assurance
     "validation:read", "validation:open", "validation:record", "validation:conclude",
     "finding:read", "finding:raise", "finding:close",
+    # The workflow between raising a finding and closing it. `finding:extend` is
+    # deliberately apart from the other three: accepting a finding and planning
+    # it are the first line's acts, and moving the date it is due is not — an
+    # owner who could extend their own deadline has no deadline.
+    "finding:assign", "finding:acknowledge", "finding:plan", "finding:extend",
     "monitor:read", "monitor:define", "monitor:evaluate",
     "document:read", "document:compile",
     "document:attach", "document:review",

@@ -60,6 +60,7 @@ class JobContext:
     debts: Any = None
     documents: Any = None
     notifications: Any = None
+    finding_workflow: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -207,6 +208,51 @@ def escalate_overdue_findings(ctx: JobContext) -> Dict[str, Any]:
     return {"raised": raised, "count": len(raised)}
 
 
+def unacknowledged_findings(ctx: JobContext) -> Dict[str, Any]:
+    """A finding nobody has accepted is not being worked on.
+
+    The reminder cycle itself is delivery, and delivery already exists: the
+    worklist derives an unaccepted finding and the notification job posts it. So
+    this job is not a reminder — it is what happens when the reminders have been
+    ignored. Past the acknowledgement window with no owner having accepted it,
+    the silence stops being an oversight and becomes a fact worth recording,
+    because on every dashboard an unaccepted finding looks exactly like one
+    somebody is working on.
+
+    Idempotent the same way the others are: the same condition raises the same
+    finding once, matched on its title.
+    """
+    if not (ctx.findings and ctx.finding_workflow):
+        return {"skipped": "findings workflow not available"}
+    raised = []
+    for model in ctx.models():
+        for finding in ctx.findings.open_for(model["id"]):
+            if finding["category"] in ("remediation_acknowledgement",
+                                       "remediation_sla", "remediation_extension"):
+                continue                     # do not escalate an escalation
+            reading = ctx.finding_workflow.reading(finding["id"], now=ctx.now)
+            if reading["acknowledgement"]["acknowledged"]:
+                continue
+            waiting = (ctx.now - reading["owned_since"]) / DAY
+            if waiting <= ctx.finding_workflow.acknowledge_days:
+                continue
+            title = f"Finding never accepted: {finding['title']}"
+            if _already_raised(ctx.findings, model["id"], title):
+                continue
+            ctx.findings.raise_finding(
+                model["id"], "Medium", title, finding["owner"],
+                description=(f"A {finding['severity']} finding has been open for "
+                             f"{waiting:.0f} days and its owner has never accepted "
+                             "it or recorded what will be done about it. The "
+                             "original finding stands; this records that nobody "
+                             "has agreed to fix it, which is a different failure "
+                             "and one an unaccepted remediation date hides."),
+                category="remediation_acknowledgement", source="self_identified",
+                actor=ctx.actor)
+            raised.append(f"{model['urn']}:{finding['id']}")
+    return {"raised": raised, "count": len(raised)}
+
+
 def notify_outstanding(ctx) -> Dict[str, Any]:
     """Tell people what is outstanding for them.
 
@@ -252,4 +298,9 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "missing the window agreed for closing a finding is a different failure "
         "from the finding itself",
         escalate_overdue_findings),
+    Job("findings.unacknowledged",
+        "records that a finding's owner never accepted it",
+        "a finding nobody has agreed to fix looks identical, on every dashboard, "
+        "to one somebody is working on",
+        unacknowledged_findings),
 )}
