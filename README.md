@@ -298,11 +298,12 @@ maya/
 ├── docs/                            17 specification documents + ADRs
 │   ├── 00 … 16-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
+│   ├── data/                        the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    26-slide research deck
 │   ├── MAYA-System-Design.pptx              52-slide engineering deck
 │   └── MAYA-Model-and-Feature-Engineering.pptx
-│                                     32-slide practitioner deck
+│                                     33-slide practitioner deck, with its data embedded
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```

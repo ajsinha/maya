@@ -11,6 +11,11 @@ python -m venv .venv && .venv/bin/pip install python-pptx
 .venv/bin/python tools/deck/audit.py <deck>       # must report no geometry issues
 ```
 
+The engineering deck embeds `docs/data/*.csv` as OLE package objects, so the
+two series its worked example is computed from travel inside the file and can be
+opened from the slide. The generator reads those same files, so the figures on
+the slides and the data behind them cannot drift apart.
+
 Three decks, three audiences. The research deck argues the theory; the design
 deck is for whoever builds the platform; the engineering deck is for whoever
 uses it to engineer a model, and opens with a single-slide process diagram of
