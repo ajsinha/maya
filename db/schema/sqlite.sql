@@ -328,6 +328,7 @@ CREATE TABLE IF NOT EXISTS featureset (
     defaults            TEXT NOT NULL DEFAULT '{}',
     composes            TEXT NOT NULL DEFAULT '[]',
     operations          TEXT NOT NULL DEFAULT '[]',
+    definition_version  INTEGER NOT NULL DEFAULT 1,
     sealed_at           REAL,
     sealed_by           TEXT,
     seal_note           TEXT NOT NULL DEFAULT '',
@@ -399,6 +400,11 @@ CREATE TABLE IF NOT EXISTS dataset_snapshot (
     as_of          REAL NOT NULL,
     pit_verified   INTEGER NOT NULL DEFAULT 0,
     pit_report     TEXT NOT NULL DEFAULT '{}',
+    -- Which featureset version produced this snapshot. Recorded rather than
+    -- recomputed: a fit warrant pins the snapshot, and 'which schema did
+    -- these columns come from' has to survive reading the row back.
+    featureset          TEXT,
+    featureset_version  INTEGER,
     digest         TEXT NOT NULL,
     created_at     REAL NOT NULL
 );

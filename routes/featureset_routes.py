@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import BaseModel
 
 from core.features.expressions import describe as describe_language
@@ -82,6 +82,18 @@ class FeaturesetIn(BaseModel):
 class VersionIn(BaseModel):
     bindings: Dict[str, Any]
     label: Optional[Dict[str, Any]] = None
+    note: str = ""
+
+
+class FitIn(BaseModel):
+    urn: str
+    snapshot_id: str
+    environment: str = "lab"
+    principal: str
+    declared_use: str = "model_development"
+    window: dict
+    name: str = "fitted"
+    kind: str = "coefficients"
     note: str = ""
 
 
@@ -342,6 +354,34 @@ class FeaturesetRoutes(Routes):
                 body.featureset_version, body.window, body.as_of,
                 body.snapshot_id, body.warrant_id, body.values_uri, body.note,
                 self.actor(who)))
+
+        @self.app.post(f"{api}/parameter-fits", status_code=201,
+                       tags=["parameters"])
+        def fit(request: Request, body: FitIn):
+            """Fit this version from a snapshot, and record what came out.
+
+            The one route that produces a parameter set rather than taking
+            delivery of one. It resolves a fit warrant first and reads the
+            training set second, so a read never happens under an authority that
+            turns out not to exist; and the result lands PROPOSED, so the person
+            who ran the fit still cannot be the person who approves it.
+            """
+            fitting = self.ctx.get("fitting")
+            if fitting is None:
+                raise HTTPException(501, {
+                    "error": "no_captive_engine",
+                    "detail": "this instance runs no captive engine, so it can "
+                              "record a fit performed elsewhere but cannot "
+                              "perform one",
+                    "remediation": "enable execution.captive, or POST the "
+                                   "parameters to /parameters under the warrant "
+                                   "that produced them"})
+            model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "parameter:record", model=model)
+            return self.guard(lambda: fitting.fit(
+                body.urn, body.snapshot_id, body.environment, body.principal,
+                body.declared_use, body.window, body.name, body.kind,
+                body.note, self.actor(who)))
 
         @self.app.get(f"{api}/parameter-sets/{{parameter_set_id}}", tags=["parameters"])
         def read(request: Request, parameter_set_id: str):

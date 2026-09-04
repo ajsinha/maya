@@ -23,8 +23,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from core.domain.contracts import Bound, Contract
-from core.execution.runtimes import (CallableRuntime, Invocation, OnnxRuntime,
-                                     PmmlRuntime, QuantLibRuntime,
+from core.execution.runtimes import (CallableRuntime, EstimatorRuntime, Invocation,
+                                     OnnxRuntime, PmmlRuntime, QuantLibRuntime,
                                      RuntimeRegistry)
 from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
                                     describe as describe_sandbox)
@@ -71,6 +71,7 @@ class CaptiveEngine:
             OnnxRuntime(self.artifact_dir),
             PmmlRuntime(self.artifact_dir),
             QuantLibRuntime(),
+            EstimatorRuntime(),
         ])
         # Artifacts run in a child with limits from the warrant. Bound callables
         # cannot: you cannot isolate a function handed to you in your own address

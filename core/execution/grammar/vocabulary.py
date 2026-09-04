@@ -80,6 +80,11 @@ RUNTIME_ENTRY: Dict[str, Tuple[str, ...]] = {
     "pfa": ("document",),
     # --- quantitative libraries -------------------------------------------
     "quantlib": ("instrument", "pricing_engine"),
+    # The only runtime here whose job is to INHABIT a parameter object rather
+    # than to read one. Its entry names the estimator family; what that family
+    # needs beyond it -- a target and regressors, or a series -- is the family's
+    # business and is checked when it runs.
+    "estimator": ("family",),
     "solver": ("formulation", "solver"),
     # --- statistical platforms --------------------------------------------
     "sas": ("program",),

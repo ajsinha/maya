@@ -535,3 +535,50 @@ class TestAParentThatMovesIsReported:
         with pytest.raises(FeatureError, match="no such feature"):
             cat.define("orphan", "book_id", "numeric", "x", "person/o",
                        composes=[{"name": "never_defined"}])
+
+
+class TestAFeaturesetPinsItsParentsToo:
+    """The same guarantee, one level up.
+
+    "A combination of featuresets is a featureset" has to mean the same thing a
+    combination of features does, or it means nothing. It did not: a featureset
+    stored its parents as bare names, so changing a parent's retrieval policy
+    silently changed every child that inherited from it, and no read anywhere
+    said so. Finding C-2 in its fourth costume, and the one that survived three
+    previous fixes because each time it was fixed where it had last been found.
+    """
+
+    def test_the_parent_definition_is_stamped_at_compose_time(self, full_features):
+        f = full_features
+        f.define_featureset("core", "book_id", "person/o", {"a": "numeric"})
+        child = f.define_featureset("plus", "book_id", "person/o", {},
+                                    composes=[{"name": "core"}])
+        assert child["composes"][0]["definition_version"] == 1
+
+    def test_nothing_has_drifted_when_nothing_has_moved(self, full_features):
+        f = full_features
+        f.define_featureset("core", "book_id", "person/o", {"a": "numeric"})
+        f.define_featureset("plus", "book_id", "person/o", {},
+                            composes=[{"name": "core"}])
+        assert f.sets.resolved("plus")["drift"] == []
+
+    def test_changing_a_parents_policy_is_reported_as_drift(self, full_features):
+        """The retrieval policy is inherited, so this is a change to what the
+        child resolves to -- not a note in the parent's margin."""
+        f = full_features
+        f.define_featureset("core", "book_id", "person/o", {"a": "numeric"})
+        f.define_featureset("plus", "book_id", "person/o", {},
+                            composes=[{"name": "core"}])
+        f.sets.set_policy("core", {"fill": {"a": "zero"}})
+        drift = f.sets.resolved("plus")["drift"]
+        assert drift and drift[0]["parent"] == "core"
+        assert drift[0]["composed_against"] == 1 and drift[0]["now_at"] == 2
+
+    def test_composing_something_that_does_not_exist_is_refused_at_definition(
+            self, full_features):
+        """Previously the name was stored unchecked and the failure surfaced
+        later, as an empty resolution rather than as a missing parent."""
+        f = full_features
+        with pytest.raises(FeatureError, match="no such featureset"):
+            f.define_featureset("plus", "book_id", "person/o", {},
+                                composes=[{"name": "nothing_by_that_name"}])

@@ -204,7 +204,11 @@ def check_featureset_bounds(verb: str, inputs: List[Dict[str, Any]]) -> List[Pro
                 "without it the assembly reads whatever has since arrived",
                 "pin as_of to the moment the training set is assembled at"))
         window = binding.get("window") or {}
-        if not window.get("from") or not window.get("to"):
+        # `is None` and not falsiness: 1970-01-01 is a real instant, and a
+        # window that legitimately opens at the epoch was being refused as
+        # unbounded -- the rule reading "you gave me nothing" off a bound that
+        # happened to be zero.
+        if window.get("from") is None or window.get("to") is None:
             problems.append(Problem(
                 "L-W9", f"data.inputs[{i}].window",
                 "a featureset read for fitting must bound the period it covers",

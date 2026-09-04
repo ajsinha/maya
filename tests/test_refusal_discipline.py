@@ -75,6 +75,7 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         "registry_refused", "feature_refused", "assembly_rejected",
         "validation_refused", "not_found", "forbidden", "unauthenticated",
         "blocked", "no_entitlement", "conflict", "grammar_violation",
+        "no_captive_engine",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

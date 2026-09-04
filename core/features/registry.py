@@ -197,7 +197,7 @@ class FeatureRegistry:
         snapshot = self.assembly.build(
             snapshot_name or f"{name}-v{version}",
             spine, [{"view": v, "version": n} for v, n in views], as_of,
-            actor=actor)
+            actor=actor, featureset=name, featureset_version=version)
         return {**snapshot, "featureset": name, "featureset_version": version,
                 "featureset_digest": plan["digest"]}
 
