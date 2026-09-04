@@ -60,6 +60,44 @@
         {% endif %}
         </tbody></table></div>
 
+    <div class="card mb-3"><div class="card-header">
+        Post-model adjustments
+        {% if overlays.persistent %}
+          <span class="evidence-bad">&nbsp;{{ overlays.persistent }} persistent</span>
+        {% endif %}</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Ref</th><th>Adjustment</th><th>Status</th><th>Renewals</th><th>Magnitude</th></tr></thead>
+        <tbody>
+        {% for o in overlays.detail_rows %}
+          <tr><td class="small mono">{{ o.reference }}</td>
+              <td class="small">{{ o.name }}
+                <div class="text-muted">{{ o.kind }}</div></td>
+              <td class="small">{{ o.status }}
+                {% if o.assessment.expired %}
+                  <div class="evidence-bad">window elapsed</div>{% endif %}</td>
+              <td class="small">
+                {% if o.assessment.escalate %}
+                  <span class="evidence-bad">{{ o.renewals }}</span>
+                {% else %}{{ o.renewals }}{% endif %}</td>
+              <td class="small">
+                {% if o.assessment.materiality.measured %}
+                  {{ "%.2f"|format(o.assessment.materiality.magnitude) }}
+                  {% if o.assessment.materiality.pct_of_base is not none %}
+                    <div class="text-muted">{{ "%.1f"|format(o.assessment.materiality.pct_of_base * 100) }}% of base</div>
+                  {% endif %}
+                {% else %}<span class="text-muted">unmeasured</span>{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="5" class="text-muted small">
+            No overlays recorded. An overlay renewed past its limit is an
+            unversioned model change, so the register raises a finding rather
+            than leaving somebody to notice.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      {% if overlays.active %}
+        <div class="card-body py-2 small text-muted border-top">
+          {{ overlays.detail }}.</div>
+      {% endif %}</div>
+
     <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
         <span>Documentation</span>
         <button id="compile-doc" class="btn btn-sm btn-danger py-0 px-2"
