@@ -54,6 +54,9 @@ class WarrantService:
         # unchecked it becomes a claim, and the model is fitted over a different
         # X than the one its version declares.
         self.featuresets = featuresets
+        # As everywhere: consulted after the checks above, and only
+        # ever to refuse.
+        self.policy = None
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
         self.signer = WarrantSigner(signing_key, jitter_pct)
         self.builder = WarrantBuilder(self.signer)
@@ -74,6 +77,12 @@ class WarrantService:
         grant = self._grant(m, environment, principal, declared_use)
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
+        if self.policy is not None:
+            self.policy.check("warrant:resolve", {
+                "tier": m.get("tier"), "environment": environment,
+                "declared_use": declared_use, "principal": principal,
+                "attested": m.get("status") == "attested",
+                "version_status": version.get("status")}, urn)
         return self.builder.build(urn, m, version, grant, principal,
                                   declared_use, environment, self.epoch, verb=verb)
 

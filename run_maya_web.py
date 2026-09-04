@@ -25,14 +25,15 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.templating import Jinja2Templates
 
-from core.execution import CaptiveEngine, InProcessSandbox, SubprocessSandbox
+from core.execution import (CaptiveEngine, InProcessSandbox,
+                            SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
-from core.execution import WarrantService
+from core.execution import WarrantError, WarrantService
 from core.assist import CapabilityRegistry, GenerationLog
 from core.attachments import AttachmentRegister, DocumentStore
 from core.parameters import ParameterRegister
@@ -45,17 +46,19 @@ from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
-from core.registry import ModelRegistry
+from core.registry import ModelRegistry, RegistryError
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
+from core.policy import PolicyGate, PolicyRegister
 from core.risk import TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, Replayer, SnapshotProvider,
                              TestCatalogue, ValidationService)
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
-                NotificationRepository, TelemetryBatchRepository,
+                NotificationRepository, PolicyRuleRepository,
+                TelemetryBatchRepository,
                 VersionApprovalRepository,
                 VersionApprovalSignatureRepository,
                 FeaturesetRepository, FeaturesetVersionRepository,
@@ -229,6 +232,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # None unless an issuer is configured: local credentials only is the
     # default, because an instance that silently required a directory to be
     # reachable would lock everybody out the first time it was not.
+    # Versioned gates. They TIGHTEN: every check written in the registry stays
+    # where it is, and a policy runs in addition to it. A rule that could remove
+    # a check would let a typo weaken the platform and look like a successful
+    # deployment.
+    policies = PolicyRegister(PolicyRuleRepository(db), evidence)
+    registry.attach_policy(PolicyGate(policies, RegistryError))
+    warrants.policy = PolicyGate(policies)
+
     oidc = build_oidc(cfg)
 
     notifications = NotificationService(
@@ -261,6 +272,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "parameters": parameters, "replayer": replayer,
                            "approvals": approvals, "telemetry": telemetry,
                            "notifications": notifications, "oidc": oidc,
+                           "policies": policies,
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "debts": debts, "baseline": baseline,

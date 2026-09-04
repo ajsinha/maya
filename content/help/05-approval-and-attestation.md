@@ -457,3 +457,76 @@ unanswerable the moment the directory moves on.
 `POST /api/v1/sso/preview` answers *which roles would this person get* from a set
 of claims, without signing anybody in — for wiring up a mapping before somebody
 finds out the hard way.
+
+
+## Changing a gate without a release
+
+Several of the refusals on this page are written in the registry: an attested
+record does not accept changes, an alias points only at an approved version, a
+warrant does not resolve over a blocking finding. Those are invariants and they
+stay where they are.
+
+What was missing was a way to add a condition — *tier 1 versions also need a
+validation episode*, *this environment also needs an accepted MDD* — without
+waiting for a release. `GET /api/v1/policies` shows what is in force on each
+gate and what facts a rule there may read.
+
+### A rule is a predicate, not a program
+
+```
+blocking_findings == 0 and (tier > 2 or validated)
+```
+
+Comparison, membership, `and`/`or`/`not`, and `any`/`all` over a collection.
+**No loops, no assignment, no function definitions.** That is what makes a rule
+something a reviewer can reason about rather than something they have to run.
+
+It reads the facts the gate publishes and nothing else, and a name that is not
+one of them is refused **when the rule is written**:
+
+> **422 `unknown_fact`** — the rule reads `phase_of_the_moon`, which this gate
+> does not publish. *A rule that failed at the moment of a governance decision
+> would have failed at the worst possible time, so it is refused now.*
+
+### A policy carries its own cases
+
+A policy is drafted with a set of cases — facts, and the verdict the author says
+those facts deserve — and **cannot be published until they pass**. At least one
+must be a case the policy *refuses*:
+
+> **422 `no_refusing_case`** — none of the cases expects this policy to refuse
+> anything. *A policy nobody has shown to refuse is a policy nobody has shown to
+> be a gate.*
+
+### Loosening is allowed, and is never quiet
+
+Publishing a version that permits something its predecessor refused is a
+legitimate act; rules do change. So the register replays the outgoing version's
+cases against the incoming rule and reports every verdict that flipped:
+
+```json
+{"loosened": [{"name": "an attested record is not", "was": "refuse", "now": "allow"}],
+ "detail": "1 case(s) the previous policy refused are now permitted"}
+```
+
+A change that loosens a gate should be something somebody decided, not something
+somebody discovered.
+
+Authoring and publishing are separate duties: a validator drafts, a model risk
+manager publishes. A rule authored and enacted by one person is a rule nobody
+reviewed.
+
+### The boundary, stated plainly
+
+**A policy can tighten a gate. It cannot loosen one.** Every check written in the
+registry stays exactly where it is and a policy runs *in addition* to it.
+
+That is a smaller promise than "the gates are the policy", and it is the honest
+one. Replacing an invariant with a line of configuration means a mistyped rule
+can weaken the platform, and the failure would look like a successful deployment.
+Tightening without a release is the half of the problem worth solving; loosening
+a gate should cost a release, and does.
+
+An instance that publishes nothing runs exactly what it ran before — the built-in
+rules are the default for every gate, written in the same language so they can be
+read alongside anything that replaces them.

@@ -2186,3 +2186,109 @@ class TestNotificationOverTheApi:
                               json={"jobs": ["notify.outstanding"]}).json()
         assert out["ran"] == 1 and out["failed"] == 0
         assert "detail" in out["results"][0]["outcome"]
+
+
+class TestVersionedGatesOverTheApi:
+    CASES = [{"name": "no blocking findings", "expect": "allow",
+              "facts": {"blocking_findings": 0, "tier": 1}},
+             {"name": "a blocking finding stops it", "expect": "refuse",
+              "facts": {"blocking_findings": 1, "tier": 1}}]
+
+    def test_the_gates_are_published_with_their_facts(self, registered):
+        body = registered.get("/api/v1/policies").json()
+        gates = {g["gate"]: g for g in body["gates"]}
+        assert set(gates) == {"version:approve", "alias:move", "model:mutate",
+                              "warrant:resolve"}
+        assert all(g["source"] == "built-in" for g in gates.values())
+        assert "never instead of them" in body["applies"]
+        assert "predicate, not a program" in body["language"]["excluded"]
+
+    def test_the_facts_a_gate_publishes_are_listed(self, registered):
+        body = registered.get("/api/v1/policies/facts/alias:move").json()
+        assert "refinement_holds" in body["vocabulary"]
+        assert all(f["means"] for f in body["facts"])
+
+    def test_a_rule_reading_an_unpublished_fact_is_refused_when_written(
+            self, registered, people):
+        r = registered.post("/api/v1/policies", auth=people["a.mehta"], json={
+            "gate": "version:approve", "rule": "phase_of_the_moon == 'full'",
+            "reason": "x", "cases": self.CASES})
+        assert r.status_code == 422 and r.json()["error"] == "unknown_fact"
+
+    def test_a_policy_that_refuses_nothing_is_refused(self, registered, people):
+        r = registered.post("/api/v1/policies", auth=people["a.mehta"], json={
+            "gate": "version:approve", "rule": "True", "reason": "x",
+            "cases": [{"name": "a", "expect": "allow", "facts": {}},
+                      {"name": "b", "expect": "allow", "facts": {"tier": 1}}]})
+        assert r.status_code == 422 and r.json()["error"] == "no_refusing_case"
+
+    def test_authoring_and_publishing_are_separate_duties(self, registered,
+                                                          people):
+        """A rule authored and enacted by one person is a rule nobody reviewed."""
+        drafted = registered.post("/api/v1/policies", auth=people["a.mehta"],
+                                  json={"gate": "version:approve",
+                                        "rule": "blocking_findings == 0",
+                                        "reason": "as shipped",
+                                        "cases": self.CASES})
+        assert drafted.status_code == 201, drafted.text
+        refused = registered.post(
+            f"/api/v1/policies/{drafted.json()['id']}/publish",
+            auth=people["a.mehta"])
+        assert refused.status_code == 403, "a validator drafts and does not publish"
+        published = registered.post(
+            f"/api/v1/policies/{drafted.json()['id']}/publish",
+            auth=people["s.iqbal"])
+        assert published.status_code == 200
+
+    def test_a_published_policy_tightens_a_real_gate(self, registered, people):
+        """Wired where the application wires it, refusing the way it does."""
+        drafted = registered.post("/api/v1/policies", auth=people["a.mehta"],
+                                  json={
+            "gate": "warrant:resolve", "rule": "environment != 'prod'",
+            "reason": "prod is frozen during the change freeze",
+            "cases": [{"name": "lab is fine", "expect": "allow",
+                       "facts": {"environment": "lab"}},
+                      {"name": "prod is not", "expect": "refuse",
+                       "facts": {"environment": "prod"}}]}).json()
+        registered.post(f"/api/v1/policies/{drafted['id']}/publish",
+                        auth=people["s.iqbal"])
+        r = registered.post("/api/v1/resolve", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"})
+        assert r.status_code == 403
+        assert "change freeze" in r.json()["detail"]
+
+    def test_loosening_is_reported_case_by_case(self, registered, people):
+        first = registered.post("/api/v1/policies", auth=people["a.mehta"],
+                                json={"gate": "version:approve",
+                                      "rule": "blocking_findings == 0",
+                                      "reason": "as shipped",
+                                      "cases": self.CASES}).json()
+        registered.post(f"/api/v1/policies/{first['id']}/publish",
+                        auth=people["s.iqbal"])
+        second = registered.post("/api/v1/policies", auth=people["a.mehta"],
+                                 json={
+            "gate": "version:approve", "rule": "tier is not None",
+            "reason": "deliberately looser",
+            "cases": [{"name": "tiered", "expect": "allow", "facts": {"tier": 1}},
+                      {"name": "untiered", "expect": "refuse",
+                       "facts": {"tier": None}}]}).json()
+        out = registered.post(f"/api/v1/policies/{second['id']}/publish",
+                              auth=people["s.iqbal"]).json()
+        assert out["drift"]["loosened"]
+        assert "are now permitted" in out["drift"]["detail"]
+
+    def test_a_verdict_can_be_asked_for_without_making_a_decision(self,
+                                                                  registered):
+        body = registered.post("/api/v1/policies/try", json={
+            "gate": "model:mutate", "facts": {"attested": True}}).json()
+        assert body["decision"] == "refuse"
+        assert body["policy_source"] == "built-in"
+        assert body["facts_read"] == {"attested": True, "amending": False}
+
+    def test_a_developer_may_not_author_a_gate(self, registered, people):
+        r = registered.post("/api/v1/policies", auth=people["d.raman"], json={
+            "gate": "version:approve", "rule": "blocking_findings == 0",
+            "reason": "x", "cases": self.CASES})
+        assert r.status_code == 403

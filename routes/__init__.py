@@ -12,6 +12,7 @@ from routes.attachment_routes import AttachmentRoutes
 from routes.approval_routes import ApprovalRoutes
 from routes.telemetry_routes import TelemetryRoutes
 from routes.notification_routes import NotificationRoutes
+from routes.policy_routes import PolicyRoutes
 from routes.sso_routes import SsoRoutes
 from routes.transfer_routes import TransferRoutes
 from routes.featureset_routes import FeaturesetRoutes
@@ -41,7 +42,7 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, MonitoringRoutes,
               DocumentRoutes, AttachmentRoutes, FeaturesetRoutes,
               ApprovalRoutes, TelemetryRoutes, TransferRoutes,
-              NotificationRoutes, SsoRoutes,
+              NotificationRoutes, SsoRoutes, PolicyRoutes,
               OverlayRoutes, AssistRoutes,
               BaselineRoutes,
               RegimeRoutes, SchedulerRoutes,
@@ -49,4 +50,4 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]

@@ -26,6 +26,7 @@ from core.assist import AssistError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
+from core.policy import PolicyError
 from core.telemetry import TelemetryError
 from core.baseline import BaselineError
 from core.regimes import RegimeError
@@ -96,6 +97,14 @@ STATUS: Dict[str, int] = {
     # version approval as a quorum
     # telemetry
     # notification
+    # versioned gates
+    "unknown_gate": 404, "empty_rule": 422, "unknown_fact": 422,
+    "rule_does_not_parse": 422, "not_in_the_language": 422,
+    "unknown_function": 422, "reserved_name": 422, "rule_failed": 422,
+    "fact_not_supplied": 500, "too_few_cases": 422,
+    "case_without_a_verdict": 422, "no_refusing_case": 422,
+    "cases_do_not_pass": 409, "already_decided": 409, "no_policy": 404,
+    "reason_required": 422, "policy_refused": 403,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,
@@ -228,7 +237,8 @@ class Routes:
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
-                ParameterError, TelemetryError, NotifyError) as exc:
+                ParameterError, TelemetryError, NotifyError,
+                PolicyError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

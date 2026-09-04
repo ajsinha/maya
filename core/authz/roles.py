@@ -62,7 +62,10 @@ VALIDATOR = READ_PERMISSIONS | {
     # approves the parameters it fitted, which change what the model does.
     "document:review", "parameter:approve", "version:sign",
     "feature:seal", "featureset:seal",
-    "feature:seal", "featureset:seal",
+    # Writing a gate and putting it in force are different acts, so a validator
+    # drafts and the model risk manager publishes. A rule authored and enacted
+    # by one person is a rule nobody reviewed.
+    "policy:read", "policy:author",
     # The second line asks the machine for a draft and attests what it produced.
     "assist:generate", "assist:attest",
 }
@@ -75,6 +78,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     "overlay:approve", "assist:register", "assist:attest",
     "document:review", "parameter:approve", "version:sign",
     "baseline:import", "baseline:plan", "regime:activate",
+    "policy:publish",
 }
 
 # ---------------------------------------------------------------------------

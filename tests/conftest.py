@@ -467,3 +467,10 @@ def notifications(db, worklist, principals, authz, registry, evidence):
         NotificationRepository(db), worklist, principals, authz, registry,
         evidence, {"log": LogChannel()}, "log", quiet_hours=24.0,
         escalate_days=7.0, base_url="http://localhost:5006")
+
+
+@pytest.fixture
+def policies(db, evidence):
+    from core.policy import PolicyRegister
+    from db import PolicyRuleRepository
+    return PolicyRegister(PolicyRuleRepository(db), evidence)
