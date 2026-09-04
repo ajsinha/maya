@@ -139,7 +139,7 @@ STATUS: Dict[str, int] = {
     # identity is the problem, and retrying with it will not help.
     "identity_not_linked": 403, "already_linked": 409,
     # Asking for a credential in somebody else's name.
-    "principal_not_self": 403,
+    "principal_not_self": 403, "verifier_not_self": 403,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,

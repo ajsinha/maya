@@ -649,7 +649,7 @@ to monitors rather than a hand-written scheduler with special cases.
 
 > **State, stated.** That compiler is **not built**, and neither is the deontic layer (obligation `O`,
 > permission `P`, prohibition `F`) that `L-16`'s contradiction check would run over. What ships is the
-> thing the compiler would have generated: five idempotent jobs in `core/scheduler/jobs.py`, one per
+> thing the compiler would have generated: seven idempotent jobs in `core/scheduler/jobs.py`, one per
 > obligation — a lapsed attestation and a stalled monitor each raise a finding, overlays past their
 > window close, baseline debt reconciles, and a missed remediation window is recorded as its own
 > finding rather than by rewriting the original. Five hand-written monitors are not an argument

@@ -2,7 +2,20 @@
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-**Status:** accepted · **Date:** 2026-09 · **Supersedes:** [ADR-008](ADR-008-server-rendered-ui.md)
+**Status:** accepted · **NOT BUILT** · **Date:** 2026-09 · **Supersedes:** [ADR-008](ADR-008-server-rendered-ui.md)
+
+> **As built, and stated plainly because three reviewers read this document and believed it.**
+> None of the decision below has been implemented. What runs is exactly [ADR-008](ADR-008-server-rendered-ui.md):
+> a server-rendered Jinja2 application **inside the FastAPI process**. `routes/ui_routes.py` makes
+> **41 direct in-process service calls** (`self.ctx["registry"]`, `self.ctx["evidence"]`, and so on);
+> there is no second process, no CORS middleware, and no bearer-token flow. Writes from the browser
+> do go through the public API over jQuery — reads do not.
+>
+> This matters beyond tidiness. The README and `docs/12` both state as fact that the UI consumes
+> only the public API and that no privileged server-side path exists, and a Head of Model Risk who
+> plans to build management information on that API would find the screens can see things the API
+> cannot. Either route the UI through the API or withdraw the claim; until one of those happens,
+> this note is the honest description.
 
 ## Context
 

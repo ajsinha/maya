@@ -4,6 +4,11 @@
 
 Format: context → decision → consequences. Status is one of `proposed`, `accepted`, `superseded`.
 
+Two rows carry a second note, because status alone was misleading. ADR-008 is superseded on paper
+and is an accurate description of what runs today; ADR-011 supersedes it and describes something
+that has not been built. A reader who trusted the status column would have had it exactly backwards,
+and this index previously omitted 011 altogether while showing 008 as accepted.
+
 | ADR | Title | Status |
 |---|---|---|
 | [001](ADR-001-modular-monolith.md) | Modular monolith with one extracted warrant service | accepted |
@@ -13,9 +18,10 @@ Format: context → decision → consequences. Status is one of `proposed`, `acc
 | [005](ADR-005-institutions-for-regimes.md) | Institutions for multi-regulator scoping | accepted |
 | [006](ADR-006-semiring-evidence.md) | Semiring-annotated provenance as the single evidence engine | accepted |
 | [007](ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors | accepted |
-| [008](ADR-008-server-rendered-ui.md) | Server-rendered Jinja2 + Bootstrap + jQuery, no SPA | accepted |
+| [008](ADR-008-server-rendered-ui.md) | Server-rendered Jinja2 + Bootstrap + jQuery, no SPA | superseded by 011 — **but it is what ships** |
 | [009](ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading and a format policy | accepted |
 | [010](ADR-010-laws-as-tests.md) | The laws enforced by tests in CI | accepted |
+| [011](ADR-011-decoupled-frontend.md) | Front end and backend as separate processes | accepted — **not built** |
 
 ---
 

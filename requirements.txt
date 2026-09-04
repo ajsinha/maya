@@ -7,6 +7,13 @@ sqlalchemy>=2.0
 python-multipart>=0.0.9
 markdown>=3.6              # help and about pages, rendered server-side
 
+# PostgreSQL. The documented production database, and it was in neither this
+# file nor the virtualenv -- so `database.url: postgresql://...` raised
+# ModuleNotFoundError, and the second dialect the schema is written for had
+# never been run at all. Adversarial review found fourteen BOOLEAN columns it
+# could not have inserted into.
+psycopg[binary]>=3.2
+
 # development / test
 pytest>=8.0
 pytest-cov>=5.0

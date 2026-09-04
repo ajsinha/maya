@@ -117,8 +117,12 @@ class VersionApproval:
             "quorum_required",
             f"a tier {model['tier']} version is approved by a quorum of "
             f"{', '.join(roles)}, not by one signature",
-            f"open an approval at POST /api/v1/models/.../versions/{semver}"
-            f"/approval and have each required role sign it")
+            # The path this used to name did not exist. A refusal that tells
+            # somebody to call an endpoint nobody built leaves them with no way
+            # forward from the product OR the documentation.
+            f'open an approval at POST /api/v1/version-approvals with '
+            f'{{"urn": "{urn}", "semver": "{semver}"}}, then have each required '
+            f"role POST to /version-approvals/<id>/sign")
 
     # ------------------------------------------------------------------- open
     def open(self, urn: str, semver: str, statement: str = "",

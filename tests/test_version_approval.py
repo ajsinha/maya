@@ -76,7 +76,11 @@ class TestASingleSignatureIsRefusedWhereAQuorumApplies:
             registry.approve_version(URN, "3.2.1", actor="person/s.iqbal")
         assert exc.value.code == "quorum_required"
         assert "not by one signature" in exc.value.detail
-        assert "/approval" in exc.value.remediation
+        # The route it names must be one that exists. It used to name
+        # /models/.../versions/{semver}/approval, which was never built, so a
+        # blocked caller had no way forward from the product or the docs.
+        assert "/api/v1/version-approvals" in exc.value.remediation
+        assert "/sign" in exc.value.remediation
 
     def test_a_tier_that_needs_no_quorum_still_approves_directly(
             self, approvals, registry, unapproved, a_model):

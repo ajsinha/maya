@@ -139,7 +139,7 @@ POST /api/v1/monitors/{id}/evaluate
 {"rows": [{"scored_at": 1767225600, "score": 0.31, "label": 1}, ...]}
 ```
 
-`monitor:evaluate` is granted to the `operator` and `service` roles as well as to
+`monitor:evaluate` is granted to the `operator` role as well as to
 owners, so a batch runner can evaluate on a schedule and decide nothing else.
 `monitor:observe` sits beside it and is deliberately separate: the principal that
 runs the model holds the rows and should be able to hand them over without also
