@@ -46,7 +46,7 @@ MODEL_DEVELOPER = {
 }
 MODEL_OWNER = MODEL_DEVELOPER | {
     "model:register", "model:retire", "risk:assess",
-    "warrant:issue", "warrant:execute", "finding:raise",
+    "warrant:issue", "warrant:resolve", "warrant:execute", "finding:raise",
     # The owner hands remediation to whoever will do it, on the record. They
     # still cannot move the date it is due.
     "finding:assign",
@@ -108,7 +108,7 @@ OPERATOR = {"model:read", "warrant:read", "evidence:read",
             # The operator runs the schedule. Every job is idempotent and derives
             # its own work, so this is an operational act and not a governance one.
             "scheduler:read", "scheduler:run"}
-SERVICE = {"model:read", "warrant:read", "warrant:execute",
+SERVICE = {"model:read", "warrant:read", "warrant:resolve", "warrant:execute",
            # The principal that runs the model is the one holding the scores, so
            # it hands them over -- and stops there. Deciding that a monitor has
            # breached is a governance act, and an execution engine that could

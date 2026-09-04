@@ -326,3 +326,56 @@ class TestAuthorisationApi:
         actors = {n["recorded_by"] for n in body["evidence"]}
         assert "j.okafor" in actors, "registration must be attributed to whoever did it"
         assert "system" not in actors
+
+
+class TestAWarrantCannotBeMintedForSomebodyElse:
+    """Three independent reviewers found this by three different routes.
+
+    `POST /resolve` authorised against `warrant:read` -- which lives in the read
+    set, so every role holds it, the auditor included -- and then minted a
+    signed descriptor for whatever `principal` the request body named, with no
+    check that it was the caller. It also passed no model, so the scope check
+    was skipped: a principal confined to one legal entity could obtain a
+    production execution credential for a model in another.
+    """
+
+    def _resolve(self, client, auth, principal="svc/origination"):
+        return client.post("/api/v1/resolve", auth=auth, json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": principal, "declared_use": "origination_decision"})
+
+    def test_an_auditor_cannot_mint_a_production_credential(self, registered,
+                                                            people, client):
+        client.post("/api/v1/principals", json={
+            "username": "z.audit", "display_name": "Z Audit",
+            "roles": ["auditor"], "password": "aud-pw"})
+        r = self._resolve(registered, ("z.audit", "aud-pw"))
+        assert r.status_code == 403, r.text
+        assert r.json()["error"] in ("forbidden", "principal_not_self")
+
+    def test_a_service_cannot_name_another_service(self, registered, people,
+                                                   client):
+        """A service holds warrant:resolve and not warrant:issue, so this is
+        refused on IDENTITY rather than on permission -- which is the check that
+        was absent entirely."""
+        client.post("/api/v1/principals", json={
+            "username": "svc/other", "display_name": "Other",
+            "roles": ["service"], "password": "o-pw"})
+        r = self._resolve(registered, ("svc/other", "o-pw"),
+                          principal="svc/origination")
+        assert r.status_code == 403, r.text
+        assert r.json()["error"] == "principal_not_self"
+
+    def test_resolving_for_yourself_is_allowed(self, registered, people, client):
+        client.post("/api/v1/principals", json={
+            "username": "svc/origination", "display_name": "Origination",
+            "roles": ["service"], "password": "svc-pw"})
+        r = self._resolve(registered, ("svc/origination", "svc-pw"))
+        assert r.status_code == 200, r.text
+        assert r.json()["signature"]["value"]
+
+    def test_holding_warrant_issue_still_permits_minting_for_a_service(
+            self, registered, people):
+        """Minting on another principal's behalf stays possible, but only for
+        somebody already entitled to create the entitlement itself."""
+        assert self._resolve(registered, people["j.okafor"]).status_code == 200
