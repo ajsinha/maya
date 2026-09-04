@@ -301,14 +301,69 @@ class TestProvisioningIsADecision:
         assert principal["username"] == "newcomer"
         assert principal["roles"] == ["validator"]
 
-    def test_an_existing_principal_has_their_roles_brought_into_line(
+    def test_an_unlinked_local_principal_is_not_claimed_by_a_matching_name(
             self, provider, principals, evidence):
+        """This test previously asserted the opposite, and the opposite was the
+        vulnerability: a directory login resolved onto a local account by
+        username, and the username was what carried the roles."""
         principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        identity = provider.identity(
+            {"sub": "u", "preferred_username": "j.okafor",
+             "groups": ["maya-validators"]})
+        with pytest.raises(AuthzError) as exc:
+            provider.sign_in(identity, principals, evidence)
+        assert exc.value.code == "identity_not_linked"
+
+    def test_a_linked_principal_signs_in_and_has_roles_brought_into_line(
+            self, provider, principals, evidence):
+        """Once an administrator has bound the account to a directory identity,
+        the directory is authoritative about that person's roles -- which was
+        always the intended behaviour, and now happens only after somebody
+        deliberately said these two are the same human."""
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.bind_directory("j.okafor", provider.issuer, "u")
         identity = provider.identity(
             {"sub": "u", "preferred_username": "j.okafor",
              "groups": ["maya-validators"]})
         principal = provider.sign_in(identity, principals, evidence)
         assert principal["roles"] == ["validator"]
+
+    def test_a_directory_user_cannot_sign_in_as_the_administrator(
+            self, provider, principals, evidence):
+        """The whole point. Submit preferred_username 'admin', belong to no
+        mapped group, and previously you were signed in as the local
+        administrator with every permission -- because both guards that should
+        have stopped it only fire when the principal does NOT already exist."""
+        principals.create("admin", "Administrator", ["admin"], "pw")
+        identity = provider.identity(
+            {"sub": "attacker-subject", "preferred_username": "admin",
+             "groups": []})
+        with pytest.raises(AuthzError) as exc:
+            provider.sign_in(identity, principals, evidence)
+        assert exc.value.code == "identity_not_linked"
+
+    def test_a_second_directory_identity_cannot_take_over_a_linked_account(
+            self, provider, principals, evidence):
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.bind_directory("j.okafor", provider.issuer, "the-real-one")
+        identity = provider.identity(
+            {"sub": "somebody-else", "preferred_username": "j.okafor",
+             "groups": ["maya-validators"]})
+        with pytest.raises(AuthzError) as exc:
+            provider.sign_in(identity, principals, evidence)
+        assert exc.value.code == "identity_not_linked"
+
+    def test_the_subject_and_not_the_username_is_what_resolves(
+            self, provider, principals, evidence):
+        """A directory may reuse a username; it guarantees the subject. So a
+        person renamed in the directory keeps their account here."""
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.bind_directory("j.okafor", provider.issuer, "stable-subject")
+        identity = provider.identity(
+            {"sub": "stable-subject", "preferred_username": "jane.okafor-smith",
+             "groups": ["maya-validators"]})
+        principal = provider.sign_in(identity, principals, evidence)
+        assert principal["username"] == "j.okafor"
 
     def test_somebody_in_no_mapped_group_cannot_be_provisioned(self, provider,
                                                                principals,

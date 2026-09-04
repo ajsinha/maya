@@ -531,6 +531,13 @@ CREATE TABLE IF NOT EXISTS principal (
     status          TEXT NOT NULL DEFAULT 'active',
     password_hash   TEXT,
     password_salt   TEXT,
+    -- The durable identity a directory login is bound to. A username is not
+    -- one: a directory user submitting preferred_username 'admin' was signed in
+    -- AS the local admin, because the username was what carried the roles. The
+    -- binding is made once, deliberately, and a login whose (issuer, subject)
+    -- disagrees with the stored pair is refused rather than resolved by name.
+    sso_issuer      text,
+    sso_subject     text,
     created_at      DOUBLE PRECISION NOT NULL,
     last_seen_at    DOUBLE PRECISION
 );

@@ -329,3 +329,57 @@ class TestPolicy:
     def test_an_unknown_permission_is_refused_rather_than_denied_silently(self, authz, staff):
         with pytest.raises(AuthzError, match="not a recognised permission"):
             authz.permits(staff["a.mehta"], "model:teleport")
+
+
+class TestTheWarrantSigningKeyIsNotPublished:
+    """The secret and its name are two different strings.
+
+    They were once one: the signing key was the HMAC secret AND was written into
+    every descriptor as signature.key_id. `warrant:read` is held by every role,
+    the auditor included, so anyone holding one warrant held the key to forge
+    any warrant -- for any model, any principal, any use, with the operating
+    boundary emptied and an expiry a century out.
+    """
+
+    SECRET = "a-secret-that-must-never-appear-anywhere"
+
+    def _signer(self, secret=None):
+        from core.execution.signing import WarrantSigner
+        return WarrantSigner(secret or self.SECRET)
+
+    def test_the_published_key_id_is_not_the_secret(self):
+        assert self._signer().key_id != self.SECRET
+        assert self.SECRET not in self._signer().key_id
+
+    def test_the_key_id_is_one_way(self):
+        """It has to name the key -- that is what a key id is for -- without
+        being reversible into it."""
+        from core.execution.signing import WarrantSigner
+        label = WarrantSigner.label_for(self.SECRET)
+        assert label.startswith("k-") and len(label) == 18
+        assert WarrantSigner.label_for(self.SECRET) == label, "stable"
+        assert WarrantSigner.label_for(self.SECRET + "x") != label, "and distinguishing"
+
+    def test_rotating_the_secret_changes_the_label_by_itself(self):
+        """So two warrants signed under different keys are distinguishable
+        without anybody maintaining a mapping."""
+        assert self._signer("first").key_id != self._signer("second").key_id
+
+    def test_a_published_default_key_is_flagged_rather_than_accepted_quietly(self):
+        assert self._signer("maya-dev-key").uses_a_published_key is True
+        assert self._signer().uses_a_published_key is False
+
+    def test_a_descriptor_never_carries_the_secret(self, warrants, registry,
+                                                   approved_version):
+        """The end-to-end statement: read every byte of a signed descriptor and
+        the secret is not in it."""
+        import json
+
+        from tests.conftest import URN
+        registry.move_alias(URN, "prod", "champion", "3.2.1")
+        warrants.signer._key = self.SECRET.encode()
+        warrants.signer.key_id = warrants.signer.label_for(self.SECRET)
+        warrants.issue(URN, "prod", "svc/x", "origination_decision",
+                       actor="person/j.okafor")
+        doc = warrants.resolve(URN, "prod", "svc/x", "origination_decision")
+        assert self.SECRET not in json.dumps(doc)

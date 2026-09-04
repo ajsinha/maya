@@ -134,6 +134,10 @@ STATUS: Dict[str, int] = {
     # deployment decision rather than a transient fault.
     "provider_unavailable": 501, "unknown_provider": 422,
     "nothing_to_ground": 422,
+    # A directory login that resolves to nobody here, or to somebody it was
+    # never linked to. 403 rather than 401: the credential was fine, the
+    # identity is the problem, and retrying with it will not help.
+    "identity_not_linked": 403, "already_linked": 409,
     # single sign-on
     "sso_not_configured": 501, "discovery_incomplete": 502,
     "issuer_mismatch": 403, "audience_mismatch": 403,

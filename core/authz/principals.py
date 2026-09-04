@@ -189,6 +189,37 @@ class PrincipalService:
         return {k: v for k, v in row.items()
                 if k not in ("password_hash", "password_salt")}
 
+    # ------------------------------------------------- directory identity
+    def by_directory(self, issuer: str, subject: str) -> Optional[Dict[str, Any]]:
+        """The principal a directory login resolves to, by the pair that is
+        actually stable.
+
+        The subject is the one claim an identity provider guarantees unique
+        within its issuer. A username is a display convenience the directory may
+        reuse, and resolving a login by username is how somebody signs in as an
+        administrator by claiming to be called one.
+        """
+        if not issuer or not subject:
+            return None
+        row = self.principals.one(sso_issuer=issuer, sso_subject=subject)
+        return self.public(row) if row else None
+
+    def bind_directory(self, username: str, issuer: str, subject: str,
+                       actor: str = "system") -> Dict[str, Any]:
+        """Link this principal to a directory identity. Deliberate, and once."""
+        row = self.require(username)
+        if row.get("sso_subject") and (row.get("sso_issuer") != issuer
+                                       or row.get("sso_subject") != subject):
+            raise AuthzError(
+                "already_linked",
+                f"{username} is already bound to a different directory identity",
+                "unlink it deliberately before binding another; silently "
+                "rebinding would move an account between two humans")
+        self.principals.set({"sso_issuer": issuer, "sso_subject": subject},
+                            id=row["id"])
+        logger.info("bound principal %s to %s subject %s", username, issuer, subject)
+        return self.public(self.principals.one(id=row["id"]))
+
     # ------------------------------------------------------------- bootstrap
     def bootstrap(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """Create the first administrator, once, if there are no principals.

@@ -78,3 +78,40 @@ def test_the_largest_file_leaves_room_to_grow():
         f"{largest[0]} is at {largest[1]:,} code lines, within 10% of the "
         f"{LIMIT:,} limit. Split it now, by subject, while there is still a "
         f"seam to split on.")
+
+
+def test_no_configuration_key_is_defined_twice():
+    """A repeated mapping key in YAML keeps only the last, silently.
+
+    `config/application.yaml` had two top-level `auth:` keys. The first held the
+    bootstrap password and the session-signing secret; the second held the SSO
+    block. YAML discarded the first, so MAYA_AUTH_PASSWORD and
+    MAYA_SESSION_SECRET had no effect at all -- while the comments beside them
+    told a deployer to set exactly those to secure the instance.
+
+    Nothing raised, nothing warned, and the file parsed cleanly. The only way to
+    see it is to read the source rather than the parsed document, which is what
+    this does.
+    """
+    import re
+
+    text = (ROOT / "config" / "application.yaml").read_text(encoding="utf-8")
+    seen, duplicated, stack = {}, [], []
+    for number, line in enumerate(text.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        match = re.match(r"^(\s*)([A-Za-z_][\w.-]*):", line)
+        if not match:
+            continue
+        indent, key = len(match.group(1)), match.group(2)
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        path = ".".join([k for _, k in stack] + [key])
+        if path in seen:
+            duplicated.append(f"{path} (lines {seen[path]} and {number})")
+        seen[path] = number
+        stack.append((indent, key))
+    assert not duplicated, (
+        "these configuration keys are defined more than once, so only the last "
+        "definition is in force and every setting under the earlier one is "
+        "silently discarded:\n    " + "\n    ".join(duplicated))

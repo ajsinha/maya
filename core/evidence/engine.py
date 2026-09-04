@@ -62,7 +62,8 @@ class EvidenceEngine:
         stored_payload = {} if personal_data else payload
         content_hash = self.content_hash_of(
             {"kind": kind, "subject_type": subject_type, "subject_id": subject_id,
-             "payload": stored_payload, "parents": parents})
+             "payload": stored_payload, "parents": parents,
+             "recorded_by": actor, "trust": trust})
         prev_seq, prev_hash = self.head()
         seq = prev_seq + 1
         node = {
@@ -88,7 +89,17 @@ class EvidenceEngine:
             "kind": node["kind"],
             "subject": [node["subject_type"], node["subject_id"]],
             "payload": node.get("payload") or {},
-            "parents": node.get("parents") or []})
+            "parents": node.get("parents") or [],
+            # WHO did it, and how much the platform believes them, are part of
+            # what the chain attests. They were not, and the omission was worse
+            # than it sounds: segregation of duties is decided entirely by
+            # reading `recorded_by` off these nodes, so a single UPDATE
+            # reassigning authorship turned the control off for that subject
+            # while verify_chain went on reporting the chain intact. `trust` is
+            # here for the same reason -- it weights the TRUST semiring, and a
+            # silently re-weighted valuation is a conclusion nobody can check.
+            "recorded_by": node.get("recorded_by"),
+            "trust": node.get("trust")})
 
     def verify_chain(self) -> Dict[str, Any]:
         """Walk the chain. Reports the first break, if any."""

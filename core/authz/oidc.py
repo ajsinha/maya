@@ -78,6 +78,7 @@ class OidcProvider:
                  group_claim: str = "groups",
                  role_map: Optional[Dict[str, Sequence[str]]] = None,
                  provision: bool = False,
+                 link_on_first_login: bool = False,
                  username_claim: str = "preferred_username",
                  fetch=None):
         self.issuer = (issuer or "").rstrip("/")
@@ -87,6 +88,11 @@ class OidcProvider:
         self.group_claim = group_claim
         self.role_map = {k: tuple(v) for k, v in (role_map or {}).items()}
         self.provision = provision
+        # Whether a directory login may claim an EXISTING local principal
+        # that nobody has linked. Off by default: a principal that already
+        # holds governance authority must be linked by an administrator,
+        # not by whoever first presents a matching name.
+        self.link_on_first_login = link_on_first_login
         self.username_claim = username_claim
         # Injected so the flow can be tested without a provider on the network,
         # and so an air-gapped deployment can supply its own transport. Wrapped,
@@ -233,6 +239,38 @@ class OidcProvider:
                 "this is what a replayed assertion looks like from here")
         return claims
 
+    # -------------------------------------------------------------- identity
+    @staticmethod
+    def _is_unbound(principal: Dict[str, Any]) -> bool:
+        return not (principal.get("sso_issuer") or principal.get("sso_subject"))
+
+    @staticmethod
+    def _bound_principal(principals, identity: Dict[str, Any]):
+        """The principal this (issuer, subject) pair names, if any.
+
+        This -- not the username -- is what a directory login resolves to. The
+        subject is the one claim an identity provider guarantees is stable and
+        unique within its issuer; a username is a display convenience the
+        directory may reuse.
+        """
+        return principals.by_directory(identity.get("issuer"),
+                                       identity.get("subject"))
+
+    @staticmethod
+    def _bind(principals, principal: Dict[str, Any], identity: Dict[str, Any],
+              evidence, actor: str) -> None:
+        """Record the binding once, on the record, so it can be questioned."""
+        principals.bind_directory(principal["username"], identity["issuer"],
+                                  identity["subject"], actor=actor)
+        evidence.append("principal_linked_to_directory", "principal",
+                        principal["id"],
+                        {"username": principal["username"],
+                         "issuer": identity["issuer"],
+                         "subject": identity["subject"]}, actor=actor)
+        logger.info("bound principal %s to %s subject %s",
+                    principal["username"], identity["issuer"],
+                    identity["subject"])
+
     # ----------------------------------------------------------------- claims
     def identity(self, claims: Dict[str, Any]) -> Dict[str, Any]:
         """Who the provider says this is, and what MAYA makes of it."""
@@ -251,7 +289,13 @@ class OidcProvider:
             "username": str(username),
             "display_name": claims.get("name") or str(username),
             "email": claims.get("email"),
-            "subject": claims.get("sub"), "issuer": claims.get("iss"),
+            "subject": claims.get("sub"),
+            # The issuer MAYA is configured to trust, not the one the token
+            # claims to come from. `_assert` has already refused a token whose
+            # `iss` disagrees, so these are the same string on any accepted
+            # login -- and binding to the configured one means the durable
+            # identity is anchored to a decision somebody made here.
+            "issuer": self.issuer,
             "groups": list(groups), "roles": roles,
             "mapped_from": mapped, "ignored_groups": ignored,
             "detail": self._detail(roles, mapped, ignored),
@@ -293,7 +337,40 @@ class OidcProvider:
         for locally-created principals would honour it where it is least needed.
         """
         username = identity["username"]
-        existing = principals.get(username)
+        # The DURABLE identity first. A username is not one: a directory user
+        # submitting preferred_username 'admin' was previously signed in as the
+        # local admin, in no mapped group, because the username was what carried
+        # the roles and nothing checked that this was the same human.
+        bound = self._bound_principal(principals, identity)
+        if bound is not None:
+            # The binding wins over the claim. A directory may rename somebody;
+            # the subject is what it guarantees, so a renamed person keeps their
+            # account here rather than acquiring a second one.
+            username = bound["username"]
+        existing = bound or principals.get(username)
+        if bound is None and existing is not None and not self._is_unbound(existing):
+            raise AuthzError(
+                "identity_not_linked",
+                f"{username} exists here and is bound to a different directory "
+                f"identity, so this login is a different person with the same "
+                f"name -- or the same person from a directory nobody linked",
+                "link the principal to this issuer and subject deliberately; "
+                "resolving a directory login onto a local account by username "
+                "is how somebody signs in as an administrator by claiming to "
+                "be called one")
+        if bound is None and existing is not None:
+            # Known here, never linked. Linking is the deliberate act, and it is
+            # recorded, but it is refused for anybody holding governance
+            # authority: those accounts have to be linked by an administrator
+            # rather than by whoever first presents a matching name.
+            if not self.link_on_first_login:
+                raise AuthzError(
+                    "identity_not_linked",
+                    f"{username} exists here but is not linked to any directory "
+                    f"identity",
+                    "an administrator must link the principal to this issuer and "
+                    "subject, or enable auth.oidc.link_on_first_login for a "
+                    "directory you control end to end")
 
         # The mapping is checked FIRST, before whether this person is known here.
         # An incompatible pair is a statement about the directory's
@@ -327,8 +404,11 @@ class OidcProvider:
                 username, identity["display_name"], identity["roles"],
                 password=None, kind="person", email=identity.get("email"),
                 actor=actor)
+            self._bind(principals, principal, identity, evidence, actor)
         else:
             principal = existing
+            if bound is None:
+                self._bind(principals, principal, identity, evidence, actor)
             if identity["roles"] and set(identity["roles"]) != set(existing["roles"]):
                 principal = principals.set_roles(username, identity["roles"],
                                                  actor=actor)
