@@ -14,6 +14,11 @@ from typing import Any, Dict
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
+from core.notify import CHANNEL_MEANING
+from core.parameters import PROVENANCE_MEANING
+from core.policy import GATES, describe_facts
+from core.policy.language import describe as describe_language
+from core.telemetry import STREAM_MEANING
 from routes.base import Routes, login_required
 
 
@@ -42,7 +47,7 @@ class UIRoutes(Routes):
             registry, urn = self.ctx["registry"], f"maya://model/{name}"
             m = registry.get(urn)
             if not m:
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             versions = registry.versions(urn)
             features, register = self.ctx["features"], self.ctx["findings"]
             docs = self.ctx["documents"]
@@ -114,7 +119,7 @@ class UIRoutes(Routes):
             f = self.ctx["features"]
             view = f.views.views.one(name=name)
             if not view:
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             versions = f.views.versions_of(name)
             return self.page(request, "feature_view.html", view=view,
                              versions=[{**v, **f.views.restated(name, v["version"])}
@@ -146,7 +151,7 @@ class UIRoutes(Routes):
                 return r
             f = self.ctx["features"]
             if not f.sets.get(name):
-                return self.page(request, "not_found.html", status=404, name=name)
+                return self.page(request, "not_found.html", http_status=404, name=name)
             row = f.sets.resolved(name)
             versions = f.sets.versions_of(name)
             return self.page(
@@ -156,6 +161,120 @@ class UIRoutes(Routes):
                 restatements={v["version"]: f.restatements(name, v["version"])
                               for v in versions},
                 catalogue=f.list_features())
+
+        # ---------------------------------------------------------- policy
+        @self.app.get("/policies", response_class=HTMLResponse, tags=["ui"])
+        def policies_page(request: Request):
+            """The four gates: what is in force, and how somebody changes one.
+
+            The whole point of the policy engine is that a gate can be tightened
+            by somebody who is not deploying code, and that person is not going
+            to write the JSON by hand.
+            """
+            if (r := login_required(request)) is not None:
+                return r
+            who, policies = self.principal(request), self.ctx["policies"]
+            history = {gate: policies.history(gate) for gate in GATES}
+            # The gate object the registry actually consults, so the page
+            # describes the thing doing the work rather than a second account
+            # of it that could drift from it.
+            return self.page(
+                request, "policies.html",
+                policy=self.ctx["registry"].policy.describe(),
+                history=history,
+                drafts=[row for rows in history.values() for row in rows
+                        if row["state"] == "draft"],
+                # Read off the evidence chain, not recomputed: the comparison
+                # was made against the rule in force at the time, and that rule
+                # may since have been superseded twice over.
+                drift={row["id"]: policies.drift_of(row["id"])
+                       for rows in history.values() for row in rows
+                       if row["state"] != "draft"},
+                facts={gate: describe_facts(gate) for gate in GATES},
+                vocabulary={gate: [f["fact"] for f in describe_facts(gate)]
+                            for gate in GATES},
+                language=describe_language(),
+                permissions=self.ctx["authz"].explain(who)["permissions"])
+
+        # --------------------------------------------------- notifications
+        @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
+        def notifications_page(request: Request):
+            """Which channels work, what has reached anybody, and what you
+            yourself would be sent."""
+            if (r := login_required(request)) is not None:
+                return r
+            who = self.principal(request)
+            notifications = self.ctx["notifications"]
+            return self.page(
+                request, "notifications.html",
+                # Not "status": Routes.page takes that as the HTTP status code,
+                # and a context key of the same name is silently swallowed.
+                notify=notifications.status(), meanings=CHANNEL_MEANING,
+                # The same derivation the dashboard reads and the same one a
+                # run would send, so the preview is the message rather than a
+                # rehearsal of it.
+                preview=notifications.digest_for(who),
+                deliveries=notifications.history(None, 100), now=time.time(),
+                permissions=self.ctx["authz"].explain(who)["permissions"])
+
+        # ------------------------------------------------------- telemetry
+        @self.app.get("/telemetry", response_class=HTMLResponse, tags=["ui"])
+        def telemetry_page(request: Request):
+            """Every version's telemetry, the ones that have stopped sending
+            first — the collector decides that order, not this page."""
+            if (r := login_required(request)) is not None:
+                return r
+            who = self.principal(request)
+            models = self.ctx["authz"].visible(who, self.ctx["registry"].list())
+            return self.page(request, "telemetry.html",
+                             estate=self.ctx["telemetry"].estate(models),
+                             streams=STREAM_MEANING)
+
+        # The version comes before the model on both of the routes below. The
+        # model segment is a greedy `:path` converter — a URN carries dots and
+        # slashes — and a greedy segment in front of a semver would swallow it.
+        @self.app.get("/telemetry/{semver}/{name:path}",
+                      response_class=HTMLResponse, tags=["ui"])
+        def telemetry_version_page(request: Request, semver: str, name: str):
+            """One version: what arrived, and the cohort a monitor would judge."""
+            if (r := login_required(request)) is not None:
+                return r
+            model, version = self._version_or_none(name, semver)
+            if version is None:
+                return self.page(request, "not_found.html", http_status=404,
+                                 name=f"telemetry/{semver}/{name}")
+            telemetry, urn = self.ctx["telemetry"], model["urn"]
+            cohort = telemetry.cohort(urn, semver)
+            return self.page(
+                request, "telemetry_version.html", model=model, version=version,
+                summary=telemetry.status(urn, semver), streams=STREAM_MEANING,
+                rows=len(cohort), shown=cohort[:200], now=time.time(),
+                labelled=sum(1 for row in cohort if "label" in row))
+
+        # ------------------------------------------------------ parameters
+        @self.app.get("/parameters/{semver}/{name:path}",
+                      response_class=HTMLResponse, tags=["ui"])
+        def parameters_page(request: Request, semver: str, name: str):
+            """What one version may run on: the values, and what stands behind
+            them."""
+            if (r := login_required(request)) is not None:
+                return r
+            who = self.principal(request)
+            model, version = self._version_or_none(name, semver)
+            if version is None:
+                return self.page(request, "not_found.html", http_status=404,
+                                 name=f"parameters/{semver}/{name}")
+            parameters, urn = self.ctx["parameters"], model["urn"]
+            sets = parameters.for_version(urn, semver)
+            return self.page(
+                request, "parameters.html", model=model, version=version,
+                readiness=parameters.status(urn, semver), parameter_sets=sets,
+                provenance=PROVENANCE_MEANING,
+                # A fitted set names the featureset version it was fitted from;
+                # the row holds its id, and an id is not something a reviewer
+                # can read.
+                featuresets=self._featureset_labels(sets),
+                permissions=self.ctx["authz"].explain(who)["permissions"])
 
         # -------------------------------------------------------- new model
         @self.app.get("/models/new", response_class=HTMLResponse, tags=["ui"])
@@ -185,7 +304,7 @@ class UIRoutes(Routes):
             docs = self.ctx["documents"]
             doc = docs.get(document_id)
             if not doc:
-                return self.page(request, "not_found.html", status=404,
+                return self.page(request, "not_found.html", http_status=404,
                                  name=f"document/{document_id}")
             html, headings = self.ctx["renderer"].render(docs.markdown(doc))
             model = self.ctx["registry"].catalogue.models.one(id=doc["model_id"])
@@ -194,3 +313,34 @@ class UIRoutes(Routes):
                              anchors=[h for h in headings if h["level"] == 2],
                              staleness=docs.staleness(document_id),
                              citations=docs.verify_citations(document_id))
+
+    # ------------------------------------------------------------- lookups
+    def _version_or_none(self, name: str, semver: str) -> tuple:
+        """The model and the named version of it, or (model, None).
+
+        Both telemetry and parameters are per model *version*, and a page that
+        rendered an empty shell for a version that does not exist would look
+        like a version with nothing recorded against it.
+        """
+        registry, urn = self.ctx["registry"], f"maya://model/{name}"
+        model = registry.get(urn)
+        if model is None:
+            return None, None
+        return model, registry.version(urn, semver)
+
+    def _featureset_labels(self, parameter_sets) -> Dict[str, str]:
+        """featureset version id -> 'name@vN', for the sets that name one."""
+        sets = self.ctx["features"].sets
+        labels: Dict[str, str] = {}
+        for row in parameter_sets:
+            identifier = row.get("featureset_version_id")
+            if not identifier or identifier in labels:
+                continue
+            version = sets.versions.one(id=identifier)
+            if version is None:
+                continue
+            featureset = sets.sets.one(id=version["featureset_id"])
+            if featureset is None:
+                continue
+            labels[identifier] = f"{featureset['name']}@v{version['version']}"
+        return labels

@@ -304,6 +304,17 @@ class Routes:
                 "slogan": c.get("app.slogan", ""), "version": c.get("app.version", ""),
                 "user": current_user(request) if request is not None else None}
 
-    def page(self, request: Request, template: str, status: int = 200, **context):
+    def page(self, request: Request, template: str, *, http_status: int = 200,
+             **context):
+        """Render a template. Every other keyword reaches the template.
+
+        The HTTP code is spelled `http_status` and is keyword-only on purpose.
+        It was once called `status`, which is the most natural name a page has
+        for a model's status, a finding's status or a version's status -- so a
+        caller passing one got a silently empty variable in the template and a
+        response code taken from a domain word. Nothing raised; the page simply
+        rendered nothing where the status should have been.
+        """
         return self.templates.TemplateResponse(
-            request, template, {**self.brand(request), **context}, status_code=status)
+            request, template, {**self.brand(request), **context},
+            status_code=http_status)

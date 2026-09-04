@@ -59,13 +59,13 @@ class SsoRoutes(Routes):
             pending = request.session.pop(PENDING, None)
             if error:
                 return self.page(
-                    request, "sso_failed.html", status=403,
+                    request, "sso_failed.html", http_status=403,
                     reason=error_description or error,
                     remediation="the identity provider refused the sign-in; "
                                 "nothing here was consulted")
             if not code or not state:
                 return self.page(
-                    request, "sso_failed.html", status=400,
+                    request, "sso_failed.html", http_status=400,
                     reason="the provider returned no authorisation code",
                     remediation="start again from the sign-in page")
             try:
@@ -79,7 +79,7 @@ class SsoRoutes(Routes):
                 swallowed(logger, exc, "completed a single sign-on",
                           f"refused ({exc.code}); the browser is shown the reason",
                           logging.WARNING)
-                return self.page(request, "sso_failed.html", status=403,
+                return self.page(request, "sso_failed.html", http_status=403,
                                  reason=exc.detail,
                                  remediation=exc.remediation)
             request.session["user"] = principal["username"]

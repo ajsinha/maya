@@ -41,6 +41,12 @@ REQUIRED: Dict[str, Tuple[str, ...]] = {
 # A batch larger than this is refused rather than accepted and truncated.
 MAX_BATCH = 100_000
 
+# A version that has scored nothing for longer than this has stopped sending,
+# and that is the fact worth surfacing first. A monitor evaluated over a stale
+# window still returns a number; the number describes a population that is no
+# longer being produced, and nobody reading it would know.
+SILENT_AFTER_DAYS = 1.0
+
 
 class TelemetryError(RuntimeError):
     """A telemetry operation was refused. The message always says why."""

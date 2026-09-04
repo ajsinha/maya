@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}Policy — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">VERSIONED GATES</p>
+<h1>Policy</h1>
+<div class="rule"></div>
+<p class="text-muted small">A gate that cannot be changed without a release is a
+gate people work around. A gate that <em>can</em> be changed without a release is
+a gate that can be weakened without one, which is worse. So a policy is a
+predicate over a closed set of facts, it carries its own cases, and it cannot be
+published until they pass.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ policy.gates|length }}</div>
+    <div class="stat-l">gates</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ policy.gates|selectattr('source', 'equalto', 'published')|list|length }}</div>
+    <div class="stat-l">governed by a published rule</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ policy.gates|selectattr('source', 'equalto', 'built-in')|list|length }}</div>
+    <div class="stat-l">running the rule as shipped</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if drafts else '' }}">{{ drafts|length }}</div>
+    <div class="stat-l">drafted, not in force</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header">What a policy can and cannot do</div>
+  <div class="card-body py-2">
+    <table class="table maya mb-0" style="font-size:.8rem">
+      <tbody>
+        <tr><td style="width:7rem">Applies</td>
+            <td class="text-muted">{{ policy.applies }}</td></tr>
+        <tr><td>Can</td><td class="text-muted">{{ policy.can }}</td></tr>
+        <tr><td>Cannot</td><td class="text-muted">{{ policy.cannot }}</td></tr>
+      </tbody></table>
+  </div></div>
+
+<!-- ------------------------------------------------------------- the gates -->
+{% for g in policy.gates %}
+  {% set slug = g.gate.replace(':', '-') %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><code>{{ g.gate }}</code> &mdash; {{ g.governs }}</span>
+      <span class="small">
+        {% if g.source == 'published' %}
+          <span class="evidence-ok">published v{{ g.version }}</span>
+        {% else %}
+          <span class="text-muted">built in &mdash; nothing published</span>
+        {% endif %}</span></div>
+    <div class="card-body py-3">
+      <p class="small fw-bold mb-1" style="color:var(--crimson)">The rule in force</p>
+      <pre class="mono mb-2" style="background:var(--parch);border:1px solid var(--rule);
+           border-left:3px solid var(--crimson);border-radius:3px;padding:.6rem .8rem;
+           white-space:pre-wrap">{{ g.in_force }}</pre>
+      <p class="small text-muted mb-2">{{ g.reason }}</p>
+      <p class="small text-muted mb-0">
+        This is what a refusal at this gate will quote, word for word. A refusal
+        that said &ldquo;policy violation&rdquo; would tell the person nothing
+        they could act on.</p>
+    </div>
+    <div class="card-body py-2 border-top d-flex gap-3 flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+              data-bs-toggle="collapse" data-bs-target="#facts-{{ slug }}">
+        Facts it may read ({{ facts[g.gate]|length }})</button>
+      <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+              data-bs-toggle="collapse" data-bs-target="#hist-{{ slug }}">
+        Version history ({{ history[g.gate]|length }})</button>
+    </div>
+    <div class="collapse" id="facts-{{ slug }}">
+      <table class="table maya mb-0">
+        <thead><tr><th>Fact</th><th>What it is</th></tr></thead>
+        <tbody>
+        {% for f in facts[g.gate] %}
+          <tr><td class="small mono">{{ f.fact }}</td>
+              <td class="small text-muted">{{ f.means }}</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        A rule may read these and nothing else. A name that is not one of them is
+        refused when the policy is written, rather than at the moment of a
+        governance decision &mdash; which would be the worst possible time for a
+        gate to fail.</div></div>
+    <div class="collapse" id="hist-{{ slug }}">
+      <table class="table maya mb-0">
+        <thead><tr><th>Version</th><th>Rule</th><th>State</th><th>Cases</th>
+                   <th>Who</th><th></th></tr></thead>
+        <tbody>
+        {% for v in history[g.gate]|reverse %}
+          <tr><td class="small">v{{ v.version }}
+                <div class="text-muted mono">{{ v.digest[7:19] }}&hellip;</div></td>
+              <td class="small"><code style="font-size:.72rem">{{ v.rule }}</code>
+                <div class="text-muted">{{ v.reason }}</div></td>
+              <td class="small">
+                {% if v.state == 'published' %}<span class="evidence-ok">in force</span>
+                {% elif v.state == 'superseded' %}<span class="text-muted">superseded</span>
+                {% else %}<span class="open-badge">draft</span>{% endif %}</td>
+              <td class="small">
+                {% if v.test_report %}
+                  {{ v.test_report.cases }}
+                  {% if v.test_report.passed %}
+                    <div class="text-muted">all behave as declared</div>
+                  {% else %}
+                    <div class="evidence-bad">{{ v.test_report.detail }}</div>
+                  {% endif %}
+                {% endif %}</td>
+              <td class="small">{{ v.created_by }}
+                {% if v.published_by %}
+                  <div class="text-muted">put in force by {{ v.published_by }}</div>
+                {% endif %}
+                {% if drift.get(v.id) %}
+                  {% if drift[v.id].loosened %}
+                    <div class="evidence-bad">{{ drift[v.id].detail }}</div>
+                  {% else %}
+                    <div class="text-muted">{{ drift[v.id].detail }}</div>
+                  {% endif %}
+                {% endif %}</td>
+              <td class="small text-end">
+                {% if v.state == 'draft' %}
+                  <button class="btn btn-sm btn-danger py-0 px-2 publish"
+                          style="font-size:.72rem" data-id="{{ v.id }}">Publish</button>
+                {% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="6" class="text-muted small">
+            Nothing has been written for this gate, so the rule shipped with the
+            platform is what runs. That is the default rather than an omission:
+            an instance that publishes nothing behaves exactly as it did before
+            the policy engine existed.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        Superseded versions are kept, and so is what changed when each one went
+        in force. &ldquo;Which rule was in force in March&rdquo; and &ldquo;when
+        did this gate get looser&rdquo; are questions somebody asks long
+        afterwards, and a register that overwrote the answers could not give
+        them.</div></div>
+  </div>
+{% endfor %}
+
+<!-- ------------------------------------------------------------ the drift -->
+<div id="drift" class="card mb-3 d-none">
+  <div class="card-header">What changed when that policy went in force</div>
+  <div class="card-body py-3 small" id="drift-body"></div>
+</div>
+
+<!-- ------------------------------------------------------------ authoring -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Draft a policy</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#draft-form">Show</button></div>
+  <div class="collapse" id="draft-form"><div class="card-body">
+    <form id="draft" class="small">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select class="form-select form-select-sm" name="gate" id="gate">
+            {% for g in policy.gates %}
+              <option value="{{ g.gate }}">{{ g.gate }}</option>
+            {% endfor %}
+          </select></div>
+        <div class="col-md-8"><input class="form-control form-control-sm" name="rule"
+               id="rule" placeholder="blocking_findings == 0 and tier is not None"
+               required></div>
+        <div class="col-12"><input class="form-control form-control-sm" name="reason"
+               placeholder="what this is for — a person refused by it will read this sentence"
+               required></div>
+        <div class="col-12">
+          <textarea class="form-control form-control-sm mono" name="cases" id="cases"
+                    rows="8" required></textarea>
+          <div class="text-muted mt-1" style="font-size:.72rem">
+            The cases are the policy's own tests, and at least one of them must be
+            a case it <strong>refuses</strong>. A policy nobody has shown to refuse
+            anything is a policy nobody has shown to be a gate. They run when the
+            policy is drafted and again when it is published.</div></div>
+      </div>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Draft</button>
+      <button type="button" id="skeleton" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"
+              style="font-size:.75rem">Start from a pair of cases</button>
+    </form>
+    <div id="vocab" class="text-muted mt-2" style="font-size:.72rem"></div>
+    <div id="draft-result" class="small mt-2"></div>
+  </div></div>
+  <div class="card-body py-2 small text-muted border-top">
+    Drafting and publishing are separate duties, and the register enforces it: a
+    validator writes a rule and a model risk manager puts it in force. A rule
+    authored and enacted by one person is a rule nobody reviewed.
+    {% if permissions %}
+      You hold
+      {% if 'policy:author' in permissions and 'policy:publish' in permissions %}
+        both.
+      {% elif 'policy:author' in permissions %}
+        <code>policy:author</code> and not <code>policy:publish</code>.
+      {% elif 'policy:publish' in permissions %}
+        <code>policy:publish</code> and not <code>policy:author</code>.
+      {% else %}
+        neither.
+      {% endif %}
+    {% endif %}
+  </div></div>
+
+<!-- ---------------------------------------------------------------- try it -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Ask what the rule in force would decide</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#try-form">Show</button></div>
+  <div class="collapse" id="try-form"><div class="card-body">
+    <form id="try" class="small">
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select class="form-select form-select-sm" name="gate" id="try-gate">
+            {% for g in policy.gates %}
+              <option value="{{ g.gate }}">{{ g.gate }}</option>
+            {% endfor %}
+          </select></div>
+        <div class="col-md-8"><input class="form-control form-control-sm mono" name="facts"
+               id="try-facts" placeholder='{"blocking_findings": 1, "tier": 1}'></div>
+      </div>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Decide</button>
+    </form>
+    <div id="try-result" class="small mt-2"></div>
+  </div></div>
+  <div class="card-body py-2 small text-muted border-top">
+    Nothing is decided by asking. This is for somebody about to change a policy,
+    and for somebody trying to understand a refusal they have already had &mdash;
+    facts they did not supply are filled in with the gate's own defaults, exactly
+    as they are at a real decision.</div></div>
+
+<div class="card mb-3"><div class="card-header">The language a rule is written in</div>
+  <div class="card-body py-3 small">
+    <p class="text-muted mb-2">{{ language.why }}.</p>
+    <p class="mb-1"><span class="fw-bold">Operators</span>
+      {% for o in language.operators %}<code>{{ o }}</code>{{ "" if loop.last else " " }}{% endfor %}</p>
+    <p class="mb-1"><span class="fw-bold">Functions</span>
+      {% for f in language.functions %}<code>{{ f.name }}</code>{{ "" if loop.last else " · " }}{% endfor %}</p>
+    <p class="text-muted mb-0"><span class="fw-bold text-body">Excluded</span>
+      {{ language.excluded }}.</p>
+  </div>
+  <table class="table maya mb-0">
+    <tbody>
+    {% for f in language.functions %}
+      <tr><td class="small mono" style="width:7rem">{{ f.name }}</td>
+          <td class="small text-muted">{{ f.means }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+{% endblock %}
+{% block scripts %}
+<script>
+var VOCABULARY = {{ vocabulary|tojson }};
+
+function refusal(target, what, x) {
+  var e = x.responseJSON || {};
+  $(target).html('<span class="evidence-bad">' + what + ' refused &mdash; ' +
+    (e.detail || x.statusText) + '</span>' +
+    (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+}
+
+function vocabulary() {
+  var facts = VOCABULARY[$("#gate").val()] || [];
+  $("#vocab").html("This gate publishes " + facts.length + " facts: " +
+    facts.map(function (f) { return "<code>" + f + "</code>"; }).join(" · ") +
+    ". A rule that reads anything else is refused now rather than at the moment " +
+    "of a decision.");
+}
+$("#gate").on("change", vocabulary);
+vocabulary();
+
+$("#skeleton").on("click", function () {
+  $("#cases").val(JSON.stringify([
+    {name: "the ordinary case", expect: "allow", facts: {}},
+    {name: "the one this gate exists to stop", expect: "refuse", facts: {}}
+  ], null, 2));
+});
+
+$("#draft").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this)), cases;
+  try { cases = JSON.parse(f.cases); }
+  catch (err) {
+    $("#draft-result").html('<span class="evidence-bad">The cases are not valid ' +
+      'JSON &mdash; ' + err.message + '</span>');
+    return;
+  }
+  $.ajax({url: "/api/v1/policies", method: "POST", contentType: "application/json",
+          data: JSON.stringify({gate: f.gate, rule: f.rule, reason: f.reason,
+                                cases: cases})})
+    .done(function () { location.reload(); })
+    .fail(function (x) { refusal("#draft-result", "Draft", x); });
+});
+
+$(".publish").on("click", function () {
+  var id = $(this).data("id");
+  $.ajax({url: "/api/v1/policies/" + id + "/publish", method: "POST"})
+    .done(function (body) {
+      var d = body.drift || {}, html =
+        '<p class="mb-2"><span class="evidence-ok">v' + body.version +
+        ' is in force on <code>' + body.gate + '</code>.</span></p>' +
+        '<p class="text-muted mb-2">' +
+        (d.detail || "nothing was in force before this, so there is nothing to compare it with") +
+        '.</p>';
+      (d.loosened || []).forEach(function (c) {
+        html += '<div class="evidence-bad">Loosened &mdash; &ldquo;' + c.name +
+          '&rdquo; was ' + c.was + ' and is now ' + c.now + '.</div>';
+      });
+      (d.tightened || []).forEach(function (c) {
+        html += '<div class="text-muted">Tightened &mdash; &ldquo;' + c.name +
+          '&rdquo; was ' + c.was + ' and is now ' + c.now + '.</div>';
+      });
+      if ((d.loosened || []).length) {
+        html += '<p class="text-muted mt-2 mb-0">Weakening a gate is a legitimate ' +
+          'act &mdash; rules do change. It is reported here so that it is ' +
+          'something somebody decided rather than something somebody discovered.</p>';
+      }
+      html += '<p class="mt-2 mb-0"><a href="/policies">Reload the page</a> to see ' +
+        'the gates as they now stand.</p>';
+      $("#drift-body").html(html);
+      $("#drift").removeClass("d-none");
+      window.scrollTo(0, $("#drift").offset().top - 20);
+    })
+    .fail(function (x) {
+      $("#drift-body").html("");
+      $("#drift").removeClass("d-none");
+      refusal("#drift-body", "Publication", x);
+      window.scrollTo(0, $("#drift").offset().top - 20);
+    });
+});
+
+$("#try").on("submit", function (e) {
+  e.preventDefault();
+  var f = Object.fromEntries(new FormData(this)), facts = {};
+  if (f.facts) {
+    try { facts = JSON.parse(f.facts); }
+    catch (err) {
+      $("#try-result").html('<span class="evidence-bad">The facts are not valid ' +
+        'JSON &mdash; ' + err.message + '</span>');
+      return;
+    }
+  }
+  $.ajax({url: "/api/v1/policies/try", method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({gate: f.gate, facts: facts})})
+    .done(function (body) {
+      var tone = body.allowed ? "evidence-ok" : "evidence-bad";
+      $("#try-result").html(
+        '<div class="' + tone + '">' + body.decision + '</div>' +
+        '<div class="text-muted">' + body.detail + '</div>' +
+        '<div class="mt-1">Rule: <code>' + body.rule + '</code></div>' +
+        '<div class="text-muted">Facts it read: <code>' +
+        JSON.stringify(body.facts_read) + '</code></div>');
+    })
+    .fail(function (x) { refusal("#try-result", "The question", x); });
+});
+</script>
+{% endblock %}
