@@ -88,7 +88,11 @@ class TelemetryRoutes(Routes):
             read happens, so a review of last quarter sees the population last
             quarter saw.
             """
-            who = self.authorise(request, "monitor:observe")
+            # Evaluating is not observing. This endpoint reaches a verdict on a
+            # monitor; it happens to read telemetry to do it, and authorising it
+            # against the delivery permission would let whoever supplies the
+            # rows also rule on them.
+            who = self.authorise(request, "monitor:evaluate")
             return self.guard(lambda: monitoring.evaluate_from_telemetry(
                 monitor_id, body.since, body.until, body.reference_from,
                 body.reference_to, actor=self.actor(who)))
