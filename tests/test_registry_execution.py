@@ -11,8 +11,8 @@ import copy
 
 import pytest
 
-from core.engine import CaptiveEngine
-from core.hooks import HookError, HookService, parse_urn
+from core.execution import CaptiveEngine
+from core.execution import HookError, HookService, parse_urn
 from core.registry import RegistryError
 
 

@@ -15,7 +15,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from core.hooks import HookError
+from core.execution import HookError
 
 
 class IssueIn(BaseModel):

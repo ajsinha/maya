@@ -5,7 +5,7 @@ Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 import pytest
 from fastapi.testclient import TestClient
 
-from core.properties_configurator import PropertiesConfigurator
+from core.config import PropertiesConfigurator
 
 URN = "maya://model/credit.pd.smallbiz"
 NAME = "credit.pd.smallbiz"

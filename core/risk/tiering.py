@@ -3,14 +3,11 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Risk classification.
+The tiering engine.
 
-Materiality and complexity are SEPARATE lattices, never collapsed into one
-score. Materiality is a join of a quantitative exposure band with a qualitative
-purpose class; complexity is a meet over its declared components. Tier is a
-monotone map of the two (law L-4), and the control requirement is its Galois
-adjoint (law L-5): "what must I do at this tier?" and "given what we did, what
-tier can this defend?" are the same question.
+tau maps materiality x complexity to a tier and is monotone (law L-4).
+required_controls is its Galois adjoint (law L-5), so "what must I do at this
+tier" and "what tier can these controls defend" are one definition.
 """
 from __future__ import annotations
 
@@ -18,22 +15,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
+                                _OPAQUE_CLASSES)
 from db import RiskRepository
-
-RULESET_VERSION = "2026.09.1"
-
-MATERIALITY = ["negligible", "low", "moderate", "material", "critical"]
-COMPLEXITY = ["simple", "moderate", "complex", "advanced"]
-CONTROLS = {
-    1: ["independent_validation", "annual_review", "monthly_monitoring",
-        "committee_approval", "full_documentation", "reproducibility_proof"],
-    2: ["independent_validation", "biennial_review", "quarterly_monitoring",
-        "delegated_approval", "full_documentation"],
-    3: ["peer_review", "triennial_review", "semiannual_monitoring", "owner_approval"],
-    4: ["identification", "condition_monitoring"],
-}
-# Complexity factors that raise the assessment for advanced techniques
-_OPAQUE_CLASSES = {"T3", "T4", "T5", "T6"}
 
 
 @dataclass(frozen=True)
