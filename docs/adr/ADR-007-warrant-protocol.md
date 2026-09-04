@@ -1,4 +1,4 @@
-# ADR-007 — Signed, TTL'd, alias-aware hook descriptors
+# ADR-007 — Signed, TTL'd, alias-aware warrant descriptors
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
@@ -10,7 +10,7 @@ Execution engines must be able to run any governed model version on demand. Thre
 resolvable, signed execution contract that engines act on themselves.
 
 ## Decision
-Option (c). A hook is a **signed, expiring, entitlement-bound descriptor** resolved from a stable URN.
+Option (c). A warrant is a **signed, expiring, entitlement-bound descriptor** resolved from a stable URN.
 Bindings are either pinned versions (mandatory for regulatory submissions) or aliases (`champion`,
 `challenger`, `shadow`). Eleven flavours cover REST/OIP-v2 through to `descriptor_only` for engines MAYA
 will never host.

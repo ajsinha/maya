@@ -7,7 +7,7 @@ The findings register — and the reason it is a control rather than a log.
 
 Every model risk framework requires findings to be tracked. Most systems track
 them in a table that nothing reads. The difference here is ``blocking``: an open
-blocking finding refuses an alias move and refuses hook resolution, so a model
+blocking finding refuses an alias move and refuses warrant resolution, so a model
 that failed challenge cannot reach production by any route that does not pass
 through this register.
 

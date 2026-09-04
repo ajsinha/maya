@@ -27,10 +27,15 @@
 
   <h2 class="serif mt-4" style="font-size:1.25rem">What MAYA does not do</h2>
   <p class="text-muted"><strong>It does not execute models.</strong> It manages them and issues
-     hooks — signed, expiring, entitlement-bound execution contracts — which an execution engine acts
+     warrants — signed, expiring, entitlement-bound execution contracts — which an execution engine acts
      on. A captive engine ships as a default so a deployment works out of the box, but it is a
      consumer of the same public contract any external engine uses, and it can be switched off
      without changing anything else.</p>
+
+  {% for t in topics %}
+    <div class="rule mt-4"></div>
+    <div class="prose">{{ t.html|safe }}</div>
+  {% endfor %}
 </div>
 <div class="col-lg-4">
   <div class="card mb-3"><div class="card-header">Identity</div><div class="card-body small">
@@ -47,6 +52,14 @@
     A square inscribed in a circle — the oldest model there is. The <strong>gap</strong> is the model
     error; the <strong>four points</strong> are where the model and the world agree.
   </div></div>
+  {% if topics %}
+    <div class="card mb-3"><div class="card-header">On this page</div>
+      <div class="card-body toc py-2">
+        {% for t in topics %}{% for h in t.anchors %}
+          <a href="#{{ h.id }}">{{ h.name }}</a>
+        {% endfor %}{% endfor %}
+      </div></div>
+  {% endif %}
   <div class="card"><div class="card-header">Version</div><div class="card-body small">
     {{ app_name }} {{ version }}<br>
     <span class="text-muted">© 2026 Ashutosh Sinha. All rights reserved.</span>

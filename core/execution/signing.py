@@ -29,7 +29,7 @@ MAX_JITTER_PCT = 50
 
 
 class DescriptorSigner:
-    """Signs, verifies and ages hook descriptors."""
+    """Signs, verifies and ages warrant descriptors."""
 
     def __init__(self, signing_key: str = "maya-dev-key", jitter_pct: int = 20):
         self._key = signing_key.encode()

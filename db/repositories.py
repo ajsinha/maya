@@ -139,8 +139,8 @@ class RiskRepository(Repository):
     TABLE, JSON, ORDER = "risk_assessment", ("facts", "required_controls"), "assessed_at"
 
 
-class HookRepository(Repository):
-    TABLE = "hook"
+class WarrantRepository(Repository):
+    TABLE = "warrant"
 
 
 class FeatureRepository(Repository):

@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS risk_assessment (
 );
 CREATE INDEX IF NOT EXISTS ix_risk_model ON risk_assessment (model_id);
 
-CREATE TABLE IF NOT EXISTS hook (
+CREATE TABLE IF NOT EXISTS warrant (
     id            TEXT PRIMARY KEY,
     model_id      TEXT NOT NULL,
     environment   TEXT NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS hook (
     epoch         INTEGER NOT NULL DEFAULT 0,
     created_at    REAL NOT NULL
 );
-CREATE INDEX IF NOT EXISTS ix_hook_model ON hook (model_id);
+CREATE INDEX IF NOT EXISTS ix_warrant_model ON warrant (model_id);
 
 -- ---------------------------------------------------------- feature platform
 CREATE TABLE IF NOT EXISTS feature (
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS dataset_snapshot (
 -- that somebody now has to do something about.
 --
 -- `blocking` on a finding is the load-bearing column in this file. An open
--- blocking finding stops an alias move and refuses hook resolution, so a model
+-- blocking finding stops an alias move and refuses warrant resolution, so a model
 -- that failed challenge cannot reach production by a route that does not pass
 -- through the register. That is the difference between a findings log and a
 -- control.

@@ -13,7 +13,7 @@ namespace cannot be retired while anything still depends on it.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.evidence import EvidenceEngine
 from core.features.common import FeatureError
@@ -47,6 +47,11 @@ class ContractBinder:
                              {"digest": row["digest"], "views": [i["view"] for i in items]},
                              actor=actor)
         return row
+
+    def for_version(self, model_version_id: str) -> Optional[Dict[str, Any]]:
+        """The contract bound to a version, or None. Reading is not a refusal:
+        a version with no feature contract is normal, not an error."""
+        return self.contracts.one(model_version_id=model_version_id)
 
     def serving_namespaces(self, model_version_id: str) -> Dict[str, str]:
         """What serving MUST read. Law L-17 compares this against what it did read."""

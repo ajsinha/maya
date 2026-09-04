@@ -3,7 +3,7 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-The refusal type shared by hook issuance, resolution and execution.
+The refusal type shared by warrant issuance, resolution and execution.
 
 ``code`` is not decoration. It is the key into the error taxonomy that maps a
 domain refusal onto an HTTP status in exactly one place, which is what design
@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 
-class HookError(RuntimeError):
+class WarrantError(RuntimeError):
     """Resolution or issuance refused. code maps to the error taxonomy."""
 
     def __init__(self, code: str, detail: str, remediation: str = ""):

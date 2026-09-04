@@ -5,8 +5,8 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The captive execution engine.
 
-MAYA manages models and issues hooks; it does not execute them. This module is
-deliberately a CONSUMER of the public hook contract, not part of the control
+MAYA manages models and issues warrants; it does not execute them. This module is
+deliberately a CONSUMER of the public warrant contract, not part of the control
 plane: it resolves a descriptor, verifies the signature, checks expiry, checks
 the operating boundaries, and only then runs. An external engine that does the
 same is indistinguishable to MAYA — which is the point. It exists so that a
@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional
 
 from core.domain.contracts import Bound, Contract
-from core.execution.hooks import HookError, HookService
+from core.execution.warrants import WarrantError, WarrantService
 
 
 @dataclass
@@ -39,8 +39,8 @@ class ExecutionResult:
 class CaptiveEngine:
     """A minimal, honest execution engine. Runs registered Python callables only."""
 
-    def __init__(self, hooks: HookService, max_seconds: float = 30.0):
-        self.hooks = hooks
+    def __init__(self, warrants: WarrantService, max_seconds: float = 30.0):
+        self.warrants = warrants
         self.max_seconds = max_seconds
         self._runtimes: Dict[str, Callable[[Dict[str, Any]], Any]] = {}
         self._revoked_locally: set = set()
@@ -62,29 +62,29 @@ class CaptiveEngine:
     def execute(self, urn: str, environment: str, principal: str, declared_use: str,
                 inputs: Dict[str, Any]) -> ExecutionResult:
         started = time.perf_counter()
-        descriptor = self.hooks.resolve(urn, environment, principal, declared_use)
+        descriptor = self.warrants.resolve(urn, environment, principal, declared_use)
 
-        if not self.hooks.verify(descriptor):
-            raise HookError("signature_invalid", "descriptor signature does not verify",
+        if not self.warrants.verify(descriptor):
+            raise WarrantError("signature_invalid", "descriptor signature does not verify",
                             "discard it and raise a security incident")
         if descriptor["descriptor_id"] in self._revoked_locally:
-            raise HookError("revoked", "descriptor is on the local revocation list",
+            raise WarrantError("revoked", "descriptor is on the local revocation list",
                             "stop; grace never extends revocation ignorance")
-        if self.hooks.is_expired(descriptor):
-            raise HookError("expired", "descriptor has expired beyond its grace window",
-                            "re-resolve the hook")
+        if self.warrants.is_expired(descriptor):
+            raise WarrantError("expired", "descriptor has expired beyond its grace window",
+                            "re-resolve the warrant")
 
         violations = self._constraints(descriptor).check_inputs(inputs)
         policy = (descriptor.get("constraints") or {}).get("on_boundary_violation", "reject")
         if violations and policy == "reject":
-            raise HookError("boundary_violation",
+            raise WarrantError("boundary_violation",
                             f"inputs outside the operating boundary: {', '.join(violations)}",
                             "the guarantee is void outside the assumption; refer or widen it")
 
         version_id = descriptor["resolved"]["version_id"]
         runtime = self._runtimes.get(version_id)
         if runtime is None:
-            raise HookError("no_runtime", f"no runtime registered for version {version_id}",
+            raise WarrantError("no_runtime", f"no runtime registered for version {version_id}",
                             "register a runtime, or use an external execution engine")
 
         prediction = runtime(inputs)

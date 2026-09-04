@@ -1,5 +1,5 @@
 """
-MAYA — hook issuance, resolution and revocation.
+MAYA — warrant issuance, resolution and revocation.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
@@ -40,33 +40,33 @@ class RevokeIn(BaseModel):
     reason: str
 
 
-class HookRoutes(Routes):
+class WarrantRoutes(Routes):
     def register(self) -> None:
-        hooks, engine = self.ctx["hooks"], self.ctx.get("engine")
+        warrants, engine = self.ctx["warrants"], self.ctx.get("engine")
 
-        @self.app.post(f"{self.api}/hooks", status_code=201, tags=["hooks"])
+        @self.app.post(f"{self.api}/warrants", status_code=201, tags=["warrants"])
         def issue(body: IssueIn):
-            return self.guard(lambda: hooks.issue(
+            return self.guard(lambda: warrants.issue(
                 body.urn, body.environment, body.principal, body.declared_use, body.flavour))
 
-        @self.app.post(f"{self.api}/resolve", tags=["hooks"])
+        @self.app.post(f"{self.api}/resolve", tags=["warrants"])
         def resolve(body: ResolveIn):
             """The hot path. A signed descriptor, or a refusal with a reason."""
-            return self.guard(lambda: hooks.resolve(
+            return self.guard(lambda: warrants.resolve(
                 body.urn, body.environment, body.principal, body.declared_use))
 
-        @self.app.post(f"{self.api}/hooks/revoke", tags=["hooks"])
+        @self.app.post(f"{self.api}/warrants/revoke", tags=["warrants"])
         def revoke(body: RevokeIn):
-            n = self.guard(lambda: hooks.revoke_model(body.urn, body.reason))
+            n = self.guard(lambda: warrants.revoke_model(body.urn, body.reason))
             return {"revoked": n, "urn": body.urn, "reason": body.reason,
-                    "epoch": hooks.epoch}
+                    "epoch": warrants.epoch}
 
         @self.app.post(f"{self.api}/execute", tags=["execution"])
         def execute(body: ExecuteIn):
             """Convenience only: the captive engine, reached through the same
             contract an external engine uses. Disable it and nothing else changes."""
             if engine is None:
-                raise self.not_found("no captive engine is configured; resolve the hook "
+                raise self.not_found("no captive engine is configured; resolve the warrant "
                                      "and run the model in your own execution engine")
             return self.guard(lambda: engine.execute(
                 body.urn, body.environment, body.principal, body.declared_use,

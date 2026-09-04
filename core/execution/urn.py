@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
-from core.execution.errors import HookError
+from core.execution.errors import WarrantError
 
 PREFIX = "maya://model/"
 DEFAULT_ALIAS = "champion"
@@ -27,7 +27,7 @@ def build_urn(name: str, semver: Optional[str] = None,
               alias: Optional[str] = None) -> str:
     """The inverse of parse_urn. A pinned version and an alias are exclusive."""
     if semver and alias:
-        raise HookError("validation_failed",
+        raise WarrantError("validation_failed",
                         "a URN pins a version or names an alias, never both", "")
     return f"{PREFIX}{name}" + (f"@{semver}" if semver else "") + (f"#{alias}" if alias else "")
 
@@ -40,7 +40,7 @@ def model_urn(name: str) -> str:
 def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
     """``maya://model/<name>[@<semver>][#<alias>]`` -> (name, semver, alias)."""
     if not urn.startswith(PREFIX):
-        raise HookError("validation_failed", f"not a MAYA model URN: {urn}",
+        raise WarrantError("validation_failed", f"not a MAYA model URN: {urn}",
                         "expected maya://model/<name>[@<semver>|#<alias>]")
     body = urn[len(PREFIX):]
     aliasname = semver = None
@@ -49,5 +49,5 @@ def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
     if "@" in body:
         body, semver = body.split("@", 1)
     if not body:
-        raise HookError("validation_failed", f"empty model name in {urn}", "")
+        raise WarrantError("validation_failed", f"empty model name in {urn}", "")
     return body, semver, aliasname

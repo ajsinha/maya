@@ -16,13 +16,13 @@ from db.delta_store import DeltaStore
 from db.repositories import (AliasHistoryRepository, AliasRepository, ContractRepository,
                              EvidenceRepository, FeatureRepository, FeatureViewRepository,
                              FeatureViewVersionRepository, FindingRepository,
-                             HookRepository, ModelRepository, Repository, RiskRepository,
+                             WarrantRepository, ModelRepository, Repository, RiskRepository,
                              SnapshotRepository, TestResultRepository,
                              ValidationRepository, VersionRepository)
 
 __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepository",
            "VersionRepository", "AliasRepository", "AliasHistoryRepository",
-           "EvidenceRepository", "RiskRepository", "HookRepository", "FeatureRepository",
+           "EvidenceRepository", "RiskRepository", "WarrantRepository", "FeatureRepository",
            "FeatureViewRepository", "FeatureViewVersionRepository", "ContractRepository",
            "SnapshotRepository", "ValidationRepository",
            "TestResultRepository", "FindingRepository"]

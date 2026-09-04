@@ -32,7 +32,7 @@ front end of [ADR-011](adr/ADR-011-decoupled-frontend.md), and the oracle criter
 **Part III — Data and execution**
 [10 Feature platform](#10-feature-platform) ·
 [11 Monitoring](#11-monitoring) ·
-[12 Hook subsystem](#12-hook-subsystem) ·
+[12 Warrant subsystem](#12-warrant-subsystem) ·
 [13 Machine assistance](#13-machine-assistance)
 
 **Part IV — Interfaces**
@@ -71,7 +71,7 @@ flowchart TB
         DOC["Doc compiler"] ; OVL["Overlays"]
     end
     subgraph P3["Data &amp; execution"]
-        FEA["Feature platform"] ; MON["Monitoring"] ; HOOK["Hook service"] ; AI["Machine assistance"]
+        FEA["Feature platform"] ; MON["Monitoring"] ; WARRANT["Warrant service"] ; AI["Machine assistance"]
     end
     subgraph P1["Core domain — no I/O, no framework"]
         DOM["model_algebra · contracts · schemas · identity · composition"]
@@ -83,7 +83,7 @@ flowchart TB
     P2 & P3 --> P1
     P1 --> P5
     style P1 fill:#1f3a5f,color:#fff
-    style HOOK fill:#2d5016,color:#fff
+    style WARRANT fill:#2d5016,color:#fff
 ```
 
 ### 1.2 Component responsibility table
@@ -101,7 +101,7 @@ flowchart TB
 | **Overlays** | PMA register, magnitude, propagation, recurrence | Approving an overlay |
 | **Feature platform** | Registry, materialisation, PIT, contracts, skew | Model semantics |
 | **Monitoring** | Monitor defs, evaluation orchestration, breaches, health | Deciding consequences (policy does) |
-| **Hook service** | Resolution, signing, revocation, telemetry ingest | Any governance decision — it reads a projection |
+| **Warrant service** | Resolution, signing, revocation, telemetry ingest | Any governance decision — it reads a projection |
 | **Machine assistance** | Capabilities, grounding, citation checking, oracles | Any governance state transition |
 
 ### 1.3 Design rules that bind every component
@@ -314,13 +314,13 @@ def move_alias(model_id, env, name, to_version, actor, justification) -> AliasMo
         ref = new.contract.refines(cur.contract)                 # L-7
         var = substitutable(new.schema, cur.schema)              # L-12
         if not (ref.holds and var.ok):
-            raise AliasMoveRefused(ref, var, consumers=hooks.consumers_of(model_id, env, name))
+            raise AliasMoveRefused(ref, var, consumers=warrants.consumers_of(model_id, env, name))
 
         verdict = policy.evaluate("gates.alias_move", context(model_id, new, env))
         if not verdict.allow:
             raise PolicyDenied(verdict.deny_reason)
 
-        hook_projection.rebuild(model_id, env, name, new)        # PRE-WARM before invalidate (H-1)
+        warrant_projection.rebuild(model_id, env, name, new)        # PRE-WARM before invalidate (H-1)
         aliases.point(model_id, env, name, new)
         alias_history.append(cur, new, ref, var, actor, justification)
         evidence.append(kind="alias_move", parents=[new.evidence_id], payload={...})
@@ -398,7 +398,7 @@ explicit `truncated=true` marker**. A silently partial answer is never returned.
 
 | Semiring | Registered as | Used by |
 |---|---|---|
-| `Boolean` | `maya.semiring:boolean` | Lifecycle gates, hook resolution |
+| `Boolean` | `maya.semiring:boolean` | Lifecycle gates, warrant resolution |
 | `Counting` | `…:counting` | Corroboration depth on the model page |
 | `Why(X)` | `…:why` | Examiner packs, "what must I show?" |
 | `ℕ[X]` | `…:how` | Tier 1 audit reconstruction (materialised) |
@@ -609,7 +609,7 @@ Severity ladder, blocking semantics, and correlation:
 
 | Severity | Blocks | Default SLA |
 |---|---|---|
-| Critical | Production hook issuance; suspends existing hooks | 30 days |
+| Critical | Production warrant issuance; suspends existing warrants | 30 days |
 | High | Promotion; alias moves | 60 days |
 | Medium | Nothing automatically | 90 days |
 | Low / Observation | Nothing | Next review |
@@ -731,7 +731,7 @@ flowchart LR
     COMP --> OBS[("observations<br/>Delta")]
     OBS --> THR["Threshold ladder<br/>per tier"]
     THR --> BR["Breach"] --> FND["Correlated finding"] --> POL["Policy re-evaluation"]
-    POL --> HK["Hook restriction / suspension"]
+    POL --> HK["Warrant restriction / suspension"]
 ```
 
 ### 11.2 Delayed labels
@@ -752,12 +752,12 @@ Seeded per trainability class from the taxonomy: T1 → calibration error, arbit
 KS/AUC/PSI/HL; T4 → parameter-change magnitude and parallel outcomes analysis; T5 → groundedness,
 hallucination rate, human edit distance; T6 → own-outcomes divergence; T8 → rule-fire distribution.
 
-## 12. Hook subsystem
+## 12. Warrant subsystem
 
 ### 12.1 Resolution algorithm
 
 ```python
-def resolve(req: ResolveRequest) -> HookDescriptor:
+def resolve(req: ResolveRequest) -> WarrantDescriptor:
     principal = authn.verify(req.token)                      # workload identity, mTLS or SA token
     key = (req.urn, principal.id, req.environment, req.declared_use_id)
 
@@ -767,7 +767,7 @@ def resolve(req: ResolveRequest) -> HookDescriptor:
     with singleflight(key):                                   # coalesce concurrent misses (H-1)
         if (d := redis.get(key)) and d.fresh() and not revocations.contains(d):
             local_lru.put(key, d); return d
-        row = hook_projection.get(req.urn, req.environment)   # ONLY table hooks reads (H-2)
+        row = warrant_projection.get(req.urn, req.environment)   # ONLY table warrants reads (H-2)
         if row is None: raise NotFound(...)
         if row.revoked: raise Revoked(row.revoke_reason)
         ent = row.entitlements.get(principal.id)
@@ -780,14 +780,14 @@ def resolve(req: ResolveRequest) -> HookDescriptor:
 ```
 
 **Budgets.** p99 < 50 ms cached (`NFR-PERF-002`) is met by never touching the primary database on the hot
-path: `hook_projection` is served from a read replica, and the common case is a Redis GET plus an Ed25519
+path: `warrant_projection` is served from a read replica, and the common case is a Redis GET plus an Ed25519
 signature verification.
 
 ### 12.2 Revocation
 
 ```mermaid
 flowchart LR
-    REV["POST /hooks/{id}/revoke"] --> TS["Write tombstone + bump epoch"]
+    REV["POST /warrants/{id}/revoke"] --> TS["Write tombstone + bump epoch"]
     TS --> K["Kafka revocation event"] --> SDK1["SDKs drop descriptor ≈1 s"]
     TS --> RD["Redis revocation set"] --> RES["Resolvers fail closed immediately"]
     TS --> EP["Epoch on every response"] --> SDK2["Polling engines re-resolve ≤30 s"]
@@ -887,7 +887,7 @@ holds no credential to attempt one — and policy erodes where missing credentia
 | Validation | `/validations` · `/validations/{id}/tests` · `/findings` · `/findings/{id}/remediation` |
 | Overlays | `/overlays` · `/overlays/{id}/measurements` |
 | Monitoring | `/monitors` · `/observations` · `/breaches` · `/health/{urn}` |
-| Hooks | `POST /hooks` · `POST /v1/resolve` *(hook service)* · `/hooks/{id}/revoke` · `/telemetry` |
+| Warrants | `POST /warrants` · `POST /v1/resolve` *(warrant service)* · `/warrants/{id}/revoke` · `/telemetry` |
 | Documents | `POST /documents/compile` · `/documents/{id}` · `/documents/{id}/render` · `/export-packs` |
 | Policy | `/policies` · `POST /policies/evaluate` · `/obligations` |
 | Assistance | `/ai/capabilities` · `POST /ai/{capability}/draft` · `/ai/generations/{id}/attest` |
@@ -917,7 +917,7 @@ boundaries, execute, emit signed telemetry, maintain the local revocation list. 
 be the shortest path, or the inventory rots.
 
 **Event stream:** CloudEvents over Kafka. Topics: `maya.model.*`, `maya.version.*`, `maya.alias.*`,
-`maya.finding.*`, `maya.breach.*`, `maya.hook.*`, `maya.evidence.*`. At-least-once; consumers idempotent
+`maya.finding.*`, `maya.breach.*`, `maya.warrant.*`, `maya.evidence.*`. At-least-once; consumers idempotent
 on `event_id`.
 
 ---
@@ -973,8 +973,8 @@ Every migration ships with a tested down-path, exercised in CI against productio
 
 | Cache | Key | TTL | Invalidation |
 |---|---|---|---|
-| Hook descriptor (Redis) | `(urn, principal, env, use)` | 60 s–1 h by tier, ±20% jitter | Pre-warm on alias move, then swap |
-| Hook descriptor (in-process LRU) | same | ≤ TTL | Epoch bump |
+| Warrant descriptor (Redis) | `(urn, principal, env, use)` | 60 s–1 h by tier, ±20% jitter | Pre-warm on alias move, then swap |
+| Warrant descriptor (in-process LRU) | same | ≤ TTL | Epoch bump |
 | Inventory summary view | materialised | on domain event | Event-driven refresh |
 | Rendered document fragments | `evidence_digest` | indefinite | Digest change |
 | Blast-radius closure | nightly materialised view | 24 h | Recompute on edge change |
@@ -994,7 +994,7 @@ stale-while-revalidate for 5 s.
 | `no_entitlement` | 403 | No grant for this principal and use | Request a grant |
 | `use_not_approved` | 403 | Declared use is not approved | Seek approval |
 | `restricted` | 423 | Blocking finding or suspension | Remediate, or break-glass |
-| `revoked` | 410 | Hook revoked | Stop; do not retry |
+| `revoked` | 410 | Warrant revoked | Stop; do not retry |
 | `step_up_required` | 403 | Re-authentication needed | Re-authenticate |
 | `precondition_failed` | 412 | ETag mismatch | Refetch, merge, retry |
 | `quota_exceeded` | 429 | Rate, quota or cost budget | Back off |
@@ -1010,8 +1010,8 @@ stale-while-revalidate for 5 s.
 
 | SLO | Target | Error budget |
 |---|---|---|
-| Hook resolution availability | 99.99% | 4.3 min/month |
-| Hook resolution p99 | < 50 ms cached | 1% of requests |
+| Warrant resolution availability | 99.99% | 4.3 min/month |
+| Warrant resolution p99 | < 50 ms cached | 1% of requests |
 | Control plane availability | 99.9% | 43 min/month |
 | Inventory read p95 | < 500 ms | 5% |
 | Training-set build (1B × 500) | < 30 min | 10% |
@@ -1020,7 +1020,7 @@ stale-while-revalidate for 5 s.
 
 ### 21.2 Golden signals per component
 
-Hook service: resolutions/s, cache hit ratio, p50/p99, denial rate by code, revocation propagation lag,
+Warrant service: resolutions/s, cache hit ratio, p50/p99, denial rate by code, revocation propagation lag,
 degraded-mode volume. Control plane: request rate, latency, error rate by taxonomy code, transaction
 duration, outbox lag. Workers: queue depth, job duration, retry rate, sandbox failures. Data plane: job
 duration, rows processed, small-file count, skew-check divergence, PIT rejections.
@@ -1042,7 +1042,7 @@ regional failover.
 | Audit rows | 60 M | 400 M | Separate DB, WORM archive |
 | Delta features | 15 TB | 80 TB | Dominated by 3–5 large views |
 | Inference log | 8 B rows | 60 B rows | Sampled below Tier 1 |
-| Hook resolutions | 400/s peak | 2,500/s peak | Cache hit ratio > 0.98 |
+| Warrant resolutions | 400/s peak | 2,500/s peak | Cache hit ratio > 0.98 |
 | Sandbox jobs | 300/day | 2,000/day | Introspection, replay, validation |
 
 ## 23. Testing design
@@ -1079,7 +1079,7 @@ tested by injecting the failure they must catch — not by examples they are kno
 | §9 Documents | `FR-DOC-001..010`, `L-11` |
 | §10 Features | `FR-FEA-001..017`, `L-10`, `L-17`; findings C-2, H-6 |
 | §11 Monitoring | `FR-MON-001..016` |
-| §12 Hooks | `FR-HOOK-001..017`; findings C-1, C-6, H-1, H-2 |
+| §12 Warrants | `FR-WARRANT-001..017`; findings C-1, C-6, H-1, H-2 |
 | §13 Assistance | [00 §12a](00-mathematical-foundations.md); `FR-AI-001..020` |
 | §14–16 Interfaces | `FR-PLT-001..010`; ADR-011 |
 | §17–19 | `NFR-DATA-*`, `NFR-PERF-*`; findings H-7, H-9, M-3 |

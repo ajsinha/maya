@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 5. This section is the authoritative record of what
+*Last updated after milestone 6. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -28,12 +28,13 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Evidence engine** (`core/evidence/`) | **Complete** | Append-only hash chain with tamper and deletion detection; six semirings over one traversal; citation verification |
 | ✅ | **Risk tiering** (`core/risk/`) | **Complete** | Separate materiality and complexity lattices, monotone τ (L-4), Galois-adjoint control sets (L-5), derivation stored with every assessment |
 | ✅ | **Registry** (`core/registry/`) | **Complete** | Immutable versions, governed aliases gated on refinement and variance proofs *and* on the findings register, full move history |
-| ✅ | **Hooks** (`core/execution/`) | **Complete** | Signed, expiring, entitlement-bound descriptors. Fails closed on unknown principal, unapproved use, unapproved version, revocation, and open blocking findings |
-| ✅ | **Captive engine** (`core/execution/engine.py`) | **Complete** | A consumer of the public hook contract. Verifies signature, expiry and operating boundary before touching an artifact |
+| ✅ | **Warrants** (`core/execution/`) | **Complete** | Signed, expiring, entitlement-bound descriptors. Fails closed on unknown principal, unapproved use, unapproved version, revocation, and open blocking findings |
+| ✅ | **Captive engine** (`core/execution/engine.py`) | **Complete** | A consumer of the public warrant contract. Verifies signature, expiry and operating boundary before touching an artifact |
 | ✅ | **Feature platform** (`core/features/`) | **Complete** | Bitemporal Delta storage, version-namespaced serving (fixes C-2), PIT assembly with three-layer verification, contracts, retirement guard |
-| ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, hooks, features, health. RFC-9457-shaped refusals carrying remediation |
-| ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. Every asset vendored — no CDN |
-| ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and hook resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
+| ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, warrants, features, health. RFC-9457-shaped refusals carrying remediation |
+| ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. The model page shows versions, pinned feature contracts, validation episodes, findings, warrants and evidence. Every asset vendored — no CDN |
+| ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 18 help topics in 6 sections (~12,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
+| ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and warrant resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
 | ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
 | ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
 | ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
@@ -45,7 +46,7 @@ is built; the phases below are the plan it is being built against.*
 
 The end-to-end governed path runs: register a model → create an immutable version →
 assess its risk → approve → point an alias (refused unless the contract refines and
-the schemas satisfy variance) → issue a hook → resolve a signed descriptor →
+the schemas satisfy variance) → issue a warrant → resolve a signed descriptor →
 execute through an engine that checks the boundary first → revoke and watch it fail
 closed. Features can be defined, materialised bitemporally into Delta, pinned by
 contract, and assembled into a point-in-time-correct training set that is refused
@@ -54,7 +55,7 @@ outright if either temporal bound is missing.
 The validation path runs alongside it: open an episode against a version (refused
 if a validator built it) → record catalogue tests with declared thresholds → try
 to conclude `approved` (refused if any test failed, refused again if a blocking
-finding is open) → raise a finding and watch both the alias gate and hook
+finding is open) → raise a finding and watch both the alias gate and warrant
 resolution fail closed → close it with an independent verifier and evidence, and
 watch service resume. Any recorded result can be replayed and compared on its
 digest, which catches a threshold moved after the fact as readily as a changed
@@ -82,6 +83,11 @@ number.
 - **File size, not total size.** The governing rule is that no Python source file
   exceeds 1,500 code lines; every file is well inside it, and the packages are
   split by responsibility rather than by length.
+- **The warrant document is not yet grammar-checked.** It has a fixed shape and
+  covers scoring. The general grammar — operation verbs (fit, calibrate,
+  validate, backtest, explain), runtime bindings for QuantLib, ONNX, PMML,
+  spreadsheets, LLM prompts and agent graphs, and admissibility rules deriving
+  from the trainability class — is the next milestone.
 
 ## 1. Engineering principles
 
@@ -115,7 +121,7 @@ maya-api/                                  maya-web/
 │   ├── lifecycle/  ├── policy/           │   ├── component/
 │   ├── validation/ ├── overlays/         │   └── contract/       # against published OpenAPI
 │   ├── monitoring/ ├── docs/             └── openapi.lock.json   # pinned backend contract
-│   ├── hooks/      ├── iam/
+│   ├── warrants/      ├── iam/
 │   ├── connectors/ ├── api/   ├── workers/
 │   └── platform/
 ├── migrations/                            maya-sdk/       (Python, JVM)
@@ -139,7 +145,7 @@ flowchart TD
     API["api/ · workers/"] --> CTX
     subgraph CTX["Bounded contexts"]
         REG[registry] ; FEA[features] ; LC[lifecycle] ; VAL[validation]
-        OVL[overlays] ; MON[monitoring] ; DOC[docs] ; HK[hooks] ; IAM[iam]
+        OVL[overlays] ; MON[monitoring] ; DOC[docs] ; HK[warrants] ; IAM[iam]
     end
     CTX --> CORE
     subgraph CORE["Core — depends on nothing in MAYA"]
@@ -164,7 +170,7 @@ forbidden_modules = ["maya.api", "maya.registry", "maya.platform", "fastapi", "s
 [[tool.importlinter.contracts]]
 name = "layered architecture"
 type = "layers"
-layers = ["maya.api | maya.workers", "maya.registry | maya.features | maya.lifecycle | maya.validation | maya.overlays | maya.monitoring | maya.docs | maya.hooks | maya.iam", "maya.evidence | maya.risk | maya.policy | maya.regimes", "maya.domain", "maya.platform"]
+layers = ["maya.api | maya.workers", "maya.registry | maya.features | maya.lifecycle | maya.validation | maya.overlays | maya.monitoring | maya.docs | maya.warrants | maya.iam", "maya.evidence | maya.risk | maya.policy | maya.regimes", "maya.domain", "maya.platform"]
 
 [[tool.importlinter.contracts]]
 name = "no branching on extension keys outside their registries"
@@ -225,7 +231,7 @@ front-end work is never blocked by backend availability. That is the practical d
 | **Contract** | Schemathesis against the live spec; SDK round-trip | Full endpoint coverage | Every commit |
 | **Adversarial** | Leakage injection · RLS cross-entity negative tests · stampede load · sandbox escape · malicious artifact corpus | Must catch every seeded defect | Every commit (fast subset), nightly (full) |
 | **Migration** | Expand/contract up and down against production-shaped data | Reversible, no data loss | Every commit touching `migrations/` |
-| **Performance** | Hook resolution p99, PIT join, inference ingest | Meets the NFR or fails | Nightly + pre-release |
+| **Performance** | Warrant resolution p99, PIT join, inference ingest | Meets the NFR or fails | Nightly + pre-release |
 | **Front end** | Component tests; contract tests against the spec mock; axe accessibility | WCAG 2.2 AA, zero critical | Every commit |
 | **End-to-end** | The ten acceptance criteria of [03 §12.1](03-requirements.md) | All pass | Pre-release |
 
@@ -263,7 +269,7 @@ criteria green, and signed images with SLSA provenance.
 | `ci` | Automated verification | Generated fixtures | Ephemeral, torn down per run |
 | `dev` | Integration with real connectors | Masked subset | First place plugins are loaded from `maya-ext-*` |
 | `uat` | Business validation, training | **Baseline-imported** copy of the real inventory, masked | Where C-5 baseline import is rehearsed with real users |
-| `prod` | Production | Real | Blue/green; hook plane deploys independently |
+| `prod` | Production | Real | Blue/green; warrant plane deploys independently |
 
 ---
 
@@ -276,7 +282,7 @@ Six concurrent streams, deliberately structured so that no stream blocks another
 | **W1** | **Core & extensibility** | `domain/`, `registry/` fibration, plugin loader, laws harness | Published interfaces; the fibre protocol |
 | **W2** | **Governance** | Lifecycle, validation, findings, overlays, approvals, policy, regimes | Domain events |
 | **W3** | **Data & features** | Feature platform, PIT verifier, Delta layout, Spark jobs, monitoring compute | Feature contract; metric API |
-| **W4** | **Execution** | Hook service, hook projection, SDKs, serving, telemetry | `hook_projection` schema (a versioned contract) |
+| **W4** | **Execution** | Warrant service, warrant projection, SDKs, serving, telemetry | `warrant_projection` schema (a versioned contract) |
 | **W5** | **Experience** | `maya-web`, all UI modules, document rendering | The OpenAPI contract only |
 | **W6** | **Platform & security** | IAM, audit, sandbox fleet, IaC, CI/CD, observability | Infrastructure interfaces |
 | **W7** | **Machine assistance** | `maya/ai/` — capabilities, grounding, citation verification, oracles, evals | The oracle protocol; every capability registered as a T5 model |
@@ -298,7 +304,7 @@ consequence of the decoupling mandate: the front end never waits.
 | W6 | Postgres baseline, RLS pattern with **FORCE**, audit chain, Alembic | Cross-entity negative test passes under `maya_app` |
 | W3 | Delta layout, retention classes, outbox writer with idempotent MERGE | Duplicate outbox delivery produces one row |
 | W4 | OpenAPI skeleton, spec-diff gate, generated client, Prism mock | `maya-web` builds and runs against the mock |
-| **Spikes** | PIT join at 1B rows · hook resolution under stampede load · sandbox escape testing · ONNX/PMML introspection breadth | Each answers a question that could invalidate the architecture |
+| **Spikes** | PIT join at 1B rows · warrant resolution under stampede load · sandbox escape testing · ONNX/PMML introspection breadth | Each answers a question that could invalidate the architecture |
 
 **Exit:** the laws exist as tests (most failing by design); a model can be created and read end to end
 through the API and the UI; the three spikes have reported.
@@ -322,7 +328,7 @@ through the API and the UI; the three spikes have reported.
 from the MRM head; an as-at-date export satisfies a mock examiner request; **baseline import of 300
 models produces a debt burn-down, not a wall of red**.
 
-### Phase 2 — Versions, features, hooks
+### Phase 2 — Versions, features, warrants
 
 | Stream | Deliverable |
 |---|---|
@@ -332,12 +338,12 @@ models produces a debt burn-down, not a wall of red**.
 | W3 | **Three-layer PIT verification** — static, sampled, adversarial (H-6) |
 | W3 | Feature contracts; **version-namespaced online store** with dual-write (C-2); law L-17 |
 | W3 | Run tracking, deterministic replay, challenger management |
-| W4 | Hook service: `hook_projection` read model (H-2), resolution, signing, **revocation floor** (C-1) |
+| W4 | Warrant service: `warrant_projection` read model (H-2), resolution, signing, **revocation floor** (C-1) |
 | W4 | Stampede protection: pre-warm, single-flight, jitter, stale-while-revalidate (H-1) |
 | W4 | Flavours: `descriptor_only`, `python_sdk`, `rest_oip_v2`, `batch_spark`; engine certification (C-6) |
 | W5 | Upload wizard, feature reconciliation UI, schema-driven fibre forms |
 
-**Exit:** an engine runs a production model solely via a hook; an alias move switches the served version
+**Exit:** an engine runs a production model solely via a warrant; an alias move switches the served version
 with no consumer change; a kill switch stops it within 60 s **including under a simulated partition**; a
 PIT-verified training set reproduces a fit bit-for-bit.
 
@@ -358,7 +364,7 @@ monitoring, skew detection · W2 breach → **correlated** finding (M-8), overla
 ageing, propagation, recurrence · W4 inference logging, **approved-use vs actual-use reconciliation**,
 boundary monitoring · W5 health board, overlay dashboard, KRIs, board pack.
 
-**Exit:** a breach automatically restricts a production hook; the overlay dashboard is used in a real
+**Exit:** a breach automatically restricts a production warrant; the overlay dashboard is used in a real
 IFRS 9 committee; the board pack is generated rather than assembled.
 
 ### Machine assistance, sequenced by oracle strength
@@ -386,7 +392,7 @@ attractive the demo.
 
 W2 GenAI track: boundary gates, risk matrix, eval harness, agentic controls · W1 prompt/RAG/tool/guardrail
 versioning, base-model change fingerprinting · W4 LLM gateway integration, cost and token monitoring,
-composite hooks, `sql_udf`/`stream`/`container`/`sheet` flavours · W3 continuous discovery, EUC ingestion,
+composite warrants, `sql_udf`/`stream`/`container`/`sheet` flavours · W3 continuous discovery, EUC ingestion,
 semantic search · W1 AI documentation assistant, itself governed as a T5 model in the inventory.
 
 ### Phase 6 — Scale-out and migration
@@ -403,7 +409,7 @@ performance hardening to every NFR at full scale; fibre library expansion; bank-
 | **Adversarial review** (the [11](11-adversarial-review.md) method, re-run) | End of every phase | Architecture + an engineer outside the stream |
 | Threat model refresh | Every phase | W6 |
 | Performance regression | Nightly | W6 |
-| Chaos drill — kill the control plane, verify hooks survive | Quarterly | W4 + W6 |
+| Chaos drill — kill the control plane, verify warrants survive | Quarterly | W4 + W6 |
 | DR restore rehearsal with evidence | Quarterly | W6 |
 | Chain-anchor verification audit | Monthly | W6 |
 | Developer NPS on the governance experience | Quarterly | Product |
@@ -436,7 +442,7 @@ design document that has drifted from the system is worse than no design documen
 | **Baseline import overwhelms the MRM office** | Debt is burn-down, not breach; board-approved debt expiry per tier; rehearsed on `uat` with real users before `prod` |
 | **The two repos drift** | Spec-diff gate and `openapi.lock.json` make drift a build failure rather than a runtime surprise |
 | **Modularity erodes under delivery pressure** | Import contracts are CI gates, not guidelines. The only way to breach a boundary is to change the contract, visibly, in review |
-| **The hook plane becomes a bank-wide SPOF** | Independent scaling and failover; grace and revocation-floor semantics; quarterly chaos drills; escrowed static descriptors for a named Tier 1 set |
+| **The warrant plane becomes a bank-wide SPOF** | Independent scaling and failover; grace and revocation-floor semantics; quarterly chaos drills; escrowed static descriptors for a named Tier 1 set |
 | **Theory ossifies into decoration** | Laws are acceptance criteria. A law that cannot be tested is a signal the abstraction failed the rent test and should be cut |
 
 ---
