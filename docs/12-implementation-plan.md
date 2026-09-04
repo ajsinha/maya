@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 8. This section is the authoritative record of what
+*Last updated after milestone 9. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -36,7 +36,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 18 help topics in 6 sections (~12,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
 | ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and warrant resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced* |
 | ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
-| ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
+| ✅ | **Monitoring** (`core/monitoring/`) | **Complete** | Four monitor kinds, each admitting only the tests that can answer it, checked at definition time. Delayed labels are first-class: a performance monitor must declare its outcome window, maturity is decided per row, and evaluation over an immature cohort is refused with the date it becomes measurable. A breach raises a finding, escalating with persistence; recovery closes the breach and deliberately leaves the finding open |
 | ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
 | ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
 | ✅ | **Authorisation** (`core/authz/`) | **Complete** | Eight roles across three lines of defence, refused incompatible pairs, entity and domain scope that filters listings as well as detail pages, and segregation of duties read from the evidence chain rather than a second who-did-what table. HTTP Basic for services against the same principal register; PBKDF2 with a short verification cache that shortens the key derivation and never the decision |
@@ -65,6 +65,9 @@ number.
 
 ### Honest gaps
 
+- **No telemetry ingestion or scheduler.** Scored rows are passed in; there is no
+  streaming collector, no sampling strategy, no automatic reference-window
+  management, and nothing calls `monitors.due()` on a cadence.
 - **No routing or notification.** Attestation is a quorum and the outstanding
   signatures are visible, but nobody is *told* they are outstanding: there is no
   task inbox, no reminder, no escalation and no review calendar.

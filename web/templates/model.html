@@ -60,6 +60,38 @@
         {% endif %}
         </tbody></table></div>
 
+    <div class="card mb-3"><div class="card-header">
+        Monitoring
+        {% if monitoring.open_breaches %}
+          <span class="evidence-bad">&nbsp;{{ monitoring.open_breaches }} breaching</span>
+        {% endif %}</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Monitor</th><th>Asks</th><th>Threshold</th><th>Last observation</th></tr></thead>
+        <tbody>
+        {% for m in monitoring.detail %}
+          <tr><td class="small">{{ m.name }}
+                <div class="text-muted">{{ m.status }}{% if m.label_delay_days %}
+                  &middot; {{ m.label_delay_days|int }}d outcome window{% endif %}</div></td>
+              <td class="small">{{ m.kind.replace('_', ' ') }}
+                <div class="mono text-muted" style="font-size:.72rem">{{ m.test_key }}</div></td>
+              <td class="small mono">{{ m.threshold }}</td>
+              <td class="small">
+                {% if m.last_observation %}
+                  {% if m.last_observation.passed %}
+                    <span class="evidence-ok">{{ "%.4g"|format(m.last_observation.value) }}</span>
+                  {% else %}
+                    <span class="evidence-bad">{{ "%.4g"|format(m.last_observation.value) }}</span>
+                  {% endif %}
+                  <div class="text-muted">n={{ m.last_observation.sample_size }}</div>
+                {% else %}<span class="text-muted">not yet evaluated</span>{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">
+            No monitors defined. A breach here raises a finding, and a blocking
+            finding refuses warrant resolution &mdash; so monitoring is what makes
+            degradation stop a model rather than merely colour a chart.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+
     <div class="card mb-3"><div class="card-header">Validation</div>
       <table class="table maya mb-0">
         <thead><tr><th>Kind</th><th>Validators</th><th>Status</th><th>Outcome</th></tr></thead>

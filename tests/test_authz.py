@@ -52,8 +52,13 @@ class TestRoles:
         assert "version:approve" not in granted
 
     def test_an_operator_has_no_governance_authority(self):
+        """It runs the monitoring batch. It decides nothing."""
         granted = permissions_for(["operator"])
-        assert not any(p for p in granted if not p.endswith(":read"))
+        assert "monitor:evaluate" in granted, "the batch runner must be able to evaluate"
+        governance = {"version:approve", "model:attest", "model:approve", "alias:move",
+                      "finding:close", "validation:conclude", "risk:assess",
+                      "model:register", "version:create", "monitor:define"}
+        assert not (granted & governance)
 
     def test_admin_holds_everything(self):
         from core.authz.common import PERMISSIONS

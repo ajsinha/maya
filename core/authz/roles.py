@@ -40,6 +40,7 @@ MODEL_OWNER = MODEL_DEVELOPER | {
     # The owner puts the record forward, opens amendments to it, and signs the
     # owner half of the attestation. They never approve it.
     "model:submit", "model:amend", "model:attest",
+    "monitor:define", "monitor:evaluate",
 }
 
 # ---------------------------------------------------------------------------
@@ -54,15 +55,17 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     "feature:certify", "warrant:revoke", "model:retire",
     # Approves the record, and signs the second-line half of the attestation.
     # Cannot submit or amend: that is the first line's act.
-    "model:approve", "model:attest",
+    "model:approve", "model:attest", "monitor:define",
 }
 
 # ---------------------------------------------------------------------------
 # Third line and beyond: read, raise, never remediate.
 # ---------------------------------------------------------------------------
 AUDITOR = READ_PERMISSIONS | {"finding:raise"}
-OPERATOR = {"model:read", "warrant:read", "evidence:read"}
-SERVICE = {"model:read", "warrant:read", "warrant:execute"}
+# The batch runner: it evaluates monitors on a schedule and can do nothing else.
+OPERATOR = {"model:read", "warrant:read", "evidence:read",
+            "monitor:read", "monitor:evaluate"}
+SERVICE = {"model:read", "warrant:read", "warrant:execute", "monitor:evaluate"}
 
 ROLES: Dict[str, Set[str]] = {
     "model_developer": MODEL_DEVELOPER,
@@ -82,7 +85,7 @@ DESCRIPTIONS: Dict[str, str] = {
     "validator": "Second line. Runs effective challenge and closes findings. Never builds.",
     "model_risk_manager": "Second line with authority: approves versions, moves aliases, sets tiers.",
     "auditor": "Third line. Reads everything, raises findings, remediates nothing.",
-    "operator": "Runs the platform. No governance authority at all.",
+    "operator": "Runs the platform and the monitoring batch. No governance authority.",
     "service": "A non-human principal. Resolves and executes warrants; signs in to nothing.",
     "admin": "Everything, including principal management. For bootstrap and break-glass.",
 }
