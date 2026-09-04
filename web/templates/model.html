@@ -128,6 +128,32 @@
         </tbody></table></div>
 
     <div class="card mb-3"><div class="card-header">
+        Version approval &mdash; how many signatures each version owes</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Version</th><th>Status</th><th>Required</th><th>Where it stands</th></tr></thead>
+        <tbody>
+        {% for semver, a in approvals.items() %}
+          <tr><td class="small">v{{ semver }}</td>
+              <td class="small">
+                {% if a.status == 'approved' %}<span class="evidence-ok">approved</span>
+                {% else %}<span class="text-muted">{{ a.status }}</span>{% endif %}</td>
+              <td class="small">
+                {% if a.quorum_required %}
+                  {{ a.required_roles|join(', ') }}
+                {% else %}<span class="text-muted">one signature</span>{% endif %}</td>
+              <td class="small text-muted">
+                {% if a.progress %}{{ a.progress.detail }}
+                {% else %}{{ a.detail }}{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">No versions yet.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        The depth of control follows the tier. The model record is attested by
+        several people; a version is what actually runs, so above a tier it takes
+        more than one signature too.</div></div>
+
+    <div class="card mb-3"><div class="card-header">
         Parameters &mdash; what each version runs on</div>
       <table class="table maya mb-0">
         <thead><tr><th>Parameter set</th><th>Version</th><th>How it was inhabited</th>

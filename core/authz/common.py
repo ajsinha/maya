@@ -45,6 +45,9 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "document:attach", "document:review",
     # features, featuresets and the parameters a fit produces
     "featureset:define", "featureset:publish",
+    # Signing a quorum is not the same act as approving alone: a
+    # validator signs one and may never do the other.
+    "version:sign",
     "parameter:record", "parameter:approve",
     "overlay:read", "overlay:propose", "overlay:approve", "overlay:measure",
     "assist:read", "assist:register", "assist:generate", "assist:attest",

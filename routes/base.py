@@ -91,6 +91,11 @@ STATUS: Dict[str, int] = {
     "no_parameter_set": 404, "no_approved_parameters": 409,
     "ambiguous_parameters": 409, "different_version": 409,
     "schema_not_satisfied": 409, "no_featureset_registry": 501,
+    # version approval as a quorum
+    "quorum_required": 409, "no_quorum_required": 409,
+    "approval_open": 409, "approval_closed": 409,
+    "already_approved": 409, "no_approval": 404,
+    "already_signed_personally": 409, "no_tier": 409,
 
     # --- the captive engine's own refusals -------------------------------
     # These reach a caller only through the convenience execute endpoint, but

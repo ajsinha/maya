@@ -15,7 +15,7 @@ in the wrong file.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.ports import BlockingSource, LifecycleGate
@@ -39,6 +39,19 @@ class ModelRegistry:
         self.alias_service = AliasService(aliases, history, self.catalogue,
                                           self.version_service, evidence, blocking)
         self.evidence = evidence
+        # A callable (urn, semver) -> None that raises when a quorum is required
+        # and has not been reached. Injected rather than imported so the registry
+        # keeps knowing nothing about lifecycle workflows.
+        self.approvals: Optional[Callable[[str, str], None]] = None
+
+    def attach_quorum(self, check) -> None:
+        """Wire the version-approval quorum after construction.
+
+        The quorum needs the registry to record its outcome, and the registry
+        needs the quorum to refuse a single signature. One of the two connects
+        second, and doing it explicitly beats a circular constructor.
+        """
+        self.approvals = check
 
     def attach_gate(self, gate: LifecycleGate) -> None:
         """Wire the lifecycle gate after construction.
@@ -93,7 +106,28 @@ class ModelRegistry:
     def version(self, urn: str, semver: str) -> Optional[Dict[str, Any]]:
         return self.version_service.get(urn, semver)
 
-    def approve_version(self, urn: str, semver: str, actor: str = "system") -> Dict[str, Any]:
+    def version_by_id(self, version_id: str) -> Optional[Dict[str, Any]]:
+        """A version and the urn it belongs to, from its id alone.
+
+        The quorum knows a version id and has to name the model it approves; a
+        lookup by id keeps it from having to carry the urn around.
+        """
+        row = self.version_service.versions.one(id=version_id)
+        if row is None:
+            return None
+        model = self.catalogue.by_id(row["model_id"])
+        return {**row, "urn": model["urn"] if model else None}
+
+    def approve_version(self, urn: str, semver: str, actor: str = "system",
+                        quorum_id: Optional[str] = None) -> Dict[str, Any]:
+        """Approve a version.
+
+        Where the tier demands a quorum this is the *consequence* of one rather
+        than an act in itself, so a direct call is refused and told where to go.
+        A single-signature approval of a Tier 1 version is the hole this closes.
+        """
+        if self.approvals is not None and quorum_id is None:
+            self.approvals(urn, semver)
         return self.version_service.approve(urn, semver, actor)
 
     # --------------------------------------------------------------- aliases

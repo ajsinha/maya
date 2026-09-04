@@ -311,3 +311,38 @@ what makes retirement safe rather than hopeful.
 Naming a set of features so a warrant can ask for it by name, computing derived
 features from primitives, and storing what a fit produced:
 [Featuresets and fitted parameters](/help/featuresets-and-parameters).
+
+
+## A read is pinned to a version, not to a path
+
+A namespace is a path, and a path is mutable. Two writes to the same namespace
+produce two Delta versions, and a read that names only the path gets whichever is
+current.
+
+For **serving** that is correct — the namespace *is* the contract, and a
+correction to a stale row should be served. For **reproducing** it is not: the
+whole point of a snapshot is that re-running it returns what it returned before.
+
+So an assembly reads at the Delta version the view version was materialised at,
+and a featureset binding carries that version alongside the path. That is what
+makes *same featureset version → same bytes* true rather than
+true-until-somebody-writes-again.
+
+The neighbouring question — *has anything underneath this pin moved?* — is
+answered separately, because it is the one a reviewer asks before comparing two
+runs:
+
+```
+GET /api/v1/featuresets/{name}/versions/{n}/restatements
+```
+
+```json
+{"restated": true,
+ "slots": [{"slot": "dscr", "delta_version": 3, "current_delta_version": 5}],
+ "detail": "1 of this version's namespaces have been written to since it was
+            published; the version still reads the bytes it pinned"}
+```
+
+A restatement is not automatically wrong. Correcting a row that was stale is a
+legitimate act. What matters is that a reader who dropped the pin would now see
+something else, and that anybody comparing two runs knows which case they are in.

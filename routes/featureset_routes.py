@@ -149,6 +149,18 @@ class FeaturesetRoutes(Routes):
             self.authorise(request, "feature:read")
             return self.guard(lambda: features.featureset_plan(name, version))
 
+        @self.app.get(f"{api}/featuresets/{{name}}/versions/{{version}}/restatements",
+                      tags=["features"])
+        def restatements(request: Request, name: str, version: int):
+            """Whether anything underneath this version has been written to since.
+
+            The version still reads the bytes it pinned — that is what the pin is
+            for. This answers the neighbouring question a reviewer actually asks
+            before comparing two runs: has the ground moved.
+            """
+            self.authorise(request, "feature:read")
+            return self.guard(lambda: features.restatements(name, version))
+
         @self.app.post(f"{api}/featuresets/{{name}}/roll-forward",
                        status_code=201, tags=["features"])
         def roll_forward(request: Request, name: str):

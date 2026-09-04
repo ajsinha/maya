@@ -60,7 +60,7 @@ VALIDATOR = READ_PERMISSIONS | {
     "finding:raise", "finding:close", "document:compile",
     # The second line accepts or rejects what the first line filed -- and
     # approves the parameters it fitted, which change what the model does.
-    "document:review", "parameter:approve",
+    "document:review", "parameter:approve", "version:sign",
     # The second line asks the machine for a draft and attests what it produced.
     "assist:generate", "assist:attest",
 }
@@ -71,7 +71,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     # Cannot submit or amend: that is the first line's act.
     "model:approve", "model:attest", "monitor:define", "document:compile",
     "overlay:approve", "assist:register", "assist:attest",
-    "document:review", "parameter:approve",
+    "document:review", "parameter:approve", "version:sign",
     "baseline:import", "baseline:plan", "regime:activate",
 }
 

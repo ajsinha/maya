@@ -418,3 +418,31 @@ def parameters(db, registry, evidence, warrants, full_features):
     from db import ParameterSetRepository
     return ParameterRegister(ParameterSetRepository(db), registry, evidence,
                              warrants, full_features.sets)
+
+
+@pytest.fixture
+def snapshot_provider(db, delta, full_features):
+    from core.validation import SnapshotProvider
+    from db import SnapshotRepository
+    return SnapshotProvider(SnapshotRepository(db), delta, full_features)
+
+
+@pytest.fixture
+def stored_replayer(validation, catalogue, snapshot_provider):
+    from core.validation import Replayer
+    return Replayer(validation, catalogue, snapshot_provider)
+
+
+@pytest.fixture
+def approvals(db, registry, evidence):
+    from core.lifecycle import VersionApproval
+    from db import VersionApprovalRepository, VersionApprovalSignatureRepository
+    service = VersionApproval(VersionApprovalRepository(db),
+                              VersionApprovalSignatureRepository(db),
+                              registry, evidence)
+    registry.attach_quorum(service.refuse_without_quorum)
+    return service
+
+
+def person(username, *roles):
+    return {"username": username, "roles": list(roles)}

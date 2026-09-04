@@ -15,8 +15,9 @@ from core.validation.common import (BLOCKING_BY_DEFAULT, KINDS, OUTCOMES, SEVERI
                                     SOURCES, ValidationError, severity_rank, worst)
 from core.validation.findings import FindingRegister
 from core.validation.replay import Replayer
+from core.validation.storage import SnapshotProvider
 from core.validation.service import ValidationService
 
 __all__ = ["ValidationService", "FindingRegister", "TestCatalogue", "TestDefinition",
-           "TestOutcome", "Replayer", "ValidationError", "SEVERITIES", "OUTCOMES",
+           "TestOutcome", "Replayer", "SnapshotProvider", "ValidationError", "SEVERITIES", "OUTCOMES",
            "KINDS", "SOURCES", "BLOCKING_BY_DEFAULT", "severity_rank", "worst"]

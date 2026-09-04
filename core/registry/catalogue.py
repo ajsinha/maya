@@ -51,6 +51,10 @@ class ModelCatalogue:
                              {"urn": urn, "owner": owner}, actor=actor)
         return row
 
+    def by_id(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """A model from its id. Rows elsewhere carry the id, not the urn."""
+        return self.models.one(id=model_id)
+
     def get(self, urn: str) -> Optional[Dict[str, Any]]:
         return self.models.one(urn=urn)
 

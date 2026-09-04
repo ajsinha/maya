@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 from core.validation.catalogue import TestCatalogue
+from core.validation.common import ValidationError
 from core.validation.service import ValidationService
 
 # Given (test_key, slice) return the two aligned series, or None if unavailable.
@@ -34,8 +35,13 @@ DataProvider = Callable[[str, Dict[str, Any]], Optional[Tuple[Sequence, Sequence
 class Replayer:
     """Recomputes a validation's tests and compares them against what was stored."""
 
-    def __init__(self, validations: ValidationService, catalogue: TestCatalogue):
+    def __init__(self, validations: ValidationService, catalogue: TestCatalogue,
+                 storage=None):
         self.validations, self.catalogue = validations, catalogue
+        # Optional: without it a replay still works, but only for a caller who
+        # still has the numbers. With it the control can be run against you
+        # rather than only with your help.
+        self.storage = storage
 
     def replay(self, validation_id: str, provider: DataProvider) -> Dict[str, Any]:
         stored = self.validations.results_for(validation_id)
@@ -58,6 +64,27 @@ class Replayer:
             (reproduced if again.digest() == row["digest"] else mismatched).append(record)
 
         return self.report(validation_id, len(stored), reproduced, mismatched, skipped)
+
+    def from_storage(self, validation_id: str) -> Dict[str, Any]:
+        """Replay by re-reading the snapshot the episode was run against.
+
+        Unattended: nothing is supplied by the caller, so a mismatch is about the
+        test rather than about who handed over which file.
+        """
+        if self.storage is None:
+            raise ValidationError(
+                "this replayer was built without a storage provider, so it can "
+                "only replay from data supplied by the caller")
+        episode = self.validations.require(validation_id)
+        report = self.replay(validation_id, self.storage.for_validation(episode))
+        report["source"] = "storage"
+        report["data"] = (self.storage.describe(episode["snapshot_id"])
+                          if episode.get("snapshot_id") else
+                          {"detail": "this episode pins no dataset snapshot, so "
+                                     "there is nothing to re-read; supply the data "
+                                     "or record the snapshot the tests were run on",
+                           "readable": False})
+        return report
 
     @staticmethod
     def report(validation_id: str, total: int, reproduced: List, mismatched: List,
