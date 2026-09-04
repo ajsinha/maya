@@ -100,7 +100,7 @@ class TestModelApi:
                 "owner": "o", "legal_entity": "l", "purpose": "p"}
         client.post("/api/v1/models", json=body)
         r = client.post("/api/v1/models", json=body)
-        assert r.status_code == 409 and "already registered" in r.json()["detail"]["detail"]
+        assert r.status_code == 409 and "already registered" in r.json()["detail"]
 
     def test_unknown_model_is_404(self, client):
         assert client.get("/api/v1/models/ghost").status_code == 404
@@ -129,7 +129,7 @@ class TestModelApi:
         registered.post(f"/api/v1/models/{NAME}/versions/3.3.0/approve")
         r = registered.put(f"/api/v1/models/{NAME}/aliases",
                            json={"environment": "prod", "alias": "champion", "semver": "3.3.0"})
-        assert r.status_code == 409 and "gini" in r.json()["detail"]["detail"]
+        assert r.status_code == 409 and "gini" in r.json()["detail"]
 
     def test_evidence_chain_endpoint(self, registered):
         assert registered.get("/api/v1/evidence/chain").json()["valid"] is True
@@ -185,6 +185,16 @@ class TestExecutionBoundary:
             "urn": f"{URN}#champion", "environment": "prod", "principal": "svc/origination",
             "declared_use": "origination_decision", "inputs": {"dscr": 1.2}})
         assert r.status_code == 501 and r.json()["error"] == "no_runtime"
+
+    def test_every_refusal_shares_one_shape(self, registered):
+        """DR-6/DR-7: one error body shape, whichever route raised it."""
+        cases = [("/api/v1/resolve", {"urn": f"{URN}#champion", "environment": "prod",
+                                      "principal": "svc/nobody", "declared_use": "x"}),
+                 ("/api/v1/training-sets", {"name": "b", "spine": [], "views": [],
+                                            "as_of": 1.0, "valid_time_bound": False})]
+        for path, payload in cases:
+            body = registered.post(path, json=payload).json()
+            assert {"error", "detail"} <= set(body), f"{path} returned {body}"
 
     def test_execution_still_enforces_entitlement(self, registered):
         r = registered.post("/api/v1/execute", json={

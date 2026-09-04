@@ -33,14 +33,14 @@ class TestAppendChain:
     def test_deleting_a_node_breaks_the_chain(self, evidence, repos):
         for _ in range(5):
             evidence.append("k", "version", "v1", {"n": _})
-        repos["evidence"].remove(3)
+        repos["evidence"].remove(seq=3)
         result = evidence.verify_chain()
         assert result["valid"] is False and result["broken_at"] == 4
 
     def test_tampering_with_a_payload_breaks_the_chain(self, evidence, repos):
         for _ in range(3):
             evidence.append("k", "version", "v1", {"n": _})
-        repos["evidence"].corrupt(2, "sha256:" + "f" * 64)
+        repos["evidence"].set({"content_hash": "sha256:" + "f" * 64}, seq=2)
         result = evidence.verify_chain()
         assert result["valid"] is False and result["reason"] == "chain_hash mismatch"
 

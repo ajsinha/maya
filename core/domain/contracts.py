@@ -15,6 +15,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+from core.domain.schemas import explain
+from core.log import get_logger, swallowed
+
+logger = get_logger(__name__)
+
 # --------------------------------------------------------------------- contracts
 @dataclass(frozen=True)
 class Bound:
@@ -29,7 +34,11 @@ class Bound:
             return str(value) in self.allowed
         try:
             v = float(value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            # Outside the assumption, so the guarantee is void — but a
+            # non-numeric value where a number was declared is worth seeing.
+            swallowed(logger, exc, f"bound '{self.key}' received a non-numeric value",
+                      detail=f"value={value!r}; treated as outside the boundary")
             return False
         if self.minimum is not None and v < self.minimum:
             return False
@@ -104,9 +113,5 @@ class RefinementResult:
     guarantee_failures: Tuple[str, ...] = ()
 
     def reason(self) -> str:
-        parts = []
-        if self.assumption_failures:
-            parts.append("assumptions not weakened: " + ", ".join(self.assumption_failures))
-        if self.guarantee_failures:
-            parts.append("guarantees not preserved: " + ", ".join(self.guarantee_failures))
-        return "; ".join(parts) or "refines"
+        return explain({"assumptions not weakened": self.assumption_failures,
+                        "guarantees not preserved": self.guarantee_failures}, "refines")

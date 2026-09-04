@@ -13,6 +13,12 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
+def explain(failures: Dict[str, Any], ok: str) -> str:
+    """Render a refusal so it names what failed. Design rule DR-7 in one place."""
+    parts = [f"{label}: {', '.join(items)}" for label, items in failures.items() if items]
+    return "; ".join(parts) or ok
+
+
 @dataclass(frozen=True)
 class Field:
     name: str
@@ -59,12 +65,8 @@ class VarianceResult:
     output_regressions: Tuple[str, ...] = ()
 
     def reason(self) -> str:
-        parts = []
-        if self.input_regressions:
-            parts.append("inputs no longer accepted: " + ", ".join(self.input_regressions))
-        if self.output_regressions:
-            parts.append("outputs no longer provided: " + ", ".join(self.output_regressions))
-        return "; ".join(parts) or "compatible"
+        return explain({"inputs no longer accepted": self.input_regressions,
+                        "outputs no longer provided": self.output_regressions}, "compatible")
 
 
 def substitutable(new_in: Schema, new_out: Schema, old_in: Schema, old_out: Schema) -> VarianceResult:

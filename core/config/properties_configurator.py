@@ -21,7 +21,6 @@ Nested YAML is flattened to dotted keys, so ``app: {name: MAYA}`` is read as
 """
 from __future__ import annotations
 
-import logging
 import os
 import re
 import sys
@@ -32,7 +31,9 @@ from typing import Any, Dict, List, Optional, Union
 
 import yaml
 
-logger = logging.getLogger(__name__)
+from core.log import get_logger, swallowed
+
+logger = get_logger(__name__)
 
 _REF = re.compile(r"\$\{([^}:]+)(?::([^}]*))?\}")
 _TRUE = {"1", "true", "yes", "on", "y", "t"}
@@ -137,6 +138,7 @@ class PropertiesConfigurator:
             try:
                 data = yaml.safe_load(p.read_text()) or {}
             except yaml.YAMLError as exc:
+                logger.error("configuration file %s is not valid YAML: %s", path, exc)
                 raise ConfigError(f"{path}: {exc}") from exc
             for k, v in self._flatten(data).items():
                 merged[k], sources[k] = v, f"file:{path}"
@@ -161,8 +163,9 @@ class PropertiesConfigurator:
                 if changed:
                     logger.info("configuration change detected, reloading")
                     self.reload()
-            except Exception:                                  # never kill the thread
-                logger.exception("configuration reload failed")
+            except Exception as exc:            # the thread must survive, but not silently
+                logger.exception("configuration reload failed, keeping the previous values: %s",
+                                 exc)
 
     def stop(self) -> None:
         self._stop.set()
@@ -196,21 +199,27 @@ class PropertiesConfigurator:
             raise ConfigError(f"required configuration key is missing: {key}")
         return value
 
-    def get_int(self, key: str, default: int = 0) -> int:
-        try:
-            return int(str(self.get(key, default)).strip())
-        except (TypeError, ValueError):
+    def _as(self, kind, key: str, default):
+        """One coercion path. Five near-identical accessors drifted apart once;
+        they are now one function with a converter."""
+        raw = self.get(key)
+        if raw is None:
             return default
+        try:
+            return kind(str(raw).strip())
+        except (TypeError, ValueError) as exc:
+            swallowed(logger, exc, f"configuration key '{key}' would not coerce",
+                      detail=f"value={raw!r}; using default {default!r}")
+            return default
+
+    def get_int(self, key: str, default: int = 0) -> int:
+        return self._as(int, key, default)
 
     def get_float(self, key: str, default: float = 0.0) -> float:
-        try:
-            return float(str(self.get(key, default)).strip())
-        except (TypeError, ValueError):
-            return default
+        return self._as(float, key, default)
 
     def get_bool(self, key: str, default: bool = False) -> bool:
-        raw = self.get(key)
-        return default if raw is None else str(raw).strip().lower() in _TRUE
+        return self._as(lambda v: v.lower() in _TRUE, key, default)
 
     def get_list(self, key: str, default: Optional[List[str]] = None) -> List[str]:
         raw = self.get(key)

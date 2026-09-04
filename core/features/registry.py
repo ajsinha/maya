@@ -25,8 +25,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.evidence import EvidenceEngine
 from core.features.pit import (AssemblyRejected, AssemblyRequest, PitReport, detect_leakage,
                                static_check, verify_sampled)
-from db import ContractRepository, DeltaStore, FeatureRepository, FeatureViewRepository, \
-    SnapshotRepository
+from db import (ContractRepository, DeltaStore, FeatureRepository, FeatureViewRepository,
+                FeatureViewVersionRepository, SnapshotRepository)
 from db.database import digest as canonical_digest
 
 VALID_TIME, INGEST_TIME, ENTITY = "event_ts", "ingest_ts", "entity_id"
@@ -40,9 +40,9 @@ class FeatureRegistry:
     """Features, views, materialisation, contracts and PIT assembly."""
 
     def __init__(self, features: FeatureRepository, views: FeatureViewRepository,
-                 contracts: ContractRepository, snapshots: SnapshotRepository,
-                 delta: DeltaStore, evidence: EvidenceEngine):
-        self.features, self.views = features, views
+                 view_versions: FeatureViewVersionRepository, contracts: ContractRepository,
+                 snapshots: SnapshotRepository, delta: DeltaStore, evidence: EvidenceEngine):
+        self.features, self.views, self.view_versions = features, views, view_versions
         self.contracts, self.snapshots = contracts, snapshots
         self.delta, self.evidence = delta, evidence
 
@@ -52,7 +52,7 @@ class FeatureRegistry:
                sensitivity: str = "internal", pii: bool = False,
                protected_basis: bool = False, proxy_risk: str = "none",
                actor: str = "system") -> Dict[str, Any]:
-        if self.features.by_name(name):
+        if self.features.one(name=name):
             raise FeatureError(f"feature '{name}' is already defined")
         row = {"name": name, "entity": entity, "dtype": dtype, "description": description,
                "business_definition": business_definition, "owner": owner,
@@ -70,7 +70,7 @@ class FeatureRegistry:
         unusable, so a near-duplicate must be visible at the moment of creation."""
         words = set(description.lower().split()) | set(name.lower().replace("_", " ").split())
         scored = []
-        for f in self.features.list():
+        for f in self.features.many():
             other = set(f["description"].lower().split()) | \
                     set(f["name"].lower().replace("_", " ").split())
             overlap = len(words & other) / max(len(words | other), 1)
@@ -81,17 +81,17 @@ class FeatureRegistry:
     def certify(self, name: str, level: str = "certified") -> Dict[str, Any]:
         if level not in ("experimental", "certified", "deprecated"):
             raise FeatureError(f"unknown certification level '{level}'")
-        if not self.features.by_name(name):
+        if not self.features.one(name=name):
             raise FeatureError(f"no feature '{name}'")
-        self.features.certify(name, level)
-        return self.features.by_name(name)
+        self.features.set({"certification": level}, name=name)
+        return self.features.one(name=name)
 
     # ------------------------------------------------------------------- views
     def create_view(self, name: str, entity: str, owner: str, feature_names: List[str],
                     description: str = "", actor: str = "system") -> Dict[str, Any]:
-        if self.views.by_name(name):
+        if self.views.one(name=name):
             raise FeatureError(f"feature view '{name}' already exists")
-        missing = [f for f in feature_names if not self.features.by_name(f)]
+        missing = [f for f in feature_names if not self.features.one(name=f)]
         if missing:
             raise FeatureError(f"undefined features: {', '.join(missing)}")
         row = {"name": name, "entity": entity, "owner": owner, "description": description,
@@ -106,7 +106,7 @@ class FeatureRegistry:
                     actor: str = "system") -> Dict[str, Any]:
         """Write bitemporal rows and pin the resulting Delta version as a new
         feature view version. Each version is its own serving namespace."""
-        view = self.views.by_name(view_name)
+        view = self.views.one(name=view_name)
         if not view:
             raise FeatureError(f"no feature view '{view_name}'")
         for r in rows:
@@ -115,7 +115,7 @@ class FeatureRegistry:
                     raise FeatureError(
                         f"row is missing '{required}'; feature rows carry two clocks — "
                         f"{VALID_TIME} (when it was true) and {INGEST_TIME} (when we learned it)")
-        latest = self.views.latest_version(view["id"])
+        latest = self.view_versions.first("version", desc=True, feature_view_id=view["id"])
         number = (latest["version"] + 1) if latest else 1
         table = f"{view['delta_table']}/v{number}"          # C-2: version IS the namespace
         delta_version = self.delta.write(table, rows)
@@ -125,27 +125,24 @@ class FeatureRegistry:
                "delta_version": delta_version, "valid_time_column": VALID_TIME,
                "ingest_time_column": INGEST_TIME, "row_count": len(rows),
                "quality_report": self._quality(rows, names), "materialised_at": time.time()}
-        self.views.add_version(row)
+        self.view_versions.add(row)
         self.evidence.append("feature_view_materialised", "feature_view", view["id"],
                              {"version": number, "rows": len(rows), "table": table}, actor=actor)
         return row
 
     @staticmethod
     def _quality(rows: List[Dict[str, Any]], names: List[str]) -> Dict[str, Any]:
-        out = {}
-        for n in names:
-            values = [r.get(n) for r in rows]
-            nulls = sum(1 for v in values if v is None)
-            out[n] = {"null_rate": round(nulls / max(len(values), 1), 4),
-                      "distinct": len({v for v in values if v is not None})}
-        return out
+        vals = {n: [r.get(n) for r in rows] for n in names}
+        return {n: {"null_rate": round(sum(v is None for v in vs) / max(len(vs), 1), 4),
+                    "distinct": len({v for v in vs if v is not None})}
+                for n, vs in vals.items()}
 
     def namespace(self, view_name: str, version: int) -> str:
         """The serving namespace for a pinned version. Never 'latest'."""
-        view = self.views.by_name(view_name)
+        view = self.views.one(name=view_name)
         if not view:
             raise FeatureError(f"no feature view '{view_name}'")
-        if not self.views.version(view["id"], version):
+        if not self.view_versions.one(feature_view_id=view["id"], version=version):
             raise FeatureError(f"feature view '{view_name}' has no version {version}")
         return f"{view['delta_table']}/v{version}"
 
@@ -154,10 +151,11 @@ class FeatureRegistry:
                       actor: str = "system") -> Dict[str, Any]:
         """Pin a model version to exact feature view versions."""
         for item in items:
-            view = self.views.by_name(item["view"])
+            view = self.views.one(name=item["view"])
             if not view:
                 raise FeatureError(f"no feature view '{item['view']}'")
-            if not self.views.version(view["id"], item["version"]):
+            if not self.view_versions.one(feature_view_id=view["id"],
+                                          version=item["version"]):
                 raise FeatureError(f"'{item['view']}' has no version {item['version']}")
             item["feature_view_id"] = view["id"]
             item["namespace"] = f"{view['delta_table']}/v{item['version']}"
@@ -171,18 +169,18 @@ class FeatureRegistry:
 
     def serving_namespaces(self, model_version_id: str) -> Dict[str, str]:
         """What serving MUST read. Law L-17 compares this against what it did read."""
-        contract = self.contracts.for_version(model_version_id)
+        contract = self.contracts.one(model_version_id=model_version_id)
         if not contract:
             raise FeatureError(f"no feature contract for version {model_version_id}")
         return {i["view"]: i["namespace"] for i in contract["items"]}
 
     def can_retire(self, view_name: str, version: int) -> Tuple[bool, List[str]]:
         """A namespace may only be retired when no contract still pins it."""
-        view = self.views.by_name(view_name)
+        view = self.views.one(name=view_name)
         if not view:
             raise FeatureError(f"no feature view '{view_name}'")
         consumers = self.contracts.consumers_of(view["id"], version)
-        return (not consumers, [c["model_version_id"] for c in consumers])
+        return not consumers, consumers
 
     # ---------------------------------------------------------------- assembly
     def build_training_set(self, name: str, spine: List[Dict[str, Any]],
@@ -204,10 +202,9 @@ class FeatureRegistry:
                 by_entity.setdefault(rec[ENTITY], []).append(rec)
             for row in rows:
                 pick = self._latest_admissible(by_entity.get(row[ENTITY], []),
-                                               row["label_ts"], as_of)
-                for k, v in (pick or {}).items():
-                    if k not in (ENTITY, VALID_TIME, INGEST_TIME):
-                        row[k] = v
+                                               row["label_ts"], as_of) or {}
+                row.update({k: v for k, v in pick.items()
+                            if k not in (ENTITY, VALID_TIME, INGEST_TIME)})
 
         report = verify_sampled(rows, lambda r: self._recompute(r, views, as_of))
         report.leakage = detect_leakage(rows)
@@ -238,15 +235,11 @@ class FeatureRegistry:
         for spec in views:
             frame = self.delta.as_of(self.namespace(spec["view"], spec["version"]),
                                      row["label_ts"], as_of)
-            if frame.empty:
-                continue
-            match = frame[frame[ENTITY] == row[ENTITY]]
+            match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame
             if match.empty:
                 continue
-            rec = match.to_dict("records")[0]
-            for k, v in rec.items():
-                if k not in (ENTITY, VALID_TIME, INGEST_TIME):
-                    expected[k] = v
+            expected.update({k: v for k, v in match.to_dict("records")[0].items()
+                             if k not in (ENTITY, VALID_TIME, INGEST_TIME)})
         return expected
 
     @staticmethod

@@ -48,7 +48,7 @@ class EvidenceEngine:
 
     # -------------------------------------------------------------- append
     def head(self) -> Tuple[int, str]:
-        row = self.repo.head()
+        row = self.repo.first("seq", desc=True)
         return (row["seq"], row["chain_hash"]) if row else (0, GENESIS)
 
     def append(self, kind: str, subject_type: str, subject_id: str,
@@ -75,7 +75,7 @@ class EvidenceEngine:
 
     def verify_chain(self) -> Dict[str, Any]:
         """Walk the chain. Reports the first break, if any."""
-        nodes = self.repo.all_ordered()
+        nodes = self.repo.many()
         prev_hash, expected_seq = GENESIS, 1
         for n in nodes:
             if n["seq"] != expected_seq:
@@ -89,7 +89,7 @@ class EvidenceEngine:
         return {"valid": True, "length": len(nodes), "head": prev_hash}
 
     def for_subject(self, subject_id: str) -> List[Dict[str, Any]]:
-        return self.repo.for_subject(subject_id)
+        return self.repo.many(subject_id=subject_id)
 
     # ------------------------------------------------------------ evaluate
     def evaluate(self, claim: str, derivations: Dict[str, Derivation], semiring: Semiring,
