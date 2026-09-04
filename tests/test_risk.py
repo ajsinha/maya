@@ -155,14 +155,14 @@ class TestAssessment:
         a = tiering.assess({"exposure": 1e9, "purpose_class": "financial_reporting",
                             "trainability_class": "T3"})
         tiering.persist(repos["risk"], "model-1", a)
-        rows = repos["risk"].for_model("model-1")
+        rows = repos["risk"].many(model_id="model-1")
         assert len(rows) == 1 and rows[0]["tier"] == a.tier
         assert rows[0]["next_review_due"] > 0
 
     def test_higher_tier_gets_a_sooner_review(self, tiering, repos):
         tiering.persist(repos["risk"], "m1", tiering.assess({"exposure": 1e10}))
         tiering.persist(repos["risk"], "m2", tiering.assess({"exposure": 0}))
-        high = repos["risk"].latest("m1")
-        low = repos["risk"].latest("m2")
+        high = repos["risk"].first("assessed_at", desc=True, model_id="m1")
+        low = repos["risk"].first("assessed_at", desc=True, model_id="m2")
         assert high["tier"] < low["tier"]
         assert high["next_review_due"] < low["next_review_due"]

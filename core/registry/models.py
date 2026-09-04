@@ -19,7 +19,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.domain import (Bound, Contract, Field, FitProcedure, OutputKind, ParameterKind,
                          ParameterObject, ParametricKernel, Schema, substitutable)
 from core.evidence import EvidenceEngine
-from db import AliasRepository, ModelRepository, VersionRepository
+from db import (AliasHistoryRepository, AliasRepository, ModelRepository,
+                VersionRepository)
 from db.database import digest as canonical_digest
 
 
@@ -43,16 +44,17 @@ class ModelRegistry:
     """Application service over the store. Emits evidence for everything it does."""
 
     def __init__(self, models: ModelRepository, versions: VersionRepository,
-                 aliases: AliasRepository, evidence: EvidenceEngine):
+                 aliases: AliasRepository, history: AliasHistoryRepository,
+                 evidence: EvidenceEngine):
         self.models, self.versions_repo = models, versions
-        self.aliases, self.evidence = aliases, evidence
+        self.aliases, self.history, self.evidence = aliases, history, evidence
 
     # ----------------------------------------------------------------- models
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
                  origin: str = "internal", actor: str = "system",
                  attributes: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        if self.models.by_urn(urn):
+        if self.models.one(urn=urn):
             raise RegistryError(f"a model is already registered with urn {urn}")
         row = {"urn": urn, "name": name, "description": description,
                "model_class": model_class, "domain": domain, "owner": owner,
@@ -65,7 +67,7 @@ class ModelRegistry:
         return row
 
     def get(self, urn: str) -> Optional[Dict[str, Any]]:
-        return self.models.by_urn(urn)
+        return self.models.one(urn=urn)
 
     def require(self, urn: str) -> Dict[str, Any]:
         row = self.get(urn)
@@ -74,13 +76,13 @@ class ModelRegistry:
         return row
 
     def list(self, domain: Optional[str] = None, tier: Optional[int] = None) -> List[Dict[str, Any]]:
-        return self.models.list(domain, tier)
+        return self.models.many(domain=domain, tier=tier)
 
     def set_tier(self, model_id: str, tier: int) -> None:
-        self.models.set_tier(model_id, tier)
+        self.models.set({"tier": tier}, id=model_id)
 
     def set_status(self, model_id: str, status: str, actor: str = "system") -> None:
-        self.models.set_status(model_id, status)
+        self.models.set({"status": status}, id=model_id)
         self.evidence.append("status_changed", "model", model_id, {"status": status}, actor=actor)
 
     # --------------------------------------------------------------- versions
@@ -89,7 +91,7 @@ class ModelRegistry:
                        artifact_digest: Optional[str] = None,
                        actor: str = "system") -> Dict[str, Any]:
         m = self.require(urn)
-        if self.versions_repo.by_semver(m["id"], semver):
+        if self.versions_repo.one(model_id=m["id"], semver=semver):
             raise RegistryError(f"version {semver} already exists for {urn}; versions are immutable")
 
         kernel = ParametricKernel(
@@ -120,16 +122,16 @@ class ModelRegistry:
         return row
 
     def versions(self, urn: str) -> List[Dict[str, Any]]:
-        return self.versions_repo.for_model(self.require(urn)["id"])
+        return self.versions_repo.many(model_id=self.require(urn)["id"])
 
     def version(self, urn: str, semver: str) -> Optional[Dict[str, Any]]:
-        return self.versions_repo.by_semver(self.require(urn)["id"], semver)
+        return self.versions_repo.one(model_id=self.require(urn)["id"], semver=semver)
 
     def approve_version(self, urn: str, semver: str, actor: str = "system") -> Dict[str, Any]:
         v = self.version(urn, semver)
         if not v:
             raise RegistryError(f"no version {semver} for {urn}")
-        self.versions_repo.set_status(v["id"], "approved")
+        self.versions_repo.set({"status": "approved"}, id=v["id"])
         self.evidence.append("version_approved", "version", v["id"], {"semver": semver}, actor=actor)
         return {**v, "status": "approved"}
 
@@ -145,12 +147,12 @@ class ModelRegistry:
             raise RegistryError(f"version {to_semver} is '{new['status']}', not approved; "
                                 f"an alias may only point at an approved version")
 
-        current = self.aliases.current(m["id"], environment, name)
+        current = self.aliases.one(model_id=m["id"], environment=environment, name=name)
         refinement = {"holds": True, "reason": "no incumbent"}
         variance = {"ok": True, "reason": "no incumbent"}
 
         if current:
-            old = self.versions_repo.by_id(current["version_id"])
+            old = self.versions_repo.one(id=current["version_id"])
             r = _contract(new["contract"]).refines(_contract(old["contract"]))
             v = substitutable(_schema(new["input_schema"]), _schema(new["output_schema"]),
                               _schema(old["input_schema"]), _schema(old["output_schema"]))
@@ -162,7 +164,7 @@ class ModelRegistry:
 
         now = time.time()
         self.aliases.point(m["id"], environment, name, new["id"], now, actor)
-        self.aliases.record_move({
+        self.history.add({
             "model_id": m["id"], "environment": environment, "name": name,
             "from_version_id": current["version_id"] if current else None,
             "to_version_id": new["id"], "refinement": refinement, "variance": variance,
@@ -174,8 +176,9 @@ class ModelRegistry:
                 "refinement": refinement, "variance": variance}
 
     def resolve_alias(self, urn: str, environment: str, name: str) -> Optional[Dict[str, Any]]:
-        a = self.aliases.current(self.require(urn)["id"], environment, name)
-        return self.versions_repo.by_id(a["version_id"]) if a else None
+        a = self.aliases.one(model_id=self.require(urn)["id"], environment=environment,
+                             name=name)
+        return self.versions_repo.one(id=a["version_id"]) if a else None
 
     def alias_history(self, urn: str) -> List[Dict[str, Any]]:
-        return self.aliases.history(self.require(urn)["id"])
+        return self.history.many(model_id=self.require(urn)["id"])

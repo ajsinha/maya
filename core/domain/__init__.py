@@ -9,9 +9,10 @@ from core.domain.algebra import (FitProcedure, OutputKind, ParameterKind, Parame
                                  ParametricKernel)
 from core.domain.contracts import Bound, Contract, RefinementResult
 from core.domain.identity import EquivalenceResult, Probe, pi_equivalent
-from core.domain.schemas import Field, Schema, VarianceResult, substitutable
+from core.domain.schemas import (Field, Schema, VarianceResult, explain,
+                                 substitutable)
 
 __all__ = ["FitProcedure", "OutputKind", "ParameterKind", "ParameterObject",
            "ParametricKernel", "Bound", "Contract", "RefinementResult",
            "EquivalenceResult", "Probe", "pi_equivalent", "Field", "Schema",
-           "VarianceResult", "substitutable"]
+           "VarianceResult", "substitutable", "explain"]

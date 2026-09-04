@@ -248,9 +248,9 @@ class TestRevocation:
             ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
 
     def test_revocation_bumps_the_epoch(self, ready):
-        before = ready._epoch
+        before = ready.epoch
         ready.revoke_model(URN, "reason")
-        assert ready._epoch > before
+        assert ready.epoch > before
 
     def test_revocation_is_recorded_as_evidence(self, ready, evidence, a_model):
         ready.revoke_model(URN, "reason")

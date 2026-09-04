@@ -114,16 +114,15 @@ def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List
 
 
 def _stratified(rows: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:
+    """Strata by label value: a leak confined to a rare class is exactly where
+    uniform sampling fails and where the damage is greatest."""
     if len(rows) <= n:
         return list(rows)
     buckets: Dict[Any, List[Dict[str, Any]]] = {}
     for r in rows:
         buckets.setdefault(r.get("label"), []).append(r)
-    out, per = [], max(1, n // max(len(buckets), 1))
-    for bucket in buckets.values():
-        step = max(1, len(bucket) // per)
-        out.extend(bucket[::step][:per])
-    return out[:n]
+    per = max(1, n // max(len(buckets), 1))
+    return [r for b in buckets.values() for r in b[::max(1, len(b) // per)][:per]][:n]
 
 
 def _close(a: Any, b: Any, tol: float = 1e-9) -> bool:

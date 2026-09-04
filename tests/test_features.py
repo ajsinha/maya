@@ -27,13 +27,13 @@ class TestFeatureDefinition:
     def test_pii_and_protected_basis_round_trip_as_booleans(self, features):
         features.define("age", "customer", "int", "Applicant age", "person/a",
                         pii=True, protected_basis=True)
-        row = features.features.by_name("age")
+        row = features.features.one(name="age")
         assert row["pii"] is True and row["protected_basis"] is True
 
     def test_proxy_risk_is_recorded(self, features):
         features.define("zip3", "customer", "string", "Postal prefix", "person/a",
                         proxy_risk="high")
-        assert features.features.by_name("zip3")["proxy_risk"] == "high"
+        assert features.features.one(name="zip3")["proxy_risk"] == "high"
 
     def test_certification_lifecycle(self, features):
         features.define("dscr", "customer", "float", "Coverage ratio", "person/a")
@@ -59,8 +59,8 @@ class TestFeatureDefinition:
     def test_listing_filters_by_entity(self, features):
         features.define("dscr", "customer", "float", "x", "p")
         features.define("notional", "facility", "float", "y", "p")
-        assert len(features.features.list("customer")) == 1
-        assert len(features.features.list()) == 2
+        assert len(features.features.many(entity="customer")) == 1
+        assert len(features.features.many()) == 2
 
 
 class TestViewsAndMaterialisation:
@@ -75,7 +75,7 @@ class TestViewsAndMaterialisation:
             features.create_view("v", "customer", "p", ["dscr"])
 
     def test_materialise_creates_version_one(self, sb_view):
-        versions = sb_view.views.versions(sb_view.views.by_name("sb_financials")["id"])
+        versions = sb_view.view_versions.many(feature_view_id=sb_view.views.one(name="sb_financials")["id"])
         assert len(versions) == 1 and versions[0]["version"] == 1
         assert versions[0]["row_count"] == 4
 
@@ -107,7 +107,7 @@ class TestViewsAndMaterialisation:
             features.materialise("v", [{"entity_id": "C1", "event_ts": 1.0, "dscr": 1.0}])
 
     def test_quality_report_is_computed(self, sb_view):
-        v = sb_view.views.versions(sb_view.views.by_name("sb_financials")["id"])[0]
+        v = sb_view.view_versions.many(feature_view_id=sb_view.views.one(name="sb_financials")["id"])[0]
         assert v["quality_report"]["dscr"]["null_rate"] == 0.0
 
     def test_namespace_for_unknown_version_is_refused(self, sb_view):
@@ -181,7 +181,7 @@ class TestTrainingSetAssembly:
 
     def test_snapshot_is_recorded_with_its_report(self, sb_view):
         snap = sb_view.build_training_set("pd_train_v1", self.SPINE, self.VIEWS, as_of=500.0)
-        stored = sb_view.snapshots.by_id(snap["id"])
+        stored = sb_view.snapshots.one(id=snap["id"])
         assert stored["row_count"] == 3 and stored["pit_report"]["layer"] == "sampled"
 
     def test_entities_with_no_admissible_fact_get_no_values(self, sb_view):

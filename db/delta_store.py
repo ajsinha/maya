@@ -19,14 +19,15 @@ axis for free, which is why Delta rather than a plain table is the substrate.
 """
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 import pandas as pd
 from deltalake import DeltaTable, write_deltalake
 
-logger = logging.getLogger(__name__)
+from core.log import get_logger
+
+logger = get_logger(__name__)
 
 VALID_TIME = "event_ts"
 INGEST_TIME = "ingest_ts"
