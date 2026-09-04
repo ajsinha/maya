@@ -3,11 +3,9 @@ MAYA — evidence engine tests.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
 import pytest
-from sqlalchemy import update
 
 from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Derivation,
                            EvidenceEngine)
-from core.store import evidence_node
 
 CLAIM = {"authorised": Derivation("authorised",
                                   (("tests", "report", "committee"),
@@ -32,18 +30,17 @@ class TestAppendChain:
         assert evidence.verify_chain() == {"valid": True, "length": 0,
                                            "head": evidence.head()[1]}
 
-    def test_deleting_a_node_breaks_the_chain(self, evidence, store):
+    def test_deleting_a_node_breaks_the_chain(self, evidence, repos):
         for _ in range(5):
             evidence.append("k", "version", "v1", {"n": _})
-        store.delete(evidence_node, evidence_node.c.seq == 3)
+        repos["evidence"].remove(3)
         result = evidence.verify_chain()
         assert result["valid"] is False and result["broken_at"] == 4
 
-    def test_tampering_with_a_payload_breaks_the_chain(self, evidence, store):
+    def test_tampering_with_a_payload_breaks_the_chain(self, evidence, repos):
         for _ in range(3):
             evidence.append("k", "version", "v1", {"n": _})
-        store.update(evidence_node, evidence_node.c.seq == 2,
-                     {"content_hash": "sha256:" + "f" * 64})
+        repos["evidence"].corrupt(2, "sha256:" + "f" * 64)
         result = evidence.verify_chain()
         assert result["valid"] is False and result["reason"] == "chain_hash mismatch"
 

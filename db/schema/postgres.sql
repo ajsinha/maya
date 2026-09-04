@@ -1,0 +1,139 @@
+-- ==========================================================================
+-- MAYA — PostgreSQL schema (production target)
+-- Copyright (c) 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+-- ==========================================================================
+-- There are no migrations. This file and postgres.sql are the schema; both are
+-- applied with CREATE TABLE IF NOT EXISTS, so starting against an existing
+-- database is a no-op.
+--
+-- The same tables as sqlite.sql, with the two type substitutions PostgreSQL
+-- requires: BOOLEAN where SQLite stores 0/1, and DOUBLE PRECISION where SQLite
+-- uses REAL. Everything else is identical, so a model row written by one
+-- dialect reads correctly under the other.
+--
+-- JSON documents are held as TEXT rather than JSONB deliberately: the
+-- application serialises and parses them, so the two dialects behave alike and
+-- no query depends on a dialect-specific operator.
+-- ==========================================================================
+
+CREATE TABLE IF NOT EXISTS model (
+    id            TEXT PRIMARY KEY,
+    urn           TEXT NOT NULL UNIQUE,
+    name          TEXT NOT NULL,
+    description   TEXT,
+    model_class   TEXT NOT NULL,
+    domain        TEXT NOT NULL,
+    owner         TEXT NOT NULL,
+    legal_entity  TEXT NOT NULL,
+    purpose       TEXT NOT NULL,
+    origin        TEXT NOT NULL DEFAULT 'internal',
+    status        TEXT NOT NULL DEFAULT 'proposed',
+    tier          INTEGER,
+    attributes    TEXT NOT NULL DEFAULT '{}',
+    created_at    DOUBLE PRECISION NOT NULL,
+    created_by    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_model_domain ON model (domain);
+CREATE INDEX IF NOT EXISTS ix_model_tier   ON model (tier);
+
+-- Versions are immutable. There is no UPDATE path other than `status`, which
+-- is deliberately excluded from manifest_digest.
+CREATE TABLE IF NOT EXISTS model_version (
+    id                 TEXT PRIMARY KEY,
+    model_id           TEXT NOT NULL,
+    semver             TEXT NOT NULL,
+    manifest           TEXT NOT NULL,
+    manifest_digest    TEXT NOT NULL,
+    trainability_class TEXT NOT NULL,
+    parameter_kind     TEXT NOT NULL,
+    fit_procedure      TEXT NOT NULL,
+    deterministic      BOOLEAN NOT NULL DEFAULT TRUE,
+    input_schema       TEXT NOT NULL DEFAULT '[]',
+    output_schema      TEXT NOT NULL DEFAULT '[]',
+    contract           TEXT NOT NULL DEFAULT '{}',
+    artifact_digest    TEXT,
+    status             TEXT NOT NULL DEFAULT 'draft',
+    created_at         DOUBLE PRECISION NOT NULL,
+    created_by         TEXT NOT NULL,
+    UNIQUE (model_id, semver)
+);
+CREATE INDEX IF NOT EXISTS ix_version_model ON model_version (model_id);
+
+CREATE TABLE IF NOT EXISTS alias (
+    id          TEXT PRIMARY KEY,
+    model_id    TEXT NOT NULL,
+    environment TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    version_id  TEXT NOT NULL,
+    moved_at    DOUBLE PRECISION NOT NULL,
+    moved_by    TEXT NOT NULL,
+    UNIQUE (model_id, environment, name)
+);
+
+CREATE TABLE IF NOT EXISTS alias_history (
+    id              TEXT PRIMARY KEY,
+    model_id        TEXT NOT NULL,
+    environment     TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    from_version_id TEXT,
+    to_version_id   TEXT NOT NULL,
+    refinement      TEXT NOT NULL DEFAULT '{}',
+    variance        TEXT NOT NULL DEFAULT '{}',
+    moved_at        DOUBLE PRECISION NOT NULL,
+    moved_by        TEXT NOT NULL,
+    justification   TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_alias_history_model ON alias_history (model_id);
+
+-- Append-only and hash-chained. The application role gets INSERT and SELECT.
+CREATE TABLE IF NOT EXISTS evidence_node (
+    id                     TEXT PRIMARY KEY,
+    seq                    INTEGER NOT NULL UNIQUE,
+    kind                   TEXT NOT NULL,
+    subject_type           TEXT NOT NULL,
+    subject_id             TEXT NOT NULL,
+    payload                TEXT NOT NULL DEFAULT '{}',
+    parents                TEXT NOT NULL DEFAULT '[]',
+    contains_personal_data BOOLEAN NOT NULL DEFAULT FALSE,
+    content_hash           TEXT NOT NULL,
+    prev_hash              TEXT NOT NULL,
+    chain_hash             TEXT NOT NULL,
+    trust                  DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    recorded_at            DOUBLE PRECISION NOT NULL,
+    recorded_by            TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_evidence_subject ON evidence_node (subject_id);
+
+CREATE TABLE IF NOT EXISTS risk_assessment (
+    id                TEXT PRIMARY KEY,
+    model_id          TEXT NOT NULL,
+    tier              INTEGER NOT NULL,
+    materiality       TEXT NOT NULL,
+    complexity        TEXT NOT NULL,
+    facts             TEXT NOT NULL DEFAULT '{}',
+    required_controls TEXT NOT NULL DEFAULT '[]',
+    rationale         TEXT NOT NULL,
+    ruleset_version   TEXT NOT NULL,
+    next_review_due   DOUBLE PRECISION,
+    assessed_at       DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_risk_model ON risk_assessment (model_id);
+
+CREATE TABLE IF NOT EXISTS hook (
+    id            TEXT PRIMARY KEY,
+    model_id      TEXT NOT NULL,
+    environment   TEXT NOT NULL,
+    binding_kind  TEXT NOT NULL,
+    alias_name    TEXT,
+    version_id    TEXT,
+    flavour       TEXT NOT NULL,
+    principal     TEXT NOT NULL,
+    declared_use  TEXT NOT NULL,
+    ttl_seconds   INTEGER NOT NULL,
+    grace_seconds INTEGER NOT NULL DEFAULT 0,
+    revoked       BOOLEAN NOT NULL DEFAULT FALSE,
+    revoke_reason TEXT,
+    epoch         INTEGER NOT NULL DEFAULT 0,
+    created_at    DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_hook_model ON hook (model_id);

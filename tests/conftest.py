@@ -30,21 +30,30 @@ def write_yaml(tmp_path):
 
 
 @pytest.fixture
-def store():
-    from core.store import Store
-    return Store("sqlite:///:memory:")
+def db():
+    from db import Database
+    return Database("sqlite:///:memory:")
 
 
 @pytest.fixture
-def evidence(store):
+def repos(db):
+    from db import (AliasRepository, EvidenceRepository, HookRepository, ModelRepository,
+                    RiskRepository, VersionRepository)
+    return {"models": ModelRepository(db), "versions": VersionRepository(db),
+            "aliases": AliasRepository(db), "evidence": EvidenceRepository(db),
+            "risk": RiskRepository(db), "hooks": HookRepository(db)}
+
+
+@pytest.fixture
+def evidence(repos):
     from core.evidence import EvidenceEngine
-    return EvidenceEngine(store)
+    return EvidenceEngine(repos["evidence"])
 
 
 @pytest.fixture
-def registry(store, evidence):
+def registry(repos, evidence):
     from core.registry import ModelRegistry
-    return ModelRegistry(store, evidence)
+    return ModelRegistry(repos["models"], repos["versions"], repos["aliases"], evidence)
 
 
 @pytest.fixture
@@ -93,6 +102,6 @@ def approved_version(registry, a_model, kernel_spec, contract_spec):
 
 
 @pytest.fixture
-def hooks(store, registry, evidence):
+def hooks(repos, registry, evidence):
     from core.hooks import HookService
-    return HookService(store, registry, evidence, jitter_pct=0)
+    return HookService(repos["hooks"], registry, evidence, jitter_pct=0)

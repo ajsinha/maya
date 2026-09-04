@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from core.store import Store, _ulid, risk_assessment
+from db import RiskRepository
 
 RULESET_VERSION = "2026.09.1"
 
@@ -139,12 +139,12 @@ class TieringEngine:
                           required_controls=self.required_controls(tier),
                           rationale=rationale, facts=dict(facts))
 
-    def persist(self, store: Store, model_id: str, a: Assessment) -> Dict[str, Any]:
+    def persist(self, repo: RiskRepository, model_id: str, a: Assessment) -> Dict[str, Any]:
         months = self._review.get(a.tier, 24)
-        row = {"id": _ulid(), "model_id": model_id, "tier": a.tier,
+        row = {"model_id": model_id, "tier": a.tier,
                "materiality": a.materiality, "complexity": a.complexity,
                "facts": a.facts, "required_controls": list(a.required_controls),
                "rationale": a.rationale, "ruleset_version": a.ruleset_version,
                "next_review_due": time.time() + months * 30 * 86400,
                "assessed_at": time.time()}
-        return store.insert(risk_assessment, row)
+        return repo.add(row)

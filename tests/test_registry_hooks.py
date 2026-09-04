@@ -14,7 +14,7 @@ import pytest
 from core.engine import CaptiveEngine
 from core.hooks import HookError, HookService, parse_urn
 from core.registry import RegistryError
-from core.store import evidence_node
+
 
 URN = "maya://model/credit.pd.smallbiz"
 
