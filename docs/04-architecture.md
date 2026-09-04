@@ -275,7 +275,7 @@ core/
 └── config/                     # YAML with a git-ignored .local overlay, ${...} resolution
 
 db/          # The only package that knows about storage. Two hand-written schemas,
-             # 40 tables, no migrations. Repositories are the only interface.
+             # 42 tables, no migrations. Repositories are the only interface.
 routes/      # HTTP routers — thin, no domain logic. RFC-9457-shaped refusals.
 web/         # Jinja2 templates and vendored static assets (Bootstrap 5, jQuery). No CDN.
 ```
@@ -760,11 +760,11 @@ Key properties:
 | API / web | **FastAPI** (async), Pydantic v2, Uvicorn behind Gunicorn | Mandated; excellent OpenAPI generation, type safety, async I/O for connectors |
 | Templating | **Jinja2** server-rendered + partial fragments | Mandated stack is jQuery/Bootstrap, not an SPA; server rendering keeps the security model simple |
 | Front end | **Bootstrap 5.3**, **jQuery 3.7**, DataTables, Chart.js, Cytoscape.js (graphs), CodeMirror 6 (policy/YAML), Mermaid (diagrams) | See [08 — UI/UX](08-ui-ux.md) |
-| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 40 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
+| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 42 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
 | Lakehouse | **Delta Lake** via `delta-rs` | Features, snapshots, telemetry. Spark/Databricks is the target for large jobs and is not a dependency of the reference implementation |
 | Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Target. What ships is a content-addressed store on the local filesystem, with the digest as the key and a re-hash on every read |
 | Cache / queue | **Redis 7** | Target, for the warrant cache and rate limits. **Not used**: warrant TTL and jitter are computed in process |
-| Async | **Celery**; **APScheduler** for cron-like campaigns | Target. What ships is `core/scheduler/` — five idempotent jobs invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results, with an in-process loop off by default |
+| Async | **Celery**; **APScheduler** for cron-like campaigns | Target. What ships is `core/scheduler/` — seven idempotent jobs invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results, with an in-process loop off by default |
 | Eventing | **Kafka** with CloudEvents envelopes | Target. Not used |
 | Policy | Target was **OPA/Rego**. **What ships is `core/policy/`**: a rule is a predicate over a closed vocabulary of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions, no loops, no assignment, no attribute access — checked at the AST | Rego is a general language, and a gate written in one is a program a reviewer has to run rather than reason about. A fact the gate does not publish is refused *when the rule is written*, not at the moment of a governance decision |
 | Auth | OIDC authorisation-code flow with PKCE, state and nonce; HTTP Basic and a session cookie for people; **HMAC-SHA256** warrant signatures | **No Authlib, no SAML, no SCIM, no MFA.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason above: the verifier *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token. Ed25519 descriptor signing remains the production target |

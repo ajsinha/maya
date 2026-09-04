@@ -173,9 +173,13 @@ being replaced mid-design cost this architecture nothing.
 
 ## Architecture at a glance
 
-Front end and backend are **separate, concurrently running processes**. The UI consumes the same public
-API as the SDK and any third-party client — there is no privileged server-side path
-([ADR-011](docs/adr/ADR-011-decoupled-frontend.md)).
+**Target:** front end and backend as separate, concurrently running processes, the UI consuming the
+same public API as any third-party client ([ADR-011](docs/adr/ADR-011-decoupled-frontend.md)).
+
+**As built:** one process. The UI is server-rendered Jinja2 inside the FastAPI application and makes
+41 direct in-process service calls, so *reads* do not go through the API — writes, from the browser
+over jQuery, do. Anyone planning management information on the public API should know that the
+screens can currently see things the API cannot.
 
 ```
      maya-web (separate process)        SDK / CLI     Execution engines
@@ -233,9 +237,9 @@ maya.load("maya://model/credit.pd.smallbiz@3.1.0?calibration=2026-03-31")
 ```
 
 A warrant is the product of four independent vocabularies — how the parameter object is inhabited ×
-how the kernel is realised (**seventeen runtimes**, from QuantLib and ONNX to a spreadsheet and a
+how the kernel is realised (**eighteen runtimes**, from QuantLib and ONNX to a spreadsheet and a
 prompt bundle) × what is asked of it (**ten verbs**) × where its data comes from (**twelve
-bindings**). `descriptor_only` is one of the seventeen and matters most in a bank: most of the estate
+bindings**). `descriptor_only` is one of the eighteen and matters most in a bank: most of the estate
 already runs inside engines nobody is going to replace. The captive engine implements four of the
 seventeen; the rest are refused by name rather than approximated.
 
@@ -305,7 +309,7 @@ maya/
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
 │       config/                      YAML with a git-ignored local overlay
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 40 tables, no migrations
+│   └── schema/                      two hand-written schemas, 42 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate

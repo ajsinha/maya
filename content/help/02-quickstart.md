@@ -13,6 +13,12 @@ audience: Engineers
 This walks the complete governed path. Every step is a real API call against a
 running instance; nothing here is illustrative pseudocode.
 
+**Every call is authenticated, and the accounts differ on purpose.** Duties are
+separated in the platform, so they are separated here: the developer who creates
+the version cannot approve it, and a Tier 1 or Tier 2 version needs two
+signatures from two different people. If you run all of this as one account you
+will be refused, and being refused is the platform working.
+
 Sign in at `/login` with the development credentials (`admin` / `admin123`), or
 call the API directly as shown. The server listens on port 5006 by default.
 
@@ -23,7 +29,7 @@ often skipped. It asks for the minimum that makes a model **findable** and
 **accountable**, and defers everything else to the version that follows.
 
 ```bash
-curl -X POST localhost:5006/api/v1/models -H 'Content-Type: application/json' -d '{
+curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/models -H 'Content-Type: application/json' -d '{
   "urn": "maya://model/credit.pd.smallbiz",
   "name": "Small Business PD",
   "model_class": "credit.pd.scorecard",
@@ -43,7 +49,7 @@ A version carries the *kernel specification*: how the parameter object is
 inhabited, the input and output schemas, and the operating contract.
 
 ```bash
-curl -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/versions \
+curl -u d.raman:dev-pw -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/versions \
   -H 'Content-Type: application/json' -d '{
   "semver": "3.2.1",
   "kernel": {
@@ -70,7 +76,7 @@ Versions are immutable. Creating `3.2.1` twice is refused.
 ## 3. Assess the risk
 
 ```bash
-curl -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/assess \
+curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/assess \
   -H 'Content-Type: application/json' \
   -d '{"exposure": 2000000000, "purpose_class": "regulatory_capital"}'
 ```
@@ -82,9 +88,21 @@ version decided. See [Risk tiering](/help/risk-tiering).
 ## 4. Approve, then point an alias
 
 ```bash
-curl -X POST localhost:5006/api/v1/models/credit.pd.smallbiz/versions/3.2.1/approve
+# Step 3 assessed this model at Tier 2, and a Tier 2 version needs a quorum:
+# a model risk manager AND a validator, who must be two different people.
+# Approving it with a single call is refused -- correctly.
+APPROVAL=$(curl -su s.iqbal:mrm-pw -X POST localhost:5006/api/v1/version-approvals \
+  -H 'Content-Type: application/json' \
+  -d '{"urn": "maya://model/credit.pd.smallbiz", "semver": "3.2.1"}' \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
 
-curl -X PUT localhost:5006/api/v1/models/credit.pd.smallbiz/aliases \
+curl -u s.iqbal:mrm-pw -X POST localhost:5006/api/v1/version-approvals/$APPROVAL/sign \
+  -H 'Content-Type: application/json' -d '{"role": "model_risk_manager"}'
+
+curl -u a.mehta:val-pw -X POST localhost:5006/api/v1/version-approvals/$APPROVAL/sign \
+  -H 'Content-Type: application/json' -d '{"role": "validator"}'
+
+curl -u s.iqbal:mrm-pw -X PUT localhost:5006/api/v1/models/credit.pd.smallbiz/aliases \
   -H 'Content-Type: application/json' \
   -d '{"environment": "prod", "alias": "champion", "semver": "3.2.1"}'
 ```
@@ -98,14 +116,14 @@ that failed.
 ## 5. Issue and resolve a warrant
 
 ```bash
-curl -X POST localhost:5006/api/v1/warrants -H 'Content-Type: application/json' -d '{
+curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/warrants -H 'Content-Type: application/json' -d '{
   "urn": "maya://model/credit.pd.smallbiz#champion",
   "environment": "prod",
   "principal": "svc/origination",
   "declared_use": "origination_decision"
 }'
 
-curl -X POST localhost:5006/api/v1/resolve -H 'Content-Type: application/json' -d '{
+curl -u svc/origination:svc-pw -X POST localhost:5006/api/v1/resolve -H 'Content-Type: application/json' -d '{
   "urn": "maya://model/credit.pd.smallbiz#champion",
   "environment": "prod",
   "principal": "svc/origination",
@@ -123,7 +141,7 @@ This is the part worth doing, because it is what distinguishes a register from a
 control.
 
 ```bash
-curl -X POST localhost:5006/api/v1/findings -H 'Content-Type: application/json' -d '{
+curl -u a.mehta:val-pw -X POST localhost:5006/api/v1/findings -H 'Content-Type: application/json' -d '{
   "urn": "maya://model/credit.pd.smallbiz",
   "severity": "Critical",
   "title": "Label leakage in the training set",

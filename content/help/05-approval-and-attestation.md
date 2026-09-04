@@ -189,7 +189,7 @@ this?* — becomes unanswerable.
 | `model_risk_manager` | 2nd | Everything a validator can, plus approve versions, move aliases, approve models, set tiers, certify features, revoke warrants, approve overlays, register assist capabilities, activate regimes | Create versions |
 | `auditor` | 3rd | Read everything, raise findings | Close a finding, approve, build |
 | `operator` | — | The batch-runner set: read models, warrants and evidence, and evaluate monitors | Any other governance act |
-| `service` | — | Resolve and execute warrants, evaluate monitors | Sign in to the interface |
+| `service` | — | Resolve and execute warrants, **deliver** telemetry | Evaluate monitors, or sign in to the interface |
 | `admin` | — | Everything, including principal management | — |
 
 Roles **compose**: a principal holds a set and gets the union. That is how a

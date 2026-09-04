@@ -471,7 +471,7 @@ numbers in front of somebody who can.
 ## What comes back
 
 ```json
-POST /api/v1/models/re.price.nj_linear/parameters
+POST /api/v1/parameters
 {
   "name": "nj_home_core-fit-2025-01-15",
   "kind": "estimated_coefficients",

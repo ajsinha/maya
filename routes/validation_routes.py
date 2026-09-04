@@ -11,9 +11,10 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
+from core.authz.common import same_person
 from routes.base import Routes
 
 
@@ -56,7 +57,10 @@ class FindingIn(BaseModel):
 
 
 class CloseFindingIn(BaseModel):
-    verified_by: str
+    # Optional, and never trusted. The verifier is the authenticated caller; a
+    # value here is accepted only to be checked against them, so a caller that
+    # names somebody else is told plainly rather than silently ignored.
+    verified_by: Optional[str] = None
     evidence: Dict[str, Any]
 
 
@@ -186,5 +190,19 @@ class ValidationRoutes(Routes):
             # for it; `about` narrows it to this finding.
             who = self.authorise(request, "finding:close",
                                  subject_id=finding["model_id"], about=finding_id)
+            # The verifier is WHO IS ASKING. It used to be a request field, so
+            # the owner of a blocking finding could close their own by naming
+            # somebody else -- and that forged attribution went into the
+            # permanent evidence chain. The register's owner/verifier check was
+            # correct all along; it was comparing against a value the caller
+            # invented.
+            verifier = self.actor(who)
+            if body.verified_by and not same_person(body.verified_by, verifier):
+                raise HTTPException(403, {
+                    "error": "verifier_not_self",
+                    "detail": f"a closure is attributed to whoever performs it, "
+                              f"and this one names '{body.verified_by}' rather "
+                              f"than {verifier}",
+                    "remediation": "omit verified_by, or have that person close it"})
             return self.guard(lambda: register.close(
-                finding_id, body.verified_by, body.evidence, actor=self.actor(who)))
+                finding_id, verifier, body.evidence, actor=verifier))

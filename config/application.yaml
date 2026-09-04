@@ -165,7 +165,7 @@ execution:
     max_seconds: 30
     # Artifacts are read from data.artifacts and their digest is verified against
     # the warrant before anything is loaded. The engine implements three of the
-    # grammar's seventeen runtimes -- registered callables, ONNX, and the
+    # grammar's eighteen runtimes -- registered callables, ONNX, the
     # regression and scorecard subset of PMML -- and refuses the rest by name.
     #
     # Artifact-backed runtimes run in a child process with CPU and memory limits

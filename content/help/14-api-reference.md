@@ -98,6 +98,62 @@ Segregation refusals are a family, and each names the act it is protecting:
 | `POST` | `/models/{name}/retire` | Withdraw from use, keep everything |
 | `DELETE` | `/models/{name}` | Administrators only |
 
+### Version approval by quorum
+
+A whole subsystem that was documented nowhere. A Tier 1 or Tier 2 version is
+approved by two people in two named roles, so `POST /versions/{semver}/approve`
+refuses with `quorum_required` — and until now the refusal pointed at an endpoint
+that did not exist and nothing named the ones that do.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/version-approval-quorum` | Which roles each tier requires |
+| `GET` `POST` | `/version-approvals` | Open an approval for a version |
+| `GET` | `/version-approvals/{id}` | Its signatures so far, and what is outstanding |
+| `POST` | `/version-approvals/{id}/sign` | Sign for one role. The same person may not sign twice under two hats |
+| `POST` | `/version-approvals/{id}/withdraw` | End it without approving |
+
+### The findings workflow
+
+Everything between raising a finding and closing it. Ageing, acceptance and
+escalation are **derived from these acts**, so there is no status column that can
+disagree with what happened.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/findings/{id}` | The finding with its acts, ageing and escalation |
+| `GET` | `/finding-acts` | The act vocabulary and what each one means |
+| `POST` | `/findings/{id}/assign` | Hand it over, with a reason. Authorship never moves |
+| `POST` | `/findings/{id}/acknowledge` | The owner accepts it and names a date. Refused without a plan, and refused for a date past the due date |
+| `POST` | `/findings/{id}/plan` | Write down what will be done. Re-planning appends |
+| `POST` | `/findings/{id}/extend` | Move the date. Never by the owner, never by whoever acknowledged it, counted, and capped by severity |
+| `GET` | `/findings/ageing` | The distribution a committee asks for, not a mean |
+| `GET` | `/findings/escalated` | Overdue, unaccepted, or past the extension limit |
+
+### Policy gates
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` `POST` | `/policies` | The rule in force on each gate; draft a new one |
+| `GET` | `/policies/{id}` | One draft with its cases and their verdicts |
+| `POST` | `/policies/{id}/publish` | Put it in force. Reports every verdict that flipped |
+| `POST` | `/policies/try` | Ask what the rule in force *would* decide, deciding nothing |
+| `GET` | `/policies/facts/{gate}` | The closed vocabulary a rule for this gate may read |
+| `GET` | `/policies/history/{gate}` | Every version, superseded ones included |
+
+### Machine assistance
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/assist/tiers` | Tier A (an oracle checks it) and Tier B (citations ground it) |
+| `GET` `POST` | `/assist/capabilities` | Register a capability. Tier C is refused by design |
+| `GET` | `/assist/providers` | Which model this instance can ask, and why it cannot ask the rest |
+| `POST` | `/assist/drafts` | Ask for a draft. What it may cite is fixed from the register **before** it is asked |
+| `POST` | `/assist/generations` | Record a generation produced elsewhere, gated the same way |
+| `GET` | `/assist/generations/{id}` | The draft, its grounded claims, and the ones rejected |
+| `POST` | `/assist/generations/{id}/attest` | A person signs. Until then it is not evidence |
+| `GET` | `/assist/reviewers/{reviewer}` | Automation-bias trend for one reviewer |
+
 ### Features, featuresets and parameters
 
 | Method | Path | Notes |
@@ -119,7 +175,7 @@ Segregation refusals are a family, and each names the act it is protecting:
 | `GET` `POST` | `/featuresets/{name}/versions` | Bind features to the schema |
 | `POST` | `/featuresets/{name}/roll-forward` | Re-resolve to current view versions |
 | `GET` | `/parameter-provenance` | fitted, calibrated, declared |
-| `GET` `POST` | `/models/{name}/parameters` | Read and record parameter sets |
+| `GET` `POST` | `/parameters?urn=&semver=` | Read and record parameter sets. Deliberately **not** nested under `/models/{name}` — that path converter is greedy and would swallow the trailing segment |
 | `POST` | `/featuresets/{name}/training-sets` | Assemble a PIT-correct training set from a pinned version |
 | `POST` | `/parameter-fits` | **Run** the fit and record what came out. Resolves the warrant before reading anything, reads the snapshot at its pinned Delta version, lands `proposed` |
 | `GET` | `/parameter-sets/{id}` | One set with its lineage |

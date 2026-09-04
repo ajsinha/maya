@@ -78,7 +78,7 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         "no_captive_engine", "no_drafting_service",
         # Raised by the route layer when a caller asks for a credential in
         # somebody else's name; core has no view on who is asking.
-        "principal_not_self",
+        "principal_not_self", "verifier_not_self",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

@@ -130,7 +130,7 @@ class TestFindingsApi:
             "owner": "person/j.okafor"}).json()["id"]
         closed = registered.post(
             f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
-            json={"verified_by": "person/d.raman", "evidence": {"pr": "1420"}})
+            json={"evidence": {"pr": "1420"}})
         assert closed.status_code == 200, closed.text
         r = registered.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
@@ -144,13 +144,41 @@ class TestFindingsApi:
         rather than in the authorisation layer. Raised and closed by different
         principals so the segregation gate does not answer first."""
         mrm, val = people["s.iqbal"], people["a.mehta"]
+        # Owned by the validator, so that when the validator closes it the
+        # register's owner check is what answers. The verifier is now the
+        # authenticated caller, so owning it and closing it are the same act.
+        fid = registered.post("/api/v1/findings", auth=mrm, json={
+            "urn": URN, "severity": "High", "title": "Docs stale",
+            "owner": "person/a.mehta"}).json()["id"]
+        r = registered.post(f"/api/v1/findings/{fid}/close", auth=val,
+                            json={"evidence": {"pr": "1"}})
+        assert r.status_code == 409 and "own closure" in r.json()["detail"]
+
+    def test_a_closure_cannot_be_attributed_to_somebody_else(self, registered,
+                                                             people):
+        """`verified_by` used to be a request field, so the owner of a blocking
+        finding could close their own by naming somebody else -- and the forged
+        attribution went into the permanent evidence chain."""
+        mrm, val = people["s.iqbal"], people["a.mehta"]
         fid = registered.post("/api/v1/findings", auth=mrm, json={
             "urn": URN, "severity": "High", "title": "Docs stale",
             "owner": "person/j.okafor"}).json()["id"]
         r = registered.post(f"/api/v1/findings/{fid}/close", auth=val,
-                            json={"verified_by": "person/j.okafor",
+                            json={"verified_by": "person/somebody.else",
                                   "evidence": {"pr": "1"}})
-        assert r.status_code == 409 and "own closure" in r.json()["detail"]
+        assert r.status_code == 403
+        assert r.json()["error"] == "verifier_not_self"
+
+    def test_a_closure_naming_the_caller_is_accepted(self, registered, people):
+        """Passing it is allowed; passing somebody else is not."""
+        mrm, val = people["s.iqbal"], people["a.mehta"]
+        fid = registered.post("/api/v1/findings", auth=mrm, json={
+            "urn": URN, "severity": "High", "title": "Docs stale",
+            "owner": "person/j.okafor"}).json()["id"]
+        r = registered.post(f"/api/v1/findings/{fid}/close", auth=val,
+                            json={"verified_by": "a.mehta",
+                                  "evidence": {"pr": "1"}})
+        assert r.status_code == 200, r.text
 
     def test_the_raiser_cannot_close_it_over_the_api(self, registered, people):
         """This is the rule that was inert: the route searched for evidence
@@ -161,8 +189,7 @@ class TestFindingsApi:
             "urn": URN, "severity": "High", "title": "Docs stale",
             "owner": "person/j.okafor"}).json()["id"]
         r = registered.post(f"/api/v1/findings/{fid}/close", auth=mrm,
-                            json={"verified_by": "person/a.mehta",
-                                  "evidence": {"pr": "1"}})
+                            json={"evidence": {"pr": "1"}})
         assert r.status_code == 403
         assert r.json()["error"] == "segregation_of_duties"
         assert "may not close it" in r.json()["detail"]
@@ -179,8 +206,7 @@ class TestFindingsApi:
             "urn": URN, "severity": "High", "title": "Drift",
             "owner": "person/j.okafor"}).json()["id"]
         r = registered.post(f"/api/v1/findings/{other}/close", auth=mrm,
-                            json={"verified_by": "person/d.raman",
-                                  "evidence": {"pr": "2"}})
+                            json={"evidence": {"pr": "2"}})
         assert r.status_code == 200, r.text
 
     def test_an_unknown_severity_is_refused(self, registered):
@@ -358,7 +384,7 @@ class TestFindingWorkflowOverTheApi:
     def test_a_closed_findings_workflow_has_ended(self, registered, people):
         fid = self._raise(registered, people)
         registered.post(f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
-                        json={"verified_by": "person/d.raman",
+                        json={
                               "evidence": {"pr": "1420"}})
         r = registered.post(f"/api/v1/findings/{fid}/plan",
                             auth=people["j.okafor"], json={"plan": "too late"})
@@ -513,7 +539,12 @@ class TestVersionApprovalIsAQuorum:
                             auth=people["s.iqbal"])
         assert r.status_code == 409 and r.json()["error"] == "quorum_required"
         assert "not by one signature" in r.json()["detail"]
-        assert "/approval" in r.json()["remediation"]
+        # And the route it names has to be one a caller can actually POST to.
+        remediation = r.json()["remediation"]
+        assert "/api/v1/version-approvals" in remediation and "/sign" in remediation
+        opened = registered.post("/api/v1/version-approvals", auth=people["s.iqbal"],
+                                 json={"urn": URN, "semver": semver})
+        assert opened.status_code == 201, "the refusal must name a real endpoint"
 
     def test_two_signatures_approve_it(self, registered, people):
         semver = self._version(registered, people)
