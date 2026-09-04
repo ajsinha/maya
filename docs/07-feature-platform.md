@@ -299,7 +299,7 @@ what this model was fitted on", which is only measurable relative to the fitting
 |---|---|
 | **Certification levels** | `experimental` → `certified` → `deprecated`. Policy: Tier 1 and 2 production models may only use `certified` features. |
 | **Ownership** | Every feature has a named owner. Owner departure (from the HR feed) raises an orphaned-feature exception. |
-| **Consumer impact** | Changing or deprecating a feature lists every affected model version, hook and approved use. Breaking changes require impact sign-off from every affected model owner. |
+| **Consumer impact** | Changing or deprecating a feature lists every affected model version, warrant and approved use. Breaking changes require impact sign-off from every affected model owner. |
 | **Sensitive attributes** | `protected_basis` features cannot be bound into a contract for a model in ECOA scope — the policy engine blocks it. They remain available to the **fairness testing** path, which is a separate, audited entitlement. |
 | **Proxy risk** | Features flagged `proxy_risk: high` (e.g. zip-code-derived) trigger mandatory proxy-discrimination testing and a documented business-necessity justification before a credit model may use them. |
 | **Data quality** | Assertions run on every materialisation. Failure quarantines the view version so no model can bind to bad data. |
@@ -334,7 +334,7 @@ Optional and pluggable — many bank models are batch-only and need no online st
 | On-demand features | Computed at request time from the payload; declared in the contract, validated at serve time, and logged so the training and serving definitions can be diffed |
 | **Cost** | Roughly `k ×` storage, where `k` is the number of concurrently pinned versions per view — in practice 1–2. That is the correct price for the guarantee |
 
-**Law L-17 · contract–serving agreement.** For every active hook, the online namespace actually served
+**Law L-17 · contract–serving agreement.** For every active warrant, the online namespace actually served
 must equal the namespace pinned by its contract. Checked continuously in production, not asserted at
 design time — because C-2 was invisible to every design-time check.
 

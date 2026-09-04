@@ -17,8 +17,8 @@
    'POST /api/v1/models/credit.pd.smallbiz/assess\n{"exposure": 2000000000, "purpose_class": "regulatory_capital"}'),
   ('4','Approve, then point an alias','An alias may only point at an approved version, and the move must refine the incumbent.',
    'POST /api/v1/models/credit.pd.smallbiz/versions/3.2.1/approve\nPUT  /api/v1/models/credit.pd.smallbiz/aliases\n{"environment": "prod", "alias": "champion", "semver": "3.2.1"}'),
-  ('5','Issue a hook','Bound to a principal and an approved use. Consumers hold only the URN.',
-   'POST /api/v1/hooks\n{"urn": "maya://model/credit.pd.smallbiz#champion",\n "environment": "prod", "principal": "svc/origination",\n "declared_use": "origination_decision"}'),
+  ('5','Issue a warrant','Bound to a principal and an approved use. Consumers hold only the URN.',
+   'POST /api/v1/warrants\n{"urn": "maya://model/credit.pd.smallbiz#champion",\n "environment": "prod", "principal": "svc/origination",\n "declared_use": "origination_decision"}'),
   ('6','Resolve and execute','Your engine resolves, verifies the signature, checks the boundary, and runs.',
    'POST /api/v1/resolve\n{"urn": "maya://model/credit.pd.smallbiz#champion",\n "environment": "prod", "principal": "svc/origination",\n "declared_use": "origination_decision"}')] %}
 <div class="card mb-3"><div class="card-body">
@@ -37,10 +37,10 @@
 <table class="table maya mb-0">
   <thead><tr><th>Code</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
-    <tr><td class="mono small">no_entitlement</td><td class="small">No hook for this principal</td><td class="small">Request a grant</td></tr>
+    <tr><td class="mono small">no_entitlement</td><td class="small">No warrant for this principal</td><td class="small">Request a grant</td></tr>
     <tr><td class="mono small">use_not_approved</td><td class="small">The declared use is not the approved one</td><td class="small">Seek approval, or declare the approved use</td></tr>
     <tr><td class="mono small">restricted</td><td class="small">The bound version is not approved</td><td class="small">Approve it, or point the alias elsewhere</td></tr>
-    <tr><td class="mono small">revoked</td><td class="small">The hook was withdrawn</td><td class="small">Stop. Do not retry</td></tr>
+    <tr><td class="mono small">revoked</td><td class="small">The warrant was withdrawn</td><td class="small">Stop. Do not retry</td></tr>
     <tr><td class="mono small">boundary_violation</td><td class="small">Inputs fall outside the operating boundary</td><td class="small">The guarantee is void there; refer or widen it</td></tr>
   </tbody></table></div>
 {% endblock %}

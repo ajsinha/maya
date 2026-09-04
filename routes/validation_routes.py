@@ -4,7 +4,7 @@ Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The register is not a log. An open blocking finding refuses an alias move and
-refuses hook resolution, so these endpoints are a control surface rather than a
+refuses warrant resolution, so these endpoints are a control surface rather than a
 record-keeping one.
 """
 from __future__ import annotations

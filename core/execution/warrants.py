@@ -3,7 +3,7 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Hook resolution — the platform's boundary with anything that runs a model.
+Warrant resolution — the platform's boundary with anything that runs a model.
 
 MAYA does not execute models. It issues a signed, expiring, entitlement-bound
 execution CONTRACT, and an execution engine acts on it. That separation is the
@@ -15,7 +15,7 @@ Resolution fails closed. No entitlement, no approved use, no approved version �
 and it refuses with a reason and a remediation hint rather than degrading
 quietly into something that looks like it worked.
 
-The work is delegated: HookGrants owns entitlements and revocation, the
+The work is delegated: WarrantGrants owns entitlements and revocation, the
 DescriptorSigner owns signatures and expiry, the DescriptorFactory owns the
 shape of what an engine receives. What lives here is the ORDER of the checks,
 which is the part that has to be right.
@@ -26,28 +26,28 @@ from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.execution.descriptors import DescriptorFactory
-from core.execution.errors import HookError
-from core.execution.grants import HookGrants
+from core.execution.errors import WarrantError
+from core.execution.grants import WarrantGrants
 from core.execution.signing import DescriptorSigner
 from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
 from core.log import get_logger
 from core.ports import BlockingSource
 from core.registry import ModelRegistry, RegistryError
-from db import HookRepository
+from db import WarrantRepository
 
 logger = get_logger(__name__)
 
 
-class HookService:
-    """Issues and resolves hook descriptors. Signs them; never runs a model."""
+class WarrantService:
+    """Issues and resolves warrant descriptors. Signs them; never runs a model."""
 
-    def __init__(self, repo: HookRepository, registry: ModelRegistry,
+    def __init__(self, repo: WarrantRepository, registry: ModelRegistry,
                  evidence: EvidenceEngine, signing_key: str = "maya-dev-key",
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None):
         self.registry, self.blocking = registry, blocking
-        self.grants = HookGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
+        self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
         self.signer = DescriptorSigner(signing_key, jitter_pct)
         self.descriptors = DescriptorFactory(self.signer)
 
@@ -74,8 +74,8 @@ class HookService:
         try:
             return self.registry.require(model_urn_)
         except RegistryError as exc:
-            logger.info("hook resolution for %s hit an unregistered model: %s", urn, exc)
-            raise HookError("not_found", str(exc), "register the model first") from exc
+            logger.info("warrant resolution for %s hit an unregistered model: %s", urn, exc)
+            raise WarrantError("not_found", str(exc), "register the model first") from exc
 
     def _check_not_blocked(self, model: Dict[str, Any]) -> None:
         """Fail closed on an open blocking finding.
@@ -90,7 +90,7 @@ class HookService:
             titles = "; ".join(f["title"] for f in open_findings)
             logger.warning("resolution refused for %s: %d blocking finding(s)",
                            model["urn"], len(open_findings))
-            raise HookError("blocked",
+            raise WarrantError("blocked",
                             f"{len(open_findings)} blocking finding(s) open against "
                             f"{model['urn']} ({titles})",
                             "close the blocking findings, or withdraw the model from service")
@@ -100,18 +100,18 @@ class HookService:
         """Entitlement, then withdrawal, then declared use — in that order.
 
         Revocation is checked before the use comparison on purpose: a withdrawn
-        hook is withdrawn whatever the caller claims to be doing with it.
+        warrant is withdrawn whatever the caller claims to be doing with it.
         """
         grant = self.grants.find(model["id"], environment, principal)
         if grant is None:
-            raise HookError("no_entitlement",
-                            f"{principal} holds no hook for {model['urn']} in {environment}",
-                            "request a hook grant for this principal and approved use")
+            raise WarrantError("no_entitlement",
+                            f"{principal} holds no warrant for {model['urn']} in {environment}",
+                            "request a warrant grant for this principal and approved use")
         if grant["revoked"]:
-            raise HookError("revoked", grant["revoke_reason"] or "hook revoked",
-                            "the hook was withdrawn; do not retry")
+            raise WarrantError("revoked", grant["revoke_reason"] or "warrant revoked",
+                            "the warrant was withdrawn; do not retry")
         if grant["declared_use"] != declared_use:
-            raise HookError("use_not_approved",
+            raise WarrantError("use_not_approved",
                             f"declared use '{declared_use}' is not the approved use "
                             f"'{grant['declared_use']}'",
                             "seek approval for this use, or declare the approved one")
@@ -123,10 +123,10 @@ class HookService:
                    else self.registry.resolve_alias(model_urn_, environment,
                                                     aliasname or DEFAULT_ALIAS))
         if version is None:
-            raise HookError("not_found", f"nothing bound for {urn} in {environment}",
+            raise WarrantError("not_found", f"nothing bound for {urn} in {environment}",
                             "point the alias at an approved version")
         if version["status"] != "approved":
-            raise HookError("restricted",
+            raise WarrantError("restricted",
                             f"version {version['semver']} is '{version['status']}'",
                             "an approved version is required in this environment")
         return version
@@ -138,8 +138,8 @@ class HookService:
     def grants_for(self, urn: str) -> List[Dict[str, Any]]:
         return self.grants.of_model(urn)
 
-    def revoke(self, hook_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
-        return self.grants.revoke(hook_id, reason, actor)
+    def revoke(self, warrant_id: str, reason: str, actor: str = "system") -> Dict[str, Any]:
+        return self.grants.revoke(warrant_id, reason, actor)
 
     def revoke_model(self, urn: str, reason: str, actor: str = "system") -> int:
         return self.grants.revoke_model(urn, reason, actor)

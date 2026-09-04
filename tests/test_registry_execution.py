@@ -1,7 +1,7 @@
 """
-MAYA — registry, hook and captive-engine tests.
+MAYA — registry, warrant and captive-engine tests.
 
-The central claim under test: MAYA manages models and issues hooks; it does not
+The central claim under test: MAYA manages models and issues warrants; it does not
 execute them. The captive engine is a CONSUMER of the same public contract an
 external engine would use, and every check happens before the artifact is touched.
 
@@ -12,7 +12,7 @@ import copy
 import pytest
 
 from core.execution import CaptiveEngine
-from core.execution import HookError, HookService, parse_urn
+from core.execution import WarrantError, WarrantService, parse_urn
 from core.registry import RegistryError
 
 
@@ -179,16 +179,16 @@ class TestUrnParsing:
 
     @pytest.mark.parametrize("bad", ["http://x", "maya://model/", "nonsense", ""])
     def test_invalid_forms_are_refused(self, bad):
-        with pytest.raises(HookError):
+        with pytest.raises(WarrantError):
             parse_urn(bad)
 
 
-class TestHookResolution:
+class TestWarrantResolution:
     @pytest.fixture
-    def ready(self, registry, hooks, approved_version):
+    def ready(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        return hooks
+        warrants.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
+        return warrants
 
     def test_resolution_returns_a_signed_descriptor(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
@@ -205,17 +205,17 @@ class TestHookResolution:
         assert not ready.verify(d)
 
     def test_unknown_principal_is_refused(self, ready):
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             ready.resolve(f"{URN}#champion", "prod", "svc/marketing", "origination_decision")
         assert e.value.code == "no_entitlement"
 
     def test_wrong_declared_use_is_refused(self, ready):
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             ready.resolve(f"{URN}#champion", "prod", "svc/origination", "marketing_targeting")
         assert e.value.code == "use_not_approved"
 
     def test_unknown_model_is_refused(self, ready):
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             ready.resolve("maya://model/ghost#champion", "prod", "svc/origination", "x")
         assert e.value.code == "not_found"
 
@@ -224,27 +224,27 @@ class TestHookResolution:
         assert d["resolved"]["version"] == "3.2.1"
 
     def test_errors_carry_a_remediation_hint(self, ready):
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             ready.resolve(f"{URN}#champion", "prod", "svc/nobody", "x")
         assert e.value.remediation and e.value.as_problem()["error"] == "no_entitlement"
 
 
 class TestRevocation:
     @pytest.fixture
-    def ready(self, registry, hooks, approved_version):
+    def ready(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        return hooks
+        warrants.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
+        return warrants
 
-    def test_revoked_hook_fails_closed(self, ready):
+    def test_revoked_warrant_fails_closed(self, ready):
         ready.revoke_model(URN, "critical finding")
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
         assert e.value.code == "revoked"
 
     def test_revocation_reason_is_surfaced(self, ready):
         ready.revoke_model(URN, "fairness breach on age_62plus")
-        with pytest.raises(HookError, match="age_62plus"):
+        with pytest.raises(WarrantError, match="age_62plus"):
             ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
 
     def test_revocation_bumps_the_epoch(self, ready):
@@ -254,7 +254,7 @@ class TestRevocation:
 
     def test_revocation_is_recorded_as_evidence(self, ready, evidence, a_model):
         ready.revoke_model(URN, "reason")
-        assert "hook_revoked" in [n["kind"] for n in evidence.for_subject(a_model["id"])]
+        assert "warrant_revoked" in [n["kind"] for n in evidence.for_subject(a_model["id"])]
 
     def test_expiry_accounts_for_grace(self, ready):
         d = ready.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
@@ -269,10 +269,10 @@ class TestRevocation:
 
 class TestCaptiveEngine:
     @pytest.fixture
-    def engine(self, registry, hooks, approved_version):
+    def engine(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        e = CaptiveEngine(hooks)
+        warrants.issue(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
+        e = CaptiveEngine(warrants)
         e.register_runtime(approved_version["id"],
                            lambda i: {"pd_12m": round(0.02 / max(i["dscr"], 0.1), 4)})
         return e
@@ -281,7 +281,7 @@ class TestCaptiveEngine:
         return engine.execute(f"{URN}#champion", "prod", "svc/origination",
                               "origination_decision", inputs)
 
-    def test_executes_only_through_a_resolved_hook(self, engine):
+    def test_executes_only_through_a_resolved_warrant(self, engine):
         r = self.run(engine, dscr=1.2)
         assert r.prediction["pd_12m"] > 0 and r.version == "3.2.1" and r.boundary_ok
 
@@ -290,30 +290,30 @@ class TestCaptiveEngine:
         assert r.descriptor_id and r.model_urn == URN
 
     def test_input_outside_the_boundary_is_refused(self, engine):
-        with pytest.raises(HookError) as e:
+        with pytest.raises(WarrantError) as e:
             self.run(engine, dscr=99)
         assert e.value.code == "boundary_violation" and "dscr" in e.value.detail
 
-    def test_revocation_stops_execution(self, engine, hooks):
-        hooks.revoke_model(URN, "kill switch")
-        with pytest.raises(HookError) as e:
+    def test_revocation_stops_execution(self, engine, warrants):
+        warrants.revoke_model(URN, "kill switch")
+        with pytest.raises(WarrantError) as e:
             self.run(engine, dscr=1.2)
         assert e.value.code == "revoked"
 
-    def test_local_revocation_floor_beats_a_valid_descriptor(self, engine, hooks):
+    def test_local_revocation_floor_beats_a_valid_descriptor(self, engine, warrants):
         """Grace never extends revocation ignorance, even with a fresh descriptor."""
-        d = hooks.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
+        d = warrants.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
         engine.note_revocation(d["descriptor_id"])
         # a fresh resolve yields a new id, so prove the check itself works
         engine._revoked_locally.add("*")
         engine.note_revocation(d["descriptor_id"])
         assert d["descriptor_id"] in engine._revoked_locally
 
-    def test_missing_runtime_is_reported_not_guessed(self, registry, hooks, approved_version):
+    def test_missing_runtime_is_reported_not_guessed(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
-        hooks.issue(f"{URN}#champion", "prod", "svc/o", "origination_decision")
-        bare = CaptiveEngine(hooks)
-        with pytest.raises(HookError) as e:
+        warrants.issue(f"{URN}#champion", "prod", "svc/o", "origination_decision")
+        bare = CaptiveEngine(warrants)
+        with pytest.raises(WarrantError) as e:
             bare.execute(f"{URN}#champion", "prod", "svc/o", "origination_decision", {"dscr": 1})
         assert e.value.code == "no_runtime"
 
@@ -321,5 +321,5 @@ class TestCaptiveEngine:
         assert self.run(engine, dscr=1.2).latency_ms >= 0
 
     def test_engine_never_reaches_the_store_directly(self, engine):
-        """The boundary that matters: the engine holds a hook client, nothing else."""
+        """The boundary that matters: the engine holds a warrant client, nothing else."""
         assert not hasattr(engine, "store") and not hasattr(engine, "registry")

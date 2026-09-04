@@ -55,7 +55,7 @@ flowchart TB
         A["<b>Para(Stoch)</b><br/>Parametrised morphisms in a Markov category<br/><i>one definition covering T0–T8</i>"]
     end
     subgraph L2["Pillar 2 — How do models COMPOSE?"]
-        B["<b>Symmetric monoidal categories</b><br/>string diagrams, operads, wiring diagrams<br/><i>feeder graphs, composite hooks, workflows</i>"]
+        B["<b>Symmetric monoidal categories</b><br/>string diagrams, operads, wiring diagrams<br/><i>feeder graphs, composite warrants, workflows</i>"]
     end
     subgraph L3["Pillar 3 — What can we SAY about a model?"]
         C["<b>Assume–guarantee contracts</b> + <b>Galois connections</b><br/>(abstract interpretation) + probe-relative <b>Yoneda</b><br/><i>operating boundaries, model cards, black boxes</i>"]
@@ -81,7 +81,7 @@ flowchart TB
 | Pillar | Mathematics | What it generalizes | Engineering payoff |
 |---|---|---|---|
 | 1 | **Markov categories**, **Para construction** | "Model" itself — deterministic, stochastic, parametric, non-parametric, trained, calibrated, elicited, opaque | One `Model` interface for all nine trainability classes; the trainability class becomes *how the parameter object is inhabited*, not a subclass |
-| 2 | **Symmetric monoidal categories**, operads, wiring diagrams | Model composition, feeder/consumer graphs, composite hooks, concurrent workflows | Composite hooks are typed and checked; blast radius is a graph-theoretic closure; aggregate risk is *lax* monoidality |
+| 2 | **Symmetric monoidal categories**, operads, wiring diagrams | Model composition, feeder/consumer graphs, composite warrants, concurrent workflows | Composite warrants are typed and checked; blast radius is a graph-theoretic closure; aggregate risk is *lax* monoidality |
 | 3 | **Assume–guarantee contract algebra**, **abstract interpretation**, **Yoneda (probe-relative)** | Operating boundaries, model cards, vendor black boxes, version compatibility | Contract composition/refinement/quotient give automatic compatibility checking; sound abstraction gives never-understated risk summaries |
 | 4 | **Fibrations**, Grothendieck construction, indexed categories | Versions over models, classes over the registry, environments, tenants | New model classes are new fibres — plugin, not migration |
 | 5 | **Institutions** (abstract model theory) | Multiple simultaneous regulatory regimes | New regulator = new institution + comorphism; *satisfaction condition* guarantees determinations survive translation |
@@ -202,8 +202,8 @@ category, built from generators.
 This is not analogy. It gives us:
 
 - **Typed composition.** Wiring model `A`'s output into model `B`'s input is legal iff the objects match
-  under the contract subtyping rules of §6.3. MAYA checks this statically when a composite hook is
-  requested (`FR-HOOK-017`).
+  under the contract subtyping rules of §6.3. MAYA checks this statically when a composite warrant is
+  requested (`FR-WARRANT-017`).
 - **Blast radius = the downstream closure** of a node in the diagram; the graph structure is the
   computation, not a report generated beside it (`FR-INV-010`).
 - **Parameter accumulation.** Composing `(P, f)` and `(Q, g)` yields parameter object `Q ⊗ P`. The
@@ -269,7 +269,7 @@ behaviour when the assumption holds. Contract theory (Benveniste et al.) supplie
 | Operation | Meaning | MAYA use |
 |---|---|---|
 | **Refinement** `C' ⪯ C` | weaker assumption, stronger guarantee | *"May version B replace version A?"* — a substitutability check, decidable |
-| **Composition** `C₁ ⊗ C₂` | contract of the composed system | Composite hook contract; what a model chain promises end-to-end |
+| **Composition** `C₁ ⊗ C₂` | contract of the composed system | Composite warrant contract; what a model chain promises end-to-end |
 | **Conjunction** `C₁ ∧ C₂` | satisfy both viewpoints | Merging a *performance* contract, a *fairness* contract and a *latency* contract on one model |
 | **Quotient** `C / C₁` | what the *missing* component must guarantee | *"Given the target and what we have, what must the challenger deliver?"* — turns a validation gap into a specification |
 
@@ -316,7 +316,7 @@ abstraction to remain sound at the required precision, and no more.
 
 Input/output schemas form a lattice under a subtyping order. Contract and schema compatibility follow the
 standard variance rule: a replacement model version must be **contravariant in inputs** (accept at least
-as much) and **covariant in outputs** (promise at least as much). MAYA enforces this at hook issuance and
+as much) and **covariant in outputs** (promise at least as much). MAYA enforces this at warrant issuance and
 at alias moves; it is the reason an alias move cannot silently break a consumer.
 
 ---
@@ -614,12 +614,12 @@ build fails.** This is how the theory stays honest.
 | **L-9** | *Provenance homomorphism.* For any semiring homomorphism `h : ℕ[X] → K`, evaluating in `K` equals `h` applied to the `ℕ[X]` result. | §9.2 | Differential test across all implemented semirings |
 | **L-10** | *PIT correctness.* Every generated training set satisfies the condition of §11.1. | §11.1 | Automated verifier run on every dataset snapshot; synthetic leakage injection must be caught |
 | **L-11** | *Lens laws.* GetPut, PutGet and PutPut hold for every document template. | §11.3 | Round-trip property tests per template |
-| **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §6.3 | Static check at hook issuance; property test on generated schema pairs |
+| **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §6.3 | Static check at warrant issuance; property test on generated schema pairs |
 | **L-13** | *Evidence gluing.* Overlapping evidence sections have consistency radius ≤ declared tolerance. | §9.3 | Computed at validation-report compile time |
 | **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | Property test over generated model graphs |
 | **L-15** | *Fibration completeness.* Every model class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §7 | Startup validation of the class registry; CI check on plugin registration |
 | **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §11.2 | SAT check on the compiled policy set at policy-publish time |
-| **L-17** | *Contract–serving agreement.* For every active hook, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | Continuous production check, **not** a design-time assertion — C-2 was invisible to every design-time check |
+| **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | Continuous production check, **not** a design-time assertion — C-2 was invisible to every design-time check |
 | **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no inline payload, only an erasable pointer. | [11 · H-3](11-adversarial-review.md) | DB `CHECK` constraint plus a payload scanner; reconciles append-only evidence with GDPR erasure |
 
 ---
@@ -705,7 +705,7 @@ The abstractions are not confined to this document. They appear in the codebase 
 |---|---|
 | `Para(Stoch)` model definition | `maya/domain/model_algebra.py` — `ParametricKernel`, `ParameterObject`, `FittingProcedure` |
 | Trainability class as fitting-morphism kind | `maya/domain/trainability.py` |
-| Model composition, string diagrams | `maya/domain/composition.py`; composite hooks in `maya/hooks/composite.py` |
+| Model composition, string diagrams | `maya/domain/composition.py`; composite warrants in `maya/warrants/composite.py` |
 | Contract algebra (⪯, ⊗, ∧, /) | `maya/domain/contracts.py` |
 | Fibrations / class registry | `maya/registry/fibres.py`, plugin entry points `maya.model_class` |
 | Institutions & comorphisms | `maya/regimes/institution.py`, one module per regime |

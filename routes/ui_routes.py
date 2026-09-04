@@ -40,5 +40,5 @@ class UIRoutes(Routes):
             return self.page(request, "model.html", model=m,
                              versions=registry.versions(urn),
                              history=registry.alias_history(urn),
-                             hooks=self.ctx["hooks"].grants_for(urn),
+                             warrants=self.ctx["warrants"].grants_for(urn),
                              evidence=self.ctx["evidence"].for_subject(m["id"]))

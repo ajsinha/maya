@@ -60,17 +60,17 @@
           <span>{{ model.model_class }}</span></div>
       </div></div>
 
-    <div class="card mb-3"><div class="card-header">Hooks</div>
+    <div class="card mb-3"><div class="card-header">Warrants</div>
       <div class="card-body p-0"><table class="table maya mb-0">
         <tbody>
-        {% for h in hooks %}
+        {% for h in warrants %}
           <tr><td class="small">{{ h.principal }}<div class="text-muted">{{ h.declared_use }}</div></td>
               <td class="text-end small">
                 {% if h.revoked %}<span class="evidence-bad">revoked</span>
                 {% else %}<span class="evidence-ok">active</span>{% endif %}
                 <div class="text-muted">{{ h.environment }}</div></td></tr>
         {% else %}
-          <tr><td class="text-muted small p-3">No hooks issued.</td></tr>
+          <tr><td class="text-muted small p-3">No warrants issued.</td></tr>
         {% endfor %}
         </tbody></table></div></div>
 
