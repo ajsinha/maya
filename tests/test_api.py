@@ -1002,3 +1002,79 @@ class TestOverlayApi:
                               auth=people["a.mehta"]).text
         assert "## Post-model adjustments" in text
         assert "describes a model nobody runs" in text
+
+
+class TestAssistApi:
+    def test_the_tiers_and_oracles_are_published(self, client, people):
+        body = client.get("/api/v1/assist/tiers", auth=people["d.raman"]).json()
+        assert {t["tier"] for t in body["tiers"]} == {"A", "B"}
+        assert body["oracles"] and "chat window" in body["note"]
+
+    def test_register_a_grounded_capability_and_generate(self, registered, people):
+        mrm, val = people["s.iqbal"], people["a.mehta"]
+        r = registered.post("/api/v1/assist/capabilities", auth=mrm, json={
+            "capability_key": "doc.draft", "description": "drafts doc sections",
+            "tier": "B", "base_model": "claude-opus-5",
+            "prompt_digest": "sha256:p", "owner": "person/a.mehta"})
+        assert r.status_code == 201
+
+        chain = registered.get("/api/v1/models/" + NAME).json()
+        ids = [n["id"] for n in chain["evidence"]][:2]
+        g = registered.post("/api/v1/assist/generations", auth=val, json={
+            "capability_key": "doc.draft", "subject_type": "model",
+            "subject_id": chain["model"]["id"],
+            "claims": [{"id": "c1", "text": "Registered in 2026.",
+                        "citations": ids[:1]},
+                       {"id": "c2", "text": "Invented.", "citations": ["ghost"]}],
+            "known_evidence": ids})
+        assert g.status_code == 201
+        body = g.json()
+        assert body["output"]["grounding"]["rejected"] == 1
+        assert "Invented." not in body["output"]["text"], \
+            "an ungrounded claim must not reach the output"
+
+    def test_tier_c_is_refused_over_the_api(self, registered, people):
+        r = registered.post("/api/v1/assist/capabilities", auth=people["s.iqbal"],
+                            json={"capability_key": "hunch", "description": "d",
+                                  "tier": "C", "base_model": "m",
+                                  "prompt_digest": "p", "owner": "o"})
+        assert r.status_code == 422
+        assert r.json()["error"] == "advisory_not_registrable"
+
+    def test_tier_a_without_an_oracle_is_refused(self, registered, people):
+        r = registered.post("/api/v1/assist/capabilities", auth=people["s.iqbal"],
+                            json={"capability_key": "x", "description": "d",
+                                  "tier": "A", "base_model": "m",
+                                  "prompt_digest": "p", "owner": "o"})
+        assert r.status_code == 422 and r.json()["error"] == "oracle_required"
+
+    def test_the_requester_cannot_attest_their_own_generation(self, registered,
+                                                              people):
+        mrm, val = people["s.iqbal"], people["a.mehta"]
+        registered.post("/api/v1/assist/capabilities", auth=mrm, json={
+            "capability_key": "doc.draft", "description": "d", "tier": "B",
+            "base_model": "m", "prompt_digest": "p", "owner": "o"})
+        model = registered.get("/api/v1/models/" + NAME).json()
+        ids = [n["id"] for n in model["evidence"]][:1]
+        gid = registered.post("/api/v1/assist/generations", auth=val, json={
+            "capability_key": "doc.draft", "subject_type": "model",
+            "subject_id": model["model"]["id"],
+            "claims": [{"id": "c", "text": "Registered.", "citations": ids}],
+            "known_evidence": ids}).json()["id"]
+
+        r = registered.post(f"/api/v1/assist/generations/{gid}/attest", auth=val,
+                            json={"accept": True})
+        assert r.status_code == 403 and r.json()["error"] == "self_attestation"
+
+        ok = registered.post(f"/api/v1/assist/generations/{gid}/attest", auth=mrm,
+                             json={"accept": True, "final_text": "Registered."})
+        assert ok.status_code == 200 and ok.json()["state"] == "attested"
+
+    def test_there_is_no_endpoint_that_decides_from_a_generation(self, client):
+        """The absence is the control: a draft becomes consequential only when a
+        person attests it."""
+        paths = client.get("/api/v1/openapi.json").json()["paths"]
+        assist = [p for p in paths if "/assist/" in p]
+        assert assist, "the assistance surface should exist"
+        for path in assist:
+            assert "approve" not in path and "conclude" not in path

@@ -17,7 +17,7 @@ concurrently running processes.
 
 ## 0. Build status
 
-*Last updated after milestone 12. This section is the authoritative record of what
+*Last updated after milestone 13. This section is the authoritative record of what
 is built; the phases below are the plan it is being built against.*
 
 | | Component | State | Evidence |
@@ -43,7 +43,7 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Six-state record machine: draft → submitted → approved → attested, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
 | ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (17 runtimes) × what is asked of it (10 verbs) × where its data comes from (11 bindings). Seven admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Ten worked examples spanning QuantLib pricing and calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet and a VaR backtest, all validated on every test run |
 | ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | Five worked walkthroughs rendered at request time: a model end to end with four separated principals, storing artifacts, running several versions, features end to end, and warrants by model family |
-| ⬜ | **Machine assistance** | **Not started** | Capability registry, grounding gate, oracle-backed generation |
+| ✅ | **Machine assistance** (`core/assist/`) | **Complete** | Capabilities registered at Tier A (a named oracle checks the output) or Tier B (every claim cites evidence); Tier C is deliberately not registrable. Five oracles, each backed by machinery that exists for another reason. The grounding gate *removes* unsupported claims rather than flagging them, and keeps them for the reviewer. Nothing is evidence until a person attests it, and never the person who asked. Edit distance and a mandatory review sample detect automation bias |
 | ⬜ | **Baseline import** | **Not started** | Compliance-debt tracking for legacy models (finding C-5) |
 
 ### What is genuinely working
@@ -67,6 +67,10 @@ number.
 
 ### Honest gaps
 
+- **MAYA does not call a language model.** It records what one produced, gates
+  it, holds it until a person signs, and measures whether that person is still
+  reading. Generation happens wherever you run models — the same boundary the
+  platform draws everywhere else.
 - **No document rendering beyond markdown.** No PDF, no house template, no
   signature page, no export pack. Turning the compiled markdown into a firm's
   document standard is deliberately outside what the platform tries to own.
