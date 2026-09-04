@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ view.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">FEATURE VIEW</p>
+<h1>{{ view.name }}</h1>
+<div class="rule"></div>
+<p class="text-muted small">Entity <code>{{ view.entity }}</code> &middot; owner
+{{ view.owner }} &middot; <code>{{ view.delta_table }}</code></p>
+
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Upload values &mdash; the whole upload becomes one version</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#upload">Show</button></div>
+  <div class="collapse" id="upload"><div class="card-body">
+    <input type="file" id="file" class="form-control form-control-sm"
+           accept=".parquet,.arrow,.ndjson,.jsonl">
+    <div class="text-muted mt-2" style="font-size:.72rem">
+      Parquet, Arrow IPC or NDJSON. Every row carries
+      <code>entity_id</code>, <code>event_ts</code> (when the fact was true) and
+      <code>ingest_ts</code> (when we learned it) &mdash; a row without both
+      clocks is refused here rather than two layers later, where it stops being
+      fixable. Nothing is held whole: the upload is parsed a batch at a time.
+    </div>
+    <button id="send" class="btn btn-sm btn-danger mt-2 py-0 px-3"
+            style="font-size:.75rem">Upload</button>
+    <div id="upload-result" class="small mt-2"></div>
+  </div></div></div>
+
+<div class="card mb-3"><div class="card-header">Versions</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Version</th><th>Rows</th><th>Features</th><th>Pinned at</th>
+               <th>Since</th><th></th></tr></thead>
+    <tbody>
+    {% for v in versions|reverse %}
+      <tr><td class="small">v{{ v.version }}</td>
+          <td class="small">{{ "{:,}".format(v.row_count) }}</td>
+          <td class="small">{{ (v.features or [])|join(', ') }}</td>
+          <td class="small">delta v{{ v.delta_version }}</td>
+          <td class="small">
+            {% if v.restated %}<span class="evidence-bad">restated</span>
+              <div class="text-muted">now at delta v{{ v.current_delta_version }}</div>
+            {% else %}<span class="evidence-ok">unchanged</span>{% endif %}</td>
+          <td class="small text-end">
+            <a href="/api/v1/feature-views/{{ view.name }}/versions/{{ v.version }}/data?format=parquet"
+               style="color:var(--crimson);text-decoration:none">parquet</a> &middot;
+            <a href="/api/v1/feature-views/{{ view.name }}/versions/{{ v.version }}/data?format=arrow"
+               style="color:var(--crimson);text-decoration:none">arrow</a> &middot;
+            <a href="/api/v1/feature-views/{{ view.name }}/versions/{{ v.version }}/data?format=json&limit=50"
+               style="color:var(--crimson);text-decoration:none">peek</a></td></tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted small">Never materialised.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A version is a serving namespace. Writing v2 does not touch what v1 serves,
+    because they are different Delta paths &mdash; and a read is pinned to the
+    version rather than to the path.
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+var TYPES = {parquet: "application/vnd.apache.parquet",
+             arrow: "application/vnd.apache.arrow.stream",
+             ndjson: "application/x-ndjson", jsonl: "application/x-ndjson"};
+$("#send").on("click", function () {
+  var file = document.getElementById("file").files[0];
+  if (!file) { $("#upload-result").text("Choose a file first."); return; }
+  var ext = file.name.split(".").pop().toLowerCase();
+  var type = TYPES[ext];
+  if (!type) {
+    $("#upload-result").html('<span class="evidence-bad">' + ext +
+      ' is not a format this accepts &mdash; parquet, arrow or ndjson.</span>');
+    return;
+  }
+  $("#upload-result").text("Uploading " + (file.size / 1e6).toFixed(1) + " MB…");
+  $.ajax({url: "/api/v1/feature-views/{{ view.name }}/data", method: "POST",
+          data: file, contentType: type, processData: false})
+    .done(function () { location.reload(); })
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      $("#upload-result").html('<span class="evidence-bad">Refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>');
+    });
+});
+</script>
+{% endblock %}

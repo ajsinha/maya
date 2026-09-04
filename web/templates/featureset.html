@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}{{ featureset.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">FEATURESET</p>
+<h1>{{ featureset.name }}</h1>
+<div class="rule"></div>
+<p class="text-muted small">{{ featureset.grain }} &middot; entity
+<code>{{ featureset.entity }}</code>
+{% if featureset.label_slot %}&middot; label <code>{{ featureset.label_slot }}</code>
+  {% if featureset.outcome_window_days %}with a
+  {{ featureset.outcome_window_days }}-day outcome window{% endif %}{% endif %}</p>
+
+<div class="card mb-3"><div class="card-header">The schema &mdash; what a kernel is defined over</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Type</th><th>Nullable</th><th>Role</th></tr></thead>
+    <tbody>
+    {% for slot, spec in featureset.slots.items()|sort %}
+      <tr><td class="small">{{ slot }}</td>
+          <td class="small">{{ spec.dtype }}</td>
+          <td class="small">{{ 'yes' if spec.nullable else 'no' }}</td>
+          <td class="small">
+            {% if slot == featureset.label_slot %}
+              <span class="evidence-bad">label</span>
+            {% else %}<span class="text-muted">feature</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A version that cannot fill this schema is refused. It is not a version of
+    this featureset &mdash; it is a different one, or it is a model change.
+  </div></div>
+
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Publish a version &mdash; fill the schema</span>
+    <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
+            data-bs-toggle="collapse" data-bs-target="#publish">Show</button></div>
+  <div class="collapse" id="publish"><div class="card-body">
+    <form id="publish-version" class="small">
+      <textarea class="form-control form-control-sm" name="bindings" rows="5"
+        placeholder='{{ '{' }}{% for slot in featureset.slots %}"{{ slot }}": "{{ slot }}"{{ ", " if not loop.last }}{% endfor %}{{ '}' }}'
+        required></textarea>
+      <div class="text-muted mt-1" style="font-size:.72rem">
+        Slot &rarr; feature. Name the view and version explicitly
+        (<code>{"feature": "x", "view": "v", "view_version": 1}</code>) where more
+        than one view supplies a feature &mdash; ambiguity is refused rather than
+        guessed at.
+      </div>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Publish</button>
+      <button type="button" id="roll" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"
+              style="font-size:.75rem">Roll forward to newest views</button>
+    </form>
+    <div id="publish-result" class="small mt-2"></div>
+  </div></div></div>
+
+{% for v in versions|reverse %}
+  <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+      <span>v{{ v.version }}
+        <span class="text-muted small">&nbsp;<code>{{ v.digest[7:23] }}&hellip;</code></span></span>
+      <span>
+        <a class="small" href="/api/v1/featuresets/{{ featureset.name }}/versions/{{ v.version }}/data?format=parquet"
+           style="color:var(--crimson);text-decoration:none">parquet</a> &middot;
+        <a class="small" href="/api/v1/featuresets/{{ featureset.name }}/versions/{{ v.version }}/data?format=arrow"
+           style="color:var(--crimson);text-decoration:none">arrow</a> &middot;
+        <a class="small" href="/api/v1/featuresets/{{ featureset.name }}/versions/{{ v.version }}/parts"
+           style="color:var(--crimson);text-decoration:none">parts</a></span></div>
+    <table class="table maya mb-0">
+      <thead><tr><th>Slot</th><th>Feature</th><th>Namespace</th><th>Pinned at</th></tr></thead>
+      <tbody>
+      {% for s in plans[v.version].slots %}
+        <tr><td class="small">{{ s.slot }}</td>
+            <td class="small">{{ s.feature }}
+              {% if s.derived %}<div class="text-muted">derived · def v{{ s.definition_version }}</div>{% endif %}</td>
+            <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
+            <td class="small">delta v{{ s.delta_version }}</td></tr>
+      {% endfor %}
+      </tbody></table>
+    <div class="card-body py-2 small border-top">
+      {% if restatements[v.version].restated %}
+        <span class="evidence-bad">Restated underneath.</span>
+        <span class="text-muted">{{ restatements[v.version].detail }}. A reader who
+        dropped the pin would now see something else; this version still reads
+        what it pinned.</span>
+      {% else %}
+        <span class="text-muted">{{ restatements[v.version].detail }}.
+        {% if v.note %}{{ v.note }}.{% endif %}</span>
+      {% endif %}
+    </div></div>
+{% else %}
+  <div class="card mb-3"><div class="card-body small text-muted">
+    No versions yet. The schema is declared; nothing fills it.</div></div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script>
+function show(x) {
+  var e = x.responseJSON || {};
+  $("#publish-result").html('<span class="evidence-bad">Refused &mdash; ' +
+    (e.detail || x.statusText) + '</span>' +
+    (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+}
+$("#publish-version").on("submit", function (e) {
+  e.preventDefault();
+  var raw = Object.fromEntries(new FormData(this)).bindings, bindings;
+  try { bindings = JSON.parse(raw); }
+  catch (err) {
+    $("#publish-result").html('<span class="evidence-bad">Not valid JSON &mdash; ' +
+      err.message + '</span>');
+    return;
+  }
+  $.ajax({url: "/api/v1/featuresets/{{ featureset.name }}/versions", method: "POST",
+          contentType: "application/json", data: JSON.stringify({bindings: bindings})})
+    .done(function () { location.reload(); }).fail(show);
+});
+$("#roll").on("click", function () {
+  $.ajax({url: "/api/v1/featuresets/{{ featureset.name }}/roll-forward",
+          method: "POST"})
+    .done(function () { location.reload(); }).fail(show);
+});
+</script>
+{% endblock %}

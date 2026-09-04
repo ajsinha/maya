@@ -333,3 +333,42 @@ things are checked, in this order: the target version is approved; no blocking
 finding stands against the model; and the proof obligations L-7 and L-12 hold
 against the incumbent. See [Warrants and execution](/help/warrants) for what a
 resolved alias then produces.
+
+
+## Creating a model through the interface
+
+`/models/new` does the two acts that bring a model into the register, and it is
+the same pair of endpoints an execution engine uses.
+
+**Register the model** — the urn, the name, the class, the domain, the legal
+entity, the owner and what it is for. Nothing about how it runs; that belongs to
+a version.
+
+**Upload a version** — the kernel. How the parameter object is inhabited and by
+what procedure (the trainability class is *derived* from those two, never
+declared), the runtime and its entry, the input and output schemas, and the
+artifact's digest and location.
+
+A digest with no location cannot be fetched; a location with no digest cannot be
+checked. Supply neither and the version is `descriptor_only`: MAYA holds the
+governance and the engine supplies the model. That is a legitimate state — a
+vendor product under licence is the ordinary case — and the warrant says it out
+loud rather than guessing around it.
+
+Assessment comes before approval, not after. The tier decides how many signatures
+a version's approval needs, so a version cannot be approved before its model is
+assessed; approving first would be choosing your own control depth.
+
+### The same path, from an execution engine
+
+An engine that has just finished a fit does exactly this:
+
+```
+POST /api/v1/models                    # once, when the model first exists
+POST /api/v1/models/{name}/versions    # the kernel that will run
+POST /api/v1/parameters                # the inhabitant of P it produced
+```
+
+The parameters are accepted only against a warrant MAYA issued, and only when
+they name the featureset version that produced them. Somebody other than whoever
+recorded them approves them before anything runs on them.

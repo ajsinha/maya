@@ -24,6 +24,7 @@ from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
 from core.features.contracts import ContractBinder
 from core.features.derived import DerivedFeatures
 from core.features.sets import FeaturesetRegistry
+from core.features.transfer import FeatureTransfer
 from core.features.views import ViewManager
 from db import (ContractRepository, DeltaStore, DerivedFeatureRepository,
                 FeatureRepository, FeatureViewRepository,
@@ -57,6 +58,9 @@ class FeatureRegistry:
         # persistence, not a collaborator's; reading them back is part of this
         # object's surface rather than something callers reach through it for.
         self.delta, self.snapshots = delta, snapshots
+        # Feature VALUES are the one thing here that is not small, so they move
+        # through a layer that never materialises a dataset whole.
+        self.transfer = FeatureTransfer(delta, self.views, self.sets)
 
     # -------------------------------------------------------------- catalogue
     def define(self, *a, **kw) -> Dict[str, Any]:
