@@ -312,7 +312,7 @@ maya/
 ├── docs/                            17 specification documents + ADRs
 │   ├── 00 … 16-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
-│   ├── data/                        the two FRED series the worked example uses
+│   ├── examples/                    the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
 │   ├── MAYA-System-Design.pptx              56-slide system design deck
