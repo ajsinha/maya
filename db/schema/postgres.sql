@@ -367,3 +367,71 @@ CREATE TABLE IF NOT EXISTS attestation_signature (
 );
 
 CREATE INDEX IF NOT EXISTS ix_signature_attestation ON attestation_signature (attestation_id);
+
+-- --------------------------------------------------------------------------
+-- Monitoring: monitors, observations and breaches
+-- --------------------------------------------------------------------------
+-- A monitor is a standing question asked of a model version on a cadence. An
+-- observation is one answer. A breach is an answer outside the threshold, and
+-- it raises a finding -- which closes the loop, because a finding can block
+-- warrant resolution and alias promotion.
+--
+-- `label_delay_days` is the column that makes performance monitoring honest. A
+-- 12-month PD model's outcome is not known for 12 months, so a cohort scored
+-- last week has no measurable discrimination. Monitors declare the delay, and
+-- an evaluation over an immature cohort is refused rather than reported as a
+-- number nobody should act on.
+
+CREATE TABLE IF NOT EXISTS monitor (
+    id                TEXT PRIMARY KEY,
+    model_id          TEXT NOT NULL,
+    model_version_id  TEXT,
+    name              TEXT NOT NULL,
+    kind              TEXT NOT NULL,
+    test_key          TEXT NOT NULL,
+    threshold         TEXT NOT NULL DEFAULT '{}',
+    slice             TEXT NOT NULL DEFAULT '{}',
+    reference         TEXT NOT NULL DEFAULT '{}',
+    cadence_days      DOUBLE PRECISION NOT NULL DEFAULT 1.0,
+    label_delay_days  DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+    breach_severity   TEXT NOT NULL DEFAULT 'Medium',
+    escalate_after    INTEGER NOT NULL DEFAULT 3,
+    status            TEXT NOT NULL DEFAULT 'active',
+    owner             TEXT NOT NULL,
+    created_at        DOUBLE PRECISION NOT NULL,
+    last_evaluated_at DOUBLE PRECISION
+);
+
+CREATE INDEX IF NOT EXISTS ix_monitor_model ON monitor (model_id, status);
+
+CREATE TABLE IF NOT EXISTS observation (
+    id           TEXT PRIMARY KEY,
+    monitor_id   TEXT NOT NULL,
+    value        DOUBLE PRECISION,
+    passed       BOOLEAN NOT NULL DEFAULT FALSE,
+    detail       TEXT NOT NULL DEFAULT '',
+    sample_size  INTEGER NOT NULL DEFAULT 0,
+    window_start DOUBLE PRECISION,
+    window_end   DOUBLE PRECISION,
+    matured      BOOLEAN NOT NULL DEFAULT TRUE,
+    digest       TEXT NOT NULL,
+    computed_at  DOUBLE PRECISION NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_observation_monitor ON observation (monitor_id, computed_at);
+
+CREATE TABLE IF NOT EXISTS breach (
+    id             TEXT PRIMARY KEY,
+    monitor_id     TEXT NOT NULL,
+    model_id       TEXT NOT NULL,
+    observation_id TEXT NOT NULL,
+    severity       TEXT NOT NULL,
+    consecutive    INTEGER NOT NULL DEFAULT 1,
+    detail         TEXT NOT NULL DEFAULT '',
+    finding_id     TEXT,
+    status         TEXT NOT NULL DEFAULT 'open',
+    opened_at      DOUBLE PRECISION NOT NULL,
+    closed_at      DOUBLE PRECISION
+);
+
+CREATE INDEX IF NOT EXISTS ix_breach_model ON breach (model_id, status);

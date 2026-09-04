@@ -673,3 +673,86 @@ class TestLifecycleApi:
         assert r.status_code == 200 and r.json()["status"] == "amending"
         assert registered.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                                json={"semver": "4.0.0", "kernel": KERNEL}).status_code == 201
+
+
+class TestMonitoringApi:
+    def test_the_monitor_kinds_are_published_with_their_tests(self, client, people):
+        body = client.get("/api/v1/monitor-kinds", auth=people["d.raman"]).json()
+        kinds = {k["kind"]: k for k in body["kinds"]}
+        assert kinds["input_drift"]["tests"] == ["stability.psi"]
+        assert kinds["performance"]["needs_labels"] is True
+        assert kinds["score_drift"]["needs_labels"] is False
+
+    def test_define_and_evaluate_a_drift_monitor(self, registered, people):
+        owner = people["j.okafor"]
+        r = registered.post("/api/v1/monitors", auth=owner, json={
+            "urn": URN, "name": "score drift", "kind": "score_drift",
+            "test_key": "stability.psi", "threshold": {"max": 0.25},
+            "owner": "person/j.okafor"})
+        assert r.status_code == 201
+        mid = r.json()["id"]
+
+        reference = [i / 100 for i in range(100)]
+        rows = [{"scored_at": 1.8e9, "score": i / 100} for i in range(100)]
+        out = registered.post(f"/api/v1/monitors/{mid}/evaluate", auth=owner,
+                              json={"rows": rows, "reference": reference,
+                                    "now": 1.8e9}).json()
+        assert out["observation"]["passed"] is True and out["breach"] is None
+
+    def test_a_performance_monitor_refuses_an_immature_cohort(self, registered, people):
+        owner = people["j.okafor"]
+        mid = registered.post("/api/v1/monitors", auth=owner, json={
+            "urn": URN, "name": "gini", "kind": "performance",
+            "test_key": "discrimination.gini", "threshold": {"min": 0.4},
+            "owner": "person/j.okafor", "label_delay_days": 365}).json()["id"]
+        rows = [{"scored_at": 1.8e9, "score": i / 20, "label": i % 2}
+                for i in range(20)]
+        r = registered.post(f"/api/v1/monitors/{mid}/evaluate", auth=owner,
+                            json={"rows": rows, "now": 1.8e9 + 86400})
+        assert r.status_code == 409
+        assert r.json()["error"] == "cohort_immature"
+        assert "wait for the outcome window" in r.json()["remediation"]
+
+    def test_a_breach_becomes_a_finding_visible_on_the_model(self, registered, people):
+        owner = people["j.okafor"]
+        mid = registered.post("/api/v1/monitors", auth=owner, json={
+            "urn": URN, "name": "score drift", "kind": "score_drift",
+            "test_key": "stability.psi", "threshold": {"max": 0.1},
+            "owner": "person/j.okafor", "breach_severity": "Critical"}).json()["id"]
+        registered.post(f"/api/v1/monitors/{mid}/evaluate", auth=owner, json={
+            "rows": [{"scored_at": 1.8e9, "score": 0.99} for _ in range(100)],
+            "reference": [i / 100 for i in range(100)], "now": 1.8e9})
+
+        findings = registered.get("/api/v1/findings", params={"urn": URN}).json()
+        assert findings["summary"]["blocking"] == 1
+        assert findings["blocking"][0]["source"] == "monitoring"
+
+        # ...and the model is now unservable.
+        r = registered.post("/api/v1/resolve", json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination", "declared_use": "origination_decision"})
+        assert r.status_code == 423 and r.json()["error"] == "blocked"
+
+    def test_a_developer_cannot_define_a_monitor(self, registered, people):
+        r = registered.post("/api/v1/monitors", auth=people["d.raman"], json={
+            "urn": URN, "name": "x", "kind": "score_drift",
+            "test_key": "stability.psi", "threshold": {"max": 0.25}, "owner": "o"})
+        assert r.status_code == 403
+
+    def test_an_inadmissible_test_is_refused_at_definition(self, registered, people):
+        r = registered.post("/api/v1/monitors", auth=people["j.okafor"], json={
+            "urn": URN, "name": "x", "kind": "input_drift",
+            "test_key": "discrimination.gini", "threshold": {"min": 0.4},
+            "owner": "o"})
+        assert r.status_code == 422
+        assert r.json()["error"] == "test_not_admissible"
+
+    def test_monitoring_renders_on_the_model_page(self, registered, people):
+        registered.post("/api/v1/monitors", auth=people["j.okafor"], json={
+            "urn": URN, "name": "score drift", "kind": "score_drift",
+            "test_key": "stability.psi", "threshold": {"max": 0.25}, "owner": "o"})
+        registered.post("/login", data={"username": "admin", "password": "admin123",
+                                        "next": "/dashboard"})
+        body = registered.get(f"/model/{NAME}").text
+        assert "Monitoring" in body and "score drift" in body
+        assert "stability.psi" in body

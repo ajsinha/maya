@@ -24,7 +24,7 @@ from db.database import Database, new_id
 logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking")
+                 "protected_basis", "pit_verified", "passed", "blocking", "matured")
 
 
 class Repository:
@@ -213,3 +213,21 @@ class AttestationRepository(Repository):
 
 class SignatureRepository(Repository):
     TABLE, ORDER = "attestation_signature", "signed_at"
+
+
+class MonitorRepository(Repository):
+    TABLE, ORDER = "monitor", "created_at"
+    JSON = ("threshold", "slice", "reference")
+
+
+class ObservationRepository(Repository):
+    TABLE, ORDER = "observation", "computed_at"
+
+
+class BreachRepository(Repository):
+    TABLE, ORDER = "breach", "opened_at"
+
+    def open_for(self, model_id: str) -> List[Dict[str, Any]]:
+        return [self._decode(r) for r in self.db.query(
+            f"SELECT * FROM {self.TABLE} WHERE model_id = :m AND status = 'open' "
+            "ORDER BY opened_at", {"m": model_id})]
