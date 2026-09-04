@@ -494,3 +494,44 @@ class TestAligningOntoAnAxis:
         ragged = [rows[0], {**rows[1], "curve": [1.0, 2.0, 3.0]}]
         with pytest.raises(FeatureError, match="invent a correspondence"):
             align(ragged, ["curve"], rule="linear", grid=[1.0])
+
+
+class TestAParentThatMovesIsReported:
+    """A composition records which DEFINITION of a parent it resolved against.
+    Without that, amending a parent silently changes every child — a stable
+    identifier over moving contents, which is finding C-2 in a third costume."""
+
+    def test_the_parent_version_is_stamped_at_compose_time(self, cat, curve):
+        child = cat.define("child", "book_id", "numeric", "x", "person/o",
+                           composes=[{"name": "usd_curve"}])
+        assert child["composes"][0]["definition_version"] == 1
+
+    def test_nothing_has_drifted_when_nothing_has_moved(self, cat, curve):
+        cat.define("child", "book_id", "numeric", "x", "person/o",
+                   composes=[{"name": "usd_curve"}])
+        assert cat.resolved("child")["drift"] == []
+
+    def test_amending_a_parent_is_reported_as_drift(self, cat, curve):
+        cat.define("child", "book_id", "numeric", "x", "person/o",
+                   composes=[{"name": "usd_curve"}])
+        cat.amend("usd_curve", {"description": "revised"})
+        drift = cat.resolved("child")["drift"]
+        assert drift and drift[0]["parent"] == "usd_curve"
+        assert drift[0]["composed_against"] == 1 and drift[0]["now_at"] == 2
+
+    def test_a_sealed_parent_cannot_drift_because_it_cannot_move(self, cat,
+                                                                 curve):
+        """Which is what sealing is for, stated as a property rather than a
+        promise: an amendment is refused, so the version cannot advance."""
+        cat.seal("usd_curve", "person/s.iqbal")
+        cat.define("child", "book_id", "numeric", "x", "person/o",
+                   composes=[{"name": "usd_curve"}])
+        with pytest.raises(FeatureError):
+            cat.amend("usd_curve", {"description": "revised"})
+        assert cat.resolved("child")["drift"] == []
+
+    def test_composing_from_something_that_does_not_exist_is_refused_now(
+            self, cat):
+        with pytest.raises(FeatureError, match="no such feature"):
+            cat.define("orphan", "book_id", "numeric", "x", "person/o",
+                       composes=[{"name": "never_defined"}])

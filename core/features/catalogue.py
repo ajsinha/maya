@@ -59,7 +59,7 @@ class FeatureCatalogue:
                "pii": int(pii), "protected_basis": int(protected_basis),
                "proxy_risk": proxy_risk, "certification": "experimental",
                "shape": list(dims), "components": named,
-               "composes": list(composes or []),
+               "composes": self._stamp(composes),
                "operations": list(operations or []),
                "definition_version": 1,
                "defaults": policy.check(defaults),
@@ -85,8 +85,48 @@ class FeatureCatalogue:
         return stored
 
     # -------------------------------------------------------------- composition
+    def _stamp(self, composes: Optional[Sequence[Any]]) -> List[Dict[str, Any]]:
+        """Record which DEFINITION of each parent this was composed against.
+
+        A feature's definition is amendable, and an amendment advances its
+        definition version. Without recording which one a child resolved
+        against, amending a parent would silently change every child — a stable
+        identifier over moving contents, which is adversarial finding C-2 in a
+        third costume. The version is stamped here so drift can be reported.
+        """
+        out = []
+        for parent in composes or []:
+            spec = {"name": parent} if isinstance(parent, str) else dict(parent)
+            row = self.features.one(name=spec.get("name"))
+            if row is None:
+                raise FeatureError(
+                    f"cannot compose from '{spec.get('name')}': no such feature")
+            spec.setdefault("definition_version",
+                            row.get("definition_version") or 1)
+            out.append(spec)
+        return out
+
     def _load(self, name: str, version: Optional[int]) -> Optional[Dict[str, Any]]:
+        """The parent as it stands. Drift against the stamped version is
+        reported by ``resolved`` rather than raised here: a child whose parent
+        has moved is a thing to be told about, not a read that should fail."""
         return self.features.one(name=name)
+
+    def drift(self, row: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Parents whose definition has moved since this feature composed them."""
+        moved = []
+        for parent in row.get("composes") or []:
+            spec = {"name": parent} if isinstance(parent, str) else parent
+            current = self.features.one(name=spec.get("name"))
+            if current is None:
+                continue
+            was = spec.get("definition_version")
+            now = current.get("definition_version") or 1
+            if was is not None and now != was:
+                moved.append({"parent": spec["name"], "composed_against": was,
+                              "now_at": now,
+                              "sealed": bool(current.get("sealed_at"))})
+        return moved
 
     @staticmethod
     def _own_components(row: Dict[str, Any]) -> Dict[str, Any]:
@@ -134,6 +174,7 @@ class FeatureCatalogue:
             "policy": policy.explain(row, self._parents(row)),
             "lifetime": self.lifecycle.remaining(row),
             "sealed": bool(row.get("sealed_at")),
+            "drift": self.drift(row),
         }
 
     def get(self, name: str) -> Dict[str, Any]:

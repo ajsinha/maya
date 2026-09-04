@@ -56,22 +56,39 @@ class EvidenceEngine:
                *, personal_data: bool = False, trust: float = 1.0,
                actor: str = "system") -> Dict[str, Any]:
         payload, parents = payload or {}, sorted(parents or [])
-        content_hash = canonical_digest(
-            {"kind": kind, "subject": [subject_type, subject_id], "payload": payload,
-             "parents": parents})
+        # Hashed over what is STORED, not over what was passed: a node carrying
+        # personal data stores an empty payload (law L-18), and hashing the
+        # original would make every such node fail its own verification.
+        stored_payload = {} if personal_data else payload
+        content_hash = self.content_hash_of(
+            {"kind": kind, "subject_type": subject_type, "subject_id": subject_id,
+             "payload": stored_payload, "parents": parents})
         prev_seq, prev_hash = self.head()
         seq = prev_seq + 1
         node = {
             "seq": seq, "kind": kind,
             "subject_type": subject_type, "subject_id": subject_id,
             # Law L-18: personal data is never inline, only an erasable pointer.
-            "payload": {} if personal_data else payload,
+            "payload": stored_payload,
             "parents": parents, "contains_personal_data": personal_data,
             "content_hash": content_hash, "prev_hash": prev_hash,
             "chain_hash": canonical_digest([seq, prev_hash, content_hash, parents]),
             "trust": trust, "recorded_at": time.time(), "recorded_by": actor,
         }
         return self.repo.add(node)
+
+    @staticmethod
+    def content_hash_of(node: Dict[str, Any]) -> str:
+        """The digest a node's own fields imply. One definition, two callers.
+
+        ``append`` and ``verify_chain`` must agree exactly, and the only way to
+        guarantee that is for there to be one expression of it.
+        """
+        return canonical_digest({
+            "kind": node["kind"],
+            "subject": [node["subject_type"], node["subject_id"]],
+            "payload": node.get("payload") or {},
+            "parents": node.get("parents") or []})
 
     def verify_chain(self) -> Dict[str, Any]:
         """Walk the chain. Reports the first break, if any."""
@@ -82,6 +99,15 @@ class EvidenceEngine:
                 return {"valid": False, "broken_at": n["seq"], "reason": "sequence gap"}
             if n["prev_hash"] != prev_hash:
                 return {"valid": False, "broken_at": n["seq"], "reason": "prev_hash mismatch"}
+            # The content hash is RECOMPUTED from the node's own fields rather
+            # than trusted as stored. Re-linking a stored content_hash proves
+            # only that the links are intact; it says nothing about whether the
+            # thing linked is still what was recorded, so an edited payload
+            # would leave a chain that verifies and a record that lies.
+            if self.content_hash_of(n) != n["content_hash"]:
+                return {"valid": False, "broken_at": n["seq"],
+                        "reason": "content_hash mismatch: the node's payload, "
+                                  "kind or subject is not what was recorded"}
             recomputed = canonical_digest([n["seq"], n["prev_hash"], n["content_hash"], n["parents"]])
             if recomputed != n["chain_hash"]:
                 return {"valid": False, "broken_at": n["seq"], "reason": "chain_hash mismatch"}
