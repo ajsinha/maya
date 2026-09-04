@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Telemetry — {{ model.name }} v{{ version.semver }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">TELEMETRY</p>
+<h1>{{ model.name }} <span class="text-muted">v{{ version.semver }}</span></h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  <a href="/model/{{ model.urn.replace('maya://model/','') }}"
+     style="color:var(--crimson);text-decoration:none">{{ model.urn }}</a>
+  &middot; version {{ version.status }}
+  &middot; <a href="/telemetry" style="color:var(--crimson);text-decoration:none">every
+    version's telemetry</a></p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if summary.silent_days and summary.silent_days > 1 else '' }}">
+      {% if summary.silent_days is none %}—{% else %}{{ summary.silent_days }}{% endif %}</div>
+    <div class="stat-l">days since anything was scored</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ "{:,}".format(summary.scores) }}</div>
+    <div class="stat-l">scores ingested</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ "{:,}".format(summary.outcomes) }}</div>
+    <div class="stat-l">outcomes learned</div>
+    <div class="stat-l mt-1">{{ (summary.labelled_fraction * 100)|round(1) }}% of scores</div>
+  </div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">
+      {% if summary.sample_rates %}{{ (summary.sample_rates[0] * 100)|round(1) }}%
+      {% else %}—{% endif %}</div>
+    <div class="stat-l">lowest sample rate</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header">What this version has sent</div>
+  <div class="card-body py-3 small">
+    <p class="mb-0">{{ summary.detail }}.</p>
+  </div>
+  <table class="table maya mb-0">
+    <tbody>
+    {% for stream, means in streams.items() %}
+      <tr><td class="small mono" style="width:8rem">{{ stream }}</td>
+          <td class="small text-muted">{{ means }}</td>
+          <td class="small text-end">
+            {% if stream == 'scores' %}{{ "{:,}".format(summary.scores) }}
+            {% else %}{{ "{:,}".format(summary.outcomes) }}{% endif %} rows</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    The sample rate is recorded on every row, so a statistic computed downstream
+    can say what population it speaks for instead of quietly speaking for the
+    sample.</div></div>
+
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>The cohort a monitor would judge</span>
+    <span class="small text-muted">{{ labelled }} of {{ rows }} rows have an outcome</span></div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Entity</th><th>Scored</th><th>Score</th><th>Outcome</th>
+               <th>Sampled at</th></tr></thead>
+    <tbody>
+    {% for r in shown %}
+      <tr><td class="small mono">{{ r.get('entity_id') }}</td>
+          <td class="small">{{ ((now - r.get('scored_at', now)) / 86400)|round(1) }} days ago</td>
+          <td class="small">{{ r.get('score') }}</td>
+          <td class="small">
+            {% if 'label' in r %}{{ r.get('label') }}
+            {% else %}<span class="text-muted">not known yet</span>{% endif %}</td>
+          <td class="small">{{ (r.get('sample_rate', 1.0) * 100)|round(1) }}%</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="text-muted small">
+        Nothing has been ingested for this version, so a monitor cannot be
+        evaluated from storage &mdash; it would have to be handed its rows, which
+        makes monitoring something somebody remembers to do. Post scores to
+        <code>/api/v1/telemetry</code> and the platform holds them.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  {% if rows > shown|length %}
+    <div class="card-body py-2 small text-muted border-top">
+      The first {{ shown|length }} of {{ "{:,}".format(rows) }} rows. The whole
+      cohort is at
+      <code>/api/v1/telemetry/cohort?urn={{ model.urn }}&amp;semver={{ version.semver }}</code>.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    Rows with no outcome yet come back unlabelled rather than dropped. That is
+    the point: the monitor decides maturity per row, and a join that discarded
+    the unlabelled would hand it a cohort that looks complete and is not.</div></div>
+{% endblock %}

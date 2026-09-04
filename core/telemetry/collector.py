@@ -36,7 +36,7 @@ from core.evidence import EvidenceEngine
 from core.log import get_logger
 from core.telemetry.common import (ENTITY, INGEST_TS, LABEL, LABEL_TS, MAX_BATCH,
                                    OUTCOMES, REQUIRED, SCORE, SCORED_AT, SCORES,
-                                   STREAMS, TelemetryError)
+                                   SILENT_AFTER_DAYS, STREAMS, TelemetryError)
 from db.database import digest as canonical_digest
 
 logger = get_logger(__name__)
@@ -209,6 +209,66 @@ class TelemetryCollector:
             "detail": self._detail(scores, outcomes, latest, moment, rates),
         }
 
+    def estate(self, models: Sequence[Dict[str, Any]],
+               now: Optional[float] = None) -> Dict[str, Any]:
+        """Every version's telemetry, the silent ones first.
+
+        Ordering is the whole point. A list sorted by model name buries the one
+        fact somebody needs to act on — that a version has stopped sending —
+        under the fifty that are fine, and a monitor evaluated against a stale
+        window still returns a number. The number describes a population that is
+        no longer being produced, and nobody reading it would know.
+
+        Ordered here rather than in a page, because *which* of these facts is the
+        alarming one is a judgement about model risk and not about layout.
+        """
+        moment = now if now is not None else time.time()
+        rows: List[Dict[str, Any]] = []
+        for model in models:
+            for version in self.registry.versions(model["urn"]):
+                status = self.status(model["urn"], version["semver"], moment)
+                silent_days = status["silent_days"]
+                rows.append({
+                    **status, "model_name": model.get("name"),
+                    "version_status": version.get("status"),
+                    "never": status["scores"] == 0,
+                    "silent": (silent_days is not None
+                               and silent_days > SILENT_AFTER_DAYS)})
+        rows.sort(key=self._rank)
+        silent = [r for r in rows if r["silent"]]
+        never = [r for r in rows if r["never"]]
+        return {
+            "versions": rows, "silent": len(silent), "never": len(never),
+            "sending": len(rows) - len(silent) - len(never),
+            "silent_after_days": SILENT_AFTER_DAYS,
+            "detail": self._estate_detail(rows, silent, never),
+        }
+
+    @staticmethod
+    def _rank(row: Dict[str, Any]) -> tuple:
+        """Silent first, longest silence first; then never sent; then the rest."""
+        if row["silent"]:
+            return (0, -(row["silent_days"] or 0.0), row["model"])
+        if row["never"]:
+            return (1, 0.0, row["model"])
+        return (2, -(row["scores"]), row["model"])
+
+    @staticmethod
+    def _estate_detail(rows: List[Dict[str, Any]], silent: List[Dict[str, Any]],
+                       never: List[Dict[str, Any]]) -> str:
+        if not rows:
+            return ("no versions are registered, so there is nothing that could "
+                    "be sending")
+        parts = []
+        if silent:
+            parts.append(f"{len(silent)} version(s) have stopped sending")
+        if never:
+            parts.append(f"{len(never)} have never sent anything")
+        sending = len(rows) - len(silent) - len(never)
+        if sending:
+            parts.append(f"{sending} are sending")
+        return "; ".join(parts)
+
     @staticmethod
     def _detail(scores: List, outcomes: List, latest: Optional[float],
                 now: float, rates: set) -> str:
@@ -217,7 +277,7 @@ class TelemetryCollector:
                     "cannot be evaluated from storage")
         silent = (now - latest) / 86400.0 if latest else 0
         parts = [f"{len(scores):,} scores, {len(outcomes):,} outcomes"]
-        if silent > 1:
+        if silent > SILENT_AFTER_DAYS:
             parts.append(f"nothing scored for {silent:.1f} days")
         if rates and min(rates) < 1.0:
             parts.append(f"sampled at {min(rates):.1%}, so every statistic "

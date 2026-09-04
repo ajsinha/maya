@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Notifications — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">DELIVERY, NOT A QUEUE</p>
+<h1>Notifications</h1>
+<div class="rule"></div>
+<p class="text-muted small">The outstanding work already exists: it is derived
+from the register, and the dashboard shows each person what they can act on.
+There is no task table to go stale. What this adds is that the work
+<em>reaches</em> somebody, rather than sitting until they happen to log in.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ notify.delivered }}</div>
+    <div class="stat-l">delivered</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if notify.failed else '' }}">{{ notify.failed }}</div>
+    <div class="stat-l">failures kept on record</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ notify.quiet_hours|round|int }}h</div>
+    <div class="stat-l">quiet while the work is unchanged</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ notify.escalate_after_days|round|int }}d</div>
+    <div class="stat-l">overdue before the second line is told</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Channels</span>
+    <span class="small text-muted">{{ notify.detail }}</span></div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Channel</th><th>Usable</th><th>What it is</th><th>Why not</th></tr></thead>
+    <tbody>
+    {% for c in notify.channels %}
+      <tr><td class="small">{{ c.channel }}
+            {% if c.channel == notify.default %}
+              <div class="text-muted">the default on this instance</div>{% endif %}</td>
+          <td class="small">
+            {% if c.usable %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>{% endif %}</td>
+          <td class="small text-muted">{{ meanings.get(c.channel, '') }}</td>
+          <td class="small text-muted">{{ c.unavailable_because or '—' }}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Nothing but the log channel is enabled by default. An instance that quietly
+    needed an SMTP relay in order to tell anybody anything would fail in a way
+    nobody could diagnose from the outside, so a channel that is not configured
+    says so here rather than swallowing the message.</div></div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3"><div class="card-header">What has been sent</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>When</th><th>To</th><th>What came of it</th><th>Items</th></tr></thead>
+        <tbody>
+        {% for d in deliveries %}
+          <tr><td class="small">
+                {% set hours = (now - (d.sent_at or 0)) / 3600 %}
+                {% if hours < 1 %}{{ (hours * 60)|round|int }} min ago
+                {% elif hours < 48 %}{{ hours|round(1) }} h ago
+                {% else %}{{ (hours / 24)|round(1) }} days ago{% endif %}
+                <div class="text-muted">{{ d.channel }}</div></td>
+              <td class="small">{{ d.principal }}
+                <div class="text-muted">{{ d.summary }}</div></td>
+              <td class="small">
+                {% if d.state == 'sent' %}<span class="evidence-ok">sent</span>
+                {% elif d.state == 'failed' %}<span class="evidence-bad">failed</span>
+                {% else %}<span class="text-muted">suppressed</span>{% endif %}
+                <div class="text-muted">{{ d.detail }}</div></td>
+              <td class="small">{{ d.item_count }}
+                {% if d.overdue %}
+                  <div class="evidence-bad">{{ d.overdue }} overdue</div>{% endif %}</td></tr>
+        {% else %}
+          <tr><td colspan="4" class="text-muted small">
+            Nothing has been sent from this instance. The work is still derived
+            and still on the dashboard &mdash; what has not happened is anybody
+            being told about it without looking. A dry run below shows who would
+            hear from MAYA, and what they would be told, without sending
+            anything.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        Suppressions and failures are kept alongside the sends. A message
+        repeating yesterday's is one somebody filters, so an unchanged worklist
+        goes quiet; and a failed delivery that left no record is how somebody
+        concludes they were never told, which is worse than never having sent.
+      </div></div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-header">What you would receive</div>
+      <div class="card-body py-3">
+        <p class="small mb-1"><strong>{{ preview.summary }}</strong></p>
+        <p class="small text-muted mb-2">
+          Addressed to {{ preview.to }}
+          {% if preview.to == preview.principal %}
+            &mdash; no email address is on this principal, so an email channel
+            could not reach them
+          {% endif %}.</p>
+        {% for i in preview['items'] %}
+          <div class="work-row {{ i.urgency }}">
+            <span class="u">{{ i.urgency }}</span>
+            <span><a href="{{ i.href }}">{{ i.model }}</a>
+              &mdash; {{ i.title }}
+              {% if i.detail %}<div class="w">{{ i.detail }}</div>{% endif %}</span></div>
+        {% else %}
+          <p class="small text-muted mb-0">Nothing is outstanding against you, so
+          no message would be sent. A digest of nothing is a message people learn
+          to ignore, and then they ignore the one that matters.</p>
+        {% endfor %}
+        {% if preview.escalated %}
+          <p class="small fw-bold mt-3 mb-1" style="color:var(--crimson)">
+            Escalated to you</p>
+          {% for i in preview.escalated %}
+            <div class="work-row overdue"><span class="u">overdue</span>
+              <span>{{ i.model }} &mdash; {{ i.title }}</span></div>
+          {% endfor %}
+          <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+            By role, not by hierarchy. MAYA does not know who reports to whom and
+            should not pretend to; what it knows is that an item overdue and
+            unactioned for {{ notify.escalate_after_days|round|int }} days has
+            stopped being one person's problem.</p>
+        {% endif %}
+      </div>
+      <div class="card-body py-2 small text-muted border-top">
+        {{ preview.footer }}</div></div>
+
+    <div class="card mb-3"><div class="card-header">Notify everybody with work</div>
+      <div class="card-body py-3">
+        <form id="run" class="small">
+          <div class="row g-2">
+            <div class="col-7">
+              <select class="form-select form-select-sm" name="channel">
+                <option value="">{{ notify.default }} (the default)</option>
+                {% for c in notify.channels %}
+                  <option value="{{ c.channel }}">{{ c.channel }}</option>
+                {% endfor %}
+              </select></div>
+            <div class="col-5 d-grid">
+              <button class="btn btn-sm btn-outline-secondary py-0" style="font-size:.75rem"
+                      name="dry" value="1">Dry run</button></div>
+            <div class="col-12 d-grid">
+              <button class="btn btn-sm btn-danger py-0 px-3" style="font-size:.75rem"
+                      name="dry" value="">Send now</button></div>
+          </div>
+        </form>
+        <div id="run-result" class="small mt-2"></div>
+      </div>
+      <div class="card-body py-2 small text-muted border-top">
+        One message per person per run, and a worklist unchanged since the last
+        message is suppressed rather than repeated. The same call the scheduler
+        makes: cron, a CronJob or a person produce identical results.
+        {% if 'scheduler:run' not in permissions %}
+          Your roles do not carry <code>scheduler:run</code>, so a send from here
+          will be refused &mdash; the refusal will say who to ask.
+        {% endif %}</div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+$("#run button").on("click", function (e) {
+  e.preventDefault();
+  var dry = $(this).val() === "1",
+      channel = $("#run select").val();
+  $.ajax({url: "/api/v1/notifications/run", method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({channel: channel || null, dry_run: dry})})
+    .done(function (body) {
+      var html = '<div class="' + (body.failed ? "evidence-bad" : "evidence-ok") +
+        '">' + body.detail + '</div>';
+      (body.deliveries || []).forEach(function (d) {
+        html += '<div class="text-muted">' + d.principal + ' &mdash; ' + d.state +
+          ': ' + d.detail + '</div>';
+      });
+      if (!dry) {
+        html += '<div class="mt-1"><a href="/notifications">Reload</a> to see it ' +
+          'in the record.</div>';
+      }
+      $("#run-result").html(html);
+    })
+    .fail(function (x) {
+      var e = x.responseJSON || {};
+      $("#run-result").html('<span class="evidence-bad">Refused &mdash; ' +
+        (e.detail || x.statusText) + '</span>' +
+        (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+    });
+});
+</script>
+{% endblock %}

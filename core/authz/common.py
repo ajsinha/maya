@@ -41,6 +41,10 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "validation:read", "validation:open", "validation:record", "validation:conclude",
     "finding:read", "finding:raise", "finding:close",
     "monitor:read", "monitor:define", "monitor:evaluate",
+    # Taking delivery of telemetry is not the same act as judging it. The
+    # principal that scores has the rows and should be able to hand them over
+    # without also being able to decide that a monitor has breached.
+    "monitor:observe",
     "document:read", "document:compile",
     "document:attach", "document:review",
     # features, featuresets and the parameters a fit produces

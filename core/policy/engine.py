@@ -184,16 +184,45 @@ class PolicyRegister:
                 continue
             row = {"name": case.get("name", "a case"), "was": before, "now": after}
             (loosened if after == ALLOW else tightened).append(row)
-        return {
-            "loosened": loosened, "tightened": tightened,
-            "detail": ("nothing the previous policy decided has changed"
-                       if not loosened and not tightened else
-                       "; ".join(
-                           ([f"{len(loosened)} case(s) the previous policy "
-                             f"refused are now permitted"] if loosened else [])
-                           + ([f"{len(tightened)} case(s) it permitted are now "
-                               f"refused"] if tightened else []))),
-        }
+        return {"loosened": loosened, "tightened": tightened,
+                "detail": self._drift_detail(loosened, tightened)}
+
+    @staticmethod
+    def _drift_detail(loosened: Sequence[Dict[str, Any]],
+                      tightened: Sequence[Dict[str, Any]]) -> str:
+        if not loosened and not tightened:
+            return "nothing the previous policy decided has changed"
+        return "; ".join(
+            ([f"{len(loosened)} case(s) the previous policy refused are now "
+              f"permitted"] if loosened else [])
+            + ([f"{len(tightened)} case(s) it permitted are now refused"]
+               if tightened else []))
+
+    def drift_of(self, policy_id: str) -> Dict[str, Any]:
+        """What changed when this version went in force, read from the record.
+
+        The comparison is made once, at publication, and returned to whoever
+        published. A report that existed only in that response would be a
+        governance fact nobody could revisit — and the question "when did this
+        gate get looser" is asked long afterwards, by somebody who was not there.
+        So it is read back off the evidence chain rather than recomputed against
+        a rule that has since moved on.
+        """
+        for row in self.evidence.for_subject(policy_id):
+            if row.get("kind") != "policy_published":
+                continue
+            payload = row.get("payload") or {}
+            loosened = payload.get("loosened") or []
+            tightened = payload.get("tightened") or []
+            return {
+                "loosened": loosened, "tightened": tightened,
+                "supersedes": payload.get("supersedes"),
+                "detail": (self._drift_detail(loosened, tightened)
+                           if payload.get("supersedes") is not None else
+                           "nothing was in force on this gate before, so there "
+                           "was nothing to compare it with"),
+            }
+        return {}
 
     # ------------------------------------------------------------------ read
     def in_force(self, gate: str) -> Optional[Dict[str, Any]]:
