@@ -378,3 +378,82 @@ GET /api/v1/roles   # the catalogue, the incompatible pairs, the SoD rules
 Open to any authenticated principal. A person should always be able to see what
 they are allowed to do without asking an administrator — a permission system
 nobody can inspect is one people work around.
+
+
+## Signing in through a directory
+
+MAYA speaks OIDC: the authorisation-code flow with PKCE, a state parameter and a
+nonce, all checked. `GET /api/v1/sso` says whether it is configured and exactly
+what it will do.
+
+Two implementation notes, because both are places this commonly goes wrong.
+
+**The token's signature is verified against the provider's published key**, with
+an RS256 verifier in the standard library — no dependency, so the platform still
+deploys into an air-gapped network. It *constructs* the padded block the
+signature should have produced and compares the whole of it, rather than parsing
+what it recovers; and it decides the algorithm itself rather than reading `alg`
+from the token, because an algorithm the sender chooses and the verifier obeys is
+how a token gets accepted with no signature at all.
+
+**SSO being down does not lock anybody out.** An unreachable provider refuses the
+login with the reason and points at local credentials. A directory outage should
+not take the model register with it.
+
+### What happens to roles
+
+This is the part that is not mechanical, and it is worth being explicit about.
+
+An identity provider that grants MAYA roles is an identity provider that decides
+segregation of duties — and the person administering it is very often the person
+whose duties are being segregated.
+
+So **group claims are mapped, never obeyed**:
+
+```yaml
+auth:
+  oidc:
+    group_claim: groups
+    roles:
+      maya-developers: model_developer
+      maya-validators: validator
+      maya-risk: model_risk_manager
+```
+
+The group name is the key because that is what the directory controls; the roles
+are the value because that is what MAYA controls, and the direction of that arrow
+is the whole point. **A group with no entry grants nothing.** It does not grant
+itself.
+
+And **the incompatible-roles check applies here exactly as it does to a locally
+created principal**:
+
+> **403 `incompatible_roles`** — the directory places solo in groups that map to
+> incompatible roles: a developer who can also approve versions is a first line
+> approving its own work. *Fix the group membership, or the mapping; accepting
+> both would let a directory decide segregation of duties, and refusing quietly
+> would hide that it had.*
+
+A directory that can hand out a conflicting pair by mistake is precisely why the
+check exists. Honouring it only for principals created here would honour it where
+it is least needed. This is checked *before* whether the person is known here, so
+a "you are not provisioned" message cannot hide the more serious problem behind
+the lesser one.
+
+### Provisioning is a decision
+
+`auth.oidc.provision` is **off by default**. Auto-provisioning gives everybody in
+the directory a foothold in the model register, and that is a decision somebody
+should make deliberately rather than inherit. With it off, somebody who
+authenticates perfectly well and has no principal here is told so.
+
+### What is recorded
+
+The issuer, the subject, the groups, and which groups mapped to which roles — not
+the whole token, which carries more about a person than a governance record
+needs. Without it, *"why did this person have that role in March"* becomes
+unanswerable the moment the directory moves on.
+
+`POST /api/v1/sso/preview` answers *which roles would this person get* from a set
+of claims, without signing anybody in — for wiring up a mapping before somebody
+finds out the hard way.
