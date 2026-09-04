@@ -8,11 +8,12 @@ registers its own endpoints. Routers hold no domain logic: they validate input,
 call a service, and shape the response.
 """
 from routes.auth_routes import AuthRoutes, current_user, login_required
+from routes.feature_routes import FeatureRoutes
 from routes.health_routes import HealthRoutes
 from routes.hook_routes import HookRoutes
 from routes.model_routes import ModelRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_routes import UIRoutes
 
-__all__ = ["AuthRoutes", "HealthRoutes", "HookRoutes", "ModelRoutes",
+__all__ = ["AuthRoutes", "FeatureRoutes", "HealthRoutes", "HookRoutes", "ModelRoutes",
            "PublicRoutes", "UIRoutes", "current_user", "login_required"]

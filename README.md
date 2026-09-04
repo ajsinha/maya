@@ -308,24 +308,20 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 ## Status
 
-**Specification complete and adversarially reviewed; implementation not started.**
+**Specification complete and adversarially reviewed. Implementation under way.**
 
-The design was red-teamed before any code was written: [11 — Adversarial Design
-Review](docs/11-adversarial-review.md) records 27 findings — 6 critical, 17 requiring redesign — all
-dispositioned and folded back into the specification. Two of them would each, independently, have sunk
-the programme:
+Build status, what is genuinely working, and the honest gaps are recorded in one
+place and kept current there:
 
-- **C-2** — the online feature store was unversioned, silently defeating the feature contract. A model
-  pinned to feature view v7 would have been served v8 values with the contract digest still matching and
-  every monitor green.
-- **C-5** — day-one adoption. 1,200 imported legacy models with no evidence would have turned every gate
-  red and killed the programme by month seven. Answered with a first-class baseline-import mode and
-  tracked compliance debt.
+### → [12 — Implementation Plan §0, Build status](docs/12-implementation-plan.md#0-build-status)
 
-[12 — Implementation Plan](docs/12-implementation-plan.md) sets out repository topology, enforced module
-boundaries, the front-end/backend contract, CI gates and six concurrent workstreams.
-[10 — Roadmap](docs/10-roadmap.md) sets out the seven phases, with Phase 1 (inventory and evidence spine)
-as the MVP.
+That document also carries the repository topology, the CI-enforced module
+boundaries, the front-end/backend contract, the test strategy and the phase
+sequence. [10 — Roadmap](docs/10-roadmap.md) sets out the phases at programme
+level, and [11 — Adversarial Design Review](docs/11-adversarial-review.md) records
+the 27 findings red-teamed against the design before any code was written.
+
+---
 
 ## Licence
 

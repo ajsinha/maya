@@ -13,6 +13,62 @@ concurrently running processes.
 
 ---
 
+---
+
+## 0. Build status
+
+*Last updated after milestone 4. This section is the authoritative record of what
+is built; the phases below are the plan it is being built against.*
+
+| | Component | State | Evidence |
+|---|---|---|---|
+| ✅ | **Configuration** (`core/config/`) | **Complete** | YAML with git-ignored `.local` overlay, `${...}` resolution, typed accessors, source tracking, auto-reload, precedence CLI > env > files |
+| ✅ | **Domain algebra** (`core/domain/`) | **Complete** | `Para(Stoch)` kernels, derived trainability T0–T8, schema variance (L-12), contract algebra with refinement (L-7), probe-relative equivalence |
+| ✅ | **Persistence** (`db/`) | **Complete** | Two hand-written schemas, no migrations. SQLite default, PostgreSQL switchable by URL alone. Repositories are the only interface; no SQL above this package |
+| ✅ | **Evidence engine** (`core/evidence/`) | **Complete** | Append-only hash chain with tamper and deletion detection; six semirings over one traversal; citation verification |
+| ✅ | **Risk tiering** (`core/risk/`) | **Complete** | Separate materiality and complexity lattices, monotone τ (L-4), Galois-adjoint control sets (L-5), derivation stored with every assessment |
+| ✅ | **Registry** (`core/registry/`) | **Complete** | Immutable versions, governed aliases gated on refinement and variance proofs, full move history |
+| ✅ | **Hooks** (`core/execution/hooks.py`) | **Complete** | Signed, expiring, entitlement-bound descriptors. Fails closed on unknown principal, unapproved use, unapproved version, revocation |
+| ✅ | **Captive engine** (`core/execution/engine.py`) | **Complete** | A consumer of the public hook contract. Verifies signature, expiry and operating boundary before touching an artifact |
+| ✅ | **Feature platform** (`core/features/`) | **Complete** | Bitemporal Delta storage, version-namespaced serving (fixes C-2), PIT assembly with three-layer verification, contracts, retirement guard |
+| ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, hooks, features, health. RFC-9457-shaped refusals carrying remediation |
+| ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. Every asset vendored — no CDN |
+| ⬜ | **Validation & findings** | **Not started** | Test catalogue, findings register, blocking semantics, reproducibility replay |
+| ⬜ | **Documentation compiler** | **Not started** | Lens-based generation from evidence, staleness as a law violation |
+| ⬜ | **Monitoring** | **Not started** | Monitor definitions, drift, delayed labels, breach → finding |
+| ⬜ | **Overlay register** | **Not started** | Post-model adjustments, magnitude, expiry, recurrence |
+| ⬜ | **Regime engine** | **Not started** | Institutions, scope determinations as derivations, obligation compiler |
+| ⬜ | **Machine assistance** | **Not started** | Capability registry, grounding gate, oracle-backed generation |
+| ⬜ | **Baseline import** | **Not started** | Compliance-debt tracking for legacy models (finding C-5) |
+
+### What is genuinely working
+
+The end-to-end governed path runs: register a model → create an immutable version →
+assess its risk → approve → point an alias (refused unless the contract refines and
+the schemas satisfy variance) → issue a hook → resolve a signed descriptor →
+execute through an engine that checks the boundary first → revoke and watch it fail
+closed. Features can be defined, materialised bitemporally into Delta, pinned by
+contract, and assembled into a point-in-time-correct training set that is refused
+outright if either temporal bound is missing.
+
+### Honest gaps
+
+- **No authorisation model beyond a single account.** One username and password;
+  no roles, no segregation of duties, no per-entity row filtering. Everything in
+  [09](09-security-compliance.md) §3 is design, not code.
+- **No policy engine.** Lifecycle guards are hard-coded checks in the registry
+  rather than versioned Rego, so gates cannot yet be changed without a release.
+- **The captive engine runs registered Python callables only.** It does not load
+  ONNX, PMML or a container, and there is no sandbox — so it is a reference
+  implementation of the *protocol*, not of artifact execution.
+- **No Delta time-travel on reads yet.** `DeltaStore` supports `as_of_version`,
+  but assemblies pin a namespace rather than a table version, so restatement
+  handling is not implemented.
+- **Line budget.** Source stands over the 1,500-line target set at the outset.
+  The overrun is auth, the landing flow and the persistence split, all added
+  after the target was set. It is reported here rather than hidden by compressing
+  docstrings.
+
 ## 1. Engineering principles
 
 | # | Principle | Enforcement |
@@ -126,9 +182,9 @@ sequenceDiagram
     end
     CI_A->>REG: publish image + openapi.json (versioned)
     CI_W->>REG: fetch openapi.json
-    CI_W->>CI_W: regenerate client; diff vs openapi.lock.json
+    CI_W->>CI_W: regenerate client, diff vs openapi.lock.json
     alt client drift
-        CI_W-->>CI_W: FAIL — contract changed; review and relock
+        CI_W-->>CI_W: FAIL — contract changed, review and relock
     end
     CI_W->>CI_W: component tests + contract tests against a mock from the spec
     CI_W->>REG: publish static bundle
@@ -218,7 +274,7 @@ consequence of the decoupling mandate: the front end never waits.
 
 ## 9. Phase-level work breakdown
 
-### Phase 0 — Foundations (2 months)
+### Phase 0 — Foundations
 
 | Stream | Deliverable | Definition of done |
 |---|---|---|
@@ -233,7 +289,7 @@ consequence of the decoupling mandate: the front end never waits.
 **Exit:** the laws exist as tests (most failing by design); a model can be created and read end to end
 through the API and the UI; the three spikes have reported.
 
-### Phase 1 — Inventory and evidence spine (4 months) · MVP
+### Phase 1 — Inventory and evidence spine · MVP
 
 | Stream | Deliverable |
 |---|---|
@@ -252,7 +308,7 @@ through the API and the UI; the three spikes have reported.
 from the MRM head; an as-at-date export satisfies a mock examiner request; **baseline import of 300
 models produces a debt burn-down, not a wall of red**.
 
-### Phase 2 — Versions, features, hooks (4 months)
+### Phase 2 — Versions, features, hooks
 
 | Stream | Deliverable |
 |---|---|
@@ -271,7 +327,7 @@ models produces a debt burn-down, not a wall of red**.
 with no consumer change; a kill switch stops it within 60 s **including under a simulated partition**; a
 PIT-verified training set reproduces a fit bit-for-bit.
 
-### Phase 3 — Validation, findings, documentation (4 months)
+### Phase 3 — Validation, findings, documentation
 
 W1 test catalogue and executable tests · W2 validation plans, findings with blocking behaviour, risk-based
 scheduling, vendor workflow · W1 document compiler with lens laws and staleness · templates (MDD,
@@ -281,7 +337,7 @@ W6 export packs with signed evidence bundles.
 **Exit:** a full Tier 1 validation completed in-system; the validation report compiles with > 90%
 auto-generated content; an Annex IV pack produced for a high-risk model.
 
-### Phase 4 — Monitoring, overlays, reporting (3 months)
+### Phase 4 — Monitoring, overlays, reporting
 
 W3 monitor definitions, class-aware defaults, Spark evaluation, delayed labels, slice and fairness
 monitoring, skew detection · W2 breach → **correlated** finding (M-8), overlay register with magnitude,
@@ -312,14 +368,14 @@ which is the whole point of the criterion:
 **No capability ships before its check.** A capability whose oracle is not yet built waits, however
 attractive the demo.
 
-### Phase 5 — GenAI, discovery, intelligence (4 months)
+### Phase 5 — GenAI, discovery, intelligence
 
 W2 GenAI track: boundary gates, risk matrix, eval harness, agentic controls · W1 prompt/RAG/tool/guardrail
 versioning, base-model change fingerprinting · W4 LLM gateway integration, cost and token monitoring,
 composite hooks, `sql_udf`/`stream`/`container`/`sheet` flavours · W3 continuous discovery, EUC ingestion,
 semantic search · W1 AI documentation assistant, itself governed as a T5 model in the inventory.
 
-### Phase 6 — Scale-out and migration (6 months)
+### Phase 6 — Scale-out and migration
 
 Full estate migration; legacy decommissioning; remaining connectors; multi-entity and residency;
 performance hardening to every NFR at full scale; fibre library expansion; bank-specific `maya-ext-*`.

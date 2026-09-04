@@ -12,8 +12,13 @@ default, under data/sqlite) and PostgreSQL. There are no migrations; the schema
 is the pair of hand-written files under db/schema/, applied idempotently.
 """
 from db.database import Database, DeltaPaths
-from db.repositories import (AliasRepository, EvidenceRepository, HookRepository,
-                             ModelRepository, RiskRepository, VersionRepository)
+from db.delta_store import DeltaStore
+from db.repositories import (AliasRepository, ContractRepository, EvidenceRepository,
+                             FeatureRepository, FeatureViewRepository, HookRepository,
+                             ModelRepository, RiskRepository, SnapshotRepository,
+                             VersionRepository)
 
-__all__ = ["Database", "DeltaPaths", "ModelRepository", "VersionRepository",
-           "AliasRepository", "EvidenceRepository", "RiskRepository", "HookRepository"]
+__all__ = ["Database", "DeltaPaths", "DeltaStore", "ModelRepository", "VersionRepository",
+           "AliasRepository", "EvidenceRepository", "RiskRepository", "HookRepository",
+           "FeatureRepository", "FeatureViewRepository", "ContractRepository",
+           "SnapshotRepository"]
