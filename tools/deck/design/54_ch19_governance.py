@@ -1,7 +1,12 @@
-# ============================================================ CH 3
-divider("3", "Governance Subsystems", "Evidence, risk, regimes, lifecycle, validation, documentation.",
-        ["Evidence append and chain", "Semiring evaluation", "The tiering algorithm",
-         "Anti-gaming", "Institutions in code", "Lifecycle and baseline import"])
+# ============================================================ CH 19
+divider("19", "Governance Subsystems",
+        "Evidence, risk, regimes, lifecycle, validation.",
+        ["Evidence append and chain",
+         "Semiring evaluation",
+         "The tiering algorithm",
+         "Anti-gaming",
+         "Institutions in code",
+         "Lifecycle and baseline import"])
 
 sl, y = content("Evidence engine — append and chain", "Governance · evidence")
 h = code(sl, ML, y, CW * 0.60, [

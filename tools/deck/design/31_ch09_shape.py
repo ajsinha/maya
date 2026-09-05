@@ -1,8 +1,10 @@
 # ============================================================ CH 9
 divider("9", "The Shape of the Whole Thing",
-        "Features, featuresets, warrants and parameters — and how they meet.",
-        ["The process end to end", "What each object is for",
-         "Where the pins are", "The two clocks"])
+        "Model, feature, featureset, warrant, parameters — and how they meet.",
+        ["The five words",
+         "The process end to end",
+         "What each object is for",
+         "Where the pins are"])
 
 # ------------------------------------------------------------- the five words
 sl, y = content("Five words, and how they hold together",

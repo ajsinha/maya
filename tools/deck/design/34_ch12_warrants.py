@@ -1,7 +1,9 @@
 # ============================================================ CH 12
 divider("12", "Warrants, and What Comes Back",
         "A featureset version and a model version meet; a parameter set returns.",
-        ["The fit warrant", "The parameter object", "The scoring warrant",
+        ["The fit warrant",
+         "The parameter object",
+         "The scoring warrant",
          "Three routes to P"])
 
 # ---------------------------------------------------------- the fit warrant

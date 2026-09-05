@@ -1,8 +1,10 @@
-# ============================================================ CH 15
-divider("15", "Every Kind of Model",
+# ============================================================ CH 24
+divider("24", "Every Kind of Model",
         "Seven shapes, one definition — and how each is saved, managed and served.",
-        ["The matrix, on one page", "Regression, GARCH, closed-form",
-         "Calibration and simulation", "Neural networks and LLMs"])
+        ["The matrix, on one page",
+         "Regression, GARCH, closed-form",
+         "Calibration and simulation",
+         "Neural networks and LLMs"])
 
 # ---------------------------------------------------------------------------
 # The chapter's own helper. Every model slide answers the same three questions
