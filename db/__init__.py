@@ -21,6 +21,7 @@ from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentR
                              ParameterSetRepository,
                              NotificationRepository, PolicyRuleRepository,
                              WarrantProfileRepository,
+                             RiskAppetiteRepository, BoardPackRepository,
                              TelemetryBatchRepository,
                              VersionApprovalRepository,
                              VersionApprovalSignatureRepository,
@@ -55,4 +56,5 @@ __all__ = ["Database", "DeltaPaths", "DeltaStore", "Repository", "ModelRepositor
            "FeaturesetVersionRepository", "ParameterSetRepository",
            "VersionApprovalRepository", "VersionApprovalSignatureRepository",
            "TelemetryBatchRepository", "NotificationRepository",
-           "PolicyRuleRepository", "WarrantProfileRepository"]
+           "PolicyRuleRepository", "WarrantProfileRepository",
+           "RiskAppetiteRepository", "BoardPackRepository"]

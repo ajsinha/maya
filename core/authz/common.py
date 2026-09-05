@@ -74,6 +74,11 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "regime:read", "regime:activate",
     "scheduler:read", "scheduler:run",
     "evidence:read",
+    # Portfolio reporting. Reading a board pack is a `:read` and therefore in
+    # every role's set, which is right — a pack is what the estate is told about
+    # itself. Cutting one is not: a recorded pack is the document a committee is
+    # minuted against, so producing it is an act rather than a view.
+    "report:read", "report:cut",
     # the platform itself
     "principal:read", "principal:manage",
 })

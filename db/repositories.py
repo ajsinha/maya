@@ -260,6 +260,23 @@ class WarrantProfileRepository(Repository):
         return (prior["version"] + 1) if prior else 1
 
 
+class RiskAppetiteRepository(Repository):
+    """Declared limits, versioned per metric and scope."""
+    TABLE, ORDER = "risk_appetite", "created_at"
+    JSON = ("scope",)
+
+    def next_version(self, metric: str, scope_key: str) -> int:
+        prior = self.first("version", desc=True, metric=metric,
+                           scope_key=scope_key)
+        return (prior["version"] + 1) if prior else 1
+
+
+class BoardPackRepository(Repository):
+    """Packs as they were read, never recomputed."""
+    TABLE, ORDER = "board_pack", "as_at"
+    JSON = ("scope", "indicators", "exceptions", "unmeasured")
+
+
 class NotificationRepository(Repository):
     """Deliveries attempted, and what came of them."""
     TABLE, ORDER = "notification", "sent_at"

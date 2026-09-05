@@ -336,6 +336,53 @@ CREATE TABLE IF NOT EXISTS warrant_profile (
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
 
+-- A declared risk-appetite limit. Versions accumulate; nothing is edited, because
+-- a limit that can be changed without a record is a limit that can be RELAXED
+-- without one, and the relaxation is the event a reader six months later needs
+-- to find.
+CREATE TABLE IF NOT EXISTS risk_appetite (
+    id           text PRIMARY KEY,
+    metric       text NOT NULL,
+    scope_key    text NOT NULL DEFAULT '*',
+    scope        text NOT NULL DEFAULT '{}',
+    version      integer NOT NULL,
+    limit_value  double precision NOT NULL,
+    amber_value  double precision,
+    direction    text NOT NULL,
+    unit         text NOT NULL,
+    rationale    text NOT NULL,
+    owner        text NOT NULL DEFAULT '',
+    review_at    double precision,
+    retired      integer NOT NULL DEFAULT 0,
+    digest       text NOT NULL,
+    created_by   text NOT NULL,
+    created_at   double precision NOT NULL,
+    retired_at   double precision,
+    retired_by   text,
+    UNIQUE (metric, scope_key, version)
+);
+CREATE INDEX IF NOT EXISTS ix_appetite_metric ON risk_appetite (metric, retired);
+
+-- A board pack as it was read. Kept rather than recomputed: a committee minute
+-- referring to "the March pack" needs the March pack, and a pack recomputed
+-- today is a different document with the same name.
+CREATE TABLE IF NOT EXISTS board_pack (
+    id          text PRIMARY KEY,
+    period      text NOT NULL,
+    scope       text NOT NULL DEFAULT '{}',
+    as_at       double precision NOT NULL,
+    models      integer NOT NULL DEFAULT 0,
+    indicators  text NOT NULL DEFAULT '[]',
+    exceptions  text NOT NULL DEFAULT '[]',
+    unmeasured  text NOT NULL DEFAULT '{}',
+    digest      text NOT NULL,
+    note        text NOT NULL DEFAULT '',
+    created_by  text NOT NULL,
+    created_at  double precision NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_board_pack_at ON board_pack (as_at);
+
+
 
 CREATE TABLE IF NOT EXISTS notification (
     id         text PRIMARY KEY,

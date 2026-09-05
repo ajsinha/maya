@@ -94,6 +94,10 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     "document:review", "parameter:approve", "version:sign",
     "baseline:import", "baseline:plan", "regime:activate",
     "policy:publish",
+    # Cutting the pack a committee is minuted against sits with the second line,
+    # beside publishing a gate: both are acts that fix what the estate is
+    # measured by. Reading one is a `:read` and every role already holds it.
+    "report:cut",
 }
 
 # ---------------------------------------------------------------------------

@@ -318,7 +318,7 @@ maya/
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
 │       config/                      YAML with a git-ignored local overlay
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 45 tables, no migrations
+│   └── schema/                      two hand-written schemas, 47 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── sdk/                             clients, one folder per language
