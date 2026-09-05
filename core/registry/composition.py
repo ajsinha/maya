@@ -159,23 +159,39 @@ class ModelComposition:
         # drawing — a blast radius over edges nobody validated. Checked, it is
         # composition, and a composite has a derived schema rather than a
         # declared one.
+        # A non-composing edge — `derives_from`, `challenger_of`,
+        # `benchmark_for` — records how somebody thinks about two models and
+        # asserts nothing about types, so "unchecked" is the honest value rather
+        # than a gap.
+        checked = False
         if kind in COMPOSING:
-            self._check_composes(from_urn, to_urn, source, target)
+            checked = self._check_composes(from_urn, to_urn, source, target)
 
         row = {"from_model": source["id"], "to_model": target["id"], "kind": kind,
-               "note": note, "created_by": actor, "created_at": time.time()}
+               "note": note, "type_checked": 1 if checked else 0,
+               "created_by": actor, "created_at": time.time()}
         self.edges.add(row)
         self.evidence.append("model_related", "model", target["id"],
                              {"from": source["urn"], "to": target["urn"],
                               "kind": kind, "note": note}, actor=actor)
         logger.info("recorded %s %s %s", from_urn, kind, to_urn)
         return {**row, "from_urn": source["urn"], "to_urn": target["urn"],
-                "means": KIND_MEANING[kind]}
+                "means": KIND_MEANING[kind],
+                "type_checked_detail": (
+                    "the schemas at both ends were compared"
+                    if checked else
+                    "recorded without a type check — one end has no version yet, "
+                    "or this relation kind asserts nothing about types")}
 
     # ------------------------------------------------------------ composition
     def _check_composes(self, from_urn: str, to_urn: str,
-                        source: Dict[str, Any], target: Dict[str, Any]) -> None:
+                        source: Dict[str, Any], target: Dict[str, Any]) -> bool:
         """Refuse an `input_to` edge whose ends do not compose.
+
+        Returns whether the schemas were actually compared, so the edge can
+        record it. An edge admitted *because there was nothing to check* is a
+        different object from one admitted *because the check passed*, and the
+        register should be able to tell them apart.
 
         The order is the platform's one order (`core.domain.lattice.refines`),
         the same comparison `L-12` makes at an alias move and `L-W10` makes at
@@ -211,14 +227,21 @@ class ModelComposition:
         make the register harder to build than the estate is to describe.
         """
         if self.versions is None:
-            return
+            return False
         producing = self._latest(source["id"])
         consuming = self._latest(target["id"])
         if producing is None or consuming is None:
-            logger.info("input_to %s -> %s recorded without a type check: %s has "
-                        "no version yet", from_urn, to_urn,
-                        from_urn if producing is None else to_urn)
-            return
+            # Recorded, and recorded as *unchecked*. Refusing here would make
+            # the register harder to build than the estate is to describe — you
+            # cannot always add models in dependency order. But an unchecked
+            # edge that reads exactly like a checked one is a claim nobody made,
+            # travelling through blast radius as though somebody had, and its
+            # only outward sign was a later refusal from `composite_schema`.
+            logger.warning("input_to %s -> %s recorded WITHOUT a type check: %s "
+                           "has no version yet; the edge is marked unchecked",
+                           from_urn, to_urn,
+                           from_urn if producing is None else to_urn)
+            return False
 
         produced = schema_of_fields(producing.get("output_schema") or [])
         read = schema_of_fields(consuming.get("input_schema") or [])
@@ -240,7 +263,7 @@ class ModelComposition:
         overlap = Schema(tuple(f for f in read.fields if f.name in supplies))
         outcome = refines(produced, overlap)
         if outcome.holds:
-            return
+            return True
         raise RegistryError(
             f"{from_urn} does not compose with {to_urn}: on the "
             f"{len(supplies)} field(s) they share, what it produces "

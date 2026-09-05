@@ -484,17 +484,18 @@ class FeaturesetAuthoringRoutes(Routes):
     def _schema_blind_spot(features, name: str) -> List[str]:
         """Slots this featureset resolves to that `L-W10` does not look at.
 
-        Surfaced rather than papered over, because it is a defect in the
-        register and not in this page. `FeaturesetRegistry.schema` builds the
-        comparison from the featureset's OWN row — `featureset["slots"]` — while
-        `publish` fills the RESOLVED schema, inherited slots included. So a
-        featureset composed from parents and declaring nothing itself resolves
-        to a full schema, publishes versions that fill it, and then satisfies no
-        kernel at all: a fit warrant naming it is refused `schema_not_satisfied`
-        for slots it demonstrably has.
+        **Expected to be empty, and kept because it was not.**
 
-        This module reports the gap on the page. Correcting it means resolving
-        in `schema()`, which is `core/features/sets.py` and not ours.
+        `FeaturesetRegistry.schema` used to build the comparison from the
+        featureset's own row while `publish` filled the resolved schema, so a
+        set composed from parents resolved to a full schema, published versions
+        that filled it, and then satisfied no kernel at all — refused
+        `schema_not_satisfied` for slots it demonstrably had. This page reported
+        the gap rather than papering over it, and `schema()` now resolves.
+
+        The check stays. It costs one comparison, it is the cheapest possible
+        guard against the two readings drifting apart again, and a page that
+        stops asking is a page that would not notice.
         """
         resolved = features.sets.resolved(name)
         seen = {field.name for field in features.sets.schema(name).fields}

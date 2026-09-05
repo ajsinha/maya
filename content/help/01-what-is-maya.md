@@ -156,6 +156,6 @@ is a judgement your second line and your regulator make.
 
 Worked walkthroughs with real calls are in the [tutorials](/tutorials/end-to-end).
 Eight cover the platform; [seven are one per kind of
-model](/tutorials/every-kind-of-model), each complete from registration to
+model](/tutorials/defining-a-model), each complete from registration to
 monitoring, so a pricing library and a neural network can be seen getting the
 same treatment.

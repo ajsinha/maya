@@ -362,7 +362,7 @@ registered properly.
 | | |
 |---|---|
 | [**Help**](content/help/) | Seventeen topics in seven sections, rendered in the interface at `/help` |
-| [**Tutorials**](content/tutorials/) | Sixteen walkthroughs, rendered at `/tutorials`. Eight are the platform; **eight are one per kind of model**, each complete from registration to monitoring |
+| [**Tutorials**](content/tutorials/) | Six walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — and one end to end. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
 | [**The whole path**](content/tutorials/07-the-whole-path.md) | One example from an empty register to a champion serving in production, including every refusal on the way |
 | [**Every kind of model**](content/tutorials/08-every-kind-of-model.md) | The map to the seven: regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application |
 

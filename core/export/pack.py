@@ -108,6 +108,17 @@ class ExportPacker:
 
         if include_attachments:
             self._add_attachments(members, gaps, ctx)
+        else:
+            # Recorded, because this is the one file in the format that promises
+            # never to omit anything silently. A caller narrowing a pack is
+            # making a decision, and the reader of the pack did not make it —
+            # without this line they cannot tell a model with no filed documents
+            # from a copy that was taken without them.
+            gaps.append({
+                "what": "attachments/",
+                "why": "excluded by the request that cut this pack. Filed "
+                       "documents exist in the register and are not in this "
+                       "copy; cut one with attachments to see them"})
 
         for note in (ctx.get("_gaps") or []):
             gaps.append({"what": "context", "why": str(note)})
@@ -138,6 +149,19 @@ class ExportPacker:
                       for name, body in sorted(members.items())],
             "gaps": len(gaps),
             "contents": CONTENTS,
+            # `files` lists the DIGESTED members and therefore cannot list the
+            # manifest itself — a file cannot carry its own digest. Stated as a
+            # number so a consumer comparing the zip's member count against this
+            # list is not left one short and wondering what was dropped.
+            #
+            # It also stops the two counts drifting. `detail` reported
+            # `len(members)` while the evidence node recorded
+            # `len(manifest["files"])`, so the platform gave two different
+            # answers to "how many files are in this pack" — a small thing that
+            # a reader reconciling an export against its own record cannot
+            # reconcile.
+            "members_in_archive": len(members) + 1,
+            "manifest_is_itself_undigested": 1,
         }
         members[MANIFEST] = self._json(manifest)
 
@@ -156,7 +180,9 @@ class ExportPacker:
         return {"manifest": manifest, "bytes": archive,
                 "digest": sha256_of(archive),
                 "filename": self._filename(urn, started),
-                "detail": (f"{len(members)} file(s), {len(archive) / 1e6:.1f} MB"
+                "detail": (f"{len(members)} file(s) "
+                           f"({len(manifest['files'])} digested, plus the "
+                           f"manifest), {len(archive) / 1e6:.1f} MB"
                            + (f", {len(gaps)} gap(s) recorded" if gaps
                               else ", nothing missing"))}
 

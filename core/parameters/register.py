@@ -126,8 +126,17 @@ class ParameterRegister:
         """T0 has no parameters to fit and T6's are not ours to see. Both may
         still hold *declared* parameters — a closed form arrives with them — so
         the refusal is of the route, not of the parameter set."""
-        kernel = version.get("kernel") or {}
-        kind = kernel.get("parameter_kind")
+        # Read from the row's own column, not from `version["kernel"]`, which
+        # does not exist — the kernel spec lives under `manifest.kernel` and the
+        # field is a top-level column. So `kind` was **always None** and neither
+        # refusal below could ever fire: fitted coefficients could be recorded
+        # against a T0 version whose parameter object is terminal, and against a
+        # T6 version whose parameters are inside somebody else's black box.
+        #
+        # The fit *warrant* path refuses both correctly (`L-W1`), so the type
+        # error was enforced on one route and not the other — the pattern this
+        # module's own docstring warns about, in the module that warns about it.
+        kind = self._parameter_kind(version)
         if provenance == FITTED and kind == "none":
             raise ParameterError(
                 "nothing_to_fit",
@@ -142,6 +151,19 @@ class ParameterRegister:
                 "this version's parameters are inside a vendor black box and "
                 "cannot be reached, so MAYA cannot take delivery of them",
                 "record what the vendor states with provenance 'declared'")
+
+    @staticmethod
+    def _parameter_kind(version: Dict[str, Any]) -> Optional[str]:
+        """How `P` is inhabited, from wherever the row keeps it.
+
+        `create` writes it as a top-level column and also inside the manifest.
+        Both are read, column first, so this keeps working if a caller hands
+        over a manifest-shaped dict rather than a row.
+        """
+        if version.get("parameter_kind"):
+            return version["parameter_kind"]
+        kernel = (version.get("manifest") or {}).get("kernel") or {}
+        return kernel.get("parameter_kind")
 
     def _check_warrant(self, provenance: str, warrant_id: Optional[str],
                        version: Dict[str, Any]) -> None:
@@ -413,12 +435,12 @@ class ParameterRegister:
         """Whether this version's kernel is ready to be used, and by what route."""
         version = self._version_of(urn, semver)
         rows = self.parameters.for_version(version["id"])
-        kernel = version.get("kernel") or {}
-        terminal = (kernel.get("parameter_kind") == "none")
+        kind = self._parameter_kind(version)
+        terminal = (kind == "none")
         approved = [p for p in rows if p["state"] == APPROVED]
         return {
             "model_version": f"{urn}@{semver}",
-            "parameter_kind": kernel.get("parameter_kind"),
+            "parameter_kind": kind,
             "recorded": len(rows), "approved": len(approved),
             "awaiting_approval": sum(1 for p in rows if p["state"] == PROPOSED),
             "by_provenance": {p: sum(1 for r in rows if r["provenance"] == p)
