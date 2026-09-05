@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
                  "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed",
-                 "ephemeral")
+                 "ephemeral", "type_checked")
 
 
 class Repository:

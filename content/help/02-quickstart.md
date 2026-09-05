@@ -262,7 +262,7 @@ either.
   how it stops a model.
 - [A model, end to end](/tutorials/end-to-end) — this path as a worked tutorial,
   carried on through attestation.
-- [The whole path, step by step](/tutorials/the-whole-path) — the same journey
+- [The whole path, step by step](/tutorials/end-to-end) — the same journey
   from an empty register, including every refusal on the way.
 
 Or from Python, with no dependencies at all — `sdk/python` ships a standard

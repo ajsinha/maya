@@ -124,11 +124,18 @@ class TestTutorialsArea:
         body = client.get("/tutorials").text
         assert "Working through MAYA" in body
         assert "/tutorials/end-to-end" in body
-        assert "/tutorials/warrants-by-family" in body
+        assert "/tutorials/warrants-and-training" in body
 
     def test_a_tutorial_renders_its_markdown(self, client):
-        body = client.get("/tutorials/features-end-to-end").text
+        body = client.get("/tutorials/features").text
         assert "<table>" in body and body.count("<h2") >= 3
+
+    def test_every_shipped_tutorial_renders(self, client):
+        """Named individually rather than globbed, so deleting one is a test
+        failure rather than a silently smaller loop."""
+        for slug in ("defining-a-model", "features", "featuresets",
+                     "warrants-and-training", "model-package", "end-to-end"):
+            assert client.get(f"/tutorials/{slug}").status_code == 200, slug
 
     def test_an_unknown_tutorial_is_404(self, client):
         assert client.get("/tutorials/nope").status_code == 404

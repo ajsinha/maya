@@ -352,4 +352,4 @@ that it is true.
 ---
 
 Worked end to end, from an empty editor to an approved set an engine runs:
-[Authoring a rule set](/tutorials/rule-sets-end-to-end).
+[Authoring a rule set](/tutorials/defining-a-model).

@@ -203,7 +203,17 @@ class CaptiveEngine:
             raise WarrantError("expired", "warrant has expired beyond its grace window",
                             "re-resolve the warrant")
 
-        violations = self._constraints(warrant).check_inputs(inputs)
+        contract = self._constraints(warrant)
+        violations = contract.check_inputs(inputs)
+        unchecked = contract.unchecked_inputs(inputs)
+        if unchecked:
+            # Not a refusal — an assumption constrains a value that was
+            # supplied. But "the boundary held" and "the boundary never applied"
+            # look identical from `boundary_ok` alone, and the second is what a
+            # silently-unenforced contract looks like from outside.
+            logger.info("operating boundary: %d assumption(s) found no value "
+                        "and were not checked: %s",
+                        len(unchecked), ", ".join(unchecked))
         policy = (warrant.get("constraints") or {}).get("on_boundary_violation", "reject")
         if violations and policy == "reject":
             raise WarrantError("boundary_violation",

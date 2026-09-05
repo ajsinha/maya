@@ -26,7 +26,14 @@ from typing import Any, Dict, List, Optional, Union
 
 #: What a bulk read may ask for. `arrow` for an engine (zero-copy, incremental),
 #: `parquet` for disk, `ndjson` for anything at all, `csv` for a person.
-FORMATS = ("arrow", "parquet", "ndjson", "csv")
+#: The formats the platform will *read back*, from `core/features/transfer.py`.
+#:
+#: This said `csv` and omitted `json`, which is the **upload** set — so the SDK
+#: refused `json`, which works, and passed `csv`, which the platform then
+#: refuses. A client-side list that disagrees with the server is worse than no
+#: list: it turns a clear server refusal into a confusing local one, and lets
+#: through the case it was meant to catch.
+FORMATS = ("arrow", "parquet", "ndjson", "json")
 
 #: Media types the upload endpoint reads a file as. The extension is a hint, and
 #: a hint the caller may override — a `.txt` holding CSV is somebody's Tuesday.

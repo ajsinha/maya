@@ -421,7 +421,32 @@ class FeaturesetRegistry:
                 "derived": self.derived.is_derived(feature_name),
                 "definition_version": (self.derived.require(feature_name)["definition_version"]
                                        if self.derived.is_derived(feature_name) else None),
-                "certification": feature.get("certification", "experimental")}
+                # Asked of the derived feature's inputs rather than read off
+                # its row. The row holds what the meet said when the feature was
+                # defined; demote an input afterwards and the row goes on
+                # claiming the old answer. A featureset version is exactly where
+                # somebody checks what they are training on, so it is the last
+                # place a stale certification should survive.
+                "certification": (
+                    self.derived.certification_now(feature_name)
+                    if self.derived is not None
+                    and self.derived.is_derived(feature_name)
+                    else feature.get("certification", "experimental"))}
+
+    def _certification_now(self, binding: Dict[str, Any]) -> str:
+        """The slot's certification as it stands, not as it was published.
+
+        For a derived feature this is the meet over its inputs, asked again —
+        so demoting an input reaches every featureset version that reads it.
+        """
+        feature_name = binding.get("feature")
+        if not feature_name:
+            return binding.get("certification", "experimental")
+        if self.derived is not None and self.derived.is_derived(feature_name):
+            return self.derived.certification_now(feature_name)
+        feature = self.catalogue.get(feature_name)
+        return (feature or {}).get("certification",
+                                   binding.get("certification", "experimental"))
 
     def _locate(self, feature_name: str, binding: Dict[str, Any]) -> Tuple[str, int]:
         """Which view version supplies this feature's values.
@@ -533,7 +558,22 @@ class FeaturesetRegistry:
             "pit_rule": PIT_RULE,
             "label": version["label_binding"] or None,
             "outcome_window_days": featureset["outcome_window_days"],
-            "slots": [{"slot": s, **b} for s, b in sorted(version["bindings"].items())],
+            # The pin is frozen and the judgement is not.
+            #
+            # `view_version` and `delta_version` are read out of the stored
+            # binding exactly as published — that immutability is the whole
+            # reproducibility guarantee, and refreshing it would break the one
+            # property a featureset version exists to have.
+            #
+            # `certification` is different in kind. It is an opinion about the
+            # feature rather than a fact about the data, and it moves: a feature
+            # certified in March and deprecated in July is deprecated. A plan
+            # that reported "certified" because that is what somebody thought in
+            # March would be telling a reviewer the least useful true thing
+            # available.
+            "slots": [{"slot": s, **b,
+                       "certification": self._certification_now(b)}
+                      for s, b in sorted(version["bindings"].items())],
             "namespaces": sorted({b["namespace"] for b in version["bindings"].values()}),
             "pins": sorted({(b["namespace"], b.get("delta_version"))
                             for b in version["bindings"].values()}),

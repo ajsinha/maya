@@ -754,6 +754,6 @@ on the parameter set that came back.
 Each carries a `_comment` explaining what it demonstrates, and a test asserts that
 every one validates and that between them they exercise every axis.
 
-See [warrants by model family](/tutorials/warrants-by-family) for the walkthrough,
-and [every kind of model, worked](/tutorials/every-kind-of-model) for seven
+See [warrants by model family](/tutorials/warrants-and-training) for the walkthrough,
+and [every kind of model, worked](/tutorials/defining-a-model) for seven
 complete paths, one per family.

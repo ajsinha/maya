@@ -625,3 +625,60 @@ class TestAComposedFeaturesetCanActuallyBeFitted:
     def test_an_uncomposed_set_is_unchanged(self, composed):
         named = {f.name for f in composed.sets.schema("nj_parent").fields}
         assert named == set(CORE_SLOTS) - {"sale_price"}
+
+
+class TestCertificationIsAMeetAndStaysOne:
+    """`certification_of` states "as certified as the least-certified input,
+    never more". It was written onto the derived feature's row once, at
+    definition, and never recomputed — so the invariant held at the moment of
+    definition and was false from the first demotion onwards.
+
+    Two certified inputs, a derivation, then deprecate one: the derivation went
+    on reporting itself `certified`. That is the pattern this platform keeps
+    finding — a value derived, then stored, then allowed to disagree with what
+    it was derived from.
+    """
+
+    @pytest.fixture
+    def derivation(self, nj):
+        nj.certify("living_area_sqft", "certified")
+        nj.certify("lot_size_sqft", "certified")
+        return nj
+
+    def test_the_meet_is_the_weakest_input(self, derivation):
+        assert derivation.derived.certification_now("lot_to_living_ratio") == "certified"
+
+    def test_demoting_an_input_demotes_the_derivation(self, derivation):
+        derivation.certify("living_area_sqft", "deprecated")
+        assert derivation.derived.certification_now("lot_to_living_ratio") == "deprecated"
+
+    def test_restoring_it_restores_the_derivation(self, derivation):
+        derivation.certify("living_area_sqft", "deprecated")
+        derivation.certify("living_area_sqft", "certified")
+        assert derivation.derived.certification_now("lot_to_living_ratio") == "certified"
+
+    def test_deprecated_ranks_below_experimental_not_equal_to_it(self):
+        """`deprecated` was outside the order the meet ranked over, so it fell
+        to the fallback rank of 0 — the same rank as `experimental`. A feature
+        built on a deprecated input was reported exactly as well-certified as
+        one built on a merely experimental input, which is the opposite of what
+        deprecating something is for."""
+        from core.features.derived import CERTIFICATION_ORDER
+        assert CERTIFICATION_ORDER.index("deprecated") < \
+            CERTIFICATION_ORDER.index("experimental")
+
+    def test_every_settable_level_can_be_ranked(self):
+        """The order used to be a different vocabulary from the one `certify`
+        accepts: `reviewed` and `gold` could never be set, and `deprecated`
+        could never be ranked."""
+        from core.features.catalogue import LEVELS
+        from core.features.derived import CERTIFICATION_ORDER
+        assert set(LEVELS) == set(CERTIFICATION_ORDER)
+
+    def test_a_featureset_version_reports_the_current_meet(self, derivation, core):
+        """The last place a stale certification should survive: a featureset
+        version is exactly where somebody checks what they are training on."""
+        derivation.certify("living_area_sqft", "deprecated")
+        plan = derivation.featureset_plan("nj_home_core", 1)
+        ratio = [s for s in plan["slots"] if s["slot"] == "lot_to_living_ratio"]
+        assert ratio and ratio[0]["certification"] == "deprecated"

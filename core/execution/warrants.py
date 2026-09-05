@@ -123,7 +123,15 @@ class WarrantService:
         if self.parameters is None or version.get("artifact_uri"):
             return None
         try:
-            return self.parameters.resolve(urn.split("#")[0], version["semver"])
+            # `model_urn(parse_urn(...))`, not a hand-rolled split. This did
+            # `urn.split("#")[0]`, which strips an alias and leaves `@semver`
+            # attached — so a scoring warrant resolved by pinned version sent
+            # `maya://model/x@3.2.1` to the register and was refused
+            # `registry_refused`, naming a model that plainly exists. Three
+            # paths were stripping the qualifier three different ways; this is
+            # the one that already parses it.
+            return self.parameters.resolve(
+                model_urn(parse_urn(urn)[0]), version["semver"])
         except Exception as exc:                  # noqa: BLE001 -- re-raised below
             # `self.parameters` is an injected port, so the concrete
             # `ParameterError` is not imported here — that would make execution

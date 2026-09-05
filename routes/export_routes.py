@@ -65,7 +65,12 @@ class ExportRoutes(Routes):
                 pack["manifest"]["content_digest"],
                 {"urn": model["urn"], "model_id": model["id"],
                  "pack_digest": pack["digest"],
-                 "files": len(pack["manifest"]["files"]),
+                 # The archive's member count, which is what a
+                 # recipient sees. The manifest's own `files` list
+                 # is one shorter and always will be: it cannot
+                 # carry its own digest.
+                 "files": pack["manifest"]["members_in_archive"],
+                 "digested": len(pack["manifest"]["files"]),
                  "gaps": pack["manifest"]["gaps"],
                  "documents": kinds}, actor=self.actor(who))
             return Response(

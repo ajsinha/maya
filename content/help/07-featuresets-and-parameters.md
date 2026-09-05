@@ -277,7 +277,7 @@ A multiple linear regression predicting residential sale price. Small enough to
 hold in your head, and it exercises everything above. Both warrants ship as
 runnable documents — `examples/warrants/11-nj-linear-fit-from-featureset.json`
 and `12-nj-linear-score-on-parameters.json` — and the same example is walked with
-real calls in [Training a model, end to end](/tutorials/train-a-model).
+real calls in [Training a model, end to end](/tutorials/warrants-and-training).
 
 ### The model
 

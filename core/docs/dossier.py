@@ -72,7 +72,11 @@ class Dossier:
         self.attachments = attachments
         self.documents = documents
         self.parameters = parameters
-        self.featuresets = featuresets
+        # Wired as the FeatureRegistry, whose featureset half is `.sets`.
+        # Resolved once here rather than at each call site: doing it in one
+        # method and not the next is how the pin came to resolve and then fail
+        # one step further down.
+        self.featuresets = getattr(featuresets, "sets", featuresets)
         self.features = features
         self.validation = validation
 
@@ -131,8 +135,18 @@ class Dossier:
         # from, and the dossier follows that rather than the set — which is the
         # difference between "what was this trained on" and "what does that
         # featureset look like today".
-        name = parameter_set.get("featureset")
-        number = parameter_set.get("featureset_version")
+        #
+        # The row holds `featureset_version_id`; it has no `featureset` or
+        # `featureset_version` column and never had. So this read two keys that
+        # are always absent, the pin was never followed for **any** fitted set,
+        # and every export pack carried the gap below — "a fitted set that does
+        # not name the featureset version it came from" — about sets that plainly
+        # do name one.
+        #
+        # A false gap is worse than a missing feature. `gaps.md` is the property
+        # that lets a reader tell a thin model from a thin export, and a gap that
+        # is always there teaches them to skip the file.
+        name, number = self._pin(parameter_set)
         if name and number is not None:
             node["children"] = [self._featureset_version(name, number, gaps)]
         elif parameter_set.get("provenance") == "fitted":
@@ -142,6 +156,28 @@ class Dossier:
                        "it came from — 'what data produced these numbers' has "
                        "no answer from here"})
         return node
+
+    def _pin(self, parameter_set: Dict[str, Any]):
+        """The featureset version a fitted set came from, as name and number.
+
+        Resolved from `featureset_version_id`, which is what the row carries. An
+        id is not something a reviewer can read, and the dossier is read by
+        people rather than by joins.
+        """
+        version_id = parameter_set.get("featureset_version_id")
+        if not version_id or self.featuresets is None:
+            return None, None
+        for row in self.featuresets.list():
+            for version in self.featuresets.versions_of(row["name"]):
+                if version["id"] == version_id:
+                    return row["name"], version["version"]
+        # A pin that does not resolve is a real gap, and a different one from
+        # having no pin at all: the set named a featureset version that the
+        # register can no longer find.
+        logger.warning("parameter set %s pins featureset version %s, which the "
+                       "register cannot resolve",
+                       parameter_set.get("name"), version_id)
+        return None, None
 
     def _featureset_version(self, name: str, number: int,
                             gaps: List[Dict[str, str]]) -> Dict[str, Any]:
