@@ -426,3 +426,67 @@ class TestListsArePaged:
         body = client.get("/api/v1/models?q=m001&limit=50").json()
         assert body["total"] == 10, "m0010 through m0019"
         assert all("m001" in m["urn"] for m in body["models"])
+
+
+class TestModelCompositionOverTheApi:
+    """Models relate to each other now, and the estate questions that depend on
+    it — blast radius and shared dependency — are computable."""
+
+    def _second(self, client, people, name="rates.usd_curve"):
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": f"maya://model/{name}", "name": name, "model_class": "rates",
+            "domain": "rates", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "the curve"})
+        return f"maya://model/{name}"
+
+    def test_the_relations_are_published_with_their_meanings(self, registered,
+                                                              people):
+        body = registered.get("/api/v1/model-relations",
+                              auth=people["d.raman"]).json()["relations"]
+        kinds = {r["kind"]: r for r in body}
+        assert kinds["feeds"]["propagates"] is True
+        assert kinds["challenger_of"]["propagates"] is False
+        assert all(r["means"] for r in body)
+
+    def test_one_model_can_be_recorded_as_feeding_another(self, registered,
+                                                           people):
+        curve = self._second(registered, people)
+        r = registered.post("/api/v1/model-relations", auth=people["j.okafor"],
+                            json={"from_urn": curve, "to_urn": URN,
+                                  "kind": "feeds", "note": "discounting"})
+        assert r.status_code == 201, r.text
+        edges = registered.get(f"/api/v1/models/{NAME}/relations",
+                               auth=people["d.raman"]).json()
+        assert edges["upstream"][0]["urn"] == curve
+
+    def test_the_blast_radius_is_computed_from_the_graph(self, registered,
+                                                          people):
+        curve = self._second(registered, people)
+        registered.post("/api/v1/model-relations", auth=people["j.okafor"],
+                        json={"from_urn": curve, "to_urn": URN, "kind": "feeds"})
+        out = registered.post("/api/v1/blast-radius", auth=people["d.raman"],
+                              json={"urn": curve}).json()
+        assert [r["urn"] for r in out["reaches"]] == [URN]
+        assert "reaches 1 model" in out["detail"]
+
+    def test_a_shared_dependency_is_reported_as_one(self, registered, people):
+        """The obstruction, over HTTP: two models on one curve are not two
+        independent risks, and that is why an aggregate cannot simply add up."""
+        curve = self._second(registered, people)
+        other = self._second(registered, people, "markets.swaption")
+        for target in (URN, other):
+            registered.post("/api/v1/model-relations", auth=people["j.okafor"],
+                            json={"from_urn": curve, "to_urn": target,
+                                  "kind": "feeds"})
+        out = registered.post("/api/v1/shared-dependencies", auth=people["d.raman"],
+                              json={"urns": [URN, other]}).json()
+        assert [s["urn"] for s in out["shared"]] == [curve]
+        assert "independent faults" in out["detail"]
+
+    def test_a_cycle_is_refused_over_http_too(self, registered, people):
+        curve = self._second(registered, people)
+        registered.post("/api/v1/model-relations", auth=people["j.okafor"],
+                        json={"from_urn": curve, "to_urn": URN, "kind": "feeds"})
+        r = registered.post("/api/v1/model-relations", auth=people["j.okafor"],
+                            json={"from_urn": URN, "to_urn": curve, "kind": "feeds"})
+        assert r.status_code == 409 and "cycle" in r.text
