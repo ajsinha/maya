@@ -76,6 +76,9 @@ The codes a caller most often has to branch on:
 | `authority_not_defaultable` | 403 | A profile reached for authority; write it as a policy gate instead |
 | `csrf_token_invalid` | 403 | A state-changing request rode a session cookie without a valid token |
 | `pack_too_large` | 413 | The export is over 2 GB; narrow it rather than streaming something nobody opens |
+| `unknown_metric` | 422 | A limit was set over something the platform does not compute |
+| `amber_beyond_limit` | 422 | A warning that could only fire after the thing it warns about |
+| `rationale_required` | 422 | A limit or an overlay with no stated reason |
 
 Segregation refusals are a family, and each names the act it is protecting:
 `self_review` on a document, `self_approval` on a parameter set or an overlay,
@@ -221,6 +224,24 @@ a login.
 The response carries `X-Pack-Digest` (the zip) and `X-Pack-Content-Digest` (the
 files, excluding the manifest). The second is the one to keep: two packs of the
 same state share it, so *has anything changed* is one comparison.
+
+### Risk appetite and the board pack
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/risk-appetite/metrics` | What may be held to a limit, and why each indicator matters |
+| `GET` | `/risk-appetite` | Every live limit, least specific scope first |
+| `POST` | `/risk-appetite` | Declare one. Declaring over an existing limit versions it |
+| `POST` | `/risk-appetite/retire` | Stop holding the estate to it; the versions stay |
+| `GET` | `/risk-appetite/history/{metric}` | Every version, so a relaxation is findable |
+| `POST` | `/board-packs/preview` | What the pack would say, without creating one |
+| `POST` | `/board-packs` | Record it. This is the one a minute refers to |
+| `GET` | `/board-packs` | Packs on record |
+| `GET` | `/board-packs/{id}` | A pack as it was read, not as it would be recomputed |
+
+There is no composite score endpoint. Aggregating requires the parts to compose,
+and two models fed by the same curve are not two independent risks — see
+[risk appetite and the board pack](/help/portfolio-reporting).
 
 ### Warrant profiles
 
