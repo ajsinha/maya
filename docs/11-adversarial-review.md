@@ -209,7 +209,7 @@ partially discharged rather than closed.
 ---
 
 ### C-5 · Day-one adoption fails: 1,200 imported models are all non-compliant
-**Lens:** L4 · **Challenges:** [10 Phase 1](10-roadmap.md) — an omission, not an error
+**Lens:** L4 · **Challenges:** [10 §2.2](10-roadmap.md) — an omission, not an error
 
 The design describes steady-state operation beautifully and never addresses the cold start. On import
 day, 1,200 existing models arrive with no evidence graph, no feature contracts, no reproducible runs, and

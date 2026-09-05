@@ -338,9 +338,9 @@ registered properly.
 | **07** | [Feature Platform](docs/07-feature-platform.md) | Two clocks, point-in-time assembly, contracts, transfer |
 | **08** | [UI & UX](docs/08-ui-ux.md) | The interface, and the tense warning on what is designed versus built |
 | **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, sandbox, identity, ambient authority, audit |
-| **10** | [Roadmap](docs/10-roadmap.md) | The plan, and what of it is actually done |
+| **10** | [What Is Left](docs/10-roadmap.md) | What remains, why each thing is not built, and the order it should be done in |
 | **11** | [Adversarial Review](docs/11-adversarial-review.md) | 27 findings; 17 required redesign, and what each cost |
-| **12** | [Implementation Plan](docs/12-implementation-plan.md) ★ | **The build status — the authoritative record of what exists** |
+| **12** | [The Build](docs/12-implementation-plan.md) ★ | **The authoritative record of what exists** — and what the build taught: five ways a control can be green and inert |
 | **13** | [AI in the Platform](docs/13-ai-in-the-platform.md) | Where machine assistance may act, and the oracle criterion |
 | **14** | [Detailed Design](docs/14-detailed-design.md) ★ | Interfaces, algorithms, transaction boundaries, SLOs, capacity |
 | **15** | [X and P](docs/15-featuresets-and-parameters.md) | The two letters that are not the kernel: featuresets, derived features on the provenance polynomial, and the parameter object |
