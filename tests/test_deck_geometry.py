@@ -39,7 +39,7 @@ DECKS = [
     # Renamed and restructured: the deck is not only a system design, it is
     # the philosophy, the foundations, the concepts and the worked examples
     # as well — five parts, twenty-five chapters.
-    ("MAYA-Model-and-Feature-Management", 156),
+    ("MAYA-Model-and-Feature-Management", 155),
 ]
 
 
