@@ -111,6 +111,16 @@ STATUS: Dict[str, int] = {
     # right answer given the same remedy; repeating the key here silently
     # overwrote the earlier entry with an identical value and hid the sharing.
     "policy_refused": 403,
+    # serialised model artifacts. A neural network or an LLM is not an equation,
+    # so the parameter object arrives as bytes; these say whether the bytes, the
+    # address, or the declared format is what MAYA is objecting to.
+    # The codes are distinct from the engine's `no_artifact`/`artifact_mismatch`
+    # further down: those mean the engine could not fetch what a warrant named,
+    # which is a 502; these mean the store was asked for something it does not
+    # hold or was handed bytes that are not what the caller said they were.
+    "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
+    "artifact_digest_mismatch": 409, "artifact_too_large": 413,
+    "artifact_not_stored": 404,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for

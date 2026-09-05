@@ -291,6 +291,7 @@ class UIRoutes(Routes):
             """Create a model, or upload a version of one that already exists."""
             if (r := login_required(request)) is not None:
                 return r
+            from core.artifacts import EXECUTES_ON_LOAD, FORMAT_MEANING, FORMATS
             from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
             from core.execution.grammar import RUNTIME_ENTRY
             who = self.page_principal(request)
@@ -304,7 +305,13 @@ class UIRoutes(Routes):
                 fit_procedures=[p.value for p in FitProcedure],
                 output_kinds=[k.value for k in OutputKind],
                 runtimes=sorted(RUNTIME_ENTRY),
-                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()})
+                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},
+                # Which formats run code when they load travels to the page, so
+                # the warning is attached to the choice rather than left in a
+                # document somebody read once.
+                artifact_formats=[{"format": f, "means": FORMAT_MEANING[f],
+                                   "executes_on_load": f in EXECUTES_ON_LOAD}
+                                  for f in FORMATS])
 
         @self.app.get("/document/{document_id}", response_class=HTMLResponse,
                       tags=["ui"])

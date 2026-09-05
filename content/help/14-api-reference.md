@@ -67,6 +67,10 @@ The codes a caller most often has to branch on:
 | `grammar_violation` | 422 | The warrant does not conform to the grammar |
 | `test_not_admissible` | 422 | This test cannot answer this monitor's question |
 | `no_runtime` | 501 | No execution runtime is configured for that warrant |
+| `unknown_format` | 422 | Not an artifact format this platform stores |
+| `artifact_digest_mismatch` | 409 | The bytes do not hash to the digest you declared |
+| `artifact_not_stored` | 404 | Nothing is held under that address |
+| `artifact_too_large` | 413 | Over the 8 GiB ceiling |
 
 Segregation refusals are a family, and each names the act it is protecting:
 `self_review` on a document, `self_approval` on a parameter set or an overlay,
@@ -107,6 +111,28 @@ eighty kilobytes.
 | `POST` | `/models/{name}/versions/{semver}/approve` | Draft → approved |
 | `PUT` | `/models/{name}/aliases` | Move an alias. Gated on approval, findings, L-7 and L-12 |
 | `POST` | `/models/{name}/assess` | Risk tier with its full derivation |
+
+### Serialised model artifacts
+
+The bytes of a model that is a file rather than a record — a network's weights, a
+prompt bundle, a quantised checkpoint. Stored under their own SHA-256, so an
+artifact cannot be edited in place and storing the same one twice stores it once.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/artifact-formats` | What may be stored, and which formats execute code when they load |
+| `POST` | `/artifacts?format=&digest=` | The body is the file. `digest` is **checked**, not trusted |
+| `GET` | `/artifacts/{digest}` | The bytes back, streamed |
+| `GET` | `/artifacts/{digest}/verify` | Re-derive the hash from the bytes on disk |
+| `GET` | `/artifact-usage` | How many artifacts, and how many bytes |
+
+A version naming a digest the store holds gets its `artifact_uri` and
+`artifact_size` **from the store** — the store is the authority on its own
+contents. A digest it does not hold is recorded as naming an artifact somebody
+else holds, which is a different state rather than an error, and the warrant
+carries the difference as `held_by_maya`.
+
+Ceiling 8 GiB. A governance platform is not a model store of last resort.
 
 ### Lifecycle
 

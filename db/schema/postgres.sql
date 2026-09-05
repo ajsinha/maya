@@ -97,6 +97,9 @@ CREATE TABLE IF NOT EXISTS model_version (
     -- no location cannot be fetched, and a location with no digest cannot be
     -- checked against what was approved.
     artifact_uri       TEXT,
+    -- How big, so a warrant can tell an engine what it is about to
+    -- fetch before it starts fetching it.
+    artifact_size      integer,
     status             TEXT NOT NULL DEFAULT 'draft',
     created_at         DOUBLE PRECISION NOT NULL,
     created_by         TEXT NOT NULL,

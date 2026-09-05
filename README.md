@@ -319,7 +319,7 @@ maya/
 │   ├── examples/                    the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
-│   └── MAYA-System-Design.pptx              88-slide system design deck
+│   └── MAYA-System-Design.pptx              99-slide system design deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```
@@ -339,7 +339,7 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 88 slides | Fourteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. The last six are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file** |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 99 slides | Fifteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. Chapters nine to fourteen are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file**. The fifteenth takes each kind of model in turn — regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application — and says how MAYA saves, manages and serves it |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*

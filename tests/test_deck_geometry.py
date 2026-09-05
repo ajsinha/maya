@@ -36,7 +36,7 @@ DECKS = [
     # The practitioner deck was merged in as chapters 9-14 rather than kept
     # beside this one: two decks meant two places to keep current, and the
     # engineering material is the same system described one level down.
-    ("MAYA-System-Design", 88),
+    ("MAYA-System-Design", 99),
 ]
 
 
