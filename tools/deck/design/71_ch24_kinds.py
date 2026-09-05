@@ -221,7 +221,8 @@ model_slide(
      ["Filled by", "calibration plus deliberate configuration",
       "the bank's engine, under a fit warrant"],
      ["Kind / procedure", "calibration_set / calibrate", "class T1, derived"],
-     ["Claim checked", "deterministic = true", "L-W6: refused if no seed is bound"]],
+     ["Claim checked", "deterministic = true",
+      "L-W5: refused if no seed is bound"]],
     ("Configuration is in P",
      "Paths, seed, scheme and antithetic each change the answer. If they are "
      "not in P they are not in the digest, the warrant or the replay."),

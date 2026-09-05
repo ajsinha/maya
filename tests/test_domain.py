@@ -50,6 +50,33 @@ class TestTrainabilityClassification:
         """A vendor model stays T6 whatever fitting procedure is claimed for it."""
         assert kernel(ParameterKind.OPAQUE, FitProcedure.TRAIN).trainability_class == "T6"
 
+    @pytest.mark.parametrize("kind", [ParameterKind.CALIBRATION_SET,
+                                      ParameterKind.ESTIMATED_COEFFICIENTS,
+                                      ParameterKind.LEARNED_WEIGHTS,
+                                      ParameterKind.LLM_CONFIGURATION,
+                                      ParameterKind.ELICITED_WEIGHTS,
+                                      ParameterKind.RULE_SET])
+    def test_inhabited_p_with_no_fit_procedure_still_reads_t0_here(self, kind):
+        """Recorded as it is, not as it should be.
+
+        `trainability_class` ends `_FIT_TO_CLASS.get(self.fit, "T0")`, and the
+        one key missing from that map is `NONE`. So a kernel with real,
+        inspectable parameters and no declared fit procedure comes back **T0** —
+        the class meaning `P` is *terminal*, no parameters at all — and
+        `requires_fitting_evidence` then exempts it from fitting evidence on the
+        grounds that it has none to have fitted.
+
+        The derivation is not wrong to be total; it has nothing else to return,
+        and raising from a property would put a refusal somewhere nobody can
+        act on it. The state is instead made **unreachable** one layer up, at
+        version creation — see
+        `test_registry.py::TestParametersMustBeExplained`. This test pins the
+        fallback so that if the refusal is ever removed, the silent T0 shows up
+        here as a documented consequence rather than as a surprise.
+        """
+        assert kernel(kind, FitProcedure.NONE).trainability_class == "T0"
+        assert not kernel(kind, FitProcedure.NONE).requires_fitting_evidence
+
     @pytest.mark.parametrize("kind,fit", [(ParameterKind.NONE, FitProcedure.NONE),
                                           (ParameterKind.OPAQUE, FitProcedure.NONE)])
     def test_t0_and_t6_require_no_fitting_evidence(self, kind, fit):
@@ -274,7 +301,18 @@ class TestLawsUnderGeneratedInput:
     @settings(max_examples=200, deadline=None)
     @given(st.integers(0, 8))
     def test_trainability_is_a_total_function(self, i):
-        """Every combination yields exactly one class in T0..T8. No gaps, no crashes."""
+        """Every combination yields exactly one class in T0..T8. No gaps, no crashes.
+
+        Worth being clear about what this does *not* say, because it is a good
+        example of a green test that guards less than its name suggests: it
+        asserts the function is **total**, and totality stays true when the
+        answer is wrong. It passed happily over the combination — inhabited,
+        accessible `P` with `fit_procedure: none` — that returned T0 and thereby
+        exempted a model with parameters from fitting evidence.
+
+        Totality was never the property at risk. Correctness on each combination
+        is, and that is the parametrised table above, one row at a time.
+        """
         kinds, fits = list(ParameterKind), list(FitProcedure)
         k = kernel(kinds[i % len(kinds)], fits[i % len(fits)])
         assert k.trainability_class in {f"T{n}" for n in range(9)}

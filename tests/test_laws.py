@@ -5,22 +5,30 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The foundational laws, made executable.
 
-`docs/00 §12` states twenty-one laws and, for each, whether it runs. Seven of
-the original nineteen did. The
-document was honest about the rest — *"a law that is stated but not executed did
-not prevent anything"* — which is the correct thing to say and a poor place to
-leave it, because the strongest claim the design makes is that the laws are the
-acceptance criteria, and a claim that is 37% true is a claim that will be read as
-100% true by everybody who does not check.
+`docs/00 §12` states the laws and, for each, whether it runs. Seven of the
+original nineteen did. The document was honest about the rest — *"a law that is
+stated but not executed did not prevent anything"* — which is the correct thing
+to say and a poor place to leave it, because the strongest claim the design makes
+is that the laws are the acceptance criteria, and a claim that is 37% true is a
+claim that will be read as 100% true by everybody who does not check.
 
-This file closes five of the twelve, and adds two more (`L-20`, `L-21`) that
-the work of closing them showed were missing. Each is tested as the law is *stated*, not
-as the implementation happens to behave — a test written from the code proves the
-code agrees with itself.
+This file closes six of the twelve that did not run (`L-1`, `L-2`, `L-3`, `L-9`,
+`L-10`, `L-16`) and adds two the work of closing them showed were missing
+(`L-20`, `L-21`). Each is tested as the law is *stated*, not as the
+implementation happens to behave — a test written from the code proves only that
+the code agrees with itself.
 
-The six that are still not executable are named here as well, with the reason,
-so the gap stays visible in the place somebody would look for it rather than only
-in a table.
+The six still not executable are named below with the reason, so the gap stays
+visible where somebody would look for it rather than only in a table.
+
+**No running total is written here.** The previous version of this paragraph
+carried one, said "five of the twelve", and arrived at fourteen of twenty-one
+where the table says fifteen — an off-by-one in the file whose entire purpose is
+to stop exactly that. A total maintained by hand in two places is two numbers
+that will disagree, and this one disagreed inside the control. The counts are
+computed from the table by
+`test_the_totals_are_computed_and_not_written_down` below, and by
+`tests/test_documentation_counts.py` for every document that states them.
 """
 from __future__ import annotations
 
@@ -401,6 +409,32 @@ class TestTheLawsStillNotExecutable:
         assert len(self.NOT_EXECUTABLE) == 6
         for law, why in self.NOT_EXECUTABLE.items():
             assert why, f"{law} is listed with no reason"
+
+    def test_the_totals_are_computed_and_not_written_down(self):
+        """This file's docstring used to carry its own arithmetic, and the
+        arithmetic was wrong — fourteen of twenty-one against a table saying
+        fifteen. A hand-maintained total in a second place is a second number
+        that will drift from the first, and it drifted inside the control that
+        exists to stop counts drifting.
+
+        So the totals are derived from the table, and the only hand-written
+        thing left is the list of six, which carries a reason each and is
+        checked against the table by the test below.
+        """
+        import pathlib
+        import re
+        doc = (pathlib.Path(__file__).resolve().parent.parent
+               / "docs" / "00-mathematical-foundations.md").read_text(encoding="utf-8")
+        rows = re.findall(r"^\| \*\*(L-[\w\d]+)\*\* \| .*?\| .*?\| (.*?) \|$",
+                          doc, re.M)
+        stated = {name for name, _ in rows}
+        runs = {name for name, status in rows
+                if "Executable" in status or "Enforcing" in status}
+
+        assert len(rows) == len(stated), "a law is stated twice in the table"
+        assert stated - runs == set(self.NOT_EXECUTABLE), (
+            "the table and this file disagree about which laws do not run")
+        assert len(runs) + len(self.NOT_EXECUTABLE) == len(stated)
 
     def test_the_document_and_this_file_do_not_disagree(self):
         """The table in `docs/00 §12` is the public statement. If it claims a law

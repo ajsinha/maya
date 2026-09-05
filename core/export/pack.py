@@ -28,7 +28,7 @@ pack's own evidence segment, and every pack would then differ from the one
 before it for no reason except that somebody had taken one.
 
 **Personal data is not re-materialised.** An evidence node flagged as carrying
-personal data holds an erasable pointer rather than the data (L-18), and the pack
+personal data holds no payload at all rather than the data (L-18), and the pack
 carries the pointer. A pack that helpfully resolved it would put personal data
 into a zip on somebody's laptop, where an erasure request cannot reach it — and
 the export would have quietly defeated the control the whole chain was built to
@@ -241,7 +241,7 @@ class ExportPacker:
                   gaps: List[Dict[str, str]]) -> Dict[str, Any]:
         """The chain segment, with personal data left as a pointer.
 
-        The node already stores an erasable pointer rather than the data — this
+        The node already stores nothing in place of the data — this
         is not a redaction performed here, it is the platform's own storage
         being carried across unchanged. It is stated because an export is where
         somebody would be tempted to resolve it.
@@ -255,7 +255,7 @@ class ExportPacker:
                 redacted += 1
                 entry["payload"] = {
                     "redacted": True,
-                    "note": "this node carries an erasable pointer rather than "
+                    "note": "this node carries no payload rather than "
                             "personal data (L-18); the pack carries the pointer"}
             out.append(entry)
         if redacted:
@@ -366,7 +366,7 @@ was compiled from.
 
 ## What is deliberately not here
 
-Nodes that reference **personal data** carry an erasable pointer rather than the
+Nodes that reference **personal data** carry no payload rather than the
 data, in the pack exactly as in the platform. Resolving it here would put
 personal data into a file an erasure request cannot reach, which would defeat the
 control rather than export it.

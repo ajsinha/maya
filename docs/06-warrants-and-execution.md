@@ -172,7 +172,7 @@ The list is closed. A document missing any of them fails `L-W0` before anything 
   "operation": {
     "verb":        "score",                   // one of ten
     "determinism": "deterministic",
-    "seed":        null,                      // L-W5: required if a stochastic runtime claims determinism
+    "seed":        null,                      // L-W5: required if a claim of determinism cannot be checked
     "mode":        "batch"
   },
 
@@ -277,7 +277,7 @@ that decides whether `fit` is coherent, and the grammar refuses what it says is 
 | `L-W2` | `generate` on a non-generative runtime | an ONNX graph does not produce prose | `grammar/rules.py` |
 | `L-W3` | training from a non-bitemporal binding | it cannot be read as-of, so it cannot be shown leak-free | `grammar/rules.py` |
 | `L-W4` | a `fit` with no `parameter_object` sink | a fit must say where the parameters it produces will go | `grammar/rules.py` |
-| `L-W5` | claimed determinism from a stochastic runtime with no seed | an LLM at temperature 0.7 is not reproducible, and the claim would be believed | `grammar/rules.py` |
+| `L-W5` | claimed determinism, no seed, from a runtime running arbitrary code | an LLM at 0.7 is not reproducible and neither is an unseeded simulation; the claim would be believed. Not *is the runtime random* — undecidable from a name — but *can MAYA check the claim* | `grammar/rules.py` |
 | `L-W6` | `fit` on a `descriptor_only` model | you cannot inhabit what nothing on this side can reach | `grammar/rules.py` |
 | `L-W7` | a backtest with no outcomes | that is a re-score wearing a backtest's name | `grammar/rules.py` |
 | `L-W8` | a run that will not say which point of `P` it runs at | fitting does not change the kernel, so a run declining to name its inhabitant produces a number attributable to nothing. Only a `fit` may leave it unfilled, and a `fit` must bind `to_be_fitted` and nothing else — it *writes* the parameter object, so declaring that it reads one describes the wrong direction | `grammar/rules.py` |

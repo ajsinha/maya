@@ -369,11 +369,20 @@ rejection and what the platform can and cannot read out of a document.
 
 ## 10 · What is never stored
 
-Personal data never goes inline into the evidence chain. **L-18**: an evidence
-node carrying personal data holds an **erasable pointer**, not the data — so an
-erasure request can be honoured without breaking the hash chain everything else
-depends on. An export pack carries the pointer and says so, rather than quietly
-omitting the node and reading as complete.
+Personal data never goes into the evidence chain. **L-18**: a node flagged
+`contains_personal_data` is stored with an **empty payload**, and the content
+hash is taken over what was *stored* rather than what was passed — so the node
+verifies against itself, and an erasure request needs no action at all, because
+there was never anything to erase. An export pack carries the empty node and
+says so, rather than quietly omitting it and reading as complete.
+
+**This section used to say "an erasable pointer".** There is no pointer: no
+`payload_uri` column in either dialect, no per-subject key, no shred path. The
+payload is discarded. That is stronger than the law asks for — nothing to leak —
+and weaker than the old sentence implied, because it also means the data cannot
+be resolved later under any authority. Which of those you are getting is worth
+knowing, and the sentence that named a mechanism nobody built made it
+impossible to tell.
 
 ---
 

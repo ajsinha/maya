@@ -172,8 +172,9 @@ In a Markov category, `f` is deterministic iff `copy ∘ f = (f ⊗ f) ∘ copy`
 first-class flag because it has a governance consequence: a non-deterministic model cannot be
 reproduced by re-execution alone, so its reproducibility evidence must pin the random source. That
 is `L-3`, and it is checked both ways — the estimator runtime is run twice on identical input and
-compared bit for bit, and a determinism claim from a stochastic runtime with no seed is **refused**
-(`L-W5`). A flag that is only ever asserted is a flag that will eventually be wrong.
+compared bit for bit, and a determinism claim with no seed is **refused** wherever the runtime
+executes code MAYA cannot read (`L-W5`). A flag that is only ever asserted is a flag that will
+eventually be wrong.
 
 A model returning a point estimate and one returning a full predictive distribution differ in `Y`,
 not in kind. In a **representable** Markov category, kernels `X → Y` correspond to deterministic
@@ -510,7 +511,7 @@ has no exceptions to forget.**
 
 ### 6.4 What the chain refuses to hold
 
-`L-18`: a node flagged `contains_personal_data` carries **no inline payload**, only an erasable
+`L-18`: a node flagged `contains_personal_data` carries **no payload at all** — not an erasable
 pointer. It is enforced in the append path rather than in DDL, and the detail that makes it work is
 that the node **hashes what it stored**, not what it was given — so an erased node still verifies
 against itself and the chain does not break when the right to erasure is exercised.
@@ -894,7 +895,7 @@ this section exists to prevent.
 | **L-15** | *Fibration completeness.* Every model class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §8 | **Not built as a startup gate.** A model class is a string on the register; there is no plugin loader refusing to boot on a partial fibre |
 | **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §9.4 | **Executable and enforcing**, over the sentences whose shape is declared. `core/regimes/sentences.py::deontic_conflicts` finds every term both obliged and forbidden, activation refuses it as `obligation_contradiction`, and `undecidable()` **names** the sentences the check cannot read rather than assuming them consistent. A conditional obligation is not counted against an unconditional prohibition: they may never both apply |
 | **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | **Not built — there is no online store.** `core/features/contracts.py::serving_namespaces` computes what serving *must* read, which is the half of the comparison that can exist without one. The other half arrives with the store |
-| **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no inline payload, only an erasable pointer. | §6.4 | **Executable and enforcing**, in the append path rather than in DDL: `core/evidence/engine.py` stores an empty payload for such a node *and hashes what it stored*, so the node verifies against itself; `tests/test_evidence.py` |
+| **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no payload. | §6.4 | **Executable and enforcing**, in the append path rather than in DDL: `core/evidence/engine.py` stores an empty payload for such a node *and hashes what it stored*, so the node verifies against itself; `tests/test_evidence.py`. This row said "only an erasable pointer", and there is no pointer — no `payload_uri`, no per-subject key, no shred path. The payload is **discarded**, which is stronger than the law requires and weaker than the sentence implied |
 | **L-19** | *Composition is a monoid.* Merge-with-rightmost-wins over definitions is associative, with the empty composition as identity. | §5.3 | **Executable.** Both properties asserted in `tests/test_composition.py`; strengthened by `tests/test_laws.py::TestTheEditOperationsCommuteWhenIndependent`, so the order two people happened to edit in carries no meaning |
 | **L-20** | *Schemas are a lattice.* `A ⊑ B` ("A can stand in for B") is a partial order; meet and join exist on every finite fragment; the empty schema is top. | §3 | **Executable and enforcing.** `core/domain/lattice.py`; `tests/test_laws.py::TestL20SchemasFormALattice`. Written because **four** places asked one question and four implementations of one order disagree eventually, in the direction of permitting more. `L-12`, `L-W10` and `L-21` now go through it. Meet is **partial**, informatively so: two schemas whose shared slot has two types have no meet, which is the honest answer to *can one featureset serve both models* |
 | **L-21** | *Composition type-checks.* An `input_to` edge holds only if what the source produces can stand in for what the target reads. | §3.3 | **Executable and enforcing.** `core/registry/composition.py`; `tests/test_laws.py::TestL21FeedsIsCompositionRatherThanADrawing`. Until this, an edge was recorded and never checked — a blast radius over edges nobody had validated. With it, a composite has a **derived** schema, which is what `L-14` would need |
@@ -971,7 +972,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
 | A fibre registry with a startup totality gate (`L-15`) | **Not built** — a model class is a string on the register |
-| An MTL obligation compiler (`L-16`'s ambition) | **Not built** — the eight jobs above do the work |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the eight scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
 | An online feature store (`L-17`) | **Not built** — `serving_namespaces` is the half that can exist without one |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its

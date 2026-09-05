@@ -154,14 +154,49 @@ materialise its values like any primitive — the definition is still kept, so
 lineage and the leakage check still apply
 ```
 
-**Be clear about what this is not.** `external` is *not* an escape from the
-language: the expression is parsed before the evaluator is looked at, so
-`median(sale_price)` is refused whether you declare it internal or external.
-For a quantity the language genuinely cannot express, the only route is to
-define it as a **primitive** feature and materialise the values — and the cost is
-real and worth stating: a primitive has no lineage, so the leakage check cannot
-see through it. If that quantity is derived from your label, nothing here will
+### The expression MAYA cannot read at all
+
+`bathrooms / bedrooms` is in the language; it is declared external only because
+something else already computes it. The harder case is a quantity the language
+cannot express — a vendor score, a sentiment model, a library call:
+
+```bash
+curl -su d.raman:dev-pw -X POST localhost:5006/api/v1/derived-features \
+  -H 'Content-Type: application/json' -d '{
+    "name": "vendor_pd",
+    "expression": "vendor.pd_model.score(living_area_sqft, year_built)",
+    "dtype": "numeric", "evaluator": "external",
+    "inputs": ["living_area_sqft", "year_built"],
+    "description": "Vendor default probability"}'
+```
+
+`inputs` is the new part, and it is required here: MAYA cannot parse that
+expression, so it cannot discover for itself what the feature reads. Declaring
+the inputs is what keeps the lineage and the leakage check working — which is
+the entire reason for storing a definition MAYA will never evaluate.
+
+Three rules hold it together, and they exist so that the inputs have exactly one
+source of truth at a time:
+
+| | |
+|---|---|
+| The expression parses | The parse names the inputs. Declaring them too is **refused** — a declared list and a parsed list are two answers that can disagree, and the leakage check would then run against whichever one you happened to read |
+| The expression does not parse, `external` | You declare the inputs, and MAYA records that the expression is opaque to it rather than pretending to have understood it |
+| The expression does not parse, `internal` | Refused, exactly as before. `median(sale_price)` is not a derived feature MAYA can compute |
+
+**Why this changed.** Until recently the paragraph above said something else: for
+a quantity the language could not express, the only route was to register it as a
+**primitive** and materialise the values. That worked, and it cost the lineage —
+a primitive rests on nothing, so the leakage check cannot see through it, and a
+vendor score computed from your label arrived in the catalogue with nothing to
 catch it.
+
+The cause was small and worth naming, because the shape recurs: `define` parsed
+the expression *before* it looked at `evaluator`. So `external` — documented for
+years as the evaluator for "an expression that needs a library, external data or
+a model" — was unreachable for precisely those expressions. The documentation was
+not describing the system; it was describing the intention, in the present
+tense, and nothing compared the two.
 
 ---
 

@@ -222,7 +222,7 @@ Six, each with the failure it prevents.
    the check is a filtered listing with a hole in it.
 
 3. **Every asset is vendored.** `web/static/vendor/` holds Bootstrap 5, Bootstrap Icons and jQuery —
-   712 KB, no CDN, no external fetch. A governance platform that cannot be deployed air-gapped is
+   675 KB across six files, no CDN, no external fetch. A governance platform that cannot be deployed air-gapped is
    one somebody works around.
 
 4. **The table script is written, not vendored.** `web/static/js/tables.js` gives every table search,

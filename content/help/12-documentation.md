@@ -472,11 +472,12 @@ cutting a pack every month should not silently author four documents a month,
 and a pack whose own production changed the record would differ from the last
 one for no reason but that somebody had asked for it.
 
-**It does not re-materialise personal data.** A node referencing personal data
-carries an erasable pointer rather than the data (L-18), and the pack carries
-the pointer. Resolving it would put personal data into a file on somebody's
-laptop where an erasure request cannot reach it, defeating the control rather
-than exporting it. `gaps.md` says so.
+**It does not re-materialise personal data.** A node flagged as referencing
+personal data was stored with an empty payload (L-18), so the pack carries the
+empty node. There is nothing to re-materialise: the payload was discarded when
+the node was appended, not held behind a pointer the pack could have followed.
+`gaps.md` says so, rather than letting the reader mistake a thin model for a
+thin export.
 
 **It refuses rather than truncating.** Past 2 GiB the pack is refused as
 `pack_too_large` with the way out — exclude attachments, or ask for fewer

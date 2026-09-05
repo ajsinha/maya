@@ -271,7 +271,7 @@ current there:
 
 | | |
 |---|---|
-| Tests | **2,212 passing**, plus a scale suite excluded by default |
+| Tests | **over 2,200 passing**, plus a scale suite excluded by default |
 | Foundational laws executable | **15 of 21** — the six that are not are named with the reason |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
 | Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **46 tables**, no migrations |
@@ -407,7 +407,7 @@ maya/
 ├── examples/warrants/               thirteen worked warrants across the model estate
 ├── docs/                            18 specification documents + ADRs
 ├── tools/deck/                      the decks, generated from source rather than edited
-└── tests/                           2,206 tests, including the law suite and the discipline walkers
+└── tests/                           the law suite and the discipline walkers
 ```
 
 ### The discipline walkers
