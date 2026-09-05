@@ -120,6 +120,34 @@ signed-in session rather than using Basic. If you are, use Basic.
                  ambient authority and needs no token"}
 ```
 
+## Or use the SDK
+
+Everything below is one call in `maya_sdk`, and the SDK is the shorter path on
+purpose — if doing it properly takes forty lines of HTTP plumbing and doing it
+wrong takes four, the register fills with models nobody registered properly.
+
+```bash
+pip install -e sdk/python
+```
+
+```python
+from maya_sdk import Maya, Blocked
+
+maya = Maya("https://maya.internal", "d.raman", "…")
+maya.models.register(urn="maya://model/credit.pd.smallbiz", name="SB PD", …)
+
+try:
+    maya.versions.promote("maya://model/credit.pd.smallbiz", semver="3.3.0")
+except Blocked as refusal:
+    print(refusal.detail, refusal.remediation, refusal.request_id)
+```
+
+Standard library only, no dependencies. It authenticates with HTTP Basic, so the
+CSRF boundary above does not apply to it. **It decides nothing** — no local tier
+arithmetic, no client-side approval check, no copy of the vocabularies; ask
+`maya.warrants.grammar()` and `maya.whoami()` instead, so a client cannot go
+stale and be confidently wrong. See `sdk/README.md`.
+
 ## The endpoints
 
 ### Paging, search and sorting
