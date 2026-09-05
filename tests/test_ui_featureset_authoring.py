@@ -388,28 +388,34 @@ class TestTheLatticeIsAskableRatherThanAsserted:
         assert "is the identity" in body
         assert "There is deliberately no bottom" in body
 
-    def test_a_composed_featureset_is_judged_on_nothing_it_inherited(
+    def test_a_composed_featureset_is_judged_on_what_it_inherited(
             self, published):
-        """A defect in the register, surfaced rather than papered over.
+        """This pinned a defect, and the pin did its job.
 
-        `FeaturesetRegistry.schema` builds the comparison from the featureset's
-        own row while `publish` fills the RESOLVED schema — so a set composed
-        from parents publishes versions that fill its schema and then satisfies
-        no kernel at all. The pages show what is enforced, and say why it is
-        wrong, because correcting it belongs in core.
+        `FeaturesetRegistry.schema` built the comparison from the featureset's
+        own row while `publish` fills the **resolved** schema — so a set
+        composed from parents reported an empty schema and satisfied no kernel
+        at all, which made composition unusable end to end. The screens showed
+        what was enforced and named the file, rather than papering over it.
+
+        `schema()` now resolves, so the comparison is over the slots the set
+        actually has. The assertion is inverted rather than deleted, because a
+        pin that is removed when the defect is fixed leaves nothing watching the
+        behaviour it was pinning.
         """
         published.post("/api/v1/featuresets", headers=_csrf(published), json={
             "name": "nj_child", "entity": ENTITY,
             "composes": [{"name": "nj_home_core"}], "label_slot": "sale_price"})
         resolved = published.get(
             "/api/v1/featuresets/nj_child/resolved").json()
-        assert set(resolved["slots"]) == {"living_area_sqft", "bedrooms",
-                                          "sale_price"}
-        for path in ("/featureset/nj_child/refusals", "/featuresets/lattice"):
-            body = _prose(published, path)
-            assert "core/features/sets.py" in body, path
-        body = _prose(published, "/featureset/nj_child/refusals")
-        assert "not looking at every slot this featureset has" in body
+        inherited = {"living_area_sqft", "bedrooms", "sale_price"}
+        assert set(resolved["slots"]) == inherited
+
+        from core.features.sets import FeaturesetRegistry  # noqa: F401
+        registry = published.app.state.ctx["features"].sets
+        named = {f.name for f in registry.schema("nj_child").fields}
+        assert named == inherited - {"sale_price"}, (
+            "a composed featureset is judged on an empty schema again")
 
     def test_the_fold_is_shown_to_be_order_dependent(self, published):
         """Associativity and the identity are laws asserted elsewhere. What a
