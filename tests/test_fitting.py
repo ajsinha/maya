@@ -410,7 +410,12 @@ class TestRunningAtAnApprovedPointOfP:
                                    "model_development",
                                    {"features": {"dscr": 2.0, "turnover": 100.0}})
         assert exc.value.code in ("no_runtime", "artifact_unverifiable",
-                                  "no_parameters_supplied")
+                                  "no_parameters_supplied",
+                                  # The honest one: there is no approved set and
+                                  # no artifact, so there is no point of P to
+                                  # name and the warrant says so rather than
+                                  # binding to an artifact that is not there.
+                                  "no_approved_parameters")
 
 
 class TestGarchScoring:

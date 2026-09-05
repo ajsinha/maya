@@ -310,3 +310,90 @@ def check_outcomes(verb: str, inputs: List[Dict[str, Any]]) -> Optional[Problem]
             "inputs supplies them",
             "name the outcome column, or bind a dataset that carries labels")
     return None
+
+
+def check_calibration_as_of(verb: str, parameters: Dict[str, Any]) -> Optional[Problem]:
+    """L-W11. A calibrated parameter object must say what it was calibrated as of.
+
+    A calibrated model reproduces a market rather than summarising a history, so
+    the moment it was solved for IS part of what it means. Two warrants naming
+    the same parameter set on different mornings are not the same run, and the
+    difference between them is the only thing that distinguishes a current
+    calibration from a stale one.
+
+    Without the stamp, staleness is silent: the engine runs yesterday's swaption
+    fit against today's book, produces a number that looks entirely ordinary, and
+    nothing in the record says which market it came from. This law does not judge
+    the age -- how old is too old depends on the cadence, and that is a policy
+    gate's question -- it requires the age to be *statable*.
+    """
+    if verb == FIT or parameters.get("kind") != "calibration_set":
+        return None
+    source = parameters.get("source") or {}
+    if source.get("as_of") is not None:
+        return None
+    return Problem(
+        "L-W11", "parameters.source.as_of",
+        "this model's parameters are a calibration, and the warrant does not say "
+        "what they were calibrated as of, so nothing downstream can tell a "
+        "current calibration from a stale one",
+        "record the calibration's as_of on the parameter set; a set delivered "
+        "without one cannot be told apart from any other solve of the same grid")
+
+
+def check_artifact_digest(verb: str, parameters: Dict[str, Any],
+                          realisation: Dict[str, Any]) -> Optional[Problem]:
+    """L-W12. Parameters that live inside an artifact need that artifact digested.
+
+    When the parameter object IS the file -- a network's weights, a PMML
+    scorecard -- "which numbers did this run at" and "which bytes did it load"
+    are the same question. An artifact binding with no digest answers neither:
+    the engine loads whatever is at the URI, and "what ran is what was approved"
+    becomes an assumption rather than a check.
+
+    This is the one law that bites hardest on T4, and it is deliberately not
+    written in terms of the class. A PMML scorecard is T3 and has exactly the
+    same exposure; keying the law on the class would have missed it.
+    """
+    if verb == FIT:
+        return None                      # a fit WRITES the artifact; it has none yet
+    if (parameters.get("source") or {}).get("binding") != "artifact":
+        return None
+    if (realisation.get("artifact") or {}).get("digest"):
+        return None
+    return Problem(
+        "L-W12", "realisation.artifact.digest",
+        "this run's parameters come from the artifact, and the warrant does not "
+        "carry the artifact's digest -- so an engine cannot check that what it "
+        "loaded is what was approved",
+        "register the version with an artifact_digest, or upload the file to "
+        "MAYA and name it by its address; a location with no digest cannot be "
+        "verified, only fetched")
+
+
+def check_generative_pin(runtime: str, realisation: Dict[str, Any]) -> Optional[Problem]:
+    """L-W13. A generative runtime must pin the build, not just the model name.
+
+    ``base_model`` names a family. The weights behind that name are replaced by
+    whoever hosts them, on their schedule, and the replacement is not announced
+    in the answer -- so a warrant carrying only the family name describes a model
+    that can change under it between two runs while every field in the document
+    stays identical.
+
+    That is the failure the register exists to prevent, in its generative
+    disguise: a stable identifier over moving contents. Pinning the build does
+    not stop the vendor retiring it; it makes the retirement *visible* as a
+    mismatch instead of a drift.
+    """
+    if runtime not in GENERATIVE_RUNTIMES:
+        return None
+    entry = realisation.get("entry") or {}
+    if entry.get("base_model_version"):
+        return None
+    return Problem(
+        "L-W13", "realisation.entry.base_model_version",
+        f"'{entry.get('base_model')}' names a family of weights rather than a "
+        "build, so this warrant cannot tell two different models apart",
+        "pin the provider's version alongside the model name; if the provider "
+        "will not expose one, say so by recording the date the configuration was "
+        "evaluated, and expect the drift monitor to be your only warning")
