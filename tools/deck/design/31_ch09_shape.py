@@ -1,12 +1,41 @@
 # ============================================================ CH 9
 divider("9", "The Shape of the Whole Thing",
-        "The objects have been defined. This is how they MEET — and where the "
-        "pins are that stop any of them moving underneath the others.",
-        ["The process, end to end",
-         "What each object is for",
+        "What each object is, how they meet, and where the pins are that stop "
+        "any of them moving underneath the others.",
+        ["What each object is for",
+         "The process, end to end",
          "Where the pins are"])
 
+# --------------------------------------------------- what each object is for
+# The inventory comes BEFORE the diagram. A picture whose labels have not been
+# defined is decoration, not orientation.
+sl, y = content("The seven objects, and what each one answers",
+                "The shape of the whole thing")
+data = [["Object", "Answers", "Pinned by"],
+        ["Feature", "what this signal MEANS — entity, shape, owner, definition",
+         "nothing; it is a declaration"],
+        ["Feature view version", "where the values ARE, at a stored version "
+         "that does not move", "a featureset version"],
+        ["Featureset", "what X IS: a schema of named slots a kernel is defined "
+         "over", "a model version's contract"],
+        ["Featureset version", "which features fill that schema, and from which "
+         "exact bytes", "a warrant, a snapshot"],
+        ["Model version", "the kernel f : P ⊗ X → D(Y) — immutable once approved",
+         "a warrant, an alias"],
+        ["Warrant", "a signed authorisation for ONE act — what may be run, by "
+         "whom, on what data, until when. A FIT warrant to estimate; a SCORING "
+         "warrant to use", "signed; nothing pins it"],
+        ["Parameter set", "the numbers a fit produced — one point in P",
+         "a scoring warrant"]]
+h = table(sl, data, ML, y, CW, col_w=[2.0, 5.7, 3.9], row_h=0.30, fs=10, hfs=10,
+          bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + h + 0.24, CW, 0.86,
+     "Read the third column. ",
+     "Every object above is pinned by something further down, and a pin is "
+     "always to a version rather than to a name. That is why ",
+     "the same identifier resolves to the same bytes a year later.")
 
+# ------------------------------------------------------------- the process
 sl, y = content("Model, feature and warrant management",
                 "The shape of the whole thing")
 
@@ -38,7 +67,7 @@ lane(sl, LANE_X, L1, CW, LH, "Feature", "what the model reads", TINT1, CRIMSON)
 for i, (t, b) in enumerate([
         ("Define", "a meaning: entity, shape, owner"),
         ("Derive", "Z = f(X, Y), lineage recorded"),
-        ("Materialise", "values into a pinned Delta version"),
+        ("Materialise", "values into a stored version that cannot move"),
         ("Declare a set", "a SCHEMA of named slots"),
         ("Publish v1", "slots filled, every binding pinned")]):
     stage(sl, col(i), L1 + 0.09, BW, LH - 0.18, t, b,
@@ -48,19 +77,20 @@ for i, (t, b) in enumerate([
 lane(sl, LANE_X, L2, CW, LH, "Model", "what will run", TINT2, CRIMSON)
 for i, (t, b) in enumerate([
         ("Register", "owner, purpose, legal entity"),
-        ("Assess", "the tier, which sets the control depth"),
-        ("Create version", "the kernel f : P \u00d7 X \u2192 D(Y)"),
+        ("Assess", "the risk tier, which sets the control depth"),
+        ("Create version", "the kernel f : P ⊗ X → D(Y)"),
         ("Approve", "a quorum whose size follows the tier"),
-        ("Point an alias", "refused unless the contract refines")]):
+        ("Point an alias", "a moving name such as ‘production’; the "
+                           "move is refused unless the contract refines")]):
     stage(sl, col(i), L2 + 0.09, BW, LH - 0.18, t, b,
           WHITE if i != 2 else PARCH_D, RULE)
 
 # --- lane 3: execution ----------------------------------------------------
 lane(sl, LANE_X, L3, CW, LH, "Execution", "outside MAYA", TINT3, SLATE)
 for i, (t, b) in enumerate([
-        ("Fit warrant", "model version \u00d7 featureset version \u00d7 window"),
+        ("Fit warrant", "model version × featureset version × window"),
         ("Engine runs", "MAYA signs it and waits"),
-        ("Parameter set", "an inhabitant of P comes back"),
+        ("Parameter set", "the fitted numbers come back"),
         ("Approve it", "by somebody other than who recorded it"),
         ("Score warrant", "names the model AND the parameter set")]):
     stage(sl, col(i), L3 + 0.09, BW, LH - 0.18, t, b,
@@ -70,14 +100,14 @@ for i, (t, b) in enumerate([
 JOIN1 = col(4) + BW * 0.42
 down(sl, JOIN1, L1 + LH + 0.05, LGAP - 0.10, CRIMSON)
 tf = txt(sl, FLOW_X, L1 + LH + 0.11, JOIN1 - FLOW_X - 0.14, 0.26)
-para(tf, "the featureset version a fit will read  \u2192", size=8,
+para(tf, "the featureset version a fit will read  →", size=8,
      color=CRIMSON, italic=True, first=True, space_after=0,
      align=PP_ALIGN.RIGHT)
 
 JOIN2 = col(2) + BW * 0.42
 down(sl, JOIN2, L2 + LH + 0.05, LGAP - 0.10, CRIMSON)
 tf = txt(sl, FLOW_X, L2 + LH + 0.11, JOIN2 - FLOW_X - 0.14, 0.26)
-para(tf, "the model version it is issued against  \u2192", size=8,
+para(tf, "the model version it is issued against  →", size=8,
      color=CRIMSON, italic=True, first=True, space_after=0,
      align=PP_ALIGN.RIGHT)
 
@@ -86,8 +116,8 @@ BAND = L3 + LH + 0.20
 rect(sl, ML, BAND, CW, 0.44, fill=CRIMSON)
 tf = txt(sl, ML + 0.20, BAND + 0.09, CW - 0.4, 0.30)
 runs(tf, [("Evidence chain   ", WHITE, True),
-          ("every act above appends a node \u2014 append-only, hash-linked, and "
-           "verified by re-deriving each node rather than re-reading it",
+          ("every act above appends a node to one append-only, hash-linked "
+           "chain",
            RGBColor(0xF4, 0xDF, 0xE3), False)],
      size=9.5, first=True, space_after=0)
 
@@ -98,29 +128,3 @@ runs(tf, [("Left to right within a lane; downward where one lane hands "
            "and a model version meet in a fit warrant, and the parameter set "
            "that comes back is what the next warrant names.", SLATE, False)],
      size=9.5, first=True, space_after=0, line=1.2)
-
-# ------------------------------------------------------- what each object is for
-sl, y = content("What each object is for", "The shape of the whole thing")
-data = [["Object", "Answers", "Pinned by"],
-        ["Feature", "what this signal MEANS — entity, shape, owner, definition",
-         "nothing; it is a declaration"],
-        ["Feature view version", "where the values ARE, at a Delta version that "
-         "does not move", "a featureset version"],
-        ["Featureset", "what X IS: a schema of named slots a kernel is defined "
-         "over", "a model version's contract"],
-        ["Featureset version", "which features fill that schema, and from which "
-         "exact bytes", "a warrant, a snapshot"],
-        ["Model version", "the kernel f : P × X → D(Y) — immutable once approved",
-         "a warrant, an alias"],
-        ["Warrant", "what may be run, by whom, until when, on what data",
-         "signed; nothing pins it"],
-        ["Parameter set", "an inhabitant of P: the numbers a fit produced",
-         "a scoring warrant"]]
-h = table(sl, data, ML, y, CW, col_w=[2.0, 5.7, 3.9], row_h=0.30, fs=10, hfs=10,
-          bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + h + 0.24, CW, 0.86,
-     "Read the third column. ",
-     "Every object above is pinned by something further down, and a pin is "
-     "always to a version rather than to a name. That is the single structural "
-     "decision this platform makes over and over, and it is why ",
-     "the same identifier resolves to the same bytes a year later.")

@@ -71,7 +71,11 @@ class FeatureRoutes(Routes):
         @self.app.get(f"{self.api}/features", tags=["features"])
         def list_features(request: Request, entity: Optional[str] = None):
             self.authorise(request, "feature:read")
-            return {"features": f.features.many(entity=entity)}
+            # `f.features` does not exist — this raised AttributeError and
+            # returned 500 on every call. `list_features` is the accessor, and
+            # it filters, so the entity argument keeps working.
+            return {"features": f.list_features(**({"entity": entity}
+                                                   if entity else {}))}
 
         @self.app.post(f"{self.api}/features", status_code=201, tags=["features"])
         def define(request: Request, body: FeatureIn):
@@ -92,7 +96,9 @@ class FeatureRoutes(Routes):
         @self.app.get(f"{self.api}/feature-views", tags=["features"])
         def list_views(request: Request):
             self.authorise(request, "feature:read")
-            return {"views": f.views.many()}
+            # `ViewManager` has no `many`; the catalogue lists, the manager
+            # resolves. 500 on every call before this.
+            return {"views": f.views.views.many()}
 
         @self.app.post(f"{self.api}/feature-views", status_code=201, tags=["features"])
         def create_view(request: Request, body: ViewIn):
@@ -109,10 +115,10 @@ class FeatureRoutes(Routes):
         @self.app.get(f"{self.api}/feature-views/{{name}}/versions", tags=["features"])
         def versions(request: Request, name: str):
             self.authorise(request, "feature:read")
-            view = f.views.one(name=name)
-            if not view:
-                raise self.not_found(f"no feature view {name}")
-            return {"versions": f.view_versions.many(feature_view_id=view["id"])}
+            # `f.views.one` and `f.view_versions` are both absent — 500 on
+            # every call. `versions_of` is the accessor and it raises its own
+            # refusal for an unknown view, which is a better 404 than this was.
+            return {"versions": self.guard(lambda: f.views.versions_of(name))}
 
         @self.app.get(f"{self.api}/feature-views/{{name}}/versions/{{version}}/retirable",
                       tags=["features"])

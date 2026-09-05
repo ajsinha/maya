@@ -41,6 +41,7 @@ done.
 | **Evidence chain anchoring** | Needs WORM storage and an RFC-3161 timestamping authority — both deployment dependencies rather than code | Verification compares the chain against itself. Self-consistency of a chain an attacker could rewrite proves less than it appears to; this is finding **C-4**'s third disposition |
 | **Five foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Sixteen of twenty-one run; a law stated and not executed prevented nothing |
 | **`entry_points` discovery for fibres** | The fibration itself is built — `core/fibres/`, nine fibres over the derived trainability class, a totality gate at start-up (`L-15`) | A bank's own fibre ships inside this repository rather than as its own package. The structure and the gate exist; third-party packaging does not |
+| **Full coverage checking for rule sets** | The shipped analysis decides whether a **single** earlier rule covers a later one. Deciding whether a *union* of earlier rules does is satisfiability over the theory — decidable here, and a solver | A rule that two earlier rules jointly shadow is not reported. The promise is stated in exactly those words wherever it appears — *no rule is shadowed by any single earlier rule* — and the gap is a stated limit rather than a discovered one. A solver would be a dependency whose failure modes nobody in the bank can debug, which is why this is a row here rather than a library import |
 
 ### 2.2 Reach — these change what MAYA can *cover*
 
@@ -54,6 +55,7 @@ done.
 | **An examiner portal** | The export pack *is* the artefact — self-contained, digested, gaps named. What is missing is a place to hand it to somebody | Packs are produced and then emailed, which is the workflow they were meant to replace |
 | **PDF, and any rendering past markdown** | The compiler emits markdown, rendered through the same pipeline as the help system | A committee paper is copied into a word processor, at which point it stops being compiled and starts being edited |
 | **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not | A JVM shop writes its own client, and writes it against HTTP rather than against the contract |
+| **Rule-set import from what a bank already has** | A decision table in a spreadsheet, a DMN file, a stored procedure — each is a parser, and each is a parser that can be subtly wrong | The rules are typed in, or posted as a document. Migrating an existing rulebook is manual work, and it is the work that decides whether T8 coverage is a demonstration or a programme |
 
 ### 2.3 Deployment — these are somebody's operational work, not code
 
@@ -193,6 +195,7 @@ A roadmap that does not say where it stops will be asked to go there.
 |---|---|
 | **Running models** | Governance on the serving path makes it the bank's single point of failure. MAYA authorises; an engine acts |
 | **Training models** | The estimator fits `ols` and `garch11` so the register can demonstrate the whole path; anything else is delivered back under a warrant |
+| **Authoring models** — with one stated exception | An authoring surface would let MAYA mint an artifact that has never been trained or validated and is **indistinguishable in the register** from one that was. That is the whole objection, and it decides where the exception lies. A **rule set** has no training run to be indistinguishable from: authorship *is* its provenance, which is what `declared` means. So `core/rules/` edits a parameter set MAYA already held — versioned, digested, second-person approved — and publishing is `parameters.record` with a validated document, no new authority, `self_approval` still refused. There is deliberately **no ONNX or PMML editor**, and there will not be one |
 | **Enterprise issue management** | Findings that block a model live here; the enterprise register is where they are reported. Two homes for one issue is the failure this avoids |
 | **Feature engineering** | The expression language is small on purpose. Anything richer is `external`, and says so |
 | **Being a model store of last resort** | The artifact store has an 8 GiB ceiling. Somebody should have to think before putting a foundation-model checkpoint in a governance platform |

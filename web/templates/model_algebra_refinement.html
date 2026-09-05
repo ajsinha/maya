@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Refinement — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">REFINEMENT &middot; L-7 AND L-12</p>
+<h1>{{ model.name }} — may this version replace that one?</h1>
+<div class="rule"></div>
+{% set here = 'refinement' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">A replacement must
+<strong>weaken assumptions and strengthen guarantees</strong> (L-7), and its
+schemas must be contravariant in inputs and covariant in outputs (L-12) so a
+consumer written against the old version still type-checks against the new one.
+Consumers hold a moving name &mdash; <code>champion</code> &mdash; never a
+version, which is what lets a version move without anybody redeploying and is
+exactly why moving one is not a judgement call.</p>
+
+<div class="row g-3">
+  <!-- --------------------------------------------------------- the proof -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Ask the question</div>
+      <div class="card-body">
+        <form id="substitution-form" class="row g-2 small align-items-end">
+          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem">incumbent &mdash; what is in force</label>
+            <select class="form-select form-select-sm" name="incumbent" required>
+              {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.trainability_class }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem">replacement</label>
+            <select class="form-select form-select-sm" name="replacement" required>
+              {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.trainability_class }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-2"><button class="btn btn-sm btn-outline-danger w-100 py-0"
+            style="font-size:.75rem">Ask</button></div>
+        </form>
+        <div id="substitution-result" class="small mt-3 text-muted">
+          The answer is the same proof an alias move discharges &mdash; asked
+          without making the move.
+        </div>
+      </div></div>
+  </div>
+
+  <!-- ---------------------------------------------------------- the move -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Move an alias</div>
+      <div class="card-body">
+        <form id="alias-form" class="row g-2 small align-items-end">
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">environment</label>
+            <input class="form-control form-control-sm" name="environment" value="prod"></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">alias</label>
+            <input class="form-control form-control-sm" name="alias" value="champion"></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">point it at</label>
+            <select class="form-select form-select-sm" name="semver" required>
+              {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.status }}</option>{% endfor %}
+            </select></div>
+          <div class="col-12"><input class="form-control form-control-sm" name="justification"
+                 placeholder="justification — why this version, now"></div>
+          <div class="col-12"><button class="btn btn-sm btn-danger py-0 px-3"
+            style="font-size:.75rem">Move the alias</button></div>
+        </form>
+        <div id="alias-result" class="small mt-2"></div>
+        <p class="small text-muted mt-2 mb-0">Refused when the version is not
+        approved, when a blocking finding is open, or when either obligation
+        fails &mdash; and the refusal names the clause. The move is the only act
+        on this page; everything above it is a question.</p>
+        {% if not may_move %}
+          <div class="state-note mt-2">Moving an alias needs
+          <code>alias:move</code>, and the person who created a version may not
+          promote it &mdash; that is checked against the evidence chain at the
+          act itself.</div>
+        {% endif %}
+      </div></div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- versions -->
+<div class="card mt-3"><div class="card-header">The contracts being compared</div>
+  <div class="card-body">
+    {% if versions %}
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Semver</th><th>Status</th><th>Assumptions</th><th>Guarantees</th>
+        <th>Inputs</th><th>Outputs</th></tr></thead>
+      <tbody>
+      {% for v in versions %}
+        <tr>
+          <td class="mono">{{ v.semver }}</td>
+          <td>{{ v.status }}</td>
+          <td style="font-size:.72rem">
+            {% for b in (v.contract or {}).get('assumptions', []) %}
+              <span class="chip">{{ b.key }}{% if b.minimum is not none %} ≥{{ b.minimum }}{% endif %}{% if b.maximum is not none %} ≤{{ b.maximum }}{% endif %}</span>
+            {% else %}<span class="text-muted">none — the weakest possible assumption</span>{% endfor %}
+          </td>
+          <td style="font-size:.72rem">
+            {% for b in (v.contract or {}).get('guarantees', []) %}
+              <span class="chip">{{ b.key }}{% if b.minimum is not none %} ≥{{ b.minimum }}{% endif %}{% if b.maximum is not none %} ≤{{ b.maximum }}{% endif %}</span>
+            {% else %}<span class="text-muted">none</span>{% endfor %}
+          </td>
+          <td style="font-size:.72rem">{% for f in v.input_schema %}<span class="chip">{{ f.name }}:{{ f.dtype }}</span> {% endfor %}</td>
+          <td style="font-size:.72rem">{% for f in v.output_schema %}<span class="chip">{{ f.name }}:{{ f.dtype }}</span> {% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="small text-muted mb-0">No versions yet, so there is nothing to
+      compare and nothing an alias could point at.</p>
+    {% endif %}
+  </div></div>
+
+<!-- -------------------------------------------------------- alias history -->
+<div class="card mt-3"><div class="card-header">Alias history &mdash; every move, with the proof it discharged</div>
+  <div class="card-body">
+    {% if history %}
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Alias</th><th>From</th><th>To</th><th>Refinement</th>
+        <th>Variance</th><th>By</th><th>Justification</th></tr></thead>
+      <tbody>
+      {% for h in history %}
+        <tr>
+          <td class="mono">{{ h.environment }}/{{ h.name }}</td>
+          <td class="mono">{{ version_names.get(h.from_version_id, '—') }}</td>
+          <td class="mono">{{ version_names.get(h.to_version_id, '—') }}</td>
+          <td style="font-size:.74rem">
+            {% if h.refinement and h.refinement.holds %}<span class="evidence-ok">holds</span>
+            {% else %}<span class="evidence-bad">{{ (h.refinement or {}).get('reason', '—') }}</span>{% endif %}</td>
+          <td style="font-size:.74rem">
+            {% if h.variance and h.variance.ok %}<span class="evidence-ok">compatible</span>
+            {% else %}<span class="evidence-bad">{{ (h.variance or {}).get('reason', '—') }}</span>{% endif %}</td>
+          <td>{{ h.moved_by }}</td>
+          <td style="font-size:.74rem">{{ h.justification }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="small text-muted mb-0">The alias has never moved. The first move
+      has no incumbent, so both obligations discharge trivially &mdash; and the
+      record says so rather than implying a proof that was not made.</p>
+    {% endif %}
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-refinement.js"></script>
+<script>window.mayaAlgebraRefinement({name: "{{ name }}", urn: "{{ model.urn }}"});</script>
+{% endblock %}

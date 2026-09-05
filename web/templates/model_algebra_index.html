@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}The model algebra — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE ALGEBRA</p>
+<h1>What can be derived, related, or refused</h1>
+<div class="rule"></div>
+{% set name = None %}{% set here = 'index' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">A model is a parametric
+kernel, <code>f : P &otimes; X &rarr; D(Y)</code>. Everything on this page is
+read from the code that enforces it &mdash; the relations from the composition
+service, the classes from the fibration, the states from the state machine, the
+quorum from the approval service. Nothing here is a description of the platform
+kept beside the platform.</p>
+
+<!-- ------------------------------------------------------ the base: T0-T8 -->
+<div class="card mb-3"><div class="card-header">The trainability classes, and what each fibre requires</div>
+  <div class="card-body">
+    <p class="small text-muted">The class is <strong>derived</strong> from how
+    <code>P</code> is inhabited &mdash; never declared, never typed. That is what
+    makes &ldquo;some models are never trained&rdquo; a type-level fact rather
+    than a special case, and it is why the fibration is indexed by this and not
+    by the free-text model class. <strong>L-15</strong>: no fibre is empty.</p>
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Class</th><th>What it is</th><th>Evidence it owes</th>
+        <th>Monitors that can answer</th><th>Documents that compile</th></tr></thead>
+      <tbody>
+      {% for c in classes %}
+        <tr>
+          <td class="mono fw-bold">{{ c.trainability_class }}</td>
+          <td>{{ c.label }}<div class="text-muted" style="font-size:.72rem">{{ c.soundness }}</div></td>
+          <td style="font-size:.74rem">{% for e in c.evidence %}<span class="chip">{{ e }}</span> {% endfor %}</td>
+          <td style="font-size:.74rem">{% for m in c.metrics %}<span class="chip">{{ m }}</span> {% endfor %}</td>
+          <td style="font-size:.74rem">{% for t in c.templates %}<span class="chip">{{ t }}</span> {% endfor %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+
+<div class="row g-3">
+  <!-- ------------------------------------------------------- the relations -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">How one model stands to another</div>
+      <div class="card-body">
+        <table class="table table-sm maya">
+          <thead><tr><th>Relation</th><th>Propagates</th><th>Type-checked</th><th>Means</th></tr></thead>
+          <tbody>
+          {% for r in relations.relations %}
+            <tr>
+              <td class="mono">{{ r.kind }}</td>
+              <td>{% if r.propagates %}<span class="evidence-bad">yes</span>{% else %}no{% endif %}</td>
+              <td>{% if r.composes %}<span class="evidence-ok">yes</span>{% else %}no{% endif %}</td>
+              <td style="font-size:.76rem">{{ r.means }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="small text-muted mb-1">{{ relations.detail }}</p>
+        <p class="small text-muted mb-0">Only <code>input_to</code>
+        <strong>composes</strong>: it asserts that what one model produces
+        arrives where another reads it, which is a claim about types and is
+        checked as one. <code>calibrated_by</code> propagates and does not
+        compose &mdash; a calibration solves parameters rather than handing an
+        output to an input, so there is no wire to type-check.
+        <code>challenger_of</code> and <code>benchmark_for</code> merely record.</p>
+      </div></div>
+  </div>
+
+  <!-- ------------------------------------------------------- the lifecycle -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">The record lifecycle</div>
+      <div class="card-body">
+        <table class="table table-sm maya">
+          <thead><tr><th>State</th><th>Open to change</th><th>Means</th></tr></thead>
+          <tbody>
+          {% for s in states %}
+            <tr>
+              <td class="mono">{{ s.state }}</td>
+              <td>{% if s.mutable %}yes{% else %}<span class="frozen-badge">frozen</span>{% endif %}</td>
+              <td style="font-size:.76rem">{{ s.means }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <table class="table table-sm maya mb-0">
+          <thead><tr><th>Move</th><th>From</th><th>To</th><th>Needs</th></tr></thead>
+          <tbody>
+          {% for t in machine %}
+            <tr>
+              <td class="mono">{{ t.name }}</td>
+              <td style="font-size:.74rem">{{ t['from']|join(', ') }}</td>
+              <td class="mono">{{ t.to }}</td>
+              <td class="mono" style="font-size:.72rem">{{ t.permission }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div></div>
+  </div>
+
+  <!-- ----------------------------------------------------------- the quorum -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Version approval, by tier</div>
+      <div class="card-body">
+        <table class="table table-sm maya">
+          <thead><tr><th>Tier</th><th>Signatures</th><th>Roles</th></tr></thead>
+          <tbody>
+          {% for q in quorum %}
+            <tr>
+              <td><span class="tier tier-{{ q.tier }}">TIER {{ q.tier }}</span></td>
+              <td>{{ q.signatures }}</td>
+              <td style="font-size:.76rem">{{ q.required_roles|join(', ') or 'one authorised person' }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="small text-muted mb-0">The depth follows the tier, which is why
+        a version whose model has no tier cannot be approved at all: approving
+        first and assessing afterwards is choosing your own control depth.</p>
+      </div></div>
+  </div>
+
+  <!-- --------------------------------------------------------- the subjects -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">What a document can be about</div>
+      <div class="card-body">
+        <dl class="maya-terms">
+        {% for s in subjects.subjects %}
+          <div><dt class="mono">{{ s.subject }}{% if s.pinned %} &middot; pinned{% endif %}</dt>
+            <dd>{{ s.means }}</dd></div>
+        {% endfor %}
+        </dl>
+        <p class="small text-muted mt-2 mb-0">{{ subjects.detail }}</p>
+      </div></div>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- the vocabulary -->
+<div class="card mt-3"><div class="card-header">The kernel vocabulary</div>
+  <div class="card-body small">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="kicker mb-1">HOW P IS INHABITED</div>
+        {% for k in parameter_kinds %}<span class="chip">{{ k }}</span> {% endfor %}
+      </div>
+      <div class="col-md-4">
+        <div class="kicker mb-1">WHAT INHABITED IT</div>
+        {% for f in fit_procedures %}<span class="chip">{{ f }}</span> {% endfor %}
+      </div>
+      <div class="col-md-4">
+        <div class="kicker mb-1">WHAT COMES OUT</div>
+        {% for o in output_kinds %}<span class="chip">{{ o }}</span> {% endfor %}
+      </div>
+    </div>
+    <p class="text-muted mt-3 mb-0">The first two decide the class. A version
+    declaring parameters with <code>fit_procedure: none</code> is
+    <strong>refused</strong>: it says both that the model has parameters and
+    that nothing produced them.</p>
+  </div></div>
+
+<!-- ------------------------------------------------------------- the models -->
+<div class="card mt-3"><div class="card-header">Models you may act on</div>
+  <div class="card-body">
+    {% if models %}
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Model</th><th>Tier</th><th>State</th><th>Class</th><th>Operations</th></tr></thead>
+      <tbody>
+      {% for m in models %}
+        {% set n = m.urn.split('/')[-1] %}
+        <tr>
+          <td><a href="/model/{{ n }}">{{ m.name }}</a>
+            <div class="mono text-muted" style="font-size:.7rem">{{ m.urn }}</div></td>
+          <td data-sort="{{ m.tier or 9 }}">
+            <span class="tier tier-{{ m.tier or 'none' }}">{{ 'TIER ' ~ m.tier if m.tier else 'UNTIERED' }}</span></td>
+          <td class="mono" style="font-size:.74rem">{{ m.status }}</td>
+          <td class="mono" style="font-size:.74rem">{{ m.model_class }}</td>
+          <td style="font-size:.74rem">
+            <a href="/model-algebra/version/{{ n }}">versions</a> &middot;
+            <a href="/model-algebra/refinement/{{ n }}">refinement</a> &middot;
+            <a href="/model-algebra/lifecycle/{{ n }}">lifecycle</a> &middot;
+            <a href="/model-algebra/quorum/{{ n }}">quorum</a> &middot;
+            <a href="/model-algebra/risk/{{ n }}">risk</a> &middot;
+            <a href="/model-algebra/documents/{{ n }}">documents</a>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="small text-muted mb-0">No model is in your scope yet. Register one
+      at <a href="/models/new">New model</a>; the operations on this page all act
+      on a model that already exists.</p>
+    {% endif %}
+  </div></div>
+{% endblock %}

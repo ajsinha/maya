@@ -127,7 +127,7 @@ tf = txt(sl, x, y, CW * 0.47, 0.35)
 para(tf, "Test suites and what each proves", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Suite", "Proves"],
         ["Unit", "Domain algebra correctness (≥90% on domain/)"],
-        ["Laws — the executable ones", "L-4, L-5, L-7, L-12, L-18, L-19 and the eleven warrant laws. The rest are stated and not yet executable, and 00 §12 says which"],
+        ["Laws", "Sixteen of the twenty-one foundational laws are executable, and all fourteen warrant laws run before a signature. The five that do not run are named with the reason"],
         ["Integration", "Repository and service paths against real infrastructure"],
         ["Contract", "API matches the spec; SDK round-trips"],
         ["Adversarial", "Leakage injection · RLS negative tests · stampede load · malicious artifacts"],

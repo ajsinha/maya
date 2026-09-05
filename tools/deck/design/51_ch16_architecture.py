@@ -40,9 +40,9 @@ sl, y = content("Responsibility boundaries", "Overview · what each component do
 data = [["Component", "Owns", "Does NOT own"],
         ["Core domain", "The algebra: kernels, contracts, schema lattice, probe equivalence", "Persistence, HTTP, orchestration"],
         ["Registry", "Models, versions, artifacts, aliases, fibres, introspection", "Whether a version may be promoted"],
-        ["Evidence engine", "Append chain, semiring evaluation, gluing", "What evidence means for a gate"],
-        ["Risk & tiering", "Lattices, τ, control adequacy, derivation traces", "Overriding a tier — that is workflow"],
-        ["Regimes & policy", "Institutions, comorphisms, Rego gates, MTL obligations", "Executing a transition"],
+        ["Evidence engine", "The append-only chain, semiring evaluation, provenance", "What evidence means for a gate"],
+        ["Risk & tiering", "The two lattices, tier derivation, control adequacy, traces", "Overriding a tier — that is workflow"],
+        ["Regimes & policy", "Regimes as institutions, their translations, versioned gates", "Executing a transition"],
         ["Lifecycle", "State machines, transitions, approvals, segregation of duties", "Guard content — that is policy"],
         ["Validation", "Plans, test execution, findings, remediation", "Computing metrics at scale"],
         ["Feature platform", "Registry, materialisation, PIT, contracts, skew", "Model semantics"],
@@ -65,7 +65,7 @@ for i, (n, t, d) in enumerate(rules):
 
 sl, y = content("Process model", "Overview · deployable units")
 data = [["Unit", "Scaling", "Why it is separate", "Fails independently?"],
-        ["maya-web", "Static, CDN + 2 pods", "Separate process and pipeline (ADR-011); the API is the only interface", "Yes — stops human review only"],
+        ["maya-web", "Static, CDN + 2 pods", "Separate process and pipeline; the API is the only interface", "Yes — stops human review only"],
         ["maya-api", "3–10 pods, CPU-bound", "The bulk of the domain; deploys together for transactional integrity", "—"],
         ["maya-warrants", "10–100 pods, regional", "10× tighter SLA; reads only the warrant projection; survives control-plane outage", "Yes — by design"],
         ["maya-worker", "Queue-depth autoscaled", "Long-running, retryable, at-least-once", "Yes"],

@@ -590,10 +590,22 @@ The refusal distinguishes two cases needing different actions: `no_runtime` (nev
 route the warrant elsewhere) and `runtime_unavailable` (implemented, dependency missing — install
 the package).
 
-The captive engine implements five: registered Python callables (which also answer for
-`descriptor_only`), ONNX graphs, the regression and scorecard subset of PMML, QuantLib, and the
-estimator. `GET /api/v1/engine` reports exactly that, per runtime, with the reason for each one it
-cannot currently run.
+The captive engine implements six: registered Python callables (which also answer for
+`descriptor_only`), ONNX graphs, the regression and scorecard subset of PMML, QuantLib, the
+estimator, and `rules`. `GET /api/v1/engine` reports exactly that, per runtime, with the reason for
+each one it cannot currently run.
+
+**`rules`** is the newest, and the only one whose parameter object is a document MAYA can read. For
+a T8 model the rule set **is** `P`, so it arrives in `inputs["parameters"]` the way every
+register-held parameter object does, and running a rule set at an unapproved point of `P` is refused
+by the same mechanism that refuses running a scorecard at unapproved coefficients rather than by
+anything in the runtime. That is also why `rules` is absent
+from `UNVERIFIABLE_DETERMINISM` (`L-W5`): MAYA holds the rules and can verify a determinism claim by
+executing them, which is stronger evidence than a seed. It refuses a warrant whose verb is not
+`score` — a change to the rules is a new parameter set somebody approves, not a fit — and it refuses
+to run at all if the stored document no longer parses, because that means the register holds
+something its own checks would refuse and answering with the part it can read would be answering with
+part of a policy.
 
 The **estimator** is the only runtime whose job is to *inhabit* a parameter object rather than read
 one, and it is what makes a `fit` warrant executable end to end. Two families: `ols` by least

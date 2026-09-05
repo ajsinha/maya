@@ -309,15 +309,17 @@ on a generative runtime:
 > the grammar only rules on the first.
 
 **Then MAYA hands the descriptor over and stops.** The captive engine implements
-five runtimes — bound callables, ONNX, PMML, QuantLib and the estimator — and no
-generative one, so `POST /api/v1/execute` on this model is refused by name:
+six runtimes — bound callables, ONNX, PMML, QuantLib, the estimator and authored
+rule sets — and no generative one, so `POST /api/v1/execute` on this model is
+refused by name:
 
 ```json
 {"error": "no_runtime",
  "detail": "this engine does not implement the 'llm.prompt' runtime",
- "remediation": "it implements callable, estimator, onnx, pmml, quantlib; route
-                 this warrant to an engine that has the runtime, or register the
-                 version against one of these"}
+ "remediation": "it implements descriptor_only, estimator, onnx, pmml,
+                 python.callable, quantlib, rules; route this warrant to an
+                 engine that has the runtime, or register the version against one
+                 of these"}
 ```
 
 That is not an apology. **MAYA does not run models**; it issues a signed,

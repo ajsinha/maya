@@ -465,6 +465,7 @@ def full_features(db, delta, evidence):
 def parameters(db, registry, evidence, warrants, full_features):
     from core.parameters import ParameterRegister
     from db import ParameterSetRepository
+    from db import SnapshotRepository
     return ParameterRegister(ParameterSetRepository(db), registry, evidence,
                              warrants, full_features.sets)
 

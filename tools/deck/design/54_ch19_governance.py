@@ -3,8 +3,8 @@ divider("19", "Governance Subsystems",
         "Evidence, risk, regimes, lifecycle, validation.",
         ["Evidence append and chain",
          "Semiring evaluation",
-         "The tiering algorithm",
-         "Anti-gaming",
+         "Risk tiering, and anti-gaming",
+         "Approval quorum",
          "Institutions in code",
          "Lifecycle and baseline import"])
 
@@ -55,25 +55,31 @@ data = [["Semiring", "Used by"],
         ["trust", "Health score, AI-draft discounting"],
         ["cost", "Remediation planning, capacity"],
         ["freshness", "Document staleness"],
-        ["— not built —", "ℕ[X], classification, regime admissibility"]]
+        ["polynomial  ℕ[X]", "The universal one — the rest substitute into it"]]
 th = table(sl, data, x, y, CW * 0.41, col_w=[1.6, 3.2], row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, x, y + th + 0.22, CW * 0.41, 0.95)
-runs(tf, [("Without ℕ[X] there is no universal object, ", CRIMSON, True),
-          ("so each semiring is its own traversal of the same memoised DAG rather than a "
-           "homomorphic image of one. Six questions, one implementation — and the honest count.",
+tf = txt(sl, x, y + th + 0.18, CW * 0.41, 0.80)
+runs(tf, [("Evaluate once in ℕ[X] ", CRIMSON, True),
+          ("and every other answer is a substitution into it — law L-9. Freshness is the exception: its "
+           "zero does not annihilate, so it is not a semiring, and a test says so.",
            INK, False)], size=10, first=True, space_after=0, line=1.22)
-rect(sl, ML, y + h + 0.28, CW, 0.95, fill=PARCH)
-rect(sl, ML, y + h + 0.28, 0.045, 0.95, fill=CRIMSON)
-tf = txt(sl, ML + 0.30, y + h + 0.42, CW - 0.6, 0.75)
-runs(tf, [("Complexity, stated honestly. ", CRIMSON, True),
+rect(sl, ML, y + h + 0.62, CW, 0.95, fill=PARCH)
+rect(sl, ML, y + h + 0.62, 0.045, 0.95, fill=CRIMSON)
+tf = txt(sl, ML + 0.30, y + h + 0.76, CW - 0.6, 0.75)
+runs(tf, [("The cost of asking why, and its cap. ", CRIMSON, True),
           ("Why-provenance is worst-case exponential in the number of alternatives. Controls: absorption "
            "(a ⊕ ab = a), memoisation, and a hard 4,096-term cap beyond which evaluation stops accumulating "
            "and returns truncated=true. ", INK, False),
           ("It marks the answer partial — it does not fall back to a cheaper semiring. The marker is the control.", CRIMSON, True)],
      size=11, first=True, space_after=0, line=1.24)
 
-sl, y = content("The tiering algorithm", "Governance · risk")
-h = code(sl, ML, y, CW * 0.58, [
+sl, y = content("Risk tiering, and the algorithm that derives it", "Governance · risk")
+tf = txt(sl, ML, y, CW, 0.72)
+runs(tf, [("A risk tier is a number from 1 to 4. ", CRIMSON, True),
+          ("It is derived from how consequential a model is (materiality) and how hard it is to reason about "
+           "(complexity), and it decides how much control the model gets — approval quorum, scope of validation, "
+           "cadence of monitoring. Nobody picks it.", INK, False)],
+     size=12, first=True, space_after=0, line=1.26)
+h = code(sl, ML, y + 0.82, CW * 0.58, [
  "facts = FactCollector(model_id).collect()      # sourced where possible",
  "rules = rulesets.get(ruleset_version)          # immutable, versioned, tested",
  "",
@@ -85,19 +91,19 @@ h = code(sl, ML, y, CW * 0.58, [
  "                    transparency=..., bias_potential=...)",
  "",
  "tier     = rules.tau(m, c)      # monotone — law L-4",
- "controls = rules.req(tier)      # Galois adjoint — law L-5",
+ "controls = rules.req(tier)      # the controls it requires — law L-5",
  "",
  "return RiskAssessment(fact_snapshot=..., ruleset_version=...,",
  "                      rationale=rules.explain(m, c, tier),   # DR-4",
  "                      next_review_due=..., triggers=...)",
 ], fs=9.5, title="core/risk/tiering.py")
 x = ML + CW * 0.62
-tf = txt(sl, x, y, CW * 0.38, 3.6)
+tf = txt(sl, x, y + 0.82, CW * 0.38, 3.0)
 para(tf, "Two axes, never one score", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
 para(tf, "Materiality and complexity are separate lattices. Collapsing them into a product lets a very complex model with modest exposure land beside a simple model with enormous exposure.",
      size=11, color=SLATE, space_after=10, line=1.26)
 para(tf, "The guarantee", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
-runs(tf, [("τ is monotone, so ", SLATE, False),
+runs(tf, [("The map from the two axes to the tier is monotone, so ", SLATE, False),
           ("nothing we can learn about a model that makes it more consequential or more complicated will ever move it into a lighter control regime.",
            INK, True), (" An unconstrained scoring formula cannot make that promise, and typically cannot even be checked.", SLATE, False)],
      size=11, line=1.26)
@@ -122,31 +128,75 @@ runs(tf, [("Annually, tier assignments are back-tested against realised incident
           ("A tier that never predicts anything is evidence of systematic understatement — not of a quiet portfolio.", INK, True)],
      size=11.5, space_after=0, line=1.26)
 
-sl, y = content("Institutions in code", "Governance · regimes")
-h = code(sl, ML, y, CW, [
+sl, y = content("Version approval is a quorum, and its depth follows the tier",
+                "Governance · approval")
+tf = txt(sl, ML, y, CW, 0.48)
+runs(tf, [("Attesting the model ", INK, False), ("record", INK, True),
+          (" is not approving the ", INK, False), ("version", INK, True),
+          (". The version is the thing that runs, so it carries its own quorum, and the tier sets its depth.",
+           INK, False)],
+     size=12.5, first=True, space_after=0, line=1.28)
+data = [["Tier", "Who must sign", "Why"],
+        ["1 and 2", "model_risk_manager AND validator",
+         "The same rule (L-5) that decides every other control set: depth of control follows the tier"],
+        ["3 and 4", "one authorised person",
+         "Saying so beats pretending a scheduling heuristic deserves the ceremony of a capital model"],
+        ["no tier", "— refused outright —",
+         "Approving first and assessing afterwards is how a model chooses its own control depth"]]
+th = table(sl, data, ML, y + 0.58, CW, col_w=[1.3, 3.4, 6.9], row_h=0.62, fs=10.5,
+           bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, ML, y + 0.58 + th + 0.24, CW * 0.48, 1.7)
+para(tf, "Three refusals worth the code", size=12, color=INK, bold=True, font=SERIF,
+     first=True, space_after=6)
+bullets(tf, [("One decline closes it", "the version returns to its author, and the decline is counted before the quorum is"),
+             ("No signing twice under two roles", "a quorum is a number of people, not a number of hats"),
+             ("Signing is its own permission", "a validator signs a quorum and may never approve alone")],
+        size=10, gap=5, indent_size=9)
+x = ML + CW * 0.53
+rect(sl, x, y + 0.58 + th + 0.24, CW * 0.47, 1.45, fill=PARCH)
+rect(sl, x, y + 0.58 + th + 0.24, 0.045, 1.45, fill=CRIMSON)
+tf = txt(sl, x + 0.26, y + 0.58 + th + 0.36, CW * 0.47 - 0.5, 1.22)
+runs(tf, [("The schema does half of it. ", CRIMSON, True),
+          ("UNIQUE (approval, role) enforces one signature per role. The other half — that one "
+           "person may not sign twice under two hats — ", INK, False),
+          ("cannot be a constraint", INK, True),
+          (" and lives in the service, because it is about people rather than about rows.",
+           INK, False)], size=10.5, first=True, space_after=0, line=1.22)
+
+sl,
+
+sl, y = content("A scope determination that can be defended",
+                "Governance · regimes")
+tf = txt(sl, ML, y, CW, 0.46)
+runs(tf, [("Three regimes are encoded: SR 26-2, SS1/23, the EU AI Act. ", CRIMSON, True),
+          ("Each is an institution — its own vocabulary, its obligations written in that vocabulary, and a "
+           "translation from MAYA's facts into it. A regime activates only if the translation preserves truth.",
+           INK, False)],
+     size=12, first=True, space_after=0, line=1.26)
+h = code(sl, ML, y + 0.58, CW, [
  "def determine(model_id: str, inst: Institution) -> ScopeDetermination:",
- "    core   = CoreFacts.for_model(model_id)",
- "    local  = inst.translate(core)                    # the comorphism component",
+ "    local  = inst.translate(CoreFacts.for_model(model_id))   # the translation",
  "    result = inst.sentences[\"is_model\"].evaluate(local)",
  "    return ScopeDetermination(",
  "        regime_key=inst.key, regime_version=inst.version,",
  "        determination = \"in_scope\" if result.value else \"out_of_scope\",",
- "        derivation = {\"sentence\": \"is_model\", \"evaluated\": result.value,",
+ "        derivation = {\"evaluated\": result.value,",
  "                      \"failing_conjunct\": result.first_false_conjunct,",
  "                      \"facts\": local.as_dict(), \"citation\": result.citation},",
- "        obligations = [s.key for s in inst.sentences if s.is_obligation and s.evaluate(local).value])",
+ "        obligations = [s.key for s in inst.sentences if s.holds(local)])",
 ], fs=9.5, title="core/regimes/engine.py")
-tf = txt(sl, ML, y + h + 0.28, CW * 0.52, 1.9)
+tf = txt(sl, ML, y + 0.58 + h + 0.28, CW * 0.52, 1.68)
 para(tf, "A determination is a derivation, not a flag", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
-para(tf, "“Why is this out of scope?” is answered by the failing conjunct and a clause citation — the same answer, every time it is asked, including in five years by someone who was not there.",
+para(tf, "“Why is this out of scope?” is answered by the failing conjunct and a clause citation — the same answer every time it is asked, including in five years by somebody who was not there.",
      size=11.5, color=SLATE, space_after=0, line=1.26)
 x = ML + CW * 0.56
-rect(sl, x, y + h + 0.28, CW * 0.44, 1.75, fill=PARCH)
-rect(sl, x, y + h + 0.28, 0.045, 1.75, fill=CRIMSON)
-tf = txt(sl, x + 0.26, y + h + 0.42, CW * 0.44 - 0.5, 1.5)
+rect(sl, x, y + 0.58 + h + 0.28, CW * 0.44, 1.60, fill=PARCH)
+rect(sl, x, y + 0.58 + h + 0.28, 0.045, 1.60, fill=CRIMSON)
+tf = txt(sl, x + 0.26, y + 0.58 + h + 0.42, CW * 0.44 - 0.5, 1.35)
 para(tf, "Law L-8 runs in CI", size=12.5, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=7)
-runs(tf, [("Hypothesis generates inventory states. For each regime and sentence, evaluating natively and evaluating the translation must agree. ",
-           INK, False), ("A disagreement is a defective encoding — exactly the bug that produces an indefensible scope determination.", INK, True)],
+runs(tf, [("For each regime and sentence, evaluating natively and evaluating the translation must agree over generated inventory states. ",
+           INK, False),
+          ("A disagreement is a defective encoding — the bug that produces an indefensible scope determination.", INK, True)],
      size=11, space_after=0, line=1.26)
 
 sl, y = content("Lifecycle, segregation of duties, and day one", "Governance · workflow")
@@ -165,11 +215,11 @@ para(tf, "Four SoD rules, read from the chain", size=12, color=INK, bold=True, f
 para(tf, "creator ≠ approver · creator ≠ promoter · creator ≠ concluder of its validation · raiser ≠ closer of a finding",
      size=10.5, color=SLATE, space_after=6, line=1.24)
 runs(tf, [("Read from the evidence chain, not a second table. ", CRIMSON, True),
-          ("A rule may name the payload field carrying the identity it is about — a finding is raised "
-           "against the model, while the act concerns one finding. Without that, raiser ≠ closer was ",
-           SLATE, False),
-          ("inert over HTTP", INK, True),
-          (": it searched under the finding's own id, found nothing, and permitted everything.", SLATE, False)],
+          ("Each rule names the payload field carrying the identity it is about: a finding is raised "
+           "against the model, while closing one concerns the finding. A rule that looks in the wrong "
+           "place ", SLATE, False),
+          ("finds nothing and permits everything", INK, True),
+          (" — a control reporting success.", SLATE, False)],
      size=10.5, space_after=0, line=1.24)
 x = ML + CW * 0.53
 tf = txt(sl, x, y, CW * 0.47, 0.35)
@@ -189,14 +239,7 @@ runs(tf, [("Why this exists. ", CRIMSON, True),
 
 sl, y = content("Versioned gates — changing a control without weakening it quietly",
                 "Governance · policy")
-tf = txt(sl, ML, y, CW, 0.52)
-runs(tf, [("A gate that cannot change without a release is a gate people work around. A gate that ", INK, False),
-          ("can", INK, True),
-          (" change without one is a gate that can be ", INK, False),
-          ("weakened", CRIMSON, True),
-          (" without one, which is worse. Everything here makes the first possible without making the second silent.", INK, False)],
-     size=12, first=True, space_after=0, line=1.26)
-h = code(sl, ML, y + 0.62, CW * 0.53, [
+h = code(sl, ML, y + 0.06, CW * 0.53, [
  "# a rule is a PREDICATE, not a program",
  "blocking_findings == 0 and tier is not None",
  "  and all(d in accepted for d in required_docs)",
@@ -206,10 +249,10 @@ h = code(sl, ML, y + 0.62, CW * 0.53, [
  "# NO loops, assignment, def, attribute access,",
  "#   subscripting.",
 ], fs=9, title="core/policy/language.py")
-tf = txt(sl, ML, y + 0.62 + h + 0.22, CW * 0.53, 1.25)
-runs(tf, [("Rego was the obvious answer and was not taken. ", CRIMSON, True),
-          ("A gate written in a general language is a program, and a reviewer signing off a "
-           "governance control would have to run it to know what it does.", INK, False)],
+tf = txt(sl, ML, y + 0.06 + h + 0.22, CW * 0.53, 1.25)
+runs(tf, [("A gate is a predicate, not a program. ", CRIMSON, True),
+          ("A control written in a general-purpose policy language has to be run to be understood, "
+           "and a reviewer signing one off cannot run it.", INK, False)],
      size=10.5, first=True, space_after=0, line=1.24)
 x = ML + CW * 0.57
 data = [["Property", "What it prevents"],
@@ -221,10 +264,10 @@ data = [["Property", "What it prevents"],
          "A loosened gate discovered rather than decided"],
         ["Authoring and publishing are separate; a published version supersedes, never edits",
          "One person changing a control end to end"]]
-table(sl, data, x, y + 0.62, CW * 0.43, col_w=[2.6, 2.7], row_h=0.70, fs=9, hfs=9.5,
+table(sl, data, x, y + 0.06, CW * 0.43, col_w=[2.6, 2.7], row_h=0.70, fs=9, hfs=9.5,
       bold_col0=True, first_col_color=CRIMSON)
-rect(sl, ML, y + 4.02, CW, 0.70, fill=CRIMSON)
-tf = txt(sl, ML + 0.32, y + 4.13, CW - 0.64, 0.56)
+rect(sl, ML, y + 3.60, CW, 0.70, fill=CRIMSON)
+tf = txt(sl, ML + 0.32, y + 3.71, CW - 0.64, 0.56)
 runs(tf, [("The honest boundary. ", WHITE, True),
           ("Policy tightens; the code's invariants are the floor. A rule runs in addition to the "
            "registry's checks, never instead of them — because replacing an invariant with a line of "

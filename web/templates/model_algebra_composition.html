@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Composition — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">TYPED COMPOSITION &middot; L-21</p>
+<h1>How one model stands to another</h1>
+<div class="rule"></div>
+{% set name = None %}{% set here = 'composition' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">{{ relations.detail }}</p>
+
+<div class="row g-3">
+  <!-- ---------------------------------------------------------- propose -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Propose an edge</div>
+      <div class="card-body">
+        <form id="relate-form" class="small">
+          <div class="row g-2">
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">source &mdash; the model the edge starts at</label>
+              <select class="form-select form-select-sm" name="from_urn" required>
+                <option value="">choose…</option>
+                {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
+              </select></div>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">relation</label>
+              <select class="form-select form-select-sm" name="kind" id="relate-kind">
+                {% for r in relations.relations %}
+                  <option value="{{ r.kind }}" data-composes="{{ 1 if r.composes else 0 }}"
+                          data-propagates="{{ 1 if r.propagates else 0 }}"
+                          data-means="{{ r.means }}">{{ r.kind }}</option>
+                {% endfor %}
+              </select>
+              <div id="relate-meaning" class="text-muted mt-1" style="font-size:.72rem"></div></div>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">target</label>
+              <select class="form-select form-select-sm" name="to_urn" required>
+                <option value="">choose…</option>
+                {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
+              </select></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="note"
+                   placeholder="note — what this edge records"></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Record the edge</button>
+        </form>
+        <div id="relate-result" class="small mt-2"></div>
+        {% if not may_relate %}
+          <div class="state-note mt-2">Recording an edge needs
+          <code>model:amend</code> on the target. The API is what refuses.</div>
+        {% endif %}
+      </div></div>
+  </div>
+
+  <!-- --------------------------------------------------------- vocabulary -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">What each relation does</div>
+      <div class="card-body">
+        <table class="table table-sm maya mb-2">
+          <thead><tr><th>Relation</th><th>Propagates</th><th>Composes</th><th>Means</th></tr></thead>
+          <tbody>
+          {% for r in relations.relations %}
+            <tr>
+              <td class="mono">{{ r.kind }}</td>
+              <td>{{ 'yes' if r.propagates else 'no' }}</td>
+              <td>{{ 'yes — type-checked' if r.composes else 'no — recorded only' }}</td>
+              <td style="font-size:.74rem">{{ r.means }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="small text-muted mb-0">An <code>input_to</code> edge is
+        checked with <code>refines(output(source), input(target))</code> against
+        the latest version at each end, and a drawing that does not type-check is
+        refused &mdash; the blast radius would follow it and the composite would
+        have no defined schema. <code>calibrated_by</code>,
+        <code>challenger_of</code> and <code>benchmark_for</code> are
+        deliberately not type-checked: a calibration solves parameters rather
+        than handing an output to an input, and a challenger that counted as a
+        dependency would inflate every blast radius it appeared in.</p>
+      </div></div>
+  </div>
+</div>
+
+<!-- --------------------------------------------------- the composite schema -->
+<div class="card mt-3"><div class="card-header">The composite, computed</div>
+  <div class="card-body">
+    <form id="composite-form" class="row g-2 small align-items-end">
+      <div class="col-md-5">
+        <label class="form-label mb-0" style="font-size:.72rem">source</label>
+        <select class="form-select form-select-sm" name="from_urn" required>
+          <option value="">choose…</option>
+          {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-5">
+        <label class="form-label mb-0" style="font-size:.72rem">target</label>
+        <select class="form-select form-select-sm" name="to_urn" required>
+          <option value="">choose…</option>
+          {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-outline-danger w-100 py-0" style="font-size:.75rem">Compute</button></div>
+    </form>
+    <div id="composite-result" class="small mt-2 text-muted">A composed network's
+      input schema is <strong>derived</strong>: the source's inputs, the target's
+      outputs. A composite whose schema somebody wrote down is a composite that
+      can disagree with its parts.</div>
+  </div></div>
+
+<div class="row g-3 mt-0">
+  <!-- -------------------------------------------------------- blast radius -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Blast radius &mdash; what a change here reaches</div>
+      <div class="card-body">
+        <form id="radius-form" class="row g-2 small align-items-end">
+          <div class="col-9"><select class="form-select form-select-sm" name="urn" required>
+            <option value="">choose a model…</option>
+            {% for m in models %}<option value="{{ m.urn }}"
+              {% if subject and m.urn == subject.urn %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
+          </select></div>
+          <div class="col-3"><button class="btn btn-sm btn-outline-danger w-100 py-0"
+            style="font-size:.75rem">Trace</button></div>
+        </form>
+        <div id="radius-result" class="small mt-2">
+        {% if radius %}
+          <div class="text-muted">{{ radius.detail }}</div>
+          {% if radius.reaches %}
+          <table class="table table-sm maya mt-2 mb-0">
+            <thead><tr><th>Model</th><th>Tier</th><th>Distance</th></tr></thead>
+            <tbody>
+            {% for row in radius.reaches %}
+              <tr><td>{{ row.name }}<div class="mono text-muted" style="font-size:.68rem">{{ row.urn }}</div></td>
+                <td><span class="tier tier-{{ row.tier or 'none' }}">{{ row.tier or '—' }}</span></td>
+                <td data-sort="{{ row.distance }}">{{ row.distance }}</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% endif %}
+        {% else %}
+          <span class="text-muted">Only propagating relations are followed, so a
+          challenger is not downstream of the model it argues with.</span>
+        {% endif %}
+        </div>
+      </div></div>
+  </div>
+
+  <!-- --------------------------------------------------- shared dependencies -->
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Shared dependencies &mdash; the obstruction, computable</div>
+      <div class="card-body">
+        <form id="shared-form" class="small">
+          <label class="form-label mb-0" style="font-size:.72rem">two or more models</label>
+          <select class="form-select form-select-sm" name="urns" multiple size="5">
+            {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
+          </select>
+          <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">Compare</button>
+        </form>
+        <div id="shared-result" class="small mt-2 text-muted">A network that
+          <em>copies</em> a dependency is not the same as one that duplicates it,
+          and that difference is why an aggregate risk assignment cannot simply
+          add up.</div>
+      </div></div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------ the model's edges -->
+{% if subject %}
+<div class="card mt-3"><div class="card-header">Everything attached to {{ subject.name }}</div>
+  <div class="card-body">
+    <table class="table table-sm maya mb-2">
+      <thead><tr><th>Direction</th><th>Relation</th><th>Model</th><th>Propagates</th><th>Note</th><th></th></tr></thead>
+      <tbody>
+      {% for e in edges.upstream %}
+        <tr><td>upstream</td><td class="mono">{{ e.kind }}</td>
+          <td>{{ e.name }}<div class="mono text-muted" style="font-size:.68rem">{{ e.urn }}</div></td>
+          <td>{{ 'yes' if e.propagates else 'no' }}</td>
+          <td style="font-size:.74rem">{{ e.note }}</td>
+          <td><button class="btn btn-sm btn-outline-secondary py-0 unrelate" style="font-size:.7rem"
+                data-from="{{ e.urn }}" data-to="{{ subject.urn }}" data-kind="{{ e.kind }}">Remove</button></td></tr>
+      {% endfor %}
+      {% for e in edges.downstream %}
+        <tr><td>downstream</td><td class="mono">{{ e.kind }}</td>
+          <td>{{ e.name }}<div class="mono text-muted" style="font-size:.68rem">{{ e.urn }}</div></td>
+          <td>{{ 'yes' if e.propagates else 'no' }}</td>
+          <td style="font-size:.74rem">{{ e.note }}</td>
+          <td><button class="btn btn-sm btn-outline-secondary py-0 unrelate" style="font-size:.7rem"
+                data-from="{{ subject.urn }}" data-to="{{ e.urn }}" data-kind="{{ e.kind }}">Remove</button></td></tr>
+      {% endfor %}
+      {% if not edges.upstream and not edges.downstream %}
+        <tr><td colspan="6" class="text-muted">Nothing recorded either way.</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+    <div id="unrelate-result" class="small"></div>
+    <p class="small text-muted mb-0">Removing an edge needs a reason: an edge
+    that disappears without one is a dependency somebody stopped believing in
+    and nobody can ask about.</p>
+  </div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-composition.js"></script>
+<script>window.mayaAlgebraComposition();</script>
+{% endblock %}

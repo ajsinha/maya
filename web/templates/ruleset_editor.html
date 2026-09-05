@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Rules — {{ model.name }} {{ version.semver }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">RULE SET &middot; {{ version.trainability_class }}</p>
+<h1>{{ model.name }} <span class="text-muted">{{ version.semver }}</span></h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  The parameter object of a <strong>T8</strong> model is a rule set somebody
+  authored. Editing it here changes nothing until you publish; publishing records
+  a parameter set that lands <code>proposed</code> and needs a second person,
+  exactly as a fitted one does.
+</p>
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>The rules, in order &mdash; first match wins</span>
+        <button class="btn btn-sm btn-outline-secondary" id="add-rule">Add a rule</button>
+      </div>
+      <div class="card-body p-0"><div id="rules"></div></div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Otherwise &mdash; when no rule matches</div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">
+          Required. A rule set without one behaves by accident on exactly the
+          cases its author did not think of.
+        </p>
+        <div id="otherwise"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">The document</div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">
+          The escape hatch for a nested condition the rows above cannot express.
+          Edit it and the rows re-read from it.
+        </p>
+        <textarea id="doc" class="form-control" rows="12"
+                  style="font-family:var(--mono,monospace);font-size:12px"></textarea>
+        <button class="btn btn-sm btn-outline-secondary mt-2" id="from-json">Read the rows back from this</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">What it says</div>
+      <div class="card-body">
+        <div id="verdict" class="mb-2"></div>
+        <ol id="english" class="small mb-0" style="padding-left:1.1rem"></ol>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Try it</div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">
+          One JSON object per line. Records nothing and decides nothing &mdash;
+          there is no warrant here, because nothing is being scored.
+        </p>
+        <textarea id="rows" class="form-control mb-2" rows="4"
+                  style="font-family:var(--mono,monospace);font-size:12px"></textarea>
+        <button class="btn btn-sm btn-outline-secondary" id="trial">Run these rows</button>
+        <div id="trial-out" class="mt-2 small"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Publish</div>
+      <div class="card-body">
+        <label class="form-label small">A name for this parameter set</label>
+        <input id="name" class="form-control form-control-sm mb-2"
+               placeholder="eligibility-2026q1">
+        <label class="form-label small">Note</label>
+        <input id="note" class="form-control form-control-sm mb-2"
+               placeholder="what changed and why">
+        <button class="btn btn-sm btn-danger" id="publish" disabled>Publish for approval</button>
+        <div id="publish-out" class="mt-2 small"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">This model&rsquo;s input schema</div>
+      <div class="card-body p-0">
+        <table class="table maya mb-0 small">
+          <thead><tr><th>Field</th><th>Type</th><th>Ordered</th></tr></thead>
+          <tbody>
+          {% for f in inputs %}
+            <tr><td><code>{{ f.name }}</code></td><td>{{ f.dtype }}</td>
+                <td>{% if f.ordered %}yes{% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if existing %}
+<div class="card mb-3">
+  <div class="card-header">Rule sets already recorded against this version</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Name</th><th>State</th><th>Rules</th><th>Reads</th><th>Recorded by</th></tr></thead>
+    <tbody>
+    {% for p in existing %}
+      <tr><td class="small"><a href="/rulesets/{{ p.id }}"
+             style="color:var(--crimson);text-decoration:none">{{ p.name }}</a></td>
+          <td class="small">{{ p.state }}</td>
+          <td class="small">{{ p.diagnostics.rules if p.diagnostics else '' }}</td>
+          <td class="small"><code>{{ (p.diagnostics.reads if p.diagnostics else [])|join(', ') }}</code></td>
+          <td class="small">{{ p.created_by }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_RULES = {
+  urn: {{ model.urn|tojson }},
+  semver: {{ version.semver|tojson }},
+  vocabulary: {{ vocabulary|tojson }},
+  inputs: {{ inputs|tojson }},
+  outputs: {{ outputs|tojson }},
+  document: {{ document|tojson }}
+};
+</script>
+<script src="/static/js/ruleset-editor.js"></script>
+{% endblock %}

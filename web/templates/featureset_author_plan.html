@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}{{ featureset.name }} v{{ plan.version }} plan — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE PLAN AN ENGINE READS</p>
+<h1>{{ plan.featureset }} <span class="text-muted">v{{ plan.version }}</span></h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  One document, and everything an execution engine needs to assemble this set:
+  the pinned namespaces, the point-in-time rule, the slots and what fills each.
+  Digest <code>{{ plan.digest }}</code> &middot; entity
+  <code>{{ plan.entity }}</code> &middot; {{ plan.grain }}
+  {% if version.created_by %}&middot; published by {{ version.created_by }}{% endif %}
+  {% if version.note %}&middot; &ldquo;{{ version.note }}&rdquo;{% endif %}
+</p>
+
+<div class="card mb-3"><div class="card-header">The point-in-time rule</div>
+  <div class="card-body">
+    <p class="mono mb-2"><code>{{ plan.pit_rule }}</code></p>
+    <p class="small text-muted mb-0">
+      Published as a string an engine implements, and it is the platform's own
+      &mdash; the bound is <code>min(label_ts, as_of)</code> because the two
+      clocks refuse different things. <code>label_ts</code> is what the model
+      could have known when the decision was made; <code>as_of</code> is what
+      the platform could have known when the set was built. Taking the earlier
+      of the two is what makes a read at any <code>as_of</code> at or after the
+      label give the same answer, however many restatements arrived in between.
+      {% if plan.outcome_window_days %}
+        The outcome window is {{ plan.outcome_window_days }} days: that is how
+        long after the decision the label is knowable, and it is why this model
+        cannot be judged the week it ships.
+      {% else %}
+        No outcome window is declared, so nothing here says how long the label
+        takes to mature.
+      {% endif %}
+    </p>
+  </div></div>
+
+<div class="card mb-3"><div class="card-header">The slots, and what fills each</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Feature</th><th>Type</th><th>View</th>
+               <th>Namespace</th><th>Pinned at</th><th>Certification</th></tr></thead>
+    <tbody>
+    {% for s in plan.slots %}
+      <tr><td class="small">{{ s.slot }}
+            {% if s.slot == plan.label.slot %}
+              <div><span class="evidence-bad">label</span></div>{% endif %}</td>
+          <td class="small">{{ s.feature }}
+            {% if s.derived %}
+              <div class="text-muted">derived &middot; definition v{{ s.definition_version }}</div>
+            {% endif %}</td>
+          <td class="small">{{ s.dtype }}</td>
+          <td class="small">{{ s.view }} v{{ s.view_version }}</td>
+          <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
+          <td class="small" data-sort="{{ s.delta_version }}">delta v{{ s.delta_version }}</td>
+          <td class="small">{{ s.certification }}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Every binding pins the <em>Delta</em> version and not only the path. A set
+    that named views without pinning them would resolve to different bytes next
+    month with its digest unchanged &mdash; a stable identifier over moving
+    contents, which is the failure this column exists to close.
+  </div></div>
+
+{% if plan.label %}
+<div class="card mb-3"><div class="card-header">The label</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Feature</th><th>Namespace</th><th>Pinned at</th></tr></thead>
+    <tbody>
+      <tr><td class="small">{{ plan.label.slot }}</td>
+          <td class="small">{{ plan.label.feature }}</td>
+          <td class="small"><code style="font-size:.72rem">{{ plan.label.namespace }}</code></td>
+          <td class="small">delta v{{ plan.label.delta_version }}</td></tr>
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A supervised set without a label is not one, so a version that declares a
+    label slot and does not bind it is refused. Every other slot was checked
+    against this feature for leakage before anything was pinned.
+  </div></div>
+{% endif %}
+
+<div class="card mb-3"><div class="card-header">The pins, deduplicated &mdash; what an engine opens</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Namespace</th><th>Delta version</th><th>Restated since</th></tr></thead>
+    <tbody>
+    {% for pin in plan.pins %}
+      <tr><td class="small"><code style="font-size:.72rem">{{ pin[0] }}</code></td>
+          <td class="small">v{{ pin[1] }}</td>
+          <td class="small">
+            {% set moved = restatements.slots | selectattr('namespace', 'equalto', pin[0]) | list %}
+            {% if moved %}<span class="evidence-bad">yes</span>
+            {% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small border-top">
+    {% if restatements.restated %}
+      <span class="evidence-bad">Restated underneath.</span>
+      <span class="text-muted">{{ restatements.detail }}. A reader who dropped
+      the pin would now see something else; this version still reads what it
+      pinned. That is the point of the pin, and it is also worth knowing before
+      comparing two runs.</span>
+    {% else %}
+      <span class="text-muted">{{ restatements.detail }}.</span>
+    {% endif %}
+  </div></div>
+
+{% if previous %}
+<div class="card mb-3"><div class="card-header">What moved since v{{ previous.version }}</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Was</th><th>Now</th></tr></thead>
+    <tbody>
+    {% for m in moved %}
+      <tr><td class="small">{{ m.slot }}</td>
+          <td class="small"><code style="font-size:.72rem">{{ m.was or '(new)' }}</code></td>
+          <td class="small"><code style="font-size:.72rem">{{ m.now }}</code></td></tr>
+    {% else %}
+      <tr><td colspan="3" class="small text-muted">
+        Nothing moved: the two versions bind the same features at the same
+        namespaces. They differ only in what the note says.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Publishing this version changed nothing about v{{ previous.version }}.
+    Whoever trained against it still reads exactly the bytes it pinned, which is
+    what makes taking up newer data a deliberate act with a diff rather than
+    something that happens to somebody.
+  </div></div>
+{% endif %}
+
+<div class="card mb-3"><div class="card-header">Documents filed against this version</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Title</th><th>Kind</th><th>State</th><th>Filed by</th><th>Digest</th></tr></thead>
+    <tbody>
+    {% for a in attachments %}
+      <tr><td class="small"><a href="/api/v1/attachments/{{ a.id }}/content"
+                 style="color:var(--crimson);text-decoration:none">{{ a.title }}</a></td>
+          <td class="small">{{ a.kind }}</td>
+          <td class="small">{{ a.state }}</td>
+          <td class="small">{{ a.attached_by }}</td>
+          <td class="small"><code style="font-size:.7rem">{{ a.digest[7:23] }}&hellip;</code></td></tr>
+    {% else %}
+      <tr><td colspan="5" class="small text-muted">
+        Nothing filed. A featureset version is an attachable subject &mdash; a
+        data dictionary is about one version and not about the set, which has
+        since moved &mdash; but it is filed through
+        <code>POST /api/v1/attachments</code> with a model URN,
+        <code>subject_type=featureset_version</code> and this version's id
+        <code>{{ version.id }}</code>. There is no endpoint that lists what is
+        filed against a subject, so this card reads the register directly.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+
+<div class="card mb-3"><div class="card-header">The bytes &mdash; as at a stated moment</div>
+  <div class="card-body">
+    <form method="get" class="row g-2 align-items-end"
+          action="/api/v1/featuresets/{{ plan.featureset }}/versions/{{ plan.version }}/data">
+      <div class="col-md-4"><label class="form-label small mb-1" for="export-as-of">as_of</label>
+        <input class="form-control form-control-sm" id="export-as-of" name="as_of"
+               inputmode="decimal" placeholder="epoch seconds" required></div>
+      <div class="col-md-3"><label class="form-label small mb-1" for="export-format">Format</label>
+        <select class="form-select form-select-sm" id="export-format" name="format">
+          <option value="parquet">parquet</option>
+          <option value="arrow">arrow</option>
+          <option value="ndjson">ndjson</option>
+          <option value="json">json (capped)</option>
+        </select></div>
+      <div class="col-md-2"><label class="form-label small mb-1" for="export-limit">Limit</label>
+        <input class="form-control form-control-sm" id="export-limit" name="limit"
+               inputmode="numeric" placeholder="rows"></div>
+      <div class="col-md-3"><button class="btn btn-sm btn-outline-secondary w-100">Export</button></div>
+    </form>
+    <p class="small text-muted mb-0 mt-2">
+      <code>as_of</code> is required and is not defaulted, because an export is
+      a claim about what was known at a moment and a default would make that
+      moment whatever the clock said when somebody happened to ask. A featureset
+      spans several namespaces, so this is a <em>join</em>, and each part is
+      reduced to what was true and known at that moment <em>before</em> the join
+      &mdash; the other order pairs each feature's whole history against every
+      other's. Served from the pins above, never from the head of a namespace.
+      An engine wanting parallelism reads
+      <a href="/api/v1/featuresets/{{ plan.featureset }}/versions/{{ plan.version }}/parts"
+         style="color:var(--crimson);text-decoration:none">the parts</a> and
+      pulls each itself.
+    </p>
+  </div></div>
+
+{% if featureset.policy.policy %}
+<div class="card mb-3"><div class="card-header">Default retrieval policy &mdash; and who decided each part</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Section</th><th>Column</th><th>Treatment</th><th>Decided by</th></tr></thead>
+    <tbody>
+    {% for section, columns in featureset.policy.policy.items() %}
+      {% if section != 'align' %}
+        {% for column, treatment in columns.items() %}
+          <tr><td class="small">{{ section }}</td><td class="small">{{ column }}</td>
+              <td class="small">{{ treatment }}</td>
+              <td class="small text-muted">{{ featureset.policy.decided_by[section][column] }}</td></tr>
+        {% endfor %}
+      {% else %}
+        <tr><td class="small">align</td><td class="small">{{ columns.axis or 'event_ts' }}</td>
+            <td class="small">{{ columns.rule }}</td>
+            <td class="small text-muted">&mdash;</td></tr>
+      {% endif %}
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    {{ featureset.policy.precedence }}. This is what the platform will do to the
+    values on the way out unless a request says otherwise;
+    <code>POST /api/v1/featuresets/{{ plan.featureset }}/versions/{{ plan.version }}/prepared</code>
+    applies it and overrides it column by column, returning the fitted
+    statistics beside the rows so the same transform can be applied to one row
+    tomorrow. There is no screen for that call: it takes a policy document, and
+    a form that could only express half of one would teach the wrong shape.
+  </div></div>
+{% endif %}
+
+<div class="card mb-3"><div class="card-header">Every version of this featureset</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Version</th><th>Digest</th><th>Slots</th><th>Published by</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for v in versions|reverse %}
+      <tr><td class="small">
+            <a href="/featureset/{{ featureset.name }}/plan/{{ v.version }}"
+               style="color:var(--crimson);text-decoration:none">v{{ v.version }}</a>
+            {% if v.version == plan.version %}<span class="text-muted">&nbsp;(shown)</span>{% endif %}</td>
+          <td class="small"><code style="font-size:.7rem">{{ v.digest[7:23] }}&hellip;</code></td>
+          <td class="small" data-sort="{{ v.bindings|length }}">{{ v.bindings|length }}</td>
+          <td class="small">{{ v.created_by }}</td>
+          <td class="small text-muted">{{ v.note }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+{% endblock %}

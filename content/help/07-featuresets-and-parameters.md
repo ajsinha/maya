@@ -639,6 +639,25 @@ Only `fitted` requires a warrant, because it is the only one where MAYA can chec
 the claim: it issued the warrant, so it knows which featureset version and which
 window produced the numbers.
 
+### One of the three has a shape
+
+`declared` covers T0's constants, T7's elicited weights and **T8's rule sets**,
+and until recently all three were held the same way: a JSON document in `values`,
+versioned, digested, approved by a second person, and completely opaque. MAYA
+could tell you a rule set had changed and not one thing about what it said.
+
+A rule set now has a structure the platform can read — ordered rules, first match
+wins, a required `otherwise`, a required `because` per rule — and four checks run
+before it can be recorded: nothing falls through, no rule is shadowed by any
+single earlier rule, no two rules with the same condition disagree, and every
+field a rule reads is one the version's input schema declares. Publishing one is
+this same `POST /parameters` act with the same consequences: the set lands
+`proposed`, and whoever wrote it may not approve it.
+
+Everything on this page about review, immutability, digests and the alias gate
+applies to a rule set unchanged. What is different is that you can read it.
+See [Rule sets](/help/rule-sets).
+
 ### What the alias gate does and does not read
 
 Approval governs the parameter set record, and **the alias gate does not read
@@ -778,6 +797,13 @@ not want to become one.
 **It does not choose your features.** No automatic selection, no importance
 ranking, no suggestion engine. It records what you chose, pins it so it cannot
 move underneath you, and refuses the combinations that are type errors.
+
+**It authors exactly one kind of parameter object, and no artifacts.** A T8 rule
+set can be typed into MAYA, because a rule set's provenance *is* its authorship —
+that is what `declared` means. There is deliberately no ONNX or PMML editor:
+those formats serialize a *fitted* map, and hand-authoring one would put an
+artifact in the register that had never been trained or validated and was
+indistinguishable from one that had. See [Rule sets](/help/rule-sets).
 
 **It does not yet guard feature retirement.** Lineage is recorded and reported,
 so *"what breaks if this goes"* is answerable in one call. But the only wired

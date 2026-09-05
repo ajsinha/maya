@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Model packages — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE WHOLE RECORD</p>
+<h1>Model packages</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:52rem">
+A <strong>pack</strong> is everything about one model, digested and zipped, for
+somebody who will not be given a login: a supervisor, an internal auditor, an
+acquirer's diligence team. Everything about its shape follows from that audience.
+They cannot query the platform, so a pack is self-contained. They cannot take the
+platform's word for it, so every file is digested and the manifest is digested
+over the files. They will read it months later, so it records the evidence chain
+head it was cut against — which is what makes <em>"has anything changed since?"</em>
+a question with an answer rather than an assurance.</p>
+<p class="text-muted small" style="max-width:52rem">
+And they must be able to tell a gap from a silence, so an absence is written down
+rather than omitted. Pack layout version {{ pack_version }}.</p>
+
+<div class="card mb-3"><div class="card-header">What is in one</div>
+  <div class="card-body">
+    <dl class="maya-terms">
+      {% for member, answers in contents.items() %}
+      <div><dt class="mono">{{ member }}</dt><dd>{{ answers }}</dd></div>
+      {% endfor %}
+    </dl>
+  </div></div>
+
+<div class="card"><div class="card-header">Cut one for</div>
+  <div class="card-body">
+    <table class="table table-sm maya">
+      <thead><tr><th>Model</th><th>URN</th><th>Tier</th><th>Status</th>
+        <th>Owner</th><th>Legal entity</th><th></th></tr></thead>
+      <tbody>
+      {% for m in models %}
+        <tr>
+          <td>{{ m.name }}</td>
+          <td class="mono" style="font-size:.72rem">{{ m.urn }}</td>
+          <td data-sort="{{ m.tier or 0 }}">
+            <span class="tier tier-{{ m.tier or 'none' }}">TIER {{ m.tier or '—' }}</span></td>
+          <td>{{ m.status }}</td>
+          <td class="mono" style="font-size:.72rem">{{ m.owner }}</td>
+          <td>{{ m.legal_entity }}</td>
+          <td><a class="btn btn-sm btn-outline-danger py-0" style="font-size:.7rem"
+                 href="/packages/{{ m.urn.replace('maya://model/', '') }}">the pack &rarr;</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-muted small">
+          No model here is within your scope, so there is nothing to export.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted mb-0" style="font-size:.72rem">
+      Every pack carries all {{ documents | length }} document kinds unless you
+      narrow it, because the audience differs per document and a pack cut for one
+      reader is a pack the next reader has to ask for again.</p>
+  </div></div>
+{% endblock %}

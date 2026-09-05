@@ -3,7 +3,7 @@ divider("1", "The Name, and What It Is For",
         "māyā is appearance: the representation that stands in for reality and "
         "is so easily mistaken for it.",
         ["What the word means", "The mark, and the oldest model there is",
-         "Map and territory", "What that commits the platform to"])
+         "What that commits the platform to"])
 
 # ------------------------------------------------------------ the word
 sl, y = content("māyā — appearance, not illusion", "Philosophy · the name")
@@ -15,8 +15,8 @@ para(tf, "In Indian philosophy, māyā is the representation that stands in for 
 para(tf, "Māyā is not falsehood. It is a RENDERING of the world: useful, often "
          "necessary, and dangerous only when you forget that it is a rendering.",
      size=13, color=INK, space_after=10, line=1.3)
-para(tf, "That is exactly what a model is — and the supervisory guidance says "
-         "so in almost the same words.",
+para(tf, "Which is what a model is — and the supervisory guidance says so in "
+         "almost the same words.",
      size=13, color=INK, space_after=0, line=1.3)
 
 x = ML + CW * 0.58
@@ -26,11 +26,10 @@ quote(sl, x, y + 0.15, CW * 0.42,
       "predicting events, but which also can have limitations and create model "
       "risk.”",
       "SR 26-2, §III")
-note(sl, x, y + 1.75, CW * 0.42, 1.7,
+note(sl, x, y + 1.75, CW * 0.42, 1.35,
      "Model risk is what happens when an organisation forgets the difference "
      "between the map and the territory. ",
-     "The platform is named for the thing it governs, and for the discipline of "
-     "never mistaking it for the world.")
+     "The platform is named for the thing it governs.")
 
 # -------------------------------------------------------------- the mark
 sl, y = content("A square inscribed in a circle", "Philosophy · the mark")
@@ -55,8 +54,8 @@ for lead, rest in [
 x = ML + CW * 0.56
 note(sl, x, y, CW * 0.44, 1.35,
      "That is māyā, and it is model risk, in one figure. ",
-     "A logo is usually decoration. This one is the argument, and the argument "
-     "is that error is not a defect to be eliminated but a quantity to be known.")
+     "The argument it makes is that error is not a defect to be eliminated but "
+     "a quantity to be known.")
 
 data = [["What the estate assumes", "What the figure says"],
         ["a validated model is correct", "it is wrong by a knowable amount"],
@@ -70,28 +69,22 @@ sl, y = content("What naming it that commits the platform to",
                 "Philosophy · consequences")
 outs = [("The gap is measured, not denied",
          "Every model carries an operating boundary — the domain it was "
-         "validated in — and a warrant that runs outside it is refused rather "
+         "validated in — and a warrant for a run outside it is refused rather "
          "than answered."),
         ("Representation is versioned",
-         "A model is a rendering, and renderings are replaced. Immutable "
-         "versions and a governed alias are what let the rendering change "
-         "without the thing it renders appearing to."),
-        ("Error has a direction",
-         "Which is why an overlay register exists: an adjustment is somebody "
-         "saying the map is wrong HERE, and that statement is worth keeping."),
+         "A rendering gets replaced. Immutable versions, plus a governed alias "
+         "— a name such as #champion pointing at whichever version is approved "
+         "today — let the rendering change without the thing it renders "
+         "appearing to."),
         ("Nobody is asked to believe",
-         "Evidence, not assertion. Every claim is bound to the artefact it "
-         "rests on, because a governance system that asks for trust has "
-         "reproduced the problem it was built to solve."),
-        ("The word is not a metaphor",
-         "It is the definition. A model is a map; governance is knowing the "
-         "difference; and every refusal in this platform is an instance of "
-         "that sentence."),
+         "Every claim is bound to the artefact it rests on. A governance "
+         "system that asks for trust has reproduced the problem it was built "
+         "to solve."),
         ("And it applies to MAYA itself",
          "The platform is also a representation — of an estate. Its own "
          "documentation is compiled from the register rather than written, so "
          "the map of the maps cannot drift either.")]
-cw2 = (CW - 0.30 * 2) / 3
+cw2 = (CW - 0.30) / 2
 for i, (t, d) in enumerate(outs):
-    card(sl, ML + (i % 3) * (cw2 + 0.30), y + (i // 3) * 2.30, cw2, 2.10,
+    card(sl, ML + (i % 2) * (cw2 + 0.30), y + (i // 2) * 2.35, cw2, 2.15,
          f"0{i+1}", t, d)

@@ -124,7 +124,7 @@ nine answers to one question — **how is `P` inhabited?** — each characterise
 | **T5** foundation / pretrained | base weights, prompt, corpus, tools, guardrails | configuration, retrieval, an optional adapter fit |
 | **T6** vendor black box | `P` exists and is **not accessible**; only `f(P, −)` is observable | external and opaque |
 | **T7** expert judgment | weights and thresholds | an elicitation protocol over a panel |
-| **T8** deterministic rule / EUC | a rule set | policy authoring |
+| **T8** deterministic rule / EUC | a rule set: ordered rules, first match wins, a stated `otherwise` | policy authoring — `φ` is a person, and that is what `declared` provenance means |
 
 `ParametricKernel.trainability_class` computes this and stores nothing: T6 if `P` is inaccessible,
 T0 if `P` is terminal, T4 if the procedure is training and the model is adaptive, otherwise the
@@ -163,6 +163,19 @@ the kernel did not change. Minting a version per retrain would make *"the model 
 different things, and the more common meaning would win. A parameter set nonetheless changes
 behaviour, so it is immutable, versioned, accepted only against a warrant MAYA issued, named by the
 featureset version that produced it, and approved by somebody other than whoever recorded it.
+
+**One inhabitant of `P` has a structure the platform can read.** For every other class the values
+are numbers, and MAYA holds them, digests them and refuses a run at an unapproved point without ever
+knowing what they mean. For **T8** the point of `P` is a rule set somebody wrote, and `core/rules/`
+gives it a shape — a tree of `field op value` with `all`/`any`/`not`, no arithmetic — over which four
+questions are decidable that are undecidable over a free expression: does every input reach an
+outcome, can this rule ever fire, do two rules disagree, and does every field a rule reads exist in
+the version's `input_schema`. That last one is the `refines` question again, asked of a read-set
+instead of a schema — the same order, asked directly rather than routed through
+`core/domain/lattice.py`. The gain is not convenience; it is that a governed object stopped being opaque to the thing
+governing it. [02](02-model-taxonomy.md#t8-the-fibre-that-was-least-served) states the boundary that
+keeps this from being a training tool, and states precisely how incomplete the reachability analysis
+is.
 
 Specification: [15 — X and P](15-featuresets-and-parameters.md).
 
@@ -764,7 +777,7 @@ constructions, so an obligation engine could in principle be a compiler from dec
 specifications rather than a hand-written scheduler with cases.
 
 > **State, stated.** That compiler is **not built**. What ships is the thing it would have
-> generated: **eight idempotent jobs**, each doing one obligation's work — the evidence chain is
+> generated: **nine idempotent jobs**, each doing one obligation's work — the evidence chain is
 > walked and checkpointed only when it verifies; worklists are delivered and unchanged ones
 > suppressed; a lapsed attestation and a stalled monitor each raise a finding; overlays past their
 > window close; baseline debt reconciles or expires into a breach; a missed remediation window is
@@ -979,6 +992,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Institutions and comorphisms | `core/regimes/` — `signature.py`, `sentences.py` (incl. `deontic_conflicts`, `undecidable`), `translation.py`, `library.py` |
 | Warrant grammar and its laws | `core/execution/grammar/` — `vocabulary.py`, `rules.py`, `validator.py`, `schema.py`; `L-W10` in `core/execution/warrants.py` |
 | Featuresets and parameter sets | `core/features/sets.py`, `core/parameters/register.py` |
+| Rule sets: the T8 parameter object, given a shape | `core/rules/` — `conditions.py` (the tree, `describe`, `conforms`), `domains.py` (reachability, **sound and incomplete**), `ruleset.py` (`Rule`, `RuleSet`, canonical form, `decide`), `editor.py` (`check`, `trial`, `publish`, `explain` — no authority the parameter register did not already hold), and the `rules` runtime in `core/execution/runtimes/rules.py` |
 | The content-addressed artifact store | `core/artifacts/store.py` — the digest is the address, so *the bytes match the warrant* is true by construction rather than by a check somebody remembered to write |
 | Document lenses | `core/docs/lenses.py` — fifteen lenses, `get` only (see `L-11`) |
 | Oracles for machine assistance | `core/assist/oracles.py` — five registered; `core/assist/capabilities.py` refuses a Tier A capability that names none |
@@ -987,7 +1001,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
 | The fibration | `core/fibres/` — nine fibres over the trainability classes, a totality gate at start-up (`L-15`), and the per-class metric set that makes an unanswerable monitor a refusal |
-| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the eight scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the nine scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
 | An online feature store (`L-17`) | **Not built** — `serving_namespaces` is the half that can exist without one |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its

@@ -19,8 +19,8 @@ outs = [("A model is a representation, and error is a quantity",
          "computed. A stored derivation is one that can go stale, and the stale "
          "one is what somebody reads."),
         ("The laws are the acceptance criteria",
-         "Fifteen of twenty-one foundational laws run, and all fourteen warrant "
-         "laws run before a signature. The six that do not are named with the "
+         "Sixteen of twenty-one foundational laws run, and all fourteen warrant "
+         "laws run before a signature. The five that do not are named with the "
          "reason, because a law stated but not executed prevented nothing."),
         ("The compliant path is the fast path",
          "If registering a model properly took forty lines of plumbing and "
@@ -46,9 +46,9 @@ data = [["Not built", "What that means today"],
          "the Delta namespace IS the serving contract. Until a store exists, "
          "L-17 has nothing to compare against and training–serving skew is not "
          "detectable"],
-        ["Six foundational laws",
-         "L-6, L-11, L-13, L-14, L-15, L-17 — each named in chapter 8 with the "
-         "reason it does not yet run"],
+        ["Five foundational laws",
+         "L-6, L-11, L-13, L-14, L-17 — each named in chapter 8 with the reason "
+         "it does not yet run"],
         ["Composite warrants and the interaction premium",
          "typed composition gives L-14 something to quantify over; the aggregate "
          "ρ is not built"],
@@ -59,9 +59,9 @@ th = table(sl, data, ML, y, CW, col_w=[3.6, 8.034],
            row_h=0.38, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 note(sl, ML, y + th + 0.28, CW, 1.05,
      "A deck that ends on what it built has told you half of it. ",
-     "This list is maintained in 12 §0 and in the law table, and both are "
-     "checked by tests — because the gap is the part that goes stale first, and "
-     "it is the part a reader most needs to be told without asking.")
+     "The gap is the part that goes stale first, and it is the part a reader "
+     "most needs ",
+     "to be told without asking.")
 
 # -------------------------------------------------------------- last slide
 sl = blank()

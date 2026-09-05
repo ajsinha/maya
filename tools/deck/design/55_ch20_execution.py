@@ -15,8 +15,8 @@ para(tf, "Every model a bank runs differs along exactly four independent axes. T
 yy = y + 0.72
 AXES = [("1  Parameter object  ·  8", "how P is inhabited",
          "none · calibration_set · estimated_coefficients · learned_weights · llm_configuration · rule_set · elicited_weights · opaque"),
-        ("2  Realisation  ·  17", "how the kernel becomes runnable",
-         "quantlib · onnx · pmml · pfa · python.callable · container · rest · sql · spreadsheet · rules · solver · sas · r · matlab · llm.prompt · llm.agent · descriptor_only"),
+        ("2  Realisation  ·  18", "how the kernel becomes runnable",
+         "quantlib · onnx · pmml · pfa · estimator · rules · python.callable · container · rest · sql · spreadsheet · solver · sas · r · matlab · llm.prompt · llm.agent · descriptor_only"),
         ("3  Operation  ·  10", "what is asked of it",
          "score · fit · validate · backtest · explain · simulate · stress · optimise · generate · monitor"),
         ("4  Data binding  ·  12", "where its data comes from",
@@ -35,7 +35,8 @@ for i, (name, gloss, values) in enumerate(AXES):
 tf = txt(sl, ML, yy + 0.24, CW, 0.5)
 runs(tf, [("Extends the right way. ", CRIMSON, True),
           ("A model technology nobody anticipated is a new value in one vocabulary \u2014 almost always a runtime "
-           "\u2014 not a new section, not a new document type, and not a change to anything that already works.",
+           "\u2014 not a new document type. Six of the eighteen run inside MAYA; the rest name an engine the bank "
+           "already operates, and the warrant is what MAYA hands it.",
            INK, False)],
      size=11.5, first=True, space_after=0, line=1.26)
 
@@ -47,9 +48,7 @@ COORDS = [["Model", "1  parameters", "2  runtime", "3  verb", "4  data"],
           ["KYC summariser", "llm_configuration  (T5)", "llm.prompt", "generate", "document_corpus"],
           ["Vendor AML engine", "opaque  (T6)", "descriptor_only", "score", "stream"]]
 COORDS += [["Behaviour scorecard", "estimated_coefficients  (T2)", "pmml", "score", "feature_namespace"],
-           ["Credit-memo agent", "llm_configuration  (T5)", "llm.agent", "generate", "document_corpus"],
-           ["Treasury spreadsheet", "rule_set  (T8)", "spreadsheet", "score", "request"],
-           ["VaR backtest", "calibration_set  (T1)", "python.callable", "backtest", "dataset_snapshot"]]
+           ["Origination rule set", "rule_set  (T8)", "rules", "score", "request"]]
 th = table(sl, COORDS, ML, y, CW, col_w=[3.0, 3.1, 2.4, 1.5, 1.7], row_h=0.42,
            fs=10.5, bold_col0=True, first_col_color=CRIMSON)
 rect(sl, ML, y + th + 0.26, CW, 0.86, fill=PARCH)
@@ -62,31 +61,28 @@ runs(tf, [("The first two rows are the argument. ", CRIMSON, True),
      size=11, first=True, space_after=0, line=1.26)
 
 sl, y = content("What the grammar refuses, and why", "Execution · admissibility")
-tf = txt(sl, ML, y, CW, 0.56)
-para(tf, "Not invented for the grammar. They fall out of the algebra: the trainability class is DERIVED from how "
-         "the parameter object is inhabited, so what a class admits is what the class means.",
-     size=11.5, color=SLATE, first=True, space_after=0, line=1.25)
 data = [["Law", "Refuses", "Because"],
         ["L-W0", "a malformed document", "ten sections, a known verb, a runtime without its entry keys"],
         ["L-W1", "fit on T0 or T6", "T0's parameters come from theory; T6's are inside a vendor black box"],
         ["L-W2", "generate on a non-generative runtime", "an ONNX graph does not produce prose"],
-        ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so not shown leak-free"],
+        ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so it cannot be shown leak-free"],
         ["L-W4", "a fit with no parameter_object sink", "a fit produces a NEW parameter object, it does not edit the old one"],
-        ["L-W5", "claimed determinism with no seed, runtime runs arbitrary code",
-         "an LLM at 0.7 is not reproducible and neither is an unseeded simulation"],
+        ["L-W5", "claimed determinism with no seed", "an LLM at 0.7 is not reproducible, and neither is an unseeded simulation"],
         ["L-W6", "fit on a descriptor-only model", "you cannot inhabit what nothing on this side can reach"],
         ["L-W7", "a backtest with no outcomes", "that is a re-score wearing a backtest's name"],
-        ["L-W8", "a run that will not name its point in P", "training does not change the kernel, so a run declining to say which inhabitant it runs at produces a number attributable to nothing"],
-        ["L-W9", "a featureset read for training, unbounded in either clock", "the set fixes the columns; the warrant must fix the period"],
-        ["L-W10", "a featureset that does not provide what the kernel reads", "contravariance in inputs — L-12, one level out. Checked at issuance: it needs the register, not the document"]]
-th = table(sl, data, ML, y + 0.44, CW, col_w=[0.85, 3.15, 7.6], row_h=0.26, fs=8.5, hfs=9,
+        ["L-W8", "a run that will not name its point in P", "a number produced at an unstated point in P is attributable to nothing"],
+        ["L-W9", "a training read unbounded in either clock", "the set fixes the columns; the warrant must fix the period"],
+        ["L-W10", "a featureset that misses what the kernel reads", "contravariance in inputs — L-12, one level out, checked at issuance against the register"],
+        ["L-W11", "a calibration with no as-of", "yesterday's numbers and this morning's are not the same run"],
+        ["L-W12", "parameters inside an artifact with no digest", "P would then be whatever that file happens to contain today"],
+        ["L-W13", "a generative runtime pinned to a model name", "the name survives a provider's build change; the behaviour does not"]]
+th = table(sl, data, ML, y, CW, col_w=[0.85, 3.35, 7.4], row_h=0.24, fs=8.5, hfs=9,
            bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, ML, y + 0.44 + th + 0.06, CW, 0.44)
+tf = txt(sl, ML, y + th + 0.10, CW, 0.44)
 runs(tf, [("Validated before signed, never after. ", CRIMSON, True),
-          ("A signature over a non-conforming document would assure it is authentic and not that it is usable, "
-           "and an engine would read it as both. ", INK, False),
-          ("L-W8 caught a real error in a shipped example the day it was written.", INK, True)],
-     size=9.5, first=True, space_after=0, line=1.18)
+          ("A signature over a non-conforming document assures that it is authentic and not that it is usable, "
+           "and an engine reads it as both.", INK, False)],
+     size=10, first=True, space_after=0, line=1.18)
 
 sl, y = content("Warrant resolution", "Execution · the hot path")
 h = code(sl, ML, y, CW * 0.60, [

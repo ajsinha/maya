@@ -20,10 +20,10 @@ data = [["What it is", "How P is inhabited", "Trained?", "Roughly how many"],
 th = table(sl, data, ML, y, CW, col_w=[4.5, 3.2, 1.5, 2.434],
            row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 note(sl, ML, y + th + 0.28, CW, 0.95,
-     "Model risk management is expected to cover all of it with one process. ",
-     "Most tooling responds by covering the third and fourth rows well and "
-     "leaving the rest to a spreadsheet — which is the same spreadsheet the "
-     "programme was bought to replace.")
+     "One process is expected to cover all of it. ",
+     "Most tooling covers the third and fourth rows well and leaves the rest to "
+     "a spreadsheet — which is the spreadsheet the programme was bought to "
+     "replace.")
 
 # ---------------------------------------------------- the wrong question
 sl, y = content("“Is it AI?” puts these in different buckets",
@@ -50,14 +50,12 @@ para(tf, "Both are “models”, or on a bad day both are “AI”. One is fitte
          "weights somebody else replaces on a Tuesday without telling you.",
      size=11, color=SLATE, space_after=0, line=1.28)
 
-note(sl, ML, y + 2.85, CW, 1.75,
+note(sl, ML, y + 2.85, CW, 1.55,
      "Everything downstream inherits the confusion. ",
-     "A validation checklist with fields that make no sense for half the estate, "
-     "so people learn to write “N/A” and then stop reading the fields at all. An "
-     "inventory whose categories nobody applies consistently, so two teams "
-     "classify the same model differently and neither is wrong. And controls "
-     "that are ceremony for some models and absent for others, which is the "
-     "worst of the three because it looks like coverage.")
+     "A validation checklist with fields that make no sense for half the "
+     "estate, so people write “N/A” and then stop reading the fields at all. "
+     "And controls that are ceremony for some models and absent for others — "
+     "the worse of the two, because it looks like coverage.")
 
 # ---------------------------------------------------- the right question
 sl, y = content("“How is P inhabited?” sorts it correctly",
@@ -68,17 +66,17 @@ data = [["How P is inhabited", "Example", "Class", "Can it be fitted?"],
         ["a statistical estimator", "a PD scorecard", "T2", "yes"],
         ["a training run", "a fraud network", "T3", "yes"],
         ["a configuration around someone else's model", "a triage assistant", "T5", "configured"],
+        ["inside a vendor's binary", "an AML score", "T6", "not reachable"],
         ["a room full of people", "an expert scorecard", "T7", "elicited"],
-        ["inside a vendor's binary", "an AML score", "T6", "not reachable"]]
+        ["rules somebody wrote down", "an underwriting policy", "T8", "authored"]]
 th = table(sl, data, ML, y, CW, col_w=[4.3, 2.7, 1.1, 3.534],
-           row_h=0.32, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.30, CW, 1.30,
+           row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + th + 0.26, CW, 1.05,
      "The class is DERIVED from that answer and never declared. ",
-     "Nobody self-reports whether their model is trained — which is the question "
-     "that invites the answer requiring least work. It falls out of two facts "
-     "about the kernel, so asking a closed-form pricer for its training set is a "
-     "type error rather than an empty field, and a rule set is not a "
-     "second-class citizen squeezed into a schema designed for gradient descent.")
+     "It falls out of two facts about the kernel, so asking a closed-form "
+     "pricer for its training set is a type error rather than an empty field, "
+     "and a rule set is not a second-class citizen squeezed into a schema "
+     "designed for gradient descent.")
 
 # ------------------------------------------------- asserted not evidenced
 sl, y = content("The deeper failure: governance is asserted, not evidenced",
@@ -91,10 +89,9 @@ data = [["The claim", "Where it lives", "What connects it to reality"],
         ["“It was trained on Q1 data”", "a slide", "nothing"]]
 th = table(sl, data, ML, y, CW, col_w=[4.4, 3.4, 3.834],
            row_h=0.34, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.32, CW, 1.75,
+note(sl, ML, y + th + 0.32, CW, 1.55,
      "An examiner is shown a claim and asked to believe it. ",
-     "So is the organisation's own risk committee, which is the part that should "
-     "worry a board: the second line is in the same position as the regulator, "
-     "reading assertions it cannot check against artefacts it cannot reach. "
-     "Every design decision in the rest of this deck is downstream of refusing "
-     "that arrangement — and the refusals are where it shows.")
+     "So is the organisation's own risk committee: the second line is in the "
+     "same position as the regulator, reading assertions it cannot check "
+     "against artefacts it cannot reach. Every design decision in the rest of "
+     "this deck is downstream of refusing that arrangement.")

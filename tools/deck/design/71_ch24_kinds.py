@@ -1,10 +1,10 @@
 # ============================================================ CH 24
 divider("24", "Every Kind of Model",
-        "Seven shapes, one definition — and how each is saved, managed and served.",
+        "Eight shapes, one definition — and how each is saved, managed and served.",
         ["The matrix, on one page",
          "Regression, GARCH, closed-form",
          "Calibration and simulation",
-         "Neural networks and LLMs"])
+         "Networks, LLMs and rule sets"])
 
 # ---------------------------------------------------------------------------
 # The chapter's own helper. Every model slide answers the same three questions
@@ -57,7 +57,7 @@ def model_slide(title, kicker, facts, saves, manages, serves,
 
 
 # ------------------------------------------------------- the matrix up front
-sl, y = content("Seven shapes of the same definition",
+sl, y = content("Eight shapes of the same definition",
                 "Every kind of model")
 data = [["Model", "P is", "How P is filled", "parameter_kind",
          "fit_procedure", "Class"],
@@ -75,6 +75,8 @@ data = [["Model", "P is", "How P is filled", "parameter_kind",
          "learned_weights", "train", "T3"],
         ["LLM application", "base model + prompt + corpus",
          "configuration and retrieval", "llm_configuration", "configure", "T5"],
+        ["Rule set", "ordered rules, first match wins",
+         "somebody wrote them down", "rule_set", "author", "T8"],
         ["Vendor score", "exists, unreachable", "somebody else's problem",
          "opaque", "none", "T6"]]
 th = table(sl, data, ML, y, CW, col_w=[1.95, 2.15, 2.75, 2.55, 1.55, 0.68],
@@ -101,6 +103,8 @@ data = [["Medium", "Size of P", "Lives in", "A refit is",
         ["A configuration", "a page of settings",
          "the register, plus artifacts for the prompt and corpus",
          "a new parameter set", "the assembly, field by field"],
+        ["A document", "tens of rules", "the register, as a parsed tree",
+         "a new parameter set", "the canonical form, re-digested"],
         ["Nothing", "zero", "-", "not a thing that happens",
          "the inputs and the library version"]]
 th = table(sl, data, ML, y, CW, col_w=[1.85, 2.05, 3.55, 2.15, 2.03],
@@ -232,12 +236,11 @@ model_slide(
     ("The verb is simulate",
      "Drawing from the output distribution is a different operation from "
      "scoring. A warrant for score will not simulate."),
-    lead="Eleven thousand tests could not catch it. ",
-    rest="An engine reseeded per request instead of once at start-up passed "
-         "every single-trade valuation, because a single valuation averages "
-         "over paths either way. What changed was the correlation BETWEEN "
-         "valuations in a netting set. No number of tests of that shape would "
-         "have found it: every element of the suite had length one.")
+    lead="Reseeding per request passes every single-trade test. ",
+    rest="A single valuation averages over paths either way; what moves is the "
+         "correlation BETWEEN valuations in a netting set. So determinism is "
+         "tested on the aggregate, because a suite whose every case has length "
+         "one cannot see it.")
 
 # ------------------------------------------------------------ neural network
 model_slide(
@@ -292,12 +295,40 @@ model_slide(
          "resort. An adapter is a different matter -- a LoRA is small, and it "
          "IS the thing you trained.")
 
+# ---------------------------------------------------------------- rule set
+model_slide(
+    "An authored rule set - where P is a document somebody wrote",
+    "Every kind of model",
+    [["", "What it is", "Where it lands"],
+     ["P", "ordered rules, first match wins, a stated otherwise",
+      "the parameter register, as a parsed document"],
+     ["Filled by", "authorship - nothing was fitted",
+      "provenance = declared: somebody wrote these"],
+     ["Kind / procedure", "rule_set / author", "class T8, derived"],
+     ["Runtime", "rules", "a condition is a tree, not an expression string"]],
+    ("The parsed form is what is digested",
+     "Reformatting the document is not a new parameter set. Reordering the "
+     "rules is, because first match wins and order is meaning."),
+    ("Approved like any other P",
+     "By somebody other than the author. Every rule carries a because - a rule "
+     "with no stated reason cannot be defended, reviewed, or retired later."),
+    ("A refusal no spreadsheet gives you",
+     "A rule an earlier rule already covers can never fire. Publishing is "
+     "refused: rule_unreachable, naming the rule that shadows it."),
+    lead="A rule that never fires never produces a wrong answer. ",
+    rest="It appears in the model card, gets cited in a committee paper and "
+         "survives every review - a control reporting success while doing "
+         "nothing. The analysis is deliberately sound and incomplete: it calls "
+         "a rule unreachable only when a SINGLE earlier rule covers it, because "
+         "a check that cries wolf is a check somebody turns off.")
+
 # ------------------------------------------------------------- what it proves
 sl, y = content("What did not have to change", "Every kind of model")
-outs = [("One definition, seven media",
+outs = [("One definition, eight kinds of model",
          "f : P (x) X -> D(Y) took a closed-form pricer, a daily calibration, "
-         "a 20-million-weight network and a prompt assembly without a "
-         "special case in the register."),
+         "a 20-million-weight network, a prompt assembly and a hand-written "
+         "rule set without a special case in the register. A taxonomy that "
+         "needs a new branch per model family is a list."),
         ("The class is derived, not declared",
          "Nobody self-reported 'is this trained?'. The class falls out of how "
          "P is inhabited, which is a fact about the artifact rather than an "
@@ -305,17 +336,11 @@ outs = [("One definition, seven media",
         ("The unit of change follows the medium",
          "Values refit into a new parameter set; an artifact refits into a new "
          "version. That is a consequence of the medium, not a policy choice."),
-        ("Warrants did not fork",
-         "One grammar, four vocabularies. simulate and generate are verbs it "
-         "already had, and the laws that check them are the same laws."),
-        ("Evidence is uniform",
-         "The same append-only chain records a calibration, a training run and "
-         "a drafted paragraph, so one query answers 'what happened to this "
-         "model' across all of them."),
-        ("The seventh one fitted without a redesign",
-         "Which is the only evidence for the definition that counts. A "
-         "taxonomy that needs a new branch per model family is a list.")]
-cw2 = (CW - 0.30 * 2) / 3
+        ("Warrants and evidence did not fork",
+         "One grammar, four vocabularies: simulate and generate were verbs it "
+         "already had, and rule_set a value in one of them. One append-only "
+         "chain records a calibration, a training run and a drafted paragraph, "
+         "so a single query answers what happened to this model.")]
+cw2 = (CW - 0.30 * 3) / 4
 for i, (t, d) in enumerate(outs):
-    card(sl, ML + (i % 3) * (cw2 + 0.30), y + (i // 3) * 2.30, cw2, 2.10,
-         f"0{i+1}", t, d)
+    card(sl, ML + i * (cw2 + 0.30), y + 0.10, cw2, 3.00, f"0{i+1}", t, d)

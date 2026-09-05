@@ -56,6 +56,26 @@ RULES: Tuple[Incompatibility, ...] = (
         "version:approve", ("version_created",),
         "the person who created a version may not approve it",
         "route the approval to someone in the second line who did not build it"),
+    # `version:approve` is the single-signature path. `version:sign` is the
+    # QUORUM path — the one Tier 1 and Tier 2 models take, which is to say the
+    # higher-risk half of the estate.
+    #
+    # Only the first was here. So the rule "the person who created a version may
+    # not approve it" held wherever one signature sufficed, and lapsed exactly
+    # where two were required, which is the opposite of the intended gradient:
+    # the control got weaker as the model got riskier. A developer holding one
+    # of the required roles could sign the approval of a version they built.
+    #
+    # `sign()` checks the role is required, held, and not already used, and that
+    # the person has not signed twice under two hats — a quorum being a number
+    # of people rather than a number of roles. None of those is independence
+    # from the build, and the four earlier checks made it look as though
+    # somebody had thought about it.
+    Incompatibility(
+        "version:sign", ("version_created",),
+        "the person who created a version may not sign its approval",
+        "a quorum is people independent of the build; route the signature to "
+        "someone in the second line who did not write it"),
     Incompatibility(
         "alias:move", ("version_created",),
         "the person who created a version may not promote it into an environment",
