@@ -19,7 +19,7 @@ The authoritative record of what exists is
 | Phase | Status of its component list |
 |---|---|
 | **0 — Foundations** | Domain core built. The law harness exists in a different shape (no `tests/laws/`; see [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces)). No plugin loader, no Alembic, no IaC, and the three spikes were not run |
-| **1 — Inventory and evidence spine** | Built, except: no connectors (MLflow, Unity Catalog, git), no discovery, no bulk import from those sources, no RLS, no Python SDK |
+| **1 — Inventory and evidence spine** | Built, except: no connectors (MLflow, Unity Catalog, git), no discovery, no bulk import from those sources, no RLS. **The Python SDK is built** (`sdk/python`); the Java one is not, and its contract is written down rather than stubbed |
 | **2 — Versions, features and warrants** | Built, and overtaken — the warrant *grammar*, featuresets, parameter sets and bulk transfer are all beyond what this phase asked for. Not built: the online store, and therefore skew detection |
 | **3 — Validation, findings and documentation** | Built, including replay from the pinned snapshot. Not built: export packs, an examiner portal, PDF or any rendering beyond markdown |
 | **4 — Monitoring, overlays and reporting** | Built, including telemetry ingestion, delayed labels and the overlay register. Not built: the board pack, KRI dashboards, Spark-scale evaluation |
