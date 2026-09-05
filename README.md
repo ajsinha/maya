@@ -282,6 +282,7 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 | **14** | [Detailed System Design](docs/14-detailed-design.md) ★ | The level below the architecture: component interfaces, algorithms, transaction boundaries, error taxonomy, SLOs, capacity |
 | **15** | [Featuresets and the Parameter Object](docs/15-featuresets-and-parameters.md) | A named, versioned presentation of X; derived features; and the fitted parameters an engine returns |
 | **16** | [Features Composed, Shaped and Prepared](docs/16-features-composed-and-shaped.md) | Dimensionality, the composition monoid, sealing and ephemerality, ownership, and point-in-time retrieval |
+| **17** | [Feature & Model Algebra](docs/17-feature-and-model-algebra.md) | **Proposal, not built.** Featuresets as a lattice rather than only a monoid; edit operations as a monoid action; the point-in-time read as a named operator with a monotonicity law; derived features on the provenance polynomial; `feeds` as a typed composition; and documentation as a graph with a per-training-run record |
 | — | [Architecture Decision Records](docs/adr/INDEX.md) | Eleven ADRs |
 
 **Reading paths**
@@ -325,7 +326,7 @@ maya/
 │   ├── python/                      maya_sdk — standard library only, no dependencies
 │   └── java/                        not built; the contract it must honour, written down
 ├── examples/warrants/               thirteen worked warrants across the model estate
-├── docs/                            17 specification documents + ADRs
+├── docs/                            18 specification documents + ADRs
 │   ├── 00 … 16-*.md                 the specification
 │   ├── adr/INDEX.md                 eleven architecture decision records
 │   ├── examples/                    the two FRED series the worked example uses
