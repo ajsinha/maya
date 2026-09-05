@@ -1,6 +1,10 @@
-# ============================================================ CH 4
-divider("4", "Data and Features", "Point-in-time correctness, version-namespaced serving, monitoring at scale.",
-        ["The PIT assembly", "Three-layer verification", "Online store namespacing", "Monitoring pipeline"])
+# ============================================================ CH 18
+divider("18", "The Feature Platform",
+        "Point-in-time correctness, version-namespaced serving, monitoring at scale.",
+        ["The PIT assembly",
+         "Three-layer verification",
+         "Online store namespacing",
+         "Monitoring pipeline"])
 
 sl, y = content("Point-in-time assembly", "Data · the feature platform")
 h = code(sl, ML, y, CW * 0.56, [

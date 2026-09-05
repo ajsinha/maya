@@ -6,7 +6,7 @@ than a binary nobody can edit safely.
 ```bash
 python -m venv .venv && .venv/bin/pip install python-pptx
 .venv/bin/python tools/deck/slides.py             docs/Models-as-Parametric-Kernels.pptx
-.venv/bin/python tools/deck/design_slides.py      docs/MAYA-System-Design.pptx
+.venv/bin/python tools/deck/design_slides.py      docs/MAYA-Model-and-Feature-Management.pptx
 .venv/bin/python tools/deck/audit.py <deck>       # must report no geometry issues
 ```
 

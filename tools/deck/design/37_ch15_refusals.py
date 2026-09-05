@@ -1,7 +1,8 @@
-# ============================================================ CH 13
-divider("13", "What MAYA Refuses, and Why",
+# ============================================================ CH 15
+divider("15", "What MAYA Refuses, and Why",
         "The refusals are the product. Everything else is bookkeeping.",
-        ["The refusals that matter", "What it deliberately will not do",
+        ["The refusals that matter",
+         "What it deliberately will not do",
          "Where the boundary is"])
 
 # ------------------------------------------------------------ the refusals

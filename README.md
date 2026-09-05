@@ -363,7 +363,7 @@ branding — so the ideas can be judged on their own.
 
 | Engineering artefact | Audience |
 |---|---|
-| [**MAYA — Detailed System Design**](docs/MAYA-System-Design.pptx) — 101 slides | Fifteen chapters. The first eight are the system; chapters nine to fourteen are the same system one level down for a practitioner, closing with a worked example computed from two real FRED series **whose data is embedded in the file**; the fifteenth takes each kind of model in turn and says how MAYA saves, manages and serves it |
+| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 156 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, and the five positions this platform takes. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — seven kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
 
 *Ashutosh Sinha, Independent Researcher.*
 

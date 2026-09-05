@@ -1,6 +1,10 @@
-# ============================================================ CH 7
-divider("7", "Interfaces", "One API, consumed identically by the UI, the SDK and every engine.",
-        ["API conventions", "Resource surface", "Front-end design", "SDK and events"])
+# ============================================================ CH 22
+divider("22", "Interfaces and the SDK",
+        "One API, consumed identically by the interface, the SDK and every engine.",
+        ["API conventions",
+         "Resource surface",
+         "Front-end design",
+         "SDK and events"])
 
 sl, y = content("API conventions", "Interfaces · the contract")
 data = [["Concern", "Decision", "Why"],

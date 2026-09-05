@@ -36,7 +36,10 @@ DECKS = [
     # The practitioner deck was merged in as chapters 9-14 rather than kept
     # beside this one: two decks meant two places to keep current, and the
     # engineering material is the same system described one level down.
-    ("MAYA-System-Design", 101),
+    # Renamed and restructured: the deck is not only a system design, it is
+    # the philosophy, the foundations, the concepts and the worked examples
+    # as well — five parts, twenty-five chapters.
+    ("MAYA-Model-and-Feature-Management", 156),
 ]
 
 

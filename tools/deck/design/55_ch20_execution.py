@@ -1,7 +1,11 @@
-# ============================================================ CH 5
-divider("5", "Execution and Warrants", "How a governed model actually gets run — and stopped.",
-        ["The warrant grammar", "Resolution algorithm", "Caching and stampede control",
-         "Revocation", "Use reconciliation"])
+# ============================================================ CH 20
+divider("20", "The Execution Plane",
+        "How a governed model actually gets run — and stopped.",
+        ["The warrant grammar",
+         "Resolution algorithm",
+         "Caching and stampede control",
+         "Revocation",
+         "Use reconciliation"])
 
 sl, y = content("The warrant grammar — a product, not a union", "Execution · the contract")
 tf = txt(sl, ML, y, CW, 0.62)

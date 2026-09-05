@@ -138,3 +138,45 @@ def note(sl, x, y, w, h, lead, rest, tail=""):
     runs(tf, parts, size=10.5, first=True, space_after=0, line=1.24)
 
 
+
+
+def part(number, title, subtitle, chapters):
+    """A PART divider — a heavier break than a chapter.
+
+    The deck has two halves that serve different readers. Part I is what these
+    objects *are*, and a model developer or a validator can stop at the end of
+    it; Part II is how the platform is built, and it is for whoever builds or
+    audits the platform rather than the models. Marking the seam is the whole
+    reason this exists: a reader who does not know they have crossed from
+    concepts into engineering reads the second half as though it were still
+    telling them how to do their job.
+    """
+    _state["chapter"] = f"Part {number}"
+    _state["n"] += 1
+    sl = blank()
+    rect(sl, 0, 0, SW, SH, fill=INK)
+    rect(sl, 0, 0, SW, 0.10, fill=CRIMSON)
+
+    tf = txt(sl, ML + 0.25, 1.55, CW, 0.5)
+    para(tf, f"PART {number}", size=13, color=CRIMSON, bold=True, first=True,
+         space_after=0)
+
+    tsz = 52
+    while tsz > 30 and est_lines(title, CW * 0.62 * SAFETY, tsz, False, SERIF) > 1:
+        tsz -= 2
+    tf = txt(sl, ML + 0.25, 2.15, CW * 0.64, 1.4)
+    para(tf, title, size=tsz, color=WHITE, font=SERIF, first=True, space_after=0)
+
+    rect(sl, ML + 0.25, 3.75, 1.8, 0.04, fill=CRIMSON)
+    tf = txt(sl, ML + 0.25, 4.05, CW * 0.60, 1.1)
+    para(tf, subtitle, size=16, color=RGBColor(0xC8, 0xC2, 0xBA), italic=True,
+         first=True, space_after=0, line=1.3)
+
+    x = ML + CW * 0.68
+    tf = txt(sl, x, 1.60, CW * 0.32, 4.6)
+    para(tf, "CHAPTERS", size=9.5, color=CRIMSON, bold=True, first=True,
+         space_after=12)
+    for chapter in chapters:
+        para(tf, chapter, size=11.5, color=RGBColor(0xE4, 0xDE, 0xD6),
+             space_after=8, line=1.15)
+    return sl

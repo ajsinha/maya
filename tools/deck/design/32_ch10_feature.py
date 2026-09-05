@@ -1,7 +1,9 @@
 # ============================================================ CH 10
-divider("10", "Engineering a Feature",
-        "A meaning, a shape, a lineage, and an owner who answers for it.",
-        ["Not always a number", "Derived features", "The leakage rules",
+divider("10", "What a Feature Is",
+        "Five things it is not, and what each one costs when you assume otherwise.",
+        ["Not always a number",
+         "Derived features",
+         "The leakage rules",
          "Sealing and ownership"])
 
 # ------------------------------------------------------------ dimensionality
