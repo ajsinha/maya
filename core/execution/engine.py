@@ -55,7 +55,7 @@ class CaptiveEngine:
     """A reference consumer of the warrant contract, with three real runtimes.
 
     It implements registered Python callables, ONNX graphs and the regression
-    and scorecard subset of PMML. The grammar names seventeen runtimes, and an
+    and scorecard subset of PMML. The grammar names eighteen runtimes, and an
     engine's usefulness lies in being precise about which it has rather than in
     having them all: a warrant naming one it does not implement is refused by
     name, listing what it does.
@@ -148,9 +148,26 @@ class CaptiveEngine:
                 "incident if the values moved without an approval")
         return {**(inputs or {}), "parameters": row.get("values_inline") or {}}
 
-    def note_revocation(self, descriptor_id: str) -> None:
-        """The revocation floor: honoured regardless of grace state."""
-        self._revoked_locally.add(descriptor_id)
+    def note_revocation(self, subject: str) -> None:
+        """The revocation floor: honoured regardless of grace state.
+
+        `subject` is either a **model URN** or a single `warrant_id`. Both are
+        accepted because both are things an engine gets told, but the model URN
+        is the one that works, and for a while it was not accepted at all.
+
+        This took a `descriptor_id`, and `execute` re-resolves before checking —
+        and every `builder.build` mints a **fresh** `warrant_id`. So the noted id
+        never matched the id being checked, and the floor could not fire. It is
+        the same defect as finding C-2 seen from the other side: there, an
+        identifier stayed stable while its contents moved; here, an identifier
+        moves while the thing it names stays exactly the same.
+
+        The floor exists for the case where an engine has been told to stop and
+        cannot reach MAYA to have that confirmed, so it must key on something
+        that survives a re-resolve. `subject.model_urn` does; a per-descriptor id
+        is minted fresh each time, by design.
+        """
+        self._revoked_locally.add(subject)
 
     def _constraints(self, warrant: Dict[str, Any]) -> Contract:
         """The operating boundary, read from where the grammar puts it."""
@@ -167,9 +184,16 @@ class CaptiveEngine:
         if not self.warrants.verify(warrant):
             raise WarrantError("signature_invalid", "warrant signature does not verify",
                             "discard it and raise a security incident")
-        if warrant["warrant_id"] in self._revoked_locally:
-            raise WarrantError("revoked", "warrant is on the local revocation list",
-                            "stop; grace never extends revocation ignorance")
+        revoked = self._revoked_locally & {
+            warrant["warrant_id"],
+            (warrant.get("subject") or {}).get("model_urn"),
+            (warrant.get("subject") or {}).get("urn"),
+        }
+        if revoked:
+            raise WarrantError(
+                "revoked",
+                f"{sorted(revoked)[0]} is on the local revocation list",
+                "stop; grace never extends revocation ignorance")
         if self.warrants.is_expired(warrant):
             raise WarrantError("expired", "warrant has expired beyond its grace window",
                             "re-resolve the warrant")

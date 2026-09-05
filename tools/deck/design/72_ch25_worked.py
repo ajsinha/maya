@@ -1,8 +1,10 @@
-# ============================================================ CH 14
-divider("14", "A Worked Example",
+# ============================================================ CH 25
+divider("25", "A Worked Example",
         "Real data, real fits: the S&P 500 and the US unemployment rate.",
-        ["The data, and its two clocks", "The gap that is really there",
-         "Two models over one X", "Extending it, and what that forces"])
+        ["The data, and its two clocks",
+         "The gap that is really there",
+         "Two models over one X",
+         "Extending it, and what that forces"])
 
 # ------------------------------------------------------------- the raw data
 sl, y = content("Two real series, on two different clocks",

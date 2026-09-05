@@ -120,6 +120,88 @@ class TestTheExpressionLanguageIsSmallOnPurpose:
             nj.define_derived("bogus", "acreage * 2", "numeric", "no", "person/x")
 
 
+# ============================================== the external evaluator, reached
+class TestAnExpressionMayaCannotRead:
+    """`external` is documented as the evaluator for an expression that "needs a
+    library, external data or a model". It was unreachable for exactly those
+    expressions: `define` parsed before it looked at `evaluator`, so anything
+    the tiny language could not parse was refused whatever you declared it as.
+
+    The only route left was to register the result as a primitive — which loses
+    the lineage and the leakage check that keeping the definition was *for*. A
+    feature that reads the label then arrives in the catalogue with nothing to
+    catch it.
+    """
+
+    OUT_OF_LANGUAGE = "vendor.pd_model.score(living_area_sqft, year_built)"
+
+    def test_an_out_of_language_expression_can_be_declared_external(self, nj):
+        row = nj.define_derived(
+            "vendor_pd", self.OUT_OF_LANGUAGE, "numeric", "vendor score",
+            "person/x", evaluator="external",
+            inputs=["living_area_sqft", "year_built"])
+        assert row["evaluator"] == "external"
+        assert row["expression"] == self.OUT_OF_LANGUAGE
+        assert set(row["inputs"]) == {"living_area_sqft", "year_built"}
+
+    def test_it_still_carries_lineage_which_is_the_point(self, nj):
+        nj.define_derived("vendor_pd", self.OUT_OF_LANGUAGE, "numeric", "v",
+                          "person/x", evaluator="external",
+                          inputs=["living_area_sqft", "year_built"])
+        assert "living_area_sqft" in nj.lineage("vendor_pd")
+
+    def test_maya_refuses_to_compute_it(self, nj):
+        nj.define_derived("vendor_pd", self.OUT_OF_LANGUAGE, "numeric", "v",
+                          "person/x", evaluator="external",
+                          inputs=["living_area_sqft", "year_built"])
+        with pytest.raises(FeatureError, match="external"):
+            nj.compute_derived("vendor_pd", [{"living_area_sqft": 1200.0}])
+
+    def test_an_opaque_expression_must_declare_its_inputs(self, nj):
+        """Without them there is no lineage and no leakage check, so an
+        unparseable expression with no declared inputs is refused rather than
+        recorded as a feature resting on nothing."""
+        with pytest.raises(FeatureError, match="declare the features it reads"):
+            nj.define_derived("vendor_pd", self.OUT_OF_LANGUAGE, "numeric", "v",
+                              "person/x", evaluator="external")
+
+    def test_declared_inputs_are_refused_on_an_internal_definition(self, nj):
+        """Two lists that can disagree, and the leakage check would run against
+        whichever one the reader happened to open."""
+        with pytest.raises(FeatureError, match="two lists that can disagree"):
+            nj.define_derived("ratio2", "lot_size_sqft / living_area_sqft",
+                              "numeric", "d", "person/x",
+                              inputs=["lot_size_sqft"])
+
+    def test_a_declared_list_that_contradicts_a_parseable_expression_is_refused(self, nj):
+        with pytest.raises(FeatureError, match="the declared list says"):
+            nj.define_derived("ratio3", "lot_size_sqft / living_area_sqft",
+                              "numeric", "d", "person/x", evaluator="external",
+                              inputs=["lot_size_sqft"])
+
+    def test_an_external_feature_is_still_checked_for_leakage(self, nj):
+        """The whole reason the definition is kept.
+
+        Leakage is refused where it can be — at featureset definition, once
+        there is a label slot to leak *from*; there is nothing to check at
+        define time, because a feature is not yet in relation to any label.
+
+        So the declared inputs are what makes the check work at all: without
+        them this expression would have been registered as a primitive, and a
+        slot computed from the label would have been bound alongside the label
+        with nothing to catch it.
+        """
+        nj.define_derived("vendor_ppsf", "vendor.f(sale_price)", "numeric", "c",
+                          "person/x", evaluator="external",
+                          inputs=["sale_price"])
+        nj.define_featureset("vendor_leaky", ENTITY, "person/j.okafor",
+                             {"x": "numeric", "sale_price": "numeric"},
+                             label_slot="sale_price")
+        with pytest.raises(FeatureError, match="leaks the answer"):
+            nj.publish_featureset("vendor_leaky", {"x": "vendor_ppsf",
+                                                   "sale_price": "sale_price"})
+
+
 # ================================================================ derived rules
 class TestDerivedFeaturesCarryTheirLineage:
     def test_lineage_is_the_transitive_closure(self, nj):
@@ -177,7 +259,11 @@ class TestAFeaturesetIsASchemaAVersionFills:
         plan = nj.featureset_plan("nj_home_core", 1)
         assert plan["entity"] == ENTITY
         assert plan["label"]["feature"] == "sale_price"
-        assert "ingest_ts <= as_of" in plan["pit_rule"]
+        # The rule itself is executed against the operator in
+        # tests/test_laws.py::TestL10TheAsOfOperator — a substring check here
+        # passed happily while the published rule was wrong.
+        assert plan["pit_rule"] == ("event_ts <= label_ts AND "
+                                    "ingest_ts <= min(label_ts, as_of)")
         assert len(plan["slots"]) == len(CORE_SLOTS)
 
     def test_a_slot_left_unfilled_is_refused(self, nj):

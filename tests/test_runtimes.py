@@ -2,7 +2,7 @@
 MAYA — the captive engine's runtimes.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 
-The grammar names seventeen runtimes. This engine implements three, and its
+The grammar names eighteen runtimes. This engine implements five, and its
 usefulness lies in being precise about which — so the refusals are tested as
 carefully as the invocations.
 

@@ -1,397 +1,393 @@
-# 08 — UI and UX Design
+# 08 — The interface, in two tenses
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-**Annex to** [04 — Architecture](04-architecture.md). Governed by
-[ADR-011](adr/ADR-011-decoupled-frontend.md). Stack: **Bootstrap 5 + jQuery**, running as a
-**separate process** against the backend API.
+**Annex to** [04 — Architecture](04-architecture.md).
 
 ---
 
-## 1. Front-end architecture
+This document is organised by **tense**, and that is not a stylistic choice.
 
-The UI is an independently built, independently deployed application. It has no privileged path into
-the backend: it uses the same public, versioned API that the SDK and any third-party client uses.
+Part one is present tense and describes only what runs. Part two is conditional and describes only
+what does not. Nothing is mixed, because mixing them has already cost this platform a live security
+defect.
 
-```mermaid
-flowchart LR
-    subgraph WEB["maya-web  ·  separate process, separate pipeline"]
-        direction TB
-        SHELL["App shell<br/>routing · layout · auth"]
-        MODS["Feature modules<br/>inventory · features · validation ·<br/>monitoring · overlays · warrants · risk · admin"]
-        CLIENT["Generated API client<br/>from OpenAPI 3.1"]
-        SHELL --> MODS --> CLIENT
-    end
-    subgraph EDGE["Edge"]
-        CDN["nginx / CDN<br/>static assets, immutable, hashed"]
-        GW["API gateway<br/>TLS · CORS allow-list · rate limit"]
-    end
-    subgraph API["maya-api  ·  FastAPI"]
-        REST["/api/v1  ·  OpenAPI 3.1"]
-        BROKER["/auth/*  ·  token broker<br/>the only cookie-bearing surface"]
-        RENDER["/documents/*/render<br/>server-side HTML / PDF"]
-    end
-    IDP["Identity provider<br/>OIDC + PKCE"]
+The earlier version of this document carried a table saying *"Bearer token in `Authorization`. No
+ambient cookie authority, so CSRF does not apply to the API."* That sentence was true of
+[ADR-011](adr/ADR-011-decoupled-frontend.md)'s decoupled front end, which nobody has built. What runs
+is a server-rendered Jinja interface whose pages call the same API **under a session cookie** — so
+ambient cookie authority is exactly what it has, and the row read as a statement about the running
+system. Three reviewers read it and believed it. The API had no CSRF defence for as long as that
+sentence stood.
 
-    CDN -.serves.-> WEB
-    CLIENT -->|bearer token| GW --> REST
-    SHELL -->|PKCE flow| IDP
-    SHELL -->|refresh, __Host- cookie| BROKER
-    MODS -->|evidence-grade output| RENDER
+The lesson generalises past CSRF: **a control written in the future tense reads as a control, and the
+tense is the part people skip.** So the split is structural here. A reader who stops at the end of
+part one has read a complete and true description of the interface that exists.
 
-    style WEB fill:#1f3a5f,color:#fff
-    style API fill:#2d5016,color:#fff
-```
-
-### 1.1 Rules
-
-1. **Two processes, two pipelines, two release cadences.** `maya-web` is static assets; `maya-api` is
-   FastAPI. Neither imports the other. A front-end release carries no migration risk; an API release
-   does not require a UI release.
-2. **The API is the only interface.** There is no server-rendered application page and no internal
-   shortcut. This is the point of the change: the API is exercised continuously by the product itself
-   and therefore cannot drift from what real clients need.
-3. **P4′ — the client renders decisions, it never derives them.** Tier, gate verdicts, obligations,
-   eligibility and RAG status are computed by the backend and returned *with rationale*. Endpoints
-   return `allowed` plus `deny_reason[]` — never the raw facts a client would need to recompute a
-   verdict. If the client cannot obtain the inputs, it cannot drift from the backend's answer.
-4. **Evidence-grade output is rendered server-side.** Documents, committee packs and examiner exports
-   come back from the API as HTML or PDF. Anything that may be taken into an examination is produced
-   by the system of record.
-5. **jQuery is used deliberately, not apologetically.** No client-side rendering framework, no virtual
-   DOM. Views are small ES modules that fetch, template with a minimal string templater, and bind
-   events through delegation. Complexity is kept out of the client by rule 3, so this is sufficient.
-6. **Accessibility is a requirement** (`NFR-USE-002`): semantic HTML, ARIA on custom widgets, full
-   keyboard operation, visible focus, 4.5:1 contrast, and no colour-only status encoding — every RAG
-   chip carries an icon and a text label.
-
-### 1.2 Module structure
-
-Front-end modules mirror the backend's bounded contexts, so a change is localised on both sides.
-
-```
-maya-web/
-├── src/
-│   ├── shell/            # routing, layout, auth, error handling, toasts
-│   ├── api/              # generated client + thin wrappers, retry, problem+json handling
-│   ├── components/       # grid, derivation panel, RAG chip, graph, diff, form-from-schema
-│   ├── modules/
-│   │   ├── inventory/    ├── features/    ├── validation/   ├── findings/
-│   │   ├── overlays/     ├── monitoring/  ├── warrants/        ├── risk/
-│   │   ├── documents/    ├── regimes/     ├── examiner/     └── admin/
-│   └── styles/           # Bootstrap 5 theme, design tokens
-└── tests/                # component tests + contract test against the published OpenAPI
-```
-
-Each module owns its routes, views and API slice, and registers itself with the shell. Adding a module
-touches the module and one registration line — the front-end counterpart of the backend's plugin
-boundary.
-
-### 1.3 The schema-driven form
-
-Model-class metadata forms are **generated in the browser from the fibre's JSON Schema**, served by the
-API. This is the fibration reaching the UI: a new model class adds a fibre on the backend and its
-capture form appears in the front end with **no front-end change at all**. A T1 pricing model is asked
-for calibration instruments and tolerance; a T5 model is asked for autonomy mode and eval set; neither
-required a UI release.
-
-### 1.4 Authentication
-
-> **Tense warning.** This table is the *design* for the decoupled frontend of
-> [ADR-011](adr/ADR-011-decoupled-frontend.md). The interface that exists is
-> server-rendered Jinja whose pages call the same API **under a session cookie**,
-> so ambient cookie authority is exactly what it has and the row below saying
-> CSRF does not apply describes an architecture nobody has deployed. What is
-> built is documented in [09 §3.4a](09-security-compliance.md): a token required
-> on any state-changing request whose authority came from the cookie, and on
-> nothing else. A control written in the future tense reads as a control, and
-> the tense is the part people skip.
-
-| Element | Design |
+| | |
 |---|---|
-| Login | OIDC Authorization Code + **PKCE**, initiated by the shell |
-| Access token | **Memory only.** Never `localStorage` or `sessionStorage`; lost on tab close, by design |
-| Refresh | `__Host-`-prefixed, `SameSite=Strict`, `HttpOnly`, `Secure` cookie against `/auth/refresh` — the only cookie-bearing surface, and CSRF-protected |
-| API calls | Bearer token in `Authorization`. No ambient cookie authority, so CSRF does not apply to the API |
-| Silent renewal | Refresh ~60 s before expiry; on failure, re-authenticate without losing unsaved form state |
-| Step-up | Privileged actions (alias move, revocation, override, break-glass) trigger re-authentication with an intent statement, returned as `403 step_up_required` |
-| CORS | Strict per-environment origin allow-list. No wildcards |
+| **Part one — built** | §1–§7. Server-rendered Jinja2 inside the FastAPI process. Bootstrap 5 and jQuery, both vendored. Twenty-two pages |
+| **Part two — designed, not built** | §8–§10. The decoupled front end of ADR-011, and the screens specified for it |
+| **Part three — brand** | §11–§12. Shipped assets and the rules on them, with which rules a test holds |
 
-### 1.5 API conventions the UI depends on
+---
 
-| Convention | Purpose |
+# Part one — what is built
+
+## 1. One process, and the asymmetry inside it
+
+There is one process. `routes/ui_routes.py` renders templates from `web/templates/` against services
+it holds directly, and the browser's *writes* go back out through `/api/v1` over jQuery.
+
+That asymmetry is the single most important fact about the built interface, and it is a defect rather
+than a design:
+
+> **Reads are in-process. Writes go through the public API.**
+> `routes/ui_routes.py` makes **51 direct service calls** (`self.ctx["registry"]`,
+> `self.ctx["evidence"]`, and twenty-three other services). No read a page performs is exercised
+> through `/api/v1`.
+
+The consequence is not tidiness. A Head of Model Risk planning management information on the public
+API can find that the screens see things the API cannot, because nothing forces the two to agree on
+reads. ADR-011 exists to close this and is not built. Until it is, the honest statement is the one
+above rather than *"the UI consumes only the public API"*.
+
+What the asymmetry does **not** cost is authorisation, and that is deliberate. A page asks the same
+authoriser the API asks:
+
+```python
+# routes/base.py
+def may_view(self, request, permission="model:read", model=None) -> bool:
+    """Whether the signed-in person may see this, by the same rule the API
+    applies. One authorisation policy, asked from two places."""
+```
+
+That method exists because of a real defect. `login_required` answers whether *somebody* is signed
+in; it does not answer who they are or what they may see, and the pages once used it alone. A
+validator scoped to one legal entity got a 403 from the API and correctly saw nothing on the
+dashboard — then loaded the model page by URL and received its versions, alias history, warrant
+grants and full evidence chain. **Listings filtered; directly-addressable pages did not.** Every page
+that resolves one named object now calls `may_view` before rendering, and a refusal renders
+`forbidden.html` — a page-shaped 403 that says the thing exists and is outside your scope, rather
+than a 404 that pretends otherwise.
+
+## 2. Every page there is
+
+Twenty-two routes render a page. Seven are reachable without a session; fifteen are not.
+
+### 2.1 Public
+
+| Route | Template | What it is |
+|---|---|---|
+| `/` | `landing.html` | The argument, and a live count of registered models |
+| `/about` | `about.html` | What this is and what it is not |
+| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 16 help topics, markdown on disk rendered at request time |
+| `/tutorials`, `/tutorials/{slug}` | same two templates | Fifteen walkthroughs, the same renderer, one dictionary entry apart |
+| `/login` | `login.html` | The only page that establishes a session |
+
+Help and tutorials are **files under `content/`, not templates**. They are versioned, reviewable in
+the same pull request as the behaviour they describe, and cannot ship in a release that changed
+without them.
+
+### 2.2 Behind a session
+
+| Route | Template | What it answers | Refuses when |
+|---|---|---|---|
+| `/dashboard` | `dashboard.html` | The register, the estate summary, my worklist, the chain's standing | — (the list is scope-filtered) |
+| `/model/{name}` | `model.html` | Everything about one model — §3 | `model:read` out of scope |
+| `/features` | `features.html` | The catalogue: defined, derived, served; the expression language; retrieval, alignment and composition, each described by the module that implements it | — |
+| `/feature-views/{name}` | `feature_view.html` | One view, its versions, and each version restated | 404 |
+| `/featuresets` | `featuresets.html` | Every set, its versions, the latest | — |
+| `/featureset/{name}` | `featureset.html` | One set: the resolved definition, the assembly plan per version, the restatements | 404 |
+| `/parameters/{semver}/{name}` | `parameters.html` | What one version may run on, and what stands behind each set | `model:read` |
+| `/telemetry` | `telemetry.html` | Every version's telemetry, the ones that stopped sending first | — |
+| `/telemetry/{semver}/{name}` | `telemetry_version.html` | One version's cohort, and how much of it is labelled | `monitor:read` |
+| `/policies` | `policies.html` | The four gates in force, their fact vocabularies, the drafts, and the drift each publication caused | — |
+| `/notifications` | `notifications.html` | Which channels work, what has been delivered, and what *you* would be sent | — |
+| `/board-pack` | `board_pack.html` | What a committee would be shown — §4 | `report:read` |
+| `/dossier/{name}` | `dossier.html` | Everything documented about a model, following the pins — §5 | `document:read` |
+| `/models/new` | `new_model.html` | Register a model, or upload a version of one | — (the model list is scope-filtered) |
+| `/document/{id}` | `document.html` | One compiled document, its anchors, its staleness and its citations | `document:read` on the subject model |
+
+Two routing details are load-bearing. The model segment is a greedy `:path` converter because a URN
+carries dots and slashes, so **the version comes before the model** on `/telemetry/{semver}/{name}`
+and `/parameters/{semver}/{name}` — a greedy segment in front of a semver would swallow it. And the
+render helper's HTTP-code keyword is spelled `http_status`, not `status`, because `status` is the
+most natural name a page has for a model's status, a finding's status or a version's status: a caller
+passing one got a silently empty template variable and a response code taken from a domain word.
+
+## 3. The model page
+
+The spine of the product, and the one page a reader should judge the interface by. Six hundred and
+forty-seven lines of template, one model.
+
+### 3.1 The model, as its type
+
+The first card is not a summary. It is the definition:
+
+```
+                    P    ⊗    X    →    D(Y)
+
+  P — what is fitted        X — what it reads       D(Y) — what comes back
+  estimated_coefficients    years_in_business : int  pd : float
+  estimated from a          dscr : float [-5, 20]    point_estimate
+  historical sample
+
+  [T2]  estimated_coefficients · statistical_estimation · runtime onnx
+        — the class is derived from the two before it and is never declared.
+```
+
+Everything on it comes from the version's own record: `parameter_kind`, `fit_procedure`, the input
+and output schemas with their declared ranges, the runtime off the kernel manifest. Nothing is typed
+by hand, and the trainability class is shown **beside the two facts it is derived from** rather than
+alone — which is the difference between a label and an explanation. A reader used to assemble this
+from four cards.
+
+`PARAMETER_MEANING` in `routes/ui_routes.py` renders each way of inhabiting `P` in a reader's words —
+*"empty — there is nothing to fit"*, *"solved against market instruments, repeatedly"*, *"exists, and
+cannot be reached from here"*. Short on purpose: the page is showing a type, not teaching the
+taxonomy.
+
+### 3.2 The cards, and what each one refuses to imply
+
+| Card | What it shows | The refusal built into it |
+|---|---|---|
+| Approval & attestation | The lifecycle as a stepper, the open amendment, each required role's signature or absence | The record is stamped **FROZEN** or **OPEN TO CHANGE**, so nobody has to infer whether an edit is possible |
+| Versions | Semver, class, fit procedure, status, manifest digest | The digest is shown, truncated but present: a version is identified by what it is, not by its number |
+| Features | The **view versions each model version is pinned to**, per version | Not "the model's features". A contract binds per model version, which is the granularity serving reads at |
+| Post-model adjustments | Reference, kind, status, renewals, magnitude as a percentage of base | An overlay past its window says **window elapsed**; a renewal past the limit is flagged, because an overlay renewed indefinitely is an unversioned model change |
+| Documentation | Coverage as *filled/sections*, citation count, staleness with the number of events since | Staleness is **computed**, not remembered |
+| Version approval | How many signatures each version owes, and which roles | Quorum is shown as a requirement even when it is unmet, so an approval that has not happened does not look like one that has |
+| Parameters | Each set, its version, how `P` was inhabited, its state | A set is `awaiting approval` until somebody approves it, and the empty state says a version with no approved parameters cannot run *unless its parameter object is terminal* |
+| Documents on file | What people wrote, as against what MAYA compiled | Rejected documents stay listed. The papers that did not pass are the ones a supervisor asks about |
+| Monitoring | Monitor, test key, threshold, last observation with sample size | The empty state says what monitoring is *for*: a breach raises a finding, and a blocking finding refuses warrant resolution |
+| Validation | Kind, validators, status, outcome | — |
+| Alias history | Every move with its refinement result and its variance result | A promotion carries its proofs on the same row. An alias move is a proof obligation, not a deployment |
+| Findings | Severity, title, owner; blocking ones in red | When anything is blocking, the card says warrant resolution and alias moves are refused — the consequence, beside the cause |
+| Regimes | Per regime: satisfied or *n* unmet, out of how many | When regimes disagree it says so, and says the disagreement is a fact about the estate rather than a defect |
+| Warrants | Grants, principal, declared use, revocation state; a **Generate** button that resolves one live and prints the JSON | The resolved warrant is shown whole, with the endpoint to validate it against, because a warrant a reader cannot read is a warrant they take on trust |
+| Evidence | Every node's kind and sequence, with the chain hash | — |
+
+Two side-rail cards are doors rather than displays: **Open the dossier** (§5) and **Cut a pack**, an
+export pack digested member by member for somebody who will never be given a login.
+
+## 4. The board pack
+
+`/board-pack` renders what a committee would be shown **before it is recorded**. Everything above the
+last card is a preview; recording it fixes what the committee was shown, and a pack on record is kept
+as it was read — a minute referring to the March pack needs the March pack, and one recomputed today
+is a different document with the same name.
+
+Three things on it are worth naming because they are refusals rather than features:
+
+- **"Not measured" is its own card, in red, above the numbers.** An indicator that was not computed
+  is not zero and not clean. Zero is a measurement; an absent service is not; and reporting one as
+  the other tells a committee the estate is healthy when it is unobserved.
+- **Exceptions come before the totals.** A committee asks three questions in order — are we inside
+  our limits, what is outside them, what moved — and a report that answers only the first is a
+  dashboard, which is why nobody reads the pack.
+- **"Why there is no single number" is a card on the page.** Aggregate model risk does not compose
+  into one figure, and the page says so where the figure would otherwise go.
+
+The **Record it** button is rendered only when the principal holds `report:cut`. Whether to offer a
+control is the platform's decision rather than the template's: a page that hides a control it cannot
+explain is better than one that offers an action the caller may not take.
+
+## 5. The dossier
+
+`/dossier/{name}` walks the documentation graph from a model and renders it as a tree — versions,
+their parameter sets, the featureset versions those were fitted from, and the features in them.
+
+The page's argument is on the page: documentation is a graph, not a list. It arrives at different
+moments about different objects, and it is filed against what it is **about**. A training record
+names `sb_core@v1` and never `sb_core`, because a document filed against the set would describe
+something that has since moved.
+
+Every node with nothing filed says **"nothing filed — expected …"**, and the gaps are also counted
+and tabulated. That is the whole point of the page:
+
+> A page that silently omits what it could not find reads as complete, and a reader cannot tell a
+> thin model from a thin page unless the page says which it is.
+
+## 6. The rules the built interface actually holds
+
+Six, each with the failure it prevents.
+
+1. **No governance logic in a page.** Tier, gate verdicts, staleness, quorum, RAG standing and
+   regime determinations are computed by services and rendered. A browser that could re-derive a
+   verdict is a browser that can disagree with the system of record, and then two answers exist to a
+   question that must have one.
+
+2. **Scope is applied to pages, not only to listings.** §1. A directly-addressable page that skips
+   the check is a filtered listing with a hole in it.
+
+3. **Every asset is vendored.** `web/static/vendor/` holds Bootstrap 5, Bootstrap Icons and jQuery —
+   675 KB across six files, no CDN, no external fetch. A governance platform that cannot be deployed air-gapped is
+   one somebody works around.
+
+4. **The table script is written, not vendored.** `web/static/js/tables.js` gives every table search,
+   sort and paging. Sorting is always available, because a reader who wants the worst finding first
+   should not have to count rows; search and paging appear at eight rows, because a pager under four
+   is noise and noise is what stops people reading a page. Numbers sort as numbers and dates as
+   dates, so a Gini of 0.61 does not sort below 0.7 as a string would.
+
+5. **Every table has a header row, with no exemption**, held by `tests/test_ui_tables.py`. There was
+   briefly an opt-out for "key/value reference lists", and the exemption was the wrong answer to the
+   right observation: those were not tables. A term beside its definition is a description list, and
+   rendering it as a two-column table with no header is layout-by-table — a screen reader announces
+   *"table, two columns"* and then offers no headers to orient by, which is worse than no markup at
+   all. They are `<dl class="maya-terms">` now.
+
+6. **Every page carries a CSRF token, and no page has to remember it.** `base.html` renders the
+   session token into a `<meta>` tag; `web/static/js/csrf.js` attaches it to every non-safe jQuery
+   request, wraps `fetch` for the page somebody writes next week, and stamps a hidden field into
+   every `method="post"` form. Same-origin only — sending the token to another host would hand over
+   the thing it exists to withhold. The server side is [09 §2](09-security-compliance.md).
+
+## 7. What the built interface does not do
+
+Named, because a reader planning around this deserves the list rather than a discovery.
+
+| | |
 |---|---|
-| `RFC 9457 problem+json` errors | One error shape, rendered consistently; `deny_reason[]` and `remediation_url` surfaced inline |
-| Keyset pagination with `next_cursor` | Stable paging over 50,000 models |
-| `ETag` + `If-Match` on mutations | Optimistic concurrency; the UI shows a real conflict dialog rather than silently overwriting |
-| `Idempotency-Key` on POST | Safe retry on flaky networks |
-| `?expand=` and `?fields=` | One request per screen instead of N+1 chatter |
-| `/derivations/{id}` on every derived value | Powers the universal `[why?]` affordance (`P8`) |
-| Server-Sent Events on `/events` | Live task inbox, breach alerts, long-running job progress — without polling |
+| **No print stylesheet** | Bootstrap's own `@media print` block is all there is. §12's claim of a dated, watermarked print rendering is not built |
+| **No `[why?]` affordance** | Tiering stores its derivation (`core/risk/tiering.py`), and no page opens it. The derivation exists; the door does not |
+| **No dependency graph screen** | Cytoscape.js is not vendored and there is no graph page. The `input_to` edges are typed and stored; nothing draws them |
+| **No validation workbench** | No replay, no challenger runner, no independent recode, no slice explorer. Validation appears on the model page as a table of episodes |
+| **No charts** | Chart.js is not vendored. Every number is rendered as a number |
+| **No discovery, examiner or admin screen** | Principals, connectors and examiner packs are API-only |
+| **Accessibility is partial** | Semantic HTML and the description-list fix are real; ARIA is on one template. Full keyboard operation, visible focus and 4.5:1 contrast are stated in `NFR-USE-002` and are not tested anywhere |
+| **`/models/new` is two forms, not a wizard** | Register a model, or upload a version, side by side, plus a note on registering what already runs in an execution engine. It carries the artifact format list with **`executes_on_load` marked against each format**, so the warning is attached to the choice rather than left in a document somebody read once |
 
 ---
 
-## 2. Information architecture
+# Part two — what is designed and is not built
 
-```
-MAYA
-├── Home                    role-aware landing: my work, my models, alerts
-├── Inventory
-│   ├── Models              the grid — filter, search, bulk actions, saved views
-│   ├── Model detail        the spine of the product (§3)
-│   ├── Graph               interactive dependency / blast-radius explorer
-│   └── Discovery           unregistered models found by connectors; triage queue
-├── Features
-│   ├── Catalogue           search, reuse, quality, popularity
-│   ├── Feature view        definition, versions, materialisation, consumers
-│   └── Contracts           which model uses which feature version
-├── Work
-│   ├── My tasks            approvals, validations, attestations, findings — with SLA
-│   ├── Validations         workbench (§4)
-│   ├── Findings            register, ageing, remediation
-│   └── Campaigns           periodic revalidation / attestation cycles
-├── Monitoring
-│   ├── Health board        portfolio RAG, breaches, degraded warrants
-│   ├── Model monitors      metrics, slices, thresholds, history
-│   └── Use reconciliation  approved vs actual use exceptions
-├── Overlays                PMA register, magnitude, ageing, recurrence
-├── Documents               repository, templates, staleness queue
-├── Warrants                   catalogue, grants, usage, revocation
-├── Risk
-│   ├── Portfolio           tier distribution, heatmaps, concentration
-│   ├── KRIs & appetite     dials, trends, breaches
-│   └── Board pack          generated reporting
-├── Regimes                 per-regulator views, scope determinations, obligations
-├── Examiner                read-only, as-at-date, request packs
-└── Admin                   classes, lifecycles, policies, templates, tests, users, connectors
-```
+Everything below this line is conditional. None of it runs.
 
----
+## 8. ADR-011 — the decoupled front end
 
-## 3. The model detail page
+[ADR-011](adr/ADR-011-decoupled-frontend.md) is accepted and **not built**. It would replace part one
+entirely: `maya-web` as static assets served by nginx or a CDN, `maya-api` as FastAPI, no
+server-rendered application page, and the public API as the only interface.
 
-The most-used screen in the product. It must answer, without scrolling or clicking: *is this model
-healthy, is it allowed to be used, and what do I owe on it?*
-
-```
-┌──────────────────────────────────────────────────────────────────────────────────────────────┐
-│  Small Business PD Scorecard                            maya://model/credit.pd.smallbiz      │
-│  ● IN USE   ▲ TIER 1   ◆ T2 statistically estimated   Owner: J. Okafor   LE-US-01            │
-│  ┌────────────┬────────────┬────────────┬────────────┬────────────┬────────────┐            │
-│  │ HEALTH     │ VALIDATION │ FINDINGS   │ OVERLAYS   │ DOCS       │ WARRANTS      │            │
-│  │ ● 0.87     │ ✓ Current  │ ⚠ 1 High   │ ⚠ 1 active │ ⚠ 1 stale  │ ● 3 active │            │
-│  │ Amber      │ 4 Aug 2026 │ due 14 Sep │ exp 31 Dec │ MDD §4     │ 14.2k/day  │            │
-│  └────────────┴────────────┴────────────┴────────────┴────────────┴────────────┘            │
-│                                                                                              │
-│  REGULATORY SCOPE                                                                            │
-│  SR 26-2 ✓ in scope · SS1/23 ✓ in scope · EU AI Act ▲ HIGH-RISK Annex III(5)(b)              │
-│  ECOA ✓ adverse action required · SOX — not a key control        [why? →]                    │
-│──────────────────────────────────────────────────────────────────────────────────────────────│
-│ Overview │ Versions │ Features │ Uses │ Risk │ Validation │ Findings │ Overlays │ Monitoring │
-│ Documents │ Warrants │ Dependencies │ Evidence │ History                                        │
-│──────────────────────────────────────────────────────────────────────────────────────────────│
-│                                                                                              │
-│  PURPOSE            Estimate 12-month PD for US small-business term loans at origination.    │
-│  OPERATING          years_in_business ∈ [0, 60] · dscr ∈ [-5, 20] · US SMB revenue < $50M    │
-│  BOUNDARIES         non-recessionary (unemployment < 8%)          ▸ 37 violations in 24h     │
-│                                                                                              │
-│  ASSUMPTIONS (4)                                    LIMITATIONS (3)                          │
-│  ▸ Bureau data available for ≥95% (HIGH)            ▸ Thin-file segment under-represented    │
-│  ▸ Stable industry mix (MEDIUM)                       → mitigated by overlay OVL-221         │
-│                                                                                              │
-│  CURRENT VERSION 3.2.1  ●champion    Fitted 2026-07-14 · Gini 0.47 · HL p 0.31 · AIR 0.86    │
-│  Feature contract sha256:c701… (42 features, 3 views)     [replay run] [compare] [download]  │
-└──────────────────────────────────────────────────────────────────────────────────────────────┘
-```
-
-Design notes:
-
-- **Six status tiles, always visible.** Each is a link to the tab that resolves it. Colour is never the
-  only signal — icon plus text.
-- **Regulatory scope is on the header**, with `[why? →]` opening the stored derivation, not a tooltip.
-  This is `P8` made visible.
-- **Operating boundaries are shown with live violation counts.** The contract is not a document; it is
-  being checked right now.
-- **Assumptions and limitations are on the overview**, not buried. They are what a user needs to know
-  before relying on the output, and burying them is how models get misused.
-
----
-
-## 4. The validation workbench
-
-Validators are the scarcest resource in model risk. The workbench exists to stop them doing clerical work.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│ VALIDATION VAL-2026-0412 · credit.pd.smallbiz 3.2.1 · Periodic · Due 30 Sep · M. Chen   │
-├──────────────────┬──────────────────────────────────────────────────────────────────────┤
-│ PLAN             │  CONCEPTUAL SOUNDNESS                                    6/8 complete │
-│ ▸ Conceptual   6/8│  ┌────────────────────────────────────────────────────────────────┐ │
-│ ▸ Outcomes     4/6│  │ CS-03  Variable selection justification            ✓ Satisfied  │ │
-│ ▸ Monitoring   3/3│  │        Evidence: MDD §4.2, run r_01J8X (stepwise trace)         │ │
-│ ▸ Implementation  │  │ CS-06  Challenger comparison                       ⚠ Gap        │ │
-│   2/4             │  │        No GBM challenger on the 2024-25 OOT window.             │ │
-│ ▸ Fairness     3/3│  │        [run challenger →]  [waive with rationale]               │ │
-│                   │  └────────────────────────────────────────────────────────────────┘ │
-│ TOOLS             │                                                                      │
-│ ▸ Replay run      │  QUICK ACTIONS                                                       │
-│ ▸ Challenger      │  [Replay fitting run in sandbox]  → reproducibility PASS ✓          │
-│ ▸ Independent     │  [Fit challenger: GBM / RF / constrained-monotone GAM]              │
-│   recode          │  [Independent recode → divergence distribution]                     │
-│ ▸ Test catalogue  │  [Slice explorer: performance by 14 segments]                       │
-│ ▸ Sensitivity     │  [Sensitivity sweep → recompute operating boundaries]               │
-│                   │                                                                      │
-│ FINDINGS (2)      │  EVIDENCE GLUING          consistency radius 0.02  ✓ within tolerance│
-│ ▸ FND-4821 High   │  (local slice validations assemble into a global claim — 00 §9.3)   │
-│ ▸ FND-4830 Med    │                                                                      │
-│                   │  [Compile validation report]   completeness 78%  →  4 sections open  │
-└──────────────────┴──────────────────────────────────────────────────────────────────────┘
-```
-
-The validator never leaves MAYA to fetch data, rebuild an environment, or copy numbers into Word. Every
-test executed here becomes an evidence node, so the report compiles itself.
-
----
-
-## 5. The dependency graph
-
-Cytoscape.js, server-fed. The single screen that makes aggregate risk legible.
-
-```
-┌───────────────────────────────────────────────────────────────────────────────────┐
-│ DEPENDENCY EXPLORER      [downstream ▾] [depth 3 ▾] [tier ≥ 2 ▾]   ⬤ Impact mode  │
-│                                                                                   │
-│              ┌──────────────┐                                                     │
-│              │ USD OIS curve│◄── selected                                         │
-│              │ T1 · Tier 1  │                                                     │
-│              └──────┬───────┘                                                     │
-│         ┌───────────┼────────────┬───────────────┐                                │
-│    ┌────▼─────┐┌────▼─────┐┌─────▼────┐┌─────────▼───┐                            │
-│    │ Swaption ││ CDS      ││ XVA      ││ VaR / ES    │                            │
-│    │ pricer   ││ pricer   ││ engine   ││ engine      │                            │
-│    └────┬─────┘└────┬─────┘└─────┬────┘└─────┬───────┘                            │
-│         └───────────┴────────────┴───────────┴──► RWA ──► Capital planning        │
-│                                                                                   │
-│ ⬤ BLAST RADIUS: 23 downstream models · 4 Tier 1 · 3 regulatory submissions        │
-│   Aggregate risk premium (lax monoidality): +1.4 tiers over component max         │
-│   [notify 11 affected owners]  [open impact assessment]  [export for change record]│
-└───────────────────────────────────────────────────────────────────────────────────┘
-```
-
-"Impact mode" is what a developer sees *before* proposing a change to a feeder model — the notification
-list is generated, not remembered.
-
----
-
-## 6. Model upload
-
-A four-step wizard, but each step is a full server-rendered page so it survives a refresh and can be
-resumed.
-
-| Step | Content |
+| Element | Designed |
 |---|---|
-| **1 · Artifact** | Drag-drop. Live progress. Then: introspection summary, format policy verdict, security scan results. A blocked format shows the exception path inline, with its expiry. |
-| **2 · Features** | The reconciliation table: matched (green), fuzzy-matched with confidence (amber, confirm/reject), unmatched (red, declare). Duplicate warnings show the three nearest existing features with owners. |
-| **3 · Metadata** | Only what cannot be derived. Fields are driven by the model class fibre — a T1 pricing model is asked for calibration instruments and tolerance; a T5 model is asked for autonomy mode and eval set. **The form is generated from the fibre's JSON Schema**, which is the fibration reaching the UI. |
-| **4 · Review** | Provisional tier with full derivation, the obligations this creates, the documents required, and the estimated validation timeline. Then submit. |
+| Processes | Two, built and deployed and scaled independently. A front-end release carries no migration risk |
+| The interface | `/api/v1` only. No privileged server-side path, so the API cannot drift from what real clients need — the defect §1 records |
+| Login | OIDC authorization code with **PKCE**, initiated by the browser |
+| Access token | **Memory only.** Never `localStorage`, never `sessionStorage`; lost on tab close, by design |
+| Refresh | A `__Host-`-prefixed, `SameSite=Strict`, `HttpOnly`, `Secure` cookie against `/auth/refresh` — the only cookie-bearing surface, and CSRF-protected |
+| API calls | Bearer token in `Authorization`. Under **that** architecture there is no ambient cookie authority, and CSRF would not apply to the API. It is not that architecture today |
+| Step-up | Alias moves, revocations, overrides and break-glass re-authenticate with an intent statement, returned as `403 step_up_required` |
+| CORS | A strict per-environment origin allow-list. No wildcards |
+| Modules | Feature modules mirroring the backend's bounded contexts, each owning its routes, views and client slice |
+| Contract testing | The backend publishes its OpenAPI document; the front-end build fails if the generated client no longer matches |
 
-At every step, a persistent right rail shows *"what this will require of you"* — so nobody discovers at
-step 4 that they have committed to a Tier 1 validation.
+**P4′ would survive the change.** *The client renders decisions, it never derives them* — endpoints
+return `allowed` plus `deny_reason[]`, never the raw facts a client would need to recompute a verdict.
+If the client cannot obtain the inputs, it cannot drift from the backend's answer. That is the one
+conclusion of [ADR-008](adr/ADR-008-server-rendered-ui.md) that ADR-011 keeps, and part one holds it
+today by rendering server-side.
+
+## 9. Screens specified and not built
+
+Each of these was designed against a real need. None exists.
+
+| Screen | What it would answer | The need it comes from |
+|---|---|---|
+| **Dependency / blast-radius explorer** | *What breaks if I change this feeder model, and who do I have to tell?* Selected node, downstream depth, tier filter, and a generated notification list | Aggregate risk is legible only as a graph, and `input_to` is a typed composition rather than a drawing |
+| **Validation workbench** | Plan completeness per section, evidence per test, replay in the sandbox, challenger fitting, independent recode, slice explorer, sensitivity sweep | Validators are the scarcest resource in model risk, and clerical work is what they spend it on |
+| **Discovery triage** | Unregistered models found by connectors, with the artifact each proposal points at | Inventory completeness is the top adoption risk. Scope it narrowly: a queue with poor precision is worse than no queue, because it creates the appearance of coverage |
+| **Use reconciliation** | Approved use against actual use, as exceptions | An approved model used for an unapproved purpose is T3 in the threat model |
+| **Examiner portal** | Read-only, as-at-date, request packs | The export pack does this today, without a login |
+| **Campaigns** | Periodic revalidation and attestation cycles, with SLA | The scheduler runs the jobs; nothing shows the cycle |
+| **Admin** | Classes, lifecycles, policies, templates, tests, users, connectors | Principals and policies are API-only today |
+| **Schema-driven metadata form** | A model class adds a fibre on the backend and its capture form appears with no front-end change — a T1 pricing model asked for calibration instruments and tolerance, a T5 asked for autonomy mode and eval set | The fibration reaching the UI. `/models/new` renders a fixed form today |
+
+## 10. Conventions the API would have to offer
+
+The decoupled client would depend on these. Some exist; the column says which.
+
+| Convention | Purpose | Today |
+|---|---|---|
+| `problem+json`-shaped errors | One error shape, rendered consistently; `deny_reason` and remediation surfaced inline | **Built** — every refusal returns `error` / `detail` / `remediation` at the top level, mapped in one table (`routes/base.py`) |
+| Server-Sent Events on `/events` | Live task inbox, breach alerts, job progress, without polling | Not built |
+| Keyset pagination with `next_cursor` | Stable paging over 50,000 models | Not built; listings return whole |
+| `ETag` + `If-Match` on mutations | Optimistic concurrency, so a conflict is a dialog rather than a silent overwrite | Not built |
+| `Idempotency-Key` on `POST` | Safe retry on a flaky network | Not built |
+| `?expand=` and `?fields=` | One request per screen instead of N+1 chatter | Not built |
+| `/derivations/{id}` on every derived value | Powers the universal `[why?]` affordance (`P8`) | Not built as an endpoint; tiering stores its derivation |
 
 ---
 
-## 7. Executive and board views
+# Part three — brand
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ MODEL RISK — BOARD RISK COMMITTEE                            Q3 2026            │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ INVENTORY 1,247 models (+83 QoQ)      TIER 1: 214   TIER 2: 391   T3/4: 642     │
-│                                                                                 │
-│ RISK APPETITE                                                                   │
-│  Tier 1 with current validation        98.1%  ████████████████████░  ≥98%  ✓    │
-│  Open Critical findings > 90 days          2  ██░░░░░░░░░░░░░░░░░░░  ≤0    ✗    │
-│  Models in use without approval            0  ░░░░░░░░░░░░░░░░░░░░░  =0    ✓    │
-│  ECL overlay reliance                   4.2%  ████████░░░░░░░░░░░░░  ≤5%   ✓    │
-│  Off-label use exceptions open              7  ███░░░░░░░░░░░░░░░░░░  ≤10   ✓    │
-│  Validation backlog (Tier 1, wks)         6.2  ████████░░░░░░░░░░░░░  ≤8    ✓    │
-│                                                                                 │
-│ TREND — aggregate model risk score          MOVEMENTS THIS QUARTER              │
-│  ▁▂▃▃▄▄▃▃▂▂▂▁   improving                   ▸ 12 models re-tiered upward         │
-│                                              ▸ 3 GenAI use cases approved       │
-│ ATTENTION                                    ▸ 1 vendor model version change    │
-│ ▸ FND-4102 CECL macro overlay recurring 4th consecutive quarter → redevelopment │
-│ ▸ USD OIS curve model validation due; 23 downstream models affected             │
-│                                        [generate board pack ▾]  [drill down →]  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-The board pack is generated, versioned and reproducible — an examiner can ask what the committee was
-shown in Q3 2026 and receive exactly that.
-
----
-
-## 8. Brand and identity
-
-### 8.0 The elements
+## 11. The elements
 
 | Element | Value | Where it appears |
 |---|---|---|
 | **Name** | MAYA — Sanskrit *māyā* (माया), *appearance* / *representation* | Everywhere |
-| **Tagline** | Model & AI Lifecycle Assurance | Login, page title, document headers, footers |
-| **Slogan** | **Evidence, not assertion.** | Login screen, empty states, export-pack cover pages, the About panel |
-| **Principle** | *A model is a representation of the world. Governance is knowing the difference.* | About panel, onboarding, examiner portal cover |
-| **Mark** | The copy map | App bar, favicon, export packs, decks |
-
-### 8.1 The mark
+| **Tagline** | Model & AI Lifecycle Assurance | Page footer, document headers |
+| **Slogan** | **Evidence, not assertion.** | The navbar, the footer, export-pack covers, the About page |
+| **Principle** | *A model is a representation of the world. Governance is knowing the difference.* | About, onboarding, examiner covers |
+| **Mark** | A square inscribed in a circle | Navbar, favicon, export packs, decks |
 
 ![MAYA mark](../assets/logo/maya-mark-128.png)
 
-A **square inscribed in a circle** — the oldest model there is. Archimedes bounded π this way, with a
-tractable figure standing in for one that cannot be computed directly.
+Archimedes bounded π by inscribing and circumscribing polygons: a tractable figure standing in for
+one that cannot be computed directly. The **gap** between the square and the circle is the model
+error; the **four points** are where the model and the world agree. Add sides and the gap closes but
+never vanishes — no model becomes the thing it represents.
 
-The **gap** between the square and the circle is the model error. The **four points** are where the
-model and the world agree. Add sides and the gap closes but never vanishes: no model becomes the thing
-it represents. That reading is worth knowing, because it is the argument the whole platform makes.
+That reading is worth knowing because it is the argument the whole platform makes, which is also why
+the slogan is used where the product is making that claim and not decoratively. It belongs on the
+sign-in screen, on the cover of an examiner pack, and in About. It does not belong on every page
+header, where it becomes wallpaper and stops meaning anything.
 
-Assets live in [`assets/logo/`](../assets/logo/): `maya-mark.svg` (primary), `maya-mark-white.svg`
-(knockout for crimson), `maya-mark-mono.svg` (inherits `currentColor`), and `maya-lockup.svg`
-(mark + wordmark + tagline + slogan).
-
-### 8.2 Usage rules
+Assets are in [`assets/logo/`](../assets/logo/): `maya-mark.svg` (primary), `maya-mark-white.svg`
+(knockout for crimson), `maya-mark-mono.svg` (inherits `currentColor`), and `maya-lockup.svg` (mark,
+wordmark, tagline, slogan). The interface serves `maya-mark-64.png` from `web/static/img/`.
 
 | Rule | Detail |
 |---|---|
-| Clear space | Minimum of one-quarter the mark's width on every side |
-| Minimum size | 20 px for the mark; 180 px wide for the lockup. Below 20 px use the favicon crop |
+| Clear space | One quarter of the mark's width on every side |
+| Minimum size | 20 px for the mark; 180 px for the lockup. Below 20 px, the favicon crop |
 | Colour | Crimson `#A51C30` on light; white knockout on crimson; `currentColor` mono elsewhere |
-| Never | Recolour, rotate, close the gap, add effects, stretch, or place the mark on a busy image |
-| Favicon | `maya-mark-64.png`, rounded square, full bleed |
-| Dark mode | Mono mark inherits the foreground; the lockup uses the white-knockout variant |
+| Never | Recolour, rotate, **close the gap**, add effects, stretch, or place the mark on a busy image |
+| Dark mode | The mono mark inherits the foreground; the lockup uses the white knockout |
 
-### 8.3 Voice
+## 12. The design system
 
-The slogan is a **claim about the product**, so it is used where the product is making that claim —
-not decoratively. It belongs on the login screen, on the cover of an examiner export pack, and in the
-About panel. It does not belong on every page header, where it becomes wallpaper and stops meaning
-anything.
+Defined in one `<style>` block in `web/templates/base.html`, deliberately: a second stylesheet is a
+second place a colour can be defined, and the two drift.
+
+| Element | Standard | Held by |
+|---|---|---|
+| **Palette** | `--crimson #A51C30` · `--ink #1C1C1E` · `--slate #4A4F57` · `--muted #7A7F87` · `--rule #D8D4CF` · `--parch #F6F3EF` | Convention |
+| **Type** | Georgia for headings and statistics; the system sans for body; Consolas for anything a machine produced — a digest, a URN, a permission, a warrant | Convention |
+| **Tier badges** | `TIER 1` crimson · `TIER 2` bronze · `TIER 3` slate · `TIER 4` grey · `UNTIERED` parchment. Always with the number | Convention |
+| **Evidence colours** | `.evidence-ok` green, `.evidence-bad` crimson — used for *verdicts*, never for decoration | Convention |
+| **Tables** | Search, sort and paging on every table; a header row on every table | **`tests/test_ui_tables.py`** |
+| **Empty states** | Every empty state explains why it is empty and what the thing is for. The features card with no contract says how to bind one; the parameters card says what a version with no approved parameters may still do | Convention |
+| **Refusals** | A refused page renders `forbidden.html` and says the record exists and is outside your scope. A refused action renders the API's `detail` and its `remediation`, not "an error occurred" | Convention |
+| **Density** | Compact by default. Banks look at hundreds of rows | Convention |
+
+Everything in the "convention" rows is a rule somebody can break without a test failing. That is
+stated rather than implied, for the same reason as the rest of this document.
 
 ---
 
-## 9. Design system
+## 13. Traceability
 
-| Element | Standard |
+| Section | Satisfies |
 |---|---|
-| **Colour** | Bootstrap semantic palette. Status: green (healthy) / amber (attention) / red (breach) / grey (inactive). **Never colour alone** — always icon + label. |
-| **Tier badges** | `▲ TIER 1` red · `▲ TIER 2` amber · `▲ TIER 3` blue · `▲ TIER 4` grey. Consistent everywhere, always with the number. |
-| **Trainability chips** | `◆ T2 statistically estimated` — full text on hover; the class is always visible so nobody assumes a pricing model was "trained". |
-| **Derivation links** | Any derived value renders with a `[why?]` affordance opening its derivation panel. Non-negotiable (`P8`). |
-| **Staleness** | Stale documents and expired approvals render struck-through with a diff link. Never silently current. |
-| **Empty states** | Every empty state explains *why* it is empty and offers the next action. |
-| **Destructive actions** | Type-to-confirm for revocation, decommissioning and alias moves. Alias moves additionally show the affected consumer list. |
-| **Density** | Compact tables by default (banks look at hundreds of rows); a comfortable mode is available. |
-| **Print** | Every detail page has a print stylesheet producing a clean, dated, watermarked document — because people take these into meetings. |
-| **Responsive** | Full functionality ≥ 1280px; read and approve on tablet; alerts and approvals on phone. |
+| §1 One process | [ADR-008](adr/ADR-008-server-rendered-ui.md); the gap against [ADR-011](adr/ADR-011-decoupled-frontend.md) |
+| §1 Scope on pages | `FR-SEC-002`; [09 §2.4](09-security-compliance.md) |
+| §6.6 CSRF token | [09 §2](09-security-compliance.md) |
+| §6.5 Tables | `NFR-USE-002`, partially — the header rule is tested, the rest is not |
+| §7 Not built | [12 §0](12-implementation-plan.md#0-build-status) is the authoritative build record |
+| §8–§10 | [ADR-011](adr/ADR-011-decoupled-frontend.md); [11 — Adversarial Review](11-adversarial-review.md), the front-end section |
 
 ---
 

@@ -54,6 +54,11 @@ ON_ERROR = ("null", "refuse")
 CERTIFICATION_ORDER = ("experimental", "reviewed", "certified", "gold")
 
 
+# A derivation deeper than this is a modelling problem rather than a depth
+# problem, and the refusal says so instead of exhausting the stack.
+MAX_DEPTH = 12
+
+
 class DerivedFeatures:
     """Defines derived features, keeps their lineage, and evaluates them."""
 
@@ -65,16 +70,70 @@ class DerivedFeatures:
     # ----------------------------------------------------------------- define
     def define(self, name: str, expression: str, dtype: str, description: str,
                owner: str, evaluator: str = INTERNAL, on_error: str = "null",
-               note: str = "", actor: str = "system") -> Dict[str, Any]:
-        """Declare a feature computed from others. Definitions are versioned."""
+               note: str = "", inputs: Sequence[str] = (),
+               actor: str = "system") -> Dict[str, Any]:
+        """Declare a feature computed from others. Definitions are versioned.
+
+        ## Why `inputs` is a parameter, and only sometimes
+
+        `external` exists for the expression MAYA cannot evaluate — one needing
+        a library, external data or a model. But this parsed the expression
+        before it looked at `evaluator`, so an expression the language could not
+        *parse* could not be declared external either, and the only escape was
+        to register the result as a primitive and lose the lineage that was the
+        entire reason for keeping the definition.
+
+        Inputs have exactly one source of truth at a time:
+
+        * `internal` — the parse names them. Passing them here is refused,
+          because a declared list and a parsed list are two answers that can
+          disagree, and the leakage check would then be run against whichever
+          one somebody happened to read.
+        * `external` — the parse names them if it parses; if it does not, the
+          caller declares them, and MAYA records that the expression is opaque
+          to it rather than pretending to have understood it.
+        """
         if evaluator not in EVALUATORS:
             raise FeatureError(f"evaluator must be one of {', '.join(EVALUATORS)}")
         if on_error not in ON_ERROR:
             raise FeatureError(f"on_error must be one of {', '.join(ON_ERROR)}")
 
-        parsed = Expression(expression)
-        inputs = parsed.feature_names()
-        if not inputs and not parsed.reads_clock():
+        declared = tuple(dict.fromkeys(inputs))
+        if declared and evaluator != EXTERNAL:
+            raise FeatureError(
+                f"'{name}' is internal, so its inputs come from its expression; "
+                f"declaring them as well gives the leakage check two lists that "
+                f"can disagree")
+
+        opaque = False
+        try:
+            parsed = Expression(expression)
+            source, inputs = parsed.source, parsed.feature_names()
+            reads_clock = parsed.reads_clock()
+        except FeatureError as exc:
+            if evaluator != EXTERNAL:
+                raise
+            # An out-of-language expression, kept verbatim. This is the case the
+            # `external` evaluator was documented as covering and did not.
+            logger.info("derived feature '%s' is external and its expression is "
+                        "opaque to MAYA (%s); recording it with the %d declared "
+                        "input(s) so lineage and the leakage check still apply",
+                        name, exc, len(declared))
+            opaque, source, inputs, reads_clock = True, expression.strip(), declared, False
+
+        if declared and not opaque:
+            if set(declared) != set(inputs):
+                raise FeatureError(
+                    f"'{name}' parses, so its inputs are {', '.join(inputs) or 'none'}; "
+                    f"the declared list says {', '.join(declared)}. Omit it, or "
+                    f"leave the expression in a form MAYA cannot read")
+        if opaque and not inputs:
+            raise FeatureError(
+                f"'{name}' is external and MAYA cannot parse its expression, so "
+                f"it must declare the features it reads — without them there is "
+                f"no lineage and no leakage check, which is the whole reason the "
+                f"definition is kept")
+        if not inputs and not reads_clock:
             raise FeatureError(
                 f"'{name}' reads no features, so it is a constant rather than a "
                 f"derived feature")
@@ -96,14 +155,14 @@ class DerivedFeatures:
             self.features.add(row)
         version = len(self.derived.many(name=name)) + 1
         definition = {
-            "feature_id": row["id"], "name": name, "expression": parsed.source,
+            "feature_id": row["id"], "name": name, "expression": source,
             "inputs": inputs, "evaluator": evaluator, "on_error": on_error,
             "definition_version": version, "note": note,
-            "digest": canonical_digest({"expression": parsed.source, "inputs": inputs}),
+            "digest": canonical_digest({"expression": source, "inputs": inputs}),
             "created_by": actor, "created_at": time.time()}
         self.derived.add(definition)
         self.evidence.append("derived_feature_defined", "feature", row["id"],
-                             {"name": name, "expression": parsed.source,
+                             {"name": name, "expression": source,
                               "inputs": inputs, "definition_version": version,
                               "evaluator": evaluator}, actor=actor)
         logger.info("defined derived feature %s@v%d over %s", name, version, inputs)
@@ -145,6 +204,54 @@ class DerivedFeatures:
 
     def depends_on(self, name: str, candidate: str) -> bool:
         return candidate in self.lineage(name)
+
+    # ------------------------------------------------------------ provenance
+    def provenance(self, name: str,
+                   depth: int = 0) -> Dict[Any, int]:
+        """This feature as a polynomial over the base features it rests on.
+
+        The same `ℕ[X]` the evidence chain uses (`L-9`), applied one layer
+        across. A derivation is a term; annotating each base feature with its
+        own variable and evaluating the term in the free commutative semiring
+        gives the object every other question about the feature is a
+        *homomorphism out of*:
+
+        | Question | The homomorphism |
+        |---|---|
+        | what does this rest on? | the variables of the polynomial |
+        | when did it become knowable? | pushforward into (max, max) |
+        | does it touch the label? | membership of the label's variable |
+        | how much do we trust it? | pushforward into the trust semiring |
+
+        The ingest clock in particular stops being a rule somebody could forget
+        to apply. It is a homomorphism, and homomorphisms do not have
+        exceptions — which is the strongest form the platform's "arithmetic, not
+        policy" claim can take.
+        """
+        from core.evidence.semirings import (POLYNOMIAL, poly_variable)
+        if depth > MAX_DEPTH:
+            raise FeatureError(
+                f"'{name}' derives through more than {MAX_DEPTH} levels; that is "
+                f"a modelling problem rather than a depth problem")
+        definition = self.derived.current(name)
+        if definition is None:
+            return poly_variable(name)              # a base feature IS a variable
+        total = POLYNOMIAL.zero
+        term = POLYNOMIAL.one
+        for parent in definition["inputs"]:
+            term = POLYNOMIAL.times(term, self.provenance(parent, depth + 1))
+        return POLYNOMIAL.plus(total, term)
+
+    def rests_on(self, name: str) -> Set[str]:
+        """The variables of the polynomial — lineage, read off the algebra.
+
+        Agrees with `lineage()` on every derivation, which is asserted rather
+        than assumed: two routes to one answer are worth having only while they
+        agree, and worth testing for exactly that reason.
+        """
+        return {variable
+                for monomial in self.provenance(name)
+                for variable, _ in monomial}
 
     def dependants_of(self, feature_name: str) -> List[str]:
         """What would break if this feature were retired."""

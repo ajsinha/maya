@@ -1,6 +1,9 @@
-# ============================================================ CH 6
-divider("6", "Machine Assistance", "Where AI does the work, where it may not, and why that is structural.",
-        ["The capability contract", "The grounding gate", "Structural prohibition"])
+# ============================================================ CH 21
+divider("21", "Machine Assistance",
+        "Where AI does the work, where it may not, and why that is structural.",
+        ["The capability contract",
+         "The grounding gate",
+         "Structural prohibition"])
 
 sl, y = content("The capability contract", "Machine assistance · design")
 h = code(sl, ML, y, CW * 0.58, [

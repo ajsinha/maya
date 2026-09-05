@@ -811,6 +811,15 @@ CREATE TABLE IF NOT EXISTS document (
     id               TEXT PRIMARY KEY,
     model_id         TEXT NOT NULL,
     model_version_id TEXT,
+    -- What this document is ABOUT, beyond the model and version it hangs
+    -- under. Documentation arrives at different moments about different
+    -- objects: a methodology paper is about the model, a training record is
+    -- about one parameter set, a data dictionary is about a featureset
+    -- VERSION. Binding everything to the model made the last two
+    -- unfilable, and a document filed against a featureset rather than a
+    -- featureset version would describe something that has since moved.
+    subject_type     TEXT NOT NULL DEFAULT 'model_version',
+    subject_id       TEXT,
     kind             TEXT NOT NULL,
     title            TEXT NOT NULL,
     sections         TEXT NOT NULL DEFAULT '[]',
@@ -1024,6 +1033,13 @@ CREATE TABLE IF NOT EXISTS attachment (
     id               TEXT PRIMARY KEY,
     model_id         TEXT NOT NULL,
     model_version_id TEXT,
+    -- What this document is ABOUT. A methodology paper is about the
+    -- model, a convergence study about one parameter set, a data
+    -- dictionary about a featureset VERSION — and a document filed
+    -- against a featureset rather than a version would describe
+    -- something that has since moved.
+    subject_type     TEXT NOT NULL DEFAULT 'model_version',
+    subject_id       TEXT,
     kind             TEXT NOT NULL,
     title            TEXT NOT NULL,
     filename         TEXT NOT NULL,

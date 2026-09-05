@@ -1,6 +1,10 @@
-# ============================================================ CH 1
-divider("1", "Overview and Design Rules", "Components, responsibilities, and the seven rules that bind them.",
-        ["Component inventory", "Responsibility boundaries", "Seven design rules", "Process model"])
+# ============================================================ CH 16
+divider("16", "Architecture and Design Rules",
+        "Components, responsibilities, and the seven rules that bind them.",
+        ["Component inventory",
+         "Responsibility boundaries",
+         "Seven design rules",
+         "Process model"])
 
 sl, y = content("Component inventory", "Overview · structure")
 LAYERS = [

@@ -209,7 +209,68 @@ class TestAdmissibility:
         doc["operation"]["seed"] = None
         report = validate(doc)
         law = next(p for p in report.problems if p.law == "L-W5")
-        assert "not deterministic unless it is pinned" in law.detail
+        assert "MAYA cannot verify" in law.detail
+
+    def test_it_reaches_the_case_it_was_written_for(self):
+        """L-W5 consulted a set holding the two LLM runtimes and nothing else,
+        so a Monte Carlo simulation in a container — the canonical
+        not-reproducible-without-a-seed case, and one this repository ships a
+        tutorial for — could claim determinism with nothing pinning it.
+
+        The question a runtime name can answer is not "is this random", which is
+        undecidable; it is "can MAYA check the claim". For arbitrary code it
+        cannot.
+        """
+        doc = load("10-var-backtest")            # runtime: python.callable
+        doc["operation"]["determinism"] = "deterministic"
+        doc["operation"]["seed"] = None
+        report = validate(doc)
+        law = next(p for p in report.problems if p.law == "L-W5")
+        assert "python.callable" in law.detail
+        assert "operation.seed" in law.remediation
+
+    @pytest.mark.parametrize("runtime", ["pmml", "onnx", "sql", "rules",
+                                         "spreadsheet", "descriptor_only"])
+    def test_a_format_whose_determinism_is_structural_needs_no_seed(self, runtime):
+        """The other half, and the reason the set is not simply every runtime:
+        these are determinism by property of the format rather than of whatever
+        somebody wrote inside it."""
+        from core.execution.grammar.rules import check_determinism
+        assert check_determinism({"determinism": "deterministic"}, runtime) is None
+
+    def test_the_captive_estimator_is_exempt_for_the_opposite_reason(self):
+        """Adding every executing runtime to the set caught MAYA's own estimator
+        and broke twenty tests, which was the set telling the truth about
+        itself: `estimator` runs `ols` and `garch11`, whose code is in this
+        repository, so it is the one executing runtime whose determinism MAYA
+        genuinely can verify — and `L-3` does, by running the same call twice
+        and comparing bit for bit.
+
+        Demanding a seed there would have asked for weaker evidence than the
+        proof already in hand.
+        """
+        from core.execution.grammar.rules import check_determinism
+        from core.execution.grammar.vocabulary import UNVERIFIABLE_DETERMINISM
+        assert "estimator" not in UNVERIFIABLE_DETERMINISM
+        assert check_determinism({"determinism": "deterministic"}, "estimator") is None
+
+    def test_quantlib_is_a_named_gap_not_an_oversight(self):
+        """A QuantLib valuation may be analytic or Monte Carlo, and which it is
+        can be read off the `pricing_engine` its own entry already declares. So
+        demanding a seed for every QuantLib pricing would refuse a great many
+        reproducible valuations to catch a few that are not, and the check
+        belongs against the engine name instead. That check is not built.
+
+        This test exists so the gap is recorded where somebody would look for it
+        rather than only in a comment.
+        """
+        from core.execution.grammar.rules import check_determinism
+        from core.execution.grammar.vocabulary import (RUNTIME_ENTRY,
+                                                       UNVERIFIABLE_DETERMINISM)
+        assert "quantlib" not in UNVERIFIABLE_DETERMINISM
+        assert check_determinism({"determinism": "deterministic"}, "quantlib") is None
+        assert "pricing_engine" in RUNTIME_ENTRY["quantlib"], (
+            "the fact the unbuilt check would read has moved")
 
     def test_a_pinned_seed_makes_the_claim_admissible(self):
         doc = load("06-llm-kyc-summarise")

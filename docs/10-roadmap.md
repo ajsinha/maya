@@ -1,4 +1,4 @@
-# 10 — Delivery Roadmap
+# 10 — What is left, and the order it should be done in
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
@@ -6,241 +6,188 @@
 
 ---
 
-## 0. What this document is now
+## 1. What this document is
 
-**This is a programme plan for a bank deployment, not a record of what has been built.** The two had
-drifted far enough apart to mislead: the phases below are dated from October 2026 and describe as
-future work a great deal that exists today, so a reader taking §2 at face value would conclude that
-the registry, the warrant protocol and the feature platform are ahead rather than behind.
+A roadmap written before the work reads, a year later, as a list of things
+somebody was going to do. This one is written **from where the build actually
+is**, so it says three things and nothing else:
 
-The authoritative record of what exists is
-[**12 §0, Build status**](12-implementation-plan.md#0-build-status). Read that first. Against it:
+1. **What remains** — named, with the reason each is not built.
+2. **The order it should be done in**, and the argument for that order.
+3. **The decisions already made** that constrain it — build versus buy, and what
+   MAYA deliberately does not own.
 
-| Phase | Status of its component list |
-|---|---|
-| **0 — Foundations** | Domain core built. The law harness exists in a different shape (no `tests/laws/`; see [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces)). No plugin loader, no Alembic, no IaC, and the three spikes were not run |
-| **1 — Inventory and evidence spine** | Built, except: no connectors (MLflow, Unity Catalog, git), no discovery, no bulk import from those sources, no RLS. **The Python SDK is built** (`sdk/python`); the Java one is not, and its contract is written down rather than stubbed |
-| **2 — Versions, features and warrants** | Built, and overtaken — the warrant *grammar*, featuresets, parameter sets and bulk transfer are all beyond what this phase asked for. Not built: the online store, and therefore skew detection |
-| **3 — Validation, findings and documentation** | Built, including replay from the pinned snapshot and **export packs** (`core/export/`) — self-contained, digested, with the gaps written down. Not built: an examiner *portal* (the pack is the artefact; there is no place to hand it to somebody), and PDF or any rendering beyond markdown |
-| **4 — Monitoring, overlays and reporting** | Built, including telemetry ingestion, delayed labels, the overlay register and **risk appetite with the board pack** (`core/reporting/`) — limits as computable thresholds, indicators derived from the register, and no composite score. Not built: Spark-scale evaluation |
-| **5 — GenAI, discovery and intelligence** | **Inverted.** Machine assistance is built and governed; the *generation* is not — MAYA records what a language model produced and never calls one. No discovery, no EUC scanner, no semantic search |
-| **6 — Scale-out and estate migration** | Not started, and correctly so: it is a deployment phase |
+The authoritative record of what *exists* is
+[**12 §0, Build status**](12-implementation-plan.md#0-build-status). This
+document does not duplicate it, because two records of what is built are two
+records that can disagree — the same reason there is no separate audit log.
 
-Three whole subsystems appear in no phase below, because they were not foreseen when this was written:
-**versioned policy gates**, **single sign-on**, and **notification**. Each is in 12 §0.
-
-The sequencing argument in §1 and the build/buy record in §5 are unaffected by any of this and are the
-reason to keep the document.
+A schedule is deliberately absent. Dates in a document nobody re-dates are the
+fastest thing here to go stale, and the ordering argument is the part that
+survives.
 
 ---
 
-## 1. Strategy
+## 2. What remains
 
-Three principles shape the sequencing.
+Grouped by what stops each one, because that is what decides when it can be
+done.
 
-1. **Earn the inventory before automating it.** Nothing else works if the inventory is incomplete, so
-   Phase 1 optimises for *getting every model in*, including the awkward ones — vendor, EUC, quant.
-2. **Ship the hard architecture first, the pretty features later.** The evidence graph, the fibration and
-   the warrant protocol are load-bearing. Retrofitting immutability or extensibility is not possible; adding a
-   dashboard is trivial.
-3. **Make the compliant path the fast path from day one.** If the SDK lands after the UI, developers will
-   have already built workarounds and we will spend two years undoing them.
+### 2.1 Structural — these change what MAYA can *claim*
 
----
+| | Why it is not built | What it costs while absent |
+|---|---|---|
+| **Asymmetric warrant signatures** | HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here | Verifying a warrant requires holding the key that could **mint** one. That is the wrong shape for a contract handed to engines you do not control, and it is the single largest gap in the execution story |
+| **Evidence chain anchoring** | Needs WORM storage and an RFC-3161 timestamping authority — both deployment dependencies rather than code | Verification compares the chain against itself. Self-consistency of a chain an attacker could rewrite proves less than it appears to; this is finding **C-4**'s third disposition |
+| **Six foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-15`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Fifteen of twenty-one run; a law stated and not executed prevented nothing |
+| **A plugin loader** | Model classes are strings on the register; there is no fibre registry | `L-15` cannot be checked, so "no fibre is empty" is an intention. Adding a model family is a convention rather than a validated extension |
 
-## 2. Phases
+### 2.2 Reach — these change what MAYA can *cover*
 
-```mermaid
-gantt
-    title MAYA delivery
-    dateFormat YYYY-MM
-    axisFormat %b %Y
-    section Phase 0
-    Foundations & spikes            :p0, 2026-10, 2M
-    section Phase 1
-    Inventory & evidence spine      :p1, after p0, 4M
-    section Phase 2
-    Versions, features, warrants       :p2, after p1, 4M
-    section Phase 3
-    Validation, findings, documents :p3, after p2, 4M
-    section Phase 4
-    Monitoring, overlays, reporting :p4, after p3, 3M
-    section Phase 5
-    GenAI, discovery, intelligence  :p5, after p4, 4M
-    section Phase 6
-    Scale-out & estate migration    :p6, after p5, 6M
-```
+| | Why it is not built | What it costs while absent |
+|---|---|---|
+| **An online feature store** | The Delta namespace is the serving contract; reading it at request latency is deliberately the engine's problem | `L-17` has nothing to compare against, so training–serving skew is undetectable. This is the one absence that makes a whole law inert |
+| **Connectors** — MLflow, Unity Catalog, git | Each is a real integration against an external API | Bulk import exists for a spreadsheet; the models already sitting in an ML platform have to be entered by hand |
+| **Discovery and an EUC scanner** | Nothing sweeps for unregistered models | The inventory is what somebody registered. An inventory campaign finds what people declare; discovery finds what they did not |
+| **Composite warrants and the interaction premium** | Typed composition (`L-21`) now gives `L-14` something to quantify over; the aggregate `ρ` is not built | The question supervisors actually ask — *how much riskier is the network than its parts* — has a definition and no computation |
+| **Spark-scale monitor evaluation** | Monitors evaluate in-process | Fine at hundreds of models; not at an estate-wide nightly sweep over billions of rows |
+| **An examiner portal** | The export pack *is* the artefact — self-contained, digested, gaps named. What is missing is a place to hand it to somebody | Packs are produced and then emailed, which is the workflow they were meant to replace |
+| **PDF, and any rendering past markdown** | The compiler emits markdown, rendered through the same pipeline as the help system | A committee paper is copied into a word processor, at which point it stops being compiled and starts being edited |
+| **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not | A JVM shop writes its own client, and writes it against HTTP rather than against the contract |
 
-### Phase 0 — Foundations (2 months)
+### 2.3 Deployment — these are somebody's operational work, not code
 
-| Deliverable | Detail |
-|---|---|
-| Repository, CI/CD, IaC | Two repositories ([ADR-011](adr/ADR-011-decoupled-frontend.md)), Docker, Helm, Terraform, environments |
-| Domain core | `Para(Stoch)` types, trainability classes, contract algebra, schema lattice |
-| Law harness | Law tests beside the code they constrain, Hypothesis where a generated input earns it; L-4, L-7 and L-12 implemented first |
-| Plugin loader | Entry points, fibre totality validation (L-15) |
-| Postgres baseline | Core DDL, RLS pattern, audit chain, Alembic |
-| Delta baseline | Table layouts, retention classes, write path |
-| **Spikes** | PIT join at 1B rows; warrant resolution p99 under load; sandbox escape testing; ONNX/PMML introspection breadth |
-
-**Exit:** the executable laws exist as tests (most failing); a model can be created and read; the spikes have
-answered the three questions that could invalidate the architecture.
-
-### Phase 1 — Inventory and evidence spine (4 months) — *MVP*
-
-| Deliverable | Requirements |
-|---|---|
-| Model registry with URNs, ownership, uses, assumptions, limitations | FR-INV-001..009, 018..020 |
-| Model class fibres for the top 20 families (seeded from [02](02-model-taxonomy.md)) | — |
-| Regime engine with SR 26-2, SS1/23, EU AI Act, SOX | FR-INV-004 |
-| Tiering engine with derivation, triggers, monotonicity | FR-TIER-001..008 |
-| Evidence graph + Boolean/Why/How/Freshness semirings | FR-* (foundational) |
-| Dependency graph, blast radius | FR-INV-009..011 |
-| Bulk import; MLflow, Unity Catalog and git connectors | FR-INV-012 |
-| Lifecycle engine, workflow, approvals, e-signature, SoD | FR-LC-001..011 |
-| IAM, RBAC/ABAC, RLS, audit chain | FR-SEC-001..010 |
-| Inventory UI, model detail page, as-at-date query | FR-INV-015..016 |
-| Python SDK v1 (register, read, submit) | FR-PLT-002 |
-
-**Exit:** 300 models registered including 30 vendor and 20 quant; a tier derivation withstands challenge
-from the MRM head; an as-at-date inventory export is produced for a mock examiner request.
-
-### Phase 2 — Versions, features and warrants (4 months)
-
-| Deliverable | Requirements |
-|---|---|
-| Version upload, introspection, security scanning, format policy, signing | FR-VER-001..008, 011, 015 |
-| Calibration sets for T1; prompt bundles for T5 | FR-VER-013..014 |
-| Aliases with refinement and variance gates | FR-VER-009..010 |
-| Feature registry, views, Delta materialisation, quality assertions | FR-FEA-001..003, 011, 014, 017 |
-| PIT training-set generation and verifier | FR-FEA-004; L-10 |
-| Feature contracts and consumer impact | FR-FEA-006, 008..009 |
-| Run tracking, reproducible replay, challengers | FR-TRN-001..003, 008..009 |
-| **Warrant service**: resolution, signing, revocation, telemetry | FR-WARRANT-001..012 |
-| Warrant flavours: `descriptor_only`, `python_sdk`, `rest_oip_v2`, `batch_spark` | FR-WARRANT-002 |
-| Upload wizard, feature reconciliation UI | — |
-
-**Exit:** an execution engine runs a production model solely via a warrant; an alias move switches the served
-version with no consumer change; a PIT-verified training set reproduces a fit bit-for-bit.
-
-### Phase 3 — Validation, findings and documentation (4 months)
-
-| Deliverable | Requirements |
-|---|---|
-| Validation plans, test catalogue, executable tests | FR-VAL-001..004 |
-| Independent recode harness; sandbox execution | FR-VAL-004 |
-| Findings, remediation, blocking behaviour, closure verification | FR-VAL-005..006 |
-| Risk-based validation scheduling and campaigns | FR-VAL-008, FR-LC-012 |
-| Vendor validation workflow | FR-VAL-009 |
-| Document compiler, lenses, staleness, completeness | FR-DOC-001..006; L-11 |
-| Templates: MDD, validation report, model card, Annex IV, AI-BOM, decommissioning | FR-DOC-002 |
-| Export packs and examiner portal | FR-DOC-010; FR-SEC-008 |
-| Validation workbench UI | — |
-
-**Exit:** a full Tier 1 validation is completed end-to-end in MAYA; the validation report compiles with
->90% auto-generated content; an EU AI Act Annex IV pack is produced for a high-risk model.
-
-### Phase 4 — Monitoring, overlays and reporting (3 months)
-
-| Deliverable | Requirements |
-|---|---|
-| Monitor definitions, class-aware defaults, Spark evaluation | FR-MON-001..003 |
-| Delayed labels, slice monitoring, fairness slices | FR-MON-004..005 |
-| Breach → finding automation; model health score | FR-MON-006..007 |
-| Inference logging and retention | FR-MON-008 |
-| **Approved-use vs actual-use reconciliation** | FR-MON-009 |
-| Operating-boundary monitoring | FR-MON-010 |
-| Training–serving skew detection | FR-FEA-007, 012 |
-| **Overlay / PMA register** with magnitude, ageing, propagation, recurrence | FR-PMA-001..008 |
-| KRIs, risk appetite, board pack | FR-RPT-001..006 |
-| External monitoring ingestion | FR-MON-016 |
-
-**Exit:** a monitoring breach automatically restricts a production warrant; the overlay dashboard is used in
-a real IFRS 9 committee; the board pack is generated rather than assembled.
-
-### Phase 5 — GenAI, discovery and intelligence (4 months)
-
-| Deliverable | Requirements |
-|---|---|
-| GenAI track: boundary gates, risk matrix, eval harness | §5 of [09](09-security-compliance.md) |
-| Prompt/RAG/tool/guardrail versioning; base-model change detection | FR-VER-014; FR-MON-013 |
-| LLM gateway integration; trace, cost and token monitoring | INT-016 |
-| Agentic controls: tool manifest, action audit, reversibility, budgets | — |
-| Continuous discovery sweeps; discovery exceptions | FR-INV-013 |
-| EUC scanner ingestion and register | FR-INV-014 |
-| Semantic search across inventory, docs and code | FR-INV-015 |
-| AI documentation assistant (governed as a T5 model in MAYA itself) | FR-DOC-007 |
-| Automated retraining pipelines with governed promotion | FR-TRN-006 |
-| Composite warrants | FR-WARRANT-017 |
-| Additional warrant flavours: `sql_udf`, `stream`, `container`, `sheet` | FR-WARRANT-002 |
-
-**Exit:** GenAI use cases are governed on the parallel track; discovery finds unregistered models the
-inventory campaign missed; the documentation assistant demonstrably reduces authoring time without
-introducing ungrounded claims.
-
-### Phase 6 — Scale-out and estate migration (6 months)
-
-| Deliverable | Detail |
-|---|---|
-| Migrate the full estate | 1,000+ models, all domains, all entities |
-| Decommission legacy | Retire the incumbent MRM tool and the inventory spreadsheets |
-| Remaining connectors | SageMaker, Vertex, SAS, ServiceNow, Collibra, GRC, ML observability |
-| Multi-entity and residency | FR-PLT-006 |
-| Regulatory return extracts | FR-RPT-007 |
-| Performance hardening | Meet every NFR at full estate size |
-| Fibre library expansion | All families in [02](02-model-taxonomy.md) |
-| Bank-specific extensions | Local regulators, house test methods, in-house runtimes |
+Row-level security, IaC, multi-region topology, and the three spikes that were
+never run (a point-in-time join at a billion rows; warrant resolution p99 under
+load; sandbox escape testing). The first two are configuration MAYA exposes and
+does not perform; the spikes are measurements, and their absence is why every
+NFR figure in [03 §7](03-requirements.md) is a target rather than a result.
 
 ---
 
-## 3. Team
+## 3. The order, and the argument for it
 
-| Phase | Backend | Frontend | Data/Spark | Quant/MRM SME | Platform/SRE | Security | Product/BA |
-|---|---|---|---|---|---|---|---|
-| 0 | 3 | 1 | 1 | 1 | 1 | 0.5 | 1 |
-| 1 | 5 | 2 | 1 | 2 | 1 | 0.5 | 2 |
-| 2 | 6 | 2 | 2 | 2 | 2 | 1 | 2 |
-| 3 | 6 | 3 | 2 | 3 | 2 | 0.5 | 2 |
-| 4 | 5 | 2 | 3 | 2 | 2 | 0.5 | 2 |
-| 5 | 6 | 2 | 2 | 2 | 2 | 1 | 2 |
-| 6 | 4 | 2 | 2 | 3 | 2 | 0.5 | 3 |
+**First, the two that change what can be claimed.**
 
-The **quant/MRM SME** line is not optional. A platform built without validators in the room produces a
-system validators route around.
+**Asymmetric signatures** before anything else. Everything downstream of the
+warrant — every engine integration, every conversation with a team that runs
+models MAYA does not — is weaker while verification requires the minting key.
+The primitive already exists in the repository for OIDC; this is mostly a key
+management decision, and it is the kind of decision that gets harder after the
+first external engine is integrated rather than before.
+
+**Chain anchoring** second, and it is second only because it depends on
+infrastructure somebody has to provide. Tamper evidence resting on
+self-consistency is the claim most likely to be challenged by an examiner who
+understands what a hash chain does and does not prove.
+
+**Then the law gap, because it is cheap and it is the platform's own standard.**
+`L-15` needs the plugin loader; `L-14` needs composite warrants; `L-17` needs the
+online store — so three of the six are blocked on items below rather than on
+effort. `L-6`, `L-11` and `L-13` are honest refusals: building a document `put`
+to satisfy the lens laws would be building the wrong thing, and the table says
+so rather than leaving a gap that looks like neglect.
+
+**Then reach, in the order a bank actually feels the absence.**
+
+1. **The online store**, because it unblocks `L-17` and skew detection together,
+   and because the second question anybody asks after "is it governed" is "does
+   what runs match what was approved".
+2. **Connectors**, because an inventory somebody has to type is an inventory
+   that stays incomplete — and completeness is the precondition for everything
+   else. This is the *earn the inventory* principle below, and it is the one
+   most often skipped.
+3. **The examiner portal and PDF**, together: they are the same user, and half
+   the artefact already exists.
+4. **Composite warrants and the interaction premium**, which turn a theorem into
+   a number.
+5. **Discovery**, last of the reach items and deliberately so — it should run
+   against a register that is already good, or it produces a queue nobody
+   triages.
+
+**Deployment work runs alongside all of it** and is not sequenced here, because
+it belongs to whoever operates the platform rather than to whoever builds it.
 
 ---
 
-## 4. Risks
+## 4. Three principles that shaped the order
 
-| Risk | L | I | Mitigation |
-|---|---|---|---|
-| **Developers route around MAYA** | H | H | SDK-first; the compliant path must be faster; embed in notebooks and CI; measure and publish developer NPS |
-| **Inventory never reaches completeness** | M | H | Automated discovery from Phase 5, but *manual* connector-driven reconciliation from Phase 1; make unregistered models fail their CI gate |
-| **Regulatory change invalidates the model** | M | M | Institutions (§8 of [00](00-mathematical-foundations.md)) make this a plugin change; SR 26-2 arriving mid-design is precisely the scenario this guards against |
-| **Over-engineering the theory** | M | M | The rent test (§0 of [00](00-mathematical-foundations.md)); every abstraction ships with a law and a test or it is cut |
-| **Delta/Spark expertise scarce** | M | M | Keep Spark to the data plane; `delta-rs` for small operations; invest in two deep specialists |
-| **Warrant plane becomes a bank-wide SPOF** | L | **VH** | Independent scaling, regional failover, grace window, escrowed static descriptors, quarterly failure drills |
-| **Scope creep into enterprise GRC** | H | M | Explicit boundary: MAYA owns model risk; issues sync to the GRC platform, they do not live in two places |
-| **jQuery/Bootstrap constraint limits UX** | M | L | Server-rendered fragments; the constraint mainly costs us rich client interactivity, which this product needs less than it needs correctness |
-| **Vendor models resist governance** | M | M | Contractual attestation requirements at renewal; own-outcomes analysis works without vendor cooperation |
-| **GenAI moves faster than the platform** | H | M | GenAI is a fibre and a track, not a rebuild; expect quarterly evolution of that fibre |
-| **Machine assistance ships ahead of its oracle** | H | H | No capability ships before the check that verifies it — see [12](12-implementation-plan.md). The pressure to ship an impressive ungated demo will be constant; the gate is that a capability without an oracle or a grounding check does not deploy |
-| **Assistants drift toward deciding** | M | **VH** | Architectural, not procedural: no AI principal holds a credential permitting a governance state transition ([13 §5](13-ai-in-the-platform.md)). Policy erodes; missing credentials do not |
+These were written before the build and have held, which is the only reason they
+are still here.
+
+**Earn the inventory before automating it.** Nothing else works if the inventory
+is incomplete, so the first job is *getting every model in* — including the
+awkward ones: vendor, EUC, quant. The baseline importer exists for exactly this,
+and it deliberately admits models as `baselined` rather than `draft`, because the
+register must never imply that historical evidence was asserted when it was not.
+
+**Ship the hard architecture first and the pretty features later.** The evidence
+graph, the fibration and the warrant protocol are load-bearing; retrofitting
+immutability or extensibility is not possible, and adding a dashboard is trivial.
+This is why the board pack arrived after the register rather than before it, and
+why it is *derived* rather than entered.
+
+**Make the compliant path the fast path from day one.** If the SDK lands after
+the interface, developers will have built workarounds first and the next two
+years go on undoing them. The SDK exists, is dependency-free, and decides
+nothing — which is the other half of the same principle: a client that made
+governance decisions locally would be a second implementation able to disagree
+with the first.
 
 ---
 
-## 5. Build/buy decision record
+## 5. Risks that are still live
+
+Dropped the ones that have been resolved or overtaken. What remains:
+
+| Risk | Why it is still live | The mitigation that is actually in place |
+|---|---|---|
+| **Developers route around MAYA** | The permanent risk of any control plane | The SDK, and the refusals carrying remediation. Neither is sufficient; measuring it is not built |
+| **The inventory never reaches completeness** | Discovery is not built, so the register holds what people registered | Baseline import with **compliance debt kept apart from breach** — an imported model is visibly incomplete rather than quietly counted as governed |
+| **The warrant plane becomes a bank-wide SPOF** | It is on the authorisation path, by design | Governance is *not* on the serving path: if MAYA is down, authorised scoring continues and only new issuance stops. The grace window is the second half of that |
+| **Machine assistance ships ahead of its oracle** | The pressure to ship an impressive ungated demo is constant | Structural, not procedural: Tier C is **unrepresentable** in the schema. A capability without an oracle or a grounding check cannot be registered |
+| **Assistants drift toward deciding** | Policy erodes; this one has to be architectural | No AI principal holds a credential permitting a governance transition. **Held by construction and not by any check** — the test that would enforce it is named in [13](13-ai-in-the-platform.md) and not written |
+| **Scope creep into enterprise GRC** | The boundary is easy to state and easy to erode | Explicit: MAYA owns model risk; issues sync to the GRC platform rather than living in two places |
+| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Fifteen of twenty-one run, and the six that do not are named |
+
+---
+
+## 6. Build or buy, revisited
+
+The decision was made before the build. It is worth restating now that there is
+something to compare against.
 
 | Option | Assessment |
 |---|---|
-| **Buy a GRC/MRM platform** (OpenPages, SAS MRM, ValidMind, ModelOp) | Gets workflow and documentation quickly. Does not deliver artifact binding, feature management, warrants, or coverage of the quant and EUC estate. Would require a second and third system alongside. |
-| **Buy an MLOps platform** (Databricks, Domino, DataRobot) | Gets artifacts, lineage and monitoring for the ML subset. Does not deliver MRM domain objects, multi-regime scoping, overlays, findings, or 60–80% of the estate. |
-| **Buy both and integrate** | The status quo at most large banks. Produces two inventories that disagree, and an integration layer nobody owns. The disagreement is itself an audit finding. |
-| **Build MAYA** | Higher initial cost. Delivers the six capabilities absent from the market ([01 §6](01-industry-research.md#6-the-gap--why-we-build)), and the extension architecture means the bank is not exposed to a vendor's roadmap for the next regulator or the next model paradigm. |
+| **Buy a GRC/MRM platform** — OpenPages, SAS MRM, ValidMind, ModelOp | Workflow and documentation quickly. No artifact binding, no feature management, no warrants, and no coverage of the quant or EUC estate. Would need a second and third system alongside it |
+| **Buy an MLOps platform** — Databricks, Domino, DataRobot | Artifacts, lineage and monitoring for the ML subset. No MRM domain objects, no multi-regime scoping, no overlays, no findings — and the ML subset is a minority of the estate |
+| **Buy both and integrate** | The status quo at most large banks. Produces two inventories that disagree, and an integration layer nobody owns. The disagreement is itself an audit finding |
+| **Build** | Higher initial cost. Delivers what [01 §6](01-industry-research.md) says the market does not, and the extension architecture means the bank is not exposed to a vendor's roadmap for the next regulator or the next model paradigm |
 
-**Recommendation: build**, while integrating rather than replacing — MLflow/Unity Catalog stays as a
-training substrate, the enterprise GRC platform stays as the enterprise issue register, and ML
-observability tools stay as optional metric producers. MAYA is the system of record that binds them.
+**Still build, and still integrate rather than replace.** MLflow and Unity
+Catalog stay as a training substrate; the enterprise GRC platform stays as the
+enterprise issue register; ML observability tools stay as optional metric
+producers. MAYA is the system of record that binds them.
+
+What has changed since the decision was made is that one of its premises can now
+be checked rather than argued: **no feature store has an algebra, the semantic
+layers have an algebra and no time, and MAYA has both** — the schema lattice, the
+point-in-time saturation law and typed composition are each asserted by a test
+rather than by this sentence.
+
+---
+
+## 7. What MAYA deliberately will not own
+
+A roadmap that does not say where it stops will be asked to go there.
+
+| | Why not |
+|---|---|
+| **Running models** | Governance on the serving path makes it the bank's single point of failure. MAYA authorises; an engine acts |
+| **Training models** | The estimator fits `ols` and `garch11` so the register can demonstrate the whole path; anything else is delivered back under a warrant |
+| **Enterprise issue management** | Findings that block a model live here; the enterprise register is where they are reported. Two homes for one issue is the failure this avoids |
+| **Feature engineering** | The expression language is small on purpose. Anything richer is `external`, and says so |
+| **Being a model store of last resort** | The artifact store has an 8 GiB ceiling. Somebody should have to think before putting a foundation-model checkpoint in a governance platform |
 
 ---
 

@@ -111,7 +111,7 @@ class TestFeaturesetsAndParameters:
                                            "bedrooms": "bedrooms"}})
         plan = registered.get("/api/v1/featuresets/nj_home_core/versions/1").json()
         assert plan["namespaces"] == ["features/property_id/nj_characteristics/v1"]
-        assert "ingest_ts <= as_of" in plan["pit_rule"]
+        assert plan["pit_rule"].endswith("ingest_ts <= min(label_ts, as_of)")
 
     def test_a_validator_may_not_publish_a_featureset(self, registered, people):
         self._featureset(registered, people["d.raman"])
@@ -482,7 +482,12 @@ class TestTheFitWarrantChecksTheSchema:
         model, and the shared fixture registers one — correctly."""
         # The runtime is what makes a version locatable; without one the
         # builder emits descriptor_only and L-W6 refuses to fit it, correctly.
-        kernel = {**KERNEL, "runtime": "python.callable",
+        # `seed` is here because L-W5 requires it: `python.callable` runs code
+        # MAYA cannot read, so a version claiming determinism must pin what
+        # makes it deterministic. Without it the fit warrant is refused
+        # `grammar_violation`, and the refusal is right — this version was
+        # asserting reproducibility with nothing behind it.
+        kernel = {**KERNEL, "runtime": "python.callable", "seed": 20260101,
                   "entry": {"module": "sb.estimators", "attr": "ols_fit"}}
         client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
                     json={"semver": "3.3.0", "kernel": kernel,
@@ -555,7 +560,7 @@ class TestTheFitWarrantChecksTheSchema:
         self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
         binding = self._fit(registered, owner).json()["data"]["inputs"][0]
         assert binding["namespaces"] == ["features/borrower_id/sb_credit/v1"]
-        assert "ingest_ts <= as_of" in binding["pit_rule"]
+        assert binding["pit_rule"].endswith("ingest_ts <= min(label_ts, as_of)")
 
 class TestFittingOverTheApi:
     """The path a person actually walks: features, a featureset, a training set,

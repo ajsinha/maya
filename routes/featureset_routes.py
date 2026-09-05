@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
@@ -62,6 +62,11 @@ class DerivedIn(BaseModel):
     evaluator: str = "internal"
     on_error: str = "null"
     note: str = ""
+    # Only for `external`, and only when the expression is one MAYA cannot
+    # parse: the features it reads, declared, so lineage and the leakage check
+    # still have something to work with. Refused on an internal definition,
+    # where the expression is the single source of truth.
+    inputs: List[str] = Field(default_factory=list)
 
 
 class FeaturesetPreviewIn(BaseModel):
@@ -174,8 +179,9 @@ class FeaturesetRoutes(Routes):
             who = self.authorise(request, "feature:define")
             return self.guard(lambda: features.define_derived(
                 body.name, body.expression, body.dtype, body.description,
-                self.actor(who), body.evaluator, body.on_error, body.note,
-                self.actor(who)))
+                owner=self.actor(who), evaluator=body.evaluator,
+                on_error=body.on_error, note=body.note, inputs=body.inputs,
+                actor=self.actor(who)))
 
         @self.app.get(f"{api}/derived-features/{{name}}/lineage", tags=["features"])
         def lineage(request: Request, name: str):

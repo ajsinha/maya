@@ -1,8 +1,10 @@
 # ============================================================ CH 11
-divider("11", "Composing a Featureset",
+divider("11", "What a Featureset Is",
         "A schema, versions that fill it, and one fold that does both.",
-        ["Schema and constituents", "The composition monoid",
-         "Rolling forward", "Retrieval policy"])
+        ["Schema and constituents",
+         "The composition monoid",
+         "Rolling forward",
+         "Retrieval policy"])
 
 # ----------------------------------------------------- schema vs constituents
 sl, y = content("A featureset declares a schema; a version fills it",

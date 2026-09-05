@@ -1,8 +1,10 @@
-# ============================================================ CH 15
-divider("15", "Every Kind of Model",
+# ============================================================ CH 24
+divider("24", "Every Kind of Model",
         "Seven shapes, one definition — and how each is saved, managed and served.",
-        ["The matrix, on one page", "Regression, GARCH, closed-form",
-         "Calibration and simulation", "Neural networks and LLMs"])
+        ["The matrix, on one page",
+         "Regression, GARCH, closed-form",
+         "Calibration and simulation",
+         "Neural networks and LLMs"])
 
 # ---------------------------------------------------------------------------
 # The chapter's own helper. Every model slide answers the same three questions
@@ -62,15 +64,15 @@ data = [["Model", "P is", "How P is filled", "parameter_kind",
         ["Black-Scholes", "empty", "it isn't - nothing to fill", "none",
          "none", "T0"],
         ["Linear regression", "coefficients", "a statistical estimator",
-         "estimated_coefficients", "estimate", "T3"],
+         "estimated_coefficients", "estimate", "T2"],
         ["GARCH / ARIMA", "omega, alpha, beta", "maximum likelihood",
-         "estimated_coefficients", "estimate", "T3"],
+         "estimated_coefficients", "estimate", "T2"],
         ["Hull-White", "mean reversion, vol", "a solver, against market quotes",
          "calibration_set", "calibrate", "T1"],
         ["Monte Carlo XVA", "parameters + seed + paths",
          "calibration plus configuration", "calibration_set", "calibrate", "T1"],
         ["Neural network", "weights - millions", "a training run",
-         "learned_weights", "train", "T4"],
+         "learned_weights", "train", "T3"],
         ["LLM application", "base model + prompt + corpus",
          "configuration and retrieval", "llm_configuration", "configure", "T5"],
         ["Vendor score", "exists, unreachable", "somebody else's problem",
@@ -118,7 +120,7 @@ model_slide(
     [["", "What it is", "Where it lands"],
      ["P", "an intercept and two slopes", "the parameter register, as values"],
      ["Filled by", "ordinary least squares", "MAYA's own estimator runtime"],
-     ["Kind / procedure", "estimated_coefficients / estimate", "class T3, derived"],
+     ["Kind / procedure", "estimated_coefficients / estimate", "class T2, derived"],
      ["Runtime", "estimator, family ols", "entry names target and regressors"]],
     ("Values, digested",
      "The coefficients are rows. The digest is re-derived from the values at "
@@ -142,7 +144,7 @@ model_slide(
     [["", "What it is", "Where it lands"],
      ["P", "omega, alpha, beta", "the parameter register, as values"],
      ["Filled by", "maximum likelihood, iteratively", "estimator, family garch11"],
-     ["Kind / procedure", "estimated_coefficients / estimate", "class T3, derived"],
+     ["Kind / procedure", "estimated_coefficients / estimate", "class T2, derived"],
      ["The catch", "it can fail while looking like it succeeded",
       "an unconverged fit is refused, not flagged"]],
     ("Values, plus convergence",
@@ -219,7 +221,8 @@ model_slide(
      ["Filled by", "calibration plus deliberate configuration",
       "the bank's engine, under a fit warrant"],
      ["Kind / procedure", "calibration_set / calibrate", "class T1, derived"],
-     ["Claim checked", "deterministic = true", "L-W6: refused if no seed is bound"]],
+     ["Claim checked", "deterministic = true",
+      "L-W5: refused if no seed is bound"]],
     ("Configuration is in P",
      "Paths, seed, scheme and antithetic each change the answer. If they are "
      "not in P they are not in the digest, the warrant or the replay."),
@@ -244,7 +247,7 @@ model_slide(
       "data/artifacts/9f/2c/9f2c... - the file's name IS its sha256"],
      ["Filled by", "a training run, outside MAYA",
       "exported to onnx or safetensors, then uploaded"],
-     ["Kind / procedure", "learned_weights / train", "class T4, derived"],
+     ["Kind / procedure", "learned_weights / train", "class T3, derived"],
      ["Runtime", "onnx", "digest verified before the graph is loaded"]],
     ("Content-addressed bytes",
      "Same weights twice stores once; an artifact cannot be edited in place, "

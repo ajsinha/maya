@@ -93,6 +93,29 @@ class TrainingSetBuilder:
         is what the model could have known when the decision was made; `as_of`
         is what the platform could have known when the set was built, so a
         restatement arriving after assembly cannot creep into a re-run.
+
+        ## As an operator
+
+        This is the whole point-in-time read, and it is worth naming as one:
+
+            AsOf(R, ℓ, a) = argmax over (event_ts, ingest_ts) of
+                            { r ∈ R : r.event ≤ ℓ ∧ r.ingest ≤ min(ℓ, a) }
+
+        Four properties follow, and each is asserted in `tests/test_laws.py`
+        rather than argued here:
+
+        * **Idempotent.** Reading the result again returns it.
+        * **Commutes with projection.** Reading fewer columns cannot change
+          which row is admissible; the choice is made on the clocks alone.
+        * **Monotone in `a`.** A later `as_of` can only *widen* the admissible
+          set. Nothing that was knowable stops being knowable.
+        * **Saturating at `ℓ`** — and this is the reproducibility guarantee.
+          Because the ingest bound is `min(ℓ, a)`, every `a ≥ ℓ` gives the
+          *same answer*. A training row assembled the day the label matured and
+          the same row re-assembled a year later are identical, however many
+          restatements arrived in between. Without the `min`, a re-run would
+          quietly improve on the original, which is the least useful kind of
+          reproducibility.
         """
         knowable_by = min(label_ts, as_of)
         eligible = [r for r in records
@@ -104,12 +127,23 @@ class TrainingSetBuilder:
     def _recompute(self, row: Dict[str, Any], views: List[Dict[str, Any]],
                    as_of: float) -> Dict[str, Any]:
         """Independent recomputation used by verification layer 2 — a different
-        route to the same answer, so agreement means something."""
+        route to the same answer, so agreement means something.
+
+        A different route, and it has to reach the SAME answer: this bounded the
+        ingest clock by `as_of` alone while `latest_admissible` bounds it by
+        `min(label_ts, as_of)`. The two therefore disagreed whenever the set was
+        assembled after the label matured — which is the ordinary case — and the
+        verifier reported a mismatch on a *correct* assembly.
+
+        A false positive in the control that exists to verify a control is worse
+        than no control: it trains whoever reads it to discount the report.
+        """
         expected: Dict[str, Any] = {}
+        knowable_by = min(row["label_ts"], as_of)
         for spec in views:
             pin = self.views.pinned(spec["view"], spec["version"])
-            frame = self.delta.as_of(pin["namespace"], row["label_ts"], as_of,
-                                     pin["delta_version"])
+            frame = self.delta.as_of(pin["namespace"], row["label_ts"],
+                                     knowable_by, pin["delta_version"])
             match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame
             if not match.empty:
                 expected.update(payload(match.to_dict("records")[0]))

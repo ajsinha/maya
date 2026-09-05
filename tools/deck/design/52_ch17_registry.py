@@ -1,7 +1,12 @@
-# ============================================================ CH 2
-divider("2", "Core Domain and Registry", "The algebra in code, and the registry that indexes it.",
-        ["The model algebra", "Trainability is derived", "Contract algebra",
-         "The fibre registry", "Version creation", "Alias moves"])
+# ============================================================ CH 17
+divider("17", "Core Domain and Registry",
+        "The algebra in code, and the registry that indexes it.",
+        ["The model algebra",
+         "Trainability is derived",
+         "Contract algebra",
+         "The fibre registry",
+         "Version creation",
+         "Alias moves"])
 
 sl, y = content("The model algebra", "Core domain · core/domain/algebra.py")
 h = code(sl, ML, y, CW * 0.56, [
@@ -24,7 +29,7 @@ h = code(sl, ML, y, CW * 0.56, [
  "    parameters: ParameterObject",
  "    input:  ObjectSpec",
  "    output: ObjectSpec",
- "    deterministic: bool              # law L-3",
+ "    deterministic: int               # 0/1 — law L-3; never BOOLEAN",
 ], fs=9.5, title="THE DEFINITION, AS A TYPE")
 x = ML + CW * 0.60
 tf = txt(sl, x, y, CW * 0.40, 3.6)

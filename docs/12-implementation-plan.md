@@ -1,26 +1,50 @@
-# 12 — Implementation Plan
+# 12 — The build: what exists, what it taught, and how it is put together
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-**Follows** [10 — Roadmap](10-roadmap.md) (phases and business sequencing) and
-[11 — Adversarial Design Review](11-adversarial-review.md) (findings this plan discharges).
-**Governed by** [ADR-011](adr/ADR-011-decoupled-frontend.md) — front end and backend are separate,
-concurrently running processes.
-
-> Where [10](10-roadmap.md) answers *what we deliver and when*, this document answers *how it is built*:
-> repository topology, module boundaries, the contract between front end and backend, the test pyramid,
-> CI gates, environments, and a workstream-level breakdown with explicit definitions of done.
-
----
+**Annex to** [04 — Architecture](04-architecture.md) and [10 — What Is Left](10-roadmap.md).
 
 ---
 
 ## 0. Build status
 
-*Last updated after milestone 33. This section is the authoritative record of what
-is built; the phases below are the plan it is being built against.*
+**This section is the authoritative record of what is built.** Every other
+document that needs to say whether something exists links here rather than
+repeating it, because two records of what is built are two records that can
+disagree — the same argument that gives the platform one evidence chain instead
+of a chain and an audit log.
 
-| | Component | State | Evidence |
+What remains, and the order it should be done in, is [10](10-roadmap.md). This
+document does not duplicate that either.
+
+### It runs end to end
+
+Register a model → create an immutable version → assess its risk → approve →
+point an alias (refused unless the contract refines and the schemas satisfy
+variance) → issue a warrant → resolve a signed descriptor → execute through an
+engine that checks the operating boundary before it touches an artifact → revoke
+and watch it fail closed.
+
+Alongside it: define features, materialise them bitemporally into Delta, pin them
+by contract, and assemble a point-in-time-correct training set that is refused
+outright if either temporal bound is missing.
+
+And alongside *that*: open a validation episode against a version (refused if a
+validator built it) → record catalogue tests with declared thresholds → try to
+conclude `approved` (refused if any test failed; refused again if a blocking
+finding is open) → raise a finding and watch both the alias gate and warrant
+resolution fail closed → close it with an independent verifier and evidence, and
+watch service resume. Any recorded result can be replayed and compared on its
+digest, which catches a threshold moved after the fact as readily as a changed
+number.
+
+**Over 2,200 tests**, plus a scale suite excluded by default. **15 of 21** foundational
+laws executable and **14 of 14** warrant-admissibility laws checked before every
+signature.
+
+### The components
+
+| | Component | State | What it is, and what it refuses |
 |---|---|---|---|
 | ✅ | **Configuration** (`core/config/`) | **Complete** | YAML with git-ignored `.local` overlay, `${...}` resolution, typed accessors, source tracking, auto-reload, precedence CLI > env > files |
 | ✅ | **Domain algebra** (`core/domain/`) | **Complete** | `Para(Stoch)` kernels, derived trainability T0–T8, schema variance (L-12), contract algebra with refinement (L-7), probe-relative equivalence |
@@ -40,12 +64,12 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Overlay register** (`core/overlays/`) | **Complete** | Four adjustment kinds, each time-boxed; the proposer may not approve and the owner may not renew; renewal is refused without a measurement for the period. Persistence, materiality relative to the model's own output, and trend are computed — and an overlay renewed past its limit raises a finding, because at that point it is an unversioned model change. Aggregate magnitude answers the question a risk committee asks and rarely gets. Appears in every compiled document |
 | ✅ | **Regime engine** (`core/regimes/`) | **Complete** | Three regimes encoded as institutions — SR 26-2, PRA SS1/23, EU AI Act — each with its own signature, obligations in that vocabulary, and a translation into the core. The satisfaction condition (truth invariant under change of notation) is *checked* against probe states spanning the corners, and a regime whose encoding fails it cannot be activated. Determinations are derivations: every verdict carries the terms it read and the citation it rests on. Regimes that disagree are reported as disagreeing rather than merged. Adding a supervisor is a signature, some sentences and a translation |
 | ✅ | **Authorisation** (`core/authz/`) | **Complete** | Eight roles across three lines of defence, refused incompatible pairs, entity and domain scope that filters listings as well as detail pages, and segregation of duties read from the evidence chain rather than a second who-did-what table. A rule may name the payload field carrying the identity it is about, because an evidence node's subject is not always the thing an act concerns: a finding is raised against the *model*, which is where a reader looks for it, while the act being checked is about one finding. Without that the raiser-may-not-close rule was inert over HTTP — it searched under the finding's own id, found nothing, and permitted everything. HTTP Basic for services against the same principal register; PBKDF2 with a short verification cache that shortens the key derivation and never the decision |
-| ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Six-state record machine: draft → submitted → approved → attested, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
+| ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Seven-state record machine: draft → submitted → approved → attested, plus `baselined` for an imported model and `amending`/`retired`, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
 | ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (18 runtimes) × what is asked of it (10 verbs) × where its data comes from (12 bindings). Fourteen admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean, and the last three quantify over how `P` is inhabited rather than over a category anybody attached: a calibration must state its `as_of` (**L-W11**) or staleness is silent, parameters living inside an artifact need that artifact digested (**L-W12**), and a generative runtime must pin the build rather than the model family (**L-W13**). Each caught a shipped example on the day it was written. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Thirteen worked examples in `examples/warrants/`, spanning QuantLib swaption pricing, swap pricing and Hull–White calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet, a VaR backtest, and a linear regression fitted from a featureset and then scored on the parameters it produced — all validated on every test run |
 | ✅ | **Decks** (`tools/deck/`) | **Complete** | Three, reproducible from source rather than binaries nobody can edit safely, each re-audited for geometry before it ships. The *research* deck argues models as parametric kernels; the *system design* deck is for whoever builds the platform; the *model and feature engineering* deck is for whoever uses it: it opens with the five words and a single-slide process diagram of model, feature and warrant management, and closes with a worked example carrying real numbers — a daily price series and a lagged unemployment rate, aligned into one featureset, read by a linear regression and a GARCH model, then extended until the old model can no longer consume it — the four rows being the catalogue, the selection, the model, and what comes back |
 | ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | Fifteen worked walkthroughs rendered at request time. Eight are the platform: a model end to end with four separated principals, storing artifacts, running several versions, features end to end, training a model end to end, warrants by model family, the whole path from an empty register to a champion serving, and a map of the model shapes. Seven are one per kind of model, each complete from registration to monitoring — a linear regression, a GARCH (with ARMA and ARIMA in the same slot), a closed-form pricer where `P` is empty, a daily Hull–White calibration approved by exception, a Monte Carlo engine where the seed is a parameter, a neural network whose weights live in the artifact store, and an LLM application whose base model moves underneath it. What changes between them is only how `P` is inhabited, which is the argument the definition makes |
 | ✅ | **Machine assistance** (`core/assist/`) | **Complete** | Capabilities registered at Tier A (a named oracle checks the output) or Tier B (every claim cites evidence); Tier C is deliberately not registrable. Five oracles, each backed by machinery that exists for another reason. The grounding gate *removes* unsupported claims rather than flagging them, and keeps them for the reviewer. Nothing is evidence until a person attests it, and never the person who asked. Edit distance and a mandatory review sample detect automation bias |
-| ✅ | **Scheduler** (`core/scheduler/`) | **Complete** | Seven idempotent jobs turning computed conditions into recorded consequences: a lapsed attestation and a stalled monitor each raise a finding, overlays past their window close, baseline debt reconciles, a missed remediation window is recorded as its own finding rather than by rewriting the original, a finding nobody ever accepted is recorded as another, and everybody with outstanding work is told about it. A run is an ordinary authenticated call — cron, a CronJob or a person produce identical results — with an in-process loop offered as a convenience and off by default. One failing job does not stop the others, and the scheduler reports its own health on `/health/ready` |
+| ✅ | **Scheduler** (`core/scheduler/`) | **Complete** | Eight idempotent jobs turning computed conditions into recorded consequences: a lapsed attestation and a stalled monitor each raise a finding, overlays past their window close, baseline debt reconciles, a missed remediation window is recorded as its own finding rather than by rewriting the original, a finding nobody ever accepted is recorded as another, and everybody with outstanding work is told about it. A run is an ordinary authenticated call — cron, a CronJob or a person produce identical results — with an in-process loop offered as a convenience and off by default. One failing job does not stop the others, and the scheduler reports its own health on `/health/ready` |
 | ✅ | **Estate view & worklist** (`core/estate/`) | **Complete** | Outstanding work derived from the register rather than assigned — no task table, so it cannot go stale, disagree with the register, or accumulate orphans. Filtered to what a principal holds the permission and scope to do, and for attestation to their own role's signature. A finding whose owner has never accepted it is derived onto the list too, which makes the reminder cycle the existing notification digest rather than a second delivery path. Estate summary aggregates governance, assurance, adjustments and baseline debt, with debt kept apart from breach |
 | ✅ | **Scale suite** (`tests/test_scale.py`, `tests/test_transfer_scale.py`) | **Complete** | Every other test asserts something is *correct*; these assert it is still correct, and still quick enough to use, at a size where a good implementation and a bad one look different. Written to two rules. **Assert shape, not stopwatch**: a threshold in milliseconds is a promise about somebody else's hardware and a suite that fails on a loaded machine is one people re-run rather than read, so the assertions are mostly about *complexity* — that doubling the estate does not more than double the work, that an operation claimed constant in estate size is, that a read claimed not to materialise a dataset does not. Where a wall-clock budget appears it is generous by an order of magnitude, because its job is to catch a change from linear to quadratic rather than to measure a machine. **Run at a size the default suite will not**, marked `scale` and excluded by default: a slow suite gets disabled, and a disabled suite proves nothing. It found the evidence chain defect below on its first run |
 | ✅ | **Versioned gates** (`core/policy/`) | **Complete** | A gate that cannot be changed without a release is a gate people work around; a gate that *can* be changed without one is a gate that can be **weakened** without one, which is worse. Everything here makes the first possible without making the second silent. A rule is a **predicate over a closed vocabulary of facts** — comparison, membership, boolean connectives, two quantifiers, and no loops, assignment or function definitions, which is what makes a rule something a reviewer can reason about rather than something they have to run. A fact the gate does not publish is refused *when the rule is written*, because a rule that failed at the moment of a governance decision would have failed at the worst possible time. **A policy ships with its own cases and cannot be published until they pass**, and at least one must be a case it refuses: a policy nobody has shown to refuse anything is a policy nobody has shown to be a gate. **Weakening is allowed and never quiet** — the register replays the outgoing version's cases against the incoming rule and reports every verdict that flipped, so a change that loosens a gate is something somebody decided rather than something somebody discovered. Authoring and publishing are separate duties. An instance that publishes nothing runs exactly what it ran before: the built-in rules are the default for every gate, expressed in the same language. And the honest boundary, stated rather than implied — **policy tightens; the code's invariants are the floor**, because replacing an invariant with a line of configuration means a typo can weaken the platform and the failure looks like a successful deployment |
@@ -58,13 +82,13 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Version approval as a quorum** (`core/lifecycle/approval.py`) | **Complete** | The model *record* was attested by several people while the version — the thing that actually runs — was approved by one. The depth of control now follows the tier, which is the same adjunction (**L-5**) that decides every other control set: a Tier 1 or 2 version needs the second line *and* an independent validator; Tier 3 and 4 need one authorised person, and saying so beats pretending a scheduling heuristic deserves the ceremony of a capital model. One decline returns the version to its author. The same person may not sign twice under two hats, because a quorum is a number of people rather than a number of roles. **A version whose model has no tier cannot be approved at all** — approving first and assessing afterwards would be a way of choosing your own control depth, and it is the obvious way to game a rule like this one. Signing is its own permission: a validator signs a quorum and may never approve alone |
 | ✅ | **Serialised model artifacts** (`core/artifacts/`, `routes/artifact_routes.py`) | **Complete** | A version could always NAME an artifact and the engine verified its digest before loading; what it could not do was HOLD one, so the single thing the chain of custody rests on arrived by a route the platform had no view of and `artifact_uri` was whatever string somebody typed. The store is **content-addressed** — a file's name is its own SHA-256, under `data/artifacts/ab/cd/<digest>` with two levels of fan-out because one directory holding a hundred thousand files is slow on every filesystem that has ever existed. Three controls fall out rather than being performed: the same weights stored twice are stored once, an artifact cannot be edited in place because edited bytes are a different address, and *"these are the bytes the warrant names"* is true by construction. A declared digest is **checked**, so a truncated upload is refused instead of stored under the address of whatever arrived. Eight formats, closed on purpose and with no `pickle`: an artifact's format decides how it is loaded, and "we will work it out at load time" is how a pickle gets deserialised in a control plane — `torchscript` and `tar` execute code when they load, are accepted, and are **named as such** on the warrant so an engine is not inferring it from a file extension. A version naming a digest the store holds takes its uri, size and format **from the store**, which is the authority on its own contents; a digest it cannot resolve is *recorded* rather than refused, because plenty of checkpoints live elsewhere and are named here so the engine can verify them on load, and the warrant carries the difference as `held_by_maya`. Ceiling 8 GiB, deliberately: a governance platform is not a model store of last resort |
 | ✅ | **Warrant profiles** (`core/execution/profiles.py`) | **Complete** | The recurring ask is that warrants be templated per kind of model. Half of it is right, and this is the half: the **request**, not the document. Were the document to fork by type, every engine, replay path and audit query would branch on model type before it could read anything, and the branch would grow a case per family without bound — so what is templated is what a caller types, and the grammar validates the result exactly as if they had typed it. Three constraints keep a profile from becoming a taxonomy. It **selects by a predicate over facts the platform derives** — trainability class, parameter kind, runtime, artifact format, tier, domain, environment — never by a category attached to a model, because a declared taxonomy sitting beside a derived one is two answers to one question with no rule for which wins; selecting by the derived facts means a profile *cannot* disagree with the truth, since the truth is what chose it. It **cannot widen authority**: principal, declared use, environment, TTL, grace and binding kind are refused *at creation*, because a check performed when the profile is written is one nobody can forget to perform at use, and the refusal points at the `warrant:resolve` gate that can hold an obligation. And it **fills holes rather than overriding a caller** — a value the caller supplied is theirs, including one identical to the default, since *"the caller asked for this"* and *"nobody said, so we chose"* are different facts and only one is the caller's responsibility. Several matching profiles fold by the **L-19** monoid, left to right with the rightmost winning per key and `{}` as the identity, ordered by specificity so the most specific speaks last; the result names which profile version supplied each value, because a default whose origin cannot be named is a value nobody can argue with later |
-| ✅ | **Browser-surface security** (`core/authz/csrf.py`, `routes/base.py::local_path`) | **Complete** | Two defects, both live, both from the same property: a session cookie is **ambient** — the browser sends it whether or not the page that triggered the request came from us. **The open redirect** was the sharper one. `POST /login` honoured whatever `next` carried, so `/login?next=https://evil.example/phish` sent the browser there immediately after somebody typed real credentials into the real form on the real domain; the redirect is the part that makes such a link look legitimate, and it is the part that was ours to remove. The same door stood open on the SSO path, where the target survived a round trip through the identity provider before being followed, so it is now bounded before it is *remembered*. A scheme, a host, a protocol-relative `//host`, the backslash spellings browsers normalise and the control characters they strip are each **replaced by the fallback rather than sanitised** — a redirect target somebody had to repair is one nobody understands. **CSRF** had exactly one defence, `SameSite=Strict`, which is real and is *somebody else's*: enforced by the browser, removable by a client that does not implement it or an intermediary that strips the attribute, and its removal invisible from here. The token added beside it applies to one case and states why — a state-changing method whose authority came from the cookie. Requiring one from a Basic-authenticated engine would protect nothing, since the browser never sends that header unprompted, while breaking every service client, which is how a control ends up switched off in configuration. Enforced in **middleware**, because ninety mutating endpoints is ninety chances to forget, with exemptions as **exact paths rather than prefixes** so the exempt set cannot grow as routes are added beneath it. Per session rather than per form: a single-use token breaks the back button, two tabs, and every page here that posts more than once, and a control people route around is worse than one they never had because it also reports success. Ordering is load-bearing — the guard registers *before* the session middleware, which places it *inside* it, since Starlette wraps later-added middleware outermost and a guard running before the session is decoded has nothing to compare against |
+| ✅ | **Browser-surface security** (`core/authz/csrf.py`, `routes/base.py::local_path`) | **Complete** | Two defects, both live, both from the same property: a session cookie is **ambient** — the browser sends it whether or not the page that triggered the request came from us. **The open redirect** was the sharper one. `POST /login` honoured whatever `next` carried, so `/login?next=https://evil.example/phish` sent the browser there immediately after somebody typed real credentials into the real form on the real domain; the redirect is the part that makes such a link look legitimate, and it is the part that was ours to remove. The same door stood open on the SSO path, where the target survived a round trip through the identity provider before being followed, so it is now bounded before it is *remembered*. A scheme, a host, a protocol-relative `//host`, the backslash spellings browsers normalise and the control characters they strip are each **replaced by the fallback rather than sanitised** — a redirect target somebody had to repair is one nobody understands. **CSRF** had exactly one defence, `SameSite=Strict`, which is real and is *somebody else's*: enforced by the browser, removable by a client that does not implement it or an intermediary that strips the attribute, and its removal invisible from here. The token added beside it applies to one case and states why — a state-changing method whose authority came from the cookie. Requiring one from a Basic-authenticated engine would protect nothing, since the browser never sends that header unprompted, while breaking every service client, which is how a control ends up switched off in configuration. Enforced in **middleware**, because a hundred and four mutating endpoints is a hundred and four chances to forget, with exemptions as **exact paths rather than prefixes** so the exempt set cannot grow as routes are added beneath it. Per session rather than per form: a single-use token breaks the back button, two tabs, and every page here that posts more than once, and a control people route around is worse than one they never had because it also reports success. Ordering is load-bearing — the guard registers *before* the session middleware, which places it *inside* it, since Starlette wraps later-added middleware outermost and a guard running before the session is decoded has nothing to compare against |
 | ✅ | **Request context in the log** (`core/log.py`) | **Complete** | Every line already went through one logger with one format; what no line said was **which request produced it**, so a refusal a user reported was a refusal somebody reproduced before they could read about it, and two people using the platform at once produced one interleaved stream with nothing to separate them. There is a second reason particular to this system: the evidence chain records what was *decided* and the log records what happened around it, so a `warrant_resolved` node and the six lines preceding it join on the request id or they do not join at all. Both identifiers ride on **one mutable dict per request** rather than a context variable per field, and that shape is a constraint rather than a preference — a sync route runs in a threadpool with a *copy* of the context, so a `ContextVar.set` inside it is invisible to the middleware that resumes afterwards, and the access line would have said every request was anonymous however carefully the route identified its caller. A copied context still points at the same dict, so a write crosses that boundary while a rebind does not; both halves are asserted directly. An inbound `X-Request-ID` is honoured when it is **safe to log** — that is what lets one trace span a gateway, a queue and this process — and replaced when it is not, because the value lands in a log file and a newline in it writes a line of somebody else's choosing. The context filter is installed on the **handler** rather than on a logger, since a filter on a logger does not run for records propagating up from its children and every logger here is one. One access line per request carries method, path, status and duration at a level that follows the outcome: a refusal is a governance decision worth seeing at `WARNING`, a fault is not routine. JSON output is offered rather than imposed — a person reading a terminal is served worse by it, and an instance nobody ships logs from should not pay for a format only a machine reads |
 | ✅ | **Python SDK** (`sdk/python/maya_sdk`) | **Complete** | The client, and the one rule it keeps: **it decides nothing**. No local rule about who may act, no copy of the tiering bands, no view of whether a version is approved, no enumeration of the verbs a trainability class admits — every one of those would be a second implementation of a governance rule, and a second implementation disagrees with the first eventually, in the direction of permitting more, because that is the direction in which nobody files a bug. A source walker in the suite enforces it by refusing a trainability class that appears in code rather than in prose, which is the rule most likely to be broken by somebody being helpful. What it *is* for is the other half of design rule E5: **the compliant path has to be the fast path**, because if registering a model properly takes forty lines of HTTP plumbing and getting it wrong takes four, the register fills with models nobody registered properly while every control reports success. **Standard library only** — an SDK with a dependency tree moves the air-gap problem into the client's build pipeline rather than solving it, and that is asserted by walking the imports. **Refusals are raised, never returned**: a caller who forgets to check a returned verdict has continued past a governance decision while their code reads as though it succeeded, and the platform's `code`/`detail`/`remediation` all survive the crossing along with the request id, so a traceback quotes the identifier the server logged. `Refused` and `Unreachable` are deliberately unrelated types — *"MAYA said no"* and *"MAYA did not answer"* call for opposite responses. `POST` is never retried, because a create that timed out may well have succeeded. Datasets stream to a file rather than into a list, because feature values are not small. The artifact digest is computed **client-side** and sent, so the platform checks what arrived against what was meant rather than hashing whatever turned up. Tested against the real application in-process through a transport seam: a mock of the thing under test proves only that the mock agrees with itself |
 | ⬜ | **Java SDK** (`sdk/java`) | **Not built** | The contract it must honour is written down rather than sketched, because a stub that compiles and does the wrong thing is worse than an empty folder — the folder is honest about where the work is |
-| ✅ | **Export packs** (`core/export/`) | **Complete** | A compiled document answers a question; a pack answers the *person* — a supervisor, an internal auditor, a diligence team, none of whom will be given a login. Every property follows from that: **self-contained** because they cannot query, **digested member by member** because they cannot take the platform's word for it, and carrying **where the chain stood** because they will read it months later and *"has anything changed"* has to be a question with an answer rather than an assurance. The gathering is not reimplemented — it uses the document compiler's own **context builder**, because two gatherers would be two answers to *"what is true about this model"* and the second would drift in the places nobody looks. Three decisions are worth recording. **The content digest excludes the manifest**, which carries the moment the pack was cut: including it would make every pack differ from every other and destroy the one comparison a reader wants. The same reasoning puts the chain head in the manifest rather than in the digested content, and records the *act* of cutting a pack against the **pack** — whose identity is its content digest — rather than against the model, since against the model it would land inside the next pack's own evidence and every pack would differ from the last for no reason but that somebody had taken one. **Documents are rendered, not compiled**: compiling is an act that authors a document and records it, and cutting a pack monthly should not silently author four documents a month — which forced a `render`/`compile` split in the compiler that is worth having on its own. And **a gap is written down**, in `gaps.md`, with its reason: a pack that silently omits what it could not reach reads as complete, and a reader cannot tell a thin model from a thin export. Personal data is not re-materialised — a flagged node carries its erasable pointer into the pack exactly as it does in the platform, because resolving it would put personal data where an erasure request cannot reach it. Writing the digest test found a real documentation defect on the way: the provenance lens quoted the **platform-wide** chain length in a per-model document, so every model's document changed whenever anything happened anywhere |
+| ✅ | **Export packs** (`core/export/`) | **Complete** | A compiled document answers a question; a pack answers the *person* — a supervisor, an internal auditor, a diligence team, none of whom will be given a login. Every property follows from that: **self-contained** because they cannot query, **digested member by member** because they cannot take the platform's word for it, and carrying **where the chain stood** because they will read it months later and *"has anything changed"* has to be a question with an answer rather than an assurance. The gathering is not reimplemented — it uses the document compiler's own **context builder**, because two gatherers would be two answers to *"what is true about this model"* and the second would drift in the places nobody looks. Three decisions are worth recording. **The content digest excludes the manifest**, which carries the moment the pack was cut: including it would make every pack differ from every other and destroy the one comparison a reader wants. The same reasoning puts the chain head in the manifest rather than in the digested content, and records the *act* of cutting a pack against the **pack** — whose identity is its content digest — rather than against the model, since against the model it would land inside the next pack's own evidence and every pack would differ from the last for no reason but that somebody had taken one. **Documents are rendered, not compiled**: compiling is an act that authors a document and records it, and cutting a pack monthly should not silently author four documents a month — which forced a `render`/`compile` split in the compiler that is worth having on its own. And **a gap is written down**, in `gaps.md`, with its reason: a pack that silently omits what it could not reach reads as complete, and a reader cannot tell a thin model from a thin export. Personal data is not re-materialised — a flagged node carries an empty payload into the pack exactly as it does in the platform. (This said "carries its erasable pointer"; there is no pointer. The payload is discarded at append, so there is nothing to resolve and nothing to leak.) Writing the digest test found a real documentation defect on the way: the provenance lens quoted the **platform-wide** chain length in a per-model document, so every model's document changed whenever anything happened anywhere |
 | ✅ | **Risk appetite and the board pack** (`core/reporting/`) | **Complete** | An appetite statement in most banks is a sentence in a document, which is not a control: nobody can compute against a sentence, so the quarterly number is prepared by hand and whether it is inside the limit is somebody's judgement. Here a limit is a **declared threshold over a metric the platform derives**, so utilisation is arithmetic and a breach is a fact. Four refusals make it a governance object rather than a dashboard. A metric the platform cannot compute is refused **when the limit is written**, not when the report runs — a limit that failed while a committee was reading it would fail at the worst possible time, and its author is long gone by then. A limit with **no rationale** is refused, because a number nobody can explain is a number nobody will change, so it is either ignored or obeyed without thought and both are worse than not having it. An **amber threshold on the far side of the limit** is refused: a warning that can only fire after the thing it warns about has happened is not a warning. And **direction belongs to the metric**, not to whoever sets the limit — whether more is worse is a property of *open blocking findings*, and letting an author declare it would let one declare it wrongly, producing a limit that reports green while the estate deteriorates. Versions accumulate and nothing is edited, for the same reason the policy register keeps its history: a limit that can be changed without a record can be **relaxed** without one, so the evidence node names a relaxation rather than leaving a reader to compare two numbers in two rows. The pack answers the three questions a committee actually asks — inside the limits, what is outside, what moved — which is why packs are **persisted**: movement needs something to move from, and a minute referring to "the March pack" needs the March pack rather than a document with the same name recomputed today. Two things it deliberately does. An **unmeasured indicator is never reported as clean**: a metric no wired service can answer comes back null with a reason and is named in the headline, because zero is a measurement and an absent service is not. And **slack is reported** — an appetite under 25% utilised pack after pack is a limit constraining nothing, and a control that has never fired is indistinguishable from one that cannot. There is **no composite score**, and the pack says so in itself rather than leaving an absence: aggregating requires the parts to compose, two models fed by the same curve are not two independent risks, and any single figure either double-counts the shared dependency or ignores it — which is the impossibility result from [00 §5](00-mathematical-foundations.md) arriving as a product decision rather than as a footnote |
-| ✅ | **The foundational laws, made executable** (`tests/test_laws.py`, `core/evidence/semirings.py`, `core/regimes/sentences.py`) | **13 of 19** | The strongest claim this design makes is that the laws are the acceptance criteria, and it was **37% true** — which is a claim that reads as 100% true to everybody who does not check. Five were closed: **L-1** (the reachable closure of the lifecycle graph equals its declared state set), **L-2** (a version digest carried through assessment, approval and an alias move), **L-3** (a determinism claim checked by double execution rather than stored and believed), **L-9** (ℕ[X] implemented, so the universal property is checked over 200 random derivation DAGs against five semirings), and **L-16** (deontic consistency, enforced at regime activation). Writing them found two things a table could not. `baselined` was reachable by **no declared edge** — not a violation but a second *initial* object, because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not; `INITIAL` now says so. And **`FRESHNESS` is not a semiring**: it is (max, max), `max(0, 5) ≠ 0`, so its zero does not annihilate and the universal property does not reach it — the practical consequence being that a claim resting on a *missing* fact reports the freshness of the facts that are present. Both are kept as tests so neither is quietly re-assumed. The remaining six are named **in the test file as well as the table**, each with the reason, because a gap recorded only in a document is a gap somebody has to go looking for; and `tests/test_documentation_counts.py` now counts the executable laws from the table itself, so "thirteen of nineteen" cannot drift the way every other count in this repository has |
+| ✅ | **The foundational laws, made executable** (`tests/test_laws.py`, `core/evidence/semirings.py`, `core/regimes/sentences.py`) | **15 of 21** | The strongest claim this design makes is that the laws are the acceptance criteria, and it was **37% true** — which is a claim that reads as 100% true to everybody who does not check. Five were closed: **L-1** (the reachable closure of the lifecycle graph equals its declared state set), **L-2** (a version digest carried through assessment, approval and an alias move), **L-3** (a determinism claim checked by double execution rather than stored and believed), **L-9** (ℕ[X] implemented, so the universal property is checked over 200 random derivation DAGs against five semirings), and **L-16** (deontic consistency, enforced at regime activation). Writing them found two things a table could not. `baselined` was reachable by **no declared edge** — not a violation but a second *initial* object, because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not; `INITIAL` now says so. And **`FRESHNESS` is not a semiring**: it is (max, max), `max(0, 5) ≠ 0`, so its zero does not annihilate and the universal property does not reach it — the practical consequence being that a claim resting on a *missing* fact reports the freshness of the facts that are present. Both are kept as tests so neither is quietly re-assumed. The remaining six are named **in the test file as well as the table**, each with the reason, because a gap recorded only in a document is a gap somebody has to go looking for; and `tests/test_documentation_counts.py` now counts the executable laws from the table itself, so "thirteen of nineteen" cannot drift the way every other count in this repository has |
 | ✅ | **Replay from storage** (`core/validation/storage.py`) | **Complete** | Replay used to need the caller to hand the data back, which made it a control you help perform rather than one somebody can run against you. It now re-reads the dataset snapshot the episode was pinned to, at the Delta version it was pinned at. A validation with no snapshot, a snapshot whose table is gone, or a test whose columns are absent is reported as *skipped* with the reason, because "we checked and it matched" and "we could not check" are opposite findings. It does not follow a restatement: if the table has been written to since, the replay still sees what the validation saw, and the report says separately that the ground has moved — a finding about the data rather than about the test. `replayable()` answers what a second line actually asks: what fraction of what was concluded can be checked without asking whoever concluded it |
 | ✅ | **Delta time travel on reads** (`core/features/views.py`) | **Complete** | An assembly used to read a namespace, and a namespace is a path — two writes produce two Delta versions and a read gets whichever is current, so a snapshot was reproducible only until somebody wrote to the view again. Reads are now pinned to the Delta version the view version was materialised at, and a featureset binding carries that version alongside the path, which is what makes *same featureset version → same bytes* true rather than true-until-Tuesday. `restated()` answers the neighbouring question a reviewer asks before comparing two runs: has anything underneath this pin been written to since |
 | ✅ | **Featuresets and the parameter object** (`core/features/sets.py`, `core/features/derived.py`, `core/features/expressions.py`, `core/parameters/`) | **Complete** | Two of the three letters in `f : P × X → D(Y)` become objects in the register. A **featureset** declares a schema — named slots with types — and a version *fills* it, binding each slot to a feature and to the exact feature view version supplying its values. That separation is what makes "different versions may hold different features, all adhering to the same structure" true rather than hopeful: a model reads the slot, so swapping a constituent does not change it, and a version that cannot fill the schema is refused as a different set or a model change. **Derived features** compute values from values in a deliberately small whitelisted expression language, with lineage as the transitive closure, an ingest clock inherited as `max` over the inputs — the easiest way to leak the future, and arithmetic, so it is computed rather than trusted — and a refusal for any slot derived from the label, checked before resolution so "you cannot train on the answer" beats "no view supplies that". **Parameter sets** are inhabitants of P: a fit produces one and *not* a model version, because the kernel did not change. Accepted only against a warrant MAYA issued, named by the featureset version that produced them, approved by somebody other than whoever recorded them, and refused as ambiguous rather than guessed at when a version has two. Laws **L-W8**, **L-W9** and **L-W10** added — the first two in the grammar, the third at warrant issuance, because a featureset does not exist to be checked against a kernel until a warrant names both. L-W8 caught a real error in the shipped QuantLib calibration example, which claimed its parameters came from an artifact while its verb produced them |
@@ -73,131 +97,103 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Engine isolation** (`core/execution/sandbox.py`) | **Complete** | Artifact-backed runtimes (ONNX, PMML) load and run in a child process with CPU and address-space limits read from the warrant's `constraints.resources`. The memory budget is additive to the interpreter's own footprint, and the runtime's dependencies are imported *before* the limit is applied, so a library's import cost is never charged to the model's budget. The boundary is published rather than implied: `describe()` states what it protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact. That needs a container or a VM, and saying so is better than implying an isolation the process model does not provide. Bound callables run in process by construction and are named as such |
 | ✅ | **Baseline import** (`core/baseline/`) | **Complete** | Closes adversarial finding C-5, judged the single most likely cause of total failure. Imported models enter a `baselined` lifecycle state — governed going forward, mutable so their debt can be closed — carrying explicit dated debt for each of thirteen gaps *computed from the register rather than declared*, so an importer cannot under-declare. Debt closes by itself when the evidence arrives, making the burn-down a measurement rather than a self-report, and expires into a finding at its board-approved date. Debt and breach are reported separately everywhere. One bad row does not stop the batch |
 
-### What is genuinely working
+---
 
-The end-to-end governed path runs: register a model → create an immutable version →
-assess its risk → approve → point an alias (refused unless the contract refines and
-the schemas satisfy variance) → issue a warrant → resolve a signed descriptor →
-execute through an engine that checks the boundary first → revoke and watch it fail
-closed. Features can be defined, materialised bitemporally into Delta, pinned by
-contract, and assembled into a point-in-time-correct training set that is refused
-outright if either temporal bound is missing.
+## 1. What the build taught
 
-The validation path runs alongside it: open an episode against a version (refused
-if a validator built it) → record catalogue tests with declared thresholds → try
-to conclude `approved` (refused if any test failed, refused again if a blocking
-finding is open) → raise a finding and watch both the alias gate and warrant
-resolution fail closed → close it with an independent verifier and evidence, and
-watch service resume. Any recorded result can be replayed and compared on its
-digest, which catches a threshold moved after the fact as readily as a changed
-number.
+The most useful thing this repository has produced is not a component. It is a
+short list of ways a control can be **green and inert**, each found the hard way
+and each now held by a test that walks the source rather than by a reviewer
+remembering.
 
-### Every planned component is now built
+### A test that passes for a reason other than its name
 
-The roadmap's components are complete. What remains is not in the plan's
-component list and is recorded below: operational surface, scale, and the parts
-deliberately left outside the platform's boundary.
+The unit test for evidence tampering was named for altering a *payload* and
+actually altered the *stored hash*. It passed, correctly, for years — while the
+verifier it was meant to check re-linked stored hashes and would have accepted an
+edited payload. The scale suite found the real defect, on its first run.
 
-### Honest gaps
+This is the failure mode a green suite is worst at showing you, and it recurred:
+three controls were inert over HTTP while their unit tests were green — effective
+challenge, overlay self-renewal and finding closure — each asserting against a
+value the production path never produced.
 
-- **MAYA can call a language model, and one provider works.** `mock` drafts
-  deterministically from the evidence it was handed and is the default; the
-  three remote providers **refuse by name**, because a stub returning plausible
-  prose into a governance register is worse than no provider — the first reader
-  would have no way to tell. The mock is not a stand-in for the path: what a
-  model may cite is fixed from the register *before* it is asked, so the
-  capability gate, the oracle, the grounding gate, attestation and the
-  automation-bias sample all run for real, and only the sentence is fake —
-  which is the part the platform was never going to trust. Wiring a remote
-  provider needs four answers that are not code: whether the instance may reach
-  the internet, what of the register may leave the institution, how a
-  non-deterministic model is made reproducible, and who pays.
-- **Readiness is incremental; the full chain walk is a scheduled job.** Verifying
-  every node on every probe was O(chain) — 512 ms at forty thousand nodes, and
-  the same call sat on the dashboard. The probe now checks what arrived since
-  the last full verification (1.6 ms, independent of chain length) and
-  `evidence.verify` walks the whole chain on the schedule. A broken chain is
-  never checkpointed, because advancing the mark past a break would bless it.
-- **Every list is paged, and every table in the interface is searchable and
-  sortable.** `limit`/`offset`/`q` on the API with the cap reported rather than
-  applied silently, and a vendored-by-writing table enhancer in the UI. Scope
-  filtering runs before the page is cut.
-- **No document rendering beyond markdown.** No PDF, no house template, no
-  signature page, no export pack. Turning the compiled markdown into a firm's
-  document standard is deliberately outside what the platform tries to own.
-- **Attached documents are stored, not read.** A markdown or text attachment is
-  indexed; a PDF or Word file is served faithfully and reported as *not
-  machine-readable*, because it is. There is no extraction pipeline, no
-  full-text search and no retrieval over document content, so the machine review
-  and question-answering that the register is shaped to support are not built —
-  only made possible, and made honest about what has actually been read.
-- **No SAML and no SCIM.** OIDC is supported; a SAML-only directory and
-  automatic deprovisioning are not, so a leaver is suspended by hand.
-- **Parameters are computed for two families and stored for the rest.** The
-  captive engine now fits, so the path from a featureset version to an approved
-  point of `P` runs end to end: `ols` for the linear estate and `garch11` for
-  the volatility one. Everything else is still recorded rather than produced —
-  the engine that fitted it is wherever you run models, and MAYA refuses the
-  result unless a warrant it issued authorised the run.
-- **Point-in-time correctness is now enforced rather than reported.** The
-  leakage screen used to flag every continuous feature by construction — every
-  value distinct means every bucket holds one label, whatever its relationship
-  to the label — so `pit_verified` was false for essentially every real
-  training set, and it gated nothing. Both halves are fixed: a repeating column
-  is screened for purity and a continuous one for perfect separation, and a fit
-  is **refused** on a snapshot the verifier rejected. The admissibility rule
-  bounds ingest by `min(label_ts, as_of)`, so a value carried backwards by
-  alignment can no longer enter a training row on the grounds that it was known
-  before the set was built.
-- **A policy can tighten a gate and cannot loosen one.** The checks written in
-  the registry are the floor, and a rule runs in addition to them. Loosening a
-  gate still costs a release — deliberately, because a mistyped rule that
-  removed a check would look like a successful deployment.
-- **A finding's workflow ends at the platform's boundary.** Assignment,
-  acknowledgement, planning, extension, escalation and the ageing profile are
-  all here, and none of them does the remediation. MAYA records who agreed to do
-  what by when, and refuses to let the date move quietly; it has no view on
-  whether the work is any good, which is what closure evidence and an
-  independent verifier are for.
-- **File size, not total size.** The governing rule is that no Python source
-  file exceeds 1,500 code lines — blanks, comments and docstrings excluded, so
-  a file that explains itself is not penalised for it. It is now **enforced by
-  `tests/test_size_discipline.py`** rather than by nobody noticing, which is how
-  it was previously kept: the API suite had reached 2,471 code lines, not
-  because anybody decided to break the rule but because everything was appended
-  where the fixtures already were. It is split by subject into five modules, the
-  largest at 758. A second test fails at 90% of the limit, so a split stays a
-  choice rather than becoming a chore for whoever adds the next test.
-- **The captive engine implements five runtimes of eighteen.** No container, no
-  spreadsheet, no SQL, no LLM. Each is refused by name; a real estate needs a
-  real engine for the rest.
-- **The estimator fits *and* scores, at the point of P the warrant names.** A
-  run warrant for a model whose parameters live in the register now binds the
-  approved set rather than the artifact — because for a fitted model the
-  artifact binding was a false statement, there being no artifact and the
-  numbers deciding what it does living somewhere the warrant did not name. The
-  engine reads the values and **re-derives** their digest before anything runs
-  at them, rather than comparing the stored digest against the warrant's: two
-  copies of the same claim would agree over values somebody had edited
-  underneath them, which is the defect the scale suite found in the evidence
-  chain, one object over.
+### A count written once and never recounted
 
-## 1. Engineering principles
+Forty tables when there were forty-two. Seventeen runtimes when there were
+eighteen. Ninety mutating endpoints when there were a hundred and four. Thirteen
+of nineteen laws when it was fifteen of twenty-one.
+
+`tests/test_documentation_counts.py` now derives every claimed number from the
+code and searches the documents for any *other* number claimed against the same
+subject. It has caught something on nearly every milestone since — and once
+caught itself: its `CREATE TABLE` pattern was unanchored and matched the phrase
+inside the schema's own header **comment**, so the test whose entire job is to
+stop a count drifting was the source of a wrong count in four documents.
+
+### A control described in the future tense
+
+*"No ambient cookie authority, so CSRF does not apply to the API"* was true of the
+decoupled front end in ADR-011, which nobody built. What runs is a Jinja
+interface calling the same API under a session cookie. Three reviewers read the
+sentence and believed it, and the API had no CSRF defence for as long as it
+stood.
+
+[08](08-ui-ux.md) is now organised **by tense** for exactly this reason: present
+tense for what runs, conditional for what does not, and nothing mixed.
+
+### A vocabulary that reads as something else
+
+The model relation was called `feeds`. In a bank a *feed* means market data or a
+nightly file, so `A feeds B` read as though MAYA consumed or produced one — which
+it does not, and never has. It is `input_to` now. Nobody would have caught that
+from the code; it took a reader asking what it meant.
+
+### An identifier that is stable over moving contents
+
+Finding **C-2**, and it has now appeared in five disguises: a feature view served
+without its version; a featureset whose constituents could move; a composition
+pinning a parent that advanced; a document filed against a featureset rather than
+a featureset *version*; and a warrant naming a base model family rather than a
+build. The same pin closes all five, and looking for the sixth is a reasonable
+use of a review hour.
+
+### The discipline walkers
+
+Several tests do not test a feature. They walk the source and hold a rule that
+would otherwise rot:
+
+| | |
+|---|---|
+| `test_logging_discipline` | no exception is ignored: every `except` logs, none is bare, none is only `pass` |
+| `test_refusal_discipline` | every coded refusal maps to a status that says who must act, and no code is mapped twice |
+| `test_schema_discipline` | the two dialects agree column for column; no `BOOLEAN` anywhere |
+| `test_size_discipline` | no source file over 1,500 lines |
+| `test_documentation_counts` | every number claimed in prose is recounted from the code |
+| `test_deck_geometry` | no slide has overlapping or escaping content |
+| `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
+| `test_laws` | the foundational laws, run as tests, with the six that do not run named |
+
+Each exists because the rule it holds had already been broken once.
+
+---
+
+## 2. Engineering principles
 
 | # | Principle | Enforcement |
 |---|---|---|
-| E1 | **Modularity is mechanical, not cultural.** Boundaries that are not enforced by a tool are not boundaries. | `import-linter` contracts in CI; a violating import fails the build |
+| E1 | **Modularity is mechanical, not cultural.** Boundaries that are not enforced by a tool are not boundaries. | `tests/test_import_discipline.py` walks the imports and fails the suite. It was `import-linter` contracts in CI, and there is no CI — the principle's own standard, applied to the principle, said it was not a boundary |
 | E2 | **Extension points are plugins, never `if` statements.** Nine entry-point groups; no core module may branch on model class, regime, or format. | Lint rule banning class/regime literals outside `registry/`, `regimes/` |
 | E3 | **The API is the only interface.** No privileged server-side path exists for the UI. | Contract tests in both pipelines; a spec-diff gate on breaking changes |
 | E4 | **Two processes, always.** Front end and backend build, test, release and fail independently. | Separate pipelines; no shared build step |
-| E5 | **The laws are the acceptance criteria.** Thirteen of the nineteen foundational laws are executable today, along with all fourteen warrant-admissibility laws; a failing law fails the build, and [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) states by name which of the rest are not yet executable. | The law tests live beside the code they constrain, not in a `tests/laws/` package; the whole suite runs on every commit |
-| E6 | **Domain code is framework-free.** `core/domain/` imports no web framework and no ORM. | Import contract |
+| E5 | **The laws are the acceptance criteria.** Fifteen of the twenty-one foundational laws are executable today, along with all fourteen warrant-admissibility laws; a failing law fails the build, and [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) states by name which of the rest are not yet executable. | The law tests live beside the code they constrain, not in a `tests/laws/` package; the whole suite runs on every commit |
+| E6 | **Domain code is framework-free.** `core/domain/` imports no web framework and no ORM. | `test_import_discipline.py::test_the_domain_depends_on_nothing_in_maya` |
 | E7 | **Every migration is reversible and rehearsed.** Expand/contract, tested against production-shaped data. | Migration test suite in CI |
 | E8 | **Silence is never enforcement.** Integrity controls raise; they do not discard. | Review checklist; finding C-3 |
 
 ---
 
-## 2. Repository topology
+## 3. Repository topology
 
 Two repositories, because they are two products with two lifecycles. A monorepo was considered and
 rejected: it makes the shared build step tempting, and the shared build step is how decoupling dies.
@@ -226,7 +222,7 @@ ADR-011 exists; the reference implementation is a single tree with `core/`, `db/
 
 This paragraph used to add that the UI "still consumes only the public API, which is the property that
 had to be preserved". That was not true and it is the sentence that made the drift look reviewed:
-`routes/ui_routes.py` makes **41 direct in-process service calls**. Writes go through the API; reads do
+`routes/ui_routes.py` makes **47 direct in-process service calls**. Writes go through the API; reads do
 not, and there is no CORS middleware anywhere, which a two-origin deployment could not function
 without. So neither the process independence nor the API-only property is demonstrated — and principle
 E3 below is a target rather than a description.
@@ -243,7 +239,7 @@ claim than the fibration made and is one the code supports.
 
 ---
 
-## 3. Module boundaries and the dependency rule
+## 4. Module boundaries and the dependency rule
 
 ```mermaid
 flowchart TD
@@ -260,9 +256,19 @@ flowchart TD
     style CORE fill:#1f3a5f,color:#fff
 ```
 
-**The rule, enforced in CI.** `domain/` imports nothing from MAYA. Core modules import only `domain/`
-and `platform/`. Bounded contexts import core and each other **only through published interfaces**, never
-through internal modules. `api/` and `workers/` import everything and are imported by nothing.
+**The rule, enforced by `tests/test_import_discipline.py`.** `core/domain/` imports nothing from MAYA.
+`core/` never imports `routes/` or `web/`. `db/` never imports `core/`. The SDK imports the standard
+library and nothing else. One crossing is permitted and named: **`core.log`**, because the platform rule
+is that no exception is swallowed and everything is logged through one logger, so a layer forbidden from
+importing it would have to invent a second logger or stay silent.
+
+This paragraph read *"enforced in CI"* for a long time, and printed the `.importlinter` configuration
+below to show how. **There is no CI in this repository** — no `.github/`, no `pyproject.toml`, no `ruff`,
+no `mypy`, no `import-linter`, no coverage gate — so the rule was enforced by nobody. The boundaries
+turned out to be held anyway, which is exactly why it went unnoticed: a rule everybody happens to keep is
+indistinguishable from a rule that is enforced, right up until somebody does not. It is now a source
+walker in the ordinary suite, needing no tooling and no pipeline. The configuration below is retained as
+what the CI contract should say **when there is one**.
 
 ```toml
 # .importlinter
@@ -289,7 +295,7 @@ written an `if regime == ...` and the plugin boundary has been breached.
 
 ---
 
-## 4. The front end / backend contract
+## 5. The front end / backend contract
 
 ```mermaid
 sequenceDiagram
@@ -326,7 +332,7 @@ front-end work is never blocked by backend availability. That is the practical d
 
 ---
 
-## 5. Test strategy
+## 6. Test strategy
 
 | Layer | Scope | Target | Runs |
 |---|---|---|---|
@@ -348,9 +354,18 @@ malicious-artifact corpus.
 
 ---
 
-## 6. CI gates
+## 7. CI gates
 
-A merge requires all of:
+**None of this exists.** There is no `.github/`, no pipeline definition, no `ruff`, `mypy`,
+`import-linter` or coverage tool in `requirements.txt`, and no lock file for the API spec. Every gate
+below is a specification of what a pipeline should enforce, not a description of one that runs; the
+things actually enforced today are enforced by `pytest`, which anybody can skip.
+
+Two of them have since been brought inside the suite because waiting for a pipeline meant waiting
+indefinitely: **import contracts** (gate 2, `tests/test_import_discipline.py`) and **the laws** (part of
+gate 3, `tests/test_laws.py` and the fourteen warrant laws). The rest are unenforced.
+
+A merge should require all of:
 
 1. Lint, format, type check (`ruff`, `mypy --strict` on `domain/` and core).
 2. **Import contracts pass** — the modularity guarantee.
@@ -367,7 +382,7 @@ criteria green, and signed images with SLSA provenance.
 
 ---
 
-## 7. Environments
+## 8. Environments
 
 | Environment | Purpose | Data | Notes |
 |---|---|---|---|
@@ -379,7 +394,7 @@ criteria green, and signed images with SLSA provenance.
 
 ---
 
-## 8. Workstreams
+## 9. Workstreams
 
 Six concurrent streams, deliberately structured so that no stream blocks another for more than a sprint.
 
@@ -395,116 +410,6 @@ Six concurrent streams, deliberately structured so that no stream blocks another
 
 W5 is unblocked from day one because it works against the spec mock. That is the single most valuable
 consequence of the decoupling mandate: the front end never waits.
-
----
-
-## 9. Phase-level work breakdown
-
-### Phase 0 — Foundations
-
-| Stream | Deliverable | Definition of done |
-|---|---|---|
-| W1 | Domain core: `ParametricKernel`, trainability, contract algebra, schema lattice | Laws L-2, L-4, L-7, L-12 implemented and passing |
-| W1 | Plugin loader + fibre protocol + totality check | A dummy `maya-ext-demo` package registers a class with zero core changes |
-| W6 | Repos, both pipelines, IaC, environments, import contracts | A commit to either repo deploys to `dev` unattended |
-| W6 | Postgres baseline, RLS pattern with **FORCE**, audit chain, Alembic | Cross-entity negative test passes under `maya_app` |
-| W3 | Delta layout, retention classes, outbox writer with idempotent MERGE | Duplicate outbox delivery produces one row |
-| W4 | OpenAPI skeleton, spec-diff gate, generated client, Prism mock | `maya-web` builds and runs against the mock |
-| **Spikes** | PIT join at 1B rows · warrant resolution under stampede load · sandbox escape testing · ONNX/PMML introspection breadth | Each answers a question that could invalidate the architecture |
-
-**Exit:** the laws exist as tests (most failing by design); a model can be created and read end to end
-through the API and the UI; the three spikes have reported.
-
-### Phase 1 — Inventory and evidence spine · MVP
-
-| Stream | Deliverable |
-|---|---|
-| W1 | Registry, URNs, versions (immutable via **trigger**, not rule), 20 seeded fibres |
-| W1 | Evidence graph with `seq` + `prev_hash` chain, daily WORM anchoring; Boolean/Why/How/Freshness semirings |
-| W2 | Regime engine with SR 26-2, SS1/23, EU AI Act, SOX; scope determinations as derivations |
-| W2 | Tiering engine with derivation trace, triggers, **sourced exposure measures** (H-8) |
-| W2 | Lifecycle engine, workflow, approvals, e-signature, SoD |
-| W2 | **Baseline import mode** with compliance-debt tracking (C-5) |
-| W3 | Dependency graph, blast radius, concentration analytics |
-| W4 | Bulk import; MLflow, Unity Catalog, git connectors; SDK v1 |
-| W5 | Inventory grid, model detail page, derivation panels, as-at-date query, **debt vs breach visually distinct** |
-| W6 | IAM, RBAC/ABAC, audit chain verification job |
-
-**Exit:** 300 models registered including 30 vendor and 20 quant; a tier derivation withstands challenge
-from the MRM head; an as-at-date export satisfies a mock examiner request; **baseline import of 300
-models produces a debt burn-down, not a wall of red**.
-
-### Phase 2 — Versions, features, warrants
-
-| Stream | Deliverable |
-|---|---|
-| W1 | Upload, sandboxed introspection, security scanning, format policy, signing, AI-BOM |
-| W1 | Aliases with refinement (L-7) and variance (L-12) gates; calibration sets; prompt bundles |
-| W3 | Feature registry, views, Delta materialisation, quality assertions |
-| W3 | **Three-layer PIT verification** — static, sampled, adversarial (H-6) |
-| W3 | Feature contracts; **version-namespaced online store** with dual-write (C-2); law L-17 |
-| W3 | Run tracking, deterministic replay, challenger management |
-| W4 | Warrant service: `warrant_projection` read model (H-2), resolution, signing, **revocation floor** (C-1) |
-| W4 | Stampede protection: pre-warm, single-flight, jitter, stale-while-revalidate (H-1) |
-| W4 | Flavours: `descriptor_only`, `python_sdk`, `rest_oip_v2`, `batch_spark`; engine certification (C-6) |
-| W5 | Upload wizard, feature reconciliation UI, schema-driven fibre forms |
-
-**Exit:** an engine runs a production model solely via a warrant; an alias move switches the served version
-with no consumer change; a kill switch stops it within 60 s **including under a simulated partition**; a
-PIT-verified training set reproduces a fit bit-for-bit.
-
-### Phase 3 — Validation, findings, documentation
-
-W1 test catalogue and executable tests · W2 validation plans, findings with blocking behaviour, risk-based
-scheduling, vendor workflow · W1 document compiler with lens laws and staleness · templates (MDD,
-validation report, model card, **Annex IV**, AI-BOM) · W5 validation workbench, examiner portal ·
-W6 export packs with signed evidence bundles.
-
-**Exit:** a full Tier 1 validation completed in-system; the validation report compiles with > 90%
-auto-generated content; an Annex IV pack produced for a high-risk model.
-
-### Phase 4 — Monitoring, overlays, reporting
-
-W3 monitor definitions, class-aware defaults, Spark evaluation, delayed labels, slice and fairness
-monitoring, skew detection · W2 breach → **correlated** finding (M-8), overlay register with magnitude,
-ageing, propagation, recurrence · W4 inference logging, **approved-use vs actual-use reconciliation**,
-boundary monitoring · W5 health board, overlay dashboard, KRIs, board pack.
-
-**Exit:** a breach automatically restricts a production warrant; the overlay dashboard is used in a real
-IFRS 9 committee; the board pack is generated rather than assembled.
-
-### Machine assistance, sequenced by oracle strength
-
-W7 does not run as a single phase. Capabilities are introduced when the oracle that checks them exists,
-which is the whole point of the criterion:
-
-| Capability | Ships with | Because its oracle is |
-|---|---|---|
-| Semantic search, feature deduplication | Phase 1 | Embeddings only — no claim to check |
-| Natural-language query | Phase 1 | The query parses and returns, or it does not |
-| Probe-set generation | Phase 2 | Probes execute and discriminate |
-| Format migration agent | Phase 2 | Probe equivalence within tolerance |
-| Regime encoding assistant | Phase 2 | The satisfaction condition (`L-8`), which lands in Phase 1 |
-| Documentation drafting | Phase 3 | Citation verification, which needs the evidence graph and document compiler |
-| Validation assistance | Phase 3 | Partially checkable; ships behind the grounding gate |
-| Remediation-planning agent | Phase 4 | The tropical semiring computes the plan; the agent only coordinates |
-| Discovery agents | Phase 5 | Grounded in a specific artifact; ships only once precision can be measured |
-| Finding correlation, committee drafting | Phase 5 | Grounded; deploy once trust is established |
-
-**No capability ships before its check.** A capability whose oracle is not yet built waits, however
-attractive the demo.
-
-### Phase 5 — GenAI, discovery, intelligence
-
-W2 GenAI track: boundary gates, risk matrix, eval harness, agentic controls · W1 prompt/RAG/tool/guardrail
-versioning, base-model change fingerprinting · W4 LLM gateway integration, cost and token monitoring,
-composite warrants, `sql_udf`/`stream`/`container`/`sheet` flavours · W3 continuous discovery, EUC ingestion,
-semantic search · W1 AI documentation assistant, itself governed as a T5 model in the inventory.
-
-### Phase 6 — Scale-out and migration
-
-Full estate migration; legacy decommissioning; remaining connectors; multi-entity and residency;
-performance hardening to every NFR at full scale; fibre library expansion; bank-specific `maya-ext-*`.
 
 ---
 

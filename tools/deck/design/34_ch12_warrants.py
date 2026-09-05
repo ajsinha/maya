@@ -1,7 +1,9 @@
 # ============================================================ CH 12
 divider("12", "Warrants, and What Comes Back",
         "A featureset version and a model version meet; a parameter set returns.",
-        ["The fit warrant", "The parameter object", "The scoring warrant",
+        ["The fit warrant",
+         "The parameter object",
+         "The scoring warrant",
          "Three routes to P"])
 
 # ---------------------------------------------------------- the fit warrant
@@ -142,7 +144,7 @@ note(sl, ML, y + th + 0.30, CW, 1.30,
      "The parameter kind, the source binding, the runtime — not a category "
      "anybody attached to the model. L-W12 is the clearest case: it bites "
      "hardest on a neural network and is deliberately not written in terms of "
-     "the class, because a PMML scorecard is T3 and carries exactly the same "
+     "the class, because a PMML scorecard is T2 and carries exactly the same "
      "exposure. Keying it on the trainability class would have missed that, "
      "and the miss would have looked like coverage.")
 
