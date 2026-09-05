@@ -211,9 +211,30 @@ def _parameter_source(kind: str, verb: str, version: Dict[str, Any],
     if verb == "fit":
         return {"binding": "to_be_fitted"}
     if parameter_set:
-        return {"binding": "parameter_set",
-                "parameter_set": parameter_set["id"],
-                "name": parameter_set.get("name"),
-                "version": parameter_set.get("version"),
-                "digest": parameter_set["digest"]}
+        source = {"binding": "parameter_set",
+                  "parameter_set": parameter_set["id"],
+                  "name": parameter_set.get("name"),
+                  "version": parameter_set.get("version"),
+                  "digest": parameter_set["digest"]}
+        # When the parameters are a calibration, the moment they were solved for
+        # is part of what they mean: two runs naming this set on different
+        # mornings are not the same run. L-W11 requires it to be statable; the
+        # age is carried alongside so a reader does not have to subtract two
+        # epochs to find out they are running last quarter's fit.
+        if (as_of := parameter_set.get("as_of")) is not None:
+            source["as_of"] = as_of
+            source["age_seconds"] = max(0.0, time.time() - float(as_of))
+        return source
+    if not version.get("artifact_digest") and not version.get("artifact_uri"):
+        # There is no approved set and no artifact either, so an artifact
+        # binding here would be a fabrication: the warrant would tell an engine
+        # to run at a point of P that does not exist anywhere. Refusing names
+        # what is missing; L-W12 would otherwise catch it one step later and
+        # report it as a malformed document rather than as an absent approval.
+        raise WarrantError(
+            "no_approved_parameters",
+            f"this version's parameter object is '{kind}' and nothing inhabits "
+            f"it: no approved parameter set, and no artifact to carry one",
+            "record a parameter set and have somebody other than its author "
+            "approve it, or register the version against an artifact")
     return {"binding": "artifact", "uri": version.get("artifact_uri")}

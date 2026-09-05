@@ -721,6 +721,9 @@ model version's input schema, and neither is in the document being validated.
 | `L-W8` | A run that will not name its point in `P` | grammar |
 | `L-W9` | A featureset read for training, unbounded in either clock | grammar |
 | `L-W10` | A featureset that does not provide what the kernel reads | warrant issuance |
+| `L-W11` | A calibrated parameter object that does not say what it was calibrated as of | grammar |
+| `L-W12` | Parameters bound to an artifact, with no artifact digest | grammar |
+| `L-W13` | A generative runtime naming a model family but no build | grammar |
 
 Every one is checked **before** the warrant is signed. A signature over a
 non-conforming document would assure that it is authentic and not that it is

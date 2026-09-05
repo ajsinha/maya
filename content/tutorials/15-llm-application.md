@@ -50,6 +50,7 @@ curl -u d.raman:dev-pw -X POST \
                  "runtime":"llm.prompt",
                  "entry":{"provider":"internal-gateway",
                           "base_model":"claude-sonnet-5",
+                          "base_model_version":"2026-08-14",
                           "prompt_digest":"sha256:7ac3…"},
                  "deterministic":false,
                  "input_schema":[{"name":"complaint_text","dtype":"text"}],
@@ -58,11 +59,33 @@ curl -u d.raman:dev-pw -X POST \
                                   {"name":"citations","dtype":"structured"}]}}'
 ```
 
-Two declarations there are doing load-bearing work.
+Three declarations there are doing load-bearing work.
 
 **`prompt_digest`, not the prompt.** The prompt is an artifact — store it, hash
 it, name the hash. A prompt edited in a config file is a model change that left
 no trace, and this is the line where that stops being possible.
+
+**`base_model_version`, not just `base_model`.** This is **L-W13**, and it is
+the law written for exactly this model shape. `claude-sonnet-5` names a
+*family*; the weights behind that name are replaced by whoever hosts them, on
+their schedule, and the replacement is not announced in the answer. A warrant
+carrying only the family name describes a model that can change under it between
+two runs while every field in the document stays identical.
+
+```json
+{"law": "L-W13", "path": "realisation.entry.base_model_version",
+ "detail": "'claude-sonnet-5' names a family of weights rather than a build, so
+            this warrant cannot tell two different models apart",
+ "remediation": "pin the provider's version alongside the model name; if the
+                 provider will not expose one, say so by recording the date the
+                 configuration was evaluated, and expect the drift monitor to be
+                 your only warning"}
+```
+
+That is the failure this platform exists to prevent, wearing generative clothes:
+a stable identifier over moving contents. Pinning does not stop the vendor
+retiring a build — it makes the retirement visible as a **mismatch** rather than
+a drift.
 
 **`deterministic: false`.** Say so. The grammar knows `llm.prompt` is stochastic
 and will refuse a determinism claim that nothing backs:

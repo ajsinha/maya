@@ -163,6 +163,14 @@ class GrammarValidator:
             rules.check_parameter_source(verb, doc.get("parameters") or {},
                                         (doc.get("parameters") or {}).get("kind")),
             rules.check_outcomes(verb, inputs),
+            # The three laws that differ by how P is inhabited rather than by
+            # what the model is called. Each is keyed on a fact the platform
+            # derives -- the parameter kind, the source binding, the runtime --
+            # so none of them needs a category anybody has to declare.
+            rules.check_calibration_as_of(verb, doc.get("parameters") or {}),
+            rules.check_artifact_digest(verb, doc.get("parameters") or {},
+                                        doc["realisation"]),
+            rules.check_generative_pin(runtime, doc["realisation"]),
         ]
         problems = [p for p in found if p is not None]
         problems += rules.check_training_bindings(verb, inputs)

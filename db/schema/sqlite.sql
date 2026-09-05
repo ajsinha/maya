@@ -298,6 +298,34 @@ CREATE TABLE IF NOT EXISTS policy_rule (
 );
 CREATE INDEX IF NOT EXISTS ix_policy_gate ON policy_rule (gate, state);
 
+-- A warrant profile: named, versioned defaults for the REQUEST a warrant is
+-- built from. Selected by a predicate over facts the platform derives -- the
+-- trainability class, the parameter kind, the runtime -- never by a category
+-- somebody attached to the model. A declared taxonomy sitting beside a derived
+-- one is two answers to one question, and they will disagree.
+--
+-- A profile may only fill in what a caller could have typed. It can never widen
+-- authority: the keys that decide who may act, for what, and until when are
+-- refused at creation rather than defended at use.
+CREATE TABLE IF NOT EXISTS warrant_profile (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    version     INTEGER NOT NULL,
+    when_facts  TEXT NOT NULL DEFAULT '{}',
+    defaults    TEXT NOT NULL DEFAULT '{}',
+    note        TEXT NOT NULL DEFAULT '',
+    specificity INTEGER NOT NULL DEFAULT 0,
+    retired     INTEGER NOT NULL DEFAULT 0,
+    digest      TEXT NOT NULL,
+    created_by  TEXT NOT NULL,
+    created_at  REAL NOT NULL,
+    retired_at  REAL,
+    retired_by  TEXT,
+    UNIQUE (name, version)
+);
+CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
+
+
 CREATE TABLE IF NOT EXISTS notification (
     id         TEXT PRIMARY KEY,
     principal  TEXT NOT NULL,

@@ -736,6 +736,30 @@ assure that it is authentic and not that it is usable, and an engine would reaso
 | **L-W8** | A run that will not say which point in `P` it runs at | Fitting does not change the kernel, so a run declining to name its inhabitant produces a number attributable to nothing. Only a `fit` may leave it unfilled, and a `fit` must bind `to_be_fitted` and nothing else — it *writes* the parameter object, so declaring that it reads one describes the wrong direction | `grammar/rules.py` |
 | **L-W9** | A featureset read for training that is unbounded in either clock | The set fixes the columns; the warrant must fix the period, or *train on 2019–23* and *train on 2020–24* are the same document | `grammar/rules.py` |
 | **L-W10** | A featureset that does not provide what the kernel declares it reads | Contravariance in inputs — `L-12` applied one level out. Refused as `schema_not_satisfied` | `core/execution/warrants.py` |
+| **L-W11** | A calibrated parameter object with no `as_of` | A calibration *reproduces a market* rather than summarising a history, so the moment it was solved for is part of what it means. Without the stamp, staleness is silent: yesterday's fit prices today's book and nothing in the record says which market it came from. The law requires the age to be **statable**, not small — how old is too old depends on the cadence, which is a policy gate's question | `grammar/rules.py` |
+| **L-W12** | Parameters bound to an artifact, with no artifact digest | When the parameter object *is* the file, "which numbers did this run at" and "which bytes did it load" are the same question, and an undigested binding answers neither. Deliberately **not** keyed on the trainability class: it bites hardest on T4, but a PMML scorecard is T3 and carries the identical exposure | `grammar/rules.py` |
+| **L-W13** | A generative runtime naming a model family but no build | `base_model` names a family whose weights the host replaces on their own schedule, unannounced. A warrant carrying only the family name describes a model that can change between two runs while every field stays identical — C-2 in generative disguise, a stable identifier over moving contents | `grammar/rules.py` |
+
+### L-W11 through L-W13 answer "should warrants be templated per kind of model?"
+
+They are the demonstration that warrants **already** differ by kind of model —
+as *refusals over one document* rather than as different documents. Each is
+keyed on a fact the platform derives (`parameters.kind`, the source binding, the
+runtime), and none of them mentions a category anybody attached to a model.
+
+The distinction is load-bearing. Were the document to fork by type, every
+engine, replay path and audit query would branch on model type before it could
+read anything, and the branch would grow a case per family without bound. The
+constraint that keeps the single shape honest is that the laws quantify over
+derived facts: a declared taxonomy sitting beside a derived one is two answers
+to one question, with no rule for which wins.
+
+What *is* templated is the **request**, by a warrant profile
+(`core/execution/profiles.py`): named, versioned defaults selected by a predicate
+over the same derived facts, folded left-to-right with the rightmost winning per
+key and `{}` as the identity — the `L-19` monoid, reused rather than reinvented.
+A profile fills holes, never overrides a caller, and is refused at creation if it
+reaches for anything in the authority set.
 
 `L-W8` earned its place immediately: it caught a real error in the shipped Hull–White calibration
 example, which claimed its calibration set came from an artifact while its verb produced it.
@@ -838,7 +862,7 @@ an index that quietly omits the unbuilt entries is how a reader concludes the wh
 | Document lenses | `core/docs/lenses.py` — fifteen lenses; `get` only, no `put` (see `L-11`) |
 | Warrant grammar and its laws | `core/execution/grammar/` — `vocabulary.py`, `rules.py`, `validator.py`, `schema.py` |
 | Featuresets and parameter sets | `core/features/sets.py`, `core/parameters/register.py` |
-| The executable laws | Beside the code they constrain: `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W1…L-W9), `tests/test_api.py` (L-W10). There is no `tests/laws/` package |
+| The executable laws | Beside the code they constrain: `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W1…L-W9), `tests/test_api.py` (L-W10), `tests/test_warrant_profiles.py` (L-W11…L-W13). There is no `tests/laws/` package |
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
 | Fibre registry with startup totality (`L-15`) | **Not built** — a model class is a string on the register |

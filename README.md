@@ -243,6 +243,15 @@ bindings**). `descriptor_only` is one of the eighteen and matters most in a bank
 already runs inside engines nobody is going to replace. The captive engine implements four of the
 seventeen; the rest are refused by name rather than approximated.
 
+**Warrants differ by kind of model as refusals over one document, never as different documents.**
+Fourteen admissibility laws are checked before the signature, and the last three quantify over facts
+the platform *derives* rather than a category anybody attached: a calibration must say what it was
+calibrated as of (**L-W11**), parameters living inside an artifact need that artifact digested
+(**L-W12**), and a generative runtime must pin the build rather than the model family (**L-W13** —
+a stable identifier over moving contents, in generative disguise). What *is* templated is the
+**request**: a warrant profile fills holes in it, selected by the same derived facts, folded by the
+`L-19` monoid, refused at creation if it reaches for authority.
+
 Moving `champion` from 3.2.1 to 3.3.0 requires the new version's contract to **refine** the old one and its
 schemas to satisfy variance rules. Consumers are not redeployed and cannot be broken. Revocation takes
 effect in under 60 seconds. If MAYA is down, already-authorised scoring keeps running — governance must not
@@ -309,7 +318,7 @@ maya/
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
 │       config/                      YAML with a git-ignored local overlay
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 44 tables, no migrations
+│   └── schema/                      two hand-written schemas, 45 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
@@ -319,7 +328,7 @@ maya/
 │   ├── examples/                    the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
-│   └── MAYA-System-Design.pptx              99-slide system design deck
+│   └── MAYA-System-Design.pptx              101-slide system design deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```
@@ -339,7 +348,7 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 99 slides | Fifteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. Chapters nine to fourteen are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file**. The fifteenth takes each kind of model in turn — regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application — and says how MAYA saves, manages and serves it |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 101 slides | Fifteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. Chapters nine to fourteen are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file**. The fifteenth takes each kind of model in turn — regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application — and says how MAYA saves, manages and serves it |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*

@@ -32,6 +32,7 @@
     "entry": {
       "provider": "anthropic",
       "base_model": "claude-opus-5",
+      "base_model_version": "2026-08-14",
       "graph": "plan -> gather -> draft -> self_check -> hand_off",
       "max_steps": 12,
       "seed": 42,
