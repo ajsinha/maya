@@ -30,6 +30,7 @@ from core.evidence import EvidenceEngine
 from core.log import get_logger
 from core.regimes.common import RegimeError
 from core.regimes.library import REGIMES
+from core.regimes.sentences import deontic_conflicts, undecidable
 from core.regimes.translation import satisfaction_condition
 
 logger = get_logger(__name__)
@@ -75,6 +76,20 @@ class RegimeEngine:
                 "every term a regime reasons in must map to something the "
                 "platform can evaluate, or nothing can decide it")
 
+        # L-16, checked before the satisfaction condition because it is cheaper
+        # and because a regime that contradicts itself makes every determination
+        # unsatisfiable — which the satisfaction condition would report as a
+        # subtler failure than it is.
+        if conflicts := deontic_conflicts(regime["sentences"]):
+            raise RegimeError(
+                "obligation_contradiction",
+                f"the {key} encoding obliges and forbids the same term(s): "
+                + "; ".join(c["detail"] for c in conflicts),
+                "no state satisfies both, so every determination this regime "
+                "makes would be unsatisfiable; one of the two sentences is "
+                "written in the wrong direction, or they are scoped differently "
+                "and one of them should be a conditional")
+
         report = self.check(key)
         if not report["holds"]:
             raise RegimeError(
@@ -88,7 +103,12 @@ class RegimeEngine:
         self.evidence.append("regime_activated", "regime", key,
                              {"regime": key, "title": regime["title"],
                               "sentences": len(regime["sentences"]),
-                              "satisfaction_checked": report["checked"]},
+                              "satisfaction_checked": report["checked"],
+                              # Named rather than silently skipped: a check that
+                              # ignores what it cannot read reports success for
+                              # the cases it was least able to judge.
+                              "deontically_undecidable": undecidable(
+                                  regime["sentences"])},
                              actor=actor)
         logger.info("activated regime %s (%d sentences, satisfaction condition "
                     "checked over %d pairs)", key, len(regime["sentences"]),
