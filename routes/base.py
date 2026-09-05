@@ -37,6 +37,7 @@ from core.baseline import BaselineError
 from core.regimes import RegimeError
 from core.scheduler import SchedulerError
 from core.authz import AuthzError
+from core import log
 from core.authz import csrf
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
@@ -249,6 +250,19 @@ REMEDY: Dict[type, str] = {
 }
 
 
+def _identify(request: Request, principal: Dict[str, Any]) -> None:
+    """Record who is acting, for the log, in both the places it has to reach.
+
+    `core.log` holds one mutable dict per request, so a write from a worker
+    thread is visible to the middleware that resumes afterwards — which a
+    `ContextVar.set` would not be, since a sync route runs in a threadpool with
+    a *copy* of the context. `request.state` is set too: the two costs nothing
+    and gives a route a way to ask who is acting without going through logging.
+    """
+    log.bind_principal(principal["username"])
+    request.state.principal = principal["username"]
+
+
 def current_user(request: Request) -> Optional[str]:
     return request.session.get("username")
 
@@ -372,9 +386,15 @@ class Routes:
         people = self.ctx["principals"]
         if (username := current_user(request)) is not None:
             if (row := people.get(username)) and row["status"] == "active":
+                # Bound as soon as it is known, so every line the rest of this
+                # request produces says who caused it. The evidence chain
+                # records what was decided; the log records what happened around
+                # it, and they join on the request id and this name.
+                _identify(request, row)
                 return row
         if (creds := basic_credentials(request)) is not None:
             if (row := people.authenticate(*creds)) is not None:
+                _identify(request, row)
                 return row
         raise HTTPException(401, {
             "error": "unauthenticated",

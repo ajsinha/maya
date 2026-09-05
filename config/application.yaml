@@ -264,9 +264,19 @@ content:
   # change to what it does.
   dir: ./content
 
+# Every line carries the request it belongs to and the principal who caused it,
+# because a refusal you cannot trace back to a request is one you diagnose twice.
+# An inbound `X-Request-ID` is honoured when it is safe to log and replaced when
+# it is not -- the value reaches a log file, and a newline in it forges a line.
+#
+# `json: true` emits one JSON object per line for anything that ships logs. It is
+# offered rather than imposed: a person reading a terminal is served worse by
+# JSON, and an instance nobody ships logs from should not pay for a format only a
+# machine reads.
 logging:
   level: INFO
-  format: "%(asctime)s %(levelname)-7s %(name)s | %(message)s"
+  format: "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s %(principal)s] | %(message)s"
+  json: false
 
 # Machine assistance. Which model MAYA may ask for a draft.
 #

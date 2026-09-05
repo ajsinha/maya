@@ -395,6 +395,18 @@ evidence_node:  seq · kind · subject_type · subject_id · payload · parents
   stores an empty payload *and is hashed over what it stored*, so it verifies against itself. Hashing
   the original would make every such node fail its own verification — which is the trap the obvious
   implementation falls into.
+- **The log is not the audit trail, and is what makes it usable.** The chain
+  records what was *decided*; the log records what happened around it. Every line
+  carries a **request id** and the **principal**, every response returns the id in
+  `X-Request-ID`, and one access line per request gives method, path, status and
+  duration — so a `warrant_resolved` node and the six lines preceding it join, and
+  *"what else was this process doing when it refused me"* has an answer. An
+  inbound request id is honoured only when it is safe to log: the value reaches a
+  log file, and a newline in it forges an entry, so anything outside
+  `[A-Za-z0-9._:-]{1,64}` is **replaced rather than escaped** and the response
+  header says which id was used. The request id is deliberately **not** written
+  into evidence nodes — it would change every content hash for a field that
+  belongs to a transport rather than to a governance decision.
 - **Anchoring is not built.** Writing the daily chain head to WORM storage and to an RFC-3161
   timestamping authority is C-4's third disposition and remains a design. Until it exists,
   verification compares the chain against itself, and self-consistency of a chain an attacker
