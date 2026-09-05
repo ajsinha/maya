@@ -43,7 +43,18 @@ def _truth():
     from core.execution.grammar.vocabulary import BINDINGS, RUNTIMES, VERBS
 
     schema = (ROOT / "db" / "schema" / "sqlite.sql").read_text(encoding="utf-8")
+    # The laws that actually run, counted from the table that states them. The
+    # strongest claim the design makes is that the laws are the acceptance
+    # criteria, and "thirteen of nineteen" is exactly the kind of number that is
+    # true when written and quietly false a milestone later.
+    foundations = (ROOT / "docs" / "00-mathematical-foundations.md").read_text(
+        encoding="utf-8")
+    law_rows = re.findall(r"^\| \*\*L-\d+\*\* \| .*?\| .*?\| (.*?) \|$",
+                          foundations, re.M)
     return {
+        "executable laws": sum(1 for state in law_rows
+                               if "Executable" in state or "Enforcing" in state),
+        "foundational laws": len(law_rows),
         "tables": len(re.findall(r"CREATE TABLE IF NOT EXISTS", schema)),
         "runtimes": len(RUNTIMES),
         "verbs": len(VERBS),
@@ -69,6 +80,15 @@ CLAIMS = {
     "permissions": [r"of \*\*(\d+) permissions\*\*"],
     "help topics": [r"(\d+) help topics"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
+    # Counted from the table itself, so the prose around it cannot drift from
+    # the rows. This is the claim a reader is most likely to take on trust.
+    "executable laws": [r"(\w+) of the nineteen foundational laws are executable",
+                        r"\*\*(\w+) of the nineteen\*\* foundational laws are executable"],
+    # The word immediately before "foundational laws" is the total. Written this
+    # narrowly because the looser form captured "Thirteen" out of "thirteen of
+    # the nineteen foundational laws" and reported the executable count as the
+    # total — a check that cries wolf is a check that gets deleted.
+    "foundational laws": [r"(\w+) foundational laws"],
 }
 
 DOCUMENTS = (list((ROOT / "docs").glob("*.md"))

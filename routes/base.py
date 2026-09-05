@@ -152,6 +152,9 @@ STATUS: Dict[str, int] = {
     "unknown_metric": 422, "unknown_scope": 422,
     "rationale_too_long": 422, "amber_beyond_limit": 422,
     "no_appetite": 404, "no_board_pack": 404,
+    # L-16: a regime that obliges and forbids the same term makes every
+    # determination unsatisfiable, so it cannot be activated.
+    "obligation_contradiction": 422,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for
