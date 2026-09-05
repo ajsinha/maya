@@ -130,15 +130,11 @@
       <div class="mt-2"><span class="evidence-bad">This comparison is not
         looking at every slot this featureset has.</span>
         <code>{{ blind_spot|join(', ') }}</code>
-        {{ 'is' if blind_spot|length == 1 else 'are' }} inherited, and
-        <code>FeaturesetRegistry.schema</code> builds the comparison from the
-        featureset's own row rather than from what it resolves to &mdash; while
-        <code>publish</code> fills the resolved schema, inherited slots
-        included. A set composed from parents therefore publishes versions that
-        fill its schema and then satisfies no kernel at all. What is shown above
-        is what the platform <em>enforces</em>, reported rather than quietly
-        corrected here; the correction belongs in
-        <code>core/features/sets.py</code>.</div>
+        {{ 'is' if blind_spot|length == 1 else 'are' }} inherited rather than
+        declared on this set&rsquo;s own row, and the comparison above is made
+        over the <strong>resolved</strong> schema &mdash; the same slots
+        <code>publish</code> fills. Inherited and declared slots are judged
+        alike, which is what makes composing a set worth doing.</div>
     {% endif %}
   </div></div>
 

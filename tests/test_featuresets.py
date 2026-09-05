@@ -574,3 +574,54 @@ class TestAssemblingFromAFeatureset:
         with pytest.raises((AssemblyRejected, KeyError)):
             nj.build_from_featureset("nj_home_core", 1,
                                      [{"entity_id": "P0"}], SALE + 10)
+
+
+class TestAComposedFeaturesetCanActuallyBeFitted:
+    """`schema()` read the row's own `slots`; `publish()` fills what
+    `resolver.resolve` produces.
+
+    So a featureset composed from parents — which declares nothing of its own —
+    reported an **empty** schema and satisfied no kernel at all. A fit warrant
+    naming it was refused `schema_not_satisfied`, listing slots the set
+    demonstrably had and had just been published with.
+
+    Composition is the ordinary case for this object, not an exotic one, and it
+    was the case that could never be fitted. Two readings of "what slots does
+    this have" have to be one reading, and it has to be the one `publish` uses,
+    because that is the one the data fills.
+    """
+
+    @pytest.fixture
+    def composed(self, nj):
+        nj.define_featureset("nj_parent", ENTITY, "person/j.okafor", CORE_SLOTS,
+                             label_slot="sale_price")
+        nj.define_featureset("nj_child", ENTITY, "person/j.okafor", {},
+                             composes=["nj_parent"], label_slot="sale_price")
+        return nj
+
+    def test_the_child_resolves_its_parents_slots(self, composed):
+        assert set(composed.sets.resolved("nj_child")["slots"]) == set(CORE_SLOTS)
+
+    def test_the_schema_is_the_resolved_one_not_the_declared_one(self, composed):
+        """The declared one is empty; the resolved one is what gets filled."""
+        named = {f.name for f in composed.sets.schema("nj_child").fields}
+        assert named == set(CORE_SLOTS) - {"sale_price"}
+
+    def test_it_satisfies_a_kernel_over_the_slots_it_inherited(self, composed):
+        from core.domain.schemas import Field, Schema
+        kernel = Schema((Field("log_living_area", "numeric"),
+                         Field("bedrooms", "integer")))
+        ok, missing = composed.sets.satisfies("nj_child", kernel)
+        assert ok and not missing
+
+    def test_a_kernel_reading_something_nobody_supplies_is_still_refused(
+            self, composed):
+        """The fix must not make satisfaction vacuous."""
+        from core.domain.schemas import Field, Schema
+        ok, missing = composed.sets.satisfies(
+            "nj_child", Schema((Field("nobody_has_this", "numeric"),)))
+        assert not ok and "nobody_has_this" in missing
+
+    def test_an_uncomposed_set_is_unchanged(self, composed):
+        named = {f.name for f in composed.sets.schema("nj_parent").fields}
+        assert named == set(CORE_SLOTS) - {"sale_price"}

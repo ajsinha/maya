@@ -57,12 +57,10 @@
         resolve to.</span>
         <span class="text-muted">
         {% for o in unseen %}<code>{{ o.name }}</code> ({{ o.invisible|join(', ') }}){{ "; " if not loop.last }}{% endfor %}.
-        <code>schema()</code> is built from a featureset's own row rather than
-        from what it resolves to, while <code>publish</code> fills the resolved
-        schema &mdash; so a set composed from parents is judged on nothing it
-        inherited. This page shows what the platform enforces rather than a
-        kinder second answer; the correction belongs in
-        <code>core/features/sets.py</code>.</span>
+        <code>schema()</code> resolves before comparing, so a set composed from
+        parents is judged on everything it inherited &mdash; the same slots
+        <code>publish</code> fills. The two used to disagree, and a composed set
+        was judged on nothing, which meant it satisfied no kernel at all.</span>
       </p>
     {% endif %}
   </div>

@@ -179,9 +179,31 @@ class ModelComposition:
 
         The order is the platform's one order (`core.domain.lattice.refines`),
         the same comparison `L-12` makes at an alias move and `L-W10` makes at
-        warrant issuance. What the source *provides* must stand in for what the
-        target *reads*; extra outputs are fine and simply unread, a missing one
-        is a wire to nowhere.
+        warrant issuance — but applied to **the fields the two ends share**, not
+        to the whole of the target's input.
+
+        The difference matters, and getting it wrong made the relation unusable.
+        This asked whether the source's output could stand in for the target's
+        *entire* input schema. A PD model feeding an ECL stack that also reads
+        LGD, EAD and a discount curve was therefore refused, with the message
+        that PD "does not provide lgd" — which is true, and is not what an edge
+        claims. That is the ordinary shape of a model network, so the check
+        refused the normal case and admitted only the degenerate one where a
+        model reads nothing but its predecessor's output. The single test that
+        covered it constructed exactly that case.
+
+        What an `input_to` edge actually asserts is narrower: *this output
+        arrives where that input is read*. So two things are required, and only
+        two:
+
+        * the source provides **at least one** field the target reads — an edge
+          supplying nothing is the wire to nowhere the refusal is named for;
+        * every field they **share** type-checks under the one order — a wire
+          that arrives carrying the wrong type is worse than no wire, because
+          the blast radius follows it.
+
+        What the target reads from elsewhere is somebody else's edge, or the
+        caller's to supply, and is not this edge's business.
 
         Checked against the latest version at each end, and only where both ends
         have one. A model with no version yet is a model whose schema is not
@@ -198,28 +220,66 @@ class ModelComposition:
                         from_urn if producing is None else to_urn)
             return
 
-        outcome = refines(
-            schema_of_fields(producing.get("output_schema") or []),
-            schema_of_fields(consuming.get("input_schema") or []))
+        produced = schema_of_fields(producing.get("output_schema") or [])
+        read = schema_of_fields(consuming.get("input_schema") or [])
+        supplies = self.supplied(produced, read)
+
+        if not supplies:
+            raise RegistryError(
+                f"{from_urn} does not compose with {to_urn}: it produces "
+                f"{', '.join(f.name for f in produced.fields) or 'nothing'} and "
+                f"{to_urn} reads "
+                f"{', '.join(f.name for f in read.fields) or 'nothing'}, so this "
+                f"edge carries nothing. An `input_to` edge asserts that an output "
+                f"arrives where an input is read; one that supplies no field the "
+                f"target reads is a wire to nowhere, and the blast radius would "
+                f"follow it")
+
+        # The shared fields only. What the target reads from elsewhere is
+        # another edge's business, or the caller's, and not this one's.
+        overlap = Schema(tuple(f for f in read.fields if f.name in supplies))
+        outcome = refines(produced, overlap)
         if outcome.holds:
             return
         raise RegistryError(
-            f"{from_urn} does not compose with {to_urn}: what it produces "
-            f"{outcome.reason()}. An `input_to` edge asserts that the output arrives "
-            f"where the input is read, and an edge that does not type-check is "
-            f"a wire to nowhere — the blast radius would follow it and the "
-            f"composite would have no defined schema")
+            f"{from_urn} does not compose with {to_urn}: on the "
+            f"{len(supplies)} field(s) they share, what it produces "
+            f"{outcome.reason()}. A wire that arrives carrying the wrong type is "
+            f"worse than no wire, because everything downstream believes it")
+
+    @staticmethod
+    def supplied(produced: Schema, read: Schema) -> set:
+        """The names the source produces that the target reads.
+
+        Named and public because three things want it: the check above, the
+        composite's derived schema, and any screen explaining why an edge was
+        refused. Three computations of "what does this edge carry" would be
+        three answers.
+        """
+        return {f.name for f in produced.fields} & {f.name for f in read.fields}
 
     def _latest(self, model_id: str) -> Optional[Dict[str, Any]]:
         rows = self.versions.many(model_id=model_id)
         return rows[-1] if rows else None
 
     def composite_schema(self, from_urn: str, to_urn: str) -> Dict[str, Any]:
-        """The type of `to ∘ from`: the source's inputs, the target's outputs.
+        """The type of `to ∘ from`: what the pair still needs, and what it emits.
 
         Derived rather than declared, which is the whole reason to type the edge
         — a composite whose schema somebody wrote down is a composite that can
         disagree with its parts.
+
+        This returned *the source's inputs* and the target's outputs, which is
+        right only when the target reads nothing but the source's output. For a
+        PD model feeding an ECL stack that also reads LGD, EAD and a discount
+        curve, the composite's declared input omitted all three, so the derived
+        type said the pair could be run on a borrower id alone.
+
+        The composite's input is the source's input **plus whatever the target
+        reads that the source does not supply**. Those remaining fields are the
+        honest cost of the composition: they are what somebody must still
+        provide, and they are exactly what a blast-radius or an impact question
+        needs to know about.
         """
         source = self.catalogue.require(from_urn)
         target = self.catalogue.require(to_urn)
@@ -227,12 +287,20 @@ class ModelComposition:
         if producing is None or consuming is None:
             raise RegistryError(
                 "a composite has no schema until both ends have a version")
+
+        supplies = self.supplied(
+            schema_of_fields(producing.get("output_schema") or []),
+            schema_of_fields(consuming.get("input_schema") or []))
+        still_needed = [f for f in (consuming.get("input_schema") or [])
+                        if f.get("name") not in supplies]
         return {"composite": f"{to_urn} ∘ {from_urn}",
-                "input_schema": producing.get("input_schema") or [],
+                "input_schema": (producing.get("input_schema") or []) + still_needed,
                 "output_schema": consuming.get("output_schema") or [],
-                "detail": "the source's inputs and the target's outputs; the "
-                          "wire between them type-checks or the edge does not "
-                          "exist"}
+                "supplied_by_the_edge": sorted(supplies),
+                "still_supplied_by_the_caller": [f.get("name") for f in still_needed],
+                "detail": "the source's inputs, plus everything the target reads "
+                          "that this edge does not carry — those are what "
+                          "somebody must still provide for the pair to run"}
 
     def unrelate(self, from_urn: str, to_urn: str, kind: str,
                  reason: str, actor: str = "system") -> Dict[str, Any]:

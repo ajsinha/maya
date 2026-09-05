@@ -541,11 +541,26 @@ class FeaturesetRegistry:
 
     # ---------------------------------------------------------------- schemas
     def schema(self, name: str) -> Schema:
-        """The declared schema, as the domain's own object, so the variance rule
-        that gates alias promotion can be applied to a featureset unchanged."""
+        """The **resolved** schema, as the domain's own object, so the variance
+        rule that gates alias promotion applies to a featureset unchanged.
+
+        Resolved, not declared, and the difference was not cosmetic. This read
+        the row's own `slots` while `publish` fills what `resolver.resolve`
+        produces — so a featureset composed from parents declared nothing of its
+        own, reported an **empty** schema, and therefore satisfied no kernel at
+        all. A fit warrant naming it was refused `schema_not_satisfied` listing
+        slots the set demonstrably has and had just been published with.
+
+        Composition is the whole point of the object: a set that inherits its
+        slots is the ordinary case, not an exotic one, and it was the case that
+        could never be fitted. The two readings of "what slots does this have"
+        have to be one reading, and it has to be the one `publish` uses, because
+        that is the one the data actually fills.
+        """
         featureset = self.require(name)
+        slots = self.resolver.resolve(featureset)
         return Schema(tuple(Field(slot, spec["dtype"], spec.get("nullable", False))
-                            for slot, spec in sorted(featureset["slots"].items())
+                            for slot, spec in sorted(slots.items())
                             if slot != featureset["label_slot"]))
 
     def satisfies(self, name: str, kernel_input: Schema) -> Tuple[bool, List[str]]:
