@@ -21,7 +21,7 @@ from core.authz.common import AuthzError
 from core.log import get_logger, swallowed
 
 logger = get_logger(__name__)
-from routes.base import Routes
+from routes.base import Routes, local_path
 
 PENDING = "sso_pending"
 
@@ -46,7 +46,11 @@ class SsoRoutes(Routes):
         def begin(request: Request, next: str = "/dashboard"):
             """Send the browser to the provider, remembering what to check later."""
             provider = self._provider()
-            pending = self.guard(lambda: provider.begin(next))
+            # Bounded before it is remembered, not before it is followed: the
+            # value survives a round trip through the identity provider, and a
+            # target checked only on the way back is one that spent that trip
+            # looking like ours.
+            pending = self.guard(lambda: provider.begin(local_path(next)))
             request.session[PENDING] = pending
             return RedirectResponse(pending["url"], status_code=303)
 
@@ -88,8 +92,8 @@ class SsoRoutes(Routes):
             # session and bounced back to /login -- the entire SSO path had
             # never signed anybody in, and no test asserted on the session.
             request.session["username"] = principal["username"]
-            return RedirectResponse((pending or {}).get("redirect_to", "/dashboard"),
-                                    status_code=303)
+            return RedirectResponse(
+                local_path((pending or {}).get("redirect_to")), status_code=303)
 
         @self.app.post(f"{api}/sso/preview", tags=["auth"])
         def preview(request: Request, claims: dict):
