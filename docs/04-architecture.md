@@ -488,7 +488,7 @@ that is true today, stated as three tiers rather than as an aspiration.
 
 | | |
 |---|---|
-| **No plugin loader** | there is no `entry_points` discovery, so a bank's own classes cannot ship as a separate package. Model classes being strings is what makes registration free and also what makes `L-15` — every fibre total: evidence schema, lifecycle, metrics, templates — unenforceable. There is no `fibres.py` and no startup gate that refuses to boot on a partial fibre |
+| **No `entry_points` discovery** | a bank's own fibre ships in `core/fibres/library.py` rather than as a separate package. The fibration itself exists — nine fibres over the trainability classes, with a start-up gate that refuses to serve on a partial one (`L-15`) — so what is missing is third-party packaging, not the structure or the gate |
 | **No fibre-specific evidence schema** | a class carries no JSON Schema, so class-specific evidence is not validated against anything |
 | **No connectors** | there is no `connectors/` package. Nothing imports from MLflow, SageMaker, Vertex or SAS |
 

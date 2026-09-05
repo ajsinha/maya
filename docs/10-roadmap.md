@@ -39,8 +39,8 @@ done.
 |---|---|---|
 | **Asymmetric warrant signatures** | HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here | Verifying a warrant requires holding the key that could **mint** one. That is the wrong shape for a contract handed to engines you do not control, and it is the single largest gap in the execution story |
 | **Evidence chain anchoring** | Needs WORM storage and an RFC-3161 timestamping authority — both deployment dependencies rather than code | Verification compares the chain against itself. Self-consistency of a chain an attacker could rewrite proves less than it appears to; this is finding **C-4**'s third disposition |
-| **Six foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-15`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Fifteen of twenty-one run; a law stated and not executed prevented nothing |
-| **A plugin loader** | Model classes are strings on the register; there is no fibre registry | `L-15` cannot be checked, so "no fibre is empty" is an intention. Adding a model family is a convention rather than a validated extension |
+| **Five foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Sixteen of twenty-one run; a law stated and not executed prevented nothing |
+| **`entry_points` discovery for fibres** | The fibration itself is built — `core/fibres/`, nine fibres over the derived trainability class, a totality gate at start-up (`L-15`) | A bank's own fibre ships inside this repository rather than as its own package. The structure and the gate exist; third-party packaging does not |
 
 ### 2.2 Reach — these change what MAYA can *cover*
 
@@ -82,11 +82,19 @@ self-consistency is the claim most likely to be challenged by an examiner who
 understands what a hash chain does and does not prove.
 
 **Then the law gap, because it is cheap and it is the platform's own standard.**
-`L-15` needs the plugin loader; `L-14` needs composite warrants; `L-17` needs the
-online store — so three of the six are blocked on items below rather than on
-effort. `L-6`, `L-11` and `L-13` are honest refusals: building a document `put`
-to satisfy the lens laws would be building the wrong thing, and the table says
-so rather than leaving a gap that looks like neglect.
+`L-14` needs composite warrants and `L-17` needs the online store, so two of the
+five are blocked on items below rather than on effort. `L-6`, `L-11` and `L-13`
+are honest refusals: building a document `put` to satisfy the lens laws would be
+building the wrong thing, and the table says so rather than leaving a gap that
+looks like neglect.
+
+`L-15` was the third of those, and closing it is worth recording because the
+blocker was not effort. It was **the base**: the law says the fibration is
+indexed by the model class, and `model_class` is a free-text column, so totality
+over it is either a closed vocabulary — which contradicts *"adding a class adds a
+fibre, no migration"* — or a gate defeated by typing an unregistered word. The
+base is the derived trainability class, and every fibre had already been written
+out in `docs/02 §5`.
 
 **Then reach, in the order a bank actually feels the absence.**
 
@@ -148,7 +156,7 @@ Dropped the ones that have been resolved or overtaken. What remains:
 | **Machine assistance ships ahead of its oracle** | The pressure to ship an impressive ungated demo is constant | Structural, not procedural: Tier C is **unrepresentable** in the schema. A capability without an oracle or a grounding check cannot be registered |
 | **Assistants drift toward deciding** | Policy erodes; this one has to be architectural | No AI principal holds a credential permitting a governance transition. **Held by construction and not by any check** — the test that would enforce it is named in [13](13-ai-in-the-platform.md) and not written |
 | **Scope creep into enterprise GRC** | The boundary is easy to state and easy to erode | Explicit: MAYA owns model risk; issues sync to the GRC platform rather than living in two places |
-| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Fifteen of twenty-one run, and the six that do not are named |
+| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Sixteen of twenty-one run, and the five that do not are named |
 
 ---
 

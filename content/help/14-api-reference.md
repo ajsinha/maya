@@ -130,6 +130,9 @@ The codes a caller most often has to branch on:
 | `assembly_rejected` | 422 | A training set assembly was not point-in-time safe |
 | `boundary_violation` | 422 | Inputs outside the contract's assumptions |
 | `grammar_violation` | 422 | The warrant does not conform to the grammar |
+| `no_fibre` | 422 | The trainability class has no fibre, so nothing says what evidence it needs or what may be monitored on it. Not a 404: the class is a real value and the caller named it correctly — what is missing is something the platform should have supplied |
+| `kind_not_answerable` | 422 | The monitor asks a question this class cannot answer — a `performance` monitor on a T0 pricer, a `calibration` monitor on a T5 generative assembly. Both used to be accepted, and both then ran forever without meaning anything, which reads on the estate screen as coverage |
+| `fibration_incomplete` | 503 | The one refusal here you should never see. The totality gate runs at start-up, so if this reaches you the instance is serving on a fibration it already knows is partial, and the honest answer is that it is not fit to answer |
 | `test_not_admissible` | 422 | This test cannot answer this monitor's question |
 | `unknown_subject` | 422 | A document was filed against something that is not a subject |
 | `unknown_metric` | 422 | A limit named something the platform does not compute |
@@ -342,6 +345,7 @@ is not a model store of last resort.
 |---|---|---|---|
 | `GET` | `/grammar`, `/grammar/schema` | auth | The four vocabularies; the generated JSON Schema |
 | `POST` | `/grammar/validate` | auth | Check a document before you sign anything. Reports **every** problem, not the first |
+| `GET` | `/fibres`, `/fibres/{trainability_class}` | auth | The fibration (`L-15`): for each of the nine trainability classes, the evidence it needs, the lifecycle it may occupy, the monitor kinds that can answer anything about it, and the documents that compile for it — plus, in prose, what conceptual soundness rests on, what outcomes analysis *is*, and what monitoring answers. A class with no fibre is refused `no_fibre` (422) rather than returned empty, because an empty fibre is what the law forbids |
 | `POST` | `/warrants` | `warrant:issue` | Issue a standing entitlement: `urn, principal, declared_use` + `environment`, `flavour` |
 | `POST` | `/resolve?verb=` | `warrant:resolve` | Mint a signed, expiring warrant. The hot path. Resolving for another principal needs `warrant:issue` |
 | `POST` | `/fit-warrants` | `warrant:issue` | A warrant to *fit*: `urn, principal, featureset, featureset_version, window, as_of`. Enforces L-W10 |

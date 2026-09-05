@@ -290,10 +290,28 @@ def attested_model(registry, lifecycle, ready_model, owner, mrm):
 
 # -------------------------------------------------------------------- monitoring
 @pytest.fixture
-def monitors(db, catalogue, evidence):
+def monitors(db, catalogue, evidence, registry):
+    """Wired as the application wires it, with the fibration.
+
+    Without `fibres` and `class_of` the registry holds no opinion about which
+    questions a class can answer, which is the state the platform was in before
+    `L-15` was closed — and a fixture in that state would let a test define a
+    monitor the application refuses.
+    """
+    from core.fibres import FibreRegistry
     from core.monitoring import MonitorRegistry
     from db import MonitorRepository
-    return MonitorRegistry(MonitorRepository(db), catalogue, evidence)
+
+    def class_of(model_id: str):
+        """model_id -> the trainability class of its latest version."""
+        model = registry.by_id(model_id)
+        if not model:
+            return None
+        versions = registry.versions(model["urn"])
+        return versions[-1]["trainability_class"] if versions else None
+
+    return MonitorRegistry(MonitorRepository(db), catalogue, evidence,
+                           fibres=FibreRegistry(), class_of=class_of)
 
 
 @pytest.fixture

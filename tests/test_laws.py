@@ -383,6 +383,126 @@ class TestL16NoRegimeObligesAndForbidsTheSameThing:
 # ===========================================================================
 # The gap that remains
 # ===========================================================================
+# ===========================================================================
+# L-15 — fibration completeness
+# ===========================================================================
+class TestL15NoFibreIsEmpty:
+    """*Every class has a total evidence schema, lifecycle, metric set and
+    template set; no fibre is empty.*
+
+    Stated since the first milestone and executed by nothing, which `docs/00`
+    said in the only sentence that could have been written: *"the structure is
+    real and the totality gate is not, and those are different claims."*
+
+    The gate is the difference between an architecture that admits a quantum
+    optimiser and one that admits a typo.
+
+    ## The base moved, and that is the substance of closing it
+
+    The law says the base is the **model class**. It is a free-text column —
+    somebody types `rates`, or `credit`, or `c`. Totality over free text has two
+    resolutions and both fail: close the vocabulary and *"adding a class adds a
+    fibre — no migration"* becomes false; leave it open and the gate is defeated
+    by typing an unregistered word, which is a gate that reports success.
+
+    The base is the **trainability class**, which is derived from how `P` is
+    inhabited and never declared — so it cannot be typed wrong, extended by
+    accident, or disagree with the model it indexes. `docs/02` had already
+    written every fibre out, class by class, and calls the T-classes "typical
+    fibre" in its own bindings table.
+    """
+
+    @staticmethod
+    def _registry():
+        from core.fibres import FibreRegistry
+        return FibreRegistry()
+
+    def test_the_fibration_is_total(self):
+        report = self._registry().verify()
+        assert report == {"law": "L-15", "classes": 9, "total": True}
+
+    def test_every_class_in_the_base_has_a_fibre(self):
+        from core.fibres import BASE
+        registry = self._registry()
+        assert set(registry.classes()) == set(BASE)
+        assert not registry.totality()
+
+    @pytest.mark.parametrize("facet", ["evidence", "lifecycle", "metrics",
+                                       "templates"])
+    def test_no_facet_of_any_fibre_is_empty(self, facet):
+        registry = self._registry()
+        for name in registry.classes():
+            assert getattr(registry.of(name), facet), (
+                f"the {facet} facet of {name} is empty, so the platform can say "
+                f"nothing about that class along that axis")
+
+    def test_a_partial_fibre_cannot_be_registered(self):
+        """Refused at registration as well as at the gate. If only the gate
+        checked, the registry could hold a partial fibre for the whole of a run
+        and refuse to start next time — a failure discovered by a restart."""
+        from core.fibres import Fibre, FibreError, FibreRegistry
+        partial = Fibre("T9", "Something new", evidence=("model_development_document",),
+                        lifecycle=("draft",), metrics=(), templates=("model_card",),
+                        soundness="x", outcomes="y", answers="z")
+        with pytest.raises(FibreError, match="missing metrics"):
+            FibreRegistry().register(partial)
+
+    def test_the_gate_refuses_to_boot_on_a_partial_fibration(self):
+        """The law, negated. A base naming a class nothing supplies a fibre for
+        must stop the platform rather than be discovered by the first person who
+        asks a question about that class."""
+        from core.fibres import FibreError, FibreRegistry, library
+        registry = FibreRegistry(fibres=library(), base=tuple(f"T{n}" for n in range(10)))
+        assert registry.totality() == {"T9": ["no fibre"]}
+        with pytest.raises(FibreError, match="fibration is not total"):
+            registry.verify()
+
+    def test_extension_is_supplying_a_fibre_and_nothing_else(self):
+        """The property the fibration exists for. A class nobody anticipated
+        needs a fibre — no migration, no table, no screen."""
+        from core.fibres import Fibre, FibreRegistry
+        registry = FibreRegistry(base=tuple(f"T{n}" for n in range(10)))
+        registry.register(Fibre(
+            "T9", "Quantum-annealed",
+            evidence=("model_development_document", "independent_review"),
+            lifecycle=("draft", "submitted", "approved", "attested", "retired"),
+            metrics=("input_drift", "score_drift"),
+            templates=("model_development", "validation_report", "model_card"),
+            soundness="the embedding, and the classical benchmark it beats",
+            outcomes="repeated annealing against the classical optimum",
+            answers="solution quality and the spread across runs"))
+        assert registry.verify()["total"] is True
+
+    def test_the_fibre_answers_what_may_be_asked_of_a_class(self):
+        """Totality is not the interesting half; the fibre has to *say*
+        something, or it is nine complete records of nothing.
+
+        A T0 pricer has no parameters and no fitted relationship, so
+        discrimination and calibration are not questions about it. A T5
+        generative assembly has no calibration question either — a Brier score
+        over text is a number on a page that means nothing.
+        """
+        registry = self._registry()
+        assert not registry.of("T0").admits_monitor("performance")
+        assert not registry.of("T0").admits_monitor("calibration")
+        assert registry.of("T0").admits_monitor("input_drift")
+        assert not registry.of("T5").admits_monitor("calibration")
+        assert registry.of("T2").admits_monitor("calibration")
+
+    def test_a_vendor_model_is_not_asked_for_a_development_document(self):
+        """Somebody else developed it. Asking the bank produces a document about
+        a model nobody here built, which is worse than an admitted gap."""
+        registry = self._registry()
+        assert not registry.of("T6").requires_evidence("model_development_document")
+        assert registry.of("T6").requires_evidence("vendor_documentation")
+        assert not registry.of("T6").admits_document("model_development")
+
+    def test_a_class_with_no_fibre_is_refused_rather_than_defaulted(self):
+        from core.fibres import FibreError
+        with pytest.raises(FibreError, match="no fibre"):
+            self._registry().of("T42")
+
+
 class TestTheLawsStillNotExecutable:
     """Named here as well as in the table, because a gap recorded only in a
     document is a gap somebody has to go looking for."""
@@ -398,15 +518,13 @@ class TestTheLawsStillNotExecutable:
                 "is computed anywhere",
         "L-14": "lax monoidality needs composite warrants and an aggregate risk "
                 "function; the interaction premium is design",
-        "L-15": "fibration completeness needs a plugin loader that refuses to "
-                "boot on a partial fibre; model classes are strings today",
         "L-17": "contract-serving agreement needs an online store to compare "
                 "against. Half of it exists: `serving_namespaces` computes what "
                 "serving MUST read",
     }
 
     def test_the_list_is_stated_rather_than_implied(self):
-        assert len(self.NOT_EXECUTABLE) == 6
+        assert len(self.NOT_EXECUTABLE) == 5
         for law, why in self.NOT_EXECUTABLE.items():
             assert why, f"{law} is listed with no reason"
 

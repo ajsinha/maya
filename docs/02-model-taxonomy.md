@@ -188,12 +188,21 @@ The design in [00 §7](00-mathematical-foundations.md) treats the model class as
 register, with a total evidence schema, lifecycle, metric set and template set for each — and `L-15`
 asserts that no fibre is empty.
 
-**That is not built.** A model class is a string on the register. There is no plugin loader, no fibre
-registry, and nothing refuses to boot on a partial fibre. What *is* demonstrated is the warrant
-grammar's extensibility: a new model technology is a new value in one of four vocabularies — eighteen
-runtimes × ten verbs × twelve data bindings × how `P` is inhabited — and the grammar's fourteen
-admissibility laws quantify over derived facts rather than over a category anybody attached. That is a
-narrower claim than the fibration makes, and it is the one the code supports.
+**That is now built, and it is indexed by the trainability class rather than by `model_class`.** The
+reason is the same one this whole document is about: `model_class` is declared, and a totality gate
+over declared free text is defeated by typing an unregistered word. The trainability class is derived,
+so the index cannot be typed wrong.
+
+Which means §5 above is no longer a reference for whoever seeds a register by hand. It **is** the
+fibre — `core/fibres/library.py` carries those three columns verbatim for each of the nine classes,
+because two statements of one rule disagree eventually and the direction they disagree in is whichever
+one the reader happened to open. `FibreRegistry.verify()` runs at start-up and refuses to serve on a
+partial fibration (`L-15`).
+
+The fibre is read, not merely held: a `performance` monitor on a T0 pricer and a `calibration` monitor
+on a T5 generative assembly are refused `kind_not_answerable`, where before both were accepted and ran
+forever without meaning anything — which reads on the estate screen as coverage, and is worse than an
+absent monitor, because an absent monitor is visible in the worklist.
 
 ---
 
@@ -707,10 +716,10 @@ Stated plainly because an earlier draft of this document claimed a seed file tha
 
 | | |
 |---|---|
-| **A model class is a string on the register.** | There is no `seed/model_classes.yaml`, no fibre registry and no plugin loader. The catalogue above is a reference for whoever seeds a register by hand or by API; it is not data the platform loads |
+| **A model class is still a string on the register.** | And it is now only an organisational label — grouping and reporting — because the fibration is indexed by the derived trainability class instead. There is no `entry_points` discovery, so a fibre ships in `core/fibres/library.py` rather than in a bank's own package |
 | **The lifecycle is one state machine, not one per class.** | Six states with amendment as the only route out of immutability, plus `baselined` as a second **initial** state for imported records — because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not (`L-1`) |
 | **What *is* per-class** | the verbs a warrant may ask for, and the refusals: `L-W1` (fit on T0 or T6), `L-W2` (generate on a non-generative runtime), `L-W11` (a calibration with no `as_of`), `L-W12` (parameters in an artifact with no digest), `L-W13` (a generative runtime naming a family but no build). Fourteen laws, all fourteen checked before a signature |
-| **What a bank would have to build** | the per-class evidence schema, monitoring metric set and documentation template set this document specifies. `L-15` — no fibre is empty — is stated and not enforced |
+| **What a bank would extend** | a class of its own, by supplying a fibre and nothing else — `FibreRegistry.register` refuses a partial one, and `verify` refuses to serve on a partial fibration. What is *not* built is `entry_points` discovery, so a bank's fibre ships inside this repository rather than as a separate package |
 
 ---
 
