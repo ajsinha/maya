@@ -28,6 +28,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
+from core.artifacts.common import EXECUTES_ON_LOAD
 from core.execution.errors import WarrantError
 from core.execution.grammar import GrammarValidator, WARRANT_VERSION
 from core.execution.signing import WarrantSigner
@@ -152,12 +153,38 @@ class WarrantBuilder:
 
     @staticmethod
     def _realisation(version: Dict[str, Any], kernel: Dict[str, Any]) -> Dict[str, Any]:
+        """Everything an engine needs to locate and load the thing that runs.
+
+        The artifact block says WHAT the bytes are as well as where: the format
+        decides how they are loaded, the size tells a caller what it is about to
+        fetch, and `executes_on_load` says whether loading them runs code the
+        platform did not write -- which is the difference between a graph and a
+        pickle, and is not something an engine should be inferring from a file
+        extension.
+
+        `held_by_maya` is the one that matters operationally. An artifact stored
+        here is addressed by its digest, so an engine can fetch it from the
+        platform that authorised it; an artifact merely NAMED is somewhere else,
+        and the warrant should say which of the two this is rather than leaving
+        an engine to discover it from a URI scheme.
+        """
         runtime = kernel.get("runtime") or DESCRIPTOR_ONLY
         entry = kernel.get("entry") or {}
-        return {"runtime": runtime, "entry": entry,
-                "artifact": {"uri": version.get("artifact_uri"),
-                             "digest": version.get("artifact_digest"),
-                             "format": kernel.get("artifact_format")},
+        digest = version.get("artifact_digest")
+        fmt = kernel.get("artifact_format")
+        artifact: Dict[str, Any] = {
+            "uri": version.get("artifact_uri"),
+            "digest": digest,
+            "format": fmt,
+            "size": version.get("artifact_size"),
+            "executes_on_load": fmt in EXECUTES_ON_LOAD,
+            "held_by_maya": bool(digest) and str(
+                version.get("artifact_uri") or "").startswith("maya://artifact/"),
+        }
+        if artifact["held_by_maya"]:
+            # Where to GET it, so an engine holding a warrant needs nothing else.
+            artifact["fetch"] = f"/api/v1/artifacts/{digest}"
+        return {"runtime": runtime, "entry": entry, "artifact": artifact,
                 "environment": kernel.get("environment") or {}}
 
     @staticmethod

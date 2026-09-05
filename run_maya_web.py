@@ -34,6 +34,7 @@ from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
+from core.artifacts import ArtifactStore
 from core.assist import CapabilityRegistry, DraftingService, GenerationLog
 from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
@@ -196,6 +197,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     composition = ModelComposition(ModelEdgeRepository(db), registry.catalogue,
                                    evidence)
 
+    # Where serialised models live, addressed by what they are rather than
+    # where somebody put them.
+    artifacts = ArtifactStore(Path(cfg.get("data.artifacts",
+                                           str(ROOT / "data" / "artifacts"))))
+    # So a version naming a digest MAYA holds is resolved against the store
+    # rather than believed: the uri, the size and the format come from what is
+    # actually there.
+    registry.attach_artifacts(artifacts)
+
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
     # Which model this instance may ask. The default is the mock, which
@@ -291,7 +301,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "composition": composition, "tiering": tiering, "warrants": warrants,
+                           "registry": registry, "composition": composition,
+                           "artifacts": artifacts, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,

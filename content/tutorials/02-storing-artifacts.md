@@ -4,48 +4,123 @@ slug: storing-artifacts
 section: The register
 order: 20
 icon: archive
-summary: What MAYA stores, what it deliberately does not, why a digest beats a copy, and how each artifact format is reached.
+summary: "Where the model file lives: MAYA's content-addressed store for artifacts you own, a verified digest for the ones somebody else holds, which formats execute code when they load, and why documents are stored differently from artifacts."
 audience: Engineers, Model owners
 ---
 
 # Storing model artifacts
 
-## MAYA stores the digest, not usually the bytes
+There are two honest answers to "where does the model file live", and MAYA
+supports both. Which one you want depends on whether anybody else is already
+custodian of the bytes.
 
-```json
-{"artifact_digest": "sha256:9f2c1a7e4b3d0865ca19e2f7b04d3a61c8e5079fb2d4a136e0c85719ad3f2b4c"}
+| | **Hold it in MAYA** | **Name it, hold it elsewhere** |
+|---|---|---|
+| Use when | you trained it, and nothing else treats it as evidence | a vendor binary under licence, a checkpoint in your ML platform, a 40GB file you will not duplicate |
+| MAYA has | the bytes, addressed by their hash | the digest and a URI |
+| The engine | fetches from MAYA and verifies | resolves your URI and verifies |
+| On the warrant | `held_by_maya: true`, with a `fetch` path | `held_by_maya: false` |
+
+Neither is a fallback for the other, and the warrant says which one you have
+rather than leaving an engine to guess from a URI scheme.
+
+## Holding it in MAYA
+
+The store is content-addressed: **a file's name is its own SHA-256**.
+
+```bash
+DIGEST=$(sha256sum pd_smallbiz_3.2.1.onnx | cut -d' ' -f1)
+
+curl -u d.raman:… -X POST \
+  "http://localhost:5006/api/v1/artifacts?format=onnx&digest=sha256:$DIGEST" \
+  -H 'Content-Type: application/octet-stream' \
+  --data-binary @pd_smallbiz_3.2.1.onnx
 ```
 
-That is a deliberate choice, and it is worth understanding before you fight it.
-
-**It works for artifacts MAYA must not hold.** A vendor binary under licence, a
-container in a registry someone else runs, a 40GB checkpoint you are not going to
-duplicate into a governance database.
-
-**It is checkable at execution time.** The warrant carries the digest; the engine
-verifies what it actually loaded against it. A swapped artifact is *detected*
-rather than assumed away — which a copy in a governance store cannot do, because
-nothing forces production to read from that copy.
-
-**It is stable.** The same model registered twice from two pipelines produces the
-same digest, which is how duplicate registration is caught rather than
-accumulated.
-
-## Where the bytes actually live
-
-Wherever your organisation already puts them. The warrant carries the location:
-
 ```json
-"artifact": {
-  "uri": "s3://maya-artifacts/credit/pd_smallbiz_3.2.1.onnx",
-  "digest": "sha256:9f2c1a...",
-  "format": "onnx"
-}
+{"digest": "sha256:9f2c1a7e…", "size": 81443712, "format": "onnx",
+ "uri": "maya://artifact/sha256:9f2c1a7e…", "executes_on_load": false,
+ "stored": true, "detail": "81.4 MB"}
 ```
 
-`data/artifacts/` exists for a local development store and is git-ignored. A real
-deployment points `uri` at object storage, a package registry, a git ref or a
-container registry.
+They land in well-structured folders under the data directory, two levels of
+fan-out because a single directory holding a hundred thousand files is slow on
+every filesystem that has ever existed:
+
+```
+data/artifacts/9f/2c/9f2c1a7e…      the file — its name IS its sha256
+data/artifacts/9f/2c/9f2c1a7e….fmt  one word: the format it was declared as
+```
+
+Three properties follow from naming a file after its own hash, and each removes
+a control somebody would otherwise have to perform:
+
+- **The same weights stored twice are stored once**, because identical bytes land
+  on an identical path. A challenger differing from its champion by a
+  configuration does not double the storage.
+- **An artifact cannot be edited in place**, because edited bytes are a different
+  address.
+- **"These are the bytes the warrant names" is true by construction**, rather
+  than by a check somebody remembered to write.
+
+Pass `digest` when you know what you are uploading. It is **checked**, not
+trusted: a truncated upload is refused rather than stored under the address of
+whatever arrived.
+
+```bash
+curl -u a.mehta:… http://localhost:5006/api/v1/artifacts/sha256:9f2c1a7e…/verify
+curl -u a.mehta:… http://localhost:5006/api/v1/artifact-usage
+```
+
+Verification re-derives the hash from the bytes on disk. Content addressing makes
+tampering hard rather than impossible — the filesystem is still a filesystem —
+and this is how you find out. It is a separate call because re-hashing a
+multi-gigabyte file is not something a read should do every time.
+
+There is an **8 GiB ceiling**, deliberately. A governance platform is not a model
+store of last resort, and somebody should have to think before putting a
+foundation-model checkpoint in one.
+
+### Which formats, and which of them run code
+
+```bash
+curl -u d.raman:… http://localhost:5006/api/v1/artifact-formats
+```
+
+| Format | For | Executes on load |
+|---|---|---|
+| `onnx` | a portable graph, loadable without its framework | no |
+| `safetensors` | weights only, no code path on load | no |
+| `pmml` / `pfa` | verbose, old, readable by anything | no |
+| `json` | a rule set, a scorecard, a prompt bundle | no |
+| `gguf` | quantised weights for local inference | no |
+| `torchscript` | a TorchScript archive — carries code | **yes** |
+| `tar` | several files: a tokenizer beside its weights | **yes** |
+
+The last two are accepted and load **in the sandbox and nowhere else**. The
+distinction is recorded so nobody has to remember it, and the warrant carries the
+flag so an engine is not inferring it from a file extension.
+
+The list is closed, and there is no `pickle`. An artifact's format decides how it
+is loaded, and "we will work it out at load time" is how a pickle gets
+deserialised in a control plane.
+
+## Naming one you hold elsewhere
+
+```json
+{"artifact_digest": "sha256:9f2c1a7e4b3d0865ca19e2f7b04d3a61c8e5079fb2d4a136e0c85719ad3f2b4c",
+ "artifact_uri": "s3://maya-artifacts/credit/pd_smallbiz_3.2.1.onnx"}
+```
+
+A digest MAYA cannot resolve is **not an error**. Plenty of artifacts live in a
+model store somewhere else and are named here so the engine can check them on
+load — and that remains checkable at execution time: the warrant carries the
+digest, the engine verifies what it actually loaded, and a swapped artifact is
+*detected* rather than assumed away.
+
+When the digest **does** resolve in the store, MAYA fills in the URI and the size
+itself. The store is the authority on its own contents; a caller who names both
+and gets the URI wrong is corrected rather than believed.
 
 ## Formats, and how each is reached
 

@@ -47,6 +47,16 @@ class ModelRegistry:
         # refuse. Policy tightens; the invariants written here are the floor.
         self.policy = None
 
+    def attach_artifacts(self, store) -> None:
+        """Wire the artifact store after construction.
+
+        Injected rather than imported so the registry keeps knowing nothing
+        about where bytes live: with a store attached, a version naming a digest
+        MAYA holds gets its uri, size and format from the store; without one,
+        every digest is treated as naming an artifact somebody else holds.
+        """
+        self.version_service.artifacts = store
+
     def attach_policy(self, gate) -> None:
         """Wire a policy gate. It adds conditions; it never removes them."""
         self.policy = gate

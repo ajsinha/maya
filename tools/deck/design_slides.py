@@ -3,10 +3,9 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-The detailed system design deck, in fourteen chapters.
+The detailed system design deck, in fifteen chapters.
 
-**Why this is a driver over a directory rather than one file.** The deck grew to
-eighty-eight slides when the practitioner material was merged in, and the
+**Why this is a driver over a directory rather than one file.** The deck grew past ninety slides when the practitioner material was merged in, and the
 generator with it — past the fifteen-hundred-line limit this repository holds
 every source file to. Splitting by chapter is the same answer the API test suite
 got: cut by subject, because a file cut at the fifteen-hundredth line is two
