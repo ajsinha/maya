@@ -292,6 +292,28 @@ class UIRoutes(Routes):
                 featuresets=self._featureset_labels(sets),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
 
+        @self.app.get("/board-pack", response_class=HTMLResponse, tags=["ui"])
+        def board_pack_page(request: Request):
+            """What a committee would be shown, before it is recorded."""
+            if (r := login_required(request)) is not None:
+                return r
+            if not self.may_view(request, "report:read"):
+                return self.refused_page(
+                    request, "reading the portfolio report needs report:read")
+            packs = self.ctx["board_packs"]
+            pack = packs.build()
+            return self.page(
+                request, "board_pack.html",
+                pack=pack,
+                breaches=[e for e in pack["exceptions"] if e["status"] == "breach"],
+                ambers=[e for e in pack["exceptions"] if e["status"] == "amber"],
+                appetite=self.ctx["appetite"].in_force(),
+                packs=packs.history(limit=12),
+                # Whether to offer the button is the platform's decision, not the
+                # template's: a page that hides a control it cannot explain is
+                # better than one that offers an action the caller may not take.
+                may_cut=self.may_view(request, "report:cut"))
+
         # -------------------------------------------------------- new model
         @self.app.get("/models/new", response_class=HTMLResponse, tags=["ui"])
         def new_model_page(request: Request):

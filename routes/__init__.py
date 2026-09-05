@@ -26,6 +26,7 @@ from routes.finding_routes import FindingWorkflowRoutes
 from routes.warrant_routes import WarrantRoutes
 from routes.document_routes import DocumentRoutes
 from routes.export_routes import ExportRoutes
+from routes.reporting_routes import ReportingRoutes
 from routes.grammar_routes import GrammarRoutes
 from routes.lifecycle_routes import LifecycleRoutes
 from routes.model_routes import ModelRoutes
@@ -45,7 +46,8 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               ModelRoutes, LifecycleRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, FindingWorkflowRoutes,
               MonitoringRoutes,
-              DocumentRoutes, ExportRoutes, AttachmentRoutes, FeaturesetRoutes,
+              DocumentRoutes, ExportRoutes, ReportingRoutes,
+              AttachmentRoutes, FeaturesetRoutes,
               ApprovalRoutes, TelemetryRoutes, TransferRoutes,
               NotificationRoutes, SsoRoutes, PolicyRoutes,
               OverlayRoutes, ArtifactRoutes, AssistRoutes, ProfileRoutes,
@@ -56,4 +58,4 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes",
            "FindingWorkflowRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "ExportRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "ProfileRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "ExportRoutes", "ReportingRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "ProfileRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]

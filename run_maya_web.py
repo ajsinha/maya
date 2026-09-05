@@ -41,6 +41,8 @@ from core.lifecycle import (AmendmentService, AttestationService,
 from core.execution import WarrantError, WarrantService
 from core.artifacts import ArtifactStore
 from core.export import ExportPacker
+from core.reporting import (AppetiteRegister, BoardPackBuilder,
+                            IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
 from core.assist import CapabilityRegistry, DraftingService, GenerationLog
 from core.assist import providers as assist_providers
@@ -67,7 +69,8 @@ from core.validation import (FindingRegister, FindingWorkflow, Replayer,
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
                 NotificationRepository, PolicyRuleRepository,
-                WarrantProfileRepository,
+                WarrantProfileRepository, RiskAppetiteRepository,
+                BoardPackRepository,
                 TelemetryBatchRepository,
                 VersionApprovalRepository,
                 VersionApprovalSignatureRepository,
@@ -307,6 +310,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     estate = EstateSummary(registry, findings, monitoring, overlays, debts,
                            baseline, lifecycle, regimes, documents)
 
+    # Portfolio reporting reads the SAME services the estate summary and the
+    # model page read. A board pack with its own numbers is a board pack that
+    # disagrees with the platform, and the disagreement surfaces in a committee
+    # meeting where nobody present can resolve it.
+    appetite = AppetiteRegister(RiskAppetiteRepository(db), evidence)
+    board_packs = BoardPackBuilder(
+        BoardPackRepository(db),
+        IndicatorSet(registry, findings, monitoring, overlays, baseline,
+                     lifecycle),
+        appetite, registry, evidence)
+
     scheduler = Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
@@ -339,6 +353,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
+                           "appetite": appetite, "board_packs": board_packs,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(
                                Path(cfg.get("content.dir", str(ROOT / "content")))),

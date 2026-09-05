@@ -32,6 +32,7 @@ from core.parameters import ParameterError
 from core.artifacts import ArtifactError
 from core.execution.profiles import ProfileError
 from core.export import ExportError
+from core.reporting import ReportingError
 from core.policy import PolicyError
 from core.telemetry import TelemetryError
 from core.baseline import BaselineError
@@ -141,6 +142,16 @@ STATUS: Dict[str, int] = {
     # export packs. 413 rather than 409: the pack is well-formed and too big to
     # be useful, and the remedy is to narrow what was asked for.
     "pack_too_large": 413,
+    # risk appetite and the board pack. Each names what was wrong with the limit
+    # rather than with the request: a limit is a governance object, and the
+    # refusals are about whether it can do the job of one.
+    # `rationale_required` is shared with the overlay register below and mapped
+    # there. Two subsystems refuse an unexplained act with the same code and the
+    # same remedy, which is right; repeating the key here would silently
+    # overwrite the earlier entry.
+    "unknown_metric": 422, "unknown_scope": 422,
+    "rationale_too_long": 422, "amber_beyond_limit": 422,
+    "no_appetite": 404, "no_board_pack": 404,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for
@@ -367,7 +378,8 @@ class Routes:
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,
                 FindingWorkflowError, PolicyError,
-                ArtifactError, ProfileError, ExportError) as exc:
+                ArtifactError, ProfileError, ExportError,
+                ReportingError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)
