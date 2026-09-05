@@ -31,6 +31,7 @@ from core.notify import NotifyError
 from core.parameters import ParameterError
 from core.artifacts import ArtifactError
 from core.execution.profiles import ProfileError
+from core.export import ExportError
 from core.policy import PolicyError
 from core.telemetry import TelemetryError
 from core.baseline import BaselineError
@@ -137,6 +138,9 @@ STATUS: Dict[str, int] = {
     # cross-site request forgery. 403 rather than 400: the request was
     # understood, and it is the authority behind it that is not accepted.
     "csrf_token_invalid": 403,
+    # export packs. 413 rather than 409: the pack is well-formed and too big to
+    # be useful, and the remedy is to narrow what was asked for.
+    "pack_too_large": 413,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for
@@ -363,7 +367,7 @@ class Routes:
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,
                 FindingWorkflowError, PolicyError,
-                ArtifactError, ProfileError) as exc:
+                ArtifactError, ProfileError, ExportError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

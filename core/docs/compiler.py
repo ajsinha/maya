@@ -46,8 +46,22 @@ class DocumentCompiler:
         # depends on the SHAPE of the platform's state and not on nine services.
         self.build_context = context_builder
 
-    # --------------------------------------------------------------- compile
-    def compile(self, kind: str, urn: str, actor: str = "system") -> Dict[str, Any]:
+    # ---------------------------------------------------------------- render
+    def render(self, kind: str, urn: str) -> Dict[str, Any]:
+        """What this document would say. Writes nothing, records nothing.
+
+        Separated from `compile` because compiling is an ACT — it authors a
+        document and records that it was authored — and there are readers who
+        want the content without performing the act. An export pack is the
+        clearest case: cutting a pack monthly should not silently author four
+        documents a month, and a pack whose own production changed the record
+        would differ from the last one for no reason but that somebody had asked
+        for it.
+
+        Deliberately carries no `compiled_at`. A rendering has no moment of its
+        own; the document's digest is over its kind, its subject and its
+        sections, so two renderings of unchanged state are identical.
+        """
         if kind not in KINDS:
             raise DocumentError("unknown_document_kind",
                                 f"unknown document kind '{kind}'",
@@ -75,8 +89,7 @@ class DocumentCompiler:
             citations.extend(cited)
 
         citations = sorted(set(citations))
-        head, _ = self.evidence.head()
-        row = {
+        return {
             "model_id": model["id"],
             "model_version_id": (ctx.get("version") or {}).get("id"),
             "kind": kind, "title": f"{TITLES[kind]} — {model['name']}",
@@ -92,17 +105,23 @@ class DocumentCompiler:
             # The subjects this document was built from, so staleness can be
             # measured against the same set rather than against the model alone.
             "subjects": [model["id"], *(v["id"] for v in ctx.get("versions") or [])],
-            "evidence_head": head, "status": "compiled",
-            "compiled_at": time.time(), "compiled_by": actor,
         }
+
+    # --------------------------------------------------------------- compile
+    def compile(self, kind: str, urn: str, actor: str = "system") -> Dict[str, Any]:
+        """Render it, then author it: persisted, and recorded as having happened."""
+        row = self.render(kind, urn)
+        head, _ = self.evidence.head()
+        row.update({"evidence_head": head, "status": "compiled",
+                    "compiled_at": time.time(), "compiled_by": actor})
         self.documents.add(row)
-        self.evidence.append("document_compiled", "model", model["id"],
+        self.evidence.append("document_compiled", "model", row["model_id"],
                              {"document_id": row["id"], "kind": kind,
-                              "citations": len(citations),
+                              "citations": len(row["citations"]),
                               "complete": row["coverage"]["complete"]}, actor=actor)
         logger.info("compiled %s for %s: %d/%d sections, %d citations",
-                    kind, urn, row["coverage"]["filled"], len(sections),
-                    len(citations))
+                    kind, urn, row["coverage"]["filled"],
+                    row["coverage"]["sections"], len(row["citations"]))
         return self.documents.one(id=row["id"])
 
     @staticmethod

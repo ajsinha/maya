@@ -151,6 +151,86 @@ pack. The output is markdown and JSON. Turning that into whatever your firm's
 document standard requires is a rendering problem, and deliberately outside the
 part MAYA is trying to get right.
 
+
+## Export packs — everything about one model, in one file
+
+A compiled document answers a question. An **export pack** answers the person:
+a supervisor, an internal auditor, an acquirer's diligence team — somebody who
+is not going to be given a login, cannot query the platform, cannot take its word
+for anything, and will read the result months later.
+
+```bash
+curl -u a.mehta:pw -X POST \
+  localhost:5006/api/v1/export-packs/credit.pd.smallbiz -o pack.zip
+```
+
+```
+manifest.json          what this is, when it was cut, the digest of every file
+README.md              how to read it and how to verify it
+gaps.md                what could NOT be included, and why
+model.json             identity, ownership, purpose, tier and its derivation
+versions.json          every version, its kernel, its status, its approvals
+documents/             the four compiled documents, markdown and JSON
+attachments/           the documents somebody filed, as the bytes accepted
+evidence/chain.json    the evidence for this model, with the verification result
+findings.json  monitoring.json  overlays.json  warrants.json  validations.json
+```
+
+### Read `gaps.md` first
+
+Everything the pack could not gather is listed there with the reason. That is the
+whole discipline: a pack that silently omits what it could not reach **reads as
+complete**, and a reader has no way to tell a thin model from a thin export. A
+required document section with no evidence behind it appears as a gap; an
+attachment whose bytes could not be read appears as a gap; a document that would
+not compile appears as a gap rather than killing the pack.
+
+### The content digest is the comparison
+
+`manifest.json` lists every file with its SHA-256, and carries a **content
+digest** over all of them *except the manifest itself*.
+
+That exclusion is the point. The manifest records the moment the pack was cut, so
+a digest that covered it would differ every time and answer nothing. Excluding it
+means two packs of the same state have the same content digest — so *"has
+anything changed since last quarter's pack?"* is one comparison rather than a
+diff of a hundred files.
+
+```bash
+curl -su a.mehta:pw \
+  localhost:5006/api/v1/export-packs/credit.pd.smallbiz/manifest \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["content_digest"])'
+```
+
+The manifest endpoint exists for exactly that: comparing against the last pack
+should not require moving a hundred megabytes to discover that nothing has moved.
+
+**Where the chain stood** is in the manifest too — `chain.head_seq` and
+`chain.head_hash` — and deliberately *not* in the digested content. A model's
+pack should not change because a different team registered a model somewhere
+else.
+
+### What a pack deliberately does not do
+
+**It does not author anything.** The documents are *rendered*, not compiled:
+cutting a pack every month should not silently author four documents a month, and
+a pack whose own production changed the record would differ from the last one for
+no reason but that somebody had asked for it.
+
+**It does not re-materialise personal data.** A node that references personal
+data carries an erasable pointer rather than the data (L-18), and the pack
+carries the pointer. Resolving it would put personal data into a file on
+somebody's laptop where an erasure request cannot reach it — which would defeat
+the control rather than export it. The pack says so in `gaps.md`.
+
+**Cutting one is recorded** — handing a complete record of a model to somebody
+outside is a governance act, and who took a copy is what an auditor asks about
+later. It is recorded against the **pack**, whose identity is its content digest,
+rather than against the model: recorded against the model it would land inside
+the next pack's own evidence and every pack would differ from the last for no
+reason but that somebody had taken one.
+
+
 ## Documents on file
 
 ### A document is filed against a version, not a model
