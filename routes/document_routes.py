@@ -15,6 +15,7 @@ from fastapi import Request
 from fastapi.responses import PlainTextResponse
 
 from core.docs import KINDS, TITLES
+from core.execution.urn import model_urn as urn
 from core.docs.common import PURPOSE
 from routes.base import Routes
 
@@ -57,3 +58,48 @@ class DocumentRoutes(Routes):
             """The document as markdown — what a person reads, or exports."""
             self.authorise(request, "document:read")
             return docs.markdown(self.guard(lambda: docs.require(document_id)))
+
+        # ------------------------------------------------- the documentation graph
+        @self.app.get(f"{self.api}/document-subjects", tags=["documents"])
+        def subjects(request: Request):
+            """What a document can be about, and which subjects are pinned."""
+            self.principal(request)
+            from core.docs.subjects import describe
+            return describe()
+
+        @self.app.get(f"{self.api}/dossiers/{{name:path}}", tags=["documents"])
+        def dossier(request: Request, name: str):
+            """Everything documented about a model, following the pins.
+
+            A graph rather than a list: the training record for a parameter set
+            hangs under the version that produced it, and the featureset
+            documentation hangs under the featureset VERSION it was fitted from
+            — not the set, which has since moved.
+            """
+            model = self.ctx["registry"].get(urn(name))
+            if not model:
+                raise self.not_found(f"no model {name}")
+            self.authorise(request, "document:read", model=model)
+            return self.guard(lambda: self.ctx["dossier"].of(model["urn"]))
+
+        @self.app.post(f"{self.api}/training-records/{{parameter_set_id}}",
+                       status_code=201, tags=["documents"])
+        def training_record(request: Request, parameter_set_id: str):
+            """Compile the record of one fit.
+
+            Every other document is about a model or a version. This one is
+            about a parameter set, which is the moment that had no document at
+            all — two hundred and fifty calibrations a year, each a governed act
+            with a warrant behind it and none of them readable.
+            """
+            who = self.authorise(request, "document:compile")
+            return self.guard(lambda: self.ctx["training_records"].compile(
+                parameter_set_id, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/training-records/{{parameter_set_id}}/preview",
+                      tags=["documents"])
+        def preview_training_record(request: Request, parameter_set_id: str):
+            """What it would say, without authoring it."""
+            self.authorise(request, "document:read")
+            return self.guard(lambda: self.ctx["training_records"].render(
+                parameter_set_id))

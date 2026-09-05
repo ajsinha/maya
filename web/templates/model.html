@@ -12,6 +12,61 @@
 <div class="mono text-muted">{{ model.urn }}</div>
 <div class="rule"></div>
 
+{% if kernel_type %}
+<!-- ------------------------------------------------------- the model as a type -->
+<!--
+  The definition this whole platform is organised around is f : P ⊗ X → D(Y),
+  and a reader used to have to assemble it from four cards. Everything here is
+  derived from the version; nothing is typed by hand.
+-->
+<div class="card mb-3" style="background:#FBF9F7">
+  <div class="card-body py-3">
+    <div class="d-flex justify-content-between align-items-baseline mb-2">
+      <span class="kicker mb-0">THE MODEL, AS ITS TYPE</span>
+      <span class="text-muted" style="font-size:.72rem">version {{ kernel_type.semver }}</span>
+    </div>
+    <div class="mono mb-3" style="font-size:1.05rem">
+      <span style="color:var(--crimson)">P</span>
+      &nbsp;⊗&nbsp;
+      <span style="color:var(--crimson)">X</span>
+      &nbsp;→&nbsp;
+      <span style="color:var(--crimson)">D(Y)</span>
+    </div>
+    <div class="row g-3 small">
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1">P &mdash; what is fitted</div>
+        <div class="mono" style="font-size:.8rem">{{ kernel_type.parameter_kind }}</div>
+        <div class="text-muted" style="font-size:.74rem">{{ kernel_type.parameters }}</div>
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1">X &mdash; what it reads</div>
+        {% for f in kernel_type.inputs %}
+          <div class="mono" style="font-size:.8rem">{{ f.name }} : {{ f.dtype }}{% if f.range %}<span class="text-muted"> {{ f.range }}</span>{% endif %}</div>
+        {% else %}
+          <div class="text-muted" style="font-size:.74rem">nothing declared</div>
+        {% endfor %}
+      </div>
+      <div class="col-md-4">
+        <div class="fw-semibold mb-1">D(Y) &mdash; what comes back</div>
+        {% for f in kernel_type.outputs %}
+          <div class="mono" style="font-size:.8rem">{{ f.name }} : {{ f.dtype }}</div>
+        {% else %}
+          <div class="text-muted" style="font-size:.74rem">nothing declared</div>
+        {% endfor %}
+        <div class="text-muted" style="font-size:.74rem">{{ kernel_type.output_kind }}</div>
+      </div>
+    </div>
+    <div class="text-muted mt-3" style="font-size:.74rem">
+      <span class="chip">{{ kernel_type.trainability_class }}</span>
+      <span class="mono">{{ kernel_type.parameter_kind }}</span> &middot;
+      <span class="mono">{{ kernel_type.fit_procedure }}</span> &middot;
+      runtime <span class="mono">{{ kernel_type.runtime }}</span>
+      &mdash; the class is <em>derived</em> from the two before it and is never
+      declared.
+    </div>
+  </div></div>
+{% endif %}
+
 <div class="row g-3">
   <div class="col-md-8">
     {% include "_workflow.html" %}
@@ -333,6 +388,17 @@
           <span>{{ model.model_class }}</span></div>
       </div></div>
 
+
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Documentation</span>
+        <a class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size:.72rem"
+           href="/dossier/{{ model.urn.replace('maya://model/','') }}">Open the dossier</a></div>
+      <div class="card-body small text-muted">
+        Everything documented about this model, following the pins &mdash; the
+        training record for each fit under the version that produced it, and the
+        featureset documentation under the <em>version</em> the parameters were
+        fitted from rather than the set, which has since moved.
+      </div></div>
 
     <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
         <span>Export pack</span>

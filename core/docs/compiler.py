@@ -27,7 +27,13 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core.docs.common import KINDS, PURPOSE, TITLES, DocumentError
+from core.docs.subjects import MODEL, MODEL_VERSION
 from core.docs.templates import TEMPLATES
+
+# Which object each compiled kind is ABOUT. A model card describes the
+# model to an outside reader and outlives any one version; the rest
+# describe the kernel that actually runs.
+SUBJECT_OF = {"model_card": MODEL}
 from core.evidence import EvidenceEngine
 from core.log import get_logger
 from db import DocumentRepository
@@ -92,6 +98,12 @@ class DocumentCompiler:
         return {
             "model_id": model["id"],
             "model_version_id": (ctx.get("version") or {}).get("id"),
+            # What this document is ABOUT, so the dossier can find it from the
+            # thing it describes rather than only from the model.
+            "subject_type": SUBJECT_OF.get(kind, MODEL_VERSION),
+            "subject_id": ((ctx.get("version") or {}).get("id")
+                           if SUBJECT_OF.get(kind, MODEL_VERSION) == MODEL_VERSION
+                           else model["id"]),
             "kind": kind, "title": f"{TITLES[kind]} — {model['name']}",
             "sections": sections, "citations": citations,
             "coverage": {

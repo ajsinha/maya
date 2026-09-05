@@ -53,6 +53,8 @@ CONTENTS: Dict[str, str] = {
     "monitoring.json": "monitors, their status, and the breaches they raised",
     "overlays.json": "post-model adjustments, their magnitude and their ageing",
     "warrants.json": "who was entitled to run it, for what, and what was revoked",
+    "documentation/dossier.json": "the documentation graph: which training "
+        "record belongs to which fit, and which featureset VERSION each fit read",
     GAPS: "what could not be included, and why — an absence is recorded, never omitted",
 }
 

@@ -225,3 +225,18 @@ class TestTheShape:
         assert r.status_code == 200
         assert not any(n.startswith("attachments/")
                        for n in open_pack(r.content).namelist())
+
+
+class TestThePackCarriesTheDocumentationGraph:
+    def test_the_dossier_travels_with_it(self, pack):
+        """The pack already held each document; what it did not hold was how
+        they relate — and a reader outside the platform cannot walk the
+        register, so the walk travels with them."""
+        graph = json.loads(open_pack(pack.content).read("documentation/dossier.json"))
+        assert graph["root"]["subject_type"] == "model"
+        assert graph["counts"]["nodes"] >= 2
+
+    def test_its_gaps_become_the_pack_s_gaps(self, pack):
+        gaps = open_pack(pack.content).read("gaps.md").decode()
+        assert "documentation/" in gaps, \
+            "a documentation gap must reach the file a reader is told to open first"

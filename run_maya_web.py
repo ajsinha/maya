@@ -52,7 +52,8 @@ from core.baseline import BaselineImporter, DebtRegister
 from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService,
                         SegregationPolicy)
 from core.config import PropertiesConfigurator
-from core.docs import ContextBuilder, DocumentCompiler
+from core.docs import (ContextBuilder, DocumentCompiler, Dossier,
+                       TrainingRecordCompiler)
 from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
@@ -260,7 +261,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # The pack uses the SAME context builder the compiler does. Two gatherers
     # would be two answers to "what is true about this model", and the second
     # would drift from the first in exactly the places nobody looks.
-    export = ExportPacker(context, documents, attachments, evidence, registry)
+    # The document a daily recalibration never had, and the graph that finds it
+    # from the model it belongs to.
+    training_records = TrainingRecordCompiler(
+        DocumentRepository(db), parameters, registry, evidence, features)
+    dossier = Dossier(registry, attachments, DocumentRepository(db),
+                      ParameterSetRepository(db), features, features, validation)
+
+    export = ExportPacker(context, documents, attachments, evidence, registry,
+                          dossier)
 
     # Replay reads the snapshot an episode was pinned to, at the Delta version
     # it was pinned at, so the control does not depend on the caller still
@@ -337,7 +346,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "registry": registry, "composition": composition,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
-                           "export": export, "tiering": tiering, "warrants": warrants,
+                           "export": export, "dossier": dossier,
+                           "training_records": training_records, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
