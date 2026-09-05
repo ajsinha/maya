@@ -250,6 +250,16 @@ class PolicyRuleRepository(Repository):
     JSON = ("cases", "facts_read", "test_report")
 
 
+class WarrantProfileRepository(Repository):
+    """Named, versioned request defaults, ordered so the most specific is last."""
+    TABLE, ORDER = "warrant_profile", "specificity"
+    JSON = ("when_facts", "defaults")
+
+    def next_version(self, name: str) -> int:
+        prior = self.first("version", desc=True, name=name)
+        return (prior["version"] + 1) if prior else 1
+
+
 class NotificationRepository(Repository):
     """Deliveries attempted, and what came of them."""
     TABLE, ORDER = "notification", "sent_at"

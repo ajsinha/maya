@@ -10,7 +10,7 @@ audience: Engineers, Quants
 
 # Warrants by model family
 
-Twelve worked warrants ship in `examples/warrants/`. Every one validates against
+Thirteen worked warrants ship in `examples/warrants/`. Every one validates against
 the same grammar, with no special cases and no exemptions — which is the test of
 whether the four axes were the right ones.
 
@@ -73,6 +73,66 @@ the separation is what makes the evidence expectations right for each.
 | L-W5 | claimed determinism from an LLM with no seed | it would be believed |
 | L-W6 | `fit` on a descriptor-only model | you cannot reach its parameters |
 | L-W7 | a `backtest` with no outcomes | that is a re-score wearing a backtest's name |
+| L-W8 | a run that will not name its point of P | the number is attributable to nothing |
+| L-W9 | a featureset read for fitting, unbounded in either clock | "everything we know now" cannot be shown point-in-time correct |
+| L-W11 | a calibrated run with no `as_of` | staleness would be silent |
+| L-W12 | parameters from an artifact, with no digest | "what ran is what was approved" becomes an assumption |
+| L-W13 | a generative runtime naming only a model family | the weights move underneath it, invisibly |
+
+### The last three are the answer to "can warrants be templated per model type?"
+
+They already are — as **refusals over one document**, never as different
+documents. Each is keyed on a fact the platform *derives*: the parameter kind,
+the source binding, the runtime.
+
+That distinction is worth holding on to. If a T4 warrant had a different
+*shape* from a T3 warrant, every engine, replay path and audit query would have
+to branch on model type before it could read anything, and the branch would grow
+a case per model family forever. Instead there is one shape, and the laws that
+apply to it depend on facts nobody had to declare.
+
+Notice too that **L-W12 is not written in terms of the class**. It bites hardest
+on a neural network, but a PMML scorecard is T3 and carries exactly the same
+exposure — keying it on the trainability class would have missed that, and the
+miss would have looked like coverage.
+
+## What *can* be templated: the request
+
+Retyping the same verb and the same ceiling for every warrant of a shape is real
+tedium, and a **warrant profile** answers it — by filling holes in the request
+before the builder runs, never by changing the document the builder produces.
+
+```bash
+curl -u j.okafor:pw -X POST localhost:5006/api/v1/warrant-profiles \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"trained_artifact_prod",
+       "when":{"trainability_class":["T4"],"environment":["prod"]},
+       "defaults":{"verb":"score","max_seconds":3}}'
+```
+
+Ask what it would do before you rely on it:
+
+```bash
+curl -u j.okafor:pw -X POST localhost:5006/api/v1/warrant-profiles/preview \
+  -H 'Content-Type: application/json' \
+  -d '{"urn":"maya://model/fraud.card.nn","environment":"prod"}'
+```
+
+Every filled value names the profile version it came from. Profiles fold the way
+featuresets do — left to right, rightmost wins per key, `{}` the identity,
+most specific last.
+
+Three things a profile cannot do, and each refusal is the design rather than a
+limitation:
+
+| It cannot | Refusal | Because |
+|---|---|---|
+| select on a category you attached | `unknown_profile_fact` | a declared taxonomy beside a derived one is two answers to one question |
+| supply a principal, use, environment or TTL | `authority_not_defaultable` | authority is per principal and per use, never inherited |
+| carry an obligation | `not_defaultable` | a default is something you can drop; write it as a policy on `warrant:resolve` |
+
+See [warrant profiles](/help/warrants#profiles-templating-the-request-never-the-warrant)
+for the full treatment.
 
 ## Generating one
 

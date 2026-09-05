@@ -28,6 +28,8 @@ from core.assist import AssistError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
+from core.artifacts import ArtifactError
+from core.execution.profiles import ProfileError
 from core.policy import PolicyError
 from core.telemetry import TelemetryError
 from core.baseline import BaselineError
@@ -121,6 +123,14 @@ STATUS: Dict[str, int] = {
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
     "artifact_not_stored": 404,
+    # warrant profiles: request defaults, selected by derived facts
+    "profile_name_required": 422, "unknown_profile_fact": 422,
+    "empty_predicate": 422,
+    "empty_profile": 422, "not_defaultable": 422,
+    # A profile reaching for authority is not a malformed profile; it is one
+    # trying to be a different kind of object, so the status says forbidden and
+    # the remediation names the policy gate that CAN hold an obligation.
+    "authority_not_defaultable": 403, "no_such_profile": 404,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for
@@ -297,7 +307,8 @@ class Routes:
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,
-                FindingWorkflowError, PolicyError) as exc:
+                FindingWorkflowError, PolicyError,
+                ArtifactError, ProfileError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

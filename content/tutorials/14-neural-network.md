@@ -200,6 +200,23 @@ curl -u svc/fraud:svc-pw -X POST localhost:5006/api/v1/resolve \
    "environment": {"opset": 17, "exporter": "torch 2.4.1"}}}
 ```
 
+**The digest is not optional here**, and that is **L-W12**: when the parameter
+object *is* the file, "which numbers did this run at" and "which bytes did it
+load" are the same question, and an artifact binding with no digest answers
+neither.
+
+```json
+{"law": "L-W12", "path": "realisation.artifact.digest",
+ "detail": "this run's parameters come from the artifact, and the warrant does
+            not carry the artifact's digest -- so an engine cannot check that
+            what it loaded is what was approved"}
+```
+
+Notice the law is **not written in terms of the class**. It bites hardest on a
+network, but a PMML scorecard is T3 and carries exactly the same exposure —
+keying it on T4 would have missed that, and the miss would have looked like
+coverage.
+
 An engine holding this warrant needs nothing else. It knows **what** the bytes
 are, **how big** they are before it starts fetching, **whether loading them runs
 code**, and **where to get them** — and it verifies the digest before the graph

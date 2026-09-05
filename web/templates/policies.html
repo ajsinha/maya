@@ -35,6 +35,42 @@ published until they pass.</p>
       </dl>
   </div></div>
 
+<!-- --------------------------------------------------------- warrant profiles -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Warrant profiles &mdash; request defaults</span>
+    <span class="text-muted" style="font-size:.7rem">least specific first: the order they fold</span></div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Profile</th><th>Applies when</th><th>Fills in</th><th class="text-end">Specificity</th></tr></thead>
+    <tbody>
+    {% for pr in profiles %}
+      <tr>
+        <td class="small"><code>{{ pr.name }}</code>
+            <div class="text-muted">v{{ pr.version }}</div></td>
+        <td class="small">
+          {% if pr.when_facts %}
+            {% for fact, allowed in pr.when_facts.items() %}
+              <div class="mono" style="font-size:.7rem">{{ fact }} &isin; {{ allowed | join(', ') }}</div>
+            {% endfor %}
+          {% else %}<span class="text-muted">everything &mdash; the identity of the fold</span>{% endif %}</td>
+        <td class="small">
+          {% for key, value in pr.defaults.items() %}
+            <div class="mono" style="font-size:.7rem">{{ key }} = {{ value }}</div>
+          {% endfor %}</td>
+        <td class="text-end small">{{ pr.specificity }}</td></tr>
+    {% else %}
+      <tr><td colspan="4" class="text-muted small p-3">No profiles registered.
+        Every warrant request stands exactly as its caller wrote it.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="card-body py-2 small text-muted">
+    A profile fills holes in a warrant <em>request</em>; it never overrides a
+    caller and never widens authority. It selects on facts the platform derives
+    &mdash; <span class="mono">{{ profile_facts | join(', ') }}</span> &mdash;
+    never on a category attached to a model, because a declared taxonomy beside
+    a derived one is two answers to one question. An <strong>obligation</strong>
+    belongs in a gate below, not here: a default is something you can drop.
+  </div></div>
+
 <!-- ------------------------------------------------------------- the gates -->
 {% for g in policy.gates %}
   {% set slug = g.gate.replace(':', '-') %}

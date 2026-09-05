@@ -35,6 +35,7 @@ from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
 from core.artifacts import ArtifactStore
+from core.execution.profiles import WarrantProfileRegister
 from core.assist import CapabilityRegistry, DraftingService, GenerationLog
 from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
@@ -60,6 +61,7 @@ from core.validation import (FindingRegister, FindingWorkflow, Replayer,
 from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
                 NotificationRepository, PolicyRuleRepository,
+                WarrantProfileRepository,
                 TelemetryBatchRepository,
                 VersionApprovalRepository,
                 VersionApprovalSignatureRepository,
@@ -206,6 +208,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # actually there.
     registry.attach_artifacts(artifacts)
 
+    # Request defaults, selected by facts the platform derives rather than by a
+    # category anybody attached. A profile fills holes in a warrant request; it
+    # never overrides a caller and never widens authority.
+    warrant_profiles = WarrantProfileRegister(WarrantProfileRepository(db), evidence)
+
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
     # Which model this instance may ask. The default is the mock, which
@@ -302,7 +309,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
                            "registry": registry, "composition": composition,
-                           "artifacts": artifacts, "tiering": tiering, "warrants": warrants,
+                           "artifacts": artifacts,
+                           "warrant_profiles": warrant_profiles, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,

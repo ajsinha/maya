@@ -216,6 +216,151 @@ as `schema_not_satisfied`, naming the missing slots. It is contravariant, so a
 *wider* set passes — the extra columns are simply not read, and refusing them
 would make a set unshareable, which is what sets exist for.
 
+**L-W11 — a calibration must say what it was calibrated as of.** A calibrated
+model *reproduces a market* rather than summarising a history, so the moment it
+was solved for is part of what it means. Two warrants naming the same parameter
+set on different mornings are not the same run, and without the stamp staleness
+is silent: the engine runs yesterday's swaption fit against today's book,
+produces an entirely ordinary-looking number, and nothing in the record says
+which market it came from.
+
+The law requires the age to be **statable**, not small. How old is too old
+depends on the calibration cadence, and that is a policy gate's question — so
+the warrant carries `parameters.source.as_of` and `age_seconds`, and something
+with an opinion decides.
+
+**L-W12 — parameters that live inside an artifact need that artifact digested.**
+When the parameter object *is* the file, "which numbers did this run at" and
+"which bytes did it load" are the same question, and an artifact binding with no
+digest answers neither.
+
+This is the law that bites hardest on a neural network, and it is deliberately
+not written in terms of the class: a PMML scorecard is T3 and carries exactly
+the same exposure. Keying it on the trainability class would have missed that.
+
+**L-W13 — a generative runtime must pin the build, not just the model name.**
+`base_model` names a *family*. The weights behind that name are replaced by
+whoever hosts them, on their schedule, and the replacement is not announced in
+the answer — so a warrant carrying only the family name describes a model that
+can change under it between two runs while every field in the document stays
+identical.
+
+That is the failure this platform exists to prevent, in its generative disguise:
+a stable identifier over moving contents. Pinning does not stop the vendor
+retiring a build; it makes the retirement visible as a **mismatch** instead of a
+drift.
+
+### Notice what the last three have in common
+
+Each is keyed on a fact the platform **derives** — the parameter kind, the
+source binding, the runtime — and none of them mentions a category anybody
+attached to a model. That is the whole answer to "should warrants be templated
+per kind of model": they already differ per kind of model, as *refusals over one
+document* rather than as different documents.
+
+## Profiles: templating the request, never the warrant
+
+The recurring ask is "warrants should be templated by kind of model". It is half
+right, and the wrong half is expensive, so it is worth separating.
+
+**The document must not fork.** If a T4 warrant has a different *shape* from a
+T3 warrant, every engine, replay path and audit query has to branch on model
+type before it can read anything, and the branch grows a case per model family
+forever.
+
+**The content already differs, derivably.** The parameter kind, the admissible
+verbs, the artifact block, the determinism, the required bindings — each is
+computed from a fact rather than declared.
+
+What is genuinely tedious is the **request**: the same verb, the same ceiling
+and the same binding shape retyped for every warrant of a given shape. That is
+what a profile fills in.
+
+```bash
+curl -u j.okafor:… -X POST http://localhost:5006/api/v1/warrant-profiles \
+  -H 'Content-Type: application/json' \
+  -d '{"name": "trained_artifact_prod",
+       "when": {"trainability_class": ["T4"], "environment": ["prod"]},
+       "defaults": {"verb": "score", "max_seconds": 3}}'
+```
+
+Three constraints keep it from becoming a taxonomy:
+
+**It selects on facts the platform derives**, never on a category somebody
+attached. A declared taxonomy sitting beside a derived one is two answers to one
+question — `neural_network` on a model whose `parameter_kind` says
+`calibration_set`, and no rule for which wins. Selecting by the derived facts
+means a profile *cannot* disagree with the truth, because the truth is what
+chose it. Ask what it may select on:
+
+```bash
+curl -u … http://localhost:5006/api/v1/warrant-profile-vocabulary
+```
+
+**It cannot widen authority.** Principal, declared use, environment, TTL, grace
+and binding kind are refused *at creation* — a check performed when the profile
+is written is one nobody can forget to perform at use. The refusal is a 403 and
+points at the policy gate:
+
+```json
+{"error": "authority_not_defaultable",
+ "detail": "'principal' decides who may act, for what, or until when, so a
+            profile may not supply it",
+ "remediation": "authority is granted per principal and per use, never inherited
+                 from a template; if this is an obligation rather than a
+                 convenience, write it as a policy on the 'warrant:resolve'
+                 gate, which refuses instead of suggesting"}
+```
+
+**It never overrides a caller.** A profile fills holes. A value the caller
+supplied is theirs — including one identical to the default, because "the caller
+asked for this" and "nobody said, so we chose" are different facts, and only one
+of them is the caller's responsibility.
+
+### Several may match, and they fold
+
+Profiles compose the way featuresets do: **left to right, rightmost wins, `{}`
+as the identity**, ordered by how many facts each tests so the most specific
+speaks last. That is a monoid, and saying so is what makes `(A ∘ B) ∘ C` and
+`A ∘ (B ∘ C)` the same result rather than a question about declaration order.
+
+Rightmost wins **per key**, not per profile — a general profile still supplies
+the verb a specific one says nothing about.
+
+Read what would apply before issuing:
+
+```bash
+curl -u … -X POST http://localhost:5006/api/v1/warrant-profiles/preview \
+  -H 'Content-Type: application/json' \
+  -d '{"urn": "maya://model/fraud.card.nn", "environment": "prod"}'
+```
+
+```json
+{"request": {"verb": "score", "max_seconds": 3},
+ "profiles": [{"name": "everything", "specificity": 0},
+              {"name": "trained_artifact_prod", "specificity": 2}],
+ "applied": {"verb": "everything@1", "max_seconds": "trained_artifact_prod@1"},
+ "facts": {"trainability_class": "T4", "runtime": "onnx", "environment": "prod"}}
+```
+
+Every value names the profile it came from. A default whose origin cannot be
+named is a value nobody can argue with later.
+
+### What a profile must not hold
+
+**Obligations.** "A T4 warrant in prod must carry a digest" is not a default —
+a default is something you can drop. It is a law (L-W12) or a policy on the
+`warrant:resolve` gate, and both **refuse** rather than suggest. A profile
+supplying a key outside the defaultable list is refused for exactly this reason.
+
+The division is worth keeping in mind:
+
+| Want | Put it | Because |
+|---|---|---|
+| Save typing | a **profile** | it fills holes and is re-validated afterwards |
+| Refuse something | a **law** or a **policy gate** | a default can be dropped; a refusal cannot |
+| Decide who may act | a **grant** | authority is per principal and per use |
+
 ## Checking a warrant
 
 The grammar is published rather than documented, because a contract nobody can
