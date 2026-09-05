@@ -319,7 +319,7 @@ breach to finding. Missing tables identified alongside — `probe_set`, `lifecyc
 ordering — are supplied. See F-3.
 
 ### H-5 · Row-level security is bypassable by the table owner
-**Lens:** L3 · **Challenges:** [05 §4](05-data-model.md), [09 §3.3](09-security-compliance.md)
+**Lens:** L3 · **Challenges:** [05 §4](05-data-model.md), [09 §2.4](09-security-compliance.md)
 
 `ENABLE ROW LEVEL SECURITY` does not apply to the table owner or to superusers. If the application
 connects as the schema owner — the common default in migration-managed applications — RLS silently does
@@ -433,7 +433,7 @@ scale, deploy and fail independently. The UI becomes replaceable without touchin
 |---|---|
 | **Authentication moves into the browser** | OIDC Authorization Code + PKCE; tokens held in memory, never `localStorage`; refresh via a `__Host-` prefixed, `SameSite=Strict`, `HttpOnly` cookie against a minimal token-broker endpoint |
 | **Governance logic could leak into the client** | Principle **P4′** — the client renders decisions, it never derives them. Every gate verdict, tier, obligation and eligibility flag arrives from the API *with its rationale*. Enforced by review and by API design: endpoints return `allowed` plus `deny_reason[]`, never the raw facts a client would need to compute a verdict |
-| **CORS and CSRF surface** | Strict origin allow-list; bearer tokens on the API (no ambient cookie authority, so CSRF does not apply to API calls); the token-broker endpoint is the only cookie-bearing surface and is CSRF-protected. **This row describes the decoupled frontend of [ADR-011](adr/ADR-011-decoupled-frontend.md), which is not what is built.** What is built is a server-rendered Jinja interface whose pages call the same API under a session cookie — so ambient cookie authority is exactly what the API has, and "CSRF does not apply" was a statement about an architecture nobody had deployed, read as a statement about the one running. The gap is closed (see [09 §3.4a](09-security-compliance.md)); the lesson is that a control described in the future tense reads as a control, and the tense is the part people skip |
+| **CORS and CSRF surface** | Strict origin allow-list; bearer tokens on the API (no ambient cookie authority, so CSRF does not apply to API calls); the token-broker endpoint is the only cookie-bearing surface and is CSRF-protected. **This row describes the decoupled frontend of [ADR-011](adr/ADR-011-decoupled-frontend.md), which is not what is built.** What is built is a server-rendered Jinja interface whose pages call the same API under a session cookie — so ambient cookie authority is exactly what the API has, and "CSRF does not apply" was a statement about an architecture nobody had deployed, read as a statement about the one running. The gap is closed (see [09 §1](09-security-compliance.md)); the lesson is that a control described in the future tense reads as a control, and the tense is the part people skip |
 | **Evidence-grade rendering** | Server-side rendering of documents, reports and export packs is **retained** as an API capability returning HTML/PDF, so an artefact taken into a meeting or an examination is produced by the backend, not assembled by a browser |
 
 Full design in [ADR-011](adr/ADR-011-decoupled-frontend.md) and the revised [08 — UI/UX](08-ui-ux.md).

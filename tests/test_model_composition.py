@@ -221,3 +221,21 @@ class TestTheRelationIsNamedForWhatItIs:
         from core.registry.composition import KIND_MEANING
         assert "neither moves the data nor runs either end" in \
             KIND_MEANING["input_to"]
+
+    def test_an_edge_created_as_feeds_can_be_removed_as_feeds(self, composition,
+                                                              estate):
+        """The alias has to work in BOTH directions or it is worse than none.
+
+        `relate` canonicalised and `unrelate` did not, so an edge created under
+        the old spelling was stored under the new one and could not be removed
+        by the name it was created with — which is the worst possible shape for
+        a compatibility alias: it accepts the call and then strands the row.
+        """
+        composition.relate(estate["rates.usd_curve"],
+                           estate["markets.swap_pricer"], "feeds",
+                           actor="person/o")
+        removed = composition.unrelate(estate["rates.usd_curve"],
+                                       estate["markets.swap_pricer"], "feeds",
+                                       reason="no longer consumed",
+                                       actor="person/o")
+        assert removed

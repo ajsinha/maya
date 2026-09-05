@@ -5,7 +5,8 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The foundational laws, made executable.
 
-`docs/00 §12` states nineteen laws and, for each, whether it runs. Seven did. The
+`docs/00 §12` states twenty-one laws and, for each, whether it runs. Seven of
+the original nineteen did. The
 document was honest about the rest — *"a law that is stated but not executed did
 not prevent anything"* — which is the correct thing to say and a poor place to
 leave it, because the strongest claim the design makes is that the laws are the
@@ -17,7 +18,7 @@ the work of closing them showed were missing. Each is tested as the law is *stat
 as the implementation happens to behave — a test written from the code proves the
 code agrees with itself.
 
-The two that are still not executable are named here as well, with the reason,
+The six that are still not executable are named here as well, with the reason,
 so the gap stays visible in the place somebody would look for it rather than only
 in a table.
 """

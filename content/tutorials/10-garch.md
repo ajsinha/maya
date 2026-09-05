@@ -22,7 +22,7 @@ equity log returns, used to size a trading limit.
 | Filled by | maximum likelihood, iteratively |
 | `parameter_kind` | `estimated_coefficients` |
 | `fit_procedure` | `estimate` |
-| Derived class | **T3** |
+| Derived class | **T2** — statistically estimated |
 | Runtime | `estimator`, family `garch11` |
 | The catch | it can fail to converge, and scoring needs **state** |
 

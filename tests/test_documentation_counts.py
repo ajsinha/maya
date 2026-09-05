@@ -29,7 +29,7 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-WORDS = {21: "twenty-one",
+WORDS = {21: "twenty-one", 104: "a hundred and four",
          1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
          7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
          12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
@@ -52,11 +52,24 @@ def _truth():
         encoding="utf-8")
     law_rows = re.findall(r"^\| \*\*L-\d+\*\* \| .*?\| .*?\| (.*?) \|$",
                           foundations, re.M)
+    # Mutating endpoints. Claimed as "ninety" in two places and checked by
+    # nobody; it was a hundred and four. The CSRF argument rests on the number
+    # being large, so it is worth being right about.
+    routes_src = "\n".join(
+        p.read_text(encoding="utf-8") for p in sorted((ROOT / "routes").glob("*.py")))
+    mutating = len(re.findall(r"self\.app\.(?:post|put|delete|patch)\(",
+                              routes_src))
     return {
+        "mutating endpoints": mutating,
         "executable laws": sum(1 for state in law_rows
                                if "Executable" in state or "Enforcing" in state),
         "foundational laws": len(law_rows),
-        "tables": len(re.findall(r"CREATE TABLE IF NOT EXISTS", schema)),
+        # Anchored at the start of a line. Unanchored, this matched the phrase
+        # inside the schema's own header COMMENT and reported forty-seven tables
+        # where there are forty-six — so the test whose entire job is to stop a
+        # count drifting was itself the source of a wrong count, in every
+        # document that trusted it.
+        "tables": len(re.findall(r"^CREATE TABLE IF NOT EXISTS", schema, re.M)),
         "runtimes": len(RUNTIMES),
         "verbs": len(VERBS),
         "bindings": len(BINDINGS),
@@ -90,6 +103,7 @@ CLAIMS = {
     # the nineteen foundational laws" and reported the executable count as the
     # total — a check that cries wolf is a check that gets deleted.
     "foundational laws": [r"of the ([\w-]+) foundational laws"],
+    "mutating endpoints": [r"(\d+|a hundred and \w+) mutating endpoints"],
 }
 
 DOCUMENTS = (list((ROOT / "docs").glob("*.md"))

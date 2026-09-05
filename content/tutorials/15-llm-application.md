@@ -297,12 +297,12 @@ Seven models, seven media, one definition. What actually differed:
 
 | | `P` | Medium | Class |
 |---|---|---|---|
-| [Regression](/tutorials/linear-regression-end-to-end) | coefficients | a record | T3 |
-| [GARCH](/tutorials/garch-end-to-end) | ω, α, β | a record | T3 |
+| [Regression](/tutorials/linear-regression-end-to-end) | coefficients | a record | T2 |
+| [GARCH](/tutorials/garch-end-to-end) | ω, α, β | a record | T2 |
 | [Pricer](/tutorials/derivative-pricing-end-to-end) | empty | — | T0 |
 | [Hull–White](/tutorials/hull-white-end-to-end) | a calibration set | a record, daily | T1 |
 | [Monte Carlo](/tutorials/monte-carlo-end-to-end) | parameters + seed | a record | T1 |
-| [Neural network](/tutorials/neural-network-end-to-end) | weights | an **artifact** | T4 |
+| [Neural network](/tutorials/neural-network-end-to-end) | weights | an **artifact** | T3 |
 | [LLM application](/tutorials/llm-end-to-end) | a configuration | a record + artifacts | T5 |
 
 Nothing in the register had to be special-cased for any of them. That is the

@@ -4,160 +4,141 @@
 
 **Annex to** [04 — Architecture](04-architecture.md).
 
-> *"The system should be able to produce warrants on demand so an execution engine can run a model or its
-> version at will."*
->
-> This document specifies that mechanism. A **warrant** is not a URL. It is a **signed, policy-bound,
-> expiring execution contract** — the operational realisation of the assume–guarantee contract of
-> [00 §6.1](00-mathematical-foundations.md#61-assumeguarantee-contracts).
-
 ---
 
-## 1. Design goals
+## 1. MAYA does not run models
 
-| # | Goal | Consequence |
-|---|---|---|
-| G1 | An execution engine should hold **only a URN**, never a path, endpoint or version | Model changes never require redeploying consumers |
-| G2 | Running a model must be **impossible** without a valid entitlement for an **approved use** | Governance is enforced at execution, not by policy documents |
-| G3 | Every execution must be **attributable** to a model version, feature contract and caller | Reproducibility and approved-vs-actual-use reconciliation |
-| G4 | A model must be **stoppable** in under a minute, globally | Kill switch for incidents and critical findings |
-| G5 | MAYA being down must not stop **already-authorised** production scoring | `P9` — governance must not become a single point of failure for the bank |
+It authorises them, and a **warrant** is the whole of that authorisation: a signed, expiring,
+entitlement-bound document that says which version, at which point of `P`, for whose benefit, under
+what boundary, until when. An execution engine reads it and acts. MAYA never sees the inputs, never
+holds the outputs, and is not on the path between a caller and a score.
 
-> **G4 and G5 pull against each other**, and the naive reconciliation is wrong. See §6.1: revocation and
-> staleness are handled by two *independent* mechanisms, so a network partition extends authorisation
-> currency without extending revocation ignorance. This was finding **C-1** of the
-> [adversarial review](11-adversarial-review.md).
-| G6 | The contract must work for a **1 ms C++ pricer**, a **6-hour Spark batch**, and a **streaming LLM** | Flavours, not one protocol |
-| G7 | Consumers must not be broken by governed version moves | Contract refinement + schema variance checks (`L-7`, `L-12`) |
+That boundary is the reason the platform is usable in a bank at all. Most of the estate already runs
+inside engines nobody is going to replace — a C++ pricing library, a Spark job, a vendor appliance,
+a spreadsheet — and a governance system that insisted on being the runtime would govern the fraction
+of the estate willing to move. It also means governance cannot become an outage: a warrant already
+in a caller's hands keeps working while MAYA is down, which is the whole of `P9`.
+
+Three things follow, and each is a refusal somewhere later in this document.
+
+**A consumer holds a URN, never a version.** Everything else resolves at the moment of use, against
+the policy in force at that moment. A governed version move therefore requires no consumer to
+redeploy — and an open blocking finding stops resolution, so a validation finding actually stops the
+model rather than generating an email.
+
+**The document does not fork by kind of model.** There is one grammar over the whole estate, and a
+Hull–White calibration differs from a gradient-boosted PD model in its *coordinates*, not in its
+shape. Fourteen admissibility laws then refuse the combinations that are incoherent. §3 and §5 are
+the argument for that, because it is the design decision most often questioned.
+
+**The signature comes last.** Everything checkable is checked before the document is signed, because
+a signature over a non-conforming warrant asserts that it is authentic and not that it is usable,
+and an engine would reasonably read it as both.
+
+### The tension that had to be resolved rather than balanced
+
+A model must be stoppable everywhere in under a minute. MAYA being unreachable must not stop
+already-authorised production scoring. The naive reconciliation — a grace window on the descriptor —
+gives you a window in which a *known-revoked* model keeps deciding, which is exactly the failure the
+kill switch exists to prevent. This was finding **C-1** of the
+[adversarial review](11-adversarial-review.md), and the resolution is that the two concerns are
+carried by two independent mechanisms: **grace extends authorisation currency and never extends
+revocation ignorance.** §8 says how much of that is built, and how much is not.
 
 ---
 
 ## 2. The URN
 
 ```
-maya://model/<domain>.<family>.<name>[@<semver>][#<alias>][?<qualifiers>]
+maya://model/<domain>.<family>.<name>[@<semver>][#<alias>]
 ```
 
 | Form | Binding | Use when |
 |---|---|---|
-| `maya://model/credit.pd.smallbiz@3.2.1` | **Pinned version** — immutable forever | Regulatory reporting, SOX-relevant calculations, reproducing a historical decision, back-testing |
-| `maya://model/credit.pd.smallbiz#champion` | **Alias** — follows governed moves | Ordinary production scoring |
-| `maya://model/credit.pd.smallbiz#challenger` | Alias | Shadow evaluation |
-| `maya://model/credit.pd.smallbiz@3.2.1?calibration=2026-09-02` | Pinned version + **calibration set** | T1 models where parameters change daily but the version does not |
-| `maya://composite/markets.xva.desk_a#champion` | Composite (a DAG of models) | End-to-end chains — curve → pricer → XVA |
+| `maya://model/credit.pd.smallbiz#champion` | **alias** — follows governed moves | ordinary production scoring |
+| `maya://model/credit.pd.smallbiz#challenger` | alias | shadow evaluation |
+| `maya://model/credit.pd.smallbiz@3.2.1` | **pinned version** — immutable forever | reproducing a historical decision, back-testing, anything feeding a regulatory submission |
 
-**Rule.** Anything feeding a regulatory submission or a financial-statement figure **must** pin. MAYA
-enforces this: a `model_use` with `decision_authority = 'regulatory_submission'` cannot be granted an
-alias-bound warrant.
+Pinning is not a style preference. An alias is a stable identifier over moving contents — finding
+**C-2** — and that is precisely the right thing for production scoring and precisely the wrong thing
+for a figure somebody will be asked to reproduce in two years. An earlier draft of this document
+said MAYA *enforces* pinning for regulatory submissions, by refusing an alias-bound warrant to a use
+whose decision authority is a submission. **It does not.** There is no `decision_authority` on a
+use, so that rule is a convention here and would have to become a policy gate to be one anywhere
+else.
 
----
+**A URN pins a version or names an alias, never both**, and `build_urn` refuses the pair. Two
+bindings for one subject would leave a reader deciding which one won.
 
-## 3. Warrant flavours
-
-One governance model, many delivery mechanisms. The flavour determines what the descriptor contains and
-how the caller executes; it does **not** change the policy evaluation.
-
-> **State, stated.** A `flavour` is a string on the grant record and defaults to `descriptor_only`.
-> The eleven below are the *delivery* mechanisms this document plans for, and none of them has
-> per-flavour behaviour in code today. The axis that *is* built and closed is **`realisation.runtime`**
-> — seventeen values, each declaring the keys its `entry` block must carry (§3a). The two are not the
-> same axis and the distinction matters: a flavour says how a caller receives a descriptor, a runtime
-> says how the kernel becomes something an engine can invoke. Where this document later says "eleven
-> flavours cover the estate", the sentence that is true today is the runtime one.
-
-| Flavour | Delivered as | Executed by | Typical consumer |
-|---|---|---|---|
-| `rest_oip_v2` | HTTPS endpoint speaking **Open Inference Protocol v2** (KServe V2: `/v2/health`, `/v2/models/{n}`, `/v2/models/{n}/infer`) | MAYA-hosted or external runtime | Microservices, decision engines |
-| `grpc_oip_v2` | gRPC endpoint, same protocol | as above | Low-latency internal callers |
-| `python_sdk` | `maya.load("urn")` returning a callable with the feature contract bound | In-process in the caller | Notebooks, batch Python, Airflow |
-| `jvm_sdk` | Java/Scala client | In-process | Spark, Kafka Streams, JVM trading systems |
-| `batch_spark` | A job specification + a registered Spark/Databricks task | Spark cluster | Nightly scoring over Delta |
-| `sql_udf` | A registered UDF in Databricks SQL / Snowflake / Postgres | Warehouse engine | Analysts scoring in SQL |
-| `stream` | A Kafka Streams / Flink operator specification | Stream processor | Real-time fraud, surveillance |
-| `container` | An OCI image digest that embeds the model and preprocessing | Any container runtime | Air-gapped or vendor-hosted environments |
-| `descriptor_only` | The signed descriptor alone; the caller supplies its own runtime | Caller (e.g. a C++ pricing library) | Quant libraries, HPC grids, existing engines |
-| `sheet` | An API key + Excel/Power Query connector | Business users | Controlled EUC replacement |
-| `composite` | A DAG descriptor of member warrants | Orchestrator or MAYA | Model chains |
-
-`descriptor_only` matters most in a bank: the majority of the estate already runs inside engines nobody
-is going to replace.
-
-> **Limitation, stated rather than implied.** For `descriptor_only`, MAYA governs **resolution**, not
-> execution. A receiving engine can skip boundary checks, ignore the feature contract, cache the
-> artifact indefinitely and never report telemetry. This was finding **C-6** of the
-> [adversarial review](11-adversarial-review.md). Four controls narrow the gap; none closes it.
-
-**Engine certification.** Every execution engine is a registered principal with a certification level,
-and the level is an **input to model risk tiering** — an opaque engine raises the effective complexity
-of every model it runs.
-
-| Level | Meaning | Consequence |
-|---|---|---|
-| `attested` | Uses a MAYA SDK, verified build provenance, signs its telemetry | Full trust; telemetry admissible as evidence |
-| `cooperating` | Custom integration, reports telemetry, unverified | Telemetry retained at reduced trust, which the evidence semiring propagates automatically |
-| `opaque` | Resolves only; no telemetry | Tier 1 consumer-impacting models may not be granted an `opaque` warrant without a dated, approved migration plan |
-
-**Liveness as a control.** A principal that resolves but never reports is an exception, raised as a
-finding. Silence is evidence.
+A calibration qualifier (`?calibration=2026-09-02`) appears in earlier drafts and is **not** parsed:
+`parse_urn` reads a name, an optional `@semver` and an optional `#alias`, and nothing else. The
+point of `P` a run executes at is carried by the `parameters` section of the descriptor instead,
+which is where `L-W8` can see it. `maya://composite/…` is likewise refused — the prefix is
+`maya://model/` and nothing else resolves.
 
 ---
 
-## 3a. The four axes, and why the grammar is their product
+## 3. One document, four axes
 
 A warrant is not a document type per model kind. Every model a bank runs — a Black–Scholes closed
 form, a Hull–White calibration, a gradient-boosted PD model, a prompt bundle, an agent, a credit
-rulebook, a spreadsheet, a vendor black box — differs along exactly **four independent axes**, and the
-grammar is their *product*:
+rulebook, a spreadsheet, a vendor black box — differs along four independent axes, and the grammar
+is their **product**.
 
 | Axis | Field | Values |
 |---|---|---|
-| **1 · How `P` is inhabited** | `parameters.kind` | `none` · `calibration_set` · `estimated_coefficients` · `learned_weights` · `llm_configuration` · `rule_set` · `elicited_weights` · `opaque` — **eight** |
-| **2 · How the kernel is realised** | `realisation.runtime` | `python.callable` · `container` · `rest` · `onnx` · `pmml` · `pfa` · **`quantlib`** · `solver` · `sas` · `r` · `matlab` · `sql` · `spreadsheet` · `rules` · `llm.prompt` · `llm.agent` · `descriptor_only` — **seventeen** |
-| **3 · What is asked of it** | `operation.verb` | `score` · `fit` · `validate` · `backtest` · `explain` · `simulate` · `stress` · `optimise` · `generate` · `monitor` — **ten** |
-| **4 · Where its data comes from** | `data.inputs[].binding` | `inline` · `request` · `feature_namespace` · **`featureset`** · `dataset_snapshot` · `delta_table` · `sql_query` · `stream` · `market_data` · `document_corpus` · `scenario_set` · `artifact` — **twelve** |
+| **1 · how `P` is inhabited** | `parameters.kind` | `none` · `calibration_set` · `estimated_coefficients` · `learned_weights` · `llm_configuration` · `rule_set` · `elicited_weights` · `opaque` — **eight** |
+| **2 · how the kernel is realised** | `realisation.runtime` | `python.callable` · `container` · `rest` · `onnx` · `pmml` · `pfa` · `quantlib` · **`estimator`** · `solver` · `sas` · `r` · `matlab` · `sql` · `spreadsheet` · `rules` · `llm.prompt` · `llm.agent` · `descriptor_only` — **eighteen runtimes** |
+| **3 · what is asked of it** | `operation.verb` | `score` · `fit` · `validate` · `backtest` · `explain` · `simulate` · `stress` · `optimise` · `generate` · `monitor` — **ten** |
+| **4 · where its data comes from** | `data.inputs[].binding` | `inline` · `request` · `feature_namespace` · `featureset` · `dataset_snapshot` · `delta_table` · `sql_query` · `stream` · `market_data` · `document_corpus` · `scenario_set` · `artifact` — **twelve** |
 
-A fifth, smaller vocabulary says where a run's parameters come from — `parameters.source.binding` is
-one of `artifact` · `parameter_set` · `declared` · `to_be_fitted` · `vendor_internal` — and it is
-closed and checked, so a run cannot decline to say which point in `P` it is running at.
+Each runtime declares the keys its `entry` block must carry — `onnx` needs a `graph`, `spreadsheet`
+needs a workbook, a sheet and the input and output cells, `llm.agent` needs a provider, a base
+model, a graph and a step ceiling — so an engine that understands the runtime needs nothing further
+to locate and call the thing. `descriptor_only` declares none, and that is its meaning: MAYA carries
+the governance and cannot locate an artifact.
+
+A fifth, smaller vocabulary says where a run's parameters come from. `parameters.source.binding` is
+one of `artifact` · `parameter_set` · `declared` · `to_be_fitted` · `vendor_internal`, and it is
+closed and checked, so a run cannot decline to say which point of `P` it is running at.
 
 QuantLib pricing is `(none, quantlib, score, market_data)`. A Hull–White calibration is *the same
-library and the same runtime* at `(calibration_set, quantlib, fit, market_data)`. An XGBoost PD model
-is `(learned_weights, onnx, score, feature_namespace)`. One structure, different coordinates — and
-that is the argument: *"is it AI?"* puts the first two in one bucket, while *"how is `P` inhabited?"*
-separates them correctly, which is what makes the evidence expectations right for each.
+library and the same runtime* at `(calibration_set, quantlib, fit, market_data)`. An XGBoost PD
+model is `(learned_weights, onnx, score, feature_namespace)`. One structure, different coordinates —
+and that is the argument. *"Is it AI?"* puts the first two in one bucket and separates the second
+from the third; *"how is `P` inhabited?"* separates the first two and is the question the evidence
+expectations actually depend on.
 
-It extends the right way. A model technology nobody anticipated is a **new value in one vocabulary**,
-almost always a runtime — not a new section, not a new document type, and not a change to anything
-that already works.
+That is a statement about the **grammar**, and the grammar is what governs. Whether any particular
+engine can execute a given coordinate is a separate question, answered in §10 — the captive engine
+prices and does not calibrate, so the Hull–White warrant is admissible and would be refused by name
+at execution.
 
-### The QuantLib runtime
+It extends in the right direction. A model technology nobody anticipated is a **new value in one
+vocabulary**, almost always a runtime: not a new section, not a new document type, and not a change
+to anything that already works.
 
-Most of what a bank runs is not a learned model but a valuation, and those have no parameter object to
-fit — which is what T0 means, and why `L-W1` refuses to warrant one for fitting. They have something
-the learned ones do not: an as-of date that changes the answer. So the captive QuantLib runtime
-**takes the evaluation date from the warrant and never from the clock**, because a valuation that
-reads today is not reproducible tomorrow and a backtest of it is a backtest of nothing; and it
-**builds the curve from what the warrant carries and nothing else**, because reaching for a market
-data service would put an unversioned input into a governed computation.
+### Why the document is not templated by kind of model
 
-Six instruments are priced for real: discount factor, zero rate, forward rate, fixed-rate bond,
-vanilla swap, European swaption. A missing past fixing, an unknown day count, an instrument or a
-pricing engine it does not build — each is refused **by name** rather than substituted, because a day
-count silently swapped moves every cash flow and an engine silently swapped produces a number nobody
-can reconcile.
+The ask recurs, and it is half right in a way worth being precise about, because the wrong half is
+expensive.
 
-It is **not sandboxed**, and the reason is stated rather than left implicit: it loads no artifact, so
-there is nothing untrusted to isolate from. Writing it surfaced a real hazard worth recording, because
-it is the kind that survives a code review — QuantLib keeps fixing history in a **process-global**
-manager, so one warrant's fixing would still be present for the next valuation. Each valuation now
-starts from an empty history and sees only what its own warrant carries.
+If a T4 warrant had a different *shape* from a T3 warrant, every engine, replay path and audit query
+would have to branch on model type before it could read anything, and the branch would grow a case
+per model family forever. One grammar over the whole estate with no special case is the property the
+rest of the design rests on.
+
+And the content already differs, derivably. The parameter kind, the admissible verbs, the artifact
+block, the determinism claim, the required data bindings — each is computed from a fact about the
+kernel rather than declared by somebody. Nothing needs a template for any of it.
+
+What *is* genuinely tedious is the **request**, and that is what a profile fills in (§6).
 
 ---
 
-## 4. The Warrant Descriptor
+## 4. The descriptor: ten sections, one question each
 
-**Ten sections, each answering exactly one question.** The list is closed and checked: a document
-missing any of them fails `L-W0` before anything else is looked at.
+The list is closed. A document missing any of them fails `L-W0` before anything else is looked at.
 
 | Section | The question it answers |
 |---|---|
@@ -179,35 +160,34 @@ missing any of them fails `L-W0` before anything else is looked at.
   "issued_at":    1767225600.0,
 
   "subject": {
-    "urn":               "maya://model/credit.pd.smallbiz#champion",
-    "model_urn":         "maya://model/credit.pd.smallbiz",
-    "version":           "3.2.1",
-    "version_id":        "01a06d1c4472",
-    "manifest_digest":   "sha256:4e1b…",
-    "binding_kind":      "alias",              // alias | version
-    "model_class":       "credit.pd.scorecard",
-    "trainability_class": "T3",                // DERIVED, never declared
-    "tier":              1
+    "urn":                "maya://model/credit.pd.smallbiz#champion",
+    "model_urn":          "maya://model/credit.pd.smallbiz",
+    "version":            "3.2.1",
+    "version_id":         "01a06d1c4472",
+    "manifest_digest":    "sha256:4e1b…",
+    "binding_kind":       "alias",            // alias | version
+    "trainability_class": "T3"                // DERIVED from the kernel, never declared
   },
 
   "operation": {
-    "verb":         "score",                   // one of ten
-    "determinism":  "deterministic",
-    "seed":         null,                      // L-W5: required if a stochastic runtime claims determinism
-    "mode":         "batch"
+    "verb":        "score",                   // one of ten
+    "determinism": "deterministic",
+    "seed":        null,                      // L-W5: required if a stochastic runtime claims determinism
+    "mode":        "batch"
   },
 
-  "parameters": {                              // L-W8: every run says which point in P it runs at
-    "kind":   "learned_weights",
-    "source": {"binding": "artifact"},         // artifact | parameter_set | declared |
-    "digest": "sha256:9f2c…",                  //   to_be_fitted | vendor_internal
+  "parameters": {                             // L-W8: every run says which point of P it runs at
+    "kind":    "learned_weights",
+    "source":  {"binding": "artifact"},       // artifact | parameter_set | declared |
+    "digest":  "sha256:9f2c…",                //   to_be_fitted | vendor_internal
     "mutable": false
   },
 
   "realisation": {
-    "runtime": "onnx",                         // one of seventeen; declares its own entry keys
+    "runtime": "onnx",                        // one of eighteen; declares its own entry keys
     "entry":   {"graph": "model.onnx"},
-    "artifact": {"uri": "…/sha256/9f2c…", "digest": "sha256:9f2c…", "format": "onnx"},
+    "artifact": {"uri": "…/sha256/9f2c…", "digest": "sha256:9f2c…", "format": "onnx",
+                 "held_by_maya": true, "executes_on_load": false},
     "environment": {}
   },
 
@@ -218,15 +198,15 @@ missing any of them fails `L-W0` before anything else is looked at.
   },
 
   "io_contract": {
-    "input_schema":  {"fields": [{"name": "dscr", "dtype": "numeric"},
-                                 {"name": "years_in_business", "dtype": "numeric"}]},
-    "output_schema": {"fields": [{"name": "pd_12m", "dtype": "numeric"}]}
+    "input_schema":  [{"name": "dscr", "dtype": "numeric"},
+                      {"name": "years_in_business", "dtype": "numeric"}],
+    "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]
   },
 
-  "constraints": {                             // A — the contract's assumptions, machine-checked
+  "constraints": {                            // A — the contract's assumptions, machine-checked
     "operating_boundary": {"dscr": {"min": -5.0, "max": 20.0}},
-    "on_boundary_violation": "reject",         // reject | flag_and_score | flag_and_refer
-    "resources": {"max_seconds": 30, "max_memory_mb": 2048}   // read by the sandbox
+    "on_boundary_violation": "reject",        // reject | flag_and_score | flag_and_refer
+    "resources": {"max_seconds": 30}          // read by the sandbox
   },
 
   "authority": {
@@ -234,500 +214,534 @@ missing any of them fails `L-W0` before anything else is looked at.
     "declared_use":  "origination_decision",
     "environment":   "prod",
     "granted_at":    1767225600.0,
-    "expires_at":    1767225660.0,             // TTL, jittered — see §6
+    "expires_at":    1767225660.0,            // TTL, jittered — §7
     "grace_seconds": 0,
     "revocation":    {"epoch": 4471, "check": "required"}
   },
 
-  "governance": {                              // why this is allowed to run, right now
+  "governance": {                             // why this is allowed to run, right now
     "tier": 1, "model_status": "active", "version_status": "approved"
   },
 
   "signature": {
     "alg":    "HMAC-SHA256",
-    "key_id": "maya-warrant-signing-2026-09",
+    "key_id": "k-9d1c4f7a02b8e315",
     "value":  "d41f8a0c7e93b256…"
   }
 }
 ```
 
-Three things about this document are worth stating rather than leaving to be inferred.
+Four things about this document are worth stating rather than leaving to be inferred.
+
+**`trainability_class` is derived and travels.** It is computed from how the version's parameter
+object is inhabited, so a warrant cannot claim a class that contradicts the kernel it describes.
+Half the admissibility laws quantify over it, and none of them would mean anything if somebody could
+type it.
+
+**`key_id` is not the key.** It once was: the signing secret was used as the HMAC key *and* written
+into every descriptor as `signature.key_id`, and `warrant:read` is held by every role, the auditor
+included. Anybody holding one warrant could mint another — any model, any principal, any use, with
+the operating boundary emptied and an expiry a century out — and MAYA's own `verify()` would accept
+it. The key id is now a one-way digest of the secret. It still identifies which key signed, which is
+what a key id is for and what makes rotation legible, and it cannot be turned back into the secret.
+A deployment still running on one of the published default keys is named **at start-up**, loudly,
+rather than discovered.
 
 **The signature block is excluded whole from what is signed**, rather than blanked. A warrant signed
-before the block existed and one signed after therefore produce the same digest over the same content,
-which is what stops a signature that verifies in one place and fails in another.
+before the block existed and one signed after therefore produce the same digest over the same
+content, which is what stops a signature that verifies in one place and fails in another.
 
-**`alg` is `HMAC-SHA256`, and that is what ships.** Ed25519 with a 90-day overlapping key set is the
-production target and appears in §11 as such. The distinction matters to a deployer: HMAC is a shared
-secret, so a descriptor's authenticity can be *verified* only by a party that could also have
-*minted* it. Asymmetric signing is what makes client-side verification meaningful, and until it lands,
-§5.3 step 1 is a check an engine performs against a key it must be trusted with.
-
-**Resources are read by the sandbox.** `constraints.resources.max_seconds` and `max_memory_mb` become
-`RLIMIT_CPU` and `RLIMIT_AS` on the child process that loads an artifact-backed runtime — the memory
-budget added to the interpreter's own footprint, and the runtime's dependencies imported *before* the
-limit is applied, so a library's import cost is never charged to the model's budget.
+**`alg` is `HMAC-SHA256`, and that is what ships.** Ed25519 with an overlapping key set is the
+production target and appears in §11 as such. The distinction matters to a deployer: HMAC is a
+shared secret, so a descriptor's authenticity can be *verified* only by a party that could also have
+*minted* it. Asymmetric signing is what would make client-side verification meaningful, and until it
+lands, a consumer's signature check is a check against a key it must be trusted with.
 
 ---
 
-## 5. Resolution protocol
+## 5. Fourteen refusals, before the signature
 
-### 5.1 Request
+A warrant can be well-formed and still be nonsense: asking a closed-form pricer to be *fitted*,
+training on a source that cannot be read as-of, generating prose from a gradient-boosting graph.
+These are the rules that make such a document a refusal at issuance rather than a failure three
+layers down inside an artifact loader.
 
-```http
-POST /v1/resolve HTTP/1.1
-Authorization: Bearer <workload-identity-token>
-Content-Type: application/json
+They are not invented for the grammar. The trainability class falls out of how `P` is inhabited, so
+what a class admits is what the class *means*: `requires_fitting_evidence` is exactly the predicate
+that decides whether `fit` is coherent, and the grammar refuses what it says is a type error.
 
-{
-  "urn": "maya://model/credit.pd.smallbiz#champion",
-  "environment": "prod",
-  "declared_use": {"purpose": "origination_decision", "portfolio": "SB Term Loan",
-                   "legal_entity": "LE-US-01"},
-  "flavour": "rest_oip_v2",
-  "client": {"sdk": "maya-python/1.4.0", "engine": "loan-origination/2026.8"}
-}
+| Law | Refuses | Because | Where |
+|---|---|---|---|
+| `L-W0` | a malformed document | ten required sections, a known verb, a known runtime carrying its entry keys, known bindings and sinks carrying theirs, and the `data` paths the verb requires. Shape runs first and short-circuits: there is no point telling somebody their `fit` has the wrong parameter binding when the document has no `parameters` section | `grammar/validator.py` |
+| `L-W1` | `fit` on T0 or T6, **and** a trainability class outside T0–T8 | T0's parameters come from theory — there is nothing to fit; T6's are inside a vendor black box and cannot be reached. The second half exists because the class is what the first half quantifies over: a class of `"T6 "`, one trailing space, once turned *fitting a vendor black box is a type error* into an admitted warrant | `grammar/rules.py` |
+| `L-W2` | `generate` on a non-generative runtime | an ONNX graph does not produce prose | `grammar/rules.py` |
+| `L-W3` | training from a non-bitemporal binding | it cannot be read as-of, so it cannot be shown leak-free | `grammar/rules.py` |
+| `L-W4` | a `fit` with no `parameter_object` sink | a fit must say where the parameters it produces will go | `grammar/rules.py` |
+| `L-W5` | claimed determinism from a stochastic runtime with no seed | an LLM at temperature 0.7 is not reproducible, and the claim would be believed | `grammar/rules.py` |
+| `L-W6` | `fit` on a `descriptor_only` model | you cannot inhabit what nothing on this side can reach | `grammar/rules.py` |
+| `L-W7` | a backtest with no outcomes | that is a re-score wearing a backtest's name | `grammar/rules.py` |
+| `L-W8` | a run that will not say which point of `P` it runs at | fitting does not change the kernel, so a run declining to name its inhabitant produces a number attributable to nothing. Only a `fit` may leave it unfilled, and a `fit` must bind `to_be_fitted` and nothing else — it *writes* the parameter object, so declaring that it reads one describes the wrong direction | `grammar/rules.py` |
+| `L-W9` | a featureset or feature namespace read for training that is unbounded in either clock | the set fixes the columns; the warrant must fix the period, or *train on 2019–23* and *train on 2020–24* are the same document. A `dataset_snapshot` is exempt: it is bounded by construction | `grammar/rules.py` |
+| `L-W10` | a featureset that does not provide what the kernel declares it reads | contravariance in inputs — `L-12` applied one level out. Refused as `schema_not_satisfied`, with the missing slots named | `core/execution/warrants.py` |
+| `L-W11` | a calibrated parameter object with no `as_of` | a calibration *reproduces a market* rather than summarising a history, so the moment it was solved for is part of what it means. Without the stamp, staleness is silent: yesterday's fit prices today's book and nothing in the record says which market it came from. The law requires the age to be **statable**, not small — how old is too old depends on the cadence, which is a policy gate's question | `grammar/rules.py` |
+| `L-W12` | parameters bound to an artifact, with no artifact digest | when the parameter object *is* the file, *which numbers did this run at* and *which bytes did it load* are the same question, and an undigested binding answers neither. Deliberately **not** keyed on the trainability class: it bites hardest on T3, and a PMML scorecard is T2 and carries the identical exposure | `grammar/rules.py` |
+| `L-W13` | a generative runtime naming a model family but no build | `base_model` names a family whose weights the host replaces on their own schedule, unannounced. A warrant carrying only the family name describes a model that can change between two runs while every field stays identical — C-2 in generative disguise | `grammar/rules.py` |
+
+Thirteen are checked by the grammar over the document alone. `L-W10` cannot be, and the reason is
+structural rather than incidental: it compares a *featureset version's* resolved slots against a
+*model version's* declared input schema, and neither is in the document being validated. It is
+therefore discharged at issuance, against the register.
+
+### Why these are laws rather than a taxonomy
+
+Every one of them is keyed on a fact the platform **derives** — `parameters.kind`, the source
+binding, the runtime, the trainability class — and none mentions a category anybody attached to a
+model. That constraint is what keeps the single document shape honest. A declared taxonomy sitting
+beside a derived one is two answers to one question with no rule for which wins, and the failure is
+not hypothetical: a model labelled `neural_network` whose `parameter_kind` says `calibration_set`
+has to be adjudicated by somebody, and nobody will.
+
+So *warrants already differ by kind of model* — as **refusals over one document**, never as
+different documents. The last three laws are the clearest demonstration, because each was added
+without touching a section, a verb or a schema.
+
+> **`L-W8` earned its place on the day it was written.** It caught a real error in a shipped example:
+> `examples/warrants/02-quantlib-hullwhite-calibrate` declared that its calibration set came from an
+> artifact while its verb *produced* it. Two more were wrong the same way.
+
+There are thirteen worked examples in `examples/warrants/`, and they exist to keep the grammar
+honest against the estate rather than against itself. The suite asserts what they must span: seven
+trainability classes, four verbs, eight runtimes, six bindings. **T4 and T7 are not among them**,
+and neither are `validate`, `explain`, `simulate`, `stress`, `optimise` or `monitor` — a coverage
+gap in the examples rather than in the grammar, and worth naming because a reader counting worked
+cases would otherwise conclude the estate was covered.
+
+The full grammar, its vocabularies and a validation endpoint are served live at
+`/api/v1/grammar`, `/api/v1/grammar/schema` and `/api/v1/grammar/validate`, so a document can be
+checked without being issued.
+
+> **One gap in the closed set, named.** `parameters.kind` is constrained by the published JSON
+> Schema and **not** by the validator that runs. Every other vocabulary on the four axes is checked
+> in Python; this one is checked only by a document nobody is obliged to run. The same file argues
+> — about the trainability class, and correctly — that the schema is not what runs, which is exactly
+> why this is worth writing down rather than leaving to be discovered.
+
+---
+
+## 6. What *is* templated: the request
+
+A **warrant profile** is named, versioned request defaults, and it comes with three constraints that
+stop it becoming the taxonomy §5 exists to avoid.
+
+**Selected by a predicate over derived facts.** The selectable set is closed:
+`trainability_class`, `parameter_kind`, `fit_procedure`, `runtime`, `artifact_format`,
+`environment`, `tier`, `domain`, `model_class`. Selecting on anything else is refused as
+`unknown_profile_fact`. Because the truth is what chose the profile, a profile *cannot* disagree
+with the truth.
+
+**Defaults only, and only for keys a caller could have typed.** A profile may fill `verb`,
+`max_seconds`, `mode`, `inputs` and `outputs`. Everything that decides who may act, for what, in
+which environment and until when — `principal`, `declared_use`, `environment`, the URN, the TTL, the
+grace window, the signature, the whole `authority` and `governance` sections, and
+`trainability_class` itself — is refused at **creation** as `authority_not_defaultable`. A check
+performed when the profile is written is a check nobody can forget to perform at use, and a profile
+that could widen authority would be an authority mechanism wearing a convenience mechanism's
+clothes. Note that `environment` is selectable and not defaultable: choosing to apply only in prod
+is not the same act as deciding what prod means.
+
+**It never overrides a caller.** A profile fills holes. A value the caller supplied is theirs,
+including a value identical to the default, because *"the caller asked for this"* and *"nobody said,
+so we chose"* are different facts and only one of them is the caller's responsibility.
+
+Several profiles may match. They compose by the same fold featuresets use — left to right, rightmost
+wins, `{}` as the identity — ordered by **specificity**, so the most specific speaks last. That is
+the `L-19` monoid, reused rather than reinvented, and saying so is what makes `(A ∘ B) ∘ C` and
+`A ∘ (B ∘ C)` the same set rather than a question about the order somebody happened to declare them
+in. `apply()` returns the filled request *and the derivation*: which profiles matched, in what
+order, and which one each value came from. A default whose origin cannot be named is a value nobody
+can argue with later.
+
+Three further refusals, each preventing a thing that reads as a control and is not:
+
+| Refused | Why |
+|---|---|
+| a profile with **no defaults** | it would match and change nothing, which reads as a control that ran |
+| a predicate allowing **no values** | it can never match, and a profile that never fires is one somebody believes is protecting them |
+| an **obligation** dressed as a default | *"a T4 warrant in prod must carry a digest"* is not a default, because a default is something you can drop. It is a law (`L-W12`) or a policy gate, and both refuse rather than suggest |
+
+Retiring a profile stops it applying and leaves the version in place: warrants it shaped stand, and
+the evidence chain records the creation and the retirement.
+
+```
+GET  /api/v1/warrant-profile-vocabulary    the facts, the defaultable keys, the authority set
+GET  /api/v1/warrant-profiles
+POST /api/v1/warrant-profiles
+POST /api/v1/warrant-profiles/{name}/retire
+POST /api/v1/warrant-profiles/preview      what a request would be filled to, without issuing
 ```
 
-### 5.2 Evaluation pipeline
+> **State, stated.** The register, the predicate, the fold and every refusal above are built and
+> tested. `apply()` is reachable **only through the preview endpoint**: it is not yet called from
+> `WarrantService.resolve`, so no warrant issued today has been shaped by a profile. The part that
+> had to be right first is which keys are defaultable and which are authority, because that is the
+> part a later wiring cannot repair.
+
+---
+
+## 7. Resolution
+
+### 7.1 The surface
+
+```
+POST /api/v1/resolve          a signed descriptor, or a refusal
+POST /api/v1/fit-warrants     a descriptor authorising a fit from a named featureset version
+POST /api/v1/warrants         grant an entitlement
+POST /api/v1/warrants/revoke  withdraw one
+GET  /api/v1/engine           what the captive engine implements, and what its sandbox does not protect against
+POST /api/v1/execute          the captive engine, as one consumer of the endpoints above
+```
+
+`/execute` is deliberately on the same list and deliberately last. The captive engine is a reference
+*consumer* of the public contract, bundled so a deployment works out of the box; disable it and any
+external engine that resolves warrants behaves identically.
+
+### 7.2 The order of the checks, and why it is that order
 
 ```mermaid
 flowchart TD
-    A["Resolve request"] --> B{"Authenticate principal"}
-    B -->|fail| X1["401"]
-    B -->|ok| C{"URN parses & model exists?"}
-    C -->|no| X2["404"]
-    C -->|yes| D["Resolve binding<br/>alias → version, or pinned version"]
-    D --> E{"Entitlement:<br/>grant for this principal + declared_use?"}
-    E -->|no| X3["403 no_entitlement"]
-    E -->|yes| F{"Model use approved<br/>and in effective window?"}
-    F -->|no| X4["403 use_not_approved"]
-    F -->|yes| G{"Version status permits<br/>this environment?"}
-    G -->|no| X5["409 not_approved_for_env"]
-    G -->|yes| H{"Blocking findings?<br/>Suspended? Revoked?"}
-    H -->|yes| X6["423 restricted<br/>+ reason + remediation link"]
-    H -->|no| I["Policy engine:<br/>Rego gate for warrant issuance"]
-    I -->|deny| X7["403 policy_denied + deny_reason[]"]
-    I -->|allow| J["Assemble descriptor<br/>+ governance snapshot"]
-    J --> K["Sign (Ed25519)"]
-    K --> L["Cache in Redis with<br/>revocation tag + TTL"]
-    L --> M["200 WarrantDescriptor"]
+    A["POST /resolve"] --> B{"URN parses & model registered?"}
+    B -->|no| X1["not_found"]
+    B -->|yes| C{"Blocking findings open?"}
+    C -->|yes| X2["blocked<br/>— names each finding"]
+    C -->|no| D{"Grant for this principal<br/>in this environment?"}
+    D -->|no| X3["no_entitlement"]
+    D -->|yes| E{"Grant revoked?"}
+    E -->|yes| X4["revoked"]
+    E -->|no| F{"declared_use matches<br/>the approved use?"}
+    F -->|no| X5["use_not_approved"]
+    F -->|yes| G["Resolve binding<br/>alias → version, or pinned version"]
+    G --> H{"Version approved<br/>for this environment?"}
+    H -->|no| X6["restricted"]
+    H -->|yes| I{"Policy gate<br/>warrant:resolve"}
+    I -->|deny| X7["policy_denied + the failing cases"]
+    I -->|allow| J["Assemble the descriptor<br/>+ the governance snapshot"]
+    J --> K{"Grammar valid?"}
+    K -->|no| X8["grammar_violation<br/>— a defect in the registration"]
+    K -->|yes| L["Sign, and return"]
 
-    style X6 fill:#8b2f2f,color:#fff
-    style M fill:#2d5016,color:#fff
+    style X2 fill:#8b2f2f,color:#fff
+    style L fill:#2d5016,color:#fff
 ```
 
-Every denial returns a machine-readable reason **and** a human-actionable next step:
+Two orderings in that diagram are decisions rather than convenience.
+
+**Blocking findings are checked before entitlement.** A model that failed effective challenge must
+not be servable, and resolution is the one point every consumer passes through however it was
+entitled. Checking it first also means the refusal a caller sees names the real problem rather than
+a missing grant.
+
+**Revocation is checked before the declared use.** A withdrawn warrant is withdrawn whatever the
+caller claims to be doing with it.
+
+Every refusal carries a code, a detail and a remediation:
 
 ```json
-{
-  "error": "restricted",
-  "reason_code": "blocking_finding_open",
-  "detail": "Critical finding FND-4821 (fairness: AIR 0.74 on age_62plus) is open.",
-  "remediation_url": "https://maya.bank.internal/findings/FND-4821",
-  "break_glass": {"available": true, "requires": "dual_authorisation",
-                  "url": "https://maya.bank.internal/breakglass/new?warrant=…"}
-}
+{"error": "blocked",
+ "detail": "1 blocking finding(s) open against maya://model/credit.pd.smallbiz
+            (fairness: AIR 0.74 on age_62plus)",
+ "remediation": "close the blocking findings, or withdraw the model from service"}
 ```
 
-### 5.3 Client-side verification (mandatory)
+`grammar_violation` is the interesting one. It means the register produced a document that does not
+conform, which is a defect in the model's *registration* rather than in the request — so the message
+says so, and names the exact paths.
 
-Every MAYA SDK performs, before executing:
+### 7.3 The fit warrant carries the schema
 
-1. **Signature verification** against the pinned MAYA public key set.
-2. **Expiry check** — `expires_at > now`, with clock-skew tolerance.
-3. **Artifact digest verification** after fetch — refuse to load on mismatch.
-4. **Declared-use conformance** — the caller's actual context must match `authorization.declared_use`.
-5. **Feature contract conformance** — every required feature present, correct dtype, online store within its freshness SLA.
-6. **Boundary check** — evaluate `constraints.operating_boundaries` and apply `on_boundary_violation`.
+`/fit-warrants` discharges `L-W10` and then puts the resolved plan into the document: the entity,
+the grain, every slot with its dtype, the label slot and its outcome window, the pinned namespaces
+and the point-in-time rule. Names and types, never values — the values are large, they are fetched
+through the transfer API, and a signed credential is not a wire format for a dataset.
 
-Steps 3–6 are the runtime enforcement of `input ⊨ A`. When they fail, the model's guarantee `G` is
-formally void, and MAYA records a boundary violation rather than a silent bad score.
+The reason is that a warrant naming a featureset by name and digest made the digest the only thing
+standing between *the right columns* and *some columns*, which is a check nobody can perform by
+reading. An engine receiving a fit warrant should not need a second call to learn what it is being
+asked to train on.
 
 ---
 
-## 6. Lifetime, caching and the kill switch
+## 8. Lifetime, revocation, and the partition
 
-### 6.1 Why TTLs
+### 8.1 Three timers
 
-```mermaid
-sequenceDiagram
-    participant E as Engine
-    participant C as Local cache
-    participant H as maya-warrants
-    Note over E,C: Descriptor TTL default 300 s (Tier 1) / 3600 s (Tier 3–4)
-    E->>C: get descriptor
-    alt fresh
-        C-->>E: descriptor
-    else expired
-        E->>H: re-resolve
-        alt MAYA reachable
-            H-->>E: fresh descriptor
-        else MAYA unreachable
-            Note over E,C: grace window — stale descriptor usable up to<br/>grace_seconds (default 900 s), with degraded-mode telemetry
-            C-->>E: stale descriptor + degraded flag
-        end
-    end
-```
+| Timer | Tier 1 | Tier 2 | Tier 3–4 | Meaning |
+|---|---|---|---|---|
+| `ttl_seconds` | **60** | 300 | 3600 | how long a descriptor is authoritative |
+| `grace_seconds` | **0** | 0 | 900 | how long a stale descriptor may be used when MAYA is unreachable |
+| `jitter_pct` | 20 | 20 | 20 | the band expiry is spread over |
 
-Three timers, tuned per tier:
+Both are written onto the **grant** at issue, from the tier defaults, and travel on every
+descriptor minted against it.
 
-| Timer | Default (Tier 1) | Default (Tier 3–4) | Meaning |
-|---|---|---|---|
-| `ttl_seconds` | **60** | 3600 | How long a descriptor is authoritative |
-| `grace_seconds` | **0** | 900 | How long a stale descriptor may be used if MAYA is unreachable (`G5`) |
-| `revocation_poll` | 30 | 300 | How often a long-running engine re-checks the revocation epoch |
+**Grace is zero where it matters, and that is the default rather than a setting somebody has to
+find.** At Tier 1 and Tier 2 it is zero: failing closed is the right behaviour unless a consumer can
+evidence that failing *stale* is less dangerous, and real-time payment authorisation is the
+canonical case where it is. Configuring per-tier rather than per-warrant is a limitation worth
+naming — the exception a payments consumer needs has to be made for its whole tier, which is
+broader than it should be.
 
-**Grace is an opt-in concession, not a default.** For Tier 1 it is zero unless a consumer can evidence
-that failing stale is *less* dangerous than failing closed — real-time payment authorisation is the
-canonical case. Such grants are per-warrant, expiring, and reported as a KRI, so the population of
-consumers running with a grace window is always visible rather than assumed away.
+**Jitter exists for a reason found in review as H-1.** A fleet issued descriptors at deploy time
+expires them in lockstep, and the resulting herd hits resolution at exactly the moment the platform
+is least able to absorb it. Spreading expiry over ±20% turns a spike into a trickle.
 
-#### The revocation floor
-
-Grace must never become a window in which a known-revoked model keeps deciding. The two concerns are
-therefore decoupled:
-
-1. Every SDK maintains a **locally persisted revocation list**, refreshed on every successful
-   resolution, on every telemetry acknowledgement, and from the event stream.
-2. A descriptor whose id, version or model appears on that list is **refused regardless of grace
-   state**. Grace extends *authorisation currency*; it never extends *revocation ignorance*.
-3. Every MAYA response of any kind carries the current revocation epoch, so an engine still reaching
-   *any* MAYA endpoint learns of a revocation even when resolution itself is failing.
-
-**Residual risk, stated plainly.** A fully partitioned engine holding a pre-partition descriptor for a
-model revoked *during* the partition will continue for at most `ttl + grace` — 60 seconds at Tier 1
-defaults. That is the honest worst case, and it is a design parameter rather than an accident.
-
-A batch job that runs for six hours resolves once and pins for the job's duration — MAYA records the
-pinned version so the run is reproducible even though the alias may have moved mid-job.
-
-### 6.2 Kill switch
+### 8.2 Revocation
 
 ```http
-POST /v1/warrants/{warrant_id}/revoke
-{"reason": "critical_finding", "scope": "all_grants", "urgency": "immediate"}
+POST /api/v1/warrants/revoke
+{"urn": "maya://model/credit.pd.smallbiz", "reason": "critical_finding"}
 ```
 
-Propagation, fastest to slowest:
+Revoking marks the grant and **bumps a global epoch**, which every descriptor carries in
+`authority.revocation.epoch`. Revoking by URN revokes every grant on the model. From that instant no
+resolution succeeds: the next re-resolve fails closed with `revoked` and the reason.
 
-1. **Immediate** — a `revocation` event is published on Kafka; SDKs subscribed to the stream drop the descriptor within ~1 s.
-2. **Epoch bump** — the global `revocation.epoch` increments; any engine polling (default 30 s) sees the change and re-resolves.
-3. **TTL expiry** — worst case, the descriptor dies at `expires_at` (≤ 300 s for Tier 1).
+> **What is built, and what is not.** Revocation state is a column on the grant, and it is
+> authoritative at the point of resolution — that half genuinely works. The rest does not. The epoch
+> is an **in-process counter that resets to zero on restart, and nothing in the platform ever reads
+> it back**; `"check": "required"` beside it is a string no consumer acts on. There is no event
+> stream, no descriptor cache to invalidate, and no locally persisted revocation list in the SDK.
+> Descriptors are not cached at all — every resolve mints a fresh document — so the exposure is
+> narrower than it would otherwise be, but a descriptor already in a caller's hands is **not
+> recalled**: it dies at `expires_at + grace_seconds` and nothing shortens that.
+>
+> The honest worst case is therefore `ttl + grace` — **sixty seconds at Tier 1 defaults**, and
+> seventy-five minutes at Tier 3, where an hour of TTL and fifteen minutes of grace add up. The
+> Tier 1 number is a design parameter; the Tier 3 number is what a long TTL costs, and it is why the
+> tier drives the timer at all. Either way, the sub-second propagation a kill switch is supposed to
+> have is not what ships, and calling the epoch a mechanism when nothing consumes it would be the
+> plainest possible overclaim.
 
-Revocation scopes: a single grant · all grants on a warrant · all warrants for a version · all warrants for a
-model · all warrants for a vendor (used when a vendor discloses a defect) · **estate-wide** (dual-authorised,
-for a systemic event such as a bad market-data feed).
+A batch job that runs for six hours resolves once and works from that descriptor for the job's
+duration. The descriptor names the exact version, so the run stays attributable to one version even
+if the alias moves mid-job — which is the same reason the descriptor carries the version and not
+only the URN it was resolved from.
 
-### 6.3 Degraded mode is a first-class state
+### 8.3 Degraded mode
 
-An engine operating on a stale descriptor sets `degraded=true` in telemetry. MAYA surfaces degraded
-execution volume on the operations dashboard and raises an alert if it exceeds a threshold or persists.
-Governance never silently disappears; it becomes visibly degraded.
+An engine operating on a stale descriptor is expected to flag it. `WarrantSigner.is_expired`
+computes `now > expires_at + grace_seconds`, which is the boundary between *degraded* and *refused*.
+Governance never silently disappears; it becomes visibly degraded — but *visibly* is doing work
+the platform does not yet support. Nothing collects a degraded flag, and the dashboard that would
+show degraded volume across the estate is part of the telemetry gap in §13.
 
 ---
 
-## 7. Alias moves — the governed version switch
+## 9. Alias moves — the governed version switch
 
-Moving `champion` from 3.2.1 to 3.3.0 is the single most dangerous operation in the platform. It is
-gated by proof obligations, not judgement.
+Moving `champion` from 3.2.1 to 3.3.0 is the most dangerous ordinary operation in the platform,
+because it changes what every alias-bound consumer runs without any of them being asked. It is gated
+by proof obligations rather than judgement.
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor O as Model Owner
-    participant API as Control plane
+    actor O as Model owner
+    participant API as Alias register
     participant DOM as Contract algebra
     participant POL as Policy
-    participant HK as Warrant service
-    participant CON as Consumers
+    participant EV as Evidence chain
 
-    O->>API: POST /aliases/champion/move {to: 3.3.0, justification}
-    API->>DOM: refinement check  contract(3.3.0) ⪯ contract(3.2.1)   %% L-7
-    API->>DOM: variance check  inputs contravariant, outputs covariant %% L-12
-    alt either check fails
-        DOM-->>O: 409 + exact clause that fails + affected consumers
+    O->>API: move champion → 3.3.0
+    API->>API: blocking findings open?
+    API->>DOM: contract(3.3.0) ⪯ contract(3.2.1)                 %% L-7
+    API->>DOM: inputs contravariant, outputs covariant           %% L-12
+    alt either fails
+        DOM-->>O: refused, naming the clause and the field
     else both pass
-        API->>POL: alias-move gate (validation, findings, docs, approvals)
+        API->>POL: alias:move gate
         POL-->>API: allow
-        API->>API: advisory lock on (model, env), write alias + alias_history
-        API->>HK: invalidate cached descriptors for this alias
-        HK->>CON: publish alias.moved event
-        Note over CON: next resolve (≤ TTL) returns 3.3.0<br/>no consumer redeployment
-        API->>API: schedule automatic post-move comparison window
+        API->>API: write the alias and alias_history
+        API->>EV: append alias_moved
     end
 ```
 
-The **automatic post-move comparison** runs for a configurable window (default 7 days), comparing the new
-champion's output distribution and monitored metrics against the previous champion's on overlapping
-traffic. Material divergence beyond the declared tolerance triggers an automatic rollback proposal —
-this is the **parallel outcomes analysis** required by SS1/23 3.3(c), performed as infrastructure rather
-than as a project.
+The refinement and variance **results are written into `alias_history`**, not merely computed. A
+proof that was performed and discarded is indistinguishable afterwards from one that was skipped,
+and an examiner asking *on what basis did 3.3.0 replace 3.2.1* deserves the answer rather than the
+assurance that a check exists.
+
+`L-12` goes through the schema lattice of [17 §2](17-feature-and-model-algebra.md): the same
+`refines` relation that decides whether a featureset satisfies a kernel and whether an `input_to`
+edge type-checks. One order, four questions — which is `L-20`.
+
+**Not built:** the automatic post-move comparison window. Comparing the new champion's output
+distribution against the previous champion's on overlapping traffic — the parallel outcomes analysis
+SS1/23 3.3(c) asks for — is a monitoring capability that exists per model and is not scheduled by an
+alias move.
 
 ---
 
-## 8. Composite warrants
+## 10. What actually executes
 
-A composite warrant exposes a **DAG of models as one callable unit** — the composed morphism of
-[00 §5.1](00-mathematical-foundations.md#51-the-feeder-graph-is-a-string-diagram).
+The grammar names eighteen runtimes. No engine implements all of them, and the useful thing an
+engine can do is be **precise about which** — so a warrant naming a runtime this engine does not
+have is refused by name, listing what it does have, rather than failing inside an artifact loader.
+The refusal distinguishes two cases needing different actions: `no_runtime` (never implemented —
+route the warrant elsewhere) and `runtime_unavailable` (implemented, dependency missing — install
+the package).
 
-```yaml
-apiVersion: maya.dev/v1
-kind: CompositeWarrant
-metadata:
-  urn: "maya://composite/markets.xva.desk_a"
-spec:
-  nodes:
-    - id: curve   ; urn: "maya://model/markets.curve.usd_ois#champion"
-    - id: vol     ; urn: "maya://model/markets.vol.usd_swaption_sabr#champion"
-    - id: pricer  ; urn: "maya://model/markets.pricing.swaption_hw#champion"
-    - id: xva     ; urn: "maya://model/markets.xva.cva_engine#champion"
-  edges:
-    - {from: curve,  to: pricer, port: discount_curve}
-    - {from: vol,    to: pricer, port: vol_surface}
-    - {from: curve,  to: xva,    port: discount_curve}
-    - {from: pricer, to: xva,    port: mtm}
-  inputs:  [trade_portfolio, valuation_date, counterparty]
-  outputs: [cva, dva, fva, exposure_profile]
-```
+The captive engine implements five: registered Python callables (which also answer for
+`descriptor_only`), ONNX graphs, the regression and scorecard subset of PMML, QuantLib, and the
+estimator. `GET /api/v1/engine` reports exactly that, per runtime, with the reason for each one it
+cannot currently run.
 
-MAYA:
-- **type-checks the wiring** using the schema lattice (a port mismatch is refused at definition time);
-- **composes the contracts** — the composite's assumptions are the union of member assumptions not
-  discharged internally; its guarantees are derived by contract composition;
-- **computes composite risk** as the lax monoidal join (`L-14`), so the composite's tier reflects the
-  interaction premium, not just the maximum member tier;
-- **resolves atomically** — all members resolve at one instant, so the composite result is attributable
-  to one consistent set of versions;
-- **fails closed as a unit** — revoking any member revokes the composite.
+The **estimator** is the only runtime whose job is to *inhabit* a parameter object rather than read
+one, and it is what makes a `fit` warrant executable end to end. Two families: `ols` by least
+squares, and `garch11` by a hand-written deterministic Nelder–Mead — no optimiser library and no
+random restart, because a fit that lands somewhere different on a second run cannot be the evidence
+for a parameter set. It refuses fewer than thirty rows, a constant series, collinear regressors, a
+target that is also a regressor, an unidentified system and a fit that did not converge, each by
+name — a fitted number that quietly came from a rank-deficient design is worse than no number.
 
-This is what makes an XVA desk's full valuation chain a governed object rather than four separately
-governed objects and an undocumented script.
+### 10.1 The QuantLib runtime
 
----
+Most of what a bank runs is not a learned model but a valuation, and those have no parameter object
+to fit — which is what T0 means, and why `L-W1` refuses to warrant one for fitting. They have
+something the learned ones do not: an as-of date that changes the answer.
 
-## 9. Serving surfaces
+So the runtime **takes the evaluation date from the warrant and never from the clock**, because a
+valuation that reads today is not reproducible tomorrow and a backtest of it is a backtest of
+nothing. And it **builds the curve from what the warrant carries and nothing else**, because
+reaching for a market data service would put an unversioned input into a governed computation.
 
-### 9.1 MAYA-hosted (Open Inference Protocol v2)
+Six instruments are priced for real — discount factor, zero rate, forward rate, fixed-rate bond,
+vanilla swap, European swaption — against three pricing engines and four day counts. A missing past
+fixing, an unknown day count, an instrument or an engine it does not build: each is refused **by
+name** rather than substituted, because a day count silently swapped moves every cash flow and an
+engine silently swapped produces a number nobody can reconcile.
 
-For teams without their own runtime, MAYA hosts the model in a sandboxed serving pod that speaks OIP v2,
-so any KServe-compatible client works unchanged:
+It **prices and does not calibrate**. There is no Hull–White solver here, so
+`examples/warrants/02-quantlib-hullwhite-calibrate` is an admissible warrant this engine refuses as
+`instrument_unsupported` — which is the intended shape of the answer. The grammar governs what may
+be asked; an engine says what it can do; and the two are allowed to differ as long as the gap is a
+named refusal rather than a wrong number.
 
-```
-GET  /v2/health/ready
-GET  /v2/models/{model_name}
-GET  /v2/models/{model_name}/versions/{version}
-POST /v2/models/{model_name}/infer
-POST /v2/models/{model_name}/versions/{version}/infer
-```
+It is **not sandboxed**, and the reason is stated rather than left implicit: it loads no artifact, so
+there is nothing untrusted to isolate from. Writing it surfaced a hazard worth recording, because it
+is the kind that survives a code review — QuantLib keeps fixing history in a **process-global**
+manager, so one warrant's fixing would still be present for the next valuation. Each valuation now
+starts from an empty history and sees only what its own warrant carries.
 
-MAYA adds governance headers on every response:
+### 10.2 The sandbox, and what it does not do
 
-```
-X-Maya-Model-Urn:        maya://model/credit.pd.smallbiz
-X-Maya-Model-Version:    3.2.1
-X-Maya-Feature-Contract: sha256:c701…
-X-Maya-Boundary-Ok:      true
-X-Maya-Descriptor-Id:    hd_01J8XQ…
-```
+`constraints.resources.max_seconds` becomes `RLIMIT_CPU`, and a memory ceiling becomes `RLIMIT_AS`,
+on a child process — spawned, not forked, so it inherits no database handle — that loads an
+artifact-backed runtime. The memory budget is added to the interpreter's own footprint read from
+`/proc/self/status`, and the runtime's dependencies are imported *before* the limit is applied, so
+a library's import cost is never charged to the model's budget.
 
-Those headers propagate into the caller's own logs, so a downstream incident can be traced to an exact
-governed version without consulting MAYA.
+Two limits of the limits. Only `onnx` and `pmml` are sandboxed: QuantLib loads no artifact, and a
+bound callable cannot be isolated at all. And MAYA's own builder writes `max_seconds` but never
+`max_memory_mb`, so every MAYA-issued warrant runs at the 2,048 MB default — the field is read, and
+nothing on this side currently sets it.
 
-### 9.2 Python SDK
-
-```python
-import maya
-
-# Alias-bound: follows governed champion moves automatically
-model = maya.load(
-    "maya://model/credit.pd.smallbiz#champion",
-    use="origination_decision",
-    entity="LE-US-01",
-)
-
-result = model.predict({
-    "customer_id": "C-88213",
-    "request_amount": 250_000,
-})
-
-result.prediction        # {'pd_12m': 0.0187, 'score': 712}
-result.model_version     # '3.2.1'
-result.boundary_ok       # True
-result.explanation       # SHAP contributions, reason codes
-result.reason_codes      # ['DSCR_LOW', 'THIN_FILE']  → Reg B adverse action
-result.descriptor_id     # 'hd_01J8XQ…'
-
-# Pinned, for reproducing a historical decision exactly
-historic = maya.load("maya://model/credit.pd.smallbiz@3.1.0?calibration=2026-03-31")
-```
-
-The SDK fetches features from the online store per the contract, checks boundaries, emits telemetry, and
-verifies signatures — none of which the caller has to remember to do. **The compliant path is the
-shortest path** (`P4`).
-
-### 9.3 SQL UDF
-
-```sql
-SELECT
-    account_id,
-    maya_predict('maya://model/credit.pd.smallbiz#champion',
-                 struct(years_in_business, dscr, industry_sic)) AS pd_result
-FROM analytics.sb_portfolio;
-```
-
-The UDF resolves once per query, pins for the query's duration, and writes telemetry — so an analyst
-scoring in SQL is as governed as a production service.
-
-### 9.4 Batch
-
-```python
-maya.batch_score(
-    urn="maya://model/credit.pd.smallbiz#champion",
-    input_table="maya_lake.portfolio.sb_accounts",
-    output_table="maya_lake.scores.sb_pd_20260903",
-    as_of="2026-09-03",                 # PIT-correct feature retrieval at this instant
-    use="portfolio_monitoring",
-)
-```
-
-`as_of` is not cosmetic: it drives the bitemporal feature lookup of
-[00 §11.1](00-mathematical-foundations.md#111-bitemporality-and-the-point-in-time-correctness-theorem),
-so a re-run six months later reproduces the original scores exactly.
-
----
-
-## 10. Telemetry and approved-vs-actual-use reconciliation
-
-Telemetry is what turns SS1/23's "intended use **compared to** actual use" from an aspiration into a
-report.
-
-```http
-POST /v1/telemetry
-{
-  "descriptor_id": "hd_01J8XQ…",
-  "window": {"from": "2026-09-03T08:00:00Z", "to": "2026-09-03T08:00:30Z"},
-  "invocations": 14203,
-  "latency_ms": {"p50": 6, "p95": 14, "p99": 22},
-  "boundary_violations": 37,
-  "errors": 2,
-  "degraded": false,
-  "context_distribution": {
-    "portfolio": {"SB Term Loan": 13980, "SB Line of Credit": 223},
-    "geography": {"US": 14203},
-    "channel":   {"digital": 9100, "branch": 5103}
-  },
-  "samples": [ /* sampled full records per tier policy → inference_log */ ]
-}
-```
-
-A nightly job compares the observed distribution against the approved `model_use` set and raises
-exceptions:
-
-| Exception | Example |
+| Protects against | Does not protect against |
 |---|---|
-| **Off-label portfolio** | 223 calls for "SB Line of Credit", which is not an approved use |
-| **Unapproved geography** | Calls originating in a jurisdiction outside the approval |
-| **Volume anomaly** | 40× the expected daily volume — suggests a new, unassessed use |
-| **Boundary violation rate** | 0.26% of inputs outside operating boundaries — assumption `A` failing |
-| **Dormant approval** | An approved use with zero calls for 180 days — candidate for withdrawal |
-| **Undeclared consumer** | A new principal resolving the warrant |
+| a runaway artifact — CPU and address space are bounded, and the parent reclaims the child on timeout | a **deliberately hostile** artifact. The child shares the filesystem and the network namespace; blocking those needs a container, a VM or seccomp |
+| a crash — a segfault in a native runtime kills the child, not the platform | a **callable bound in process**. You cannot isolate a function handed to you in your own address space, and the engine does not claim to |
+| unbounded allocation — it fails in the child | |
 
-Each becomes a finding with an owner and a due date. This capability exists in no product surveyed in
-[01 §5](01-industry-research.md), and it is the difference between an inventory that describes intentions
-and one that describes reality.
+`describe()` returns both columns, and `GET /api/v1/engine` serves them. An engine that claims
+isolation it does not have is more dangerous than one that claims none.
 
----
+### 10.3 `descriptor_only`, and the governance it cannot reach
 
-## 11. Security model
-
-| Control | Implementation |
-|---|---|
-| Authentication | Workload identity (SPIFFE/Kubernetes SA tokens, or mTLS client certs); no long-lived shared secrets |
-| Authorisation | Grant = (principal, warrant, approved use); ABAC on entity/geography |
-| Integrity | **Target:** Ed25519 descriptor signatures, key rotation every 90 days with an overlapping key set, SDKs pinning the key set. **As built:** HMAC-SHA256 over the canonical form with the signature block excluded — adequate for integrity against a party that holds no key, and *not* adequate for third-party verification, because a shared secret cannot distinguish a verifier from a minter. Asymmetric signing is the one change this section is waiting on |
-| Artifact integrity | Content-addressed fetch; digest verified after download; cosign signature verified for Tier 1 |
-| Confidentiality | TLS 1.3 everywhere; descriptors contain no secrets, only references resolved via the caller's own credentials |
-| Replay resistance | Descriptors are short-lived and bound to principal + environment |
-| Least privilege | The descriptor grants exactly one use in one environment |
-| Auditability | Every resolution and revocation is written to the append-only audit log |
-| Anti-exfiltration | Rate limits and daily quotas per grant; anomaly detection on resolution patterns (bulk model extraction is detectable) |
+`descriptor_only` is one of the eighteen and matters most in a bank, because the majority of the
+estate already runs inside engines nobody is going to replace. MAYA governs **resolution**, not
+execution: a receiving engine can skip boundary checks, ignore the io contract, cache the artifact
+indefinitely and never report telemetry. This was finding **C-6** of the
+[adversarial review](11-adversarial-review.md). Three things narrow it and none closes it: the TTL
+bounds how long an unsupervised engine may act on one authorisation, revocation bites at the next
+resolution, and the artifact digest makes the bytes checkable by anybody who bothers. A fourth
+control — treating silence from a principal that resolves and never reports as an exception — is
+described in earlier drafts and **is not built**, because nothing records a resolution to be silent
+about. The honest position is that for `descriptor_only` a warrant is a *record of authorisation*
+rather than a *mechanism of enforcement*.
 
 ---
 
-## 12. Failure semantics
+## 11. Failure semantics
+
+The first three rows bind the **engine** and the rest bind **MAYA**, and the difference matters: the
+rows MAYA owns are enforced by the code that refuses, and the rows the engine owns are a contract
+an engine can decline to honour — which is §10.3 restated as a table.
 
 | Situation | Behaviour | Rationale |
 |---|---|---|
-| MAYA unreachable, descriptor fresh | Execute normally | Governance already granted |
-| MAYA unreachable, descriptor within grace | Execute, flag `degraded`, alert | Availability over strictness for already-approved work (`G5`) |
-| MAYA unreachable, past grace | **Fail closed** | Ungoverned execution is not a fallback |
-| Revoked | Fail closed, with reason and break-glass link | `G4` |
-| Feature online store stale beyond SLA | Fail closed by default; `serve_stale` is an explicit, per-warrant, expiring opt-in | Stale features are silent model failure |
-| Input outside operating boundaries | Per `on_boundary_violation`: reject, or score with a flag, or refer to human | The contract's assumption is violated; the guarantee no longer holds |
-| Artifact digest mismatch | **Fail closed**, raise a security incident | Possible tampering |
-| Signature verification failure | **Fail closed**, raise a security incident | Possible forged descriptor |
-| Quota or budget exhausted | Fail closed with `429` and a clear message | Cost control, especially for T5 |
+| MAYA unreachable, descriptor fresh | execute normally | governance was already granted |
+| MAYA unreachable, descriptor within grace | execute, flag degraded | availability over strictness for already-approved work |
+| MAYA unreachable, past grace | **fail closed** | ungoverned execution is not a fallback |
+| grant revoked | fail closed on the next resolve, with the reason | the kill switch |
+| open blocking finding | fail closed at resolution, naming each finding | a finding that does not stop the model is a memo |
+| version not approved for this environment | fail closed as `restricted` | promotion is what makes a version servable, not registration |
+| artifact digest mismatch | **fail closed** before loading | possible tampering; every runtime verifies the digest first |
+| input outside the operating boundary | per `on_boundary_violation`: reject, score with a flag, or refer | the contract's assumption is violated, so the guarantee no longer holds |
+| the register produced a non-conforming document | **fail closed**, unsigned | signing it would assure authenticity and be read as usability |
 
 ---
 
-## 13. Featuresets, and naming the point in P
+## 12. Security
 
-Two additions, specified in [15](15-featuresets-and-parameters.md).
+| Control | As built |
+|---|---|
+| Integrity | HMAC-SHA256 over the canonical form, the signature block excluded whole. The key id is a one-way digest of the secret, so publishing it in every descriptor discloses nothing. A published default key is named at start-up |
+| Authorisation | a grant is `(principal, environment, declared use)`, checked at every resolution; the declared use must match exactly |
+| Least privilege | a descriptor authorises one use in one environment, and expires |
+| Replay resistance | short-lived, bound to principal and environment, and carrying the revocation epoch at issue |
+| Confidentiality | the descriptor carries no secrets — schemas, digests and references, resolved by the caller's own credentials |
+| Auditability | granting and revoking append to the hash-chained evidence record as `warrant_issued` and `warrant_revoked`. **A resolution does not**: there is no `warrant_resolved` node, so the chain records who was entitled and when it was withdrawn, and not how often the entitlement was exercised. Execution writes nothing at all |
+| **Target, not built** | Ed25519 with an overlapping key set and a 90-day rotation. This is the one change that would make third-party verification meaningful, because a shared secret cannot distinguish a verifier from a minter |
 
-**`data.inputs[].binding: featureset`** names a versioned presentation of `X`
-rather than enumerating namespaces. It joins `feature_namespace` and
-`dataset_snapshot` as a bitemporal binding, so **L-W3** admits training from it,
-and **L-W9** requires a fit reading one to bound both clocks — an `as_of` and a
-`from`/`to` window. The featureset fixes the columns; the warrant fixes the
-period, which is what lets one set serve *train on 2019–2023* and *train on
-2020–2024* without becoming two sets. `as_of` is deliberately **not** required
-for a `score`: reading a featureset at whatever is current is legitimate when
-serving, and is not when training.
+---
 
-**`parameters.source.binding`** becomes a closed vocabulary — `artifact` ·
-`parameter_set` · `declared` · `to_be_fitted` · `vendor_internal` — checked by
-**L-W8**. Every run must say which point in `P` it is running at, because
-training does not change the kernel and a run that will not name its inhabitant
-produces a number attributable to nothing. A `fit` binds `to_be_fitted` and
-nothing else; it *writes* the parameter object, so declaring that it reads one
-describes the wrong direction.
+## 13. Designed, not built
 
-That law found a real error in `examples/warrants/02-quantlib-hullwhite-calibrate`,
-which claimed its calibration set came from an artifact while its verb produced
-it.
+Named here rather than left to be discovered, because a specification that reads the same for what
+exists and what is planned has stopped being a specification.
 
-**A third law is checked at issuance rather than in the grammar.** **L-W10** asks
-whether the featureset a warrant names actually provides what the kernel declares
-it reads. That is contravariance in inputs — the same variance rule (**L-12**)
-that gates an alias move, applied one level out — and it is refused as
-`schema_not_satisfied` with the missing slots named. It cannot live in the
-grammar, because the grammar validates a document in isolation and this question
-needs the register: it compares a featureset version's resolved slots against a
-model version's input schema, and neither is in the document being validated.
+| | State |
+|---|---|
+| **Warrant flavours** | `flavour` is a string on the grant, defaulting to `descriptor_only`, with **no per-flavour behaviour anywhere**. The delivery mechanisms it was meant to select — an OIP v2 endpoint, a gRPC endpoint, a JVM SDK, a Spark job spec, a SQL UDF, a stream operator, an OCI image, a spreadsheet connector — are none of them built. The axis that *is* built and closed is `realisation.runtime`, and where an earlier draft of this document said "eleven flavours cover the estate", the sentence that is true is the runtime one |
+| **Composite warrants** | no code. A DAG of models exposed as one callable unit, resolving atomically and failing closed as a unit, is design. What exists is `composite_schema(A, B)` in `core/registry/composition.py`, which *derives* the type of `B ∘ A` from a type-checked `input_to` edge — the half `L-14` would need to quantify over |
+| **MAYA-hosted serving** | there is no serving pod and no Open Inference Protocol surface. MAYA issues and revokes; the captive engine executes on demand through `/execute` |
+| **SQL UDF, batch scoring, `maya.load`** | not built. The Python SDK is a client for the register and the warrant API — `warrants.resolve`, `warrants.for_fitting`, `warrants.execute`, `warrants.validate`, the profile endpoints — not an in-process model loader |
+| **Engine certification** | `attested` / `cooperating` / `opaque` as a registered property of a principal, feeding effective complexity in tiering, is design. Principals exist; the certification level does not |
+| **Approved-vs-actual-use reconciliation** | telemetry ingestion exists and is bitemporal and idempotent, over two streams — scores and outcomes — and it feeds **monitoring**. The nightly job that compares an observed context distribution against the approved `model_use` set and raises off-label portfolio, unapproved geography, volume anomaly and dormant approval exceptions is not built. This is the capability that would turn SS1/23's *intended use compared to actual use* from an aspiration into a report, and it is the largest single gap in this document |
+| **Client-side verification as a mandate** | the SDK is a client, not an enforcement point. Signature checking, expiry checking, digest verification after fetch, declared-use conformance and boundary evaluation are what an engine *must* do; only digest verification is performed by MAYA's own runtimes today, and it is performed before every invocation |
+| **Distributed revocation** | §8.2 |
+| **Profiles at issuance** | §6 — built, tested, and reachable only through preview |
+| **A record of use** | resolution and execution write nothing to the evidence chain. The grant and its withdrawal are recorded; what was done under it is not |
 
-### The full admissibility set
+---
 
-| Law | Refuses | Checked |
-|---|---|---|
-| `L-W0` | A malformed document — a missing section, an unknown verb, a runtime without its entry keys | grammar |
-| `L-W1` | `fit` on T0 or T6 | grammar |
-| `L-W2` | `generate` on a non-generative runtime | grammar |
-| `L-W3` | Training from a binding that cannot be read as-of | grammar |
-| `L-W4` | A `fit` with no `parameter_object` sink | grammar |
-| `L-W5` | Claimed determinism from a stochastic runtime with no seed | grammar |
-| `L-W6` | `fit` on a `descriptor_only` model | grammar |
-| `L-W7` | A backtest with no outcomes | grammar |
-| `L-W8` | A run that will not name its point in `P` | grammar |
-| `L-W9` | A featureset read for training, unbounded in either clock | grammar |
-| `L-W10` | A featureset that does not provide what the kernel reads | warrant issuance |
-| `L-W11` | A calibrated parameter object that does not say what it was calibrated as of | grammar |
-| `L-W12` | Parameters bound to an artifact, with no artifact digest | grammar |
-| `L-W13` | A generative runtime naming a model family but no build | grammar |
+## 14. Traceability
 
-Every one is checked **before** the warrant is signed. A signature over a
-non-conforming document would assure that it is authentic and not that it is
-usable, and an engine would reasonably read it as both.
+| Section | Satisfies |
+|---|---|
+| §1 The boundary | `P9`; finding **C-1** |
+| §2 The URN | finding **C-2** |
+| §3 The four axes | the derived trainability class of [00 §2](00-mathematical-foundations.md) |
+| §4 The descriptor | the assume–guarantee contract: `constraints.operating_boundary` is `A`, `io_contract` is the typed part of `G` |
+| §5 Admissibility | `L-W0`–`L-W13`; `L-W10` is `L-12` one level out |
+| §6 Profiles | the `L-19` monoid |
+| §7 Resolution | governance evaluated at the moment of use, not at deployment |
+| §9 Alias moves | `L-7`, `L-12`, `L-20` |
+| §10 `descriptor_only` | finding **C-6** |
+| §13 | what is not built, by name |
+
+The featureset half of this — what a fit warrant may name, and why the set fixes the columns while
+the warrant fixes the period — is [15 — X and P](15-featuresets-and-parameters.md). The order that
+`L-W10`, `L-12` and `L-21` all reduce to is [17 §2](17-feature-and-model-algebra.md).
 
 ---
 

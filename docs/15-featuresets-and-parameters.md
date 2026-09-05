@@ -371,7 +371,7 @@ scan.
 | §3 Derived features | `FR-FEA-006`; `L-9` extended; `L-10` |
 | §4 Parameter object | `L-W4` completed on the register side |
 | §5 Laws | `L-W8`, `L-W9`, `L-W10`, `L-10`, `L-20` |
-| §7 Interfaces | segregation per [09 §3.2](09-security-compliance.md) |
+| §7 Interfaces | segregation per [09 §2](09-security-compliance.md) |
 
 ---
 

@@ -243,6 +243,11 @@ class ModelComposition:
                 "removing a relation needs a reason: an edge that disappears "
                 "without one is a dependency somebody stopped believing in and "
                 "nobody can ask about")
+        # Through the alias, like `relate`. Without it an edge created as
+        # `feeds` — the spelling the alias exists to keep working — is stored as
+        # `input_to` and cannot be removed by the name it was created with,
+        # which is the worst possible shape for a compatibility alias.
+        kind = canonical(kind)
         source, target = self.catalogue.require(from_urn), self.catalogue.require(to_urn)
         removed = self.edges.remove(from_model=source["id"],
                                     to_model=target["id"], kind=kind)
