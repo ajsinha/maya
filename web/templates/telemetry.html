@@ -76,13 +76,12 @@ and not when they arrive.</p>
     silence is the finding, not the absence of one.</div></div>
 
 <div class="card mb-3"><div class="card-header">The two streams</div>
-  <table class="table maya mb-0">
-    <tbody>
+  <dl class="maya-terms">
     {% for stream, means in streams.items() %}
-      <tr><td class="small mono" style="width:8rem">{{ stream }}</td>
-          <td class="small text-muted">{{ means }}</td></tr>
+      <div><dt class="mono" style="width:8rem">{{ stream }}</dt>
+           <dd>{{ means }}</dd></div>
     {% endfor %}
-    </tbody></table>
+    </dl>
   <div class="card-body py-2 small text-muted border-top">
     Ingestion is idempotent: a batch carries the digest of its own rows, and a
     digest already recorded is accepted and not written again. Real collectors

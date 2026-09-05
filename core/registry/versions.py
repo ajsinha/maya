@@ -28,6 +28,9 @@ from core.registry.common import RegistryError
 from core.registry.specs import schema_of
 from db import VersionRepository
 from db.database import digest as canonical_digest
+from core.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class VersionService:
@@ -38,6 +41,10 @@ class VersionService:
         self.versions, self.catalogue, self.evidence = versions, catalogue, evidence
         self.gate = gate
         self.policy = None
+        # Set at wiring time. When present, a digest naming bytes MAYA holds is
+        # resolved here rather than taken on faith, and its size and address go
+        # onto the version so a warrant can state them.
+        self.artifacts = None
 
     @staticmethod
     def kernel_of(spec: Dict[str, Any], artifact_digest: Optional[str]) -> ParametricKernel:
@@ -65,10 +72,22 @@ class VersionService:
             raise RegistryError(
                 f"version {semver} already exists for {urn}; versions are immutable")
 
+        artifact_size = None
+        held = self._held(artifact_digest)
+        if held is not None:
+            # The store is the authority on its own contents. A caller may name
+            # the digest and leave the URI to us; a caller who names both and
+            # gets the URI wrong is corrected rather than believed.
+            artifact_uri = held["uri"]
+            artifact_size = held["size"]
+            if not kernel_spec.get("artifact_format"):
+                kernel_spec = dict(kernel_spec, artifact_format=held["format"])
+
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
-                    "artifact_digest": artifact_digest, "artifact_uri": artifact_uri}
+                    "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,
+                    "artifact_size": artifact_size}
         row = {"model_id": m["id"], "semver": semver, "manifest": manifest,
                "manifest_digest": canonical_digest(manifest),
                "trainability_class": kernel.trainability_class,
@@ -77,13 +96,29 @@ class VersionService:
                "input_schema": kernel_spec.get("input_schema", []),
                "output_schema": kernel_spec.get("output_schema", []),
                "contract": contract_spec or {}, "artifact_digest": artifact_digest,
-               "artifact_uri": artifact_uri,
+               "artifact_uri": artifact_uri, "artifact_size": artifact_size,
                "status": "draft", "created_at": time.time(), "created_by": actor}
         self.versions.add(row)
         self.evidence.append("version_created", "version", row["id"],
                              {"semver": semver, "digest": row["manifest_digest"],
                               "trainability_class": row["trainability_class"]}, actor=actor)
         return row
+
+    def _held(self, digest: Optional[str]) -> Optional[Dict[str, Any]]:
+        """What MAYA holds under this digest, or None if it holds nothing.
+
+        A digest MAYA cannot resolve is not an error: plenty of artifacts live
+        in a model store somewhere else and are named here so the engine can
+        check them on load. The distinction is recorded rather than enforced,
+        and the warrant carries it as `held_by_maya`.
+        """
+        if not digest or self.artifacts is None:
+            return None
+        try:
+            return self.artifacts.describe(digest)
+        except Exception as exc:                       # any store failure at all
+            logger.info("artifact %s not resolvable in the store: %s", digest, exc)
+            return None
 
     def _check_open(self, model: Dict[str, Any]) -> None:
         if self.gate is None:

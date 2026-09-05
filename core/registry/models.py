@@ -47,6 +47,16 @@ class ModelRegistry:
         # refuse. Policy tightens; the invariants written here are the floor.
         self.policy = None
 
+    def attach_artifacts(self, store) -> None:
+        """Wire the artifact store after construction.
+
+        Injected rather than imported so the registry keeps knowing nothing
+        about where bytes live: with a store attached, a version naming a digest
+        MAYA holds gets its uri, size and format from the store; without one,
+        every digest is treated as naming an artifact somebody else holds.
+        """
+        self.version_service.artifacts = store
+
     def attach_policy(self, gate) -> None:
         """Wire a policy gate. It adds conditions; it never removes them."""
         self.policy = gate
@@ -95,6 +105,12 @@ class ModelRegistry:
 
     def require(self, urn: str) -> Dict[str, Any]:
         return self.catalogue.require(urn)
+
+    def by_id(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """A model by its identifier rather than its urn. Rows that reference a
+        model hold the id, so anything checking scope from such a row needs
+        this to get back to the model the scope is about."""
+        return self.catalogue.by_id(model_id)
 
     def list(self, domain: Optional[str] = None,
              tier: Optional[int] = None) -> List[Dict[str, Any]]:

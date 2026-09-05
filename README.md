@@ -309,7 +309,7 @@ maya/
 │   └── evidence/  risk/  content/   the chain; tiering; rendered help
 │       config/                      YAML with a git-ignored local overlay
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 42 tables, no migrations
+│   └── schema/                      two hand-written schemas, 44 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
@@ -319,9 +319,7 @@ maya/
 │   ├── examples/                    the two FRED series the worked example uses
 │   ├── research/                    the paper and the article (product-neutral)
 │   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
-│   ├── MAYA-System-Design.pptx              56-slide system design deck
-│   └── MAYA-Model-and-Feature-Engineering.pptx
-│                                     33-slide practitioner deck, with its data embedded
+│   └── MAYA-System-Design.pptx              99-slide system design deck
 ├── assets/logo/                     the mark, the lockup, and their variants
 └── tools/deck/                      deck generator, logo generator, geometry audit
 ```
@@ -333,7 +331,7 @@ The ideas behind this system are written up independently of the product:
 | Artefact | Audience |
 |---|---|
 | **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 34-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
-| **[Most of Your Models Were Never Trained](docs/research/most-of-your-models-were-never-trained.md)** | General technical readers |
+| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels-article.md)** — the long-form article | General technical readers. The paper's argument in prose, carrying the same title: the definition and what it dissolves, why aggregate risk cannot compose, the two clocks and what a leak actually looks like, featuresets and the fold that composes them, artefacts that remember and why single-shot tests cannot govern them, and the oracle criterion |
 | **[Models as Parametric Kernels](docs/Models-as-Parametric-Kernels.pptx)** — 27 slides | Conversation-starter deck mirroring the paper: the problem, the formal foundation, automation and its oracles, and six questions worth arguing about |
 
 The paper, the article and the research deck are deliberately **product-neutral** — no MAYA name, no
@@ -341,7 +339,7 @@ branding — so the ideas can be judged on their own. The engineering material b
 
 | Engineering artefact | Audience |
 |---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 56 slides | Eight chapters: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations |
+| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 99 slides | Fifteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. Chapters nine to fourteen are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file**. The fifteenth takes each kind of model in turn — regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application — and says how MAYA saves, manages and serves it |
 | **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
 
 *Ashutosh Sinha, Independent Researcher.*

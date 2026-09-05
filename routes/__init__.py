@@ -7,6 +7,7 @@ Route modules. Each subclasses Routes, which owns the scaffolding they all
 share: the services, the brand context, the domain-refusal mapping, and the
 login check. Routers hold no domain logic.
 """
+from routes.artifact_routes import ArtifactRoutes
 from routes.assist_routes import AssistRoutes
 from routes.attachment_routes import AttachmentRoutes
 from routes.approval_routes import ApprovalRoutes
@@ -45,7 +46,7 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               DocumentRoutes, AttachmentRoutes, FeaturesetRoutes,
               ApprovalRoutes, TelemetryRoutes, TransferRoutes,
               NotificationRoutes, SsoRoutes, PolicyRoutes,
-              OverlayRoutes, AssistRoutes,
+              OverlayRoutes, ArtifactRoutes, AssistRoutes,
               BaselineRoutes,
               RegimeRoutes, SchedulerRoutes,
               UIRoutes)

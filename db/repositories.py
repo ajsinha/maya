@@ -132,8 +132,28 @@ class AliasHistoryRepository(Repository):
     TABLE, JSON, ORDER = "alias_history", ("refinement", "variance"), "moved_at"
 
 
+class ModelEdgeRepository(Repository):
+    TABLE, ORDER = "model_edge", "created_at"
+
+
+class EvidenceCheckpointRepository(Repository):
+    TABLE, ORDER = "evidence_checkpoint", "seq"
+
+
 class EvidenceRepository(Repository):
     TABLE, JSON, ORDER = "evidence_node", ("payload", "parents"), "seq"
+
+    def since(self, seq: int) -> List[Dict[str, Any]]:
+        """Nodes after this sequence, filtered in SQL.
+
+        Filtering in Python after `many()` reads the whole table, so the
+        incremental verification cost the same as the full walk and the probe
+        got no faster -- the hashing was never the expensive part; the read
+        was.
+        """
+        return [self._decode(r) for r in self.db.query(
+            f"SELECT * FROM {self.TABLE} WHERE seq > :s ORDER BY seq",
+            {"s": seq})]
 
 
 class RiskRepository(Repository):

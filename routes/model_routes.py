@@ -10,7 +10,24 @@ from typing import Any, Dict, Optional
 from fastapi import Request
 from pydantic import BaseModel, Field
 
+from core.domain import paging
 from routes.base import Routes
+
+
+class RelateIn(BaseModel):
+    """One model's standing to another. `from` is a Python keyword, so the
+    field is `from_urn` and the shape says so rather than being clever."""
+    from_urn: str
+    to_urn: str
+    kind: str
+    note: str = ""
+
+
+class UnrelateIn(BaseModel):
+    from_urn: str
+    to_urn: str
+    kind: str
+    reason: str
 
 
 class ModelIn(BaseModel):
@@ -59,16 +76,100 @@ class ModelRoutes(Routes):
 
     def register(self) -> None:
         reg, ev = self.ctx["registry"], self.ctx["evidence"]
+        composition = self.ctx["composition"]
         tiering, risk_repo = self.ctx["tiering"], self.ctx["risk_repo"]
         urn = lambda name: f"maya://model/{name}"
 
         @self.app.get(f"{self.api}/models", tags=["models"])
         def list_models(request: Request, domain: Optional[str] = None,
-                        tier: Optional[int] = None):
+                        tier: Optional[int] = None, q: Optional[str] = None,
+                        limit: Optional[int] = None,
+                        offset: Optional[int] = None):
             who = self.authorise(request, "model:read")
             # Filtered at the listing, not only at the detail page: a model out
             # of scope must not be discoverable by a count that does not add up.
-            return {"models": self.ctx["authz"].visible(who, reg.list(domain, tier))}
+            #
+            # And filtered BEFORE the page is cut, for the same reason: page two
+            # of a filtered list must not be page two of the unfiltered one with
+            # holes in it.
+            visible = self.ctx["authz"].visible(who, reg.list(domain, tier))
+            if q:
+                needle = q.strip().lower()
+                visible = [m for m in visible
+                           if needle in f"{m.get('name','')} {m.get('urn','')} "
+                                        f"{m.get('owner','')} "
+                                        f"{m.get('model_class','')}".lower()]
+            return paging.page(visible, limit, offset).as_dict("models")
+
+        # ------------------------------------------------------ composition
+        @self.app.get(f"{self.api}/model-relations", tags=["models"])
+        def relations(request: Request):
+            """The relations one model may have to another, and what each means."""
+            self.principal(request)
+            from core.registry import ModelComposition
+            return {"relations": ModelComposition.describe()}
+
+        @self.app.post(f"{self.api}/model-relations", status_code=201,
+                       tags=["models"])
+        def relate(request: Request, body: RelateIn):
+            """Record that one model stands to another in this way.
+
+            Two relations do different work. `feeds` propagates -- change the
+            source and this model's answer changes -- and `derives_from` does
+            not: a model built from another has its own versions and its own
+            approvals. Conflating them makes a challenger look like a
+            dependency and inflates every blast radius it appears in.
+            """
+            target = self.guard(lambda: reg.require(body.to_urn))
+            who = self.authorise(request, "model:amend", model=target)
+            return self.guard(lambda: composition.relate(
+                body.from_urn, body.to_urn, body.kind, body.note,
+                actor=self.actor(who)))
+
+        # A POST rather than a DELETE because it carries a body: removing a
+        # relation requires a reason, and a reason does not belong in a query
+        # string where it will be truncated and logged.
+        @self.app.post(f"{self.api}/model-relations/remove", tags=["models"])
+        def unrelate(request: Request, body: UnrelateIn):
+            """Remove a relation, with a reason. An edge that disappears without
+            one is a dependency somebody stopped believing in and nobody can ask
+            about."""
+            target = self.guard(lambda: reg.require(body.to_urn))
+            who = self.authorise(request, "model:amend", model=target)
+            return self.guard(lambda: composition.unrelate(
+                body.from_urn, body.to_urn, body.kind, body.reason,
+                actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/models/{{name:path}}/relations", tags=["models"])
+        def model_relations(request: Request, name: str):
+            """Everything attached to this model, in both directions."""
+            model = self.guard(lambda: reg.require(urn(name)))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: composition.edges_of(model["urn"]))
+
+        @self.app.post(f"{self.api}/blast-radius", tags=["models"])
+        def blast_radius(request: Request, body: Dict[str, Any]):
+            """What a change here reaches, and how far away each one is.
+
+            Only propagating relations are followed, so a challenger is not
+            downstream of the model it argues with.
+            """
+            model = self.guard(lambda: reg.require(body["urn"]))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: composition.blast_radius(model["urn"]))
+
+        @self.app.post(f"{self.api}/shared-dependencies", tags=["models"])
+        def shared(request: Request, body: Dict[str, Any]):
+            """What two or more of these models both depend on.
+
+            The obstruction, made computable: a network that COPIES a dependency
+            is not the same as one that duplicates it, and that difference is
+            why an aggregate risk assignment cannot simply add up. Supervisors
+            ask about common dependencies in prose; this answers it.
+            """
+            self.authorise(request, "model:read")
+            return self.guard(lambda: composition.shared_dependencies(
+                body.get("urns") or []))
 
         @self.app.post(f"{self.api}/models", status_code=201, tags=["models"])
         def create_model(request: Request, body: ModelIn):

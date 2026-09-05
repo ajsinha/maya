@@ -48,6 +48,11 @@ class UIRoutes(Routes):
             m = registry.get(urn)
             if not m:
                 return self.page(request, "not_found.html", http_status=404, name=name)
+            # Scope, by the same rule the API applies. Without this the page
+            # served a model the API refuses -- versions, alias history, warrant
+            # grants and the whole evidence chain.
+            if not self.may_view(request, "model:read", m):
+                return self.refused_page(request, f"The model {name}")
             versions = registry.versions(urn)
             features, register = self.ctx["features"], self.ctx["findings"]
             docs = self.ctx["documents"]
@@ -243,6 +248,8 @@ class UIRoutes(Routes):
             if version is None:
                 return self.page(request, "not_found.html", http_status=404,
                                  name=f"telemetry/{semver}/{name}")
+            if not self.may_view(request, "monitor:read", model):
+                return self.refused_page(request, f"Telemetry for {name}")
             telemetry, urn = self.ctx["telemetry"], model["urn"]
             cohort = telemetry.cohort(urn, semver)
             return self.page(
@@ -264,6 +271,8 @@ class UIRoutes(Routes):
             if version is None:
                 return self.page(request, "not_found.html", http_status=404,
                                  name=f"parameters/{semver}/{name}")
+            if not self.may_view(request, "model:read", model):
+                return self.refused_page(request, f"Parameters for {name}")
             parameters, urn = self.ctx["parameters"], model["urn"]
             sets = parameters.for_version(urn, semver)
             return self.page(
@@ -282,16 +291,27 @@ class UIRoutes(Routes):
             """Create a model, or upload a version of one that already exists."""
             if (r := login_required(request)) is not None:
                 return r
+            from core.artifacts import EXECUTES_ON_LOAD, FORMAT_MEANING, FORMATS
             from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
             from core.execution.grammar import RUNTIME_ENTRY
+            who = self.page_principal(request)
             return self.page(
                 request, "new_model.html",
-                models=self.ctx["registry"].list(),
+                # Filtered, not listed. This page showed every model in the
+                # estate to anybody signed in, which made the inventory
+                # discoverable to a principal the API refuses it to.
+                models=self.ctx["authz"].visible(who, self.ctx["registry"].list()),
                 parameter_kinds=[k.value for k in ParameterKind],
                 fit_procedures=[p.value for p in FitProcedure],
                 output_kinds=[k.value for k in OutputKind],
                 runtimes=sorted(RUNTIME_ENTRY),
-                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()})
+                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},
+                # Which formats run code when they load travels to the page, so
+                # the warning is attached to the choice rather than left in a
+                # document somebody read once.
+                artifact_formats=[{"format": f, "means": FORMAT_MEANING[f],
+                                   "executes_on_load": f in EXECUTES_ON_LOAD}
+                                  for f in FORMATS])
 
         @self.app.get("/document/{document_id}", response_class=HTMLResponse,
                       tags=["ui"])
@@ -306,6 +326,13 @@ class UIRoutes(Routes):
             if not doc:
                 return self.page(request, "not_found.html", http_status=404,
                                  name=f"document/{document_id}")
+            # A compiled document carries the model's whole record in prose --
+            # tier, findings, validation outcomes, evidence. It is the LAST
+            # thing that should be readable outside its model's scope.
+            subject = self.ctx["registry"].by_id(doc["model_id"])
+            if subject is not None and not self.may_view(request, "document:read",
+                                                          subject):
+                return self.refused_page(request, "That document")
             html, headings = self.ctx["renderer"].render(docs.markdown(doc))
             model = self.ctx["registry"].catalogue.models.one(id=doc["model_id"])
             return self.page(request, "document.html", doc=doc, model=model,

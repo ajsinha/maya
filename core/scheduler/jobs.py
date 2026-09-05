@@ -61,6 +61,7 @@ class JobContext:
     documents: Any = None
     notifications: Any = None
     finding_workflow: Any = None
+    evidence: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -269,7 +270,43 @@ def notify_outstanding(ctx) -> Dict[str, Any]:
             "failed": out["failed"], "detail": out["detail"]}
 
 
+def verify_evidence_chain(ctx: JobContext) -> Dict[str, Any]:
+    """Walk the WHOLE chain and move the verification checkpoint.
+
+    Readiness asks the cheap question -- has anything broken since the last full
+    verification -- because walking and re-hashing every node on every probe was
+    2.9 seconds at forty thousand nodes and would have taken a busy instance out
+    of service. That trade is only honest if the full walk actually happens, so
+    it happens here, on a cadence somebody chose.
+
+    A broken chain is reported and NOT checkpointed: advancing the mark past a
+    break would bless it, and every subsequent cheap check would start after the
+    damage and report health.
+    """
+    if ctx.evidence is None:
+        return {"verified": False, "detail": "no evidence engine is wired"}
+    report = ctx.evidence.verify_chain()
+    if report["valid"]:
+        ctx.evidence._record_checkpoint(report["length"], report["head"],
+                                        actor=ctx.actor)
+        return {"verified": True, "length": report["length"],
+                "head": report["head"],
+                "detail": f"{report['length']:,} nodes verified and checkpointed"}
+    logger.error("evidence chain is broken at seq %s: %s",
+                 report.get("broken_at"), report.get("reason"))
+    return {"verified": False, "broken_at": report.get("broken_at"),
+            "reason": report.get("reason"),
+            "detail": "the chain is broken; the checkpoint was NOT advanced, "
+                      "because moving it past a break would bless it"}
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("evidence.verify",
+        "walks the whole evidence chain and moves the verification checkpoint",
+        "readiness only checks what arrived since the last full walk, so the "
+        "full walk has to be something that happens rather than something "
+        "somebody remembers",
+        verify_evidence_chain),
     Job("notify.outstanding",
         "tells each person what is outstanding for them",
         "work nobody is told about is work nobody does; the dashboard only "
