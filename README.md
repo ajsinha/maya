@@ -7,29 +7,28 @@
 *One system of record for every model a bank runs — statistical, machine-learned, generative,
 calibrated, vendor-supplied, expert-judgment, rule-based, and end-user-computed.*
 
-[Documentation](#documentation) · [Mathematical Foundations](docs/00-mathematical-foundations.md) ·
-[Requirements](docs/03-requirements.md) · [Architecture](docs/04-architecture.md) ·
-[Detailed Design](docs/14-detailed-design.md) · [Roadmap](docs/10-roadmap.md)
+[The idea](#the-idea) · [What is built](#what-is-built) · [Try it](#try-it) ·
+[Documentation](#documentation) · [Research](#research) · [Layout](#repository-layout)
 
 ---
 
 ## The name
 
 **māyā** (माया) — in Indian philosophy, *māyā* is **appearance**: the representation that stands in
-for reality, and is so easily mistaken for it. The word is usually translated "illusion", which is
-too strong. Māyā is not falsehood. It is a *rendering* of the world — useful, often necessary, and
-dangerous only when you forget that it is a rendering.
+for reality and is so easily mistaken for it. The usual translation, "illusion", is too strong. Māyā
+is not falsehood. It is a *rendering* of the world — useful, often necessary, and dangerous only when
+you forget that it is a rendering.
 
-That is exactly what a model is. The 2026 supervisory guidance says so almost in the same words:
+That is exactly what a model is. The supervisory guidance says so in almost the same words:
 
 > *"Models are simplified representations of real-world relationships… based on assumptions that make
 > them useful in estimating values and predicting events, but which also can have limitations and
 > create model risk."*
 > — SR 26-2, §III
 
-Model risk, in the end, is what happens when an organisation forgets the difference between the map
-and the territory. The platform is named for the thing it governs, and for the discipline of never
-mistaking it for the world.
+Model risk is what happens when an organisation forgets the difference between the map and the
+territory. The platform is named for the thing it governs, and for the discipline of never mistaking
+it for the world.
 
 | | |
 |---|---|
@@ -42,16 +41,13 @@ mistaking it for the world.
 
 ![The MAYA mark — a square inscribed in a circle](assets/logo/maya-mark-128.png)
 
-The mark is a **square inscribed in a circle**.
+A **square inscribed in a circle** — the oldest model there is. Archimedes estimated π by inscribing
+and circumscribing polygons and tightening the bound as the sides multiplied: a tractable figure
+standing in for one that cannot be computed directly.
 
-It is the oldest model there is. Archimedes estimated π by inscribing and circumscribing polygons and
-tightening the bound as the number of sides grew — a tractable figure standing in for one that cannot
-be computed directly. A polygon is a *simplified representation* of a circle: useful, workable, and
-wrong by a knowable amount.
-
-Which gives the mark its reading. The **gap** between the square and the circle is the model error.
-The **four points** are where the model and the world agree. Add sides and the gap closes but never
-vanishes — no model becomes the thing it represents.
+The **gap** between the square and the circle is the model error. The **four points** are where the
+model and the world agree. Add sides and the gap closes but never vanishes — no model becomes the
+thing it represents.
 
 That is māyā, and it is model risk, in one figure.
 
@@ -59,239 +55,319 @@ That is māyā, and it is model risk, in one figure.
 
 ## The problem
 
-A large universal bank runs **800–3,000 models** and **5,000–50,000 end-user-computing assets**. Industry
-surveys put roughly a fifth of commercial banks and most investment banks above 1,000 models, with every
-surveyed bank reporting growth and some reporting more than 50% growth in two years.
+A bank's model estate is not one kind of thing. It is a pricing library with no parameters to fit, a
+scorecard estimated on eight thousand rows, a term-structure model recalibrated every morning, a
+network with twenty million weights, a language model somebody else hosts, a vendor black box under
+licence, and four thousand spreadsheets. Model risk management is expected to cover all of it with
+one process.
 
-Almost none of them are the thing MLOps tools assume. The estate includes closed-form pricers that are
-never trained, vol surfaces recalibrated every morning, logistic scorecards refitted annually, XGBoost
-fraud models retrained weekly, vendor black boxes whose internals are contractually unavailable,
-expert-judgment country scorecards set by committee, AML rule sets, and LLM applications drafting
-regulatory narratives.
+So the tooling asks *is it AI?* — and that question separates nothing useful. It puts a Black–Scholes
+pricer and a linear regression in different buckets while putting a regression and a large language
+model in the same one. Everything downstream inherits the confusion: a validation checklist with
+fields that make no sense for half the estate, an inventory whose categories nobody can apply
+consistently, and controls that are ceremony for some models and absent for others.
 
-The market splits cleanly, and neither half is whole:
+The deeper failure is that **governance is asserted rather than evidenced**. A spreadsheet says a
+model was validated. A ticket says a finding was closed. Nothing connects the assertion to the
+artefact, so an examiner is shown a claim and asked to believe it, and the organisation's own risk
+committee is in the same position.
 
-| | Governance depth | Artifact & execution depth |
-|---|---|---|
-| **GRC / MRM platforms**<br/>OpenPages · SAS MRM · ValidMind · ModelOp · Yields.io | Excellent workflow, documentation and reporting | **None.** Nothing can verify that the model in the workflow is the model in production. They store *assertions about* models. |
-| **MLOps platforms**<br/>MLflow/Unity Catalog · Databricks · SageMaker · Vertex · Domino | **None.** No materiality, approved use, effective challenge, overlay or finding | Excellent lineage and telemetry — for the 20–40% of the estate that passes through them |
+---
 
-Buying both produces two inventories that disagree, and the disagreement is itself an audit finding.
+## The idea
+
+**A model is a parametric kernel:**
+
+```
+f : P ⊗ X → D(Y)
+```
+
+Parameters, tensored with inputs, mapping to a *distribution* over outputs. That is the whole
+definition, and everything else in the platform is derived from it.
+
+Three consequences, and each one dissolves a problem rather than managing it.
+
+**Trainability is derived, never declared.** Ask not *is it AI* but *how is `P` inhabited?* — from
+theory (nothing to fit), from a solver against market quotes, from a statistical estimator, from a
+training run, from a configuration, from a room full of people, or from inside a vendor's binary.
+That question sorts the estate correctly, and the class **T0–T8** falls out of the answer. Nobody
+self-reports it, so asking a closed-form pricer for its training set is a *type error* rather than an
+empty field.
+
+**Parameters are not versions.** A version is the kernel; a parameter set is a point of `P`.
+Refitting produces a new point, not a new kernel — which is what lets a daily recalibration procedure
+be approved once instead of pretending a committee meets every morning.
+
+**A model's inputs are half of it.** `X` is a **featureset**: a schema of named slots, each version
+of it binding every slot to an exact feature and an exact pinned view version. A model is defined
+over the *slots*, so swapping what fills one does not change the model's input space — it changes
+what the model was fitted on, which is a different event with a different control.
+
+---
 
 ## What MAYA does differently
 
-Six capabilities absent from every product surveyed in [our market research](docs/01-industry-research.md#5-commercial-and-open-source-landscape):
+| | |
+|---|---|
+| **It does not run models.** | It issues a signed, expiring, entitlement-bound **warrant**, and an execution engine acts on it. Governance is therefore never in the serving path, and a governed version move requires no consumer to redeploy. |
+| **Evidence, not assertion.** | Every governance claim is bound to the artefact it rests on, in an append-only hash-chained record. There is no separate audit log: two records of who did what are two records that can disagree, and segregation of duties is decided by reading the chain. |
+| **Refusals are the product.** | Every refusal names what was violated and what to do about it. The interesting behaviour of this platform is what it *will not* do. |
+| **Laws, not conventions.** | Twenty-one foundational laws are stated; **fifteen run in the test suite** and a failing one fails the build. The six that do not run are named, with the reason. |
+| **Derived, not entered.** | The tier, the worklist, the estate summary, the documentation, the board pack: computed from the register. Nothing that can be derived is stored, because a stored derivation is one that can go stale. |
 
-1. **One inventory across all nine trainability classes** — a Monte-Carlo XVA engine, a FICO black box, an
-   XGBoost fraud model, a SAR-drafting LLM and a pricing spreadsheet, each with class-appropriate evidence.
-2. **An immutable evidence graph** that cryptographically binds the governance record to the artifact,
-   dataset snapshot, feature contract and fitting run — so *"validated"* is verifiable, not a checkbox.
-3. **Governed execution warrants on demand** — any engine resolves a URN to a signed, entitlement-bound,
-   revocable execution contract, with alias-based champion/challenger routing and a global kill switch.
-4. **Approved-use vs actual-use reconciliation** — SS1/23 asks for intended use *compared to actual use*;
-   MAYA observes it from warrant telemetry.
-5. **A post-model-adjustment register** — overlays with quantified magnitude, mandatory expiry, downstream
-   propagation and recurrence-trend detection.
-6. **Compiled, always-fresh documentation** — model development documents, validation reports, model cards,
-   EU AI Act Annex IV packs and AI-BOMs, generated from evidence with staleness detection.
+---
 
 ## The five pillars
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  1 · UNIVERSAL INVENTORY      2 · EVIDENCE GRAPH        3 · FEATURE PLATFORM    │
-│  All 9 trainability classes   Immutable, hash-chained   Delta Lake offline store│
-│  Vendor · EUC · GenAI · quant Artifact ↔ governance     Point-in-time correct   │
-│  Multi-regime scoping         Reproducible to the byte  Feature contracts       │
-│  Continuous discovery         BCBS 239 by construction  Skew & drift detection  │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│  4 · GOVERNED EXECUTION                    5 · LIVING DOCUMENTATION             │
-│  Signed warrants, issued on demand            Compiled from the evidence graph     │
-│  champion / challenger / shadow aliases    MDD · validation report · model card │
-│  Policy enforced at issuance and at call   EU AI Act Annex IV · AI-BOM          │
-│  Kill switch ≤ 60 s · fails safe           Staleness detected, never assumed    │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+| | Pillar | What it means |
+|---|---|---|
+| **1** | **Inventory** | Every model, with an owner, a purpose, a tier and a lifecycle state — and a dependency graph in which `feeds` is a **typed composition** rather than a drawing |
+| **2** | **Data** | Features and featuresets as governed objects on **two clocks**, with a point-in-time read whose reproducibility is a law rather than a convention |
+| **3** | **Execution** | Warrants: a four-axis grammar with fourteen admissibility laws, checked before the signature |
+| **4** | **Assurance** | Validation, findings, monitoring with delayed labels, overlays, and supervisory regimes encoded as institutions |
+| **5** | **Documentation** | Compiled from the register, filed against what it is *about*, and walkable as a **graph** rather than a list |
+
+---
 
 ## Some models are never trained — and that is a design decision, not a footnote
 
-Every MLOps product assumes `train → register → deploy`. Most bank models do not fit. MAYA classifies
-every model by **how its parameters come to exist**, and that choice selects the lifecycle, the evidence
-schema and the monitoring metrics.
+Most of what a bank runs is not learned from data. A discount factor, a swaption price, a bond's
+accrued interest: these come from theory. There is nothing to fit, no training set, no drift in the
+usual sense — and a platform that assumes otherwise makes its users write "N/A" in fields until they
+stop reading the fields at all.
 
-| Class | Parameters obtained by | Examples | "Fit" step | Monitored on |
-|---|---|---|---|---|
-| **T0** | Theory — none to obtain | Black–Scholes, SA-CCR, LCR/NSFR, RWA engines | *none* | Implementation regression |
-| **T1** | Solving against market data | Yield curves, SABR/Heston surfaces, HJM | `calibrate` | Calibration error, arbitrage checks |
-| **T2** | Statistical estimation | PD scorecards, LGD, PPNR, deposit beta | `estimate` | KS · AUC · PSI · calibration |
-| **T3** | Machine learning | Fraud, AML, churn, uplift | `train` | Drift, decay, fairness |
-| **T4** | Continuous self-update | Adaptive fraud thresholds, bandits | `train` + online | Parallel outcomes analysis |
-| **T5** | Configuration of a foundation model | Credit memos, SAR narratives, copilots | `configure` | Groundedness, hallucination, cost |
-| **T6** | Vendor — inaccessible | FICO, Actimize, Murex | *none visible* | Own-outcomes divergence |
-| **T7** | Expert elicitation | Country risk, RCSA, ESG | `elicit` | Override rate, outcome analysis |
-| **T8** | Authored logic | AML rules, credit cut-offs, EUC | *none* | Rule-fire distribution |
+MAYA treats that case as first-class. `parameter_kind: none` means `P` is the terminal object; the
+class is **T0**; and a fit warrant is **refused**, naming the fact about the kernel that made the
+request incoherent:
 
-Asking a Black–Scholes implementation for its training set is a type error, and MAYA can say so precisely.
-See [02 — Model Taxonomy](docs/02-model-taxonomy.md) for the full catalogue across eleven domains.
+```json
+{"error": "nothing_to_fit",
+ "detail": "markets.pricing.vanilla 1.0.0 is T0: its parameter object is the terminal
+            object, so there is no point of P to move to",
+ "remediation": "if this model does have parameters, the kernel declares the wrong
+                 parameter_kind; fix the version rather than the warrant"}
+```
+
+What is governed instead moves to where the risk actually is: the conventions, the curve, the
+valuation date, the library version, and the **domain of applicability** the model was benchmarked
+in. See [every kind of model, worked](content/tutorials/08-every-kind-of-model.md) for the same
+treatment applied to seven families, one tutorial each.
+
+---
 
 ## Built on stated mathematics
 
-The design rests on six pillars, each chosen because it delivers an engineering property — not for
-elegance. The laws they imply are stated in [00 §12](docs/00-mathematical-foundations.md#12-the-laws-maya-enforces),
-and that section says of each law whether it is executable today or is still a claim about a design —
-because a document that says *all* the laws run in CI, when six of them do, is the sort of thing this
-platform exists to catch.
-
-| Pillar | Mathematics | Property it delivers |
+| Question | Structure | What it buys |
 |---|---|---|
-| What *is* a model? | **Markov categories** + the **Para construction** | One interface for all nine classes; training is *one way* to inhabit the parameter object, not part of the definition |
-| How do models compose? | **Symmetric monoidal categories**, string diagrams | Typed composite warrants; blast radius; aggregate risk as **lax** monoidality — the interaction premium regulators ask about becomes computable |
-| What can we say about a black box? | **Assume–guarantee contracts**, **Galois connections**, probe-relative **Yoneda** | Operating boundaries checked at runtime; version substitution decided by refinement, not by meeting; model cards that are provably sound over-approximations |
-| How is everything indexed? | **Fibrations** / Grothendieck construction | **New model classes require no schema migration** — supply a fibre, change nothing else |
-| How do many regulators coexist? | **Institutions** (Goguen–Burstall abstract model theory) | **New regulators require no schema migration**; scope determinations are derivations with citations, not flags |
-| How is evidence accounted for? | **Commutative semirings** (provenance) + lattices + bitemporal algebra | *One* evidence engine answers six different questions — sufficiency, minimal justification, corroboration, confidence, cost, currency — by swapping the semiring over a single traversal |
+| What *is* a model? | `Para(Stoch)` — parametric maps into distributions | One definition covering every family; trainability derived rather than declared |
+| When may one replace another? | **Contract refinement** and **schema variance** | An alias move is a proof obligation, not a deployment |
+| Does this fit where that fitted? | A **lattice** on schemas (`L-20`) | One order answering four questions that previously had four implementations |
+| How do models compose? | Typed composition (`L-21`); symmetric monoidal structure | A `feeds` edge that does not type-check is refused; a composite has a *derived* schema |
+| What supports a claim? | **Provenance semirings**, including the universal `ℕ[X]` | Six questions from one traversal — sufficiency, minimal support, corroboration, trust, cost, currency — and the law that makes that a theorem (`L-9`) |
+| Was a training set honest? | **Bitemporal** algebra with a named `AsOf` operator | Reproducibility as a *saturation law*: every read at or after the label gives the same answer |
+| How do regulators differ? | **Institutions** and comorphisms | A regime is a signature, some sentences and a translation; adding one needs no core change |
+| Is an obligation set coherent? | Deontic consistency (`L-16`) | A regime that obliges and forbids the same term cannot be activated |
+| Can aggregate risk be one number? | **Lax** monoidality | No — and the board pack says so rather than producing one |
 
-Full treatment, including what we deliberately **did not** adopt and why:
-[00 — Mathematical Foundations](docs/00-mathematical-foundations.md).
+Full treatment: [00 — Mathematical Foundations](docs/00-mathematical-foundations.md). The law table
+in §12 states each law, whether it runs, and where.
+
+---
 
 ## Regulatory grounding
 
-Current as of **September 2026**, and deliberately built to survive the next change:
+Encoded as **institutions** — a signature, obligations in that vocabulary, and a translation into the
+core — so that a regime's determinations are made in *its* terms and can be defended in them.
 
-- **SR 26-2 / OCC Bulletin 2026-13 / FDIC** (17 April 2026) — supersedes SR 11-7 and SR 21-8. Principles-based
-  and materiality-driven; narrows the model definition to exclude spreadsheets and deterministic rules; and
-  explicitly places **generative and agentic AI outside scope** while expecting them to be governed.
-- **PRA SS1/23** (amended April 2026) — a materially *broader* model definition, prescribed inventory
-  attributes, two-axis tiering, and a first-class post-model-adjustment regime.
-- **EU AI Act** — high-risk obligations from 2 August 2026; consumer credit scoring is Annex III(5)(b).
-- Plus NIST AI RMF, ISO/IEC 42001, Basel (IRB, FRTB, SA-CCR, IRRBB), IFRS 9 / CECL, ECOA / Reg B and CFPB
-  expectations, BCBS 239, and SOX.
+| Regime | Encoded |
+|---|---|
+| **SR 26-2** (Federal Reserve / OCC) | Model definition, effective challenge, tiering, use-test |
+| **PRA SS1/23** (Bank of England) | Principles 1–5, model families, senior-manager accountability |
+| **EU AI Act** | High-risk classification, Annex IV technical documentation, human oversight |
+| **SOX / SS3/18 / TRIM** | Documented as design targets rather than encoded |
 
-A global bank must satisfy a *narrow* US scope and a *broad* UK scope over the same inventory,
-simultaneously. That is why regulatory regimes are institutions rather than a column — and why SR 11-7
-being replaced mid-design cost this architecture nothing.
+The **satisfaction condition** — truth invariant under change of notation — is *checked* against probe
+states before a regime can be activated, and a regime whose encoding fails it cannot be turned on.
+Regimes that disagree are reported as disagreeing rather than merged.
 
-## Architecture at a glance
-
-**Target:** front end and backend as separate, concurrently running processes, the UI consuming the
-same public API as any third-party client ([ADR-011](docs/adr/ADR-011-decoupled-frontend.md)).
-
-**As built:** one process. The UI is server-rendered Jinja2 inside the FastAPI application and makes
-41 direct in-process service calls, so *reads* do not go through the API — writes, from the browser
-over jQuery, do. Anyone planning management information on the public API should know that the
-screens can currently see things the API cannot.
-
-```
-     maya-web (separate process)        SDK / CLI     Execution engines
-     Bootstrap 5 + jQuery, static            │                 │
-                        │                    │                 │
-                   ┌────┴────────────────────┴────┐            │
-                   │   API gateway · OIDC · WAF   │            │
-                   └────┬─────────────────────────┘            │
-                        │                                      │
-   ┌────────────────────┴──────────────────┐      ┌────────────┴────────────┐
-   │   maya-api  (FastAPI monolith)        │      │      maya-warrants         │
-   │  registry · features · lifecycle      │      │  resolve · sign · revoke│
-   │  validation · overlays · evidence     │      │  p99 < 50 ms · 99.99%   │
-   │  policy/regimes · risk · docs · IAM   │      │  survives control outage│
-   └───┬──────────────┬──────────────┬─────┘      └────────────┬────────────┘
-       │              │              │                         │
-  ┌────┴────┐   ┌─────┴─────┐  ┌─────┴──────┐            ┌─────┴─────┐
-  │Postgres │   │Delta Lake │  │Object store│            │   Redis   │
-  │governance│  │features   │  │artifacts   │            │warrant cache │
-  │ · RLS    │  │telemetry  │  │WORM tier   │            │           │
-  └──────────┘  └───────────┘  └────────────┘            └───────────┘
-                        │
-              ┌─────────┴──────────┐        ┌──────────────────────────┐
-              │ Celery workers     │        │ Sandbox fleet (gVisor)   │
-              │ ingest · docs      │        │ artifact load · replay   │
-              │ monitors · notify  │        │ never in the control plane│
-              └────────────────────┘        └──────────────────────────┘
-```
-
-Details: [04 — Architecture](docs/04-architecture.md). Deployables, failure modes and scaling in §3, §14, §16.
+---
 
 ## Warrants — running a model on demand
 
-An execution engine holds nothing but a URN. Everything else is resolved, signed and policy-checked at
-runtime.
+A consumer holds a **URN**, never a version:
 
-```python
-import maya
-
-model = maya.load(
-    "maya://model/credit.pd.smallbiz#champion",   # follows governed alias moves
-    use="origination_decision",                   # must be an approved use
-    entity="LE-US-01",
-)
-
-r = model.predict({"customer_id": "C-88213", "request_amount": 250_000})
-
-r.prediction      # {'pd_12m': 0.0187, 'score': 712}
-r.model_version   # '3.2.1'  — attributable, always
-r.boundary_ok     # True     — input satisfies the contract's assumptions
-r.reason_codes    # ['DSCR_LOW', 'THIN_FILE']  → Reg B adverse action
-
-# Pin exactly, to reproduce a decision made months ago
-maya.load("maya://model/credit.pd.smallbiz@3.1.0?calibration=2026-03-31")
+```
+maya://model/credit.pd.smallbiz#champion
 ```
 
-A warrant is the product of four independent vocabularies — how the parameter object is inhabited ×
-how the kernel is realised (**eighteen runtimes**, from QuantLib and ONNX to a spreadsheet and a
-prompt bundle) × what is asked of it (**ten verbs**) × where its data comes from (**twelve
-bindings**). `descriptor_only` is one of the eighteen and matters most in a bank: most of the estate
-already runs inside engines nobody is going to replace. The captive engine implements four of the
-seventeen; the rest are refused by name rather than approximated.
+Everything else resolves at the moment of use, against the policy in force at that moment. Promoting
+a version requires no consumer to redeploy; revocation takes effect in under sixty seconds; an open
+blocking finding stops resolution, so a validation finding actually stops the model rather than
+generating an email.
+
+A warrant is the product of **four independent vocabularies** — how `P` is inhabited × how the kernel
+is realised (**eighteen runtimes**) × what is asked of it (**ten verbs**) × where its data comes from
+(**twelve bindings**). `descriptor_only` is one of the eighteen and matters most in a bank: much of
+the estate already runs inside engines nobody is going to replace.
 
 **Warrants differ by kind of model as refusals over one document, never as different documents.**
-Fourteen admissibility laws are checked before the signature, and the last three quantify over facts
-the platform *derives* rather than a category anybody attached: a calibration must say what it was
-calibrated as of (**L-W11**), parameters living inside an artifact need that artifact digested
-(**L-W12**), and a generative runtime must pin the build rather than the model family (**L-W13** —
-a stable identifier over moving contents, in generative disguise). What *is* templated is the
-**request**: a warrant profile fills holes in it, selected by the same derived facts, folded by the
-`L-19` monoid, refused at creation if it reaches for authority.
+Fourteen admissibility laws are checked before the signature. The last three quantify over facts the
+platform *derives* rather than a category anybody attached: a calibration must state its `as_of`
+(**L-W11**) or staleness is silent; parameters living inside an artifact need that artifact digested
+(**L-W12**); a generative runtime must pin the build rather than the model family (**L-W13**).
 
-Moving `champion` from 3.2.1 to 3.3.0 requires the new version's contract to **refine** the old one and its
-schemas to satisfy variance rules. Consumers are not redeployed and cannot be broken. Revocation takes
-effect in under 60 seconds. If MAYA is down, already-authorised scoring keeps running — governance must not
-become the bank's single point of failure.
+What *is* templated is the **request**. A warrant profile fills holes in it, selected by the same
+derived facts, folded by the `L-19` monoid, and refused at creation if it reaches for authority.
+
+```bash
+# Pin exactly, to reproduce a decision made months ago
+maya://model/credit.pd.smallbiz@3.2.1
+```
 
 Full protocol: [06 — Warrants & Execution](docs/06-warrants-and-execution.md).
 
+---
+
 ## Documentation
 
-All specification documents live in [`docs/`](docs/). The three anchors are marked ★.
+Documentation arrives at **five moments about five objects**, and it is filed against what it is
+*about*: a methodology paper about the **model**, a specification about the **version**, a training
+record about one **parameter set**, a data dictionary about one **featureset version**, an
+independent recode about a **validation**.
 
-| # | Document | What it is |
+A subject is always **pinned** — `featureset_version`, never `featureset` — because a document filed
+against the set would describe something that has since moved.
+
+Four kinds are **compiled** from the register and the evidence graph by fifteen lenses, so they cannot
+drift from what they describe. A fifth, the **training record**, is compiled per parameter set: a
+model recalibrated every morning produces two hundred and fifty governed acts a year, and until now
+none of them had a record anybody could read.
+
+The **dossier** walks the whole graph from a model — versions, their parameter sets, the featureset
+versions those were fitted from, and the features in them — and every node with nothing filed is a
+**named gap** rather than a blank, because a page that silently omits what it could not find reads as
+complete.
+
+An **export pack** carries the same graph, digested member by member, to somebody who will never be
+given a login.
+
+---
+
+## What is built
+
+**Specification complete and adversarially reviewed. Every planned component is built.**
+
+The register, the feature platform, warrants and their grammar, validation and findings, the record
+lifecycle with quorum attestation, authorisation with segregation of duties read from the evidence
+chain, monitoring with delayed labels, compiled documentation and the documentation graph, the
+overlay register, supervisory regimes as institutions, machine assistance, baseline import with
+compliance debt, the content-addressed artifact store, export packs, risk appetite with the board
+pack, and a dependency-free Python SDK.
+
+Build status, what is genuinely working, and the honest gaps are recorded in one place and kept
+current there:
+
+### → [12 — Implementation Plan §0, Build status](docs/12-implementation-plan.md#0-build-status)
+
+| | |
+|---|---|
+| Tests | **2,206 passing**, plus a scale suite excluded by default |
+| Foundational laws executable | **15 of 21** — the six that are not are named with the reason |
+| Warrant admissibility laws | **14 of 14**, checked before every signature |
+| Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **47 tables**, no migrations |
+| Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
+
+---
+
+## Try it
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r requirements.txt
+.venv/bin/python run_maya_web.py
+```
+
+Then <http://localhost:5006> — sign in as `admin` / `admin123`, and change that before anybody else
+can reach it.
+
+Or from Python, with no dependencies at all:
+
+```python
+from maya_sdk import Maya, Blocked
+
+maya = Maya("http://localhost:5006", "d.raman", "…")
+maya.models.register(urn="maya://model/credit.pd.smallbiz", name="SB PD",
+                     model_class="credit.pd.scorecard", domain="credit",
+                     owner="person/j.okafor", legal_entity="LE-US-01",
+                     purpose="12-month PD at origination")
+
+try:
+    maya.versions.promote("maya://model/credit.pd.smallbiz", semver="3.3.0")
+except Blocked as refusal:
+    print(refusal.detail)        # an open blocking finding stands against it
+    print(refusal.remediation)   # close it, or ask the validator to downgrade it
+```
+
+The **compliant path is the fast path**, deliberately: if registering a model properly took forty
+lines of HTTP plumbing and getting it wrong took four, the register would fill with models nobody
+registered properly.
+
+---
+
+## Documentation
+
+### Learning it
+
+| | |
+|---|---|
+| [**Help**](content/help/) | Sixteen topics in seven sections, rendered in the interface at `/help` |
+| [**Tutorials**](content/tutorials/) | Fifteen walkthroughs, rendered at `/tutorials`. Eight are the platform; **seven are one per kind of model**, each complete from registration to monitoring |
+| [**The whole path**](content/tutorials/07-the-whole-path.md) | One example from an empty register to a champion serving in production, including every refusal on the way |
+| [**Every kind of model**](content/tutorials/08-every-kind-of-model.md) | The map to the seven: regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application |
+
+### Specifying it
+
+| # | Document | Covers |
 |---|---|---|
-| **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) | Six pillars, nineteen laws with an honest statement of which are executable today, and what was deliberately not adopted |
-| **01** | [Industry Research](docs/01-industry-research.md) | SR 26-2, SS1/23, EU AI Act; ~15 products surveyed; the six-capability gap |
-| **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | 200+ model families across eleven domains, with the T0–T8 trainability classification |
-| **03** | [Requirements](docs/03-requirements.md) ★ | 13 personas, 220 numbered functional requirements plus 26 non-functional, regulatory traceability matrix |
-| **04** | [Architecture](docs/04-architecture.md) ★ | Containers, bounded contexts, lifecycles, extensibility, deployment, failure modes |
-| **05** | [Data Model](docs/05-data-model.md) | Postgres DDL, Delta Lake schemas, evidence graph, warrant projection, migrations |
-| **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, signed descriptors, resolution, aliases, revocation floor, composites |
-| **07** | [Feature Platform](docs/07-feature-platform.md) | Bitemporal store, point-in-time correctness, contracts, version-namespaced serving |
-| **08** | [UI / UX](docs/08-ui-ux.md) | Decoupled front end, information architecture, key screens, brand and design system |
-| **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, artifact security, GenAI controls, fair lending, control library |
-| **10** | [Roadmap](docs/10-roadmap.md) | Seven phases, team shape, delivery risks, build/buy record |
-| **11** | [Adversarial Design Review](docs/11-adversarial-review.md) | 27 findings red-teamed against the design, with dispositions |
-| **12** | [Implementation Plan](docs/12-implementation-plan.md) | Repo topology, module contracts, CI gates, workstreams, definitions of done |
-| **13** | [AI, LLMs and Agents Inside the Platform](docs/13-ai-in-the-platform.md) | Where AI belongs in the system itself — and where it must not go |
-| **14** | [Detailed System Design](docs/14-detailed-design.md) ★ | The level below the architecture: component interfaces, algorithms, transaction boundaries, error taxonomy, SLOs, capacity |
-| **15** | [Featuresets and the Parameter Object](docs/15-featuresets-and-parameters.md) | A named, versioned presentation of X; derived features; and the fitted parameters an engine returns |
-| **16** | [Features Composed, Shaped and Prepared](docs/16-features-composed-and-shaped.md) | Dimensionality, the composition monoid, sealing and ephemerality, ownership, and point-in-time retrieval |
-| **17** | [Feature & Model Algebra](docs/17-feature-and-model-algebra.md) | **Proposal, not built.** Featuresets as a lattice rather than only a monoid; edit operations as a monoid action; the point-in-time read as a named operator with a monotonicity law; derived features on the provenance polynomial; `feeds` as a typed composition; and documentation as a graph with a per-training-run record |
-| — | [Architecture Decision Records](docs/adr/INDEX.md) | Eleven ADRs |
+| **00** | [Mathematical Foundations](docs/00-mathematical-foundations.md) ★ | The definitions, the theorems, and the law table with what runs |
+| **01** | [Industry Research](docs/01-industry-research.md) | The estate as it is, and what the incumbent tools do |
+| **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | Families, fibres, and what each needs as evidence |
+| **03** | [Requirements](docs/03-requirements.md) | ~200 numbered requirements with regulatory traceability |
+| **04** | [Architecture](docs/04-architecture.md) | Containers, bounded contexts, extension points, failure modes |
+| **05** | [Data Model](docs/05-data-model.md) | Schemas in both dialects, the evidence graph, the Delta layout |
+| **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, the grammar, resolution, revocation, composites |
+| **07** | [Feature Platform](docs/07-feature-platform.md) | Two clocks, point-in-time assembly, contracts, transfer |
+| **08** | [UI & UX](docs/08-ui-ux.md) | The interface, and the tense warning on what is designed versus built |
+| **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, sandbox, identity, ambient authority, audit |
+| **10** | [Roadmap](docs/10-roadmap.md) | The plan, and what of it is actually done |
+| **11** | [Adversarial Review](docs/11-adversarial-review.md) | 27 findings; 17 required redesign, and what each cost |
+| **12** | [Implementation Plan](docs/12-implementation-plan.md) ★ | **The build status — the authoritative record of what exists** |
+| **13** | [AI in the Platform](docs/13-ai-in-the-platform.md) | Where machine assistance may act, and the oracle criterion |
+| **14** | [Detailed Design](docs/14-detailed-design.md) ★ | Interfaces, algorithms, transaction boundaries, SLOs, capacity |
+| **15** | [Featuresets & the Parameter Object](docs/15-featuresets-and-parameters.md) | A versioned presentation of `X`; derived features; fitted parameters |
+| **16** | [Features Composed & Shaped](docs/16-features-composed-and-shaped.md) | Dimensionality, the composition monoid, sealing, retrieval policy |
+| **17** | [Feature & Model Algebra](docs/17-feature-and-model-algebra.md) | The lattice, the `AsOf` operator, typed composition, and the documentation graph |
+| — | [ADRs](docs/adr/INDEX.md) | Eleven architecture decision records |
 
-**Reading paths**
+---
 
-- **Executive** — [01 §1](docs/01-industry-research.md), [01 §6](docs/01-industry-research.md), [10 §5](docs/10-roadmap.md), the research deck
-- **Engineer** — [00 §2](docs/00-mathematical-foundations.md), [04](docs/04-architecture.md), **[14](docs/14-detailed-design.md)**, [05](docs/05-data-model.md), [06](docs/06-warrants-and-execution.md), [12](docs/12-implementation-plan.md)
-- **Regulator / auditor** — [01 §2](docs/01-industry-research.md), [03 §10](docs/03-requirements.md), [09 §7](docs/09-security-compliance.md)
-- **Sceptic** — [11](docs/11-adversarial-review.md), then [00 §13](docs/00-mathematical-foundations.md)
-- **AI strategy** — [13](docs/13-ai-in-the-platform.md), then [09 §5](docs/09-security-compliance.md)
+## Research
+
+| Artefact | Audience |
+|---|---|
+| [**Models as Parametric Kernels, Governance as Verified Automation**](docs/research/models-as-parametric-kernels.pdf) — 34-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** |
+| [**The same argument in prose**](docs/research/models-as-parametric-kernels-article.md) | General technical readers. The definition and what it dissolves, why aggregate risk cannot compose, the two clocks and what a leak looks like, featuresets and the fold that composes them, artefacts that remember, and the oracle criterion |
+| [**Models as Parametric Kernels**](docs/Models-as-Parametric-Kernels.pptx) — 27 slides | A conversation-starter deck mirroring the paper |
+
+The paper, the article and the research deck are deliberately **product-neutral** — no MAYA name, no
+branding — so the ideas can be judged on their own.
+
+| Engineering artefact | Audience |
+|---|---|
+| [**MAYA — Detailed System Design**](docs/MAYA-System-Design.pptx) — 101 slides | Fifteen chapters. The first eight are the system; chapters nine to fourteen are the same system one level down for a practitioner, closing with a worked example computed from two real FRED series **whose data is embedded in the file**; the fifteenth takes each kind of model in turn and says how MAYA saves, manages and serves it |
+
+*Ashutosh Sinha, Independent Researcher.*
+
+---
 
 ## Repository layout
 
@@ -299,121 +375,74 @@ All specification documents live in [`docs/`](docs/). The three anchors are mark
 maya/
 ├── README.md                        ← the only README; this file
 ├── core/                            the platform, split by responsibility
-│   ├── domain/                      the algebra: kernels, schemas, contracts, identity
-│   ├── registry/                    models, immutable versions, governed aliases
+│   ├── domain/                      the algebra: kernels, schemas, contracts, the lattice
+│   ├── registry/                    models, immutable versions, governed aliases, typed composition
 │   ├── features/                    features, views, featuresets, shapes, composition,
 │   │                                lifecycle, retrieval policy, alignment, bulk transfer
 │   ├── parameters/                  inhabitants of P: fitted, calibrated, declared
-│   ├── execution/                   warrants, the grammar, the runtimes, the sandbox
+│   ├── execution/                   warrants, the grammar, profiles, the runtimes, the sandbox
+│   ├── artifacts/                   the content-addressed store: a file's name is its own hash
 │   ├── validation/  monitoring/     tests and findings; drift and delayed labels
 │   ├── telemetry/                   two bitemporal streams, idempotent ingestion
 │   ├── lifecycle/                   version approval by quorum, attestation, amendment
-│   ├── authz/                       roles, scope, segregation of duties, OIDC, RS256
+│   ├── authz/                       roles, scope, segregation of duties, OIDC, RS256, CSRF
 │   ├── policy/                      versioned gates: a rule is a predicate, with its cases
-│   ├── docs/  attachments/          documentation compiled, and documentation filed
+│   ├── docs/                        documents compiled; subjects, training records, the dossier
+│   ├── attachments/                 documents filed, content-addressed
+│   ├── export/                      export packs: digested, self-contained, gaps named
+│   ├── reporting/                   risk appetite as a computable limit; the board pack
 │   ├── overlays/                    post-model adjustments, time-boxed
 │   ├── regimes/                     supervisory regimes as institutions
 │   ├── assist/  baseline/           machine assistance; cold-start import
 │   ├── scheduler/  notify/          idempotent jobs; digests, not a message per item
 │   ├── estate/                      the worklist and the summary, derived not assigned
-│   └── evidence/  risk/  content/   the chain; tiering; rendered help
-│       config/                      YAML with a git-ignored local overlay
+│   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
 ├── db/                              the only package that knows about storage
 │   └── schema/                      two hand-written schemas, 47 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
-├── content/                         help and tutorials, rendered at request time
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies
 │   └── java/                        not built; the contract it must honour, written down
+├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
 ├── docs/                            18 specification documents + ADRs
-│   ├── 00 … 16-*.md                 the specification
-│   ├── adr/INDEX.md                 eleven architecture decision records
-│   ├── examples/                    the two FRED series the worked example uses
-│   ├── research/                    the paper and the article (product-neutral)
-│   ├── Models-as-Parametric-Kernels.pptx    27-slide research deck
-│   └── MAYA-System-Design.pptx              101-slide system design deck
-├── assets/logo/                     the mark, the lockup, and their variants
-└── tools/deck/                      deck generator, logo generator, geometry audit
+├── tools/deck/                      the decks, generated from source rather than edited
+└── tests/                           2,206 tests, including the law suite and the discipline walkers
 ```
 
-## Research output
+### The discipline walkers
 
-The ideas behind this system are written up independently of the product:
+Several tests do not test a feature. They walk the source and hold a rule that would otherwise rot:
 
-| Artefact | Audience |
+| | |
 |---|---|
-| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels.pdf)** — 34-page paper, [LaTeX source](docs/research/models-as-parametric-kernels.tex) | Academic. Formal definitions; an impossibility theorem for aggregate risk; conservative-extension and satisfaction-condition results; and an **oracle criterion for where AI may do governance work** — each with a plain-language gloss and a worked banking example |
-| **[Models as Parametric Kernels, Governance as Verified Automation](docs/research/models-as-parametric-kernels-article.md)** — the long-form article | General technical readers. The paper's argument in prose, carrying the same title: the definition and what it dissolves, why aggregate risk cannot compose, the two clocks and what a leak actually looks like, featuresets and the fold that composes them, artefacts that remember and why single-shot tests cannot govern them, and the oracle criterion |
-| **[Models as Parametric Kernels](docs/Models-as-Parametric-Kernels.pptx)** — 27 slides | Conversation-starter deck mirroring the paper: the problem, the formal foundation, automation and its oracles, and six questions worth arguing about |
-
-The paper, the article and the research deck are deliberately **product-neutral** — no MAYA name, no
-branding — so the ideas can be judged on their own. The engineering material below carries the brand.
-
-| Engineering artefact | Audience |
-|---|---|
-| **[MAYA — Detailed System Design](docs/MAYA-System-Design.pptx)** — 101 slides | Fifteen chapters. The first eight are the system: overview and design rules, core domain and registry, governance subsystems, data and features, execution and warrants, machine assistance, interfaces, cross-cutting and operations. Chapters nine to fourteen are the same system one level down, for a practitioner — engineering a feature, composing a featureset, what a warrant carries back, what MAYA refuses, and a worked example computed from two real FRED series **whose data is embedded in the file**. The fifteenth takes each kind of model in turn — regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application — and says how MAYA saves, manages and serves it |
-| **[14 — Detailed System Design](docs/14-detailed-design.md)** | The written form: interfaces, algorithms, transaction boundaries, concurrency, error taxonomy, SLOs, capacity model |
-
-*Ashutosh Sinha, Independent Researcher.*
-
-## Status
-
-**Specification complete and adversarially reviewed. Every planned component is built.**
-
-The register, the feature platform, warrants and their grammar, validation and
-findings, the record lifecycle with quorum attestation, authorisation with
-segregation of duties read from the evidence chain, monitoring with delayed
-labels, compiled documentation, the overlay register, supervisory regimes as
-institutions, machine assistance, and baseline import with compliance debt.
-
-Build status, what is genuinely working, and the honest gaps are recorded in one
-place and kept current there:
-
-### → [12 — Implementation Plan §0, Build status](docs/12-implementation-plan.md#0-build-status)
-
-That document also carries the repository topology, the CI-enforced module
-boundaries, the front-end/backend contract, the test strategy and the phase
-sequence. [10 — Roadmap](docs/10-roadmap.md) sets out the phases at programme
-level, and [11 — Adversarial Design Review](docs/11-adversarial-review.md) records
-the 27 findings red-teamed against the design before any code was written.
+| `test_logging_discipline` | No exception is ignored. Every `except` logs; none is bare; none is only `pass` |
+| `test_refusal_discipline` | Every coded refusal maps to a status that says who must act, and no code is mapped twice |
+| `test_schema_discipline` | The two dialects agree column for column; no `BOOLEAN` anywhere |
+| `test_size_discipline` | No source file over 1,500 lines |
+| `test_documentation_counts` | Every number claimed in prose is recounted from the code |
+| `test_deck_geometry` | No slide has overlapping or escaping content |
+| `test_ui_tables` | Every HTML table has a header, and pagination where it needs one |
+| `test_laws` | The foundational laws, run as tests |
 
 ---
 
 ## Licence
 
-Copyright © 2026 **Ashutosh Sinha** <ajsinha@gmail.com>. All rights reserved.
+**Proprietary and confidential.** Copyright © 2026 Ashutosh Sinha. All rights reserved.
 
-| Scope | Licence |
-|---|---|
-| Everything except `docs/research/` — specification, architecture, design, data model, protocols, source code, tooling, decks, brand assets | **Proprietary, All Rights Reserved** — see [LICENSE](LICENSE) |
-| `docs/research/` — the paper and the article | **[CC BY-NC-ND 4.0](docs/research/LICENSE)** — share with attribution; no commercial use, no derivatives |
+No part of this repository may be copied, modified, distributed or used without prior written
+permission. See [LICENCE](LICENSE) and [NOTICE](NOTICE).
 
-`MAYA`, the MAYA mark, "Model & AI Lifecycle Assurance" and "Evidence, not assertion." are used as
-trademarks of the Author. Access to this repository grants no licence to use them.
-
-Legal notices, third-party attributions, the treatment of quoted regulation, and the AI-assistance
-disclosure are recorded in [NOTICE](NOTICE).
-
-> **Not legal, regulatory or financial advice.** These are engineering and research documents produced
-> in a personal capacity. Any encoding of a regulation here is a *claim about* that regulation, not the
-> regulation. Regulatory obligations depend on jurisdiction, entity and facts, and change over time.
-> Obtain qualified professional advice before acting. See [NOTICE §4](NOTICE).
-
-Licensing enquiries and permission requests: **ajsinha@gmail.com**
+The research paper, its article and the research deck are product-neutral and may be shared for
+academic discussion, with attribution.
 
 ---
 
 ## Contributing
 
-Read [00 — Mathematical Foundations](docs/00-mathematical-foundations.md) before proposing changes to
-`core/domain/`, and read the relevant [ADR](docs/adr/) before revisiting a settled decision. New
-abstractions must pass the **rent test**: an abstraction earns its place only if it delivers a property we
-would otherwise have to hand-build, hand-check or hand-migrate — and only if that property is stated as an
-executable law.
+This is a single-author research and engineering project. Issues and discussion are welcome;
+pull requests are not accepted at this time.
 
----
-
-Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
-Proprietary and confidential. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
-*Not legal, regulatory or financial advice — see NOTICE §4.*
+If you are reading this because you run a model estate and something here describes a problem you
+have — that is the most useful feedback there is.
