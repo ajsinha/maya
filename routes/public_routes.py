@@ -103,7 +103,14 @@ class PublicRoutes(Routes):
         def ready():
             """Readiness includes the evidence chain: a broken chain means the
             assurance claims cannot be trusted, so the node is not ready."""
-            chain = self.ctx["evidence"].verify_chain()
+            # The cheap question: has anything broken SINCE the chain was last
+            # verified in full. This used to walk and re-hash every node on
+            # every probe -- 2.9 seconds and 83 MB at forty thousand nodes, and
+            # a busy instance reaches a million in half an hour, at which point
+            # an orchestrator takes the node out of service for being slow to
+            # say whether it is healthy. The full walk runs on the schedule,
+            # where its cost is somebody's decision rather than a side effect.
+            chain = self.ctx["evidence"].verify_since_checkpoint()
             # The scheduler reports on itself here for the same reason a monitor
             # does: one that has quietly stopped looks exactly like one with
             # nothing to do. Its state is informational — a stopped scheduler is

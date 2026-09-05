@@ -30,6 +30,17 @@ table.maya{font-size:.88rem}
 table.maya thead th{background:var(--crimson);color:#fff;font-weight:600;font-size:.78rem;
                     letter-spacing:.03em;border:0;}
 table.maya tbody tr:nth-child(even){background:var(--parch);}
+/* Term and definition. Six of these were table markup with no header row,
+   which is layout-by-table: a screen reader announces "table, two columns"
+   and then offers no headers to orient by. They are definitions, so they are
+   a definition list. */
+dl.maya-terms{margin:0;}
+dl.maya-terms > div{display:flex;gap:.75rem;padding:.42rem .75rem;
+                    border-bottom:1px solid var(--rule);}
+dl.maya-terms > div:last-child{border-bottom:0;}
+dl.maya-terms > div:nth-child(even){background:var(--parch);}
+dl.maya-terms dt{flex:0 0 auto;font-weight:600;font-size:.82rem;}
+dl.maya-terms dd{margin:0;color:var(--muted);font-size:.82rem;}
 .kicker{color:var(--crimson);font-weight:700;font-size:.72rem;letter-spacing:.08em;}
 .mono{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:.82rem;}
 footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padding:1.2rem 0;margin-top:2.5rem;}
@@ -152,6 +163,10 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 </div></footer>
 <script src="/static/vendor/jquery/jquery.min.js"></script>
 <script src="/static/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Search, sort and paging for every table. Written rather than vendored:
+     this platform must run air-gapped, and a table plugin is a hundred lines
+     of arithmetic wearing eighty kilobytes. -->
+<script src="/static/js/tables.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

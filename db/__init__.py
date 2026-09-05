@@ -23,7 +23,7 @@ from db.repositories import (AliasHistoryRepository, AliasRepository, AmendmentR
                              TelemetryBatchRepository,
                              VersionApprovalRepository,
                              VersionApprovalSignatureRepository,
-                             DebtRepository, DocumentRepository, EvidenceRepository,
+                             DebtRepository, DocumentRepository, EvidenceCheckpointRepository, ModelEdgeRepository, EvidenceRepository,
                              FeatureRepository,
                              FeatureViewRepository, FeatureViewVersionRepository,
                              FindingActionRepository,

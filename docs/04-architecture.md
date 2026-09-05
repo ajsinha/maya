@@ -275,7 +275,7 @@ core/
 └── config/                     # YAML with a git-ignored .local overlay, ${...} resolution
 
 db/          # The only package that knows about storage. Two hand-written schemas,
-             # 42 tables, no migrations. Repositories are the only interface.
+             # 44 tables, no migrations. Repositories are the only interface.
 routes/      # HTTP routers — thin, no domain logic. RFC-9457-shaped refusals.
 web/         # Jinja2 templates and vendored static assets (Bootstrap 5, jQuery). No CDN.
 ```
@@ -760,7 +760,7 @@ Key properties:
 | API / web | **FastAPI** (async), Pydantic v2, Uvicorn behind Gunicorn | Mandated; excellent OpenAPI generation, type safety, async I/O for connectors |
 | Templating | **Jinja2** server-rendered + partial fragments | Mandated stack is jQuery/Bootstrap, not an SPA; server rendering keeps the security model simple |
 | Front end | **Bootstrap 5.3**, **jQuery 3.7**, DataTables, Chart.js, Cytoscape.js (graphs), CodeMirror 6 (policy/YAML), Mermaid (diagrams) | See [08 — UI/UX](08-ui-ux.md) |
-| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 42 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
+| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 44 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
 | Lakehouse | **Delta Lake** via `delta-rs` | Features, snapshots, telemetry. Spark/Databricks is the target for large jobs and is not a dependency of the reference implementation |
 | Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Target. What ships is a content-addressed store on the local filesystem, with the digest as the key and a re-hash on every read |
 | Cache / queue | **Redis 7** | Target, for the warrant cache and rate limits. **Not used**: warrant TTL and jitter are computed in process |

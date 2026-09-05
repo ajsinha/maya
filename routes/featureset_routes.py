@@ -64,6 +64,18 @@ class DerivedIn(BaseModel):
     note: str = ""
 
 
+class FeaturesetPreviewIn(BaseModel):
+    """The composition half of a definition, with nothing that identifies it.
+
+    A preview needs no name, entity or owner, and asking for them would make
+    somebody invent three fields to answer a question about a fourth.
+    """
+    slots: Dict[str, Any] = {}
+    composes: Optional[List[Any]] = None
+    operations: Optional[List[Dict[str, Any]]] = None
+    defaults: Optional[Dict[str, Any]] = None
+
+
 class FeaturesetIn(BaseModel):
     name: str
     entity: str
@@ -234,6 +246,23 @@ class FeaturesetRoutes(Routes):
                 body.label_slot, body.outcome_window_days, body.grain,
                 body.description, body.composes, body.operations,
                 body.ephemeral, body.ttl_days, body.defaults, self.actor(who)))
+
+        @self.app.post(f"{api}/featuresets/preview", tags=["features"])
+        def preview_featureset(request: Request, body: FeaturesetPreviewIn):
+            """What this featureset WOULD resolve to. Declares nothing.
+
+            Composition, inheritance and overrides are the part of the design
+            people get wrong, and for a good reason: the answer is not what you
+            typed, it is what your parents plus your operations say. Without
+            this, finding out means declaring one — and the register fills with
+            attempts.
+
+            It refuses exactly what `define` refuses, because a preview that
+            accepted more than the real thing would be worse than none.
+            """
+            self.authorise(request, "featureset:define")
+            return self.guard(lambda: features.preview_featureset(
+                body.slots, body.composes, body.operations, body.defaults))
 
         @self.app.get(f"{api}/featuresets/{{name}}", tags=["features"])
         def read_set(request: Request, name: str):

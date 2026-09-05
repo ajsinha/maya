@@ -1,6 +1,6 @@
-# Most of Your Models Were Never Trained
+# Models as Parametric Kernels, Governance as Verified Automation
 
-### And fixing that tells you exactly where AI can safely do your governance work
+### A mathematical foundation for heterogeneous model estates — and a criterion for where AI may do the work
 
 ---
 
@@ -272,6 +272,187 @@ whether an artefact is in the governed population determines whether *any* contr
 and they are almost always a checkbox with a comment. This turns them into a derivation: the
 sentence, the facts, the specific conjunct that failed, the citation.
 
+
+---
+
+## The third letter, and the one everybody skips
+
+We have spent a long time on `P`, because that is where the taxonomy lives. But the definition has
+three letters, and the second one — `X`, the input object — is where the expensive mistakes actually
+happen.
+
+Here is the thing nobody says out loud: **a model is not the artefact you validate. It is the
+artefact plus the data it was fitted on, and the data is the half that moves.**
+
+### Two clocks, never one
+
+Every fact about the world has two timestamps, and treating them as one is the single most common
+way a model is quietly wrong.
+
+- **`event_ts`** — when the fact was *true*. The borrower's Q1 debt-service ratio has an event time
+  of 31 March, because that is the period it describes.
+- **`ingest_ts`** — when the fact became *known to you*. That same figure landed in your warehouse
+  on 20 May, because that is when they filed.
+
+A single-timestamp store cannot tell you the difference, so it cannot answer the only question that
+matters when you are assembling a training set: *what did we know at the moment the decision was
+made?*
+
+Now watch what happens with a restatement — which is not an edge case, it is a Tuesday. In August,
+the borrower revises that Q1 figure downward, from 1.20 to 0.40. Both rows are true. Both belong in
+the store. They have the same event time and different ingest times.
+
+You are building a training set for a decision made in May.
+
+- Read with one clock and you get 0.40, because it is the current value for Q1.
+- Read with two and you get 1.20, because 0.40 was not knowable in May.
+
+Train on 0.40 and your model learns to predict defaults using a number that only exists *because* the
+default already happened. It will score beautifully in backtest and fail in production, and the
+failure will look like drift rather than what it is.
+
+The rule that prevents it is one line:
+
+> A fact may be used for a row labelled at time `T` only if `event_ts ≤ T` **and** `ingest_ts ≤ T`.
+
+Both bounds, and the second one is the one people drop. It is the difference between "as the world
+was" and "as we knew it" — and only the second can be defended to anybody.
+
+### The leak that hides inside a helpful feature
+
+Once you have the two clocks, the interesting failures move somewhere subtler.
+
+Suppose you have monthly observations with a gap, and you fill it forward from the *next*
+observation — a perfectly ordinary thing to do when presenting a history to a person. The value you
+carried backwards into March was first observed in April. It is now sitting in a March training row.
+
+The honest fix is not to forbid it. It is to record *when each filled value actually became
+available*, so a value carried backwards keeps April's ingest time — and then the ordinary
+point-in-time rule excludes it without anybody having to remember a flag.
+
+I want to flag something here, because I got it wrong myself and it is instructive. Recording the
+stamp is **necessary and not sufficient**. The rule that reads it has to bound the ingest clock by
+the moment of the *decision*, and it is very natural to bound it instead by the moment you built the
+training set — which is usually "now". Do that, and an April value walks into a March row on the
+grounds that April came before Tuesday. The stamp was telling the truth; nothing was reading it
+against the right bound.
+
+That class of bug is characteristic of this whole area. The mechanism is right, the mechanism is
+sound, and the thing consulting the mechanism asks it a slightly different question than the one it
+answers.
+
+### A feature is an object, not a column
+
+If features are the input half of a model, they need the same treatment the model got.
+
+So: a **feature** is a governed object with an owner, a definition, and a lineage. Some are
+primitive — a number that arrives from somewhere. Some are **derived**: `Z = f(X, Y)`, computed from
+other features by a deliberately small expression language.
+
+Two consequences fall straight out of the definition, and both are things people currently do by
+hand or not at all.
+
+**A derived feature inherits its ingest clock as the maximum over its inputs.** If `Z` is computed
+from `X` known in May and `Y` known in August, then `Z` was not knowable until August. That is
+arithmetic, not policy — which means it cannot be forgotten, and the easiest route to leakage closes
+itself.
+
+**A feature derived from the label is a type error.** `price_per_sqft` is a perfectly good feature
+until your label is `sale_price`, at which point it is the answer wearing a disguise. Walking the
+transitive lineage catches it at the moment somebody tries to use it, and the refusal names the
+derivation chain rather than saying "no".
+
+### A featureset is a schema, and a version fills it
+
+Here is the piece that makes the whole thing composable.
+
+A **featureset** declares a *schema* — named slots with types. A **version** of that featureset
+*fills* the schema, binding each slot to a specific feature and to the exact version of the view
+supplying its values.
+
+That separation does real work:
+
+- A model is defined over the *slots*. So swapping which feature fills a slot does not change the
+  model's input space — it changes what the model was fitted on, which is a different event with a
+  different control.
+- A version that cannot fill the schema is refused. Adding a slot is a change to `X`, and a change
+  to `X` is a model change, not a data change. The register says so instead of letting it happen
+  quietly.
+- Because every binding pins a *version*, one featureset version always resolves to the same bytes.
+  A stable identifier over moving contents is the failure this design exists to prevent, and it is
+  remarkably easy to reintroduce — I have now watched it reappear in four different disguises.
+
+### Composition is a monoid, and that is not decoration
+
+Featuresets compose. So do features. And the composition is the *same* fold in both cases: merge
+left to right, rightmost wins, with the empty set as the identity.
+
+That is a monoid, and saying so buys three things that would otherwise be conventions people
+half-remember:
+
+1. **Associativity**, so `(A ∘ B) ∘ C` and `A ∘ (B ∘ C)` are the same set. Without it, "which order
+   did we build this in" becomes a question with a consequence.
+2. **A stated precedence**: leftmost is least prominent. Not a preference — a property of the fold,
+   which means a child inheriting from three parents has one answer rather than three.
+3. **Totality of the operations.** `add` a slot the parents do not have, `drop` one they do,
+   `override` one with a different type — and each is *refused* when it would be a no-op. Adding a
+   slot that already exists is not harmlessly idempotent; it is somebody believing an operation
+   happened.
+
+This is the sense in which "a combination of features is a feature" is a statement rather than an
+aspiration. It is one fold, applied at two levels, and the reason a featureset composed from three
+others behaves predictably is that the algebra says it must.
+
+---
+
+## Artefacts that remember
+
+Everything so far assumes the artefact's output depends on its parameters and its input and nothing
+else. Plenty of governed things violate that: a simulation engine carrying a random-number state
+across calls, a system that adapts online, an agent that acts and then observes what happened.
+
+The tempting move is to fold the state into the input — call it part of `X` and carry on. It is
+faithful, and it is wrong in a specific way: the input object of a governed artefact is supposed to
+be *what the caller supplies*, and under that encoding it contains something the caller neither
+supplies nor sees. Every downstream construction that quantifies over inputs is then quantifying
+over a set nobody controls.
+
+Keep the state where it belongs and the artefact becomes a map
+
+```
+f : P ⊗ S ⊗ X → S ⊗ Y
+```
+
+a stochastic machine that returns a new state alongside its answer. Now here is the part that
+changed how I think about testing.
+
+**If a thing remembers, you cannot learn what it does by asking it questions one at a time.**
+
+Two systems can give identical answers to every single question you ask and still be completely
+different systems, because what distinguishes them is not any one answer but how the answers relate
+to each other. The smallest example: one system flips a fresh coin on every call; the other flips one
+coin at start-up and repeats it forever. Ask each once — indistinguishable. Ask twice — one gives you
+`(0,1)` a quarter of the time and the other never does.
+
+The consequence for governance is sharp. A "patch release" is a claim that nothing observable
+changed, and that claim is exactly as strong as the tests behind it. For an artefact that carries
+state, **a test set of individual cases cannot support the claim at any size**, and there is no
+length of test sequence at which you can stop and declare yourself safe: for every `n` there are two
+systems that agree on every sequence of length `n` and differ at `n+1`.
+
+Worked example, because this is not hypothetical. A counterparty simulation engine seeds its random
+generator once at process start. Somebody replaces it with a per-request seed — a pure performance
+change, removes a lock, halves latency, nothing about the model or its calibration touched. Labelled
+a patch. The nightly regression suite runs eleven thousand single-trade valuations and reproduces
+every one within tolerance, because a single valuation averages over paths either way.
+
+What changed is the correlation *between* valuations in one batch. Two trades in the same netting set
+used to be simulated against common paths and now are not. Exposure at the netting-set level moves
+materially, in the direction of understatement.
+
+Eleven thousand tests could not detect it. No number of tests of that shape could have. The defect
+was not that the suite was too small — it was that every element of it had length one.
+
 ---
 
 ## The part I didn't expect: this tells you where AI belongs
@@ -416,6 +597,28 @@ assembly makes visible. If you were hoping for a new theorem, this isn't it.
 **There's no implementation study.** I can argue the extension guarantees are real. I have not
 demonstrated that a system built this way is cheaper to build or operate than one built without.
 That's the missing evidence and I'm not going to pretend otherwise.
+
+**The stateful treatment is narrow.** I give the definition and one consequence — that single-shot
+tests cannot support an equivalence claim about something that remembers, at any size. I do not
+develop the coalgebraic semantics properly, and I do not know whether the right ambient setting for
+genuinely interactive artefacts is coalgebra, open games, or something else. What I am confident of
+is the negative result, because it has a two-line counterexample.
+
+**An oracle guarantees that no incorrect output is accepted *by the oracle*.** Acceptance in a
+governance process is an act by a person, and machine-drafted text is fluent in a way that suppresses
+the finding of defects — reviewers of polished artefacts find fewer problems than reviewers of rough
+ones. That is documented, it is not solved here, and the honest version of the claim is narrower than
+the one you would like to make.
+
+What the structure does offer at that boundary is worth stating, because it is not nothing. Where an
+oracle exists, the reviewer is no longer checking *correctness* — the oracle did that — but
+*authority*, which is precisely the thing no oracle can settle. Marking that boundary in the
+interface is itself a mitigation, and it is available only because the boundary is formally
+determined rather than a matter of taste. Beyond that: show the draft alongside the strongest
+constructed case against it rather than alone, and measure whether the reviewer ever opened the
+evidence a claim rests on — which is a fact about the session, not an inference about the person, and
+is only measurable because evidence is a derivation structure. All of that is hypothesis. None of it
+has been evaluated.
 
 **It doesn't cover everything gracefully.** Stateful simulation engines and agentic systems that
 take actions and observe consequences fit only by shoving state into the input object. That's

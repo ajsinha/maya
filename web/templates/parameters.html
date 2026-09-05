@@ -75,45 +75,45 @@ change behaviour, so it is approved the way a version is.</p>
           <span class="open-badge">awaiting approval</span>
         {% endif %}</span></div>
 
-    <table class="table maya mb-0">
-      <tbody>
-        <tr><td class="small" style="width:11rem">Provenance</td>
-            <td class="small">{{ p.provenance }}
-              <div class="text-muted">{{ provenance.get(p.provenance, '') }}</div></td></tr>
-        <tr><td class="small">Kind</td><td class="small mono">{{ p.kind }}</td></tr>
-        <tr><td class="small">Recorded by</td>
-            <td class="small">{{ p.created_by }}
-              {% if p.note %}<div class="text-muted">{{ p.note }}</div>{% endif %}</td></tr>
+    <dl class="maya-terms">
+        <div><dt style="width:11rem">Provenance</dt>
+              <dd>{{ p.provenance }}
+              <div class="text-muted">{{ provenance.get(p.provenance, '') }}</div></dd></div>
+        <div><dt>Kind</dt>
+              <dd class="mono">{{ p.kind }}</dd></div>
+        <div><dt>Recorded by</dt>
+              <dd>{{ p.created_by }}
+              {% if p.note %}<div class="text-muted">{{ p.note }}</div>{% endif %}</dd></div>
         {% if p.featureset_version_id %}
-          <tr><td class="small">Fitted from</td>
-              <td class="small">
+          <div><dt>Fitted from</dt>
+              <dd>
                 {{ featuresets.get(p.featureset_version_id, p.featureset_version_id) }}
                 <div class="text-muted">the columns these numbers belong to; the
-                  coefficients mean nothing without them</div></td></tr>
+                  coefficients mean nothing without them</div></dd></div>
         {% endif %}
         {% if p.warrant_id %}
-          <tr><td class="small">Under warrant</td>
-              <td class="small mono">{{ p.warrant_id }}</td></tr>
+          <div><dt>Under warrant</dt>
+              <dd class="mono">{{ p.warrant_id }}</dd></div>
         {% endif %}
         {% if p.window_from or p.window_to %}
-          <tr><td class="small">Fitting window</td>
-              <td class="small mono">{{ p.window_from }} &rarr; {{ p.window_to }}</td></tr>
+          <div><dt>Fitting window</dt>
+              <dd class="mono">{{ p.window_from }} &rarr; {{ p.window_to }}</dd></div>
         {% endif %}
         {% if p.as_of %}
-          <tr><td class="small">As of</td>
-              <td class="small mono">{{ p.as_of }}
+          <div><dt>As of</dt>
+              <dd class="mono">{{ p.as_of }}
                 <div class="text-muted">the transaction-time bound the fit read
-                  at, so the same fit re-run reads the same rows</div></td></tr>
+                  at, so the same fit re-run reads the same rows</div></dd></div>
         {% endif %}
         {% if p.snapshot_id %}
-          <tr><td class="small">Snapshot</td>
-              <td class="small mono">{{ p.snapshot_id }}</td></tr>
+          <div><dt>Snapshot</dt>
+              <dd class="mono">{{ p.snapshot_id }}</dd></div>
         {% endif %}
         {% if p.review_note %}
-          <tr><td class="small">Review note</td>
-              <td class="small text-muted">{{ p.review_note }}</td></tr>
+          <div><dt>Review note</dt>
+              <dd>{{ p.review_note }}</dd></div>
         {% endif %}
-      </tbody></table>
+    </dl>
 
     <div class="card-body py-2 border-top">
       <p class="small fw-bold mb-2" style="color:var(--crimson)">
@@ -142,13 +142,12 @@ change behaviour, so it is approved the way a version is.</p>
     {% if p.diagnostics %}
       <div class="card-body py-2 border-top">
         <p class="small fw-bold mb-2" style="color:var(--crimson)">Diagnostics</p>
-        <table class="table maya mb-0">
-          <tbody>
-          {% for key, value in p.diagnostics.items() %}
-            <tr><td class="small mono" style="width:14rem">{{ key }}</td>
-                <td class="small mono">{{ value }}</td></tr>
-          {% endfor %}
-          </tbody></table>
+        <dl class="maya-terms">
+    {% for key, value in p.diagnostics.items() %}
+      <div><dt class="mono" style="width:14rem">{{ key }}</dt>
+           <dd>{{ value }}</dd></div>
+    {% endfor %}
+    </dl>
         <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
           What the fit reported about itself. Recorded with the parameters rather
           than beside them, because an approver deciding without them is

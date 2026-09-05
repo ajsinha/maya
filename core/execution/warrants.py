@@ -139,6 +139,24 @@ class WarrantService:
                         "featureset": featureset, "version": featureset_version,
                         "digest": plan["digest"], "as_of": as_of,
                         "window": window,
+                        # The SCHEMA travels with the warrant: which slots, what
+                        # each holds, which feature and which view version fills
+                        # it. An engine receiving a fit warrant should not need a
+                        # second call to learn what columns it is being asked to
+                        # train on -- and a warrant that named a featureset
+                        # without saying what was in it made the digest the only
+                        # thing standing between "the right columns" and "some
+                        # columns", which is a check nobody can perform by
+                        # reading.
+                        #
+                        # Names and types, never values. The values are large,
+                        # they are fetched through the transfer API, and a
+                        # signed credential is not a wire format for a dataset.
+                        "entity": plan["entity"],
+                        "grain": plan["grain"],
+                        "slots": plan["slots"],
+                        "label": plan["label"],
+                        "outcome_window_days": plan["outcome_window_days"],
                         "namespaces": plan["namespaces"],
                         "pit_rule": plan["pit_rule"]}],
             "outputs": [{"sink": "parameter_object"}],

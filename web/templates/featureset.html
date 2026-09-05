@@ -37,6 +37,29 @@ owned by {{ featureset.ownership.owner }}
   </div></div>
 {% endif %}
 
+{% if featureset.drift %}
+<div class="card mb-3 border-danger"><div class="card-header">A parent has moved</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Parent</th><th>Composed against</th><th>Now at</th><th>Sealed</th></tr></thead>
+    <tbody>
+    {% for d in featureset.drift %}
+      <tr><td class="small"><a href="/featureset/{{ d.parent }}"
+             style="color:var(--crimson);text-decoration:none">{{ d.parent }}</a></td>
+          <td class="small">definition v{{ d.composed_against }}</td>
+          <td class="small"><span class="evidence-bad">definition v{{ d.now_at }}</span></td>
+          <td class="small">{% if d.sealed %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    This featureset recorded which <em>definition</em> of each parent it was
+    composed against, and one of them has changed since. It is reported rather
+    than refused: a child whose parent has moved is a thing to be told about,
+    and refusing the read would take the schema away from whoever most needs to
+    look at it. Re-declare, or seal the parent so it cannot move again.
+  </div></div>
+{% endif %}
+
 {% if featureset.policy.policy %}
 <div class="card mb-3"><div class="card-header">Default retrieval policy</div>
   <table class="table maya mb-0">

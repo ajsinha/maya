@@ -37,11 +37,13 @@
     <p class="mb-0">{{ summary.detail }}.</p>
   </div>
   <table class="table maya mb-0">
+    <thead><tr><th>Stream</th><th>What it holds</th><th class="text-end">Rows</th></tr></thead>
     <tbody>
     {% for stream, means in streams.items() %}
       <tr><td class="small mono" style="width:8rem">{{ stream }}</td>
           <td class="small text-muted">{{ means }}</td>
-          <td class="small text-end">
+          <td class="small text-end"
+              data-sort="{% if stream == 'scores' %}{{ summary.scores }}{% else %}{{ summary.outcomes }}{% endif %}">
             {% if stream == 'scores' %}{{ "{:,}".format(summary.scores) }}
             {% else %}{{ "{:,}".format(summary.outcomes) }}{% endif %} rows</td></tr>
     {% endfor %}

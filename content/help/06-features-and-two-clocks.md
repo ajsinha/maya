@@ -32,6 +32,34 @@ the restated figure — a number nobody could have known in March. The backtest 
 measuring the model's ability to use information from the future. In production
 that information does not exist, and the performance evaporates.
 
+## Loading values from a file
+
+The features page takes a file directly. **CSV, JSONL, Parquet or Arrow** — the
+format comes from the extension, and the browser posts the bytes to the same
+endpoint an execution engine uses, so the interface exercises the contract
+rather than a convenience beside it.
+
+| Format | When |
+|---|---|
+| `.csv` | What a person usually has. Types are inferred, because a CSV cannot carry any |
+| `.jsonl` / `.ndjson` | One object per line; streams, and anything can produce it |
+| `.parquet` | Columnar and typed; the right choice for anything large |
+| `.arrow` | Streaming IPC, zero-copy; what an engine should send |
+
+**CSV is read and never written.** A CSV cannot carry a type, so a feature
+exported as one comes back as text and both clocks come back as strings. Reading
+one is worth it because refusing would mean somebody converts by hand, and the
+conversion is where the mistakes live. Writing one would hand back something
+weaker than what went in.
+
+Every row must carry `entity_id`, `event_ts` and `ingest_ts`. A file missing the
+second clock is refused rather than stamped with the upload time — a value whose
+arrival is guessed cannot be read point-in-time, and that is precisely how the
+future gets into a training set.
+
+**The whole upload becomes one feature view version.** A version is what a
+featureset pins, and half a version is not something anybody can pin.
+
 ## Two clocks, always
 
 Every feature row in MAYA carries both:

@@ -719,3 +719,213 @@ class TestReplayFromStorageOverTheApi:
             f"/api/v1/validations/{episode['id']}/replayable").json()
         assert body["readable"] is False
         assert "pins no dataset snapshot" in body["detail"]
+
+
+class TestLoadingFeatureValuesFromAFile:
+    """A person defining a feature has a file, not an Arrow stream.
+
+    The endpoint an execution engine posts to already took Arrow, Parquet and
+    NDJSON; CSV was missing, which is the one format somebody actually has —
+    and refusing it means they convert by hand, and the conversion is where the
+    mistakes live. The interface posts to the SAME endpoint, so the browser
+    exercises the contract rather than a convenience beside it.
+    """
+
+    CSV = (b"entity_id,event_ts,ingest_ts,dscr\n"
+           b"B1,1717200000.0,1717200000.0,1.4\n"
+           b"B2,1717200000.0,1717200000.0,2.1\n")
+
+    def _view(self, client, auth, name="upload_view"):
+        client.post("/api/v1/features", auth=auth, json={
+            "name": "dscr", "entity": "borrower_id", "dtype": "numeric",
+            "description": "d", "owner": "person/j.okafor"})
+        client.post("/api/v1/feature-views", auth=auth, json={
+            "name": name, "entity": "borrower_id", "owner": "person/j.okafor",
+            "features": ["dscr"]})
+        return name
+
+    def test_a_csv_becomes_a_feature_view_version(self, registered, people):
+        view = self._view(registered, people["d.raman"])
+        r = registered.post(f"/api/v1/feature-views/{view}/data",
+                            auth=people["d.raman"], content=self.CSV,
+                            headers={"Content-Type": "text/csv"})
+        assert r.status_code == 201, r.text
+        assert r.json()["row_count"] == 2 and r.json()["version"] == 1
+
+    def test_the_values_read_back_typed(self, registered, people):
+        """A CSV carries no types, so they are inferred — and a column that read
+        as text rather than a number would be a silent defect in a training
+        set."""
+        view = self._view(registered, people["d.raman"], "typed_view")
+        registered.post(f"/api/v1/feature-views/{view}/data",
+                        auth=people["d.raman"], content=self.CSV,
+                        headers={"Content-Type": "text/csv"})
+        rows = registered.get(f"/api/v1/feature-views/{view}/versions/1/data",
+                              auth=people["d.raman"]).json()["rows"]
+        assert rows[0]["dscr"] == 1.4, "a number, not the string '1.4'"
+
+    def test_a_file_missing_the_second_clock_is_refused(self, registered, people):
+        """A file with no `ingest_ts` cannot be read point-in-time, and guessing
+        it is how the future gets into a training set."""
+        view = self._view(registered, people["d.raman"], "clockless_view")
+        r = registered.post(
+            f"/api/v1/feature-views/{view}/data", auth=people["d.raman"],
+            content=b"entity_id,event_ts,dscr\nB1,1717200000.0,1.4\n",
+            headers={"Content-Type": "text/csv"})
+        assert r.status_code == 409
+        assert "ingest_ts" in r.text
+
+    def test_a_format_maya_does_not_read_is_refused_by_name(self, registered,
+                                                            people):
+        view = self._view(registered, people["d.raman"], "xls_view")
+        r = registered.post(f"/api/v1/feature-views/{view}/data",
+                            auth=people["d.raman"], content=b"\x00\x01",
+                            headers={"Content-Type": "application/vnd.ms-excel"})
+        assert r.status_code == 409
+        assert "not a format this accepts" in r.text
+
+
+class TestTheUploadFormIsOnThePage:
+    def test_the_features_page_offers_a_file_upload(self, registered):
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/features").text
+        assert 'id="load-values"' in body
+        assert ".csv,.jsonl,.ndjson,.parquet,.arrow" in body
+
+    def test_it_posts_to_the_same_endpoint_an_engine_uses(self, registered):
+        """Not a second upload path beside the contract."""
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/features").text
+        assert '"/api/v1/feature-views/" + encodeURIComponent(view) + "/data"' in body
+
+
+class TestComposingAFeaturesetFromTheInterface:
+    """Composition, inheritance and overrides are the centre of this design, and
+    the form offered a comma-separated box for parents and a JSON textarea for
+    slots — with no way to express an operation at all. The two things the
+    design is *for* were the two hardest things to do in the interface.
+    """
+
+    def _parent(self, client, auth, name="core_set"):
+        for slot in ("dscr", "turnover"):
+            client.post("/api/v1/features", auth=auth, json={
+                "name": slot, "entity": "borrower_id", "dtype": "numeric",
+                "description": slot, "owner": "person/j.okafor"})
+        client.post("/api/v1/featuresets", auth=auth, json={
+            "name": name, "entity": "borrower_id",
+            "slots": {"dscr": "numeric", "turnover": "numeric"}})
+        return name
+
+    def test_a_preview_resolves_without_declaring_anything(self, registered,
+                                                           people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev)
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "slots": {"spend": "numeric"}, "composes": [{"name": parent}]})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert set(body["slots"]) == {"dscr", "turnover", "spend"}
+        assert body["declared_slots"] == ["spend"]
+        assert body["inherited_slots"] == ["dscr", "turnover"]
+        # and nothing was created
+        assert registered.get("/api/v1/featuresets", auth=dev).json()
+
+    def test_a_preview_shows_what_an_override_changes(self, registered, people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "override_parent")
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "override", "name": "dscr",
+                            "value": {"dtype": "integer"}}]})
+        body = r.json()
+        assert body["slots"]["dscr"]["dtype"] == "integer"
+        assert "dscr" in body["declared_slots"], (
+            "an overridden slot is this set's own decision, not the parent's")
+
+    def test_a_preview_shows_what_a_drop_removes(self, registered, people):
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "drop_parent")
+        body = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "drop", "name": "turnover"}]}).json()
+        assert set(body["slots"]) == {"dscr"}
+
+    def test_a_preview_refuses_exactly_what_declaring_would(self, registered,
+                                                            people):
+        """A preview that accepted more than the real thing would be worse than
+        none: somebody would design against it and be refused at the last step."""
+        dev = people["d.raman"]
+        parent = self._parent(registered, dev, "strict_parent")
+        r = registered.post("/api/v1/featuresets/preview", auth=dev, json={
+            "composes": [{"name": parent}],
+            "operations": [{"op": "drop", "name": "not_a_slot"}]})
+        assert r.status_code == 409, "dropping what is not there is a no-op, refused"
+
+    def test_an_unknown_parent_is_refused_in_the_preview_too(self, registered,
+                                                             people):
+        r = registered.post("/api/v1/featuresets/preview",
+                            auth=people["d.raman"],
+                            json={"composes": [{"name": "no_such_set"}]})
+        assert r.status_code == 409
+        assert "no such featureset" in r.text
+
+    def test_the_form_offers_slots_parents_and_operations(self, registered):
+        from tests.api_helpers import login
+        login(registered)
+        body = registered.get("/featuresets").text
+        assert 'id="slot-rows"' in body
+        assert 'id="parent-rows"' in body
+        assert 'id="op-rows"' in body
+        assert 'id="preview-set"' in body
+        for word in ("add", "drop", "override"):
+            assert word in body, word
+
+
+class TestAFitWarrantIsSelfDescribing:
+    """An engine receiving a fit warrant should not need a second call to learn
+    what columns it is being asked to train on.
+
+    The warrant named a featureset and its digest and said nothing about what
+    was in it — so the digest was the only thing standing between "the right
+    columns" and "some columns", which is a check nobody can perform by reading.
+    """
+
+    def test_the_warrant_carries_the_slots_and_what_fills_them(
+            self, registered, people):
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        doc = self._fit(registered, owner).json()
+        binding = doc["data"]["inputs"][0]
+        assert binding["featureset"] == "sb_set"
+        slots = {s["slot"]: s for s in binding["slots"]}
+        assert "dscr" in slots
+        assert slots["dscr"]["feature"] == "dscr"
+        assert slots["dscr"]["view"] and slots["dscr"]["view_version"]
+
+    def test_it_carries_the_grain_and_the_entity(self, registered, people):
+        """What one row means. Without it an engine knows the columns and not
+        what they are a row of."""
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        binding = self._fit(registered, owner).json()["data"]["inputs"][0]
+        assert binding["entity"] == "borrower_id"
+        assert binding["grain"]
+
+    def test_it_does_not_carry_the_values(self, registered, people):
+        """Names and types, never data. A signed credential is not a wire format
+        for a dataset, and the transfer API is how the rows are fetched."""
+        import json
+        dev, owner = people["d.raman"], people["j.okafor"]
+        self._fittable_version(registered, people)
+        self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
+        doc = self._fit(registered, owner).json()
+        assert len(json.dumps(doc)) < 20_000, "a warrant is a credential, not a payload"
+
+    # the helpers this class needs, borrowed from the schema-check suite
+    _fittable_version = TestTheFitWarrantChecksTheSchema._fittable_version
+    _setup = TestTheFitWarrantChecksTheSchema._setup
+    _fit = TestTheFitWarrantChecksTheSchema._fit

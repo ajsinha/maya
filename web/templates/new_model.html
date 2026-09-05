@@ -82,9 +82,35 @@ just finished a fit uses the same two endpoints.</p>
             <div class="col-12"><input class="form-control form-control-sm" name="entry"
                    placeholder='entry, e.g. {"module": "nj.estimators", "attr": "ols_score"}'></div>
             <div class="col-md-7"><input class="form-control form-control-sm" name="artifact_uri"
-                   placeholder="artifact uri (where to look)"></div>
+                   placeholder="artifact uri (where to look) — leave empty if you upload below"></div>
             <div class="col-md-5"><input class="form-control form-control-sm" name="artifact_digest"
+                   id="artifact-digest"
                    placeholder="sha256:… (what should be there)"></div>
+
+            <div class="col-12">
+              <div class="border rounded p-2" style="background:#FAF9F7">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="fw-semibold" style="font-size:.75rem">Or put the file in MAYA</span>
+                  <span class="text-muted" style="font-size:.68rem">stored under its own sha256; up to 8&nbsp;GiB</span>
+                </div>
+                <div class="row g-2 align-items-center">
+                  <div class="col-md-4">
+                    <select class="form-select form-select-sm" id="artifact-format">
+                      {% for f in artifact_formats %}
+                      <option value="{{ f.format }}" data-runs="{{ 1 if f.executes_on_load else 0 }}"
+                              title="{{ f.means }}">{{ f.format }}</option>
+                      {% endfor %}
+                    </select></div>
+                  <div class="col-md-5">
+                    <input class="form-control form-control-sm" type="file" id="artifact-file"></div>
+                  <div class="col-md-3">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100 py-0"
+                            id="artifact-upload" style="font-size:.75rem">Upload artifact</button></div>
+                </div>
+                <div id="artifact-note" class="text-muted mt-1" style="font-size:.7rem"></div>
+                <div id="artifact-result" class="mt-1" style="font-size:.72rem"></div>
+              </div>
+            </div>
 
             <div class="col-12"><textarea class="form-control form-control-sm" name="input_schema" rows="2"
                    placeholder='input schema, e.g. [{"name": "dscr", "dtype": "float"}]'></textarea></div>
@@ -138,6 +164,56 @@ $("#new-model").on("submit", function (e) {
           data: JSON.stringify(Object.fromEntries(new FormData(this)))})
     .done(function () { location.reload(); }).fail(fail("#model-result"));
 });
+// --- putting the serialised model into MAYA -------------------------------
+// The digest is computed HERE and sent with the upload, so the platform checks
+// what arrived against what was meant rather than storing whatever it received.
+function sha256Of(buffer) {
+  if (!(window.crypto && window.crypto.subtle)) {
+    return Promise.resolve(null);   // http on a non-localhost origin: send it unchecked
+  }
+  return window.crypto.subtle.digest("SHA-256", buffer).then(function (out) {
+    return Array.prototype.map.call(new Uint8Array(out), function (b) {
+      return ("0" + b.toString(16)).slice(-2);
+    }).join("");
+  });
+}
+
+$("#artifact-format").on("change", function () {
+  var runs = $(this).find("option:selected").data("runs") === 1;
+  $("#artifact-note").html(runs
+    ? '<span class="evidence-bad">This format executes code when it loads</span>' +
+      ', so it runs in the sandbox and nowhere else.'
+    : $(this).find("option:selected").attr("title"));
+}).trigger("change");
+
+$("#artifact-upload").on("click", function () {
+  var file = $("#artifact-file")[0].files[0];
+  if (!file) {
+    $("#artifact-result").html('<span class="evidence-bad">Choose a file first.</span>');
+    return;
+  }
+  var fmt = $("#artifact-format").val();
+  $("#artifact-result").text("hashing " + (file.size / 1e6).toFixed(1) + " MB\u2026");
+  file.arrayBuffer().then(sha256Of).then(function (hex) {
+    var url = "/api/v1/artifacts?format=" + encodeURIComponent(fmt) +
+              (hex ? "&digest=sha256:" + hex : "");
+    $("#artifact-result").text("uploading\u2026");
+    return $.ajax({url: url, method: "POST", data: file, processData: false,
+                   contentType: "application/octet-stream"});
+  }).then(function (out) {
+    $("#artifact-digest").val(out.digest);
+    $("#artifact-result").html('<span class="evidence-ok">' +
+      (out.stored ? "Stored" : "Already held") + '</span> &mdash; ' +
+      out.digest.slice(0, 23) + '\u2026 (' + out.detail + '). ' +
+      'The version will name it; leave the uri empty.');
+  }).catch(function (x) {
+    var e = (x && x.responseJSON) || {};
+    $("#artifact-result").html('<span class="evidence-bad">Refused &mdash; ' +
+      (e.detail || (x && x.statusText) || x) + '</span>' +
+      (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
+  });
+});
+
 $("#new-version").on("submit", function (e) {
   e.preventDefault();
   var f = Object.fromEntries(new FormData(this));
@@ -153,10 +229,25 @@ $("#new-version").on("submit", function (e) {
       err.message + '</span>');
     return;
   }
+  // The store fills in the uri and the size from the digest, so a version
+  // naming an artifact MAYA holds needs only the digest.
+  var fmt = $("#artifact-digest").val() && !f.artifact_uri
+    ? $("#artifact-format").val() : null;
+  if (fmt) { kernel.artifact_format = fmt; }
   var body = {semver: f.semver, kernel: kernel};
   if (f.artifact_uri) { body.artifact_uri = f.artifact_uri; }
   if (f.artifact_digest) { body.artifact_digest = f.artifact_digest; }
-  if (f.contract) { try { body.contract = JSON.parse(f.contract); } catch (err) {} }
+  if (f.contract) {
+    try {
+      body.contract = JSON.parse(f.contract);
+    } catch (err) {
+      // Silently dropping it would register a version with no operating
+      // contract while the author believed they had given it one.
+      $("#version-result").html('<span class="evidence-bad">The contract is not ' +
+        'valid JSON &mdash; ' + err.message + '</span>');
+      return;
+    }
+  }
   var name = f.urn.replace("maya://model/", "");
   $.ajax({url: "/api/v1/models/" + name + "/versions", method: "POST",
           contentType: "application/json", data: JSON.stringify(body)})

@@ -46,6 +46,37 @@ CREATE INDEX IF NOT EXISTS ix_model_domain ON model (domain);
 CREATE INDEX IF NOT EXISTS ix_model_tier   ON model (tier);
 
 -- Versions are immutable. There is no UPDATE path other than `status`, which
+-- ------------------------------------------------------------------ model edges
+-- How one model stands to another. Two relations, and they are not the same:
+--
+--   derives_from  B was built FROM A -- a variant, a recalibration for another
+--                 book, a challenger sharing A's shape. B is its own model with
+--                 its own versions; the edge records where it came from.
+--   feeds         A's OUTPUT is an input to B. This is the network edge, and it
+--                 is the one aggregate risk turns on: a curve feeding a pricer,
+--                 a PD model feeding an ECL stack.
+--
+-- The distinction matters because they answer different questions. "What did we
+-- base this on" is lineage; "what breaks if this changes" is blast radius, and
+-- only `feeds` propagates. Conflating them makes a challenger look like a
+-- dependency and a dependency look like a family resemblance.
+--
+-- Edges are between MODELS, not versions. A version-level graph would have to be
+-- rebuilt on every release and would answer a question nobody asks: the estate
+-- question is which models depend on this one, not which builds did.
+CREATE TABLE IF NOT EXISTS model_edge (
+    id           TEXT PRIMARY KEY,
+    from_model   TEXT NOT NULL,          -- the model the edge points FROM
+    to_model     TEXT NOT NULL,          -- and the one it points TO
+    kind         TEXT NOT NULL,
+    note         TEXT NOT NULL DEFAULT '',
+    created_by   TEXT NOT NULL,
+    created_at   DOUBLE PRECISION NOT NULL,
+    UNIQUE (from_model, to_model, kind)
+);
+CREATE INDEX IF NOT EXISTS ix_edge_from ON model_edge (from_model);
+CREATE INDEX IF NOT EXISTS ix_edge_to   ON model_edge (to_model);
+
 -- is deliberately excluded from manifest_digest.
 CREATE TABLE IF NOT EXISTS model_version (
     id                 TEXT PRIMARY KEY,
@@ -66,6 +97,9 @@ CREATE TABLE IF NOT EXISTS model_version (
     -- no location cannot be fetched, and a location with no digest cannot be
     -- checked against what was approved.
     artifact_uri       TEXT,
+    -- How big, so a warrant can tell an engine what it is about to
+    -- fetch before it starts fetching it.
+    artifact_size      integer,
     status             TEXT NOT NULL DEFAULT 'draft',
     created_at         DOUBLE PRECISION NOT NULL,
     created_by         TEXT NOT NULL,
@@ -98,6 +132,23 @@ CREATE TABLE IF NOT EXISTS alias_history (
     justification   TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_alias_history_model ON alias_history (model_id);
+
+-- How far the evidence chain has been verified, and what its head hash was at
+-- that point. Readiness asks "has anything broken SINCE we last checked", which
+-- is O(new nodes); the full walk stays available and runs on a schedule,
+-- because only the full walk can answer "is the whole chain intact".
+--
+-- Verifying the whole chain on every readiness probe was O(chain): 2.9 seconds
+-- and 83 MB at forty thousand nodes, and a busy instance reaches a million in
+-- half an hour. Kubernetes would have taken the node out of service for being
+-- slow to answer whether it was healthy.
+CREATE TABLE IF NOT EXISTS evidence_checkpoint (
+    id             TEXT PRIMARY KEY,
+    seq            integer NOT NULL,
+    chain_hash     TEXT NOT NULL,
+    verified_at    DOUBLE PRECISION NOT NULL,
+    verified_by    TEXT NOT NULL DEFAULT 'system'
+);
 
 -- Append-only and hash-chained. The application role gets INSERT and SELECT.
 CREATE TABLE IF NOT EXISTS evidence_node (

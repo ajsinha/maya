@@ -34,6 +34,7 @@ from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
+from core.artifacts import ArtifactStore
 from core.assist import CapabilityRegistry, DraftingService, GenerationLog
 from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
@@ -47,7 +48,7 @@ from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
-from core.registry import ModelRegistry, RegistryError
+from core.registry import ModelComposition, ModelRegistry, RegistryError
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
@@ -66,7 +67,7 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
-                DeltaStore, DocumentRepository, EvidenceRepository,
+                DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository, ModelEdgeRepository,
                 FeatureRepository, FeatureViewRepository,
                 FeatureViewVersionRepository, FindingActionRepository,
                 FindingRepository,
@@ -102,7 +103,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     db = Database(cfg.get("database.url", "sqlite:///data/sqlite/maya.db"),
                   cfg.get_bool("database.echo", False))
-    evidence = EvidenceEngine(EvidenceRepository(db))
+    evidence = EvidenceEngine(EvidenceRepository(db), EvidenceCheckpointRepository(db))
     registry = ModelRegistry(ModelRepository(db), VersionRepository(db),
                              AliasRepository(db), AliasHistoryRepository(db), evidence)
     tiering = TieringEngine(
@@ -190,6 +191,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # refer to each other. A warrant names the point of P a run is at; the
     # register knows which point is approved.
     warrants.parameters = parameters
+
+    # How one model stands to another. Separate from the registry because the
+    # registry is about a model in isolation and this is about the estate.
+    composition = ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                                   evidence)
+
+    # Where serialised models live, addressed by what they are rather than
+    # where somebody put them.
+    artifacts = ArtifactStore(Path(cfg.get("data.artifacts",
+                                           str(ROOT / "data" / "artifacts"))))
+    # So a version naming a digest MAYA holds is resolved against the store
+    # rather than believed: the uri, the size and the format come from what is
+    # actually there.
+    registry.attach_artifacts(artifacts)
 
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
@@ -281,11 +296,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=documents,
                    notifications=notifications,
-                   finding_workflow=finding_workflow))
+                   finding_workflow=finding_workflow,
+                   evidence=evidence))
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "tiering": tiering, "warrants": warrants,
+                           "registry": registry, "composition": composition,
+                           "artifacts": artifacts, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
