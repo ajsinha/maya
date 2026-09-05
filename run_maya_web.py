@@ -40,6 +40,7 @@ from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
 from core.artifacts import ArtifactStore
+from core.export import ExportPacker
 from core.execution.profiles import WarrantProfileRegister
 from core.assist import CapabilityRegistry, DraftingService, GenerationLog
 from core.assist import providers as assist_providers
@@ -246,11 +247,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                    str(ROOT / "data" / "attachments")))),
         registry, evidence)
 
-    documents = DocumentCompiler(
-        DocumentRepository(db), evidence,
-        ContextBuilder(registry, evidence, RiskRepository(db), features,
-                       validation, findings, monitoring, lifecycle, warrants,
-                       overlays, regimes, attachments))
+    context = ContextBuilder(registry, evidence, RiskRepository(db), features,
+                             validation, findings, monitoring, lifecycle,
+                             warrants, overlays, regimes, attachments)
+    documents = DocumentCompiler(DocumentRepository(db), evidence, context)
+
+    # The pack uses the SAME context builder the compiler does. Two gatherers
+    # would be two answers to "what is true about this model", and the second
+    # would drift from the first in exactly the places nobody looks.
+    export = ExportPacker(context, documents, attachments, evidence, registry)
 
     # Replay reads the snapshot an episode was pinned to, at the Delta version
     # it was pinned at, so the control does not depend on the caller still
@@ -315,7 +320,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "evidence": evidence,
                            "registry": registry, "composition": composition,
                            "artifacts": artifacts,
-                           "warrant_profiles": warrant_profiles, "tiering": tiering, "warrants": warrants,
+                           "warrant_profiles": warrant_profiles,
+                           "export": export, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,

@@ -334,6 +334,20 @@
       </div></div>
 
 
+    <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+        <span>Export pack</span>
+        <a class="btn btn-sm btn-danger py-0 px-2" style="font-size:.72rem"
+           href="/api/v1/export-packs/{{ model.urn.replace('maya://model/','') }}"
+           id="cut-pack">Cut a pack</a></div>
+      <div class="card-body small">
+        <p class="text-muted mb-2">Everything about this model as one digested
+          zip, for somebody who will not be given a login &mdash; a supervisor,
+          an internal auditor, a diligence team.</p>
+        <div id="pack-manifest" class="text-muted" style="font-size:.72rem">
+          <a href="#" id="peek-pack">What would it contain, and has anything
+            changed since the last one?</a></div>
+      </div></div>
+
     <div class="card mb-3"><div class="card-header">Supervisory regimes</div>
       <div class="card-body p-0"><table class="table maya mb-0">
         <thead><tr><th>Regime</th><th class="text-end">Standing</th></tr></thead>
@@ -513,6 +527,54 @@ $(function () {
         var d = xhr.responseJSON || {};
         msg.addClass("evidence-bad")
            .text((d.detail || "Refused.") + (d.remediation ? "  " + d.remediation : ""));
+      });
+  });
+
+  // --- the export pack -----------------------------------------------------
+  // "Cut a pack" is a plain link so the browser downloads it: an XHR would put
+  // a hundred megabytes through JavaScript to hand it straight back.
+  var packName = "{{ model.urn.replace('maya://model/','') }}";
+
+  $("#cut-pack").on("click", function () {
+    // A GET link cannot carry the CSRF token and the build endpoint is a POST,
+    // so the click is turned into a form post rather than the control being
+    // exempted for convenience.
+    var form = $("<form>", {method: "POST",
+                            action: "/api/v1/export-packs/" + packName});
+    form.appendTo("body");
+    if (window.mayaStampForms) { window.mayaStampForms(form.parent()[0]); }
+    form.trigger("submit");
+    form.remove();
+    return false;
+  });
+
+  $("#peek-pack").on("click", function (e) {
+    e.preventDefault();
+    var out = $("#pack-manifest");
+    out.text("reading\u2026");
+    $.getJSON("/api/v1/export-packs/" + packName + "/manifest")
+      .done(function (m) {
+        var rows = m.files.map(function (f) {
+          return '<div class="d-flex justify-content-between"><span class="mono">'
+            + f.name + '</span><span class="text-muted">'
+            + (f.bytes / 1024).toFixed(1) + ' kB</span></div>';
+        }).join("");
+        out.html(
+          '<div class="mb-1"><span class="fw-semibold">Content digest</span> '
+          + '<span class="mono">' + m.content_digest.slice(0, 23) + '\u2026</span>'
+          + ' &mdash; the same for two packs of the same state, so this is what '
+          + 'you compare against the last one.</div>'
+          + '<div class="mb-1">Chain at sequence ' + m.chain.head_seq + ', '
+          + (m.chain.verified ? 'verified' : '<span class="evidence-bad">BROKEN</span>')
+          + '. ' + (m.gaps ? '<span class="evidence-bad">' + m.gaps
+                             + ' gap(s) recorded</span>'
+                           : 'nothing missing') + '.</div>'
+          + rows);
+      })
+      .fail(function (xhr) {
+        var d = xhr.responseJSON || {};
+        out.html('<span class="evidence-bad">' + (d.detail || "Refused.")
+                 + '</span>');
       });
   });
 });

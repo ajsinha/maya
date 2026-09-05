@@ -363,9 +363,17 @@ def provenance(ctx: Dict[str, Any]) -> Rendered:
     for n in nodes:
         kinds[n["kind"]] = kinds.get(n["kind"], 0) + 1
     rows = "\n".join(f"| `{k}` | {c} |" for k, c in sorted(kinds.items()))
+    # The count is of entries about THIS MODEL, not of the whole chain. Quoting
+    # the platform-wide length here made every model's document change whenever
+    # anything happened anywhere — so a document could go stale because a
+    # different team registered a model, and a reader comparing two copies of
+    # the same document would find a difference that meant nothing.
+    #
+    # Validity stays global, correctly: a chain is valid or it is not, and a
+    # break anywhere is a break that reaches this document's evidence too.
     return (f"Every statement in this document is drawn from an append-only, "
             f"hash-chained record. The chain is currently "
-            f"**{'valid' if chain.get('valid') else 'BROKEN'}** over "
-            f"{chain.get('length', '?')} entries.\n\n"
+            f"**{'valid' if chain.get('valid') else 'BROKEN'}**, and "
+            f"{len(nodes)} entries in it are about this model.\n\n"
             f"| Evidence kind | Entries about this model |\n|---|---|\n{rows}\n"), \
         [n["id"] for n in nodes]

@@ -75,6 +75,7 @@ The codes a caller most often has to branch on:
 | `not_defaultable` | 422 | A profile tried to fill in something a caller could not have typed |
 | `authority_not_defaultable` | 403 | A profile reached for authority; write it as a policy gate instead |
 | `csrf_token_invalid` | 403 | A state-changing request rode a session cookie without a valid token |
+| `pack_too_large` | 413 | The export is over 2 GB; narrow it rather than streaming something nobody opens |
 
 Segregation refusals are a family, and each names the act it is protecting:
 `self_review` on a document, `self_approval` on a parameter set or an overlay,
@@ -205,6 +206,21 @@ else holds, which is a different state rather than an error, and the warrant
 carries the difference as `held_by_maya`.
 
 Ceiling 8 GiB. A governance platform is not a model store of last resort.
+
+### Export packs
+
+Everything about one model as a digested zip, for somebody who will not be given
+a login.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/export-packs` | What a pack contains, and what each part answers |
+| `POST` | `/export-packs/{name}` | Cut one. `documents=` narrows which are compiled; `attachments=false` leaves the filed bytes out |
+| `GET` | `/export-packs/{name}/manifest` | The manifest without the bytes — compare `content_digest` against the last pack |
+
+The response carries `X-Pack-Digest` (the zip) and `X-Pack-Content-Digest` (the
+files, excluding the manifest). The second is the one to keep: two packs of the
+same state share it, so *has anything changed* is one comparison.
 
 ### Warrant profiles
 
