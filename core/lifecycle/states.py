@@ -50,6 +50,22 @@ RETIRED = "retired"
 STATES: Tuple[str, ...] = (DRAFT, BASELINED, SUBMITTED, APPROVED, ATTESTED,
                            AMENDING, RETIRED)
 
+# The states a record may be CREATED in, as opposed to moved into.
+#
+# L-1 says a model's history is a path in the free category on this graph, and
+# a path has to start somewhere. There are two starting points, not one, and the
+# distinction is substantive rather than bookkeeping: a record somebody
+# registers begins in `draft`, and a record imported from a legacy inventory
+# begins `baselined` — the register must never imply that historical evidence
+# was asserted when it was not, so an import cannot enter through `draft` and
+# cannot be a transition FROM anything.
+#
+# Stated here because it was previously implicit, which made `baselined` look
+# like a state reachable by no declared edge — a violation of L-1 rather than
+# what it is, a second initial object. `tests/test_laws.py` asserts the
+# reachable closure over exactly these two.
+INITIAL: Tuple[str, ...] = (DRAFT, BASELINED)
+
 # The states in which the record may be changed at all. Everything else is
 # frozen, including the addition of new versions: a new version IS a change to
 # the model, and pretending otherwise is how an attested record quietly stops
