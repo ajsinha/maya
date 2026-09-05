@@ -35,6 +35,37 @@ CREATE INDEX IF NOT EXISTS ix_model_domain ON model (domain);
 CREATE INDEX IF NOT EXISTS ix_model_tier   ON model (tier);
 
 -- Versions are immutable. There is no UPDATE path other than `status`, which
+-- ------------------------------------------------------------------ model edges
+-- How one model stands to another. Two relations, and they are not the same:
+--
+--   derives_from  B was built FROM A -- a variant, a recalibration for another
+--                 book, a challenger sharing A's shape. B is its own model with
+--                 its own versions; the edge records where it came from.
+--   feeds         A's OUTPUT is an input to B. This is the network edge, and it
+--                 is the one aggregate risk turns on: a curve feeding a pricer,
+--                 a PD model feeding an ECL stack.
+--
+-- The distinction matters because they answer different questions. "What did we
+-- base this on" is lineage; "what breaks if this changes" is blast radius, and
+-- only `feeds` propagates. Conflating them makes a challenger look like a
+-- dependency and a dependency look like a family resemblance.
+--
+-- Edges are between MODELS, not versions. A version-level graph would have to be
+-- rebuilt on every release and would answer a question nobody asks: the estate
+-- question is which models depend on this one, not which builds did.
+CREATE TABLE IF NOT EXISTS model_edge (
+    id           TEXT PRIMARY KEY,
+    from_model   TEXT NOT NULL,          -- the model the edge points FROM
+    to_model     TEXT NOT NULL,          -- and the one it points TO
+    kind         TEXT NOT NULL,
+    note         TEXT NOT NULL DEFAULT '',
+    created_by   TEXT NOT NULL,
+    created_at   REAL NOT NULL,
+    UNIQUE (from_model, to_model, kind)
+);
+CREATE INDEX IF NOT EXISTS ix_edge_from ON model_edge (from_model);
+CREATE INDEX IF NOT EXISTS ix_edge_to   ON model_edge (to_model);
+
 -- is deliberately excluded from manifest_digest.
 CREATE TABLE IF NOT EXISTS model_version (
     id                 TEXT PRIMARY KEY,

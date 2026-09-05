@@ -47,7 +47,7 @@ from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
-from core.registry import ModelRegistry, RegistryError
+from core.registry import ModelComposition, ModelRegistry, RegistryError
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
@@ -66,7 +66,7 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
-                DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository,
+                DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository, ModelEdgeRepository,
                 FeatureRepository, FeatureViewRepository,
                 FeatureViewVersionRepository, FindingActionRepository,
                 FindingRepository,
@@ -191,6 +191,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # register knows which point is approved.
     warrants.parameters = parameters
 
+    # How one model stands to another. Separate from the registry because the
+    # registry is about a model in isolation and this is about the estate.
+    composition = ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                                   evidence)
+
     capabilities = CapabilityRegistry(CapabilityRepository(db), evidence)
     generations = GenerationLog(GenerationRepository(db), capabilities, evidence)
     # Which model this instance may ask. The default is the mock, which
@@ -286,7 +291,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "tiering": tiering, "warrants": warrants,
+                           "registry": registry, "composition": composition, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,

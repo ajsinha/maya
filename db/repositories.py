@@ -132,6 +132,10 @@ class AliasHistoryRepository(Repository):
     TABLE, JSON, ORDER = "alias_history", ("refinement", "variance"), "moved_at"
 
 
+class ModelEdgeRepository(Repository):
+    TABLE, ORDER = "model_edge", "created_at"
+
+
 class EvidenceCheckpointRepository(Repository):
     TABLE, ORDER = "evidence_checkpoint", "seq"
 
