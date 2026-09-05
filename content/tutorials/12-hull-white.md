@@ -159,6 +159,40 @@ curl -u svc/rates-calib:svc-pw -X POST localhost:5006/api/v1/parameters \
                       "converged":true,"iterations":18}}'
 ```
 
+### The as_of is not optional
+
+`as_of` on that parameter set is what **L-W11** requires, and the law is worth
+understanding rather than satisfying.
+
+A calibrated model reproduces a market rather than summarising a history, so the
+moment it was solved for is part of what the numbers *mean*. Two warrants naming
+this same set on different mornings are not the same run. Without the stamp,
+staleness is silent: the engine runs yesterday's fit against today's book,
+produces an entirely ordinary-looking number, and nothing in the record says
+which market it came from.
+
+```json
+{"law": "L-W11", "path": "parameters.source.as_of",
+ "detail": "this model's parameters are a calibration, and the warrant does not
+            say what they were calibrated as of, so nothing downstream can tell
+            a current calibration from a stale one"}
+```
+
+The law requires the age to be **statable**, not small — how old is too old
+depends on your cadence, and that is the policy gate's question. So the resolved
+warrant carries both:
+
+```json
+"parameters": {"source": {"binding": "parameter_set",
+                          "parameter_set": "ps-8817",
+                          "digest": "sha256:1c9a…",
+                          "as_of": 1743382800,
+                          "age_seconds": 3600}}
+```
+
+A fit warrant is exempt, because the calibration being solved for cannot state
+when it was solved.
+
 `provenance: "calibrated"` is not decoration. It says the numbers reproduce a
 market rather than summarise a history, and every downstream reader —
 monitoring, reporting, the validator's checklist — branches on it.

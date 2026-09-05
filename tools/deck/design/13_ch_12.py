@@ -121,3 +121,59 @@ for step in ["the parameter set that produced it",
          size=10.5, space_after=5)
 para(tf, "Not a claim about lineage. A chain of pins, each of which resolves.",
      size=11, color=INK, bold=True, space_before=8, space_after=0, line=1.24)
+
+# ------------------------------------- laws that differ by how P is inhabited
+sl, y = content("Warrants differ by kind of model — as refusals, not as documents",
+                "Warrants, and what comes back")
+data = [["Law", "Bites when", "What it refuses", "The failure it prevents"],
+        ["L-W11", "parameters.kind is calibration_set,\nand the verb is not fit",
+         "a run that does not say what the\nparameters were calibrated AS OF",
+         "yesterday's swaption fit priced against\ntoday's book, silently"],
+        ["L-W12", "parameters come from the artifact",
+         "a warrant with no artifact digest",
+         "'what ran is what was approved' becomes\nan assumption instead of a check"],
+        ["L-W13", "the runtime is generative",
+         "a base_model name with no build pinned",
+         "the weights are replaced by the host and\nevery field in the document stays the same"]]
+th = table(sl, data, ML, y, CW, col_w=[1.0, 3.0, 3.3, 4.334],
+           row_h=0.30, fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + th + 0.30, CW, 1.30,
+     "Each is keyed on a fact the platform DERIVES. ",
+     "The parameter kind, the source binding, the runtime — not a category "
+     "anybody attached to the model. L-W12 is the clearest case: it bites "
+     "hardest on a neural network and is deliberately not written in terms of "
+     "the class, because a PMML scorecard is T3 and carries exactly the same "
+     "exposure. Keying it on the trainability class would have missed that, "
+     "and the miss would have looked like coverage.")
+
+# ------------------------------------------------------------------ profiles
+sl, y = content("Profiles template the request, never the warrant",
+                "Warrants, and what comes back")
+steps(sl, ML, y, CW, [
+    ("01", "Facts, derived", "trainability_class, parameter_kind, runtime, "
+                             "artifact_format, tier, domain, environment"),
+    ("02", "Predicate selects", "a profile matches facts it does not get to "
+                                "declare, so it cannot disagree with them"),
+    ("03", "The fold", "left to right, rightmost wins per KEY, {} the identity, "
+                       "ordered by specificity"),
+    ("04", "Holes only", "a value the caller supplied is theirs; the derivation "
+                         "names which profile filled each one"),
+], h=1.70)
+
+data = [["What you want", "Where it goes", "Because"],
+        ["Save typing", "a profile", "it fills holes, and the grammar "
+                                     "re-validates the result anyway"],
+        ["Refuse something", "a law, or the warrant:resolve policy gate",
+         "a default is something you can drop; a refusal is not"],
+        ["Decide who may act", "a grant", "authority is per principal and per "
+                                          "use, never inherited"]]
+th = table(sl, data, ML, y + 1.98, CW, col_w=[2.6, 4.0, 5.034],
+           row_h=0.32, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + 1.98 + th + 0.26, CW, 1.05,
+     "Principal, declared use, environment, TTL and binding kind are refused "
+     "AT CREATION. ",
+     "Not defended at use — a check performed when the profile is written is "
+     "one nobody can forget to perform later, and the refusal points at the "
+     "policy gate that can hold an obligation. A template able to widen "
+     "authority is an authority mechanism wearing a convenience mechanism's "
+     "clothes.")

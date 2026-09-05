@@ -178,6 +178,7 @@ class UIRoutes(Routes):
             """
             if (r := login_required(request)) is not None:
                 return r
+            from core.execution.profiles import SELECTABLE_FACTS
             who, policies = self.principal(request), self.ctx["policies"]
             history = {gate: policies.history(gate) for gate in GATES}
             # The gate object the registry actually consults, so the page
@@ -187,6 +188,12 @@ class UIRoutes(Routes):
                 request, "policies.html",
                 policy=self.ctx["registry"].policy.describe(),
                 history=history,
+                # Profiles sit beside the gates because the pair is the whole
+                # answer to "how do warrants differ by kind of model": a profile
+                # fills a hole, a gate refuses. Showing them apart invites
+                # somebody to write an obligation as a default.
+                profiles=self.ctx["warrant_profiles"].list(),
+                profile_facts=sorted(SELECTABLE_FACTS),
                 drafts=[row for rows in history.values() for row in rows
                         if row["state"] == "draft"],
                 # Read off the evidence chain, not recomputed: the comparison

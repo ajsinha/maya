@@ -71,6 +71,9 @@ The codes a caller most often has to branch on:
 | `artifact_digest_mismatch` | 409 | The bytes do not hash to the digest you declared |
 | `artifact_not_stored` | 404 | Nothing is held under that address |
 | `artifact_too_large` | 413 | Over the 8 GiB ceiling |
+| `unknown_profile_fact` | 422 | A profile tried to select on something the platform does not derive |
+| `not_defaultable` | 422 | A profile tried to fill in something a caller could not have typed |
+| `authority_not_defaultable` | 403 | A profile reached for authority; write it as a policy gate instead |
 
 Segregation refusals are a family, and each names the act it is protecting:
 `self_review` on a document, `self_approval` on a parameter set or an overlay,
@@ -133,6 +136,19 @@ else holds, which is a different state rather than an error, and the warrant
 carries the difference as `held_by_maya`.
 
 Ceiling 8 GiB. A governance platform is not a model store of last resort.
+
+### Warrant profiles
+
+Request defaults, selected by facts the platform derives. A profile fills holes
+in a warrant request; it never overrides a caller and never widens authority.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/warrant-profile-vocabulary` | What a profile may select on, and what it may fill in |
+| `GET` | `/warrant-profiles` | The live profiles, least specific first — the order they fold |
+| `POST` | `/warrant-profiles` | Register a version. Immutable; a second `POST` under the same name is version 2 |
+| `POST` | `/warrant-profiles/{name}/retire` | Stop it applying. Warrants it already shaped stand |
+| `POST` | `/warrant-profiles/preview` | What would apply to this model, and which profile said so |
 
 ### Lifecycle
 
