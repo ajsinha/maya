@@ -426,7 +426,7 @@ class TestL20SchemasFormALattice:
     A new law, and the reason for it is a defect rather than an aesthetic. Four
     places asked *does this fit where that fitted* — `substitutable` for a
     version replacing another, a slot loop for `L-W10`, `refines` for contracts,
-    and nothing at all for a `feeds` edge — and four implementations of one
+    and nothing at all for a `input_to` edge — and four implementations of one
     relation eventually disagree, in the direction of permitting more, because
     that is the direction in which nobody files a bug.
 
@@ -840,10 +840,10 @@ class TestL9ReachesDerivedFeatures:
 # L-21 — Composition type-checks
 # ===========================================================================
 class TestL21FeedsIsCompositionRatherThanADrawing:
-    """*A `feeds` edge asserts that what one model produces arrives where
+    """*A `input_to` edge asserts that what one model produces arrives where
     another reads it, and is refused unless the schemas compose.*
 
-    Recorded and never checked, `feeds` was a drawing: the blast radius followed
+    Recorded and never checked, `input_to` was a drawing: the blast radius followed
     edges nobody had validated, a composite had no derived schema, and `L-14`
     had nothing to quantify over. Checked, it is composition in the sense the
     paper means — and the check is the platform's one order, not a fifth
@@ -874,8 +874,8 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
     def test_an_edge_that_composes_is_recorded(self, registry, graph):
         upstream = self._model(registry, "a.pd", writes=self.OUT)
         downstream = self._model(registry, "b.var", reads=self.OUT)
-        edge = graph.relate(upstream, downstream, "feeds", actor="admin")
-        assert edge["kind"] == "feeds"
+        edge = graph.relate(upstream, downstream, "input_to", actor="admin")
+        assert edge["kind"] == "input_to"
 
     def test_an_edge_that_does_not_compose_is_refused(self, registry, graph):
         """The wire to nowhere: the target reads something the source does not
@@ -885,7 +885,7 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
         downstream = self._model(
             registry, "b.var", reads=[{"name": "lgd", "dtype": "numeric"}])
         with pytest.raises(RegistryError) as exc:
-            graph.relate(upstream, downstream, "feeds", actor="admin")
+            graph.relate(upstream, downstream, "input_to", actor="admin")
         assert "does not compose" in str(exc.value)
         assert "lgd" in str(exc.value)
 
@@ -894,7 +894,7 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
         upstream = self._model(registry, "a.pd", writes=self.OUT + [
             {"name": "score", "dtype": "numeric"}])
         downstream = self._model(registry, "b.var", reads=self.OUT)
-        assert graph.relate(upstream, downstream, "feeds", actor="admin")
+        assert graph.relate(upstream, downstream, "input_to", actor="admin")
 
     def test_a_narrowed_output_is_refused_like_a_narrowed_input(self,
                                                                registry, graph):
@@ -904,7 +904,7 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
             {"name": "pd_12m", "dtype": "integer"}])
         downstream = self._model(registry, "b.var", reads=self.OUT)
         with pytest.raises(RegistryError):
-            graph.relate(upstream, downstream, "feeds", actor="admin")
+            graph.relate(upstream, downstream, "input_to", actor="admin")
 
     def test_commentary_edges_are_not_type_checked(self, registry, graph):
         """`challenger_of` and `benchmark_for` record how somebody thinks about
@@ -923,7 +923,7 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
                           owner="person/admin", legal_entity="LE-1",
                           purpose="p", actor="admin")
         downstream = self._model(registry, "b.var", reads=self.OUT)
-        assert graph.relate(urn, downstream, "feeds", actor="admin")
+        assert graph.relate(urn, downstream, "input_to", actor="admin")
 
     def test_the_composite_schema_is_derived_rather_than_declared(
             self, registry, graph):
@@ -933,7 +933,7 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
         writes = [{"name": "cva", "dtype": "numeric"}]
         upstream = self._model(registry, "a.pd", reads=reads, writes=self.OUT)
         downstream = self._model(registry, "b.var", reads=self.OUT, writes=writes)
-        graph.relate(upstream, downstream, "feeds", actor="admin")
+        graph.relate(upstream, downstream, "input_to", actor="admin")
         composite = graph.composite_schema(upstream, downstream)
         assert composite["input_schema"] == reads
         assert composite["output_schema"] == writes

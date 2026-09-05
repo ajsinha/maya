@@ -7,7 +7,7 @@ The order underneath everything that asks *does this fit where that fitted*.
 
 Four places in this platform ask that question, and until now each answered it
 its own way: `substitutable` for a version replacing another, a slot loop for
-`L-W10`, `refines` for operating contracts, and nothing at all for a `feeds`
+`L-W10`, `refines` for operating contracts, and nothing at all for a `input_to`
 edge. Four implementations of one relation will eventually disagree, and they
 will disagree in the direction of permitting more — because that is the
 direction in which nobody files a bug.

@@ -107,14 +107,14 @@ class ModelRoutes(Routes):
             """The relations one model may have to another, and what each means."""
             self.principal(request)
             from core.registry import ModelComposition
-            return {"relations": ModelComposition.describe()}
+            return ModelComposition.describe()
 
         @self.app.post(f"{self.api}/model-relations", status_code=201,
                        tags=["models"])
         def relate(request: Request, body: RelateIn):
             """Record that one model stands to another in this way.
 
-            Two relations do different work. `feeds` propagates -- change the
+            Two relations do different work. `input_to` propagates -- change the
             source and this model's answer changes -- and `derives_from` does
             not: a model built from another has its own versions and its own
             approvals. Conflating them makes a challenger look like a

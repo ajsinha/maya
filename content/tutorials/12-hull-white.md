@@ -244,16 +244,16 @@ and looks at the eleven days it was breached.
 
 ---
 
-## 6 · What feeds what
+## 6 · What reads what
 
-An XVA engine consumes this model, and that relationship is a **`feeds`** edge —
+An XVA engine consumes this model, and that relationship is a **`input_to`** edge —
 which propagates.
 
 ```bash
 curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/model-relations \
   -H 'Content-Type: application/json' \
   -d '{"from_urn":"maya://model/markets.rates.hullwhite",
-       "to_urn":"maya://model/xva.cva","kind":"feeds"}'
+       "to_urn":"maya://model/xva.cva","kind":"input_to"}'
 
 curl -u d.raman:dev-pw -X POST localhost:5006/api/v1/blast-radius \
   -H 'Content-Type: application/json' \

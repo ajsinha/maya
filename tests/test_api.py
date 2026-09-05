@@ -444,7 +444,7 @@ class TestModelCompositionOverTheApi:
         body = registered.get("/api/v1/model-relations",
                               auth=people["d.raman"]).json()["relations"]
         kinds = {r["kind"]: r for r in body}
-        assert kinds["feeds"]["propagates"] is True
+        assert kinds["input_to"]["propagates"] is True
         assert kinds["challenger_of"]["propagates"] is False
         assert all(r["means"] for r in body)
 
@@ -453,7 +453,7 @@ class TestModelCompositionOverTheApi:
         curve = self._second(registered, people)
         r = registered.post("/api/v1/model-relations", auth=people["j.okafor"],
                             json={"from_urn": curve, "to_urn": URN,
-                                  "kind": "feeds", "note": "discounting"})
+                                  "kind": "input_to", "note": "discounting"})
         assert r.status_code == 201, r.text
         edges = registered.get(f"/api/v1/models/{NAME}/relations",
                                auth=people["d.raman"]).json()
@@ -463,7 +463,7 @@ class TestModelCompositionOverTheApi:
                                                           people):
         curve = self._second(registered, people)
         registered.post("/api/v1/model-relations", auth=people["j.okafor"],
-                        json={"from_urn": curve, "to_urn": URN, "kind": "feeds"})
+                        json={"from_urn": curve, "to_urn": URN, "kind": "input_to"})
         out = registered.post("/api/v1/blast-radius", auth=people["d.raman"],
                               json={"urn": curve}).json()
         assert [r["urn"] for r in out["reaches"]] == [URN]
@@ -477,7 +477,7 @@ class TestModelCompositionOverTheApi:
         for target in (URN, other):
             registered.post("/api/v1/model-relations", auth=people["j.okafor"],
                             json={"from_urn": curve, "to_urn": target,
-                                  "kind": "feeds"})
+                                  "kind": "input_to"})
         out = registered.post("/api/v1/shared-dependencies", auth=people["d.raman"],
                               json={"urns": [URN, other]}).json()
         assert [s["urn"] for s in out["shared"]] == [curve]
@@ -486,7 +486,7 @@ class TestModelCompositionOverTheApi:
     def test_a_cycle_is_refused_over_http_too(self, registered, people):
         curve = self._second(registered, people)
         registered.post("/api/v1/model-relations", auth=people["j.okafor"],
-                        json={"from_urn": curve, "to_urn": URN, "kind": "feeds"})
+                        json={"from_urn": curve, "to_urn": URN, "kind": "input_to"})
         r = registered.post("/api/v1/model-relations", auth=people["j.okafor"],
-                            json={"from_urn": URN, "to_urn": curve, "kind": "feeds"})
+                            json={"from_urn": URN, "to_urn": curve, "kind": "input_to"})
         assert r.status_code == 409 and "cycle" in r.text

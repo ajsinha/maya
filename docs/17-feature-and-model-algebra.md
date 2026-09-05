@@ -21,12 +21,12 @@ questions that ought to be one comparison are bespoke checks written twice.
 
 **Models have a formalism in the paper and a data structure in the code.**
 `f : P ⊗ X → D(Y)` is the definition; what the register holds is a URN, a kernel spec
-and a DAG of typed edges. `feeds` is drawn as composition and is not checked as
+and a DAG of typed edges. `input_to` is drawn as composition and is not checked as
 composition.
 
 The cost is not elegance. It is that the same question — *does this thing fit where
 that thing was* — is answered by `substitutable()` for schemas, by a hand-written
-slot check for `L-W10`, by `refines()` for contracts, and not at all for `feeds`.
+slot check for `L-W10`, by `refines()` for contracts, and not at all for `input_to`.
 Four implementations of one order relation will eventually disagree, and they will
 disagree in the direction of permitting more.
 
@@ -41,11 +41,11 @@ disagree in the direction of permitting more.
 | Featureset | finite map `slot ↦ type` | `compose` (fold) + `add`/`drop`/`override` | **L-19** monoid: associative, `{}` identity |
 | Featureset version | `slot ↦ (feature, view version)` | fill, seal, roll forward | binding pins a Delta version |
 | Model kernel | `parameter_kind`, `fit_procedure`, input/output `Schema` | create version | **L-12** variance at alias moves and `L-W10` at warrant issuance |
-| Model relation | typed edge in a DAG | relate, unrelate | acyclicity; `feeds` propagates, `derives_from` does not |
+| Model relation | typed edge in a DAG | relate, unrelate | acyclicity; `input_to` propagates, `derives_from` does not |
 
 Two things to notice. The featureset carrier is a **dict with no order on it**, so
 "is A a refinement of B" cannot be asked. And the model relation carries **no type
-obligation at all** — `feeds` is recorded, never checked.
+obligation at all** — `input_to` is recorded, never checked.
 
 ---
 
@@ -80,7 +80,7 @@ A derived feature is a term over a small expression language. Its ingest clock i
 the max-semiring — structurally identical to the provenance pushforward implemented
 for evidence in `L-9`. Two copies of one idea, one of which has laws.
 
-**G-5 — `feeds` is a drawing, not a composition.**
+**G-5 — `input_to` is a drawing, not a composition.**
 If B consumes A's output, the register records an edge and checks nothing. It should
 be refused unless A's output schema satisfies B's input schema — which is
 `substitutable()`, already written. Without that, the blast radius is a reachability
@@ -247,9 +247,9 @@ is a homomorphism, and homomorphisms do not have exceptions.
 
 ## 5. The proposal — models
 
-### E. Make `feeds` a checked composition
+### E. Make `input_to` a checked composition
 
-If `A feeds B`, refuse the edge unless `output(A) ⊑ input(B)` under §4A's order. The
+If `A` is `input_to` `B`, refuse the edge unless `output(A) ⊑ input(B)` under §4A's order. The
 implementation is `substitutable()`, already written and already tested.
 
 Consequences:
@@ -292,7 +292,7 @@ Beneath it, two diagrams the platform has the data for and does not draw:
 
 - **The featureset fold** — parents → operations → resolved, so a reader can see
   where each slot came from and which parent lost.
-- **A string diagram of composition** — boxes for models, wires for schemas, `feeds`
+- **A string diagram of composition** — boxes for models, wires for schemas, `input_to`
   edges as composition and shared inputs as tensor. The research deck draws these by
   hand; the register could draw them from the edges, and a wire that does not type-check
   would be visibly broken rather than silently recorded.
@@ -393,7 +393,7 @@ Each step is independently useful and each ends with a law that runs.
 | 2 | **Operation commutation** for independent edits | the monoid action's laws | Cheap, and it either confirms a property people rely on or finds a real defect |
 | 3 | **`AsOf` as a named operator** with its four properties | **L-10** strengthened from "static rejection" to a monotonicity law | This is the reproducibility guarantee; today it is believed |
 | 4 | **Provenance polynomial for derived features** | **L-9** extended from evidence to features | The machinery exists; this is mostly plumbing and deletion |
-| 5 | **Typed `feeds`** + composite schema derivation | a new `L-20`: composition type-checks | Unlocks composite warrants and gives `L-14` something to quantify over |
+| 5 | **Typed `input_to`** + composite schema derivation | a new `L-20`: composition type-checks | Unlocks composite warrants and gives `L-14` something to quantify over |
 | 6 | **The model as its type**, on the page | — | The cheapest change here and the one a user notices first |
 | 7 | **Attachment subjects** widened | — | Prerequisite for 8 |
 | 8 | **`training_record`** compiled per parameter set | — | Fills the gap the daily-calibration case exposes |

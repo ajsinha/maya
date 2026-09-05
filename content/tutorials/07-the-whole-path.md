@@ -310,10 +310,17 @@ curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/model-relations \
 | Kind | Means | Propagates |
 |---|---|---|
 | `derives_from` | built from it — a variant, a recalibration for another book | **no** |
-| `feeds` | its output is an input here | **yes** |
+| `input_to` | this model's **output** is read as an input by that one | **yes** |
 | `challenger_of` | built to argue with it | no |
 | `benchmark_for` | a reference point to judge it against | no |
 | `calibrated_by` | its parameters are solved by that | yes |
+
+> **`input_to` is not a data feed.** It was once called `feeds`, and in a bank
+> that reads as market data or a nightly file. MAYA neither consumes nor produces
+> any such thing: it never moves data and never runs a model. The edge is a
+> statement about two entries in the register — *this model's output is read as
+> an input by that one* — and the wire it describes is carried by whatever engine
+> runs them. `feeds` is still accepted and stored as `input_to`.
 
 `derives_from` does not propagate, and that is deliberate. The UK model has its
 own versions and its own approvals; the edge records where it came from. A
@@ -326,7 +333,7 @@ Now a VaR model that consumes both:
 curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/model-relations \
   -H 'Content-Type: application/json' \
   -d '{"from_urn":"maya://model/credit.pd.smallbiz",
-       "to_urn":"maya://model/risk.credit_var","kind":"feeds"}'
+       "to_urn":"maya://model/risk.credit_var","kind":"input_to"}'
 ```
 
 ### The two questions this makes answerable
@@ -602,7 +609,7 @@ will meet them.
 | `quorum_required` | one signature on a Tier 1/2 version | the version is what actually runs |
 | `refines` / variance | an alias move that narrows the contract | consumers built against the old guarantee |
 | `principal_not_self` | resolving a warrant in another's name | a credential names who is acting |
-| would close a cycle | A feeds B feeds A | a model whose output is its own input has no value |
+| would close a cycle | A is `input_to` B is `input_to` A | a model whose output is its own input has no value |
 
 ---
 
@@ -617,7 +624,7 @@ are separate, and why:
 - **A parameter set is not a model version.** Refitting produces a new *point*
   of `P`, not a new kernel — so "did this model change in March?" has one answer
   instead of two.
-- **`derives_from` is not `feeds`.** Where a model came from and what breaks when
+- **`derives_from` is not `input_to`.** Where a model came from and what breaks when
   it changes are different questions, and answering them with one edge makes
   both answers wrong.
 - **Every value carries two clocks.** Everything else in this walkthrough rests

@@ -44,18 +44,18 @@ def estate(registry):
 class TestRecordingHowModelsRelate:
     def test_a_model_can_feed_another(self, composition, estate):
         edge = composition.relate(estate["rates.usd_curve"],
-                                  estate["markets.swap_pricer"], "feeds",
+                                  estate["markets.swap_pricer"], "input_to",
                                   actor="person/j.okafor")
-        assert edge["kind"] == "feeds" and edge["means"]
+        assert edge["kind"] == "input_to" and edge["means"]
 
     def test_a_model_cannot_relate_to_itself(self, composition, estate):
-        with pytest.raises(RegistryError, match="cannot feeds itself"):
-            composition.relate(estate["risk.var"], estate["risk.var"], "feeds")
+        with pytest.raises(RegistryError, match="cannot stand in the 'input_to' relation to itself"):
+            composition.relate(estate["risk.var"], estate["risk.var"], "input_to")
 
     def test_the_same_edge_is_not_recorded_twice(self, composition, estate):
-        composition.relate(estate["credit.pd"], estate["risk.var"], "feeds")
-        with pytest.raises(RegistryError, match="already feeds"):
-            composition.relate(estate["credit.pd"], estate["risk.var"], "feeds")
+        composition.relate(estate["credit.pd"], estate["risk.var"], "input_to")
+        with pytest.raises(RegistryError, match="already recorded as"):
+            composition.relate(estate["credit.pd"], estate["risk.var"], "input_to")
 
     def test_an_unknown_relation_is_refused_by_name(self, composition, estate):
         with pytest.raises(RegistryError, match="not a relation between models"):
@@ -66,24 +66,24 @@ class TestRecordingHowModelsRelate:
         """A model whose output is its own input has no defined value, and a
         blast radius over it does not terminate."""
         composition.relate(estate["rates.usd_curve"], estate["markets.swap_pricer"],
-                           "feeds")
-        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "feeds")
+                           "input_to")
+        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "input_to")
         with pytest.raises(RegistryError, match="would close a cycle"):
-            composition.relate(estate["risk.var"], estate["rates.usd_curve"], "feeds")
+            composition.relate(estate["risk.var"], estate["rates.usd_curve"], "input_to")
 
     def test_removing_an_edge_needs_a_reason(self, composition, estate):
-        composition.relate(estate["credit.pd"], estate["risk.var"], "feeds")
+        composition.relate(estate["credit.pd"], estate["risk.var"], "input_to")
         with pytest.raises(RegistryError, match="needs a reason"):
-            composition.unrelate(estate["credit.pd"], estate["risk.var"], "feeds", "")
+            composition.unrelate(estate["credit.pd"], estate["risk.var"], "input_to", "")
 
 
 class TestBlastRadius:
     def _stack(self, composition, estate):
         composition.relate(estate["rates.usd_curve"], estate["markets.swap_pricer"],
-                           "feeds")
+                           "input_to")
         composition.relate(estate["rates.usd_curve"], estate["markets.swaption"],
-                           "feeds")
-        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "feeds")
+                           "input_to")
+        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "input_to")
         composition.relate(estate["credit.pd_challenger"], estate["credit.pd"],
                            "challenger_of")
 
@@ -129,9 +129,9 @@ class TestSharedDependency:
     def test_two_models_on_one_curve_are_not_independent(self, composition,
                                                           estate):
         composition.relate(estate["rates.usd_curve"], estate["markets.swap_pricer"],
-                           "feeds")
+                           "input_to")
         composition.relate(estate["rates.usd_curve"], estate["markets.swaption"],
-                           "feeds")
+                           "input_to")
         out = composition.shared_dependencies(
             [estate["markets.swap_pricer"], estate["markets.swaption"]])
         assert len(out["shared"]) == 1
@@ -146,8 +146,8 @@ class TestSharedDependency:
         registry.register(second, "curve b", "rates", "rates", "person/o",
                           "LE-US-01", "p", actor="person/o")
         composition.relate(estate["rates.usd_curve"], estate["markets.swap_pricer"],
-                           "feeds")
-        composition.relate(second, estate["markets.swaption"], "feeds")
+                           "input_to")
+        composition.relate(second, estate["markets.swaption"], "input_to")
         out = composition.shared_dependencies(
             [estate["markets.swap_pricer"], estate["markets.swaption"]])
         assert out["shared"] == []
@@ -157,10 +157,10 @@ class TestSharedDependency:
         """Shared inputs are rarely adjacent. A curve under a pricer under a VaR
         model is still the thing both rest on."""
         composition.relate(estate["rates.usd_curve"], estate["markets.swap_pricer"],
-                           "feeds")
-        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "feeds")
+                           "input_to")
+        composition.relate(estate["markets.swap_pricer"], estate["risk.var"], "input_to")
         composition.relate(estate["rates.usd_curve"], estate["markets.swaption"],
-                           "feeds")
+                           "input_to")
         shared = composition.shared_dependencies(
             [estate["risk.var"], estate["markets.swaption"]])["shared"]
         assert [s["urn"] for s in shared] == [estate["rates.usd_curve"]]
@@ -180,8 +180,44 @@ class TestInheritanceIsNotDependency:
 
     def test_both_directions_are_readable_from_either_end(self, composition,
                                                           estate):
-        composition.relate(estate["rates.usd_curve"], estate["risk.var"], "feeds")
+        composition.relate(estate["rates.usd_curve"], estate["risk.var"], "input_to")
         assert composition.edges_of(estate["risk.var"])["upstream"][0]["urn"] \
             == estate["rates.usd_curve"]
         assert composition.edges_of(estate["rates.usd_curve"])["downstream"][0]["urn"] \
             == estate["risk.var"]
+
+
+class TestTheRelationIsNamedForWhatItIs:
+    """`feeds` was a bad name in a bank.
+
+    A *feed* here means a data feed — market data, a reference file, a nightly
+    drop — so `A feeds B` read as though MAYA consumed or produced one. It does
+    neither: it never moves data and never runs a model. The edge is a statement
+    about two entries in the register, and the wire it describes is carried by
+    somebody else's engine.
+    """
+
+    def test_the_published_vocabulary_offers_one_word_for_the_relation(self):
+        from core.registry.composition import KINDS
+        assert "input_to" in KINDS
+        assert "feeds" not in KINDS, (
+            "a vocabulary offering two words for one relation invites somebody "
+            "to think they mean different things")
+
+    def test_the_old_spelling_is_still_accepted_and_stored_as_the_new_one(self):
+        """An existing caller and an existing row both keep working."""
+        from core.registry.composition import canonical
+        assert canonical("feeds") == "input_to"
+        assert canonical("input_to") == "input_to"
+        assert canonical("derives_from") == "derives_from"
+
+    def test_it_is_recorded_under_the_new_name(self, composition, estate):
+        edge = composition.relate(estate["rates.usd_curve"],
+                                  estate["markets.swap_pricer"], "feeds",
+                                  actor="person/o")
+        assert edge["kind"] == "input_to"
+
+    def test_the_meaning_says_maya_does_not_move_the_data(self):
+        from core.registry.composition import KIND_MEANING
+        assert "neither moves the data nor runs either end" in \
+            KIND_MEANING["input_to"]
