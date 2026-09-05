@@ -1,7 +1,7 @@
 # Worked warrants
 
-Ten warrants spanning the model families a large bank actually runs. Every one
-validates against the same grammar, with no special cases and no exemptions —
+Thirteen warrants spanning the model families a large bank actually runs. Every
+one validates against the same grammar, with no special cases and no exemptions —
 which is the test of whether the grammar's four axes were the right ones.
 
 ```bash
@@ -40,6 +40,14 @@ curl -u a.mehta:pw -X POST localhost:5006/api/v1/grammar/validate \
 
 Nothing there is a special case. Each row is a different point in one product
 space.
+
+`09` is worth a second look now that the `rules` runtime exists. Its parameter
+axis is `rule_set` (T8) and its runtime is `spreadsheet` — a rule set the bank
+holds in a workbook MAYA governs and does not execute. The same parameter axis
+with runtime `rules` is the case MAYA *can* execute: the rule set is held in the
+register as a structured document, checked before it is stored, and run at the
+point of `P` a second person approved. Both are T8; the difference is who holds
+the executing artefact, which is exactly what the runtime axis is for.
 
 ## The pair worth reading first
 

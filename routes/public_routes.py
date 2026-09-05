@@ -116,6 +116,13 @@ class PublicRoutes(Routes):
             # nothing to do. Its state is informational — a stopped scheduler is
             # not a reason to take the node out of service.
             scheduler = self.ctx["scheduler"].health()
-            return JSONResponse({"status": "ready" if chain["valid"] else "degraded",
-                                 "evidence_chain": chain, "scheduler": scheduler},
-                                status_code=200 if chain["valid"] else 503)
+            # The anchor comparison is cheap — one row read per anchor — and it
+            # is the only one here that a rewritten chain does not pass. The
+            # incremental walk above compares the chain against itself, which
+            # is exactly what an attacker with database access arranges.
+            anchors = self.ctx["evidence"].verify_against_anchors()
+            healthy = chain["valid"] and bool(anchors["agrees"])
+            return JSONResponse({"status": "ready" if healthy else "degraded",
+                                 "evidence_chain": chain, "anchors": anchors,
+                                 "scheduler": scheduler},
+                                status_code=200 if healthy else 503)

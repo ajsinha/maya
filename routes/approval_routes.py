@@ -71,7 +71,13 @@ class ApprovalRoutes(Routes):
             The same person may not sign twice under two hats: a quorum is a
             number of people, not a number of roles. One decline closes it.
             """
-            who = self.authorise(request, "version:sign")
+            # The subject is the VERSION, because that is what the evidence
+            # chain recorded `version_created` against — and without passing it
+            # the segregation check has no node to look at and permits
+            # everything, which is how this path came to be unguarded.
+            approval = self.guard(lambda: approvals.require(approval_id))
+            who = self.authorise(request, "version:sign",
+                                 subject_id=approval["model_version_id"])
             return self.guard(lambda: approvals.sign(
                 approval_id, who, body.role, body.decision, body.statement))
 

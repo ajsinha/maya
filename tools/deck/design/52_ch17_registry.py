@@ -35,7 +35,7 @@ x = ML + CW * 0.60
 tf = txt(sl, x, y, CW * 0.40, 3.6)
 para(tf, "Why it is shaped this way", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=9)
 bullets(tf, [("Parameters are an object, not a blob", "P is first-class, so “no parameters” and “inaccessible parameters” are expressible states rather than nulls"),
-             ("Determinism is stored and tested", "f commutes with copy — which is exactly the reproducibility replay in §8.2"),
+             ("Determinism is stored and tested", "f commutes with copy, which is what makes a replay of last March comparable at all"),
              ("No framework, no I/O", "Fully unit-testable; the laws run in milliseconds over generated inputs"),
              ("Frozen dataclasses", "Immutability at the type level mirrors immutability at the storage level")],
         size=11.5, gap=8, indent_size=10)
@@ -92,42 +92,37 @@ data = [["Operation", "Question it answers", "Used at"],
         ["Quotient  /", "Given the target and what we have, what must the missing piece guarantee?", "Turns a validation gap into a specification"]]
 table(sl, data, ML, y + h + 0.72, CW, col_w=[2.0, 4.6, 5.0], row_h=0.34, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
 
-sl, y = content("The fibre registry, and why it fails at startup", "Core domain · extensibility")
+sl, y = content("Every class is complete, or the platform does not start",
+                "Core domain · the fibration")
 h = code(sl, ML, y, CW * 0.58, [
- "class FibreRegistry:",
- "    def __init__(self, plugins: PluginLoader):",
- "        for ep in plugins.entry_points(\"maya.model_class\"):",
- "            f = ep.load()()",
- "            self._validate_total(f)      # law L-15",
- "            self._fibres[f.key] = f",
+ "FACETS = (\"evidence\", \"lifecycle\", \"metrics\", \"templates\")",
+ "BASE   = (\"T0\", \"T1\", …, \"T8\")        # the nine classes",
  "",
- "    def _validate_total(self, f) -> None:",
- "        missing = [n for n in (\"evidence_schema\", \"lifecycle\",",
- "                   \"default_monitors\", \"document_templates\",",
- "                   \"tiering_hints\", \"contract_template\")",
- "                   if not getattr(f, n)()]",
- "        if missing:",
- "            raise FibreIncomplete(f.key, missing)  # refuse to boot",
-], fs=9.5, title="STARTUP TOTALITY CHECK")
+ "def register(self, fibre):              # the extension point",
+ "    if missing := fibre.missing_facets():",
+ "        raise FibreError(\"partial_fibre\", …)",
+ "",
+ "def verify(self):                       # law L-15, at start-up",
+ "    if gaps := self.totality():         # no fibre, or a partial one",
+ "        raise FibreError(\"fibration_incomplete\", …)",
+], fs=9.5, title="core/fibres/registry.py")
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.4)
-para(tf, "Nine extension points", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
-para(tf, "model class · regime · semiring · artifact format · validation test · metric · document template · warrant flavour · connector",
-     size=11, color=SLATE, space_after=12, line=1.3)
-para(tf, "Why refuse to boot?", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
-para(tf, "A half-registered fibre would otherwise surface as a confusing runtime error weeks later, in the one place the platform has to be trustworthy. Failing loudly at startup is the cheaper failure.",
-     size=11, color=SLATE, space_after=12, line=1.3)
-runs(tf, [("Not built. ", CRIMSON, True),
-          ("A model class is a string on the register today; there is no plugin loader and no "
-           "totality check, so L-15 is stated and not enforced. The extensibility that ", INK, False),
-          ("is", INK, True),
-          (" built is the warrant grammar's: a new model technology is a new value in one "
-           "vocabulary, not a new document type.", INK, False)],
+para(tf, "A fibre is what a class needs", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
+para(tf, "Four facets: what evidence it must carry, which lifecycle it follows, what can be monitored on it, what compiles for it. A new kind of model supplies a fibre and nothing else changes — no migration, no new table, no new screen.",
+     size=11, color=SLATE, space_after=11, line=1.3)
+para(tf, "The base is the trainability class", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
+para(tf, "Not the model class, which is free text: a totality gate over free text is defeated by typing a word nobody registered. T0–T8 is derived from how P is inhabited, so the index cannot be typed wrong.",
+     size=11, color=SLATE, space_after=11, line=1.3)
+runs(tf, [("The fibre is not inert. ", CRIMSON, True),
+          ("A performance monitor on a T0 pricer, or a calibration monitor on a T5 assembly, is refused ", INK, False),
+          ("kind_not_answerable", INK, False, False, MONO),
+          (" — the class decides what may be asked of it.", INK, False)],
      size=10.5, space_after=0, line=1.26)
 
 sl, y = content("Version creation — the full path", "Core domain · registry")
 steps(sl, ML, y, CW, [
-    ("1", "Validate", "Manifest checked against the fibre's JSON Schema"),
+    ("1", "Validate", "Kernel spec parsed, class derived, unexplained parameters refused"),
     ("2", "Quarantine", "Artifact streamed to a no-execute, content-addressed store"),
     ("3", "Sandbox", "Malware, pickle opcodes, SCA, secrets, licence; then graph parse"),
     ("4", "Policy", "Format policy for the target environment; reject with an exception path"),
@@ -163,7 +158,7 @@ h = code(sl, ML, y, CW, [
 tf = txt(sl, ML, y + h + 0.30, CW, 1.1)
 runs(tf, [("Three things are happening. ", CRIMSON, True),
           ("Substitutability is a ", INK, False), ("proof", INK, True),
-          (" — consumers cannot be broken and are not redeployed. Pre-warming before invalidating is the fix for the cache "
-           "stampede found in adversarial review, so a hot alias is never served from an empty cache. And the automatic "
-           "seven-day post-move comparison is SS1/23's parallel outcomes analysis, performed as infrastructure rather than as a project.",
+          (" — consumers cannot be broken and are not redeployed. Pre-warming before invalidating means a hot alias is "
+           "never served from an empty cache. And the automatic seven-day post-move comparison is SS1/23's parallel "
+           "outcomes analysis, performed as infrastructure rather than as a project.",
            INK, False)], size=12, first=True, space_after=0, line=1.30)

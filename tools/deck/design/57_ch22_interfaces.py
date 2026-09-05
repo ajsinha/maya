@@ -2,7 +2,7 @@
 divider("22", "Interfaces and the SDK",
         "One API, consumed identically by the interface, the SDK and every engine.",
         ["API conventions",
-         "Resource surface",
+         "Identity, and what it decides",
          "Front-end design",
          "SDK and events"])
 
@@ -18,25 +18,13 @@ data = [["Concern", "Decision", "Why"],
         ["Time travel", "?as_of= on inventory reads", "Examiner questions about a past date"],
         ["Events", "GET /events (SSE)", "Task inbox, breaches, job progress without polling"],
         ["Deprecation", "Two minor versions of overlap; Sunset headers", "Clients are never surprised"]]
-table(sl, data, ML, y, CW, col_w=[1.9, 4.6, 5.1], row_h=0.325, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
-
-sl, y = content("Resource surface", "Interfaces · endpoints")
-data = [["Group", "Endpoints"],
-        ["Models", "/models · /models/{urn} · /uses · /assumptions · /limitations · /relationships · /blast-radius · /scope-determinations"],
-        ["Versions", "/models/{urn}/versions · /versions/{id} · /compare · /contract · /reproducibility"],
-        ["Aliases", "/models/{urn}/environments/{env}/aliases/{name} · /history"],
-        ["Risk", "/models/{urn}/assessments · /assessments/{id} · /tiering/rulesets · /tiering/simulate"],
-        ["Features", "/features · /feature-views · /feature-views/{id}/versions · /contracts · /training-sets"],
-        ["Runs", "/runs · /runs/{id}/metrics · /artifacts · /runs/{id}/replay"],
-        ["Validation", "/validations · /validations/{id}/tests · /findings · /findings/{id}/remediation"],
-        ["Overlays", "/overlays · /overlays/{id}/measurements"],
-        ["Monitoring", "/monitors · /observations · /breaches · /health/{urn}"],
-        ["Warrants", "/warrants · /v1/resolve (warrant service) · /warrants/{id}/revoke · /telemetry"],
-        ["Documents", "/documents/compile · /documents/{id} · /documents/{id}/render · /export-packs"],
-        ["Policy", "/policies · /policies/evaluate · /obligations"],
-        ["Assistance", "/ai/capabilities · /ai/{capability}/draft · /ai/generations/{id}/attest"],
-        ["Admin", "/model-classes · /lifecycles · /templates · /regimes · /connectors · /users"]]
-table(sl, data, ML, y, CW, col_w=[1.8, 9.8], row_h=0.275, fs=10, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
+th = table(sl, data, ML, y, CW, col_w=[1.9, 4.6, 5.1], row_h=0.325, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, ML, y + th + 0.22, CW, 0.60)
+runs(tf, [("One surface, fourteen resource groups. ", CRIMSON, True),
+          ("Models · versions · aliases · risk · features · runs · validation · overlays · monitoring · "
+           "warrants · documents · policy · assistance · admin — all behind /api/v1, and the interface "
+           "reaches them by the same route anybody else does.", INK, False)],
+     size=11, first=True, space_after=0, line=1.24)
 
 sl, y = content("Single sign-on — and the part of it that is not mechanical",
                 "Interfaces · identity")
@@ -52,14 +40,12 @@ h = code(sl, ML, y + 0.40, CW * 0.52, [
  "# and the algorithm is DECIDED, never read:",
  "if header[\"alg\"] != \"RS256\": raise unsupported",
 ], fs=9, title="core/authz/jws.py — standard library only")
-tf = txt(sl, ML, y + 0.40 + h + 0.24, CW * 0.52, 2.0)
-bullets(tf, [("CONSTRUCT the padded block, never parse what you recover",
-              "that is the difference between correct PKCS#1 v1.5 and the Bleichenbacher forgery, which works precisely against verifiers that parse"),
-             ("Decide the algorithm; do not read alg from the token",
-              "the other famous way a JWT is accepted with no signature at all"),
-             ("No crypto dependency, by design",
-              "a governance system that cannot be deployed air-gapped is one somebody works around — the same reason every front-end asset is vendored")],
-        size=10.5, gap=7, indent_size=9.5)
+tf = txt(sl, ML, y + 0.40 + h + 0.24, CW * 0.52, 1.5)
+runs(tf, [("Standard library only, so MAYA deploys air-gapped. ", CRIMSON, True),
+          ("The padded block is CONSTRUCTED and compared rather than parsed, and the algorithm is "
+           "decided rather than read from the token — the two ways signature verification is "
+           "classically defeated.", INK, False)],
+     size=10.5, first=True, space_after=0, line=1.26)
 x = ML + CW * 0.56
 tf = txt(sl, x, y, CW * 0.44, 0.35)
 para(tf, "The half that is not", size=12.5, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
@@ -97,9 +83,9 @@ tf = txt(sl, ML, y, CW * 0.47, 0.35)
 para(tf, "maya-web — a separate process", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Concern", "Design"],
         ["Auth", "OIDC + PKCE; access token in memory only; refresh via __Host- SameSite=Strict cookie"],
-        ["Logic", "P4′ — the client renders decisions, never derives them"],
+        ["Logic", "The client renders decisions; it never derives them"],
         ["Client", "Generated from OpenAPI; pinned by openapi.lock.json; drift fails the build"],
-        ["Forms", "Generated in-browser from the fibre's JSON Schema — a new model class needs no front-end release"],
+        ["Forms", "Generated in-browser from the declared schema — a new kind of model needs no front-end release"],
         ["Documents", "Fetched as server-rendered HTML/PDF, never assembled client-side"]]
 table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[1.3, 4.4], row_h=0.44, fs=10, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 x = ML + CW * 0.53

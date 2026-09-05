@@ -157,12 +157,116 @@ down to one fact about what act produced the numbers — rather than eliminating
 place where being wrong is harder to hide, because the shape of `P` and the procedure that filled it are
 recorded separately and can be compared.
 
-I'll flag two soft spots while I'm here, because I'd rather you heard them from me. Nothing currently
-cross-checks the two against each other — you can declare "learned weights" and "elicited from a committee"
-and the register will not blink. And where the fit procedure was never recorded at all, the fallback is
-**T0** — which means an artefact whose parameters exist but whose provenance nobody wrote down gets treated
-like a closed-form pricer, and is quietly exempted from fitting evidence. That's the same failure direction
-as everything else in this article, one level in.
+Two limits of that are worth stating plainly. Nothing cross-checks the two declarations against each other,
+so "learned weights" filled by "elicitation from a committee" is accepted. And where the fit procedure is not
+recorded at all, the fallback is **T0** — so an artefact whose parameters exist but whose provenance nobody
+wrote down is treated like a closed-form pricer, and exempted from fitting evidence. Both are the failure
+direction this whole article is about, one level in: where a derivation still reads a declaration, the
+declaration can still be missing, and the safe default is the strict one rather than the permissive one.
+
+---
+
+## The filing cabinet, and why the labels have to be computed
+
+Here is the second thing the derived class buys, and I think it's the sharpest small result in the whole
+account.
+
+Almost everything in a governance system is a family indexed by kind. What evidence this needs. What
+lifecycle it follows. What can usefully be monitored on it. What documents come out of it. Picture a filing
+cabinet where each drawer holds one kind of artefact and comes with its own set of forms.
+
+The bad design writes the list of drawers into the cabinet's frame — "kind" as a column with fixed values —
+so adding a drawer means rebuilding the cabinet. The good design makes drawers independent, so adding one is
+just adding one. That's a **fibration**, and it comes with a small theorem: adding a drawer cannot disturb
+what's in any existing drawer. Which is what lets you promise to support kinds of artefact nobody has
+invented yet.
+
+But there's a second requirement, and it's the one usually missing: **every drawer has to actually contain
+its forms.** A drawer with no forms is worse than an absent drawer, because the cabinet looks complete. So
+you want a check — no empty drawers — and you want it to run before the cabinet is opened rather than when
+somebody reaches into one.
+
+Now the interesting part. **What are the drawers labelled?**
+
+Say the label is a free-text field someone types — "credit", "rates", "c". You now have two options and both
+of them fail:
+
+- **Close the vocabulary.** Only these labels are allowed. But then adding a new kind means editing the
+  allowed list, which is a release — and "adding a kind is just supplying a drawer" has stopped being true.
+- **Leave it open.** Anyone can type anything. But then the completeness check can only look at the labels
+  it knows about, and somebody types a label nobody registered. The check passes. The cabinet is not
+  complete. **That's a check that reports success.**
+
+There's no third option, as long as the label is *typed in*.
+
+Unless the label is **computed**. An index derived from the artefact itself can't be typed wrong, can't be
+extended by accident, and can't disagree with the thing it indexes. The set of possible labels is fixed, so
+"no empty drawers" quantifies over all of them — and adding a kind is still just supplying a drawer.
+
+Which is exactly what T0–T8 is. The trainability class isn't only a nicer way to talk about the taxonomy;
+it's the only kind of label that lets the filing cabinet make both of its promises at once. The
+organisational label — what desk owns this, what business it serves — keeps its real job, which is grouping
+and reporting, and indexes nothing.
+
+I find this satisfying because it's the article's own thesis turned on the article's own machinery.
+*Derived, not declared* isn't just better hygiene for the facts in the register. It's a structural
+requirement on the thing that organises them.
+
+### The monitor that ran for two years and meant nothing
+
+A discount-curve pricer is registered, and somebody attaches a **performance** monitor — discrimination
+against realised outcomes, evaluated monthly. It runs. It never fires. On the estate screen the model is
+green and monitored.
+
+But the pricer has no parameters and no fitted relationship to outcomes. Discrimination is not a question
+about it. The monitor wasn't failing to detect anything; there was nothing of that kind to detect.
+
+And that is *worse* than having no monitor at all, because an absent monitor shows up in the coverage
+worklist and a meaningless one doesn't. It reads as coverage.
+
+With a drawer per class, the monitor kind gets checked against what that class can actually answer, and the
+attachment is refused — naming what *is* answerable for a T0 artefact instead: whether the inputs are still
+inside the range it was benchmarked over. That's not a restriction on what validators may do. It's the
+drawer being read rather than merely held.
+
+---
+
+## When you can read the parameters
+
+For most classes, `P` is a pile of numbers and the interesting questions about it are statistical. For **T8**
+— the rule sets, the deterministic policies — `P` is something a person wrote down. And that changes what you
+can ask, because a rule set has *logical* structure. Questions about it can be **decided** rather than
+estimated.
+
+The condition for that is a restriction, and the restriction is the whole point. Write rules in a general
+expression language and questions about them become questions about programs, which is to say unanswerable.
+Restrict a condition to comparisons on declared fields combined with and/or/not — no arithmetic, no function
+calls, no free text — and each rule reduces to a set of intervals and permitted values per field. Emptiness
+and containment become arithmetic.
+
+Then this becomes decidable, and it matters more than it sounds:
+
+> Rule sets are evaluated **first match wins**. So a rule that an earlier rule already covers **can never
+> fire** — and nothing about reading the document tells you that.
+
+Somebody believes that rule is in force. It appears in the model card. It gets cited in a committee paper. It
+survives every review — because a rule that never fires also never produces a wrong answer. That is the same
+pattern as the monitor above and the false-positive verifier earlier: **a control reporting success while
+doing nothing.** Arrived at from the model's side rather than the platform's. No spreadsheet will ever tell
+you this.
+
+**And here is the exact promise, which is narrower than you might want.** The analysis is *sound*: when it
+says a rule is unreachable, the rule is unreachable — it never cries wolf, because a check that produces
+false alarms is a check somebody switches off, and then the real ones go with it. It is *incomplete*: it
+catches a rule shadowed by a **single** earlier rule, not one shadowed by two earlier rules working together
+(`ltv > 0.8` and `ltv <= 0.8` between them cover everything, and neither covers anything on its own).
+
+Full coverage checking is satisfiability over the theory — decidable here, but it needs a solver, and a
+solver inside a governance platform is a dependency whose failure modes nobody in the bank can debug.
+
+So the claim made is *"no rule is shadowed by any single earlier rule"*, not *"no rule is unreachable"*.
+Stating which is the difference between a check people trust and a check people turn off — and a check that
+claims more than it delivers is precisely the failure this analysis exists to find.
 
 ---
 
@@ -177,9 +281,9 @@ Remember the four places that ask *can this stand where that stood?* Here they a
 | A contract | does this operating contract refine the one it replaces? |
 | A dependency edge | does what the source produces arrive where the target reads it? |
 
-Four implementations. Actually, in the system I built, three implementations and one **complete absence** —
-the dependency edges were recorded and never checked at all, which meant every blast radius was computed over
-a graph nobody had validated.
+Four questions, and the tempting thing is to answer each where it is asked. The fourth is the one that
+shows why that is expensive: an unchecked dependency edge is not a weak check, it is a **drawing**, and every
+blast radius computed over it is computed over a graph nobody validated.
 
 So: write the relation once.
 
@@ -189,12 +293,15 @@ Read it as *A can stand in for B*. `A` may have extra fields — nobody has to l
 must accept at least what `B`'s accepted, because a replacement that rejects an input its predecessor took is
 a replacement that breaks a caller.
 
-**A correction I want on the record.** My design note said a refinement was "at a type no wider". That is
-backwards. Standing in for something requires accepting **at least** what it accepted, so a *wider* range is
-fine and a *narrower* one regresses. The prose came from the intuition that a subtype is narrower — true of
-the values a type denotes, false of the inputs a slot accepts. The code had it right all along; writing the
-implementation found the error in the design note. That is the ordinary direction of that traffic and I think
-papers that only report their successes misrepresent how the work goes.
+**This direction is counterintuitive, and reliably so — which is the reason to write it down as an order.**
+The word "refinement" suggests narrowing, and a subtype *is* narrower in the set of values it denotes. But a
+schema here is a set of *inputs a slot will accept*, and standing in for something means accepting at least
+what it accepted. So wider is fine and narrower regresses — the reverse of what the word invites you to
+think.
+
+Both readings of "narrower" are easy to hold at once and impossible to hold consistently. And the failure the
+wrong one produces is silent: state the rule in the intuitive direction and you admit exactly the
+replacements that break callers.
 
 ### It's a lattice, and the lattice does work
 
@@ -219,11 +326,11 @@ carrying the conflicting field and both types, rather than returning nothing —
 has a decision to make, and a `None` threaded through three layers becomes a silent empty schema somewhere
 downstream.
 
-One caveat I owe you, since this article is about facts that are asserted and never checked. The *order* is
-called from three production paths and they now go through one function. The *meet and join* are implemented
-and their lattice laws are asserted over generated schemas — but nothing in the running system calls them
-yet. They are a question the structure can now answer and nobody has yet asked. Available, not deployed, and
-I'd rather say so than let the paragraph above imply otherwise.
+One thing to be precise about, since this article is about claims that go unchecked. The *order* is called
+from three production paths, through one function, and a test reads each call site to keep it that way. The
+*meet and join* are implemented and their lattice laws are asserted over generated schemas, but no production
+path calls them. They are a question the structure can answer and that nothing yet asks — available rather
+than deployed, and worth labelling as such.
 
 ### A refusal that names the remedy
 
@@ -276,15 +383,16 @@ the one that discovers the third model.
 
 ### On the name
 
-This relation used to be called `feeds`. That was a bad name in a bank, where a *feed* means market data or a
-nightly file — so "A feeds B" read as though the platform consumed or produced one. It does neither: it moves
-no data and runs no model. The edge is a statement about two entries in a register, describing a wire that
-somebody else's engine carries. It's now called `input_to`. The old spelling still works on the way in and is
-stored under the new name, and is deliberately *not* published in the vocabulary, because offering two words
-for one relation invites somebody to decide they mean different things.
+The relation is called `input_to`, and the obvious alternative — `feeds` — is wrong in a bank specifically.
+A *feed* there means market data, a reference file, a nightly drop. So "A feeds B" reads as though the
+platform consumed or produced one, and it does neither: it moves no data and runs no model. The edge is a
+statement about two entries in a register, describing a wire that somebody else's engine carries. `input_to`
+says that; `feeds` only implies it. The alternative spelling is accepted on the way in and stored under the
+canonical name, and is deliberately *not* published in the vocabulary, because offering two words for one
+relation invites somebody to decide they mean different things.
 
-I mention it because I think naming is part of the formalism, not decoration around it. A formal account
-whose terms are read wrongly by its audience has a defect, and the defect is in the account.
+Worth a paragraph because naming is part of the formalism, not decoration around it. A formal account whose
+terms are read wrongly by its audience has a defect, and the defect is in the account.
 
 ---
 
@@ -328,7 +436,7 @@ an explicit piece of structure you have to draw. Choosing the setting where prob
 **And I have to be straight with you about this one:** the theorem is proved, the derived composite signature
 now exists for it to quantify over, and the shared-dependency computation exists. The interaction premium
 itself is **not built**. There is no aggregate risk function in the system. The theorem says what a correct
-one cannot be; it does not construct one. That's one of the six laws I list as not executable further down,
+one cannot be; it does not construct one. That's one of the five laws I list as not executable further down,
 and it is the one I'm least comfortable about, because it's the result I most want to be true in practice.
 
 ---
@@ -407,38 +515,45 @@ The honest fix isn't to forbid it. It's to record *when each filled value actual
 value carried backwards keeps April's ingest stamp — and then the ordinary point-in-time rule excludes it
 without anybody having to remember a flag.
 
-I got this wrong myself, and the way I got it wrong is instructive. Recording the stamp is **necessary and
-not sufficient**. The rule that reads it has to bound the ingest clock by the moment of the *decision*, and
-it is very natural to bound it instead by the moment you built the training set — which is usually "now". Do
-that, and an April value walks into a March row on the grounds that April came before Tuesday. The stamp was
-telling the truth; nothing was reading it against the right bound.
+And here is the trap in that fix: recording the stamp is **necessary and not sufficient**. The rule that
+reads it has to bound the ingest clock by the moment of the *decision*. It is very natural to bound it
+instead by the moment you built the training set — which is usually "now" — and then the April value walks
+into the March row on the grounds that April came before Tuesday. The stamp is telling the truth. Nothing is
+reading it against the right bound.
 
-That class of bug is characteristic of this whole area. The mechanism is right, the mechanism is sound, and
-the thing consulting the mechanism asks it a slightly different question than the one it answers.
+That shape is characteristic of this whole area, and it is why the bound belongs in the operator rather than
+in whoever writes the query. The mechanism is right, the mechanism is sound, and the thing consulting the
+mechanism asks it a slightly different question than the one it answers.
 
-### Two bugs that only appeared when the law became executable
+### The operator has to hold in two other places
 
-Both had been sitting there for months. Both are invisible to ordinary testing. Both are the same shape.
+The definition above is a statement about one function. But a governance platform doesn't run the training
+assembly — some engine elsewhere does — and it checks the assembly with a second computation of its own. So
+the operator has to hold in two more places than the one it's defined in, and each is worth stating as its
+own requirement.
 
-**The published rule was not the applied rule.** The platform publishes the point-in-time predicate as a
-string, in every featureset plan and every warrant, because the engines that implement it aren't the ones
-this system runs. The published string said `ingest_ts <= as_of` — the rule from *before* the `min` was
-introduced. So an engine implementing the published contract faithfully admitted rows the platform's own
-assembly refuses, and the disagreement would have surfaced as an unreproducible training set with two
-correct-looking implementations and no way to tell which one was wrong.
+**The published rule must be the applied rule.** The point-in-time predicate is published as a string, in
+every featureset plan and every warrant, because the engines that implement it aren't the ones this system
+runs. That string is a **contract**. What's required of it is agreement: for any set of records, the rows the
+published predicate admits are the rows the operator admits.
 
-The old test asserted `"ingest_ts <= as_of" in plan["pit_rule"]` — a substring check loose enough to pass on
-the wrong rule. The new one doesn't read the string. It **executes** it, against the same rows, and demands
-the same answer as the operator.
+The way to check that is to **execute** the published string against the same rows and compare — which is
+what the law test does. Checking the *text* instead — asserting the published rule contains some expected
+phrase — is weaker in exactly the way that matters: it passes on a rule that reads plausibly and admits
+different rows. And an engine faithfully implementing a published contract that disagrees with your own read
+gives you an unreproducible training set, two correct-looking implementations, and no way to tell which one
+is wrong.
 
-**The independent verifier disagreed with the thing it verifies.** Assembly is checked by a second
-computation that deliberately does not reuse the assembly path, so that agreement means something. That
-second path bounded ingest by `as_of` alone while the operator bounds it by `min(ℓ, a)`. So the two
-disagreed whenever a set was assembled *after* its labels matured — which is the ordinary case — and the
-verifier reported a mismatch on a **correct** assembly.
+**The independent recomputation must bound the clock identically.** Assembly is verified by a second
+computation that deliberately doesn't reuse the assembly path, so that agreement between them carries
+information. That whole arrangement is worth its cost only if the two routes implement the *same* operator. A
+verifier that bounds ingest by `as_of` while the assembly bounds it by `min(ℓ, a)` disagrees on every set
+assembled *after* its labels matured — the ordinary case — and reports a mismatch on a **correct** assembly.
 
-A false positive in the control that verifies a control is worse than no control. It teaches whoever reads
-the report to discount it.
+That failure is worse than it looks. A control that reports a violation where there is none isn't a
+conservative control; it's one that teaches whoever reads the report to discount it, and it does so precisely
+for the population it was built to examine. Stating the operator once, and requiring both routes to be it, is
+what removes the possibility.
 
 ### Featuresets: schema and filling
 
@@ -455,8 +570,9 @@ That separation does three things:
 - A version that cannot fill the schema is refused. Adding a slot is a change to `X`, and a change to `X` is
   a model change, not a data change. The register says so instead of letting it happen quietly.
 - Because every binding pins a version, one featureset version resolves to the same bytes forever. A stable
-  identifier over moving contents is the failure this design exists to prevent, and it is remarkably easy to
-  reintroduce — I have now watched it come back in four different disguises.
+  identifier over moving contents is the failure this design exists to prevent, and it is a failure with many
+  disguises — the pin has to be at every level, because pinning the set and not the view underneath it looks
+  identical from the outside and is not.
 
 ---
 
@@ -541,13 +657,13 @@ the freshness of the facts that are present, rather than reporting that it has n
 you "as of when" for a claim it cannot in fact support is exactly the sort of instrument that reads as
 reassurance.
 
-I found this by writing the test that asserts the universal property, which freshness then failed. It is now
-a test that asserts the *failure*, so nobody quietly re-includes it.
+The suite asserts the *failure* — that this zero does not annihilate, and that the five real arithmetics do
+— so the universal property is never quietly claimed over something that can't carry it.
 
 The repair isn't a different pair of operations. Currency is an *aggregate* over provenance rather than a
 valuation of it, and aggregates over semiring-annotated data need semimodule structure rather than a semiring
-on the annotations — which is a known and solved problem in the provenance literature, and one I have not
-built. It's recorded as a gap rather than described as an intention.
+on the annotations. That's a known and solved problem in the provenance literature, and one this system
+hasn't built. It's recorded as a gap rather than described as an intention.
 
 ---
 
@@ -602,32 +718,40 @@ against *generated* inputs, with failure treated as a build failure.
 One discipline matters more than the rest. Each law is tested **as it is stated**, not as the implementation
 happens to behave. A test written from the code proves only that the code agrees with itself.
 
-There are twenty-one laws. **Fifteen execute. Six do not**, and here they are, because a gap recorded only in
-a document is a gap somebody has to go looking for:
+There are twenty-one laws. **Sixteen execute. Five do not**, and here they are, because a gap recorded only
+in a document is a gap somebody has to go looking for:
 
 | Law | Why it doesn't run |
 |---|---|
 | summary soundness | needs a replay that checks a document's quantitative claims against the register; the replay exists for validation episodes, not for documents |
 | lens laws | needs a `put`. The compiler regenerates whole documents, so there's no round trip — and building one to satisfy a law would be building the wrong thing |
 | evidence gluing | no implementation; no consistency radius is computed anywhere |
-| lax monoidality of risk | needs composite warrants and an aggregate risk function. The composite now has a derived schema to quantify over; the functor is design |
-| fibration completeness | needs a loader that refuses to boot on a partial fibre; model classes are strings today |
+| lax monoidality of risk | needs composite warrants and an aggregate risk function. The composite has a derived schema to quantify over; the functor is design |
 | contract–serving agreement | needs an online store to compare against. Half exists: the system computes what serving *must* read |
 
 And a property test enforces that this list and the public table agree — if the table claims a law runs,
 something has to run it.
 
-**The three defects the executable form found**, all of which had been sitting there for months:
+### What an executable law gives you that a written one doesn't
 
-1. **A design note that was backwards.** The prose said "at a type no wider"; the code had it right.
-2. **A published contract that didn't match the implementation.** The point-in-time predicate handed to
-   external engines was the rule from before the `min`.
-3. **An independent verifier that disagreed with the thing it verified.** The second computation bounded the
-   ingest clock differently from the first.
+It isn't diligence. A statement in a document and the code it describes are two accounts of one rule, and two
+accounts of one rule drift apart — not because anyone lets them, but because only one of the two ever gets
+executed, and the executed one is the only one anything pushes back on. An executable law is the comparison
+between them, run by a machine, on a schedule nobody has to remember.
 
-None of the three is exotic. All three are the same shape: a statement and its implementation drifted, and
-nothing compared them — because the comparison had never been written down as something a machine could
-perform.
+Four things follow, and each is a property of the arrangement rather than of the people in it:
+
+1. **A rule stated once can't disagree with itself.** Four questions, one function, and a test that reads each
+   call site to keep it that way.
+2. **A published contract can be executed rather than quoted.** Where you hand a rule to a system you don't
+   run, the law runs the published rule and compares answers — a check on the contract, not on its spelling.
+3. **Two routes to one answer can be required to be the same route.** Independent recomputation earns its
+   cost only under that requirement, and the requirement is a law rather than a habit.
+4. **A property that holds on the examples somebody chose is not the property.** Laws run against *generated*
+   inputs, and are written from the law rather than from the code.
+
+The fourth decides whether the other three are real. It's also why the five unexecuted laws are listed rather
+than described: what they're missing isn't documentation.
 
 ---
 
@@ -786,7 +910,7 @@ version-substitution check judges outputs on name and type alone, so narrowing i
 are defensible. Holding both is not, and this is exactly the kind of divergence that "write the relation
 once" was supposed to prevent.
 
-**Six laws don't execute**, and one of them is the interaction premium — which is the result I've been most
+**Five laws don't execute**, and one of them is the interaction premium — which is the result I've been most
 enthusiastic about in this article. The theorem is proved. The number is not computed anywhere.
 
 **The lattice is finite-fragment, and half of it has no caller.** No bottom element, and the meet is partial

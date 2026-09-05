@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, List, Optional
 from core.domain.contracts import Bound, Contract
 from core.execution.runtimes import (CallableRuntime, EstimatorRuntime, Invocation,
                                      OnnxRuntime, PmmlRuntime, QuantLibRuntime,
-                                     RuntimeRegistry)
+                                     RulesRuntime, RuntimeRegistry)
 from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
                                     describe as describe_sandbox)
 from core.execution.warrants import WarrantError, WarrantService
@@ -52,13 +52,17 @@ class ExecutionResult:
 
 
 class CaptiveEngine:
-    """A reference consumer of the warrant contract, with three real runtimes.
+    """A reference consumer of the warrant contract, with six real runtimes.
 
-    It implements registered Python callables, ONNX graphs and the regression
-    and scorecard subset of PMML. The grammar names eighteen runtimes, and an
-    engine's usefulness lies in being precise about which it has rather than in
-    having them all: a warrant naming one it does not implement is refused by
-    name, listing what it does.
+    It implements registered Python callables, ONNX graphs, the regression and
+    scorecard subset of PMML, QuantLib valuation, the captive estimator, and
+    authored rule sets. (This said "three" while five were registered, which is
+    the count-written-once-and-never-recounted pattern in the code's own account
+    of itself; `tests/test_registry_execution.py` now counts them.)
+
+    The grammar names eighteen runtimes, and an engine's usefulness lies in
+    being precise about which it has rather than in having them all: a warrant
+    naming one it does not implement is refused by name, listing what it does.
     """
 
     def __init__(self, warrants: WarrantService, max_seconds: float = 30.0,
@@ -76,6 +80,7 @@ class CaptiveEngine:
             PmmlRuntime(self.artifact_dir),
             QuantLibRuntime(),
             EstimatorRuntime(),
+            RulesRuntime(),
         ])
         # Artifacts run in a child with limits from the warrant. Bound callables
         # cannot: you cannot isolate a function handed to you in your own address

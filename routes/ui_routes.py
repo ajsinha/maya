@@ -20,7 +20,19 @@ from core.parameters import PROVENANCE_MEANING
 from core.policy import GATES, describe_facts
 from core.policy.language import describe as describe_language
 from core.telemetry import STREAM_MEANING
+from core.log import get_logger
 from routes.base import Routes, login_required
+
+logger = get_logger(__name__)
+
+
+def _rule_vocabulary() -> dict:
+    """The operator list, from the code. A screen holding its own copy is a
+    second vocabulary that drifts from the first."""
+    from core.rules.common import OPERATOR_MEANING, OPERATORS, ORDERED_ONLY
+    return {"operators": [{"op": op, "means": OPERATOR_MEANING[op],
+                           "needs_ordered_field": op in ORDERED_ONLY}
+                          for op in OPERATORS]}
 
 
 class UIRoutes(Routes):
@@ -170,6 +182,64 @@ class UIRoutes(Routes):
                 restatements={v["version"]: f.restatements(name, v["version"])
                               for v in versions},
                 catalogue=f.list_features())
+
+        # ------------------------------------------------------- rule sets
+        @self.app.get("/rules/{name:path}/{semver}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def ruleset_editor_page(request: Request, name: str, semver: str):
+            """The T8 editor.
+
+            One page per *version*, not per model: the rule set is the parameter
+            object of a particular version, and its input schema is what the
+            conditions are checked against. A model-level editor would have to
+            pick a schema, and picking one silently is how a rule set comes to
+            be validated against something other than what it runs on.
+            """
+            if (r := login_required(request)) is not None:
+                return r
+            from core.rules.common import ORDERED_DTYPES
+
+            reg = self.ctx["registry"]
+            urn = f"maya://model/{name}"
+            model = reg.get(urn)
+            version = reg.version(urn, semver) if model else None
+            if model is None or version is None:
+                return self.page(request, "not_found.html", http_status=404,
+                                 name=f"{name} {semver}")
+            if not self.may_view(request, "model:read"):
+                return self.refused_page(request, "reading a model needs model:read")
+
+            existing = [p for p in self.ctx["parameters"].for_version(urn, semver)
+                        if p.get("kind") == "rule_set"]
+            latest = existing[-1] if existing else None
+            inputs = [{"name": f.get("name"), "dtype": f.get("dtype", "numeric"),
+                       "ordered": f.get("dtype", "numeric") in ORDERED_DTYPES}
+                      for f in (version.get("input_schema") or [])]
+            return self.page(
+                request, "ruleset_editor.html", model=model, version=version,
+                inputs=inputs, outputs=version.get("output_schema") or [],
+                existing=existing,
+                document=(latest or {}).get("values_inline") or
+                         {"rules": [], "otherwise": {}, "note": ""},
+                vocabulary=_rule_vocabulary())
+
+        @self.app.get("/rulesets/{parameter_set_id}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def ruleset_page(request: Request, parameter_set_id: str):
+            """A recorded rule set, read back in English."""
+            if (r := login_required(request)) is not None:
+                return r
+            if not self.may_view(request, "model:read"):
+                return self.refused_page(request, "reading a model needs model:read")
+            from core.rules.common import RuleError
+            try:
+                explained = self.ctx["rules"].explain(parameter_set_id)
+            except RuleError as exc:
+                logger.info("rule set page refused: %s", exc.detail)
+                return self.page(request, "not_found.html", http_status=404,
+                                 name=parameter_set_id)
+            return self.page(request, "ruleset.html", ruleset=explained,
+                             row=self.ctx["parameters"].require(parameter_set_id))
 
         # ---------------------------------------------------------- policy
         @self.app.get("/policies", response_class=HTMLResponse, tags=["ui"])

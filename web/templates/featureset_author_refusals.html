@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block title %}What {{ featureset.name }} refuses — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT IT REFUSES, AND WHY</p>
+<h1>{{ featureset.name }}</h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  These refusals are the reason the object exists. Every answer below comes from
+  the code that enforces it &mdash; the leakage closure from the derived-feature
+  register, the schema comparison from <code>core.domain.lattice.refines</code>,
+  which is the same relation <code>L-W10</code> and <code>L-12</code> both use.
+  Nothing on this page is a second opinion.
+</p>
+
+<div class="card mb-3"><div class="card-header">1 &middot; A slot computed from the label</div>
+  {% if not leakage.label_slot %}
+    <div class="card-body small text-muted">
+      This featureset declares no label slot, so the leakage check does not run.
+      That is not the same as there being no leak: it means nothing here names
+      the answer, and an unsupervised set has no answer to leak. Declaring a
+      label slot is what turns the check on.
+    </div>
+  {% elif not leakage.feature %}
+    <div class="card-body small text-muted">
+      The label slot is <code>{{ leakage.label_slot }}</code> and no version
+      binds it yet, so there is no label feature to compute a closure from. The
+      check runs on every publish against whatever fills that slot.
+    </div>
+  {% else %}
+    <table class="table maya mb-0">
+      <thead><tr><th>Feature</th><th>Hops</th><th>Rests on</th><th>May fill</th></tr></thead>
+      <tbody>
+      {% for r in leakage.refused %}
+        <tr><td class="small">{{ r.feature }}</td>
+            <td class="small" data-sort="{{ r.hops }}">{{ r.hops }}</td>
+            <td class="small"><code style="font-size:.72rem">{{ r.rests_on|join(', ') }}</code></td>
+            <td class="small"><span class="evidence-bad">no slot but the label</span></td></tr>
+      {% else %}
+        <tr><td colspan="4" class="small text-muted">
+          Nothing in the catalogue is computed from
+          <code>{{ leakage.feature }}</code>, so the check has nothing to refuse
+          today. It still runs on every publish, because a derivation added
+          tomorrow would.</td></tr>
+      {% endfor %}
+      </tbody></table>
+    <div class="card-body py-2 small text-muted border-top">
+      The label is <code>{{ leakage.feature }}</code>, filling
+      <code>{{ leakage.label_slot }}</code>, and a slot computed from it is
+      refused <strong>however many hops away</strong>. The closure is transitive
+      and that is the part people disbelieve: a derivation of a derivation of
+      the label is still the label, and none of the expressions in between need
+      mention it &mdash; the <em>hops</em> column above is how far each one is.
+      The check runs on what was <em>asked for</em>, before anything is
+      resolved, so a leaking slot is refused whether or not a view happens to
+      supply it: &ldquo;you cannot train on the answer&rdquo; is a better
+      message than &ldquo;no view supplies that&rdquo;. The refusal names the feature and the label together, and the remedy
+      is to derive from a value known before the outcome &mdash; or to declare
+      the thing an output rather than a feature.
+      {% if leakage.outcome_window_days %}
+        The outcome window is {{ leakage.outcome_window_days }} days, which is
+        how long after the decision the label is knowable at all.
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+<div class="card mb-3"><div class="card-header">2 &middot; A slot nothing fills</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Type</th><th>Origin</th><th>Newest version</th>
+               <th>Features of this type</th></tr></thead>
+    <tbody>
+    {% for u in unfilled %}
+      <tr><td class="small">{{ u.slot }}</td>
+          <td class="small">{{ u.dtype }}{% if u.nullable %} (nullable){% endif %}</td>
+          <td class="small">{% if u.inherited %}inherited{% else %}declared here{% endif %}</td>
+          <td class="small">
+            {% if u.filled %}<span class="evidence-ok">{{ u.feature }}</span>
+            {% else %}<span class="evidence-bad">unfilled</span>{% endif %}</td>
+          <td class="small">
+            {% if u.candidates %}<code style="font-size:.72rem">{{ u.candidates|join(', ') }}</code>
+            {% else %}<span class="evidence-bad">none in the catalogue</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A version that cannot fill the schema is refused, and the message says which
+    slots are unfilled: it is not a version of this featureset, it is a
+    different set or it is a model change, and the register decides which rather
+    than leaving somebody to remember. The mirror refusal is a binding naming a
+    slot that does not exist &mdash; adding a slot changes <code>X</code>, so
+    it is published as a different featureset and the model can be expected to
+    need a new version. The last column is a listing of the catalogue, not a
+    verdict: the type check runs in the register, against the feature somebody
+    chose.
+  </div></div>
+
+<div class="card mb-3"><div class="card-header">3 &middot; A schema a wider model cannot consume</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Model</th><th>Version</th><th>Reads</th><th>Can be fitted from this set</th></tr></thead>
+    <tbody>
+    {% for c in consumers %}
+      <tr><td class="small"><a href="/model/{{ c.urn.split('/')[-1] }}"
+                 style="color:var(--crimson);text-decoration:none">{{ c.model }}</a></td>
+          <td class="small">{{ c.semver }}</td>
+          <td class="small"><code style="font-size:.72rem">{{ c.reads|join(', ') }}</code></td>
+          <td class="small">
+            {% if c.holds %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>
+              <div class="text-muted">does not provide {{ c.missing|join(', ') }}</div>
+            {% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="4" class="small text-muted">
+        No model version you can see declares an input schema, so there is
+        nothing to compare this set against.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Law <code>L-W10</code>, contravariance in inputs: a featureset a warrant
+    names must provide everything the kernel declares it reads. Adding a
+    regressor is a model change and not a data change, and this is where the
+    distinction is enforced rather than remembered. A <em>no</em> here is the
+    <code>schema_not_satisfied</code> a fit warrant would refuse with, and until
+    this page the only way to find out was to try to issue one. The label slot
+    is deliberately left out of the comparison: a kernel does not read the
+    answer. See <a href="/featuresets/lattice?left=fs:{{ featureset.name }}"
+       style="color:var(--crimson);text-decoration:none">the lattice</a> for
+    what would have to change.
+    {% if blind_spot %}
+      <div class="mt-2"><span class="evidence-bad">This comparison is not
+        looking at every slot this featureset has.</span>
+        <code>{{ blind_spot|join(', ') }}</code>
+        {{ 'is' if blind_spot|length == 1 else 'are' }} inherited, and
+        <code>FeaturesetRegistry.schema</code> builds the comparison from the
+        featureset's own row rather than from what it resolves to &mdash; while
+        <code>publish</code> fills the resolved schema, inherited slots
+        included. A set composed from parents therefore publishes versions that
+        fill its schema and then satisfies no kernel at all. What is shown above
+        is what the platform <em>enforces</em>, reported rather than quietly
+        corrected here; the correction belongs in
+        <code>core/features/sets.py</code>.</div>
+    {% endif %}
+  </div></div>
+
+<div class="card mb-3"><div class="card-header">4 &middot; Sealed, ephemeral, and moved underneath</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Condition</th><th>State</th><th>What it forbids</th></tr></thead>
+    <tbody>
+      <tr><td class="small">sealed</td>
+          <td class="small">{% if featureset.sealed %}
+              <span class="evidence-ok">sealed by {{ featureset.sealed_by }}</span>
+            {% else %}<span class="text-muted">not sealed</span>{% endif %}</td>
+          <td class="small">Another version, and a change of retrieval policy.
+            Never composition, assembly or a warrant &mdash; a sealed set is
+            final, not inert, and that is what sealing is for. Breaking a seal
+            needs <code>principal:manage</code> and is recorded.</td></tr>
+      <tr><td class="small">ephemeral</td>
+          <td class="small">{% if featureset.lifetime.ephemeral %}
+              <span class="evidence-bad">{{ featureset.lifetime.detail }}</span>
+            {% else %}<span class="text-muted">durable</span>{% endif %}</td>
+          <td class="small">A durable featureset that a contract or a warrant
+            pinned cannot simply stop existing, so destroying one is refused.
+            An ephemeral one may be destroyed; the record of the destruction
+            stays, with the digests it removed.</td></tr>
+      <tr><td class="small">drift</td>
+          <td class="small">{% if featureset.drift %}
+              <span class="evidence-bad">{{ featureset.drift|length }} parent(s) moved</span>
+            {% else %}<span class="text-muted">every parent is where it was</span>{% endif %}</td>
+          <td class="small">Nothing. It is reported rather than refused: a child
+            whose parent has moved is a thing to be told about, and refusing the
+            read would take the schema away from whoever most needs to look at
+            it.</td></tr>
+      <tr><td class="small">view retirement</td>
+          <td class="small"><span class="text-muted">held by
+            {{ latest.bindings|length if latest else 0 }} pinned binding(s)</span></td>
+          <td class="small">A feature view version any featureset version pinned
+            cannot be retired. The pin is a claim on those bytes, and retiring
+            them would make a published digest unresolvable.</td></tr>
+    </tbody></table></div>
+
+<div class="card mb-3"><div class="card-header">5 &middot; A binding that cannot be pinned exactly</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Feature</th><th>Views carrying it</th><th>What a binding must say</th></tr></thead>
+    <tbody>
+    {% for feature, rows in supply.items()|sort %}
+      {% set views = rows|map(attribute='view')|unique|list %}
+      <tr><td class="small">{{ feature }}</td>
+          <td class="small">
+            {% for r in rows %}<code style="font-size:.72rem">{{ r.view }} v{{ r.version }}</code>{{ ", " if not loop.last }}{% endfor %}</td>
+          <td class="small">
+            {% if views|length > 1 %}
+              <span class="evidence-bad">name the view and the version</span>
+              <div class="text-muted">more than one view supplies it, and
+                ambiguity is refused rather than guessed at</div>
+            {% else %}
+              <span class="text-muted">the feature name is enough</span>
+              <div class="text-muted">one view carries it; the newest version is
+                taken and pinned</div>
+            {% endif %}</td></tr>
+    {% else %}
+      <tr><td colspan="3" class="small text-muted">
+        Nothing is materialised, so no featureset version can be published at
+        all: there is no view to pin. Materialise a view before filling a
+        schema.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    A binding that names a view without a version is refused even when only one
+    version exists: a featureset version pins exactly, or the same version would
+    resolve to different bytes next month with its digest unchanged.
+  </div></div>
+{% endblock %}

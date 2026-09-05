@@ -127,11 +127,156 @@ first definitions rather than pulled from a library. Monitors come in **four** k
 `score_drift`, `performance` and `calibration`, and each admits only the tests that can answer it,
 checked at definition time.
 
-That covers the T2 and T3 columns above and part of T1. **The rest of the table is a specification of
+That covers the T2 and T3 columns above and part of T1. It does not cover T8's — whether the rule
+reads the policy it claims to implement is a human judgment, and above-the-line and below-the-line
+testing is not computed here. What the platform can now say about a T8 model is something no column
+in this table anticipated, and it is the next section. **The rest of the table is a specification of
 what those fibres need, not a description of what MAYA computes.** Arbitrage-free checks, convergence
 diagnostics, groundedness and citation precision arrive as recorded results from wherever they were
 computed; the platform holds them, gates on them and refuses a conclusion over a failed one, and does
 not produce them. Saying otherwise would be the exact overclaim this table exists to prevent.
+
+<a id="t8-the-fibre-that-was-least-served"></a>
+
+### T8, the fibre that was least served
+
+T8 is the largest population in a real bank by count and the worst governed by anything, because a
+rule set is usually a spreadsheet, a stored procedure, or a paragraph of policy somebody transcribed
+into code once. It was also, until recently, the class this platform served worst: the register held
+`parameter_kind: rule_set`, `fit_procedure: author`, `provenance: declared`, and what it held them
+*as* was an arbitrary JSON blob in `values`. Versioned, digested, approved by a second person — and
+completely opaque. MAYA could tell you the rule set had changed and not one thing about what it said.
+
+There was a second gap behind that one. The grammar has named a `rules` runtime since the first
+milestone and no engine implemented it, so a T8 model could be registered, versioned, approved and
+attested and never actually be **run** by anything MAYA could see. It was still scored, by whatever
+stored procedure the bank was already using — the governed artefact and the executing artefact were
+two documents nobody compared, which is the arrangement this platform exists to end.
+
+Both are now closed. `core/rules/` gives the rule set a structure, four checks over it, and an
+English rendering; `core/execution/runtimes/rules.py` runs it at the point of `P` that was approved.
+
+#### The rule set has a shape
+
+A rule set is ordered rules, **first match wins**, and a stated `otherwise`:
+
+```json
+{"rules": [{"id": "btl_high_ltv",
+            "when":    {"all": [{"field": "product", "op": "eq", "value": "btl"},
+                                {"field": "ltv", "op": "gt", "value": 0.8}]},
+            "then":    {"decision": "refer"},
+            "because": "BTL above 80% LTV is outside appetite (CP-2024-11)"}],
+ "otherwise": {"decision": "accept"},
+ "note": "Origination eligibility, retail mortgages"}
+```
+
+A condition is a field test — `field`, `op`, `value` over eleven operators — or an `all`, `any` or
+`not` of conditions, nested at most six deep, and **nothing else**. There is no arithmetic and no
+free text. `core/features/expressions.py` already parses a whitelisted arithmetic expression and
+reusing it here would have been the obvious move; it is the wrong one, for a reason worth stating
+plainly. **A free expression is opaque to analysis.** The whole argument for holding rule sets in a
+governance platform is that a rule set is the one kind of model a non-programmer can review, and that
+the platform can therefore say things about it that it cannot say about a network. None of those
+things can be said about `x * 0.3 + y > threshold`. A rule that needs arithmetic needs a **derived
+feature**, which is the same boundary drawn everywhere else: the platform transforms what it holds
+and does not compute new quantities inside a governed object.
+
+Two fields are required and both are refusals people will want waived. **`otherwise` is required**,
+so totality holds by construction rather than by analysis: no input falls through, and there is no
+implicit default anywhere in the platform. **`because` is required per rule** — the policy, the
+limit, the regulation. A rule nobody can justify is a rule nobody can retire either, because nobody
+knows what it was for, and it is the field an author will most want to skip.
+
+#### The four checks
+
+None of them is possible over a free expression, which is the whole of why the structure is the way
+it is.
+
+| | What it decides | How |
+|---|---|---|
+| **Totality** | no input falls through | by construction — `otherwise` is required, so there is nothing to analyse |
+| **Reachability** | a rule an earlier rule already covers can never fire | each condition to disjunctive normal form, each conjunction to a domain per field — an interval, a permitted set, an excluded set, a null state — then containment is arithmetic |
+| **Contradiction** | the same condition reaching two different outcomes | canonical form of the parsed condition, compared |
+| **Conformance** | every field a rule reads is one the version's `input_schema` declares, no ordered operator is asked of a field with no order, no field is compared against a value of the wrong kind (`value_wrong_type`); every outcome field is in its `output_schema` | the same question `refines` answers for featureset satisfaction and typed composition (`L-20`, `L-21`), asked directly against the declared schema rather than routed through `core/domain/lattice.py` |
+
+Reachability is the one worth having, and it is the `docs/11 §3` pattern — a control that reports
+success while doing nothing — arrived at from the model side rather than the platform side. A rule
+that can never fire never produces a wrong answer, so it survives every review; it appears in the
+model card, gets cited in a committee paper, and somebody believes it is in force. No spreadsheet
+tells you this.
+
+**The analysis is sound and incomplete, and the distinction is the claim.** *Sound*: when it reports
+a rule unreachable, the rule is unreachable — a check that cries wolf is a check somebody turns off,
+and the real alarms go with it. *Incomplete*: it reports a rule unreachable when a **single** earlier
+rule covers it. Two earlier rules that between them cover a third — `ltv > 0.8` and `ltv <= 0.8`
+covering everything — are **not detected**. Full coverage checking is satisfiability over the theory;
+it is decidable here and it is a solver, and a solver inside a governance platform is a dependency
+whose failure modes nobody in the bank can debug.
+
+So the promise is exactly this and is stated in these words on the rule-set page itself: **no rule is
+shadowed by any single earlier rule.** Not *no rule is unreachable*. A check that claims more than it
+delivers is the thing this analysis exists to find.
+
+Where the condition's normal form grows past 256 disjunctions the analysis says it **did not run**
+rather than running partially and reporting no problems found, and the negation of `between` — which
+has no single-atom form — is marked opaque rather than approximated, because an approximation there
+would make the analysis unsound, and unsound is the one thing it must not be.
+
+#### An editor, and why it is not a breach of the boundary
+
+[10 §7](10-roadmap.md#7-what-maya-deliberately-will-not-own) says MAYA does not train models and does
+not run them, and an authoring surface looks like a straight breach of that. It is not, and the
+distinction is what keeps the rest of the boundary intact.
+
+**MAYA does not become the authoring tool. It becomes an editor for a parameter set it already
+held.** A T8 rule set was always `P` in the register — versioned, digested, approved by somebody
+other than its author. What existed was the governed object; what did not exist was any way to type
+into it except a raw JSON body. Publishing from the editor is `ParameterRegister.record` with a
+validated document: the set lands `proposed`, `approve` still refuses `self_approval`, the digest is
+still taken over the content, the second reviewer is still a different person. No new authority is
+minted anywhere.
+
+**This is explicitly not an ONNX or PMML editor**, and the reason is the one that decides the whole
+question. Those formats serialize a *fitted* map; authoring one by hand would let MAYA mint an
+artifact that has never been trained or validated and is indistinguishable in the register from one
+that was. A rule set has no training run to be indistinguishable from. **Authorship is its
+provenance** — which is precisely what `declared` means in the provenance vocabulary, and why T0, T7
+and T8 sit there together.
+
+Two smaller lines fall out of the same argument. **Rendering is separate from authoring**: the
+English form and the canonical bytes carry no authority and can be re-run over an approved set
+without authoring anything. And **trialling a draft records nothing and decides nothing** — it is
+deliberately not routed through `/execute`, because there is no warrant and no entitlement when an
+author reads their own draft back, and an authority invented for a convenience is the kind that turns
+up later attached to something else.
+
+#### The decision names the rule that made it
+
+Every decision carries `matched_rule` and `because`, and they travel even when the output schema does
+not declare them. That is not diagnostics. A decision a bank cannot attribute to a rule is a decision
+it cannot explain to the customer it refused, and under most consumer-credit regimes **the
+explanation is the obligation** rather than the outcome.
+
+The `rules` runtime is also absent from `UNVERIFIABLE_DETERMINISM` (`L-W5`), for the same reason the
+captive estimator is: MAYA holds the rule set, reads it, and can therefore verify a determinism claim
+by executing it — stronger evidence than a seed.
+
+#### What is still not built for T8
+
+The coverage analysis is single-rule, as above.
+
+**Conformance declines to have an opinion on two kinds of dtype, deliberately.** A numeric field
+compared with text, or a textual field compared with a number, is refused `value_wrong_type` — that
+comparison can never be true, and a rule that can never fire is the outcome `conforms` exists to
+prevent. But `date` and `datetime` are checked for neither: a date is an epoch in some registers and
+an ISO string in others, and refusing one spelling would refuse correct rules. An unrecognised dtype
+is somebody's extension and is likewise left alone. A conformance check that produces false refusals
+is one somebody turns off, and the real ones go with it.
+
+Nothing computes above-the-line and below-the-line testing or a rule-fire distribution — the third
+column of the T8 row is still a specification of what the fibre needs, and the `trial` endpoint's
+per-rule fire counts over sample rows are an author's sanity check before approval, not a monitoring
+result. And MAYA still holds the T8 population; it does not find it (§11).
 
 ### How a run says which point of `P` it is running at
 
@@ -152,8 +297,9 @@ describes the wrong direction.
 
 ### One fibre per tutorial
 
-Seven fibres are worked end to end, one tutorial each, from registration through fit, approval,
-warrant, execution and monitoring. This document does not repeat them; it says which is which.
+Eight fibres are worked end to end, one tutorial each, from registration through fit or authorship,
+approval, warrant, execution and monitoring. This document does not repeat them; it says which is
+which.
 
 | Tutorial | `parameter_kind` / `fit_procedure` | Runtime | Read it for |
 |---|---|---|---|
@@ -164,16 +310,17 @@ warrant, execution and monitoring. This document does not repeat them; it says w
 | [A Monte Carlo engine](../content/tutorials/13-monte-carlo.md) | `calibration_set` / `calibrate` | `container` | the seed as a parameter, and the patch release that passed eleven thousand tests and broke the netting sets |
 | [A neural network](../content/tutorials/14-neural-network.md) | `learned_weights` / `train` | `onnx` | where `P` becomes an **artifact** — the content-addressed store, and which formats run code when they load |
 | [An LLM application](../content/tutorials/15-llm-application.md) | `llm_configuration` / `configure` | `llm.prompt` | where the base model is somebody else's and moves without telling you, and `P` is the assembly you configured |
+| [A rule set](../content/tutorials/16-rule-sets.md) | `rule_set` / `author` | `rules` | where `P` is something a person wrote, what the platform can say about it that it can say about nothing else, and why an editor here is not a breach of the boundary |
 
 [08 — Every kind of model, worked](../content/tutorials/08-every-kind-of-model.md) is the map across
 them, including the six ordered questions that pick the right fibre for a model you have in front of
 you.
 
-**Two fibres have no tutorial and one is only named.** T7 (expert judgment) and T8 (deterministic rule)
-are specified here and in the warrant grammar and are not worked anywhere; T6 (vendor black box)
-appears as a row in the map and as a refusal, without a walkthrough of its own. Those are the three
-fibres a bank's estate contains in quantity, and the gap is worth knowing about rather than
-discovering.
+**One fibre has no tutorial and one is only named.** T7 (expert judgment) is specified here and in
+the warrant grammar and is not worked anywhere; T6 (vendor black box) appears as a row in the map and
+as a refusal, without a walkthrough of its own. Both are fibres a bank's estate contains in quantity,
+and the gap is worth knowing about rather than discovering. T8 was the third of them until
+`core/rules/` — the fibre a bank has most of, and the one the platform served worst.
 
 > **A discrepancy, recorded rather than smoothed over.** The tutorials label the two `estimate` models
 > **T3** and the `train` model **T4**. The derivation above gives **T2** and **T3**. The code is
@@ -620,9 +767,19 @@ These sit in the **same register** with a scope determination marking them out o
 for SS1/23 and internal EUC policy — so one register serves both supervisors and *"why is this not a
 model?"* has a stored, dated, auditable answer rather than an argument.
 
+The first three rows are the ones the rule-set editor [above](#t8-the-fibre-that-was-least-served)
+actually reaches: a decision table, an AML scenario definition and a pricing grid are each ordered
+rules over declared fields, and each can now be typed into MAYA, checked for shadowing and
+contradiction, read back in English, and executed by the `rules` runtime at the point of `P` a second
+person approved. The last five are not — a spreadsheet, a SAS script and an ETL job are code, and
+their parameter object is not a rule set in this sense however it is labelled. For those, the control
+model in the table is still the whole of what MAYA offers: hold the record, tier it, and refuse a
+conclusion drawn over failed evidence.
+
 **Honest boundary.** MAYA holds them; it does not find them. There is no EUC scanner ingestion and no
-discovery sweep, so the population arrives by whatever route a bank already uses. See
-[01 §6.4](01-industry-research.md#6-the-gap--why-we-build).
+discovery sweep, so the population arrives by whatever route a bank already uses. Authoring a rule
+set inside MAYA is a way to govern one you have decided to bring in; it is not a way to discover the
+four thousand you have not. See [01 §6.4](01-industry-research.md#6-the-gap--why-we-build).
 
 ---
 
@@ -718,8 +875,8 @@ Stated plainly because an earlier draft of this document claimed a seed file tha
 |---|---|
 | **A model class is still a string on the register.** | And it is now only an organisational label — grouping and reporting — because the fibration is indexed by the derived trainability class instead. There is no `entry_points` discovery, so a fibre ships in `core/fibres/library.py` rather than in a bank's own package |
 | **The lifecycle is one state machine, not one per class.** | Six states with amendment as the only route out of immutability, plus `baselined` as a second **initial** state for imported records — because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not (`L-1`) |
-| **What *is* per-class** | the verbs a warrant may ask for, and the refusals: `L-W1` (fit on T0 or T6), `L-W2` (generate on a non-generative runtime), `L-W11` (a calibration with no `as_of`), `L-W12` (parameters in an artifact with no digest), `L-W13` (a generative runtime naming a family but no build). Fourteen laws, all fourteen checked before a signature |
-| **What a bank would extend** | a class of its own, by supplying a fibre and nothing else — `FibreRegistry.register` refuses a partial one, and `verify` refuses to serve on a partial fibration. What is *not* built is `entry_points` discovery, so a bank's fibre ships inside this repository rather than as a separate package |
+| **What *is* per-class** | the verbs a warrant may ask for, and the refusals: `L-W1` (fit on T0 or T6), `L-W2` (generate on a non-generative runtime), `L-W11` (a calibration with no `as_of`), `L-W12` (parameters in an artifact with no digest), `L-W13` (a generative runtime naming a family but no build). Fourteen laws, all fourteen checked before a signature. **T8 is now the one class with a per-class authoring surface as well** — `core/rules/` and the `/rules/{model}/{semver}` page — and it is per-class for a stated reason rather than by accident: a rule set is the only parameter object whose provenance *is* its authorship, so editing one mints no authority the register did not already hold ([the T8 section above](#t8-the-fibre-that-was-least-served)) |
+| **What a bank would extend** | a class of its own, by supplying a fibre and nothing else — `FibreRegistry.register` refuses a partial one, and `verify` refuses to serve on a partial fibration. What is *not* built is `entry_points` discovery, so a bank's fibre ships inside this repository rather than as a separate package. What a bank would **not** extend the same way is the rule vocabulary: adding `matches` or `like` to the eleven operators would end the reachability analysis, because the domains it reasons over are intervals and sets and a regular expression is neither |
 
 ---
 

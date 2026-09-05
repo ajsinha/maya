@@ -3,7 +3,7 @@ divider("11", "What a Featureset Is",
         "A schema, versions that fill it, and one fold that does both.",
         ["Schema and constituents",
          "The composition monoid",
-         "Rolling forward",
+         "When a parent moves",
          "Retrieval policy"])
 
 # ----------------------------------------------------- schema vs constituents
@@ -18,33 +18,38 @@ h = code(sl, ML, y, CW * 0.56, [
  "@v1   gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192DAILY_INFL",
  "@v2   gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192EUHICP",
 ], fs=9.5)
-tf = txt(sl, ML, y + h + 0.28, CW * 0.56, 1.8)
+tf = txt(sl, ML, y + h + 0.28, CW * 0.56, 2.5)
 para(tf, "@v2 draws on a different feature entirely, and a model defined over "
          "inflation does not change: it reads daily_index, and always did.",
      size=11.5, color=INK, first=True, space_after=9, line=1.25)
 para(tf, "A version that CANNOT fill the schema is refused. It is not a version "
          "of this featureset \u2014 it is a different one, or it is a model "
          "change, and the register decides which so nobody has to remember.",
+     size=11, color=SLATE, space_after=9, line=1.25)
+para(tf, "Rolling forward mints a version re-resolved to the newest view "
+         "versions, with a diff naming every slot that moved \u2014 newer data, "
+         "without touching the model.",
      size=11, color=SLATE, space_after=0, line=1.25)
 
 x = ML + CW * 0.60
 tf = txt(sl, x, y, CW * 0.40, 0.32)
-para(tf, "Every binding pins exactly", size=12.5, color=CRIMSON, bold=True,
+para(tf, "Every binding \u2014 what fills a slot, and from where "
+         "\u2014 pins exactly", size=12.5, color=CRIMSON, bold=True,
      font=SERIF, first=True, space_after=0)
 data = [["", ""],
         ["feature", "which signal fills the slot"],
         ["view", "which view supplies its values"],
         ["view_version", "which version of that view"],
         ["delta_version", "which write to that path"],
-        ["namespace", "the resolved Delta location"]]
+        ["namespace", "the resolved location in storage"]]
 th = table(sl, data, x, y + 0.40, CW * 0.40, col_w=[1.5, 3.4], header=False,
            row_h=0.29, fs=9.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, x, y + 0.40 + th + 0.18, CW * 0.40, 1.30,
+note(sl, x, y + 0.40 + th + 0.18, CW * 0.40, 1.34,
      "A path is mutable. ",
-     "A set that named views without pinning them would resolve to different "
-     "bytes next month with its digest unchanged \u2014 which is adversarial "
-     "finding C-2, ",
-     "one level out from the view.")
+     "A set naming views without pinning them would resolve to different "
+     "bytes next month, with its digest \u2014 the hash that names its "
+     "contents \u2014 unchanged: ",
+     "a stable name over moving contents.")
 
 # --------------------------------------------- worked example: a feature
 sl, y = content("Inheriting a feature: a curve with a tenor added",
@@ -95,11 +100,26 @@ note(sl, ML, y + h1 + 0.28, CW, 0.92,
      "where each came from \u2014 3m says it overrode usd_curve. ",
      "The row stores what this feature declares; resolving it is MAYA\u2019s job.")
 
-tf = txt(sl, ML, y + h1 + 1.32, CW, 0.44)
-runs(tf, [("The parent is sealed, and that is the point. ", CRIMSON, True),
-          ("A sealed feature takes no amendment and can still be composed from, "
-           "so a parent that cannot move is a parent worth building on \u2014 "
-           "and the change lives in the child, where a reviewer sees it.",
+DY = y + h1 + 1.36
+rect(sl, ML, DY, CW, 1.10, fill=PARCH)
+rect(sl, ML, DY, 0.05, 1.10, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, DY + 0.13, CW - 0.5, 0.88)
+para(tf, "And if a parent is amended anyway?", size=11.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=5)
+runs(tf, [("The child says so. ", INK, True),
+          ("A composition records the parent\u2019s definition version at the "
+           "moment it resolved, so a parent that has moved since shows up as "
+           "drift on every child that reads it \u2014 ", INK, False),
+          ("composed against v1, now at v3.", CRIMSON, True),
+          ("  Not a failed read: a child whose parent has moved is something to "
+           "be told about, not something that should stop working.",
+           SLATE, False)],
+     size=9.8, space_after=0, line=1.22)
+
+tf = txt(sl, ML, DY + 1.24, CW, 0.34)
+runs(tf, [("A sealed parent cannot drift ", CRIMSON, True),
+          ("\u2014 the amendment that would move it is refused, so sealing "
+           "turns a promise about stability into a property of the object.",
            SLATE, False)],
      size=10, first=True, space_after=0, line=1.22)
 
@@ -154,56 +174,6 @@ runs(tf, [("A child inherits the parents\u2019 retrieval policy the same way",
           (" \u2014 one fold, applied to slots, to components and to policy.",
            SLATE, False)],
      size=10, space_after=0, line=1.24)
-
-
-# ------------------------------------------ modifying something with children
-sl, y = content("Modifying something other things are built on",
-                "Composing a featureset")
-
-BW4 = (CW - 3 * 0.22) / 4
-for i, (num, title, body) in enumerate([
-    ("1", "Amend it",
-     "Changes the definition and advances its version. Allowed while the "
-     "feature is open, and every child records which version it composed "
-     "against."),
-    ("2", "Seal it",
-     "No amendment, no further versions, no change of owner \u2014 and still "
-     "composable. A parent that cannot move is a parent worth building on."),
-    ("3", "Compose a child",
-     "The way to change a sealed thing. The change lives where a reviewer sees "
-     "it, beside the parent it departs from."),
-    ("4", "Roll forward",
-     "For a featureset: mint a version re-resolved to the newest view "
-     "versions, with a diff naming every slot that moved."),
-]):
-    xx = ML + i * (BW4 + 0.22)
-    card(sl, xx, y, BW4, 2.15, num, title, body)
-
-DY = y + 2.38
-rect(sl, ML, DY, CW, 1.02, fill=PARCH)
-rect(sl, ML, DY, 0.05, 1.02, fill=CRIMSON)
-tf = txt(sl, ML + 0.26, DY + 0.13, CW - 0.5, 0.80)
-para(tf, "And if a parent is amended anyway?", size=11.5, color=CRIMSON,
-     bold=True, font=SERIF, first=True, space_after=5)
-runs(tf, [("The child says so. ", INK, True),
-          ("A composition records the parent\u2019s definition version at the "
-           "moment it resolved, so a parent that has moved since shows up as "
-           "drift on every child that reads it \u2014 ",
-           INK, False),
-          ("composed against v1, now at v3.", CRIMSON, True),
-          ("  Not a failed read: a child whose parent has moved is something to "
-           "be told about, not something that should stop working. But it is "
-           "never silent, because a stable name over moving contents is the "
-           "failure this platform was built around.", SLATE, False)],
-     size=9.8, space_after=0, line=1.22)
-
-tf = txt(sl, ML, DY + 1.20, CW, 0.40)
-runs(tf, [("Which is why sealing and composing are the same idea from two "
-           "sides. ", CRIMSON, True),
-          ("A sealed parent cannot drift, because the amendment that would "
-           "move it is refused \u2014 so sealing turns a promise about "
-           "stability into a property of the object.", SLATE, False)],
-     size=10, first=True, space_after=0, line=1.22)
 
 
 # ------------------------------------------------------------ the monoid
@@ -281,6 +251,7 @@ note(sl, ML, y + 3.42, CW, 0.92,
 sl, y = content("Aligning onto an axis, and the leakage that cannot hide",
                 "Composing a featureset")
 data = [["Rule", "Fills from", "Safe for training"],
+        ["none", "nothing \u2014 the gap stays a gap", "yes"],
         ["flat_forward", "the last observation", "yes"],
         ["flat_backward", "the next observation", "no"],
         ["linear", "both neighbours", "no"],
@@ -311,5 +282,5 @@ para(tf, "A value derived from a later observation inherits that "
          "became knowable.",
      size=11, color=INK, first=True, space_after=8, line=1.25)
 para(tf, "The leakage is not caught by a check. It is made arithmetically "
-         "impossible to hide, by the bitemporal machinery already here.",
+         "impossible to hide, by the two-clock machinery already here.",
      size=11, color=SLATE, space_after=0, line=1.25)

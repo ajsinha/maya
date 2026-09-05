@@ -99,8 +99,8 @@ distinctions are the whole content of the law:
 
 | Left out | Why |
 |---|---|
-| `pmml`, `onnx`, `sql`, `rules`, `spreadsheet`, `descriptor_only` | determinism is a property of the **format**, not of whatever somebody wrote inside it |
-| `estimator` | MAYA's own captive runtime, so `L-3` verifies determinism by **running it twice and comparing bit for bit** — better evidence than a seed |
+| `pmml`, `onnx`, `sql`, `spreadsheet`, `descriptor_only` | determinism is a property of the **format**, not of whatever somebody wrote inside it |
+| `estimator`, `rules` | MAYA holds what they run, so it can verify the claim by **executing** it: `L-3` runs the estimator twice and compares bit for bit, and a rule set is a document the platform reads and evaluates itself. Better evidence than a seed |
 | `quantlib` | a **named gap**. Whether a valuation is deterministic is decidable from the `pricing_engine` its own entry declares, so the right check is against the engine name. It is not built |
 
 ### And the structural control, which still does the harder half

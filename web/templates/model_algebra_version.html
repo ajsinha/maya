@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Versions of {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">VERSION &middot; {{ model.urn }}</p>
+<h1>{{ model.name }} — create a version, and watch the class fall out</h1>
+<div class="rule"></div>
+{% set here = 'version' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">A version is created once and
+never edited. Two fields decide its <strong>trainability class</strong>, and
+nobody types the class: it is derived from how <code>P</code> is inhabited and
+by what. The panel on the right is the server's answer, recomputed as the form
+changes &mdash; this page derives nothing itself.</p>
+
+<div class="row g-3">
+  <!-- ----------------------------------------------------------- the form -->
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header">The kernel</div>
+      <div class="card-body">
+        <form id="version-form" class="small">
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">semver</label>
+              <input class="form-control form-control-sm" name="semver" placeholder="1.0.0" required></div>
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">parameter_kind &mdash; how P is inhabited</label>
+              <select class="form-select form-select-sm" name="parameter_kind">
+                {% for k in parameter_kinds %}<option>{{ k }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">fit_procedure &mdash; what inhabited it</label>
+              <select class="form-select form-select-sm" name="fit_procedure">
+                {% for f in fit_procedures %}<option>{{ f }}</option>{% endfor %}
+              </select></div>
+
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">output_kind</label>
+              <select class="form-select form-select-sm" name="output_kind">
+                {% for o in output_kinds %}<option>{{ o }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">adaptive &mdash; keeps learning after release</label>
+              <select class="form-select form-select-sm" name="adaptive">
+                <option value="0">0 — frozen once released</option>
+                <option value="1">1 — continues to learn</option>
+              </select></div>
+            <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">deterministic</label>
+              <select class="form-select form-select-sm" name="deterministic">
+                <option value="1">1 — same inputs, same answer</option>
+                <option value="0">0 — samples</option>
+              </select></div>
+
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">input schema &mdash; X</label>
+              <textarea class="form-control form-control-sm mono" name="input_schema" rows="2"
+                placeholder='[{"name": "dscr", "dtype": "float", "minimum": -5, "maximum": 20}]'></textarea></div>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">output schema &mdash; Y</label>
+              <textarea class="form-control form-control-sm mono" name="output_schema" rows="2"
+                placeholder='[{"name": "pd_12m", "dtype": "float"}]'></textarea></div>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">operating contract &mdash; assume-guarantee</label>
+              <textarea class="form-control form-control-sm mono" name="contract" rows="2"
+                placeholder='{"assumptions": [{"key": "dscr", "minimum": -5, "maximum": 20}], "guarantees": [{"key": "gini", "minimum": 0.42}]}'></textarea></div>
+
+            <div class="col-md-7"><input class="form-control form-control-sm" name="artifact_uri"
+                   placeholder="artifact uri — where to look"></div>
+            <div class="col-md-5"><input class="form-control form-control-sm" name="artifact_digest"
+                   placeholder="sha256:… — what should be there"></div>
+          </div>
+
+          <div class="d-flex align-items-center gap-2 mt-3">
+            <button id="create-version" class="btn btn-sm btn-danger py-0 px-3"
+                    style="font-size:.75rem" disabled>Create version</button>
+            <span class="text-muted" id="create-gate" style="font-size:.72rem">
+              enabled when the register says this kernel would be accepted</span>
+          </div>
+          {% if not may_create %}
+            <div class="state-note mt-2">Your roles do not carry
+            <code>version:create</code>. The form still checks &mdash; the API is
+            what refuses, and it will.</div>
+          {% endif %}
+        </form>
+        <div id="version-result" class="small mt-2"></div>
+      </div></div>
+  </div>
+
+  <!-- ------------------------------------------------------ the derivation -->
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header">The class, derived</div>
+      <div class="card-body">
+        <div class="d-flex align-items-baseline gap-2">
+          <span class="stat mono" id="derived-class">—</span>
+          <span class="text-muted" id="derived-label" style="font-size:.78rem"></span>
+        </div>
+        <div id="derived-detail" class="small text-muted"></div>
+        <div id="derived-refusal" class="mt-2"></div>
+        <div class="kicker mt-3 mb-1">HOW IT WAS ARRIVED AT</div>
+        <table class="table table-sm maya mb-0">
+          <thead><tr><th>Reads</th><th>Says</th></tr></thead>
+          <tbody id="derivation-steps">
+            <tr><td class="text-muted" colspan="2">choose a parameter kind and a fit procedure</td></tr>
+          </tbody>
+        </table>
+        <div class="kicker mt-3 mb-1">WHAT THIS CLASS OWES</div>
+        <div id="derived-fibre" class="small text-muted">the fibre over the class,
+          which is what a validator of this model is entitled to ask for</div>
+      </div></div>
+
+    <div class="card mt-3"><div class="card-header">What the check does not answer</div>
+      <div class="card-body">
+        <ul class="small text-muted mb-0" style="padding-left:1.1rem">
+          {% for u in unchecked %}<li>{{ u }}</li>{% endfor %}
+        </ul>
+      </div></div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------ the record's state -->
+<div class="card mt-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>The record this version would join</span>
+    {% if flow.mutable %}<span class="open-badge">OPEN TO CHANGE</span>
+    {% else %}<span class="frozen-badge">FROZEN</span>{% endif %}
+  </div>
+  <div class="card-body small">
+    <p class="mb-1"><strong class="mono">{{ flow.state }}</strong> &mdash; {{ flow.meaning }}</p>
+    {% if not flow.mutable %}
+      <p class="text-muted mb-0">A new version <em>is</em> a change to the model,
+      so this record will refuse one. That refusal comes from the register when
+      the form is submitted, not from this page &mdash; open an amendment on the
+      <a href="/model-algebra/lifecycle/{{ name }}">lifecycle screen</a> and the
+      same submission is accepted.</p>
+    {% else %}
+      <p class="text-muted mb-0">Open to change, so a version may be added.</p>
+    {% endif %}
+  </div></div>
+
+<!-- ----------------------------------------------------------- the versions -->
+<div class="card mt-3"><div class="card-header">Versions on file</div>
+  <div class="card-body">
+    {% if versions %}
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Semver</th><th>Class</th><th>P</th><th>Fit</th><th>Status</th>
+        <th>Inputs</th><th>Outputs</th><th>Digest</th></tr></thead>
+      <tbody>
+      {% for v in versions %}
+        <tr>
+          <td class="mono">{{ v.semver }}</td>
+          <td class="mono fw-bold" title="{{ classes[v.semver].label if classes[v.semver] else '' }}">
+            {{ v.trainability_class }}</td>
+          <td class="mono" style="font-size:.74rem">{{ v.parameter_kind }}</td>
+          <td class="mono" style="font-size:.74rem">{{ v.fit_procedure }}</td>
+          <td>{{ v.status }}</td>
+          <td style="font-size:.72rem">{% for f in v.input_schema %}<span class="chip">{{ f.name }}:{{ f.dtype }}</span> {% endfor %}</td>
+          <td style="font-size:.72rem">{% for f in v.output_schema %}<span class="chip">{{ f.name }}:{{ f.dtype }}</span> {% endfor %}</td>
+          <td class="mono" style="font-size:.68rem">{{ (v.artifact_digest or 'descriptor_only')[:20] }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="small text-muted mb-0">No versions yet. The model has no schema
+      until one exists, which is why an <code>input_to</code> edge into it is
+      recorded without a type check until then.</p>
+    {% endif %}
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-version.js"></script>
+<script>window.mayaAlgebraVersion({name: "{{ name }}"});</script>
+{% endblock %}

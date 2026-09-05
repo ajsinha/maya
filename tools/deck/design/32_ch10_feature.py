@@ -28,8 +28,8 @@ tf = txt(sl, x, y, CW * 0.44, 3.4)
 para(tf, "The component order IS the axis order", size=12.5, color=CRIMSON,
      bold=True, font=SERIF, first=True, space_after=8)
 para(tf, "A curve whose tenors came back alphabetically would be a different "
-         "curve \u2014 and one nobody would notice was wrong. Resolution "
-         "preserves insertion order and never sorts.",
+         "curve \u2014 and one nobody would notice was wrong. When MAYA resolves "
+         "a feature it preserves insertion order and never sorts.",
      size=11, color=INK, space_after=10, line=1.25)
 para(tf, "The names are what make composition mean something. \u201cDrop the "
          "50-year point\u201d is an operation on a name; on an anonymous array "
@@ -47,9 +47,10 @@ h = code(sl, ML, y, CW * 0.50, [
  "property_age        = year(event_ts) - year_built",
  "log_living_area     = log(living_area_sqft)",
  "",
- "# arithmetic, comparison, nine total functions,",
- "# the row's own clock. whitelisted at the AST,",
- "# so what cannot be expressed cannot be smuggled in.",
+ "# arithmetic, comparison, nine TOTAL functions -- each",
+ "# defined for every input -- and the row's own clock.",
+ "# Checked against a whitelist as the text is parsed, so",
+ "# what cannot be expressed cannot be smuggled in.",
 ], fs=9)
 note(sl, ML, y + h + 0.26, CW * 0.50, 1.14,
      "MAYA transforms features it holds; ",
@@ -63,14 +64,14 @@ tf = txt(sl, x, y, CW * 0.46, 0.32)
 para(tf, "Four rules, each because the alternative fails quietly", size=12,
      color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
 data = [["Rule", "What it prevents"],
-        ["Lineage is the transitive closure",
+        ["Lineage is every ancestor, not just the immediate inputs",
          "a primitive retired under something deriving from it"],
         ["ingest_ts(Z) = max(inputs)",
          "the easiest way to leak the future: a value appearing knowable "
          "before its inputs were"],
         ["No slot may derive from the label",
          "leakage with a division sign in front of it"],
-        ["Certification is the meet",
+        ["Certification is the meet \u2014 the weakest input wins",
          "deriving from an uncertified feature to launder it"]]
 table(sl, data, x, y + 0.40, CW * 0.46, col_w=[2.3, 3.1], row_h=0.30, fs=9,
       hfs=9, bold_col0=True, first_col_color=CRIMSON)
@@ -80,7 +81,8 @@ sl, y = content("The one that gets refused", "Engineering a feature")
 h = code(sl, ML, y, CW * 0.54, [
  "feature: price_per_sqft",
  "inputs:  [sale_price, living_area_sqft]",
- "         # sale_price is the featureset's LABEL",
+ "         # sale_price is the LABEL: what the model",
+ "         # is being trained to predict",
  "",
  "409  'price_per_sqft' is computed from 'sale_price',",
  "     which this featureset declares as its label \u2014 a",
@@ -109,17 +111,16 @@ para(tf, "It is not caught by any metric, because every metric agrees the model 
          "\u2014 which is why the lineage is recorded rather than inferred.",
      size=11, color=SLATE, space_after=10, line=1.25)
 para(tf, "The same argument produces the ingest-clock rule, the point-in-time "
-         "assembly rule, and the refusal to normalise without an as_of. They "
-         "are one idea applied four times.",
+         "assembly rule, and the refusal to normalise without an as_of \u2014 "
+         "the date a read is answered as of. One idea, applied four times.",
      size=11, color=SLATE, space_after=0, line=1.25)
 
 # --------------------------------------------------- sealing and ownership
 sl, y = content("Sealed, ephemeral, owned", "Engineering a feature")
 card(sl, ML, y, CW * 0.315, 2.5, "1", "Sealed",
      "Final: no amendment, no further versions, no change of owner \u2014 and "
-     "still composable. That combination is the point. A parent that cannot "
-     "move is a parent worth building on, and evolution moves to a child where "
-     "it stays visible.")
+     "still composable. A parent that cannot move is a parent worth building "
+     "on.")
 card(sl, ML + CW * 0.343, y, CW * 0.315, 2.5, "2", "Ephemeral",
      "A time to live, then destroyed. Cannot be sealed \u2014 permanent and "
      "temporary are not two flags that happen to be set. Cannot be composed "

@@ -1148,7 +1148,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Eight idempotent jobs
+### 16.3 Nine idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1233,8 +1233,8 @@ state-changing method whose authority came from the cookie. Requiring one from a
 would protect nothing, since the browser never sends that header unprompted, while breaking every service
 client, which is how a control ends up switched off in configuration.
 
-Three implementation decisions carry weight. It is enforced in **middleware**, because a hundred and four
-mutating endpoints is a hundred and four chances to forget. Exemptions are **exact paths rather than
+Three implementation decisions carry weight. It is enforced in **middleware**, because a hundred and fourteen
+mutating endpoints is a hundred and fourteen chances to forget. Exemptions are **exact paths rather than
 prefixes**, so the exempt set cannot grow as routes are added beneath it. And the ordering is load-bearing:
 the guard registers *before* the session middleware, which places it *inside* it, since Starlette wraps
 later-added middleware outermost and a guard running before the session is decoded has nothing to compare

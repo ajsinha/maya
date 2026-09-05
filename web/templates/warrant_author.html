@@ -1,0 +1,653 @@
+{% extends "base.html" %}
+{% block title %}Warrants — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE BOUNDARY</p>
+<h1>Warrants</h1>
+<div class="rule"></div>
+<p class="text-muted small mb-1" style="max-width:52rem">
+A <strong>warrant</strong> is a signed, expiring, entitlement-bound contract
+authorising one act, on one model version, by one principal, for one stated use.
+MAYA issues it; an execution engine acts on it. That separation is why a governed
+version move never requires a consumer to redeploy — the consumer holds a URN and
+everything else is resolved at the moment of use, against the policy in force at
+that moment.</p>
+<p class="text-muted small" style="max-width:52rem">
+Nothing on this page decides anything. Every button posts to the same endpoint an
+external engine calls, and every refusal below is the platform's answer rendered
+verbatim, with the remediation it supplied.</p>
+
+<!-- ------------------------------------------------------- the model -->
+<form class="card mb-3" method="get" action="/warrants">
+  <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+    <label class="small text-muted mb-0" for="model-pick">Model</label>
+    <select class="form-select form-select-sm" id="model-pick" name="model"
+            style="max-width:26rem" onchange="this.form.submit()">
+      <option value="">choose a model&hellip;</option>
+      {% for m in models %}
+      <option value="{{ m.urn.replace('maya://model/', '') }}"
+              {% if model and m.id == model.id %}selected{% endif %}>{{ m.name }} — {{ m.urn }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-control form-control-sm" name="environment" style="max-width:9rem"
+           value="{{ environment }}" aria-label="environment">
+    <button class="btn btn-sm btn-outline-danger py-0 px-3" style="font-size:.75rem">Show</button>
+    {% if model %}
+    <a class="ms-auto small" href="/model/{{ model.urn.replace('maya://model/', '') }}">the model record &rarr;</a>
+    <a class="small" href="/packages/{{ model.urn.replace('maya://model/', '') }}">its package &rarr;</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if model %}
+<div id="warrant-root"
+     data-urn="{{ model.urn }}"
+     data-name="{{ model.urn.replace('maya://model/', '') }}"
+     data-environment="{{ environment }}"></div>
+<script type="application/json" id="warrant-sections">{{ sections | tojson }}</script>
+
+<p class="small mb-3">
+  <a href="#grant">1 The standing grant</a> ·
+  <a href="#profiles">2 Profiles</a> ·
+  <a href="#score">3 A scoring warrant</a> ·
+  <a href="#fit">4 Fit &rarr; parameters &rarr; score</a> ·
+  <a href="#revocation">5 Revocation, grace and the epoch</a> ·
+  <a href="#boundary">6 The operating boundary</a> ·
+  <a href="#laws">7 The fourteen laws</a>
+</p>
+
+<!-- ==================================================== 1 the grant -->
+<div class="card mb-3" id="grant">
+  <div class="card-header">1 &mdash; The standing grant</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    A <strong>grant</strong> is the standing entitlement: this principal, in this
+    environment, for this declared use. A <strong>descriptor</strong> is the
+    short-lived credential minted against one. Separating them is what makes
+    revocation meaningful — withdrawing the grant stops future descriptors, and
+    bumping the epoch invalidates the ones already out.</p>
+    <div class="state-note mb-3">
+      <strong>Nothing resolves without one.</strong> A resolution for a principal
+      that holds no grant is refused <code>no_entitlement</code> with a 403, and
+      that refusal surprises almost everybody the first time. It is not a bug and
+      it is not a permission problem with your login: it means nobody has yet
+      said that <em>this principal</em> may use <em>this model</em> in
+      <em>this environment</em> for <em>this purpose</em>.
+    </div>
+
+    <table class="table table-sm maya align-middle">
+      <thead><tr>
+        <th>Environment</th><th>Principal</th><th>Declared use</th>
+        <th>Binding</th><th>TTL</th><th>Grace</th><th>Epoch</th>
+        <th>Withdrawn</th><th>Grant id</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for g in grants %}
+        <tr>
+          <td>{{ g.environment }}</td>
+          <td class="mono">{{ g.principal }}</td>
+          <td>{{ g.declared_use }}</td>
+          <td>{{ g.binding_kind }}{% if g.alias_name %} <span class="chip">#{{ g.alias_name }}</span>{% endif %}</td>
+          <td data-sort="{{ g.ttl_seconds }}">{{ g.ttl_seconds }}s</td>
+          <td data-sort="{{ g.grace_seconds }}">{{ g.grace_seconds }}s</td>
+          <td data-sort="{{ g.epoch }}">{{ g.epoch }}</td>
+          <td>{% if g.revoked %}<span class="evidence-bad">withdrawn</span>
+              <div class="text-muted" style="font-size:.7rem">{{ g.revoke_reason }}</div>
+              {% else %}<span class="evidence-ok">no</span>{% endif %}</td>
+          <td class="mono" style="font-size:.7rem">{{ g.id }}</td>
+          <td><button type="button" class="btn btn-sm btn-outline-secondary py-0 use-grant"
+                      style="font-size:.68rem"
+                      data-principal="{{ g.principal }}" data-use="{{ g.declared_use }}"
+                      data-environment="{{ g.environment }}" data-grant="{{ g.id }}">use</button></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10" class="text-muted small">
+          No grant on this model, in any environment. Every resolution will be
+          refused <code>no_entitlement</code> until there is one.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="row g-3 mt-1">
+      <div class="col-lg-7">
+        <form id="issue-grant" class="small">
+          <div class="row g-2">
+            <div class="col-md-4"><input class="form-control form-control-sm" name="environment"
+                   value="{{ environment }}" placeholder="environment" required>
+              <div class="text-muted" style="font-size:.7rem">prod, uat, lab</div></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" name="principal"
+                   placeholder="svc/origination" required>
+              <div class="text-muted" style="font-size:.7rem">who will hold it</div></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" name="declared_use"
+                   placeholder="origination_decision" required>
+              <div class="text-muted" style="font-size:.7rem">what for — matched exactly at resolution</div></div>
+            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+                   value="{{ model.urn }}#champion" required>
+              <div class="text-muted" style="font-size:.7rem">
+                a bare urn binds the alias; <code>@3.2.1</code> pins a version,
+                <code>#champion</code> names the alias to follow</div></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
+                  {% if 'warrant:issue' not in permissions %}disabled title="issuing a grant needs warrant:issue"{% endif %}>
+            Issue the grant</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.grant }}</span>
+        </form>
+        <div id="grant-result" class="small mt-2"></div>
+      </div>
+      <div class="col-lg-5">
+        <table class="table table-sm maya">
+          <thead><tr><th>Tier</th><th>TTL</th><th>Grace</th></tr></thead>
+          <tbody>
+          {% for tier, ttl in ttl_by_tier.items() %}
+            <tr><td>Tier {{ tier }}</td><td data-sort="{{ ttl }}">{{ ttl }}s</td>
+                <td data-sort="{{ grace_by_tier.get(tier, 0) }}">{{ grace_by_tier.get(tier, 0) }}s</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          The tier decides both. A grant takes the numbers in force when it was
+          issued, which is why the table above and a grant's own row can differ.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================== 2 the profiles -->
+<div class="card mb-3" id="profiles">
+  <div class="card-header">2 &mdash; Profiles: templating the request, never the warrant</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    "Warrants should be templated by kind of model" is half right, and the wrong
+    half is expensive. The <em>document</em> must not fork: one grammar over every
+    model family, with no engine branching on model type before it can read
+    anything. What is genuinely tedious is the <em>request</em> — the same verb,
+    the same ceiling, the same binding shape retyped for every warrant of a kind.
+    A profile fills that in, and nothing else.</p>
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <dl class="maya-terms border rounded mb-2">
+          <div><dt>Selected by derived facts</dt><dd>never by a category somebody
+            attached to a model — a declared taxonomy beside a derived one is two
+            answers to one question</dd></div>
+          <div><dt>Defaults only</dt><dd>and only for keys a caller could have
+            typed</dd></div>
+          <div><dt>Never overrides a caller</dt><dd>a profile fills holes; a value
+            you supplied is yours, including one identical to the default</dd></div>
+          <div><dt>Several may match</dt><dd>they fold left to right ordered by
+            specificity, so the most specific speaks last</dd></div>
+        </dl>
+        <p class="text-muted" style="font-size:.72rem">
+          An <strong>obligation</strong> is not a default, because a default is
+          something you can drop. "A T4 warrant in prod must carry a digest" is a
+          law (L-W12) or a policy gate on <code>warrant:resolve</code>, and both
+          refuse rather than suggest. A profile that reaches for one is refused
+          <code>authority_not_defaultable</code>.</p>
+      </div>
+      <div class="col-lg-6">
+        <table class="table table-sm maya mb-1">
+          <thead><tr><th>A profile may select on</th><th>which is</th></tr></thead>
+          <tbody>{% for fact, means in profile_facts.items() %}
+            <tr><td class="mono">{{ fact }}</td><td class="text-muted">{{ means }}</td></tr>
+          {% endfor %}</tbody>
+        </table>
+        <table class="table table-sm maya mb-1">
+          <thead><tr><th>and may fill in</th><th>which is</th></tr></thead>
+          <tbody>{% for key, means in profile_defaultable.items() %}
+            <tr><td class="mono">{{ key }}</td><td class="text-muted">{{ means }}</td></tr>
+          {% endfor %}</tbody>
+        </table>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          Never: <span class="mono">{{ profile_authority | join(', ') }}</span> —
+          each decides who may act, for what, or until when.</p>
+      </div>
+    </div>
+
+    <table class="table table-sm maya mt-3">
+      <thead><tr><th>Profile</th><th>Version</th><th>When</th><th>Fills in</th>
+        <th>Specificity</th><th>Note</th><th></th></tr></thead>
+      <tbody>
+      {% for p in profiles %}
+        <tr>
+          <td class="mono">{{ p.name }}</td>
+          <td data-sort="{{ p.version }}">v{{ p.version }}</td>
+          <td class="mono" style="font-size:.72rem">{{ p.when_facts | tojson }}</td>
+          <td class="mono" style="font-size:.72rem">{{ p.defaults | tojson }}</td>
+          <td data-sort="{{ p.specificity }}">{{ p.specificity }}</td>
+          <td class="text-muted" style="font-size:.72rem">{{ p.note }}</td>
+          <td><button type="button" class="btn btn-sm btn-outline-secondary py-0 retire-profile"
+                      style="font-size:.68rem" data-name="{{ p.name }}"
+                      {% if 'warrant:issue' not in permissions %}disabled{% endif %}>retire</button></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-muted small">
+          No profile is registered. Every request stands exactly as its caller
+          wrote it, which is the correct state until the same three fields have
+          been retyped often enough to be worth a default.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <form id="new-profile" class="small">
+          <div class="row g-2">
+            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+                   placeholder="name, e.g. scored_in_prod" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="note"
+                   placeholder="why it exists"></div>
+            <div class="col-12"><textarea class="form-control form-control-sm mono" name="when" rows="2"
+                   placeholder='{"environment": ["prod"], "trainability_class": ["T3"]}'></textarea>
+              <div class="text-muted" style="font-size:.7rem">the predicate; <code>{}</code> matches everything</div></div>
+            <div class="col-12"><textarea class="form-control form-control-sm mono" name="defaults" rows="2"
+                   placeholder='{"verb": "score", "max_seconds": 5}'></textarea></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
+                  {% if 'warrant:issue' not in permissions %}disabled title="needs warrant:issue"{% endif %}>
+            Register the profile</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.profile }}</span>
+        </form>
+        <div id="profile-result" class="small mt-2"></div>
+      </div>
+      <div class="col-lg-6">
+        <form id="preview-profile" class="small">
+          <div class="row g-2">
+            <div class="col-md-5"><input class="form-control form-control-sm" name="environment"
+                   value="{{ environment }}" placeholder="environment"></div>
+            <div class="col-md-7"><input class="form-control form-control-sm" name="semver"
+                   placeholder="semver (blank = latest)"></div>
+            <div class="col-12"><textarea class="form-control form-control-sm mono" name="request" rows="2"
+                   placeholder='the request as you would send it, e.g. {"verb": "score"}'></textarea></div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">
+            What would apply?</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.preview }}</span>
+        </form>
+        <div id="preview-result" class="small mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- =============================================== 3 a scoring warrant -->
+<div class="card mb-3" id="score">
+  <div class="card-header">3 &mdash; Resolve a scoring warrant</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    The hot path. A signed descriptor, or a refusal with a reason. The order of
+    the checks is the part that has to be right: the model must not be blocked by
+    an open finding, then the principal must hold a grant, then the grant must not
+    have been withdrawn, then the declared use must match the approved one, then
+    the version the alias points at must be approved.</p>
+    <form id="resolve-warrant" class="small">
+      <div class="row g-2">
+        <div class="col-md-3"><input class="form-control form-control-sm" name="environment"
+               value="{{ environment }}" placeholder="environment" required></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="principal"
+               placeholder="principal" required></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="declared_use"
+               placeholder="declared use" required></div>
+        <div class="col-md-3">
+          <select class="form-select form-select-sm" name="verb">
+            {% for v in verbs %}
+            <option value="{{ v.verb }}" {% if v.verb == 'score' %}selected{% endif %}
+                    title="{{ v.means }}">{{ v.verb }}{% if v.verb not in admits %} — refused for this class{% endif %}</option>
+            {% endfor %}
+          </select></div>
+        <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+               value="{{ model.urn }}#champion" required></div>
+      </div>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Resolve</button>
+      <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.score }}</span>
+    </form>
+    <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+      The verb list is the grammar's, not this page's. The
+      <em>latest</em> version's class admits
+      <span class="mono">{{ admits | join(', ') }}</span> &mdash; latest, and not
+      whichever version this request will resolve to, because that is decided by
+      the alias at the moment of use and not by anything on this page. The other
+      verbs are still offered, so that a refusal explains itself rather than a
+      control silently disappearing.</p>
+    <div id="warrant-result" class="mt-3"></div>
+  </div>
+</div>
+
+<!-- ============================== 4 fit -> parameters -> score, whole -->
+<div class="card mb-3" id="fit">
+  <div class="card-header">4 &mdash; Fit &rarr; parameters &rarr; score, the whole round trip</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    Fitting does not change the kernel. <code>f : P &times; X &rarr; D(Y)</code>
+    stays as it was; a fit picks a point in <code>P</code>. So a fit produces a
+    <strong>parameter set</strong>, not a version — and the round trip is: MAYA
+    issues a fit warrant, an engine trains somewhere else, the numbers come back
+    naming the warrant that produced them, and somebody who is not their author
+    approves them before anything runs on them.</p>
+
+    <div class="state-note mb-3">
+      <strong>The id that goes back is the grant's, not the descriptor's.</strong>
+      A resolved descriptor is minted per request and never stored, so its
+      <code>warrant_id</code> is not something MAYA can vouch for later. What is
+      persisted is the standing grant, so that is what <code>POST /parameters</code>
+      checks its <code>warrant_id</code> against. Quoting the descriptor's id is
+      refused <code>unknown_warrant</code>. The forms below carry the grant's.
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <p class="kicker mb-1">STEP ONE — THE FIT WARRANT</p>
+        {% if featuresets %}
+        <form id="resolve-fit" class="small">
+          <div class="row g-2">
+            <div class="col-md-6"><input class="form-control form-control-sm" name="environment"
+                   value="{{ environment }}" placeholder="environment" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="principal"
+                   placeholder="principal" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="declared_use"
+                   value="model_development" required></div>
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="featureset" id="fit-featureset" required>
+                {% for f in featuresets %}<option value="{{ f.name }}"
+                   data-versions="{{ f.versions | join(',') }}">{{ f.name }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-4">
+              <select class="form-select form-select-sm" name="featureset_version" id="fit-version"></select>
+              <div class="text-muted" style="font-size:.7rem">the version, pinned</div></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" type="date" name="window_from" required>
+              <div class="text-muted" style="font-size:.7rem">window from</div></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" type="date" name="window_to" required>
+              <div class="text-muted" style="font-size:.7rem">window to</div></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" type="date" name="as_of" required>
+              <div class="text-muted" style="font-size:.7rem">as of — what was knowable</div></div>
+            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+                   value="{{ model.urn }}" required></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
+                  {% if 'warrant:issue' not in permissions %}disabled title="needs warrant:issue"{% endif %}>
+            Resolve the fit warrant</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.fit }}</span>
+        </form>
+        <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+          The window and the <code>as_of</code> are the warrant's job, not the
+          featureset's: the set fixes the columns and the point-in-time rule so it
+          can be reused across periods, and L-W9 refuses a fit that bounds
+          neither. The schema check (L-W10) happens here too — a featureset that
+          does not provide what this kernel declares it reads is refused
+          <code>schema_not_satisfied</code>, because adding a regressor is a model
+          change and not a data change.</p>
+        {% else %}
+        <p class="small text-muted">No featureset is registered, so a fit warrant
+          cannot be issued: a fit warrant names the presentation of <code>X</code>
+          it trains from, and there is none to name.
+          <a href="/featuresets">Declare one first.</a></p>
+        {% endif %}
+        <div id="fit-result" class="mt-3"></div>
+      </div>
+
+      <div class="col-lg-6">
+        <p class="kicker mb-1">STEP TWO — THE NUMBERS COME BACK</p>
+        <form id="record-parameters" class="small">
+          <div class="row g-2">
+            <div class="col-md-6"><input class="form-control form-control-sm" name="semver"
+                   placeholder="version, e.g. 3.2.1" required></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+                   placeholder="name, e.g. sb-pd-2026q1" required></div>
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="provenance">
+                {% for kind, means in provenance.items() %}
+                <option value="{{ kind }}" title="{{ means }}">{{ kind }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-6"><input class="form-control form-control-sm" name="kind"
+                   value="estimated_coefficients" placeholder="what inhabits P"></div>
+            <div class="col-12"><textarea class="form-control form-control-sm mono" name="values" rows="2"
+                   placeholder='{"intercept": -1.4, "dscr": 0.31}' required></textarea></div>
+            <div class="col-12"><textarea class="form-control form-control-sm mono" name="diagnostics" rows="1"
+                   placeholder='{"r2": 0.41, "n": 18400}'></textarea></div>
+            <div class="col-md-7"><input class="form-control form-control-sm mono" name="warrant_id"
+                   id="record-warrant" placeholder="the GRANT id — 'use' on a row above fills it"></div>
+            <div class="col-md-5"><input class="form-control form-control-sm" name="featureset"
+                   id="record-featureset" placeholder="featureset"></div>
+            <div class="col-md-4"><input class="form-control form-control-sm" name="featureset_version"
+                   id="record-featureset-version" placeholder="fs version"></div>
+            <div class="col-md-8"><input class="form-control form-control-sm" type="date" name="as_of"
+                   id="record-as-of"></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
+                  {% if 'parameter:record' not in permissions %}disabled title="needs parameter:record"{% endif %}>
+            Record the parameters</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.record }}</span>
+        </form>
+        <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+          <strong>Fitted</strong> parameters are accepted only against a warrant
+          MAYA issued, and must name the featureset version that produced them —
+          there is no back door, because otherwise "which data produced these
+          numbers" has no answer. <strong>Declared</strong> parameters need
+          neither: they are an assertion by a person, and are attested rather than
+          fitted.</p>
+        <div id="record-result" class="mt-3"></div>
+      </div>
+    </div>
+
+    <p class="kicker mt-3 mb-1">STEP THREE — WHAT MAY RUN, AND WHAT IS WAITING</p>
+    {% for row in parameters %}
+    <div class="border rounded p-2 mb-2">
+      <div class="d-flex flex-wrap gap-2 align-items-baseline">
+        <span class="fw-semibold">{{ row.semver }}</span>
+        <span class="chip">{{ row.status }}</span>
+        <span class="chip">{{ row.trainability_class }}</span>
+        <span class="small {% if row.readiness.ready %}evidence-ok{% else %}evidence-bad{% endif %}">
+          {{ row.readiness.detail }}</span>
+        <a class="ms-auto small" href="/parameters/{{ row.semver }}/{{ model.urn.replace('maya://model/', '') }}">
+          the fuller parameter page &rarr;</a>
+      </div>
+      {% if row.sets %}
+      <table class="table table-sm maya mt-2 mb-0">
+        <thead><tr><th>Set</th><th>Provenance</th><th>Fitted from</th><th>State</th>
+          <th>Values</th><th>As of</th><th>Recorded by</th><th>Approved by</th>
+          <th>Digest</th><th></th></tr></thead>
+        <tbody>
+        {% for p in row.sets %}
+          <tr>
+            <td class="mono">{{ p.name }} v{{ p.version }}</td>
+            <td>{{ p.provenance }}</td>
+            <td class="mono" style="font-size:.72rem">{{ p.featureset or '—' }}</td>
+            <td>{% if p.state == 'approved' %}<span class="evidence-ok">approved</span>
+                {% elif p.state == 'proposed' %}<span class="open-badge">proposed</span>
+                {% else %}{{ p.state }}{% endif %}</td>
+            <td data-sort="{{ p.cardinality }}">{{ p.cardinality }}</td>
+            <td>{{ p.as_of or '—' }}</td>
+            <td class="mono" style="font-size:.72rem">{{ p.created_by }}</td>
+            <td class="mono" style="font-size:.72rem">{{ p.approved_by or '—' }}</td>
+            <td class="mono" style="font-size:.68rem">{{ (p.digest or '')[:19] }}</td>
+            <td>{% if p.state == 'proposed' %}
+              <button type="button" class="btn btn-sm btn-outline-danger py-0 review-set"
+                      style="font-size:.68rem" data-set="{{ p.id }}" data-accept="1"
+                      {% if 'parameter:approve' not in permissions %}disabled{% endif %}>approve</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary py-0 review-set"
+                      style="font-size:.68rem" data-set="{{ p.id }}" data-accept="0"
+                      {% if 'parameter:approve' not in permissions %}disabled{% endif %}>reject</button>
+            {% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="small text-muted">This model has no versions, so there is nothing to
+      inhabit.</p>
+    {% endfor %}
+    <div id="review-result" class="small"></div>
+    <p class="text-muted mb-0" style="font-size:.72rem">
+      A set arrives <strong>proposed</strong>. Whoever recorded it cannot approve
+      it — the register refuses <code>self_approval</code> — because a parameter
+      set changes what the model does, and that is the same gate a model version
+      passes. Until one is approved, a scoring warrant for this version is refused
+      rather than issued at some unnamed point of <code>P</code>.</p>
+  </div>
+</div>
+
+<!-- ================================= 5 revocation, grace and the epoch -->
+<div class="card mb-3" id="revocation">
+  <div class="card-header">5 &mdash; Revocation, grace and the epoch</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <dl class="maya-terms border rounded mb-2">
+          <div><dt>A revocation</dt><dd>withdraws the grant, so no further
+            descriptor is minted against it, and bumps the epoch</dd></div>
+          <div><dt>The epoch</dt><dd>currently <strong>{{ epoch }}</strong>. Every
+            descriptor carries the epoch it was minted under, so an engine can
+            tell a stale credential from a current one</dd></div>
+          <div><dt>Grace extends</dt><dd>how long a descriptor's authorisation
+            stays current <em>when the platform is unreachable</em></dd></div>
+          <div><dt>Grace does not extend</dt><dd>how long a consumer may stay
+            ignorant of a withdrawal it has already been told about. That is the
+            revocation floor, and grace never overrides it</dd></div>
+        </dl>
+        <p class="text-muted" style="font-size:.72rem">
+          The captive engine keeps a local revocation list, and a descriptor
+          naming anything on it is refused <code>revoked</code> with
+          <em>"stop; grace never extends revocation ignorance"</em> — before the
+          expiry check, and before an artifact is touched.</p>
+      </div>
+      <div class="col-lg-6">
+        <form id="revoke-warrant" class="small">
+          <div class="row g-2">
+            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+                   value="{{ model.urn }}" required></div>
+            <div class="col-12"><input class="form-control form-control-sm" name="reason"
+                   placeholder="why — recorded, and shown to whoever is refused" required></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
+                  {% if 'warrant:revoke' not in permissions %}disabled title="needs warrant:revoke"{% endif %}>
+            Withdraw every grant on this model</button>
+          <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.revoke }}</span>
+        </form>
+        <div class="state-note mt-2">
+          This is the kill switch and it is the only revocation the HTTP API
+          offers: it withdraws <strong>every</strong> grant on the model, in every
+          environment, for every principal. There is no endpoint for withdrawing
+          one grant, though the service underneath has the method.
+        </div>
+        <div id="revoke-result" class="small mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ 6 the operating boundary -->
+<div class="card mb-3" id="boundary">
+  <div class="card-header">6 &mdash; The operating boundary, and violations of it</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    The operating contract travels inside the warrant, in <code>constraints</code>:
+    the assumptions the model was built under, the guarantees it makes while they
+    hold, and what an engine should do when an input falls outside. MAYA does not
+    check inputs — it never sees them — so a violation is reported by whatever ran
+    the model, against the boundary the warrant carried.</p>
+    <table class="table table-sm maya">
+      <thead><tr><th>Version</th><th>Assumptions</th><th>Guarantees</th>
+        <th>On violation</th></tr></thead>
+      <tbody>
+      {% for v in versions %}
+        <tr>
+          <td class="mono">{{ v.semver }}</td>
+          <td class="mono" style="font-size:.72rem">{{ (v.contract or {}).get('assumptions', []) | tojson }}</td>
+          <td class="mono" style="font-size:.72rem">{{ (v.contract or {}).get('guarantees', []) | tojson }}</td>
+          <td>{{ (v.contract or {}).get('on_boundary_violation', 'reject') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted small">No versions.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if engine %}
+    <p class="kicker mb-1">TRY IT AGAINST THE CAPTIVE ENGINE</p>
+    <p class="text-muted mb-2" style="font-size:.72rem">
+      This instance runs a captive engine, which is one consumer of the same
+      endpoints an external engine uses. What its isolation does and does not
+      cover: <span class="mono">{{ engine | tojson }}</span></p>
+    <form id="execute-warrant" class="small">
+      <div class="row g-2">
+        <div class="col-md-3"><input class="form-control form-control-sm" name="environment"
+               value="{{ environment }}" required></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="principal"
+               placeholder="principal" required></div>
+        <div class="col-md-3"><input class="form-control form-control-sm" name="declared_use"
+               placeholder="declared use" required></div>
+        <div class="col-md-3"><input class="form-control form-control-sm mono" name="urn"
+               value="{{ model.urn }}#champion" required></div>
+        <div class="col-12"><textarea class="form-control form-control-sm mono" name="inputs" rows="1"
+               placeholder='{"dscr": 1.4}'></textarea>
+          <div class="text-muted" style="font-size:.7rem">
+            put a value outside the assumption to see the refusal</div></div>
+      </div>
+      <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">Execute</button>
+      <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.execute }}</span>
+    </form>
+    <div id="execute-result" class="small mt-2"></div>
+    {% else %}
+    <p class="small text-muted mb-0">This instance issues warrants and runs
+      nothing, so there is no engine here to demonstrate a violation with. The
+      boundary still travels in every warrant; whatever runs the model is what
+      reports against it.</p>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card mb-3"><div class="card-body small text-muted">
+  Choose a model above to issue a grant, resolve a warrant, take delivery of
+  parameters or cut a revocation. The grammar below applies to every model and
+  can be read without choosing one.
+</div></div>
+{% endif %}
+
+<!-- ================================================ 7 the fourteen laws -->
+<div class="card mb-3" id="laws">
+  <div class="card-header">7 &mdash; The fourteen admissibility laws</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2" style="max-width:52rem">
+    A warrant can be well-formed and still be nonsense: asking a closed form to be
+    fitted, training on a source that cannot be read as-of, generating text from a
+    gradient-boosting model. These are the rules that make such a document a
+    refusal rather than a runtime failure — and the validator reports
+    <strong>every</strong> problem rather than stopping at the first, because
+    fixing one error to be told about the next is the worst possible interface for
+    a document with ten sections.</p>
+    <table class="table table-sm maya">
+      <thead><tr><th>Law</th><th>What it says</th><th>Where you meet it</th>
+        <th>Enforced by</th></tr></thead>
+      <tbody>
+      {% for law in laws %}
+        <tr>
+          <td class="mono">{{ law.law }}</td>
+          <td>{{ law.says }}</td>
+          <td class="text-muted" style="font-size:.72rem">{{ law.reported_by }}</td>
+          <td class="mono" style="font-size:.68rem">{{ law.enforced_by }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted" style="font-size:.72rem">
+      <strong>L-W10 is the exception.</strong> Whether a featureset provides what
+      a kernel reads cannot be answered by reading the warrant — both objects have
+      to be looked up — so it is not in the grammar and the validator below will
+      not report it. It refuses at resolution, as
+      <code>schema_not_satisfied</code>.</p>
+
+    <p class="kicker mt-3 mb-1">CHECK A DOCUMENT</p>
+    <form id="check-warrant" class="small">
+      <textarea class="form-control form-control-sm mono" name="document" rows="6"
+        placeholder="paste a warrant document"></textarea>
+      <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Check it</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"
+              id="load-last" style="font-size:.75rem">Load the last warrant resolved</button>
+      <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.check }}</span>
+    </form>
+    <div id="check-result" class="mt-3"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/warrant-author.js"></script>
+{% endblock %}

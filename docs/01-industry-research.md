@@ -527,8 +527,8 @@ lost.
 - **Parameters are computed for two families and recorded for the rest.** `ols` and `garch11` in the
   captive engine; everything else is fitted wherever you run models and refused unless a warrant MAYA
   issued authorised the run.
-- **Five runtimes of the eighteen** are implemented in the captive engine. Each of the rest is refused
-  by name.
+- **Six runtimes of the eighteen** are implemented in the captive engine — callables, ONNX, a PMML
+  subset, QuantLib, the estimator and `rules`. Each of the rest is refused by name.
 - **No artifact signing, no build provenance, no upload scanning** — §4.
 - **Scale is designed for and not demonstrated.** The scale suite asserts complexity rather than
   wall-clock, deliberately; it has not been run against a real estate.

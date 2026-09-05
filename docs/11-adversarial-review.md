@@ -534,8 +534,8 @@ no CSRF defence for as long as it stood.
 **A control described in the future tense reads as a control, and the tense is the part people skip.** The
 defence exists now, in middleware, applying to exactly one case — a state-changing method whose authority
 came from the session cookie — with exemptions as exact paths rather than prefixes, so the exempt set
-cannot grow as routes are added beneath it. Middleware rather than per-route, because a hundred and four
-mutating endpoints is a hundred and four chances to forget.
+cannot grow as routes are added beneath it. Middleware rather than per-route, because a hundred and fourteen
+mutating endpoints is a hundred and fourteen chances to forget.
 
 ---
 
@@ -585,7 +585,7 @@ exists to find.
 **It cannot see a control that is inert for a reason outside the repository.** Every check here is a grep,
 a read and a test. A control that is correct in the source and disabled by configuration, unreachable
 behind a load balancer, or never invoked because the deployment does not run the scheduler is invisible to
-all three. The scheduler is the concrete case: eight idempotent jobs turn computed conditions into recorded
+all three. The scheduler is the concrete case: nine idempotent jobs turn computed conditions into recorded
 consequences, the in-process loop is **off by default**, and an instance whose operator never wired a cron
 entry has a governance platform in which no attestation ever lapses, no monitor is ever recorded as
 stalled, no overlay expires, no debt reconciles, and the evidence chain is never fully verified. Nothing in

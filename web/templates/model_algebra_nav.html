@@ -1,0 +1,30 @@
+{# The seven screens of the algebra, in the order somebody meets them.
+
+   One strip rather than a link at the bottom of each page: these are operations
+   on the same model, and a reader who has to go back to an index between them
+   loses the thing they were holding in their head. #}
+<div class="d-flex flex-wrap align-items-center gap-1 mb-3" style="font-size:.78rem">
+  <a class="chip text-decoration-none" href="/model-algebra">The algebra</a>
+  {% if name %}
+    <span class="text-muted">&rsaquo;</span>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'version' }}"
+       href="/model-algebra/version/{{ name }}">Versions &amp; class</a>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'refinement' }}"
+       href="/model-algebra/refinement/{{ name }}">Refinement &amp; aliases</a>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'lifecycle' }}"
+       href="/model-algebra/lifecycle/{{ name }}">Lifecycle</a>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'quorum' }}"
+       href="/model-algebra/quorum/{{ name }}">Approval quorum</a>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'risk' }}"
+       href="/model-algebra/risk/{{ name }}">Risk tier</a>
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'documents' }}"
+       href="/model-algebra/documents/{{ name }}">Documents</a>
+    <a class="chip text-decoration-none"
+       href="/model-algebra/composition?urn={{ model.urn if model else '' }}">Composition</a>
+    <span class="text-muted">&rsaquo;</span>
+    <a class="chip text-decoration-none" href="/model/{{ name }}">The record</a>
+  {% else %}
+    <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == 'composition' }}"
+       href="/model-algebra/composition">Composition</a>
+  {% endif %}
+</div>

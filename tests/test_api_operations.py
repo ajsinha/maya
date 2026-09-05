@@ -108,7 +108,11 @@ class TestSchedulerApi:
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
                 # so the full walk has to be something that happens.
-                "evidence.verify"} == keys
+                "evidence.verify",
+                # And the full walk compares the chain against itself, which is
+                # what a rewritten chain passes — so the head is also written
+                # somewhere the database cannot reach.
+                "evidence.anchor"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
 

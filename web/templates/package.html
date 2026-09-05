@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+{% block title %}Pack — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE WHOLE RECORD</p>
+<h1>{{ model.name }} <span class="text-muted" style="font-size:1rem">— the model package</span></h1>
+<div class="rule"></div>
+<div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+  <span class="tier tier-{{ model.tier or 'none' }}">TIER {{ model.tier or '—' }}</span>
+  <span class="chip mono">{{ model.urn }}</span>
+  <span class="chip">{{ model.status }}</span>
+  <span class="chip">{{ model.legal_entity }}</span>
+  <span class="chip mono">{{ model.owner }}</span>
+  <a class="ms-auto small" href="/model/{{ name }}">the model record &rarr;</a>
+  <a class="small" href="/warrants?model={{ name }}">its warrants &rarr;</a>
+  <a class="small" href="/dossier/{{ name }}">its documentation graph &rarr;</a>
+</div>
+<p class="text-muted small" style="max-width:52rem">
+Everything about this model, digested and zipped, for somebody who will not be
+given a login. Nothing in it is written for the pack: it is gathered from the
+register and the evidence chain by the same context builder the document compiler
+uses, which is why the inventory below is what the pack will hold rather than a
+second account of it. Pack layout version {{ pack_version }}.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-lg-4"><div class="card h-100">
+    <div class="card-header">The content digest excludes the manifest</div>
+    <div class="card-body small text-muted">
+      The manifest carries the time the pack was cut, so including it would make
+      every pack differ from every other one and destroy the single comparison a
+      reader actually wants: <em>has anything changed since the last one?</em>
+      Digesting the content alone makes that one number to compare rather than a
+      diff of a hundred files.
+    </div></div></div>
+  <div class="col-lg-4"><div class="card h-100">
+    <div class="card-header">A gap is written down</div>
+    <div class="card-body small text-muted">
+      Everything the pack could not gather appears in
+      <code>{{ gaps_name }}</code> with the reason. A pack that silently omitted
+      what it could not reach would read as complete, and the reader would have
+      no way to tell a thin model from a thin export. Preview below to read the
+      gaps before you take a copy.
+    </div></div></div>
+  <div class="col-lg-4"><div class="card h-100">
+    <div class="card-header">Documents are rendered, not compiled</div>
+    <div class="card-body small text-muted">
+      Compiling is an act — it authors a document and records that it was
+      authored — so cutting a pack monthly would otherwise author four documents
+      a month and twelve of each a year. A pack whose own production changed the
+      record would also differ from the last one for no reason but that somebody
+      had asked for it.
+    </div></div></div>
+</div>
+
+<!-- ------------------------------------------------- what will be in it -->
+<div class="card mb-3"><div class="card-header">What this pack will contain</div>
+  <div class="card-body">
+    <table class="table table-sm maya">
+      <thead><tr><th>Member</th><th>What it answers</th><th>What it holds today</th></tr></thead>
+      <tbody>
+      {% for row in inventory %}
+        <tr>
+          <td class="mono" style="font-size:.74rem">{{ row.member }}</td>
+          <td class="text-muted">{{ row.answers }}</td>
+          <td>{{ row.holds }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted mb-0" style="font-size:.72rem">
+      <strong>Parameter sets have no member of their own.</strong> They travel
+      inside <code>documentation/dossier.json</code>, which follows each fit to
+      the featureset <em>version</em> it read — which is the pin that answers
+      "what was this trained on" rather than "what does that featureset look like
+      today". A reader wanting the values themselves reads the dossier, not a
+      <code>parameters.json</code>, because there is not one.</p>
+    <p class="text-muted mb-0" style="font-size:.72rem">
+      Evidence nodes flagged as carrying personal data hold no payload at all
+      rather than the data (L-18), and the pack carries the pointer exactly as
+      the platform does. Resolving it here would put personal data into a file an
+      erasure request cannot reach.</p>
+  </div></div>
+
+<!-- ---------------------------------------------------- the state itself -->
+<div class="row g-3 mb-3">
+  <div class="col-lg-7"><div class="card h-100">
+    <div class="card-header">Versions, and what may run</div>
+    <div class="card-body">
+      <table class="table table-sm maya mb-2">
+        <thead><tr><th>Version</th><th>Status</th><th>Class</th><th>Kernel</th>
+          <th>Manifest digest</th><th>May run on</th></tr></thead>
+        <tbody>
+        {% for row in parameters %}
+          <tr>
+            <td class="mono">{{ row.semver }}</td>
+            <td>{{ row.status }}</td>
+            <td>{{ row.trainability_class }}</td>
+            <td>{{ row.readiness.parameter_kind }}</td>
+            <td class="mono" style="font-size:.68rem">
+              {% for v in versions %}{% if v.semver == row.semver %}{{ (v.manifest_digest or '')[:19] }}{% endif %}{% endfor %}</td>
+            <td class="{% if row.readiness.ready %}evidence-ok{% else %}evidence-bad{% endif %}">
+              {{ row.readiness.detail }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-muted small">No versions.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <table class="table table-sm maya mb-2">
+        <thead><tr><th>Parameter set</th><th>Version</th><th>Provenance</th>
+          <th>State</th><th>Read from</th><th>Under grant</th><th>Digest</th></tr></thead>
+        <tbody>
+        {% for row in parameters %}{% for p in row.sets %}
+          <tr>
+            <td class="mono">{{ p.name }} v{{ p.version }}</td>
+            <td class="mono">{{ row.semver }}</td>
+            <td>{{ p.provenance }}</td>
+            <td>{% if p.state == 'approved' %}<span class="evidence-ok">approved</span>
+                {% else %}<span class="open-badge">{{ p.state }}</span>{% endif %}</td>
+            <td class="mono" style="font-size:.72rem">{{ p.featureset or '—' }}</td>
+            <td class="mono" style="font-size:.68rem">{{ p.warrant_id or '—' }}</td>
+            <td class="mono" style="font-size:.68rem">{{ (p.digest or '')[:19] }}</td>
+          </tr>
+        {% endfor %}{% else %}
+          <tr><td colspan="7" class="text-muted small">
+            No parameter set is recorded against any version.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <table class="table table-sm maya mb-0">
+        <thead><tr><th>Version</th><th>Feature view</th><th>Pinned namespace</th></tr></thead>
+        <tbody>
+        {% for row in parameters %}{% for item in (row.contract or {}).get('items', []) %}
+          <tr>
+            <td class="mono">{{ row.semver }}</td>
+            <td class="mono">{{ item.view }}</td>
+            <td class="mono" style="font-size:.72rem">{{ item.namespace }}</td>
+          </tr>
+        {% endfor %}{% endfor %}
+        {% if not parameters or not parameters | selectattr('contract') | list %}
+          <tr><td colspan="3" class="text-muted small">
+            No version pins a feature contract, which is normal for a kernel
+            whose inputs arrive on the request. Where one exists it is what
+            serving <em>must</em> read, and L-17 compares it against what
+            serving actually did read.</td></tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div></div></div>
+
+  <div class="col-lg-5"><div class="card h-100">
+    <div class="card-header">The record around it</div>
+    <div class="card-body">
+      <dl class="maya-terms border rounded mb-2">
+        <div><dt>Evidence</dt><dd>{{ (context.evidence or []) | length }} node(s);
+          the chain verifies
+          {% if chain.valid %}<span class="evidence-ok">intact</span>
+          {% else %}<span class="evidence-bad">broken at {{ chain.broken_at }} — {{ chain.reason }}</span>{% endif %}
+          </dd></div>
+        <div><dt>Validation</dt><dd>{{ (context.validations or []) | length }} episode(s)</dd></div>
+        <div><dt>Findings</dt><dd>{{ (context.findings or []) | length }} open</dd></div>
+        <div><dt>Monitoring</dt><dd>{{ (context.monitoring or {}).get('monitors', 0) }} monitor(s),
+          {{ (context.monitoring or {}).get('open_breaches', 0) }} open breach(es)</dd></div>
+        <div><dt>Overlays</dt><dd>{{ (context.overlays or {}).get('detail', 'none') }}</dd></div>
+        <div><dt>Warrants</dt><dd>{{ (context.warrants or []) | length }} standing grant(s)</dd></div>
+        <div><dt>Alias history</dt><dd>{{ (context.alias_history or []) | length }} move(s)</dd></div>
+        <div><dt>Documentation graph</dt><dd>{{ dossier.detail }}</dd></div>
+      </dl>
+      {% if dossier.gaps %}
+      <p class="kicker mb-1">WHAT THE GRAPH ALREADY KNOWS IS MISSING</p>
+      <table class="table table-sm maya mb-0">
+        <thead><tr><th>What</th><th>Why</th></tr></thead>
+        <tbody>{% for gap in dossier.gaps %}
+          <tr><td class="mono" style="font-size:.72rem">{{ gap.what }}</td>
+              <td class="text-muted" style="font-size:.72rem">{{ gap.why }}</td></tr>
+        {% endfor %}</tbody>
+      </table>
+      <p class="text-muted mt-1 mb-0" style="font-size:.72rem">
+        These are the documentation gaps only. The pack's own
+        <code>{{ gaps_name }}</code> collects these together with anything else
+        it could not gather; preview below to read the whole list.</p>
+      {% else %}
+      <p class="text-muted mb-0" style="font-size:.72rem">
+        The documentation graph reports nothing missing. The pack may still
+        record gaps of its own — preview below.</p>
+      {% endif %}
+    </div></div></div>
+</div>
+
+<!-- ------------------------------------------------------- attachments -->
+<div class="card mb-3"><div class="card-header">Documents somebody filed</div>
+  <div class="card-body">
+    <table class="table table-sm maya">
+      <thead><tr><th>Title</th><th>Kind</th><th>State</th><th>Filed by</th>
+        <th>Reviewed by</th><th>Filename</th><th>Digest</th></tr></thead>
+      <tbody>
+      {% for a in attachments %}
+        <tr>
+          <td>{{ a.title }}</td>
+          <td>{{ a.kind }}</td>
+          <td>{% if a.state == 'accepted' %}<span class="evidence-ok">accepted</span>
+              {% else %}<span class="open-badge">{{ a.state }}</span>{% endif %}</td>
+          <td class="mono" style="font-size:.72rem">{{ a.created_by }}</td>
+          <td class="mono" style="font-size:.72rem">{{ a.reviewed_by or '—' }}</td>
+          <td class="mono" style="font-size:.72rem">{{ a.filename }}</td>
+          <td class="mono" style="font-size:.68rem">{{ (a.digest or '')[:19] }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="7" class="text-muted small">
+          Nothing is filed against this model. The pack will still carry an
+          <code>attachments/index.json</code>, empty, rather than omitting the
+          directory — an absent index and an empty one say different things.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-muted mb-0" style="font-size:.72rem">
+      A document is filed against the model, optionally against one
+      <strong>version</strong> of it, and optionally against a
+      <code>subject_type</code>/<code>subject_id</code> pair — which is how a
+      convergence study about one parameter set or a data dictionary about one
+      featureset version becomes filable at all. Attaching is
+      <code>POST /api/v1/attachments</code> as multipart, and it is not offered
+      from this screen: filing a document is not part of taking a copy of one.
+      The kinds are:
+      {% for kind, means in attachment_kinds.items() %}<code>{{ kind }}</code>{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+  </div></div>
+
+<!-- --------------------------------------------------- cut it -->
+<div class="card mb-3" id="cut"><div class="card-header">Preview it, then take a copy</div>
+  <div class="card-body">
+    <form id="pack-form" class="small" method="post"
+          action="/packages/{{ name }}" data-name="{{ name }}">
+      <div class="d-flex flex-wrap gap-3 align-items-center">
+        <span class="text-muted">Documents:</span>
+        {% for kind in document_kinds %}
+        <label class="form-check-label" style="font-size:.8rem">
+          <input class="form-check-input doc-kind" type="checkbox" value="{{ kind }}"
+                 {% if kind in documents %}checked{% endif %}> {{ kind }}
+        </label>
+        {% endfor %}
+        <label class="form-check-label" style="font-size:.8rem">
+          <input class="form-check-input" type="checkbox" id="with-attachments" checked>
+          include the filed documents
+        </label>
+      </div>
+      <div class="mt-2">
+        <button type="button" class="btn btn-sm btn-outline-danger py-0 px-3"
+                id="preview-pack" style="font-size:.75rem">Preview the manifest and the gaps</button>
+        <button class="btn btn-sm btn-danger py-0 px-3" style="font-size:.75rem">
+          Cut it and download</button>
+        <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.pack }}</span>
+      </div>
+    </form>
+    <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+      Previewing builds the pack, reads the manifest and the gaps out of it, and
+      throws the bytes away — nothing is recorded, because nothing left the
+      platform. <strong>Cutting</strong> one is recorded against the pack's
+      content digest, and never against the model: recorded against the model it
+      would land inside the next pack, and every pack would differ from the one
+      before it for no reason except that somebody had taken one.</p>
+    <div id="pack-result" class="mt-3"></div>
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/package.js"></script>
+{% endblock %}
