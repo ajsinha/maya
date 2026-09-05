@@ -4,18 +4,25 @@ slug: approval-and-attestation
 section: The register
 order: 50
 icon: patch-check
-summary: The record's lifecycle from draft to attested, why an attested record is immutable, the quorum that puts it in force, and the roles, scopes and segregation rules that decide who may move it.
+summary: Three gates in front of every governance act — the record's state, the actor's authority, and what that actor already did — plus how to sign in, and how to tighten a gate without waiting for a release.
 audience: Model owners, Model risk, Administrators
 ---
 
 # Approval, attestation and segregation of duties
 
-Two questions decide whether a governance act happens. *Is the record in a state
-that allows it?* — the lifecycle. And *is this the right person to do it?* —
-authorisation. The first is about the model; the second is about you; and the
-most important rules in the platform live at the point where they meet.
+Every governance act passes three gates, checked in this order because each is
+more expensive than the last:
 
-## The states
+1. **Is the record in a state that allows it?** — the lifecycle.
+2. **May this principal do this, to this model?** — permission, then scope.
+3. **May they do it given what they already did?** — segregation of duties, read
+   from the evidence chain.
+
+A principal who fails the first gate never learns whether the model exists. An
+inventory of model names is itself sensitive, so that is the right disclosure
+boundary rather than an accident of ordering.
+
+## The lifecycle
 
 A model record moves through seven states, and the whole design turns on one
 distinction: an **attested** record is immutable, and a **mutable** record is one
@@ -26,7 +33,7 @@ draft ──submit──▶ submitted ──approve──▶ approved ──atte
   ▲                   │                                          │
   └──────return───────┘                                          │
                                                                  │
-amending ◀──────────────── open an amendment ────────────────────┘
+amending ◀──────────────── amend ─────────────────────────────────┘
   │                                                              │
   └──submit──▶ submitted ──▶ approved ──▶ attested        retired ◀── retire
 ```
@@ -36,59 +43,48 @@ amending ◀──────────────── open an amendment �
 | `draft` | being written; open to change and **not in force** | yes |
 | `baselined` | imported from an existing estate; governed going forward, not asserting historical evidence | yes |
 | `submitted` | put forward for approval; **frozen** while it is considered | no |
-| `approved` | approved but not yet attested; **not in force until it is** | no |
+| `approved` | approved and not yet attested; **not in force until it is** | no |
 | `attested` | in force and **immutable** | no |
 | `amending` | an amendment is open; the record is changeable again | yes |
 | `retired` | withdrawn from use; kept for the record, never deleted | no |
 
-`baselined` sits in the mutable set deliberately. A baselined model arrived
-without a version, a tier or a validation; freezing it would mean the only route
-to closing that debt is an amendment to a record that was never attested —
-nonsense, and exactly how a cold-start capability quietly becomes unusable. It
-leaves through the same path as anything else. See
-[The estate and what needs doing](/help/estate-and-worklist).
+`draft` and `baselined` are both **initial** states — an import does not have to
+pretend it was drafted here. `baselined` is deliberately mutable: a baselined
+model arrived without a version, a tier or a validation, and freezing it would
+mean the only route to closing that debt is an amendment to a record that was
+never attested. See [The estate and what needs
+doing](/help/estate-and-worklist).
 
-## Why immutability is a state, not a flag
+`retire` is reachable from `draft`, `baselined`, `approved` and `attested` — a
+model registered in error does not have to be attested before it can be
+withdrawn.
 
-The question a supervisor asks is not "is this record locked". It is *what is in
-force, who said so, and when did they say it*. A state machine answers all
-three. A flag answers none of them.
+### What "immutable" blocks
 
-And it is what makes the record mean anything: "this is the model" and "this is
-what we said about the model" are the same document only while nobody can edit
-one of them quietly.
-
-## What "immutable" actually blocks
-
-An attested record refuses:
-
-- **field changes** — `PATCH /api/v1/models/{name}` is refused
-- **new versions** — because *a new version is a change to the model*
-
-That second one is the one people are surprised by, and it is the important one.
-Letting a version be added to an attested record is exactly how the record
-quietly stops describing what runs.
+An attested record refuses **field changes** (`PATCH /api/v1/models/{name}`) and
+**new versions**. The second surprises people and is the important one: a new
+version *is* a change to the model, and letting one be added to an attested
+record is exactly how the record quietly stops describing what runs.
 
 ```json
-{
-  "error": "registry_refused",
-  "detail": "cannot add a version to maya://model/credit.pd.smallbiz: this model
-             is attested and therefore immutable; open an amendment to change it"
-}
+{"error": "registry_refused",
+ "detail": "cannot add a version to maya://model/credit.pd.smallbiz: this model
+            is attested and therefore immutable; open an amendment to change it",
+ "remediation": "the refusal names the clause that failed; satisfy it and retry"}
 ```
 
-Some fields are never editable in any state: the URN is permanent, the status
-moves only through the lifecycle, and the tier comes from an assessment.
+**409**. The URN is never editable in any state, the status moves only through
+the transitions above, and the tier comes from an assessment rather than from a
+field.
 
 ## Approval and attestation are different acts
 
-**Approval** is one authorised person in the second line saying the work is sound.
-
-**Attestation** is the set of people who will be asked about this model in a
-supervisory meeting each putting their name to it — the owner that the controls
+**Approval** is one authorised person in the second line saying the work is
+sound. **Attestation** is the set of people who will be asked about this model in
+a supervisory meeting each putting their name to it — the owner that the controls
 are operating, the second line that challenge was effective.
 
-A button one person presses is not that. So attestation is a **quorum**:
+A button one person presses is not that, so attestation is a **quorum**:
 
 ```yaml
 lifecycle:
@@ -97,27 +93,86 @@ lifecycle:
     validity_days: 365
 ```
 
-Every named role signs; the model becomes attested only when all of them have.
-**One decline ends it** and sends the record back to be worked on — to `amending`
-if the attestation was for an amendment, otherwise to `draft`.
-
-Two rules make the quorum real rather than decorative:
-
-- **A principal may only sign for a role they actually hold.** The refusal says
-  *sign for a role you hold; an attestation signed under a borrowed hat is not a
-  quorum.* An attestation where one person signed twice under two hats is not a
-  quorum.
-- **Each required role signs once.**
-
 ```bash
 POST /api/v1/models/{name}/attest
-{"role": "model_owner", "statement": "Controls are operating and the model is
-                                      used only for its approved purpose."}
+{"role": "model_owner", "decision": "attest",
+ "statement": "Controls are operating and the model is used only for its
+               approved purpose."}
 ```
 
-## Amendments
+Every named role signs, and the model becomes attested only when all of them
+have. Two rules make it a quorum rather than a formality:
 
-An amendment is a **declared act**. It says what is changing and why, returns the
+- **A principal may only sign for a role they actually hold** — `role_not_held`,
+  403. An attestation signed under a borrowed hat is not a quorum.
+- **Each required role signs once** — `already_signed`, 409.
+
+**One decline ends it**, before the count is even looked at, and sends the record
+back to be worked on: to `amending` if the attestation was for an amendment,
+otherwise to `draft`.
+
+### Expiry, and what is not built
+
+An attestation carries an expiry, a year by default. Once it lapses the model
+page says so and the scheduler raises a finding rather than waiting for somebody
+to notice.
+
+**There is no renewal endpoint.** `periodic` exists in the vocabulary of
+attestation kinds and nothing constructs one. Renewal today is an ordinary
+attestation round against the unchanged record; the lapse is detected and
+reported, and the re-signing is not yet its own act.
+
+## A version is approved by a quorum too
+
+The record is attested by several people. A version — the thing that actually
+runs — used to be approved by one, and that asymmetry was backwards: the record
+says what the model is *for*, the version says what will *happen*.
+
+The depth of control follows the tier, by the same adjunction (**L-5**) that
+decides every other control set:
+
+| Tier | Who must sign |
+|---|---|
+| 1 | model risk manager **and** validator |
+| 2 | model risk manager **and** validator |
+| 3 | one authorised person |
+| 4 | one authorised person |
+
+Ask rather than reading configuration:
+
+```bash
+GET /api/v1/version-approval-quorum
+→ {"quorum": [{"tier": 1, "required_roles": ["model_risk_manager", "validator"],
+               "signatures": 2},
+              {"tier": 3, "required_roles": [], "signatures": 1}, …]}
+```
+
+Pretending a scheduling heuristic and a capital model deserve the same ceremony
+is how a control becomes something people route around, so tiers 3 and 4 keep a
+single signature and the register says plainly that they do. Approving a tier 1
+or 2 version directly is refused as `quorum_required`; opening a quorum for a
+tier 3 or 4 version is refused as `no_quorum_required`.
+
+**A version whose model has no tier cannot be approved at all.**
+
+> **409 `no_tier`** — this model has no risk tier, so how many signatures its
+> version needs is undecided. *Assess the model first; approving before assessing
+> would be a way of choosing your own control depth.*
+
+That is the obvious way to game a rule of this kind, and it is closed.
+
+**Signing is its own permission.** A validator holds `version:sign` and never
+`version:approve`: they can complete a quorum and can never approve alone. And
+the same person may not sign twice under two hats — `already_signed_personally`;
+a quorum is a number of people, not a number of roles.
+
+One decline closes the approval with the statement attached. A declined round
+stays in the history and the next attempt is a new approval, so *"how many times
+did this fail second-line review"* has an answer.
+
+## Amendments, retirement and deletion
+
+An **amendment** is a declared act. It says what is changing and why, returns the
 record to `amending`, and creates an obligation: the amendment must itself be
 submitted, approved and attested before the model is back in force.
 
@@ -126,77 +181,56 @@ POST /api/v1/models/{name}/amend
 {"reason": "Recalibrate for the 2026 cycle", "scope": ["kernel", "thresholds"]}
 ```
 
-Amendments get a reference (`AMD-001`) because they get quoted in committee
-minutes. A reason is required. One is open at a time per model — two concurrent
-amendments to the same record produce a document nobody can reconstruct. Nothing
-is edited in place and nothing is lost; a withdrawn amendment stays in the
-history as a withdrawn amendment.
+A reason is required (`reason_required`, 422). Amendments get a reference —
+`AMD-001` — because they get quoted in committee minutes. One is in flight at a
+time per model, counting both `open` and `submitted`: two concurrent amendments
+to one record produce a document nobody can reconstruct. Nothing is edited in
+place and nothing is lost; a withdrawn amendment stays in the history as one.
 
-## Renewal
-
-An attestation carries an expiry, defaulting to a year. Once it lapses, the
-model page says so, and the scheduler raises a finding rather than waiting for
-somebody to notice. Renewal is a periodic attestation against the unchanged
-record — the same quorum, signing again that the model is still fit for its
-purpose.
-
-## Nothing is ever deleted
-
-**Retirement** is a state. It withdraws a model from use and keeps everything —
+**Retirement is a state.** It withdraws a model from use and keeps everything —
 the record, the versions, the evidence, the findings. This is what almost every
-situation calls for, and it is available to model owners and risk managers.
+situation calls for, and model owners and risk managers can do it.
 
-**Deletion** is the one act with no workflow, no reversal and no second
-signature, and it is administrators only. It is checked against the **role**
-rather than only the permission — *only an administrator may delete a model;
-everyone else retires it* — because a permission can be granted to a role by
-mistake, and requiring `admin` explicitly means the mistake has to be made twice.
-
-Even then, the evidence survives. A `model_deleted` entry is appended to the
-chain **before** the rows go, so the chain records the intent even if the removal
-fails halfway — and afterwards the model's whole history is still there, ending
-with who deleted it and why.
+**Deletion is the one act with no workflow, no reversal and no second
+signature**, and it is checked against the **role** as well as the permission:
 
 ```json
-{"deleted": true, "urn": "maya://model/...", "reason": "registered in error",
- "evidence_retained": true}
+{"error": "deletion_refused",
+ "detail": "only an administrator may delete a model; everyone else retires it",
+ "remediation": "POST /api/v1/models/{name}/retire, which withdraws the model
+                 from use and keeps the record"}
 ```
 
-## Authorisation asks three questions
+**403.** A permission can be granted to a role by mistake; requiring `admin`
+explicitly means the mistake has to be made twice.
 
-In this order:
+Even then the evidence survives. A `model_deleted` entry is appended **before**
+the rows go, so the chain records the intent even if the removal fails halfway,
+and afterwards the model's whole history is still there ending with who deleted
+it and why.
 
-1. **May this principal do this at all?** — permission, from their roles.
-2. **May they do it to this model?** — scope, by legal entity and domain.
-3. **May they do it given what they already did?** — segregation of duties, read
-   from the evidence chain.
+## Roles
 
-Cheapest first, and each refusal is more specific than the last. A principal who
-fails on permission never learns whether the model exists, which is the right
-disclosure boundary: an inventory of model names is itself sensitive.
+Eight of them, over 72 permissions. Deliberately few: a permission system with
+forty roles is one nobody can reason about, and the question that matters at an
+audit — *who could have approved this?* — becomes unanswerable.
 
-## The roles
-
-Deliberately few. A permission system with forty roles is one nobody can reason
-about, and the question that matters at an audit — *who could have approved
-this?* — becomes unanswerable.
-
-| Role | Line | May | May not |
+| Role | Line | Holds | Never holds |
 |---|---|---|---|
-| `model_developer` | 1st | Create versions, define and materialise features, assemble training sets, attach documents | Approve, tier, promote, validate |
-| `model_owner` | 1st | Everything a developer can, plus register models, request a tier, issue warrants, raise findings, define and evaluate monitors, propose and measure overlays, compile documents | Approve, promote, conclude a validation, approve an overlay |
-| `validator` | 2nd | Read everything; open, record and conclude validations; raise and close findings; review documents; approve parameter sets; generate and attest machine assistance | Build anything |
-| `model_risk_manager` | 2nd | Everything a validator can, plus approve versions, move aliases, approve models, set tiers, certify features, revoke warrants, approve overlays, register assist capabilities, activate regimes | Create versions |
-| `auditor` | 3rd | Read everything, raise findings | Close a finding, approve, build |
-| `operator` | — | The batch-runner set: read models, warrants and evidence, and evaluate monitors | Any other governance act |
-| `service` | — | Resolve and execute warrants, **deliver** telemetry | Evaluate monitors, or sign in to the interface |
-| `admin` | — | Everything, including principal management | — |
+| `model_developer` | 1st | `version:create`, define and materialise features, assemble training sets, `parameter:record`, attach documents, acknowledge and plan findings | `model:register`, any approve, sign, seal or attest |
+| `model_owner` | 1st | everything a developer holds, plus `model:register`, `model:submit`, `model:amend`, `model:attest`, `model:retire`, `risk:assess`, issue and resolve warrants, raise findings, define monitors, propose overlays, `document:compile` | `model:approve`, `alias:move`, `version:approve`, conclude a validation, approve an overlay |
+| `validator` | 2nd | all sixteen reads, open/record/conclude validations, raise/close/extend findings, `document:review`, `parameter:approve`, `feature:seal`, `featureset:seal`, `policy:author`, **`version:sign`** | `version:approve`, `alias:move`, `model:approve` — and builds nothing |
+| `model_risk_manager` | 2nd | everything a validator holds, plus `version:approve`, `alias:move`, `model:approve`, `model:attest`, `model:retire`, tiering, `feature:certify`, warrant revocation, overlay approval, `regime:activate`, `policy:publish`, `report:cut`, baseline import | `version:create`, `model:submit`, `model:amend` |
+| `auditor` | 3rd | the sixteen reads, plus `finding:raise` | everything else — closes nothing, approves nothing, builds nothing |
+| `operator` | — | `model:read`, `warrant:read`, `evidence:read`, `monitor:read`, `monitor:evaluate`, `scheduler:read`, `scheduler:run` | any other governance act |
+| `service` | — | `model:read`, `warrant:read`, `warrant:resolve`, `warrant:execute`, `monitor:observe`, `scheduler:read`, `scheduler:run` | evaluating a monitor — it delivers telemetry, it does not judge it |
+| `admin` | — | all 72, and sole holder of `model:delete` and `principal:manage` | — |
 
 Roles **compose**: a principal holds a set and gets the union. That is how a
-small firm gives one person two hats visibly, rather than inventing a hybrid
-role that hides the fact.
+small firm gives one person two hats visibly, rather than inventing a hybrid role
+that hides the fact.
 
-Some pairs are refused, because holding both defeats the control they exist to
+Four pairs are refused, because holding both defeats the control they exist to
 enforce:
 
 ```
@@ -206,9 +240,12 @@ model_developer + auditor              the third line must not build what it aud
 model_owner     + auditor              the third line must not own what it audits
 ```
 
-Granting one anyway requires `allow_conflicts: true` — so the exception is
-explicit, deliberate, and recorded on the evidence chain rather than accidental.
-A principal holding `admin` is not checked against these pairs at all.
+Granting one anyway needs `allow_conflicts: true` on the create or role change,
+so the exception is deliberate rather than accidental — **409
+`incompatible_roles`** otherwise. A principal holding `admin` is not checked
+against these pairs at all: break-glass is a conscious exception. Worth knowing
+that the override flag itself is not written into the evidence payload; the
+resulting role set is.
 
 ## Scope
 
@@ -226,250 +263,242 @@ enumerating every entity for every principal is the design that makes people
 grant a wildcard to get on with their day, and a wildcard granted in haste is
 indistinguishable from no control at all.
 
-Scope filters **listings**, not just detail pages. A model outside your scope is
-not merely unopenable — it is not visible, and its existence is not disclosed by
-a count that does not add up.
+Scope filters **listings**, not just detail pages, and it filters *before* the
+page is cut — page two of a filtered list must not be page two of the unfiltered
+one with holes in it. A model outside your scope is not merely unopenable; its
+existence is not disclosed by a count that does not add up.
 
 ## Segregation of duties
 
-This is the part that role separation alone cannot do.
+This is the part role separation alone cannot do.
 
 The usual way to build it is a separate table of who-did-what, consulted when
-someone attempts a conflicting act. That table is a second source of truth about
+somebody attempts a conflicting act. That table is a second source of truth about
 history, and the moment it disagrees with the record, the control is worthless.
 
-MAYA already has an append-only, hash-chained record of every governance act
-with its actor and its subject. So segregation is checked **against the evidence
-chain itself**. The artifact that proves what happened decides who may act next.
-There is nothing to keep in step, and tampering to clear a conflict breaks the
-chain.
+MAYA already has an append-only, hash-chained record of every governance act with
+its actor and its subject. So segregation is checked **against the evidence chain
+itself**: the artifact that proves what happened decides who may act next. There
+is nothing to keep in step, and tampering to clear a conflict breaks the chain.
 
-| Act | Refused if the same person previously | Because |
+Five rules:
+
+| Act | Refused if the same person previously recorded | Narrowed by |
 |---|---|---|
-| `version:approve` | created that version | a first line must not approve its own work |
-| `alias:move` | created that version | the builder must not promote their own build |
-| `validation:conclude` | created that version | effective challenge requires independence |
-| `finding:close` | raised **that** finding | closure must be attested by someone other than the raiser |
-
-The refusal cites the record:
+| `version:approve` | `version_created` on that version | — |
+| `alias:move` | `version_created` on that version | — |
+| `validation:conclude` | `version_created` on that version | — |
+| `finding:close` | `finding_raised` | `finding_id` |
+| `finding:extend` | `finding_acknowledged` | `finding_id` |
 
 ```json
-{
-  "error": "segregation_of_duties",
-  "detail": "the person who created a version may not approve it — solo recorded
-             'version_created' against this subject at evidence #12",
-  "remediation": "route the approval to someone in the second line who did not build it"
-}
+{"error": "segregation_of_duties",
+ "detail": "the person who created a version may not approve it — solo recorded
+            'version_created' against this subject at evidence #12",
+ "remediation": "route the approval to someone in the second line who did not build it"}
 ```
+
+**403.** Identity is compared after stripping the `person/` prefix and folding
+case, because the platform writes an owner as `person/j.okafor` and
+authenticates the same human as `j.okafor` — an `==` there was a duties check
+anybody could step around by spelling their own name differently.
 
 ### When the subject is not where the evidence lives
 
-The last row needs a word, because it is where this design nearly failed
+The last two rows need a word, because this is where the design nearly failed
 silently. A finding is raised against the **model** — that is where a reader
-looks for it, and what a compiled document cites — while the act being checked is
+looks for it and what a compiled document cites — while the act being checked is
 about one finding. Searching the chain under the finding's own id therefore found
-nothing and permitted everything: the rule was in the table, in the tests, and
-inert in production for three milestones.
+nothing and permitted everything.
 
-So a rule may name the payload field carrying the identity it is about. The check
-searches the model's evidence and narrows to nodes whose `finding_id` matches the
-one being closed. Raising one finding on a model does not disqualify you from
-closing another — that would be a different and much broader rule, and not the
-one anybody wrote down.
+So a rule may name the payload field carrying the identity it is about, and the
+check narrows the model's evidence to nodes whose `finding_id` matches. Raising
+one finding on a model does not disqualify you from closing another; that would
+be a different and much broader rule, and not the one anybody wrote down.
 
 A rule that needs that discriminator and is given none matches **nothing** rather
-than matching everything of its kind on the subject. Refusing acts nobody meant
-to forbid is worse than the gap, and it is loud in a test rather than silent in
-production.
+than everything of its kind on the subject. Refusing acts nobody meant to forbid
+is worse than the gap, and it is loud in a test rather than silent in production.
 
-Closure is segregated a second time, by a rule that lives in the findings
-register rather than in this policy: the owner of a finding may not verify its
-own closure, and closure evidence is required. Two different questions — *did you
-raise it* and *do you own it* — and a person can fail either. See
-[Validation and findings](/help/validation).
+### What this does not cover
 
-**This applies to administrators too.** Break-glass exempts you from the
-incompatible-roles check, not from segregation. An account that could build and
-then approve is exactly the hole an auditor looks for, and a single-account
-deployment genuinely cannot complete a segregated path — which is the correct
-answer, not a limitation to work around.
+Two limits, stated because a control described more broadly than it runs is worse
+than a smaller one described accurately.
 
-## A version is approved by a quorum too
+**The check runs where a route names the subject.** It is wired on the direct
+version approval, the alias move, concluding a validation, and closing or
+extending a finding. **The quorum path does not run it** — opening and signing a
+version approval do not name the version as a subject. Independence there rests
+on the quorum being two different people in two second-line roles, which is a
+real control and a different one.
 
-The record is attested by several people. A version — the thing that actually
-runs — used to be approved by one. That asymmetry was backwards: the record says
-what the model is *for*; the version says what will *happen*.
+**Administrators are not exempt.** Break-glass exempts you from the
+incompatible-roles check, not from segregation. A single-account deployment
+genuinely cannot complete a segregated path, and that is the correct answer
+rather than a limitation to work around.
 
-The depth of control follows the tier, which is the same adjunction (**L-5**)
-that decides every other control set here:
+Closure is segregated a second time by a rule living in the findings register
+rather than in this policy: the owner of a finding may not verify its own
+closure, and closure evidence is required. *Did you raise it* and *do you own it*
+are two questions and a person can fail either. See [Validation and
+findings](/help/validation).
 
-| Tier | Who must sign |
-|---|---|
-| 1 | model risk manager **and** validator |
-| 2 | model risk manager **and** validator |
-| 3 | one authorised person |
-| 4 | one authorised person |
-
-Pretending a scheduling heuristic and a capital model deserve the same ceremony
-is how a control becomes something people route around, so tiers 3 and 4 keep a
-single signature and the register says plainly that they do.
-
-**A version whose model has no tier cannot be approved at all.**
-
-> **409 `no_tier`** — this model has no risk tier, so how many signatures its
-> version needs is undecided. *Assess the model first; approving before assessing
-> would be a way of choosing your own control depth.*
-
-That refusal is not about paperwork. The tier decides the number of signatures,
-so approving first would let anybody pick their own. It is the obvious way to
-game a rule like this one, and it is closed.
-
-Signing is its own permission. A validator holds `version:sign` and never
-`version:approve`: they can complete a quorum and can never approve alone. And
-the same person may not sign twice under two hats — a quorum is a number of
-people, not a number of roles.
-
-One decline closes the approval and returns the version to its author, with the
-statement attached. A declined round stays in the history; the next attempt is a
-new approval, so *"how many times did this fail second-line review"* is a
-question with an answer.
-
-## Who can do what to the record
-
-| Act | Permission | Held by |
-|---|---|---|
-| `submit` | `model:submit` | model owner |
-| `approve` / `return` | `model:approve` | model risk manager |
-| `attest` | `model:attest` | model owner **and** model risk manager |
-| `amend` | `model:amend` | model owner |
-| `retire` | `model:retire` | model owner, model risk manager |
-| `delete` | `model:delete` **and** the `admin` role | administrator only |
-
-## Authenticating
+## Signing in
 
 The interface uses a signed session cookie. Services and scripts use HTTP Basic
 against the same principal register, so there is one identity store rather than
 two:
 
 ```bash
-curl -u a.mehta:… localhost:5006/api/v1/me
+curl -u a.mehta:… localhost:5006/api/v1/me      # your roles, permissions and scope
+curl -u a.mehta:… localhost:5006/api/v1/roles   # the catalogue, the pairs, the SoD rules
 ```
 
-Passwords are PBKDF2-HMAC-SHA256 with a per-principal salt and 200,000
-iterations. A deliberately expensive derivation is right for a login form and
-wrong for an API called a thousand times a minute, so a successful verification
-is trusted for sixty seconds — keyed by a peppered digest of the presented
-secret, never the secret itself. **Suspension is re-read on every request**: the
-cache shortens the key derivation, never the authorisation decision.
+Both are open to any authenticated principal. A person should always be able to
+see what they are allowed to do without asking an administrator — a permission
+system nobody can inspect is one people work around.
+
+Passwords are PBKDF2-HMAC-SHA256, per-principal salt, 200,000 iterations. A
+deliberately expensive derivation is right for a login form and wrong for an API
+called a thousand times a minute, so a successful verification is trusted for
+sixty seconds, keyed by a peppered digest of the presented secret and never the
+secret itself. **Suspension is re-read on every request**: the cache shortens the
+key derivation, never the authorisation decision.
 
 Every failure returns the same response whether the username is unknown or the
 password is wrong, and the unknown-user path still computes a dummy hash so the
-timing does not give it away either. The user list of a model risk platform is
-an organisational chart, and a login form that confirms who exists hands it over
-one guess at a time.
+timing does not give it away either. The user list of a model risk platform is an
+organisational chart, and a login form that confirms who exists hands it over one
+guess at a time.
 
-## Seeing your own permissions
+### CSRF, on exactly one surface
 
-```bash
-GET /api/v1/me      # your roles, permissions and scope
-GET /api/v1/roles   # the catalogue, the incompatible pairs, the SoD rules
-```
+A token defends **ambient authority**, and only ambient authority needs
+defending. A session cookie is sent by the browser whether or not the page that
+triggered the request came from us. An `Authorization: Basic` header is not; a
+caller who can set it already holds the credential, and asking them for a token
+as well would protect nothing while breaking every service client.
 
-Open to any authenticated principal. A person should always be able to see what
-they are allowed to do without asking an administrator — a permission system
-nobody can inspect is one people work around.
+So the check applies to exactly one case — a state-changing method whose
+authority came from the session cookie — and to nothing else:
 
+| | |
+|---|---|
+| Header | `x-maya-csrf`, or the form field `csrf_token` where a page posts without JavaScript |
+| Where the page gets it | a `csrf-token` meta tag; the bundled script attaches it to every `fetch`, XHR and form |
+| Exempt methods | `GET`, `HEAD`, `OPTIONS` |
+| Exempt paths | `/login`, `/auth/login`, `/auth/callback` — exactly, never as prefixes, because a prefix exemption grows silently as routes are added beneath it |
+| Refusal | **403 `csrf_token_invalid`** |
 
-## Signing in through a directory
+It runs as middleware rather than as a check in each route, because there are 104
+mutating endpoints and a control that many places have to remember is a control
+that will be missing from the next one. The token is **per session, not per
+form**: a single-use token breaks the back button, breaks two tabs, and breaks
+every page that issues several posts from one render — and a control people route
+around is worse than one they never had, because it also reports success.
 
-MAYA speaks OIDC: the authorisation-code flow with PKCE, a state parameter and a
-nonce, all checked. `GET /api/v1/sso` says whether it is configured and exactly
+This exists even though the cookie is `SameSite=Strict`, because that is one
+defence, implemented by somebody else's software, and its removal would be
+invisible from here.
+
+### Request ids
+
+Every request carries one. Send `x-request-id` and it is honoured; send something
+that is not `[A-Za-z0-9._:-]{1,64}` and it is **replaced** rather than escaped,
+because a caller-supplied string on a log line is log injection. It comes back on
+the response, and it is stamped on every log line the call produced — including
+the ones from libraries, because the filter is installed on the handler rather
+than on one logger.
+
+One access line per request carries the method, path, status and duration. The
+Python SDK sends an id per call, exposes `client.last_request_id`, and puts it on
+every `Refused` exception, so *"it failed"* and *"which of the four thousand log
+lines was mine"* stop being separate investigations.
+
+### Through a directory
+
+MAYA speaks OIDC: authorisation code with PKCE (S256, always), a `state` and a
+`nonce`, all checked. `GET /api/v1/sso` says whether it is configured and exactly
 what it will do.
-
-Two implementation notes, because both are places this commonly goes wrong.
 
 **The token's signature is verified against the provider's published key**, with
 an RS256 verifier in the standard library — no dependency, so the platform still
-deploys into an air-gapped network. It *constructs* the padded block the
-signature should have produced and compares the whole of it, rather than parsing
-what it recovers; and it decides the algorithm itself rather than reading `alg`
-from the token, because an algorithm the sender chooses and the verifier obeys is
-how a token gets accepted with no signature at all.
+deploys air-gapped. It *constructs* the padded block the signature should have
+produced and compares the whole of it rather than parsing what it recovers; it
+decides the algorithm itself rather than reading `alg` from the token, because an
+algorithm the sender chooses and the verifier obeys is how a token gets accepted
+with no signature at all; a key under 2048 bits is refused; and several published
+keys with no `kid` is `ambiguous_key` rather than trying each in turn, which
+would make a token valid if *any* key signed it.
 
 **SSO being down does not lock anybody out.** An unreachable provider refuses the
-login with the reason and points at local credentials. A directory outage should
-not take the model register with it.
+login with the reason (`provider_unreachable`, 503) and points at local
+credentials. A directory outage should not take the model register with it.
 
-### What happens to roles
-
-This is the part that is not mechanical, and it is worth being explicit about.
+#### What happens to roles
 
 An identity provider that grants MAYA roles is an identity provider that decides
 segregation of duties — and the person administering it is very often the person
-whose duties are being segregated.
-
-So **group claims are mapped, never obeyed**:
+whose duties are being segregated. So **group claims are mapped, never obeyed**:
 
 ```yaml
 auth:
   oidc:
     group_claim: groups
+    provision: false
     roles:
       maya-developers: model_developer
       maya-validators: validator
       maya-risk: model_risk_manager
 ```
 
-The group name is the key because that is what the directory controls; the roles
-are the value because that is what MAYA controls, and the direction of that arrow
+The group name is the key because that is what the directory controls; the role
+is the value because that is what MAYA controls, and the direction of that arrow
 is the whole point. **A group with no entry grants nothing.** It does not grant
 itself.
 
-And **the incompatible-roles check applies here exactly as it does to a locally
-created principal**:
+The incompatible-roles check applies here exactly as it does to a locally created
+principal, and it is checked **before** whether the person is known here, so a
+"you are not provisioned" message cannot hide the more serious problem behind the
+lesser one:
 
-> **403 `incompatible_roles`** — the directory places solo in groups that map to
-> incompatible roles: a developer who can also approve versions is a first line
-> approving its own work. *Fix the group membership, or the mapping; accepting
-> both would let a directory decide segregation of duties, and refusing quietly
-> would hide that it had.*
-
-A directory that can hand out a conflicting pair by mistake is precisely why the
-check exists. Honouring it only for principals created here would honour it where
-it is least needed. This is checked *before* whether the person is known here, so
-a "you are not provisioned" message cannot hide the more serious problem behind
-the lesser one.
-
-### Provisioning is a decision
+> the directory places solo in groups that map to incompatible roles: a
+> developer who can also approve versions is a first line approving its own work.
+> *Fix the group membership, or the mapping; accepting both would let a directory
+> decide segregation of duties, and refusing quietly would hide that it had.*
 
 `auth.oidc.provision` is **off by default**. Auto-provisioning gives everybody in
-the directory a foothold in the model register, and that is a decision somebody
-should make deliberately rather than inherit. With it off, somebody who
-authenticates perfectly well and has no principal here is told so.
+the directory a foothold in the model register, and that should be a decision
+somebody makes rather than inherits. With it off, somebody who authenticates
+perfectly well and has no principal here is told so (`not_provisioned`, 403).
 
-### What is recorded
+What is recorded is the issuer, the subject, the groups, and which groups mapped
+to which roles — not the whole token, which carries more about a person than a
+governance record needs. Without it, *"why did this person have that role in
+March"* becomes unanswerable the moment the directory moves on.
 
-The issuer, the subject, the groups, and which groups mapped to which roles — not
-the whole token, which carries more about a person than a governance record
-needs. Without it, *"why did this person have that role in March"* becomes
-unanswerable the moment the directory moves on.
+```bash
+POST /api/v1/sso/preview      # which roles would these claims get? (principal:manage)
+```
 
-`POST /api/v1/sso/preview` answers *which roles would this person get* from a set
-of claims, without signing anybody in — for wiring up a mapping before somebody
+Answers that without signing anybody in — for wiring up a mapping before somebody
 finds out the hard way.
 
+## Tightening a gate without a release
 
-## Changing a gate without a release
+Several refusals on this page are written in the registry: an attested record
+does not accept changes, an alias points only at an approved version, a warrant
+does not resolve over a blocking finding. Those are invariants and they stay
+where they are.
 
-Several of the refusals on this page are written in the registry: an attested
-record does not accept changes, an alias points only at an approved version, a
-warrant does not resolve over a blocking finding. Those are invariants and they
-stay where they are.
-
-What was missing was a way to add a condition — *tier 1 versions also need a
+What was missing was a way to *add* a condition — *tier 1 versions also need a
 validation episode*, *this environment also needs an accepted MDD* — without
-waiting for a release. `GET /api/v1/policies` shows what is in force on each
-gate and what facts a rule there may read.
+waiting for a release. Four gates publish facts a rule may read:
+
+```bash
+GET /api/v1/policies              # what is in force on each gate
+GET /api/v1/policies/facts/{gate} # version:approve · alias:move · model:mutate · warrant:resolve
+```
 
 ### A rule is a predicate, not a program
 
@@ -477,12 +506,14 @@ gate and what facts a rule there may read.
 blocking_findings == 0 and (tier > 2 or validated)
 ```
 
-Comparison, membership, `and`/`or`/`not`, and `any`/`all` over a collection.
-**No loops, no assignment, no function definitions.** That is what makes a rule
-something a reviewer can reason about rather than something they have to run.
+Comparison, membership, `and`/`or`/`not`, a conditional, arithmetic, and
+`any` · `all` · `len` · `min` · `max` · `abs` · `sorted` · `sum` over a
+collection. **No loops, no assignment, no function definitions, no attribute
+access.** That is what makes a rule something a reviewer can reason about rather
+than something they have to run.
 
-It reads the facts the gate publishes and nothing else, and a name that is not
-one of them is refused **when the rule is written**:
+A name that is not one of the gate's published facts is refused **when the rule
+is written**:
 
 > **422 `unknown_fact`** — the rule reads `phase_of_the_moon`, which this gate
 > does not publish. *A rule that failed at the moment of a governance decision
@@ -490,36 +521,40 @@ one of them is refused **when the rule is written**:
 
 ### A policy carries its own cases
 
-A policy is drafted with a set of cases — facts, and the verdict the author says
-those facts deserve — and **cannot be published until they pass**. At least one
-must be a case the policy *refuses*:
+A policy is drafted with at least two cases — facts, and the verdict the author
+says those facts deserve — and **cannot be published until they pass**. At least
+one must be a case the policy *refuses*:
 
 > **422 `no_refusing_case`** — none of the cases expects this policy to refuse
 > anything. *A policy nobody has shown to refuse is a policy nobody has shown to
-> be a gate.*
+> be a gate; add a case it must turn down.*
 
 ### Loosening is allowed, and is never quiet
 
 Publishing a version that permits something its predecessor refused is a
 legitimate act; rules do change. So the register replays the outgoing version's
-cases against the incoming rule and reports every verdict that flipped:
+cases against the incoming rule and reports every verdict that flipped, in both
+directions:
 
 ```json
 {"loosened": [{"name": "an attested record is not", "was": "refuse", "now": "allow"}],
+ "tightened": [],
  "detail": "1 case(s) the previous policy refused are now permitted"}
 ```
 
-A change that loosens a gate should be something somebody decided, not something
-somebody discovered.
+The drift is written into the `policy_published` evidence too, so it can be read
+back later. A change that loosens a gate should be something somebody decided,
+not something somebody discovered.
 
-Authoring and publishing are separate duties: a validator drafts, a model risk
-manager publishes. A rule authored and enacted by one person is a rule nobody
-reviewed.
+Authoring and publishing are separate duties: a validator or a risk manager
+drafts (`policy:author`), only a risk manager publishes (`policy:publish`). A
+rule authored and enacted by one person is a rule nobody reviewed.
 
 ### The boundary, stated plainly
 
 **A policy can tighten a gate. It cannot loosen one.** Every check written in the
-registry stays exactly where it is and a policy runs *in addition* to it.
+registry stays exactly where it is, and a policy runs *in addition* to it,
+refusing with `policy_refused` (403).
 
 That is a smaller promise than "the gates are the policy", and it is the honest
 one. Replacing an invariant with a line of configuration means a mistyped rule

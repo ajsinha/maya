@@ -111,7 +111,7 @@ class TestFeaturesetsAndParameters:
                                            "bedrooms": "bedrooms"}})
         plan = registered.get("/api/v1/featuresets/nj_home_core/versions/1").json()
         assert plan["namespaces"] == ["features/property_id/nj_characteristics/v1"]
-        assert "ingest_ts <= as_of" in plan["pit_rule"]
+        assert plan["pit_rule"].endswith("ingest_ts <= min(label_ts, as_of)")
 
     def test_a_validator_may_not_publish_a_featureset(self, registered, people):
         self._featureset(registered, people["d.raman"])
@@ -555,7 +555,7 @@ class TestTheFitWarrantChecksTheSchema:
         self._setup(registered, dev, {"dscr": "float"}, {"dscr": "dscr"})
         binding = self._fit(registered, owner).json()["data"]["inputs"][0]
         assert binding["namespaces"] == ["features/borrower_id/sb_credit/v1"]
-        assert "ingest_ts <= as_of" in binding["pit_rule"]
+        assert binding["pit_rule"].endswith("ingest_ts <= min(label_ts, as_of)")
 
 class TestFittingOverTheApi:
     """The path a person actually walks: features, a featureset, a training set,

@@ -70,16 +70,70 @@ class DerivedFeatures:
     # ----------------------------------------------------------------- define
     def define(self, name: str, expression: str, dtype: str, description: str,
                owner: str, evaluator: str = INTERNAL, on_error: str = "null",
-               note: str = "", actor: str = "system") -> Dict[str, Any]:
-        """Declare a feature computed from others. Definitions are versioned."""
+               note: str = "", inputs: Sequence[str] = (),
+               actor: str = "system") -> Dict[str, Any]:
+        """Declare a feature computed from others. Definitions are versioned.
+
+        ## Why `inputs` is a parameter, and only sometimes
+
+        `external` exists for the expression MAYA cannot evaluate — one needing
+        a library, external data or a model. But this parsed the expression
+        before it looked at `evaluator`, so an expression the language could not
+        *parse* could not be declared external either, and the only escape was
+        to register the result as a primitive and lose the lineage that was the
+        entire reason for keeping the definition.
+
+        Inputs have exactly one source of truth at a time:
+
+        * `internal` — the parse names them. Passing them here is refused,
+          because a declared list and a parsed list are two answers that can
+          disagree, and the leakage check would then be run against whichever
+          one somebody happened to read.
+        * `external` — the parse names them if it parses; if it does not, the
+          caller declares them, and MAYA records that the expression is opaque
+          to it rather than pretending to have understood it.
+        """
         if evaluator not in EVALUATORS:
             raise FeatureError(f"evaluator must be one of {', '.join(EVALUATORS)}")
         if on_error not in ON_ERROR:
             raise FeatureError(f"on_error must be one of {', '.join(ON_ERROR)}")
 
-        parsed = Expression(expression)
-        inputs = parsed.feature_names()
-        if not inputs and not parsed.reads_clock():
+        declared = tuple(dict.fromkeys(inputs))
+        if declared and evaluator != EXTERNAL:
+            raise FeatureError(
+                f"'{name}' is internal, so its inputs come from its expression; "
+                f"declaring them as well gives the leakage check two lists that "
+                f"can disagree")
+
+        opaque = False
+        try:
+            parsed = Expression(expression)
+            source, inputs = parsed.source, parsed.feature_names()
+            reads_clock = parsed.reads_clock()
+        except FeatureError as exc:
+            if evaluator != EXTERNAL:
+                raise
+            # An out-of-language expression, kept verbatim. This is the case the
+            # `external` evaluator was documented as covering and did not.
+            logger.info("derived feature '%s' is external and its expression is "
+                        "opaque to MAYA (%s); recording it with the %d declared "
+                        "input(s) so lineage and the leakage check still apply",
+                        name, exc, len(declared))
+            opaque, source, inputs, reads_clock = True, expression.strip(), declared, False
+
+        if declared and not opaque:
+            if set(declared) != set(inputs):
+                raise FeatureError(
+                    f"'{name}' parses, so its inputs are {', '.join(inputs) or 'none'}; "
+                    f"the declared list says {', '.join(declared)}. Omit it, or "
+                    f"leave the expression in a form MAYA cannot read")
+        if opaque and not inputs:
+            raise FeatureError(
+                f"'{name}' is external and MAYA cannot parse its expression, so "
+                f"it must declare the features it reads — without them there is "
+                f"no lineage and no leakage check, which is the whole reason the "
+                f"definition is kept")
+        if not inputs and not reads_clock:
             raise FeatureError(
                 f"'{name}' reads no features, so it is a constant rather than a "
                 f"derived feature")
@@ -101,14 +155,14 @@ class DerivedFeatures:
             self.features.add(row)
         version = len(self.derived.many(name=name)) + 1
         definition = {
-            "feature_id": row["id"], "name": name, "expression": parsed.source,
+            "feature_id": row["id"], "name": name, "expression": source,
             "inputs": inputs, "evaluator": evaluator, "on_error": on_error,
             "definition_version": version, "note": note,
-            "digest": canonical_digest({"expression": parsed.source, "inputs": inputs}),
+            "digest": canonical_digest({"expression": source, "inputs": inputs}),
             "created_by": actor, "created_at": time.time()}
         self.derived.add(definition)
         self.evidence.append("derived_feature_defined", "feature", row["id"],
-                             {"name": name, "expression": parsed.source,
+                             {"name": name, "expression": source,
                               "inputs": inputs, "definition_version": version,
                               "evaluator": evaluator}, actor=actor)
         logger.info("defined derived feature %s@v%d over %s", name, version, inputs)

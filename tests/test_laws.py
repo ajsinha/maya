@@ -738,6 +738,63 @@ class TestL10TheAsOfOperator:
         # And it does reach a row labelled after it became known, correctly.
         assert self._read([original, restated], august, august)["dscr"] == 0.40
 
+    def test_the_rule_published_to_engines_is_the_rule_maya_applies(self):
+        """`PIT_RULE` is a *contract*, not a comment: it goes out in every
+        `featureset_plan` and in every warrant, and the engines that implement
+        it are ones this repository does not run.
+
+        It said `ingest_ts <= as_of` — the rule from before the `min` was added.
+        So an engine that implemented the published string faithfully admitted
+        rows MAYA's own assembly refuses, and the disagreement would have
+        surfaced as an unreproducible training set with two correct-looking
+        implementations and no way to tell which one was wrong.
+
+        The old test asserted `"ingest_ts <= as_of" in plan["pit_rule"]`, which
+        is a substring check loose enough to pass on the wrong rule. So this one
+        does not read the string — it *executes* it, against the same rows, and
+        demands the same answer as the operator.
+        """
+        from core.features.common import INGEST_TIME, VALID_TIME
+        from core.features.sets import PIT_RULE
+
+        predicate = PIT_RULE.replace(" AND ", " and ")
+        rng = random.Random(SEED)
+        for _ in range(300):
+            rows, label = self._rows(rng), rng.randint(20, 100)
+            as_of = rng.randint(0, 140)
+            admitted = [r for r in rows if eval(predicate, {"min": min}, {  # noqa: S307
+                "event_ts": r[VALID_TIME], "ingest_ts": r[INGEST_TIME],
+                "label_ts": label, "as_of": as_of})]
+            chosen = self._read(rows, label, as_of)
+            assert (chosen is None) == (not admitted), (
+                "an engine implementing the published rule and MAYA's own "
+                "assembly disagree about whether ANY row is admissible")
+            if chosen is not None:
+                assert chosen in admitted
+                assert chosen["row"] == max(
+                    admitted, key=lambda r: (r[VALID_TIME], r[INGEST_TIME]))["row"]
+
+    def test_the_layer_two_verifier_bounds_ingest_the_same_way(self):
+        """`_recompute` exists to reach the assembly's answer by a different
+        route, so agreement means something. It bounded ingest by `as_of` alone
+        while `latest_admissible` bounds it by `min(label_ts, as_of)`, so the
+        two disagreed whenever a set was assembled after its labels matured —
+        the ordinary case — and the verifier reported a mismatch on a *correct*
+        assembly.
+
+        A false positive in the control that verifies a control is worse than
+        no control: it teaches whoever reads the report to discount it.
+        """
+        import inspect
+
+        from core.features.assembly import TrainingSetBuilder
+
+        source = inspect.getsource(TrainingSetBuilder._recompute)
+        assert 'min(row["label_ts"], as_of)' in source, (
+            "the layer-2 verifier no longer bounds the ingest clock the way "
+            "latest_admissible does")
+        assert "self.delta.as_of(pin[\"namespace\"], row[\"label_ts\"],\n" in source
+
 
 # ===========================================================================
 # L-9 extended — the same polynomial, one layer across

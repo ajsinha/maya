@@ -46,7 +46,19 @@ logger = get_logger(__name__)
 
 # The point-in-time rule every featureset asserts. Stated once, here, rather than
 # re-declared in every warrant that reads one.
-PIT_RULE = f"{VALID_TIME} <= label_ts AND {INGEST_TIME} <= as_of"
+# The rule an execution engine is handed, and it must be the rule MAYA's own
+# assembly applies. It said `ingest_ts <= as_of`, which is the rule from BEFORE
+# the `min` was added — so an engine implementing the published string admitted
+# rows MAYA itself refuses, and the disagreement would have surfaced as a
+# reproducibility failure nobody could locate.
+#
+# The bound is `min(label_ts, as_of)` because the two clocks refuse different
+# things: `label_ts` is what the model could have known when the decision was
+# made, and `as_of` is what the platform could have known when the set was
+# built. Taking the earlier of the two is what makes a read at any `as_of` at or
+# after the label give the same answer (L-10).
+PIT_RULE = (f"{VALID_TIME} <= label_ts AND "
+            f"{INGEST_TIME} <= min(label_ts, as_of)")
 
 
 class FeaturesetRegistry:
