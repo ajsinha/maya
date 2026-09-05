@@ -71,8 +71,9 @@ h = code(sl, ML, y, CW * 0.52, [
     "",
     "none             ×   none            ⟹   T0   theory; nothing to fit",
     "calibration_set  ×   calibrate       ⟹   T1   solved against quotes",
-    "estimated_coeffs ×   estimate        ⟹   T3   a statistical estimator",
-    "learned_weights  ×   train           ⟹   T4   a training run",
+    "estimated_coeffs ×   estimate        ⟹   T2   a statistical estimator",
+    "learned_weights  ×   train           ⟹   T3   a training run",
+    "         ... and adaptive        ⟹   T4   training that continues",
     "llm_configuration×   configure       ⟹   T5   somebody else's model",
     "rule_set         ×   none            ⟹   T8   rules, written down",
     "opaque           ×   none            ⟹   T6   inside a vendor binary",
@@ -100,7 +101,7 @@ sl, y = content("Four problems that stop existing", "Foundations · consequences
 outs = [("“Which models need validating?”",
          "Every model. What DIFFERS is the evidence each can produce, and the "
          "class says which — so a T0 gets benchmarked against an independent "
-         "implementation and a T4 gets replayed."),
+         "implementation and a T3 gets replayed."),
         ("“Is a spreadsheet a model?”",
          "If it maps inputs to outputs under parameters, yes. rule_set × none "
          "⟹ T8, and it is governed like anything else rather than living in a "

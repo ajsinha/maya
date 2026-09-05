@@ -271,10 +271,10 @@ current there:
 
 | | |
 |---|---|
-| Tests | **2,206 passing**, plus a scale suite excluded by default |
+| Tests | **2,212 passing**, plus a scale suite excluded by default |
 | Foundational laws executable | **15 of 21** — the six that are not are named with the reason |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **47 tables**, no migrations |
+| Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **46 tables**, no migrations |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
 
 ---
@@ -398,7 +398,7 @@ maya/
 │   ├── estate/                      the worklist and the summary, derived not assigned
 │   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 47 tables, no migrations
+│   └── schema/                      two hand-written schemas, 46 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies

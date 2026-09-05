@@ -1,1082 +1,583 @@
-# 04 — MAYA Architecture and Design
+# 04 — Architecture
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-**Companion to:** [00 — Mathematical Foundations](00-mathematical-foundations.md) · [03 — Requirements](03-requirements.md)
-**Annexes:** [05 — Data Model](05-data-model.md) · [06 — Warrants & Execution](06-warrants-and-execution.md) · [07 — Feature Platform](07-feature-platform.md) · [08 — UI/UX](08-ui-ux.md) · [09 — Security & Compliance](09-security-compliance.md)
+**Companion to** [00 — Mathematical Foundations](00-mathematical-foundations.md) ·
+[03 — Requirements](03-requirements.md)
+**Annexes:** [05 — Data Model](05-data-model.md) · [06 — Warrants & Execution](06-warrants-and-execution.md) ·
+[07 — Feature Platform](07-feature-platform.md) · [08 — UI/UX](08-ui-ux.md) ·
+[09 — Security & Compliance](09-security-compliance.md) · [14 — Detailed Design](14-detailed-design.md)
 
 ---
 
-## 1. Architectural overview
+## 0. The argument this document makes
 
-### 1.1 The one-sentence architecture
+An architecture diagram is a drawing of boxes somebody agreed to. What makes it an architecture is
+the **boundaries**, and a boundary is only real if crossing it is refused.
 
-> MAYA is a **modular monolith** in Python/FastAPI that maintains a **fibred registry** of models as
-> morphisms in `Para(Stoch)`, binds every governance claim to an **immutable, semiring-annotated evidence
-> graph** in PostgreSQL, stores feature and telemetry data in **Delta Lake**, evaluates **institution-indexed
-> regulatory obligations** as policy-as-code, and issues **signed execution warrants** that let any external
-> engine run any governed model version on demand.
+So this document is not a catalogue of components. It is **seven boundaries**. Each section states
+what the boundary separates, the concrete failure that occurs when it is not there, and **what
+enforces it** — a refusal in code, a test that walks the source, or, in two cases, nothing yet, which
+is said rather than left to be discovered.
 
-### 1.2 Why a modular monolith, not microservices
+| # | The boundary | What it prevents | Enforced by |
+|---|---|---|---|
+| **B1** | governance ⊥ execution | governance in the serving path; a version move that makes every consumer redeploy | the warrant protocol — MAYA runs nothing |
+| **B2** | control plane ⊥ data plane | a governance database becoming a data lake nobody chose | `tests/test_schema_discipline.py` walks the DDL |
+| **B3** | domain ⊥ storage | a dialect change touching two hundred files; domain logic untestable without a database | `db/` is the only package that knows a table exists |
+| **B4** | domain ⊥ transport | business rules in a route handler, enforced on one path and missing on the other | `core/domain/` imports nothing from MAYA; `routes/` is imported by nothing |
+| **B5** | platform ⊥ artifact | a malformed graph taking the register down with it | a child process with limits from the warrant — **honestly scoped**, §5 |
+| **B6** | record ⊥ assertion | two accounts of who did what, which can disagree | there is no audit log; the evidence chain is it |
+| **B7** | derived ⊥ stored | a stored derivation going stale and being believed | nothing computable is a column; the tier stores its *derivation* |
 
-| Consideration | Decision |
-|---|---|
-| The domain is densely interconnected — tiering reads inventory, evidence, findings, overlays and monitoring in one transaction | A monolith keeps these as ACID transactions rather than sagas |
-| Governance data is *small* (10⁵ models, 10⁶ versions); feature/telemetry data is *large* | Split by **data gravity**, not by service noun: control plane = Postgres monolith; data plane = Delta/Spark |
-| Team size at launch is 8–15 engineers | Microservices would be premature distribution |
-| Warrant resolution has a 10× tighter SLA than everything else (`NFR-PERF-002`) | It is the **one** component extracted as an independently scalable, independently deployable service |
-
-The result is two deployable units plus workers, described in §3.
-
-### 1.3 Architectural drivers, ranked
-
-1. **Evidential integrity** — the system's value is that its claims are verifiable. Immutability and hash-chaining beat every other concern.
-2. **Extensibility without migration** — new model classes and new regulators must be plugins (§7, §8).
-3. **Warrant-path availability and latency** — production scoring depends on it (`NFR-PERF-002`, `NFR-AVAIL-001`).
-4. **Auditability of every derivation** — nothing derived may be unexplainable (`P8`).
-5. **Developer ergonomics** — if the compliant path is slower than the non-compliant path, the inventory rots.
+Two boundaries the design names and does **not** yet enforce are called out where they belong: the
+import-linter contract for B4 (`NFR-MNT-002`) is a plan rather than a CI gate, and B5 protects
+against accident and not against malice.
 
 ---
 
-## 2. Context
+## 1. The shape, in one paragraph
 
-```mermaid
-C4Context
-    title MAYA — System Context
+> MAYA is **one Python process** — a FastAPI application, `run_maya_web.py::create_app` — over a
+> relational register that is SQLite by default and PostgreSQL by URL alone, a Delta Lake tree on the
+> filesystem for feature and telemetry values, and a content-addressed artifact store keyed by
+> digest. It holds a fibred registry of models as morphisms in `Para(Stoch)`, binds every governance
+> claim to an append-only hash-chained evidence graph, evaluates supervisory obligations as
+> institution-indexed policy, and issues **signed, expiring, entitlement-bound warrants** that let an
+> external engine run a governed version on demand.
 
-    Person(dev, "Model Developer / Quant", "Builds, fits, calibrates, documents")
-    Person(val, "Independent Validator", "Effective challenge")
-    Person(own, "Model Owner / Business", "Accountable for use")
-    Person(mrm, "Model Risk Office / CRO", "Portfolio oversight, appetite")
-    Person(aud, "Internal Audit / Examiner", "Assurance, inspection")
+**What it deliberately is not.** There is no message bus, no cache tier, no task queue, no
+orchestrator, no service mesh and no second deployable unit. Everything is vendored; nothing calls
+out. The rule that decided most of this: **a governance system that cannot be deployed air-gapped is
+one somebody works around**, and a system somebody works around records less than no system at all,
+because it also reports success.
 
-    System(maya, "MAYA", "Model & AI Lifecycle Assurance Platform")
+The cost is stated rather than hidden. §9 is one table of every place the production *target*
+differs from the build, and §10 is what fails and how.
 
-    System_Ext(exec, "Execution Engines", "Batch schedulers, real-time scorers, trading systems, Spark jobs, LLM gateway")
-    System_Ext(lake, "Data Lakehouse", "Delta Lake, source systems, warehouses")
-    System_Ext(mlops, "ML Platforms", "Databricks / MLflow, SageMaker, Vertex, SAS")
-    System_Ext(idp, "Identity Provider", "OIDC / SAML / SCIM")
-    System_Ext(grc, "Enterprise GRC & ITSM", "OpenPages, Archer, ServiceNow")
-    System_Ext(git, "Source Control & CI/CD", "Git, pipelines")
-    System_Ext(obs, "ML Observability", "Arize, Evidently, Lakehouse Monitoring")
-    System_Ext(vend, "Vendor Model Providers", "FICO, Actimize, Murex, bureaux")
+### 1.1 Drivers, ranked
 
-    Rel(dev, maya, "Registers, fits, documents", "SDK / CLI / UI")
-    Rel(val, maya, "Validates, challenges, reports", "UI / SDK")
-    Rel(own, maya, "Approves uses, attests", "UI")
-    Rel(mrm, maya, "Oversees, tiers, reports", "UI")
-    Rel(aud, maya, "Inspects, samples, exports", "UI / API")
+1. **Evidential integrity.** The system's value is that its claims are checkable. Immutability and
+   hash-chaining beat every other concern, including performance.
+2. **Extensibility without migration.** A new model class or a new regulator must not need DDL.
+   §8 is honest about how much of that is realised and how much is not.
+3. **Warrant-path availability.** Production scoring depends on it (`NFR-PERF-002`, `P9`).
+4. **Auditability of every derivation.** Nothing derived may be unexplainable (`P8`).
+5. **Developer ergonomics.** If the compliant path is slower than the non-compliant path, the
+   inventory rots. This is fifth in the list and first in practice.
 
-    Rel(exec, maya, "Resolves warrants, executes models", "HTTPS / gRPC")
-    Rel(maya, lake, "Reads/writes features, telemetry", "Delta / Spark")
-    Rel(maya, mlops, "Imports models, runs, lineage", "REST")
-    Rel(maya, idp, "Authenticates", "OIDC")
-    Rel(maya, grc, "Syncs issues, change records", "REST")
-    Rel(maya, git, "Reads commits; gates builds", "REST / webhook")
-    Rel(obs, maya, "Pushes metric observations", "REST")
-    Rel(maya, vend, "Tracks versions, attestations", "Feeds / manual")
+---
+
+## 2. B1 — Governance is separated from execution
+
+### The failure it prevents
+
+Put governance in the serving path and two things follow, both bad. Every scoring call now depends
+on the availability of the control plane, so an inventory outage becomes a trading outage. And a
+governed version move — promoting a challenger, rolling back after a breach — becomes a deployment
+in every consuming system, which means it will be done rarely, late, and by exception.
+
+### The mechanism
+
+A consumer holds a **URN** and never a version:
+
+```
+maya://model/credit.pd.smallbiz#champion
 ```
 
----
+Everything else resolves at the moment of use, against the policy in force at that moment. MAYA
+returns a **warrant**: a signed document naming the version, the artifact and its digest, the input
+and output schemas, the operating boundary, the resource ceiling, who may run it, for what, and until
+when. An engine verifies the signature and acts. **MAYA never executes anything on the serving
+path**, and there is no path by which a scoring call reaches the register.
 
-## 3. Container architecture
+The warrant is the product of four independent vocabularies, not a union of special cases —
+`core/execution/grammar/vocabulary.py`:
 
-```mermaid
-flowchart TB
-    subgraph CLIENTS["Clients — all use the same public API"]
-        UI["<b>maya-web</b><br/>separate process · static assets<br/>Bootstrap 5 + jQuery + ES modules<br/>nginx / CDN"]
-        SDK["Python / JVM SDK + CLI<br/>notebook + CI plugins"]
-        ENG["Execution engines<br/>(batch, realtime, Spark, LLM gateway)"]
-    end
-
-    subgraph EDGE["Edge"]
-        GW["API Gateway / Ingress<br/>TLS, WAF, rate limit, OIDC"]
-    end
-
-    subgraph CONTROL["maya-api — FastAPI modular monolith"]
-        API["REST API v1 · OpenAPI 3.1<br/>the ONLY interface"]
-        AUTHB["Token broker /auth/*<br/>OIDC PKCE refresh"]
-        REND["Document renderer<br/>server-side HTML / PDF"]
-        direction TB
-        subgraph CTX["Bounded contexts"]
-            REG["Registry<br/>models, versions, artifacts"]
-            FEA["Feature Platform"]
-            LC["Lifecycle & Workflow"]
-            VAL["Validation & Findings"]
-            PMA["Overlay Register"]
-            EVD["Evidence Engine<br/>semirings, provenance"]
-            POL["Policy & Regime Engine<br/>institutions, OPA/Rego, MTL"]
-            RISK["Risk & Tiering<br/>lattices, Galois"]
-            DOC["Documentation Compiler<br/>lenses"]
-            MON["Monitoring Orchestration"]
-            IAM["Identity, RBAC/ABAC, Audit"]
-            AI["Machine Assistance<br/>oracle-gated · grounded"]
-        end
-    end
-
-    subgraph WARRANTSVC["Warrant Resolution Service — independently scaled"]
-        HR["Resolver<br/>p99 < 50 ms"]
-        SIGN["Descriptor signer / verifier"]
-        REV["Revocation & kill switch"]
-    end
-
-    subgraph WORKERS["Async Workers (Celery)"]
-        W1["Ingestion & connectors"]
-        W2["Artifact introspection<br/>+ security scan (sandboxed)"]
-        W3["Doc compilation"]
-        W4["Monitoring evaluation"]
-        W5["Notifications & campaigns"]
-        W6["Discovery sweeps"]
-    end
-
-    subgraph SANDBOX["Execution Sandbox Fleet"]
-        SB["Ephemeral, network-isolated pods<br/>artifact load, replay, validation runs,<br/>MAYA-hosted OIP-v2 serving"]
-    end
-
-    subgraph DATAPLANE["Data Plane"]
-        SPARK["Spark / Databricks Jobs<br/>PIT joins, materialisation,<br/>monitoring at scale"]
-    end
-
-    subgraph STORES["Persistence"]
-        PG[("PostgreSQL 16<br/>governance system of record<br/>+ pgvector + RLS")]
-        DL[("Delta Lake<br/>features, snapshots,<br/>telemetry, observations")]
-        OBJ[("Object Store<br/>content-addressed artifacts<br/>WORM tier")]
-        RD[("Redis<br/>warrant cache, sessions,<br/>rate limits, queues")]
-    end
-
-    subgraph BUS["Eventing"]
-        KAF["Kafka / CloudEvents<br/>domain event stream"]
-    end
-
-    UI -->|bearer token| GW
-    SDK --> GW
-    ENG --> GW
-    GW --> API & AUTHB & REND
-    GW --> HR
-    API --> CTX
-    REND --> CTX
-    CTX --> PG
-    CTX --> KAF
-    CTX -.enqueue.-> WORKERS
-    HR --> RD
-    HR -->|warrant_projection ONLY| PG
-    HR --> SIGN
-    REV --> RD
-    W2 --> SB
-    W3 --> PG & OBJ
-    W4 --> SPARK
-    W6 --> W1
-    FEA --> SPARK
-    SPARK --> DL
-    MON --> DL
-    REG --> OBJ
-    SB --> OBJ
-    KAF --> WORKERS
-
-    style WARRANTSVC fill:#2d5016,color:#fff
-    style CONTROL fill:#1f3a5f,color:#fff
-    style STORES fill:#4a3a1f,color:#fff
-```
-
-### 3.1 Deployable units
-
-| Unit | Scaling | Why separate |
+| Axis | Question | Values |
 |---|---|---|
-| `maya-web` | Static; CDN + 2 pods | **Separate process, separate pipeline** ([ADR-011](adr/ADR-011-decoupled-frontend.md)). A front-end outage stops human review but not warrant resolution, jobs, monitoring or the SDK |
-| `maya-api` | 3–10 pods, CPU-bound | The bulk of the domain; deploys together for transactional integrity |
-| `maya-warrants` | 10–100 pods, latency-critical, regional | 10× tighter SLA; must survive control-plane outage (`P9`) |
-| `maya-worker` | Queue-depth autoscaled | Long-running, retryable |
-| `maya-sandbox` | Job-per-task, hard-isolated | **Never** runs untrusted code in-process with the control plane (`P7`) |
-| `maya-spark` (jobs) | Cluster-managed | Data-plane compute |
+| `parameters.kind` | how is `P` inhabited? | **eight**, from `none` to `opaque` — and the trainability class `T0`–`T8` is **derived** from it, never declared |
+| `realisation.runtime` | how does the kernel become runnable? | **eighteen**, each declaring the keys its `entry` block must carry |
+| `operation.verb` | what is being asked of it? | ten: score, fit, validate, backtest, explain, simulate, stress, optimise, generate, monitor |
+| `data.*.binding` | where do the inputs come from? | twelve, of which three are bitemporal and can therefore answer *what was known at time t* |
+
+`descriptor_only` is one of the eighteen and matters most in a bank: much of the estate already runs
+inside engines nobody is going to replace, and a warrant that carries governance and no execution is
+the honest description of that case.
+
+**Fourteen admissibility laws (`L-W0`–`L-W13`) are checked before the signature.** They quantify over
+facts the platform *derives* rather than a category anybody attached, which is why one document
+serves every family: a `fit` on a T0 kernel is refused because its parameter object is terminal, not
+because somebody ticked a box. Full protocol in [06](06-warrants-and-execution.md).
+
+### What is on the far side of the boundary
+
+`core/execution/engine.py` ships a **captive engine** so that the protocol has a reference
+implementation, and it is deliberately not privileged: it resolves a warrant like any other consumer
+and refuses by name a runtime it does not have. It implements five of the eighteen —
+`python.callable`, `onnx`, `pmml`, `quantlib`, `estimator`, and answers for `descriptor_only` as
+well. `RuntimeRegistry.invoke` distinguishes two refusals that need different actions: a runtime
+never implemented (route the warrant elsewhere) and one whose dependency is missing (install the
+package).
 
 ---
 
-## 4. Bounded contexts and the module map
+## 3. B2 — The control plane is separated from the data plane
 
-Each context maps to a mathematical pillar. This is the architectural payoff of
-[00](00-mathematical-foundations.md): module boundaries are not arbitrary.
+### The failure it prevents
 
-This is the map **as built**. The package is `core/`; module names are the ones on disk.
+A governance record is something a person reads one at a time: a model, a finding, an approval. A
+feature view is hundreds of millions of rows. Put both in one store and the register grows without
+bound, backups stop fitting, and the thing an examiner needs to read in an afternoon has become a
+data lake nobody chose.
+
+### The rule
+
+| | |
+|---|---|
+| **R1** | Anything that participates in a governance *decision* lives in the relational register |
+| **R2** | Anything whose volume is proportional to *business events* rather than to *models* lives in Delta |
+| **R3** | The register never stores feature or telemetry **values** — only definitions and pinned pointers |
+| **R4** | Delta never stores authoritative governance state |
+
+### What enforces it
+
+`tests/test_schema_discipline.py::test_no_relational_table_holds_bulk_values` walks both schema files
+and refuses a column named `rows`, `values`, `data`, `records`, `sample`, `observations`, `frame` or
+`dataset`. The positive half is checked too: `feature_view`, `feature_view_version`,
+`dataset_snapshot` and `telemetry_batch` must each name their Delta location, because a pointer that
+does not say where it points is not a pointer.
+
+### The Delta tree
+
+`db/database.py::DeltaPaths` — four areas, and nothing else is a Delta area:
+
+```
+data/delta/
+├── features/<entity>/<view>/v<n>/     one namespace per feature view VERSION (07 §5)
+├── snapshots/<snapshot_id>/           immutable, PIT-verified training sets
+├── telemetry/                         two bitemporal streams per model version:
+│                                        scores (exist when the model runs)
+│                                        outcomes (learned later)
+└── monitoring/                        metric time series
+```
+
+Delta rather than a plain table for one reason that decides it: **table versions give the
+transaction-time axis for free**, which is the mechanism behind point-in-time correctness (`L-10`).
+Every feature row carries `event_ts` and `ingest_ts`, and one missing either is refused at the write.
+
+> **Not built.** Change Data Feed, deletion vectors, crypto-shredding, `VACUUM` retention by
+> regulatory class, liquid clustering and Spark are all target and none is used. `DeltaPaths` carries
+> a `retention_days`; nothing acts on it.
+
+---
+
+## 4. B3 and B4 — The domain is separated from storage, and from transport
+
+### 4.1 The map, as built
+
+The package is `core/`; every name below is a directory or a file on disk.
 
 ```
 core/
-├── domain/                     # Pure domain — no web framework, no ORM (hexagonal)
-│   ├── algebra.py              # Para(Stoch): ParametricKernel, ParameterObject, FitProcedure,
-│   │                           #   and trainability_class as a DERIVED property — T0–T8 are
-│   │                           #   computed from how P is inhabited, so there is nothing to store
-│   ├── contracts.py            # Assume-guarantee algebra: refines, compose, conjoin, quotient (L-7)
-│   ├── schemas.py              # Schema lattice, variance rule (L-12)
-│   └── identity.py             # Probe-relative equivalence (Yoneda), version semantics
-├── registry/                   # Models, immutable versions, governed aliases
-│   ├── models.py  versions.py  aliases.py  catalogue.py  specs.py
-├── regimes/                    # Institutions
-│   ├── signature.py            # Sign — the vocabulary a regime reasons in
-│   ├── sentences.py            # Sen — obligations in that vocabulary
-│   ├── translation.py          # The comorphism into the core signature
-│   ├── engine.py               # ⊨ ; the satisfaction condition, checked before activation
-│   └── library.py              # SR 26-2, PRA SS1/23, EU AI Act
-├── evidence/
-│   ├── semirings.py            # Semiring + six instances (00 §9.2)
-│   └── engine.py               # Append chain over the DAG; evaluate a claim in any semiring
-├── risk/
-│   ├── lattices.py             # Materiality and complexity, kept separate; the control sets
-│   └── tiering.py              # τ : M × C → Tier, monotone (L-4); its adjoint (L-5)
-├── features/
-│   ├── catalogue.py  registry.py  views.py  contracts.py  assembly.py
-│   ├── derived.py  expressions.py   # Z = f(X, Y); nine whitelisted functions, checked at the AST
-│   ├── sets.py                 # Featuresets: a schema, and versions that fill it
-│   ├── shapes.py               # Scalar, vector, matrix, tensor; named components on the first axis
-│   ├── composition.py          # The fold: a monoid over definitions (L-19)
-│   ├── lifecycle.py            # Sealing, ephemerality with a TTL, creator-vs-owner
-│   ├── policy.py               # Retrieval policy: fill · normalise · align, and nothing else
-│   ├── normalisation.py  preparation.py  alignment.py   # Point-in-time statistics, fills, axes
-│   ├── transfer.py             # Arrow / Parquet / NDJSON streaming; nothing materialised whole
-│   └── pit.py                  # Bitemporal verifier: static rejection, then sampling (L-10, H-6)
-├── parameters/                 # Inhabitants of P — a fit makes one, not a version
-│   └── register.py             # Recorded under a warrant MAYA issued, approved by a second person
-├── telemetry/                  # Two bitemporal streams per version; idempotent on the batch digest
-│   └── collector.py            # Scores exist when the model runs; outcomes are learned later
-├── lifecycle/
-│   ├── states.py               # The six-state record machine
-│   ├── approval.py             # Version approval as a quorum, its depth set by tier (L-5)
-│   ├── attestation.py  amendments.py  service.py
-├── policy/                     # Versioned gates — policy tightens, it never loosens
-│   ├── language.py             # A rule is a predicate over a closed vocabulary; no loops, no calls
-│   ├── facts.py                # What each of the four gates publishes, and the built-in defaults
-│   └── engine.py               # Draft with cases, publish once they pass, report what a change flipped
-├── validation/                 # Catalogue, findings, statistics
-│   ├── replay.py  storage.py   # Replay from the pinned snapshot, not from what a caller hands back
-├── overlays/                   # PMA register
-├── monitoring/                 # Monitor definitions, observations, breaches, delayed labels
-├── docs/
-│   ├── lenses.py               # Fifteen lenses; get only — there is no put (see L-11)
-│   ├── compiler.py  templates.py  context.py
-├── attachments/                # The documents people wrote, as against the compiled ones
-│   ├── store.py                # Content-addressed bytes; re-hashed on read
-│   └── register.py             # Version-level filing, segregated review, supersession
-├── execution/                  # Warrants — issuance, signing, revocation
-│   ├── grammar/                # The four vocabularies, their product, and the admissibility laws
-│   ├── runtimes/               # quantlib · onnx · pmml · bound callables; the other thirteen refuse
-│   ├── sandbox.py              # Artifact-backed runtimes in a child process with rlimits
-│   └── urn.py  grants.py  builder.py  signing.py  warrants.py  engine.py
-├── assist/                     # Machine assistance — a bounded context, not a layer
-│   ├── capabilities.py         # Tier A (an oracle checks it) or Tier B (every claim cites evidence)
-│   ├── grounding.py            # Unsupported claims are REMOVED, and kept for the reviewer
-│   ├── oracles.py              # ok_T predicates: satisfaction condition, probe equivalence, refinement
-│   └── generations.py          # Nothing is evidence until a person attests it, never the asker
-├── authz/                      # Roles, scope, segregation of duties read from the evidence chain
-│   ├── roles.py  scope.py  segregation.py  principals.py  policy.py
-│   └── oidc.py  jws.py         # Authorisation code + PKCE; an RS256 verifier in the standard library
-├── notify/                     # A digest per person per run; silence when nothing has changed
-├── scheduler/                  # Five idempotent jobs turning computed conditions into consequences
-├── estate/                     # The worklist and the summary, derived from the register
-├── baseline/                   # Cold-start import and dated compliance debt (C-5)
-├── content/                    # Help, about and tutorials as markdown, rendered server-side
-└── config/                     # YAML with a git-ignored .local overlay, ${...} resolution
+├── domain/          the algebra, importing nothing else in MAYA
+│   ├── algebra.py       Para(Stoch): kernel, parameter object, fit procedure — and
+│   │                    trainability_class as a DERIVED property, so T0–T8 is computed
+│   ├── schemas.py       the schema and its variance rule (L-12)
+│   ├── lattice.py       ONE partial order: A ⊑ B, "A can stand in for B" (L-20)
+│   ├── contracts.py     assume–guarantee: refines, compose, conjoin, quotient (L-7)
+│   ├── identity.py      probe-relative equivalence (Yoneda), version semantics
+│   └── paging.py        keyset paging, so a listing cannot be a full scan
+├── registry/        models, immutable versions, governed aliases
+│   └── composition.py   the model graph, and `input_to` TYPE-CHECKED (L-21)
+├── features/        eighteen modules: catalogue, registry, views, contracts, assembly,
+│                    pit, derived, expressions, sets, shapes, composition, lifecycle,
+│                    policy, normalisation, preparation, alignment, transfer, common
+├── parameters/      inhabitants of P — a fit makes one of these, never a version
+├── execution/       warrants: grammar/ (four vocabularies + the admissibility laws),
+│                    profiles.py (templating the REQUEST), runtimes/, sandbox.py,
+│                    urn.py, grants.py, builder.py, signing.py, engine.py
+├── artifacts/       the content-addressed store: a file's name is its own hash
+├── evidence/        semirings.py (seven, including ℕ[X]) and the append-only chain
+├── risk/            materiality and complexity as separate lattices; τ (L-4), req (L-5)
+├── validation/      catalogue, statistics, findings, ageing, workflow, replay
+├── monitoring/      definitions, observations, breaches, delayed labels
+├── telemetry/       two bitemporal streams, ingestion idempotent on the batch digest
+├── lifecycle/       the record machine, quorum approval, attestation, amendments
+├── policy/          versioned gates: a rule is a predicate over a closed vocabulary
+├── regimes/         institutions: signature, sentences, translation, engine, library
+├── docs/            lenses (15), compiler, templates, subjects, training, dossier
+├── attachments/     the documents people wrote, content-addressed
+├── export/          export packs: digested member by member, gaps named
+├── reporting/       risk appetite as a computable limit; indicators; the board pack
+├── overlays/        post-model adjustments, time-boxed, with an ageing analysis
+├── authz/           roles, scope, segregation from the chain, OIDC, RS256, CSRF
+├── assist/          machine assistance: capabilities, oracles, grounding, providers
+├── baseline/        cold-start import and dated compliance debt (C-5)
+├── estate/          the worklist and the summary, derived from the register
+├── scheduler/       eight idempotent jobs, a runner and an optional in-process loop
+├── notify/          a digest per person per run; silence when nothing has changed
+├── content/         help, about and tutorials as markdown, rendered server-side
+├── config/          YAML with a git-ignored .local overlay and ${...} resolution
+├── log.py           one logger; request id and principal on every line
+└── ports.py         the protocols the layers above depend on
 
-db/          # The only package that knows about storage. Two hand-written schemas,
-             # 47 tables, no migrations. Repositories are the only interface.
-routes/      # HTTP routers — thin, no domain logic. RFC-9457-shaped refusals.
-web/         # Jinja2 templates and vendored static assets (Bootstrap 5, jQuery). No CDN.
+db/       the ONLY package that knows about storage. Two hand-written schemas,
+          forty-six tables, no migrations. Repositories are the only interface.
+routes/   30 HTTP route modules over one piece of shared scaffolding. Thin, no
+          domain logic, one refusal table for all of them.
+web/      Jinja2 templates and vendored assets (Bootstrap 5, jQuery). No CDN.
+sdk/      python/ (standard library only) and java/ (a contract, not a build).
 ```
 
-**Dependency rule.** `core/domain/` depends on nothing in MAYA. `registry/`, `risk/`, `evidence/`
-depend only on `domain/` and `db/`. `routes/` and `web/` depend on everything and are depended on by
-nothing.
+### 4.2 The dependency rule
 
-> **Not built, and named rather than omitted.** There is no `fibres.py` — a model class is a string on
-> the register, so `L-15`'s startup totality check does not exist. There is no `gluing.py` (`L-13`),
-> no `aggregate.py` for lax monoidal risk (`L-14`), no `temporal.py` or `deontic.py` (`L-16` — the
-> five scheduler jobs do that work directly), no `connectors/` package, no `workers/` package and no
-> Celery, and no `skew.py`: skew detection needs an online store, which is design rather than code.
-> The import-linter contract of `NFR-MNT-002` is likewise a plan, not a CI gate. Each of these is a
-> gap in the build, not a naming difference, and the map above is the wrong place to hide one.
+`core/domain/` depends on nothing in MAYA. `registry/`, `risk/`, `evidence/` depend only on
+`domain/` and `db/`. `routes/` and `web/` depend on everything and are depended on by nothing.
 
----
+That direction is what makes the domain testable without a web server and the register replaceable
+without touching the domain — and it is why switching dialects is a URL rather than a project.
 
-## 5. The Universal Model Envelope
+> **Enforced by convention, not by CI.** The import-linter contract of `NFR-MNT-002` is a plan. What
+> *is* enforced by a walking test is size (`test_size_discipline`: no source file over 1,500 lines),
+> logging (`test_logging_discipline`: no exception is ignored — every `except` logs, none is bare,
+> none is only `pass`), and refusals (`test_refusal_discipline`, §4.4).
 
-Every model — regardless of class, language or origin — is described by one versioned manifest,
-`maya.yaml`. This is the concrete realisation of the `Para(Stoch)` definition.
+### 4.3 What a request actually does
 
-```yaml
-apiVersion: maya.dev/v1
-kind: ModelVersion
+Middleware order is a design decision here, not a default, and both directions are deliberate.
+`add_middleware` registered later wraps *outside*:
 
-identity:
-  urn: "maya://model/credit.pd.smallbiz"
-  version: "3.2.1"
-  display_name: "Small Business PD Scorecard"
-  model_class: "credit.pd.scorecard"        # selects the fibre → evidence schema, lifecycle, metrics
-  trainability_class: "T2"                  # how P is inhabited
-
-# ---- Para(Stoch) signature ------------------------------------------------
-signature:
-  input:                                    # object X
-    schema_ref: "schemas/pd_input@2"
-    fields:
-      - {name: years_in_business, dtype: float32, nullable: false, unit: years}
-      - {name: dscr,              dtype: float32, nullable: true}
-      - {name: industry_sic,      dtype: string,  nullable: false, cardinality: 1200}
-  output:                                   # object Y
-    kind: "predictive_distribution"         # or point_estimate | class_probabilities | text | struct
-    schema_ref: "schemas/pd_output@1"
-    fields:
-      - {name: pd_12m, dtype: float32, range: [0.0, 1.0]}
-      - {name: score,  dtype: int16,   range: [300, 850]}
-  parameters:                               # object P
-    kind: "estimated_coefficients"
-    artifact_ref: "sha256:9f2c…"
-    count: 42
-  deterministic: true                       # L-3 asserted and tested
-
-# ---- Fitting morphism φ : D → P -------------------------------------------
-fitting:
-  procedure: "estimate"                     # none | calibrate | estimate | train | elicit | configure
-  run_ref: "run/01J8X…"
-  dataset_snapshots: ["ds/pd_smallbiz_train@delta:v1487"]
-  feature_contract_ref: "fc/01J8X…"
-  code: {repo: "git@…/pd-smallbiz", commit: "a3f9c21", dirty: false}
-  environment: {lockfile_digest: "sha256:11ab…", container: "ghcr.io/…@sha256:77de…"}
-  seed: 20260417
-
-# ---- Assume-guarantee contract --------------------------------------------
-contract:
-  assumptions:                              # A — operating boundaries
-    input_domain:
-      years_in_business: {min: 0, max: 60}
-      dscr: {min: -5.0, max: 20.0}
-    population: "US small business, revenue < $50M, SIC not in [6xxx]"
-    regime: "non-recessionary; unemployment < 8%"
-    upstream:
-      - {contract_ref: "contract/bureau_attributes@4", freshness: "P1D"}
-  guarantees:                               # G — performance envelope
-    discrimination: {metric: gini, min: 0.42, slice: overall}
-    calibration:    {metric: hosmer_lemeshow_p, min: 0.05}
-    fairness:       {metric: adverse_impact_ratio, min: 0.80, slices: [race_proxy, sex, age_62plus]}
-    latency:        {p99_ms: 25}
-    availability:   "explanation available for every score"
-
-# ---- Governance -----------------------------------------------------------
-governance:
-  owner: "person/j.okafor"
-  developer: ["person/a.silva"]
-  validator: ["person/m.chen"]
-  regime_scope:
-    sr_26_2:   {in_scope: true,  rationale: "statistical method producing quantitative estimate"}
-    ss1_23:    {in_scope: true}
-    eu_ai_act: {classification: "high_risk", annex: "III(5)(b)"}
-    sox:       {key_control: false}
-    ecoa:      {in_scope: true, adverse_action_required: true}
-  uses:
-    - {purpose: "origination_decision", portfolio: "SB Term Loan", entity: "LE-US-01",
-       geography: "US", channel: "branch,digital", decision_authority: "automated_with_referral"}
-  assumptions_ref: ["asm/01J…","asm/02K…"]
-  limitations_ref: ["lim/01J…"]
-
-# ---- Execution ------------------------------------------------------------
-runtime:
-  format: "onnx"
-  opset: 17
-  artifact: {uri: "s3://maya-artifacts/sha256/9f2c…", digest: "sha256:9f2c…", bytes: 184320}
-  preprocessing_dag_ref: "prep/01J…"
-  resources: {cpu: "500m", memory: "512Mi", gpu: null}
-  warrant_flavours: ["rest_oip_v2", "python_sdk", "sql_udf", "batch_spark"]
-
-signatures:
-  - {type: "cosign", key_id: "maya-signing-2026", value: "MEUCIQ…"}
-provenance:
-  slsa_level: 3
-  attestation_ref: "att/01J…"
+```
+request
+  └─ request_context        registered LAST → OUTERMOST. Must see every request,
+     │                      including the ones refused before any route runs, or the
+     │                      lines with no id are exactly the ones somebody is chasing.
+     │                      Binds a request id and the principal to contextvars; echoes
+     │                      the id back; logs one line at the level the outcome deserves.
+     └─ SessionMiddleware   SameSite=Strict; https_only configurable (it was hard-coded
+        │                   False, so the cookie never carried Secure behind TLS).
+        └─ csrf_guard       registered FIRST → INNERMOST, because a CSRF check that runs
+           │                before the session is decoded has no session to compare against.
+           └─ router        validates input, calls a service, renders. No domain logic.
+              └─ core/…     the decision, and the refusal if there is one
+                 └─ db/…    a repository. Nothing above it has seen a table.
 ```
 
-### 5.1 Class-specific envelopes
+The CSRF guard is middleware rather than a check per route because there are more than a hundred
+mutating endpoints, and **a control that a hundred places have to remember is a control that will be
+missing from the hundred-and-first**. Its condition is narrow, and the narrowness is the design: **a
+token defends ambient authority, and only ambient authority needs defending.** A session cookie is sent by the browser
+whether or not the page that triggered the request came from us. An `Authorization: Basic` header is
+not, so demanding a token there would protect nothing and break every service client. The check
+therefore applies to exactly one case — a state-changing method whose authority came from the
+session cookie — and to nothing else.
 
-The fibration means the *shape* above is constant while the fibre contents differ. Illustrations:
+### 4.4 A refusal has one shape and one table
 
-| Class | `parameters.kind` | `fitting.procedure` | Distinctive envelope sections |
-|---|---|---|---|
-| **T0** SA-CCR | `none` | `none` | `reference_implementation`, `regulatory_citation`, `implementation_tests` |
-| **T1** SABR surface | `calibration_set` | `calibrate` | `calibration_instruments`, `tolerance`, `arbitrage_assertions`, `recalibration_schedule` |
-| **T5** SAR drafting | `llm_configuration` | `configure` | `base_model`, `prompt_version`, `rag_corpus_version`, `tool_manifest`, `guardrails`, `eval_set`, `autonomy_mode`, `human_oversight` |
-| **T6** FICO score | `opaque` | `none` | `vendor`, `contract_ref`, `attestation`, `own_outcomes_plan`, `customisations` |
-| **T7** Country scorecard | `elicited_weights` | `elicit` | `panel`, `elicitation_protocol`, `convergence`, `dissent_record` |
-| **T8** AML scenario | `rule_set` | `none` | `rules`, `thresholds`, `atl_btl_plan`, `change_control` |
-
----
-
-## 6. Lifecycle as a functor
-
-### 6.1 The generic spine
-
-Lifecycles are declarative. A lifecycle definition is a directed graph; a model's history is a path
-(a morphism in the free category on that graph — law `L-1`). Guards are predicates evaluated by the
-policy engine.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Proposed
-    Proposed --> InDevelopment: intake approved
-    InDevelopment --> Submitted: evidence complete
-    Submitted --> InValidation: assigned
-    InValidation --> Remediation: findings raised
-    Remediation --> InValidation: resubmitted
-    InValidation --> Approved: no open blocking findings
-    InValidation --> ApprovedWithConditions: conditions set
-    InValidation --> Rejected: not fit for purpose
-    Approved --> InUse: use approved + warrant issued
-    ApprovedWithConditions --> RestrictedUse: limits enforced
-    RestrictedUse --> InUse: conditions cleared
-    InUse --> InUse: recalibrate / refit (MINOR)
-    InUse --> Suspended: breach / critical finding / kill switch
-    Suspended --> InUse: remediated
-    Suspended --> Decommissioning: not recoverable
-    InUse --> Decommissioning: superseded / withdrawn
-    Decommissioning --> Decommissioned: downstream migrated
-    Decommissioned --> Archived: retention applied
-    Archived --> [*]
-```
-
-### 6.2 Class-specific specialisation
-
-The graph above is the **base**; each class supplies a fibre that adds, removes or constrains transitions.
-
-| Class | Specialisation |
-|---|---|
-| **T0** | `InDevelopment` gains `ImplementationVerification`; no `fit` self-loop; revalidation triggered by spec/regulation change only |
-| **T1** | `InUse` carries a `Recalibrate` sub-cycle producing calibration sets, **not** model versions. Tolerance breach escalates to `Suspended` |
-| **T3** | `InUse` gains `AutoRetrainCandidate → ShadowEvaluation → PromotionDecision`; auto-promotion is policy-gated and forbidden for Tier 1 |
-| **T4** | Continuous `ParameterDrift` monitoring state with mandatory **parallel outcomes analysis** on every material autonomous change (SS1/23 3.3(c)) |
-| **T5** | `Submitted` is preceded by `BoundaryDetermination` and `RiskMatrixAssignment`; `EvalGate` before every prompt/corpus/base-model change |
-| **T6** | `InDevelopment` replaced by `VendorDueDiligence → AttestationReview → OwnOutcomesBenchmark`; vendor version change re-enters at `ChangeAssessment` |
-| **T7** | `Elicitation` state with panel quorum guard |
-| **T8** | Lightweight: `Draft → PeerReview → ChangeApproval → InUse`, with ATL/BTL tuning cycles |
-
-### 6.3 Guards are policy, not code
-
-```rego
-package maya.gates.promote_to_production
-
-default allow := false
-
-allow if {
-    input.model.tier != 1
-    count(blocking_findings) == 0
-    input.documents.mdd.completeness >= 0.9
-}
-
-allow if {
-    input.model.tier == 1
-    input.validation.status == "approved"
-    count(blocking_findings) == 0
-    input.documents.mdd.completeness == 1.0
-    input.documents.validation_report.status == "issued"
-    input.approvals.count_at_level["model_risk_committee"] >= 1
-    not stale_documents
-}
-
-blocking_findings[f] if {
-    f := input.findings[_]
-    f.severity in {"Critical", "High"}
-    f.status != "closed"
-}
-
-stale_documents if { input.documents[_].stale == true }
-
-deny_reason contains msg if {
-    some f in blocking_findings
-    msg := sprintf("Blocking finding %s (%s) is open", [f.id, f.severity])
-}
-```
-
-Every denial returns `deny_reason` with a deep link to remediate — `P8` in practice.
-
----
-
-## 7. Extensibility: the fibration in code
-
-The **Extension Theorem** of [00 §7](00-mathematical-foundations.md#7-pillar-4--indexing-fibrations-and-the-grothendieck-construction)
-becomes a plugin contract. Adding a model class requires **no schema change, no core code change**.
-
-```python
-# core/registry/ — NOT BUILT: a model class is a string on the register, and there is no plugin loader
-from typing import Protocol, Sequence
-
-class ModelClassFibre(Protocol):
-    """One fibre of the fibration p: Registry -> ModelClasses.
-
-    Supplying an implementation is the ONLY thing required to support a new
-    kind of model. Law L-15 asserts every registered fibre is total.
-    """
-    key: str                       # e.g. "markets.pricing.stochastic_vol"
-    trainability_class: str        # T0..T8
-
-    def evidence_schema(self) -> dict: ...              # JSON Schema for the fibre's evidence document
-    def lifecycle(self) -> "LifecycleDefinition": ...   # base graph + specialisation
-    def default_monitors(self) -> Sequence["MonitorDefinition"]: ...
-    def document_templates(self) -> Sequence[str]: ...
-    def tiering_hints(self) -> "TieringHints": ...
-    def contract_template(self) -> "ContractTemplate": ...
-    def introspector(self) -> "ArtifactIntrospector | None": ...
-    def validators(self) -> Sequence["TestDefinition"]: ...
-```
-
-Registered via Python entry points, so a bank's own classes ship as a separate package:
-
-```toml
-[project.entry-points."maya.model_class"]
-"markets.pricing.stochastic_vol" = "acme_maya_ext.pricing:StochasticVolFibre"
-"quantum.portfolio.annealer"     = "acme_maya_ext.quantum:AnnealerFibre"
-```
-
-Nine extension points exist, all following the same pattern:
-
-| Extension point | Entry-point group | Example |
-|---|---|---|
-| AI capability | `maya.ai_capability` | a house drafting assistant; a discovery agent |
-| Oracle | `maya.oracle` | a bank-specific check for a bank-specific task |
-| Model class (fibre) | `maya.model_class` | new pricing family, quantum optimiser |
-| Regulatory regime (institution) | `maya.regime` | MAS, APRA, OSFI E-23 |
-| Evidence semiring | `maya.semiring` | a bank-specific trust calculus |
-| Artifact format | `maya.artifact_format` | proprietary quant-library binary |
-| Validation test | `maya.test` | a house backtesting method |
-| Monitoring metric | `maya.metric` | a domain-specific drift statistic |
-| Document template | `maya.doc_template` | local regulator's report format |
-| Warrant flavour | `maya.warrant_flavour` | in-house RPC protocol |
-| Connector | `maya.connector` | in-house ML platform |
-
----
-
-## 8. Regime engine: institutions in practice
-
-```mermaid
-flowchart LR
-    subgraph CORE["MAYA core signature Σ₀"]
-        FACTS["Inventory facts<br/>purpose · exposure · complexity ·<br/>technique · data · use · autonomy"]
-    end
-    subgraph REGIMES["Regime institutions"]
-        R1["SR 26-2<br/>Sign · Sen · Mod · ⊨"]
-        R2["SS1/23"]
-        R3["EU AI Act"]
-        R4["SOX"]
-        R5["IRB / FRTB"]
-        R6["ECOA / Reg B"]
-    end
-    subgraph OUT["Per-regime determinations"]
-        D1["in / out of scope<br/>+ derivation"]
-        D2["obligations in force"]
-        D3["control intensity"]
-    end
-    FACTS -- "comorphism σᵢ" --> R1 & R2 & R3 & R4 & R5 & R6
-    R1 & R2 & R3 & R4 & R5 & R6 --> D1 & D2 & D3
-    D2 --> MTL["MTL obligation compiler<br/>→ synthesized monitors"]
-    D3 --> CTRL["Control set<br/>(meet across regimes)"]
-```
-
-A regime module declares its vocabulary, its sentences, and the translation:
-
-```python
-# core/regimes/library.py
-class SR26_2(Institution):
-    key = "sr_26_2"
-
-    signature = Signature(sorts=["Model", "Method", "Estimate"],
-                          predicates=["is_complex", "applies_theory", "produces_quantitative_estimate",
-                                      "is_generative_ai", "is_agentic_ai", "is_deterministic_rule"])
-
-    def translate(self, facts: CoreFacts) -> RegimeFacts:
-        """Comorphism σ: Σ₀ → Σ_SR26-2.  Law L-8 tests the satisfaction condition."""
-        return RegimeFacts(
-            is_complex=facts.complexity_score >= self.cfg.complexity_threshold,
-            applies_theory=facts.technique_family in STATISTICAL_ECONOMIC_FINANCIAL,
-            produces_quantitative_estimate=facts.output_kind in QUANTITATIVE_KINDS,
-            is_generative_ai=facts.trainability_class == "T5",
-            is_agentic_ai=facts.autonomy_mode in AGENTIC_MODES,
-            is_deterministic_rule=facts.trainability_class == "T8",
-        )
-
-    sentences = [
-        Sentence("is_model",
-                 formula="is_complex ∧ applies_theory ∧ produces_quantitative_estimate "
-                         "∧ ¬is_generative_ai ∧ ¬is_agentic_ai ∧ ¬is_deterministic_rule",
-                 citation="SR 26-2 §II"),
-        Sentence("warrants_comprehensive_oversight",
-                 formula="is_model ∧ materiality ⊒ Material",
-                 citation="SR 26-2 §III"),
-        Sentence("vendor_own_outcomes_analysis_required",
-                 formula="is_model ∧ is_vendor_supplied",
-                 citation="SR 26-2 §VII"),
-    ]
-```
-
-The scope determination stored on the model is then a **derivation**, not a flag:
+`routes/base.py` holds a single `STATUS` map from refusal code to HTTP status, and every domain
+package raises the same shape:
 
 ```json
-{
-  "regime": "sr_26_2",
-  "determination": "out_of_scope",
-  "derivation": {
-    "sentence": "is_model",
-    "evaluated": false,
-    "failing_conjunct": "¬is_generative_ai",
-    "facts": {"trainability_class": "T5", "is_generative_ai": true},
-    "citation": "SR 26-2 §II fn.3",
-    "evaluated_at": "2026-09-03T10:14:22Z",
-    "regime_version": "2026-04-17",
-    "note": "Out of SR 26-2 scope; governed under SS1/23 and internal AI policy."
-  }
-}
+{"error": "nothing_to_fit",
+ "detail": "markets.pricing.vanilla 1.0.0 is T0: its parameter object is the terminal
+            object, so there is no point of P to move to",
+ "remediation": "if this model does have parameters, the kernel declares the wrong
+                 parameter_kind; fix the version rather than the warrant"}
 ```
 
-**Adding MAS or APRA is adding one module.** No migration, no core change — the guarantee the user asked for.
+`tests/test_refusal_discipline.py` parses the AST of every file under `core/`, collects every code
+raised as the first argument of a `*Error`, and asserts each appears in `STATUS` mapped to something
+other than a bare `400`. **A status that tells the caller nothing about who must act is not a
+mapping.** It exists because fifteen execution-layer codes accumulated over three milestones, each
+surfacing as an unexplained 400, and nobody noticed because no test exercised that path.
 
 ---
 
-## 9. Evidence engine
+## 5. B5 — The platform is separated from the artifact
 
-### 9.1 Structure
+### The failure it prevents
 
-The evidence graph is an append-only DAG in Postgres. Each node is immutable, content-addressed, and
-Merkle-chained to its parents, so tampering is detectable and the chain is independently verifiable.
+The engine loads ONNX graphs and PMML documents — files whose contents it did not write. A
+governance platform that runs an arbitrary artifact in its own process has adopted that artifact's
+bugs, and a malformed graph that exhausts memory takes the register down with it.
 
-```mermaid
-flowchart LR
-    DS["DatasetSnapshot<br/>delta v1487"] --> FC["FeatureContract"]
-    FV["FeatureViewVersion<br/>sb_financials@7"] --> FC
-    FC --> RUN["Run: estimate<br/>seed 20260417"]
-    CODE["CodeCommit a3f9c21"] --> RUN
-    ENV["Environment<br/>lockfile sha256:11ab"] --> RUN
-    RUN --> ART["Artifact sha256:9f2c"]
-    ART --> VER["ModelVersion 3.2.1"]
-    VER --> T1["Test: Gini = 0.47"]
-    VER --> T2["Test: HL p = 0.31"]
-    VER --> T3["Test: AIR = 0.86"]
-    VER --> REP["Test: Reproducibility PASS"]
-    T1 & T2 & T3 & REP --> VR["ValidationReport v2"]
-    VR --> APPR["Approval<br/>MRC 2026-08-11"]
-    APPR --> DEP["Deployment prod"]
-    DEP --> WARRANT["Warrant #champion"]
-    WARRANT --> OBS["Observations<br/>rolling"]
+### The mechanism, and exactly how far it goes
 
-    style VER fill:#1f3a5f,color:#fff
-    style APPR fill:#2d5016,color:#fff
-```
+Artifact-backed runtimes run in a **`spawn`ed child process with `RLIMIT_CPU` and `RLIMIT_AS` taken
+from the warrant** — the grammar already carries `constraints.resources`, and
+`core/execution/sandbox.py` is where that section stops being documentation.
 
-### 9.2 One engine, many questions
-
-```python
-# core/evidence/semirings.py
-@dataclass(frozen=True)
-class Semiring(Generic[K]):
-    name: str
-    zero: K
-    one: K
-    plus: Callable[[K, K], K]    # alternative derivations — OR
-    times: Callable[[K, K], K]   # joint dependence — AND
-
-BOOLEAN   = Semiring("boolean",   False,  True, lambda a, b: a or b,  lambda a, b: a and b)
-COUNTING  = Semiring("counting",  0,      1,    lambda a, b: a + b,   lambda a, b: a * b)
-TRUST     = Semiring("trust",     0.0,    1.0,  max,                  lambda a, b: a * b)
-COST      = Semiring("cost",      inf,    0.0,  min,                  lambda a, b: a + b)
-FRESHNESS = Semiring("freshness", 0.0,    0.0,  max,                  max)
-WHY       = Semiring("why",       set(),  {frozenset()}, _why_plus,   _why_times)
-```
-
-The same traversal, different answers:
-
-```python
-engine.evaluate(claim, derivations, BOOLEAN,   presence_valuation(version_id)).value
-    # -> True
-engine.evaluate(claim, derivations, WHY,       why_valuation()).value
-    # -> {{VR_v2, APPR_MRC}, {VR_v2, APPR_DELEGATED}}   # what to show an examiner
-engine.evaluate(claim, derivations, TRUST,     trust_valuation(version_id)).value
-    # -> 0.91
-engine.evaluate(claim, derivations, COST,      effort_valuation()).value
-    # -> 0.0  (or, if unmet: 14.5 person-days to close the cheapest path)
-engine.evaluate(claim, derivations, FRESHNESS, recorded_at_valuation()).value
-    # -> 1786521600.0   → compare to now for staleness
-```
-
-Six product capabilities, one implementation.
-
-> **Three that are not there.** `ℕ[X]` how-provenance, a security lattice for classification
-> propagation, and a regime-admissibility powerset are all constructions this shape admits and none of
-> them is built. The consequence worth naming: without `ℕ[X]` there is no universal object, so each
-> semiring is a separate traversal rather than a homomorphic image, and law `L-9` is vacuous as
-> stated. See [00 §9.2](00-mathematical-foundations.md#92-one-engine-many-analyses).
-
----
-
-## 10. Warrant architecture (summary)
-
-Full protocol in [06 — Warrants & Execution](06-warrants-and-execution.md). Architecturally:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant E as Execution Engine
-    participant H as maya-warrants
-    participant R as Redis cache
-    participant P as Postgres
-    participant O as Object store
-
-    Note over E: holds only maya://model/credit.pd.smallbiz#champion
-    E->>H: POST /v1/resolve {urn, principal, declared_use, env}
-    H->>R: lookup(urn, principal, env)
-    alt cache hit and not revoked
-        R-->>H: signed descriptor (TTL 300s)
-    else miss
-        H->>P: resolve alias → version, check approval, entitlement, findings, policy
-        P-->>H: version + contract + policy verdict
-        H->>H: build + sign descriptor (HMAC-SHA256; Ed25519 is the production target)
-        H->>R: cache with TTL and revocation tag
-    end
-    H-->>E: 200 WarrantDescriptor{artifact_uri, digest, schemas, feature_contract, constraints, expiry, sig}
-    E->>E: verify signature, check declared_use ⊆ approved_uses
-    E->>O: fetch artifact by digest (cached locally)
-    E->>E: verify digest, load in sandbox, execute
-    E-->>H: POST /v1/telemetry {invocations, latency, boundary_violations}
-    Note over H,P: telemetry → Delta → approved-use vs actual-use reconciliation (FR-MON-009)
-```
-
-Key properties:
-- **Latency**: cached path is a Redis GET plus signature check — p99 < 50 ms.
-- **Availability**: descriptors remain valid for their TTL if MAYA is down (`P9`).
-- **Kill switch**: revocation writes a tombstone; resolvers check it; effective within TTL (default 60 s), with an immediate-broadcast path for emergencies.
-- **Fail-closed on entitlement**: an unknown or unapproved `declared_use` is refused.
-
----
-
-## 11. Technology stack
-
-> **Read this table as the production target, not as the bill of materials.** The reference
-> implementation deliberately runs on a much smaller footprint, and where the two differ the difference
-> is stated in the last column rather than left for a reader to discover by looking for a service that
-> is not there. The rule that decided most of these: a governance system that cannot be deployed
-> air-gapped is one somebody works around, so where the standard library will do, it does.
-
-| Layer | Choice | Rationale, and what actually ships |
-|---|---|---|
-| API / web | **FastAPI** (async), Pydantic v2, Uvicorn behind Gunicorn | Mandated; excellent OpenAPI generation, type safety, async I/O for connectors |
-| Templating | **Jinja2** server-rendered + partial fragments | Mandated stack is jQuery/Bootstrap, not an SPA; server rendering keeps the security model simple |
-| Front end | **Bootstrap 5.3**, **jQuery 3.7**, DataTables, Chart.js, Cytoscape.js (graphs), CodeMirror 6 (policy/YAML), Mermaid (diagrams) | See [08 — UI/UX](08-ui-ux.md) |
-| ORM / DB | **PostgreSQL 16** in production; SQLite by default | **No ORM and no migration tool.** Two hand-written schemas in `db/schema/`, 47 tables, switchable by URL alone. `ltree`, `pgvector`, RLS and declarative partitioning are **not used** — the shipped DDL has no foreign keys, no `CHECK` constraints and no triggers, and referential integrity is enforced in the repositories |
-| Lakehouse | **Delta Lake** via `delta-rs` | Features, snapshots, telemetry. Spark/Databricks is the target for large jobs and is not a dependency of the reference implementation |
-| Object store | S3 / ADLS / GCS, content-addressed, Object Lock for WORM | Target. What ships is a content-addressed store on the local filesystem, with the digest as the key and a re-hash on every read |
-| Cache / queue | **Redis 7** | Target, for the warrant cache and rate limits. **Not used**: warrant TTL and jitter are computed in process |
-| Async | **Celery**; **APScheduler** for cron-like campaigns | Target. What ships is `core/scheduler/` — seven idempotent jobs invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results, with an in-process loop off by default |
-| Eventing | **Kafka** with CloudEvents envelopes | Target. Not used |
-| Policy | Target was **OPA/Rego**. **What ships is `core/policy/`**: a rule is a predicate over a closed vocabulary of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions, no loops, no assignment, no attribute access — checked at the AST | Rego is a general language, and a gate written in one is a program a reviewer has to run rather than reason about. A fact the gate does not publish is refused *when the rule is written*, not at the moment of a governance decision |
-| Auth | OIDC authorisation-code flow with PKCE, state and nonce; HTTP Basic and a session cookie for people; **HMAC-SHA256** warrant signatures | **No Authlib, no SAML, no SCIM, no MFA.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason above: the verifier *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token. Ed25519 descriptor signing remains the production target |
-| Signing | **Sigstore/cosign** for artifacts, in-toto attestations | Target. Not used |
-| Sandboxing | Target was gVisor / Kata on Kubernetes. **What ships** is a `spawn`ed child process with `RLIMIT_CPU` and `RLIMIT_AS` read from the warrant, for the two artifact-backed runtimes | `P7`, honestly scoped: it protects against a runaway loop, an allocation storm and a hard crash, and **not** against a hostile artifact — the child shares the filesystem and the network namespace. See [09 §2.2](09-security-compliance.md) |
-| Search | Postgres FTS + `pgvector` | Target. **Not used** — there is no semantic feature matching and no duplicate-feature detection |
-| Observability | OpenTelemetry, Prometheus, Grafana, structured JSON logs | Target. Structured logging ships; the rest does not |
-| Testing | pytest; **Hypothesis** for L-4; schemathesis and testcontainers as targets | The executable laws live beside the code they constrain — see [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) |
-| Packaging | `uv` / Poetry, Docker, Helm, Terraform | Target. What ships is `requirements.txt` |
-
-### 11.1 FastAPI application shape
-
-```python
-# run_maya_web.py
-def create_app(settings: Settings) -> FastAPI:
-    app = FastAPI(title="MAYA", version=API_VERSION, openapi_url="/api/v1/openapi.json")
-
-    # Plugin discovery FIRST — fibres must exist before routers reference them (L-15).
-    plugins = PluginLoader.discover()
-    plugins.validate_totality()          # every fibre total: evidence schema, lifecycle, metrics, templates
-
-    app.state.container = Container(settings, plugins)   # explicit DI, no globals
-
-    app.add_middleware(RequestContextMiddleware)   # request id, actor, tenant → contextvars
-    app.add_middleware(AuditMiddleware)            # append-only audit of every mutating call
-    app.add_middleware(RLSSessionMiddleware)       # sets Postgres session vars for row-level security
-    app.add_middleware(OTelMiddleware)
-
-    for router in (models, versions, artifacts, features, runs, validations,
-                   findings, overlays, documents, monitors, warrants, policies,
-                   regimes, evidence, reports, admin):
-        app.include_router(router.router, prefix="/api/v1")
-
-    app.include_router(web.router)     # Jinja2 pages
-    return app
-```
-
-**Rule:** routers contain no domain logic. They validate input, call an application service, and render.
-Domain logic lives in `core/domain/` and the context packages, which are importable and testable without
-a web server.
-
----
-
-## 12. Persistence strategy
-
-### 12.1 The split, and why
-
-```mermaid
-flowchart TB
-    subgraph PG["PostgreSQL — control plane"]
-        direction LR
-        P1["Inventory, versions, uses<br/>lifecycle, workflow, approvals"]
-        P2["Evidence graph nodes + edges<br/>Merkle chain"]
-        P3["Findings, overlays, policies<br/>entitlements, audit log"]
-        P4["Feature & dataset <b>metadata</b><br/>(definitions, not values)"]
-    end
-    subgraph DL["Delta Lake — data plane"]
-        direction LR
-        D1["Feature values (offline store)<br/>bitemporal"]
-        D2["Dataset snapshots<br/>(pinned Delta versions)"]
-        D3["Inference logs<br/>partitioned, retained"]
-        D4["Metric observations<br/>+ evaluation results"]
-        D5["Large evidence payloads<br/>(plots, arrays, traces)"]
-    end
-    subgraph OS["Object store"]
-        O1["Artifacts, content-addressed"]
-        O2["Compiled documents"]
-        O3["WORM tier for Tier 1"]
-    end
-    P2 -. "payload_uri" .-> D5
-    P2 -. "artifact digest" .-> O1
-    P4 -. "delta_table + version" .-> D1
-```
-
-| Rule | Statement |
+| Protects against | Does **not** protect against |
 |---|---|
-| **R1** | Anything that participates in a governance *decision transaction* lives in Postgres. |
-| **R2** | Anything whose volume is proportional to *business events* rather than *models* lives in Delta. |
-| **R3** | Postgres never stores feature or telemetry **values**, only definitions and pinned pointers. |
-| **R4** | Delta never stores authoritative governance **state**; it may store derived copies for analytics. |
-| **R5** | Cross-store writes use the **transactional outbox** pattern: commit to Postgres with an outbox row, then a worker performs the Delta write and marks the outbox row done. Idempotent, at-least-once, reconciled nightly. |
+| a runaway artifact — CPU and address space are bounded, and the parent reclaims the child on timeout | **a deliberately hostile artifact.** The child shares the filesystem and the network namespace. Blocking those needs a container, a VM or seccomp |
+| a crash — a segfault in a native runtime kills the child, not the platform | **a callable bound in process.** You cannot sandbox a function handed to you in your own address space, and bound callables run unisolated — one more reason not to use them for anything real |
+| unbounded allocation — a request past the limit fails in the child | |
 
-### 12.2 Delta Lake layout
+Being precise about that boundary is the whole point. **An engine that claims isolation it does not
+have is more dangerous than one that claims none**, because the claim is what people rely on. See
+[09 §2.2](09-security-compliance.md).
 
-```
-maya_lake/
-├── features/
-│   ├── <entity>/<feature_view>/               # partitioned by event_date; Z-ordered by entity_id
-│   │      ├── _delta_log/                      # transaction-time axis via Delta versions
-│   │      └── …                                # columns: entity_id, event_ts (valid time),
-│   │                                           #          ingest_ts (transaction time), features…
-├── snapshots/
-│   └── <snapshot_id>/                          # immutable materialised training sets
-├── telemetry/
-│   ├── inference_log/                          # partitioned by dt, model_urn
-│   ├── warrant_resolution_log/
-│   └── boundary_violations/
-├── monitoring/
-│   ├── observations/                           # metric time series
-│   └── evaluations/                            # test/eval results incl. GenAI evals
-└── evidence/
-    └── payloads/                               # large artifacts referenced from the evidence graph
-```
+### The store on the other side of it
 
-Delta features exploited: **ACID** for concurrent materialisation, **time travel** for the
-transaction-time axis (the mechanism behind PIT correctness, law `L-10`), **CDF** for incremental
-monitoring, **schema evolution** with enforcement, **liquid clustering/Z-order** for entity lookups,
-**deletion vectors** and crypto-shredding for GDPR erasure, **VACUUM retention** aligned to regulatory
-retention classes.
+`core/artifacts/` is a content-addressed store: **the digest is the address.** That is not storage
+tidiness, it is what makes the guarantee cheap — *the bytes match the warrant* is true by
+construction rather than by a check somebody remembered to write; storing the same weights twice
+stores them once, which matters when a challenger differs from its champion by a configuration
+rather than a file; and an artifact cannot be edited in place, because edited bytes are a different
+address and the old one still resolves to what was approved.
 
-### 12.3 Postgres specifics
-
-- **Row-Level Security** on every tenant/entity-scoped table, driven by session variables set in middleware — so a bug in an API handler cannot leak another legal entity's models.
-- **Partitioning** on `audit_log`, `evidence_node`, `metric_observation_rollup` by month.
-- **JSONB + JSON Schema validation** for fibre-specific evidence documents — the fibration expressed in storage, so a new class needs no DDL.
-- **`ltree`** for lifecycle paths and organisational hierarchy.
-- **Generated columns + expression indexes** for hot inventory filters.
-- **`pgvector`** for semantic search over model descriptions, documents and code summaries.
-- **Advisory locks** for alias moves (serialise champion changes per model).
+**Streamed, never buffered.** Bytes are hashed and written as they arrive, into a staging file moved
+into place only once the whole object has landed, so a reader never sees half an object under a
+digest that promises the whole one. A model file does not fit in memory twice, and a governance
+platform should not be the process that discovers this. Eight formats are recognised, and two of them
+— `torchscript` and `tar` — are recorded as **executing code on load**, so nobody has to remember
+which is which. The cap is 8 GiB: large enough for the weights of anything a bank runs on its own
+hardware, and small enough that somebody has to think before putting a foundation-model checkpoint in
+a governance platform.
 
 ---
 
-## 13. Key sequences
+## 6. B6 — The record is separated from assertion
 
-### 13.1 Upload a model and identify features
+### The failure it prevents
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor D as Developer
-    participant UI as Web UI
-    participant API as Control plane
-    participant SB as Sandbox
-    participant FR as Feature Registry
-    participant DL as Delta Lake
-    participant EV as Evidence Graph
-    participant OS as Object store
+The usual design has a governance database and, beside it, an audit log. Two records of who did what
+are two records that can disagree, and the moment they do, the control is worthless — because the
+one that gets believed is the one that is easier to read, which is not the one that is right.
 
-    D->>UI: Drag-drop model.onnx + maya.yaml
-    UI->>API: POST /api/v1/models/{urn}/versions (multipart)
-    API->>OS: stage artifact (content-addressed, quarantined)
-    API->>SB: introspect job (isolated, no egress)
-    SB->>SB: malware + pickle opcode scan, SCA, secret scan
-    SB->>SB: parse graph → input/output schema, opset, framework versions
-    SB-->>API: IntrospectionResult{schema, features_declared, risks}
-    API->>API: format policy check (FR-VER-006)
-    alt policy violation
-        API-->>D: 422 with exception path
-    else ok
-        API->>FR: match declared features to registry
-        FR-->>API: 38 matched, 4 unknown
-        API-->>UI: Feature reconciliation screen
-        D->>UI: Map 3 to existing features, declare 1 new
-        UI->>API: PUT feature contract
-        API->>FR: register new feature + view version
-        FR->>DL: create/extend feature view (bitemporal schema)
-        API->>DL: materialise, run data-quality assertions
-        API->>API: verify PIT correctness of the training snapshot (L-10)
-        API->>EV: nodes: artifact, contract, snapshot, introspection, scans
-        API->>OS: promote artifact out of quarantine, sign
-        API-->>D: Version 1.0.0 created · tier provisional · obligations listed
-    end
-```
+**So there is no audit log.** The evidence chain is it.
 
-### 13.2 Tiering with full derivation
+### Structure
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant T as Tiering Engine
-    participant INV as Inventory
-    participant L as Risk lattices
-    participant POL as Rule set (versioned)
-    participant EV as Evidence
+`evidence_node` is append-only and hash-chained. Each node carries a monotonic `seq`, its parents
+as a set, a `content_hash` over the node's own content, a `prev_hash`, and a `chain_hash` over
+`(seq, prev_hash, content_hash, parents)` together. That last term is what makes the two structures
+one: the DAG is *inside* the chain rather than beside it. It answers finding **C-4** — a Merkle DAG
+alone detects content mutation but **not** deletion of a leaf or insertion into history, because a
+DAG has no global ordering, and the linear chain supplies one.
 
-    T->>INV: snapshot facts (exposure, purpose, complexity components, data, use)
-    T->>POL: load ruleset@v (immutable)
-    T->>L: m := materiality_join(exposure, purpose)
-    T->>L: c := complexity_meet(data, method, impl, use, interpretability, bias)
-    T->>L: tier := τ(m, c)          %% monotone — law L-4
-    T->>L: controls := req(tier)    %% Galois — law L-5
-    T->>EV: record derivation {facts snapshot, ruleset version, m, c, tier, controls}
-    T-->>INV: tier + rationale + next review + trigger set
-```
+Finding **H-3** — append-only evidence and erasure are irreconcilable *if* evidence holds personal
+data — is answered by making sure it does not. A node flagged `contains_personal_data` carries an
+**empty payload and a pointer**, and the append path hashes what it actually stored, so the node
+verifies against itself. That is `L-18`, enforced in `core/evidence/engine.py` rather than in DDL.
 
-### 13.3 Monitoring breach → finding → warrant restriction
+**Verification is incremental, and the reason is operational.** Walking the whole chain on every
+readiness probe was O(chain) — 2.9 seconds and 83 MB at forty thousand nodes, and a busy instance
+reaches a million in half an hour, at which point an orchestrator takes the node out of service for
+being slow to answer whether it is healthy. So `evidence_checkpoint` records how far the chain has been
+verified and what its head hash was. Readiness asks *has anything broken since*, which is O(new); the
+full walk stays available and runs as a scheduled job, because only the full walk can answer *is the
+whole chain intact*. A broken chain does **not** advance the checkpoint, because moving it past a
+break would bless it.
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant SP as Spark monitor job
-    participant DL as Delta
-    participant MON as Monitoring ctx
-    participant POL as Policy
-    participant VAL as Findings
-    participant HK as Warrant service
-    actor OWN as Model Owner
+### One traversal, six questions
 
-    SP->>DL: compute PSI, Gini, AIR by slice (incremental, CDF)
-    SP->>MON: emit observations
-    MON->>MON: threshold ladder evaluation
-    MON->>VAL: breach → auto-finding (severity from ladder × tier)
-    VAL->>POL: re-evaluate production gate
-    POL-->>HK: verdict RESTRICT (Critical open finding)
-    HK->>HK: revoke prod warrant grants, mark alias champion suspended
-    HK-->>OWN: notification + break-glass instructions
-    MON-->>OWN: breach detail, affected slices, downstream blast radius
-```
+`core/evidence/semirings.py` — a claim is a query over the graph, evaluated in whichever semiring
+answers the question you asked:
+
+| Semiring | `+` (alternative derivations) | `×` (joint dependence) | Answers |
+|---|---|---|---|
+| `BOOLEAN` | or | and | is this claim supported at all? |
+| `COUNTING` | + | × | how many derivations support it? |
+| `WHY` | union of supports | pairwise union | *which* evidence — what to show an examiner |
+| `TRUST` | max | × | how much do we trust it? |
+| `COST` | min | + | what is the cheapest path to closing the gap? |
+| `FRESHNESS` | max | max | how stale is the newest thing it rests on? |
+| `POLYNOMIAL` | ℕ[X] `+` | ℕ[X] `×` | **the universal one** — all of the above as images |
+
+`POLYNOMIAL` is `ℕ[X]`, the free commutative semiring, and `pushforward` maps a polynomial into any
+other. `L-9` asserts the universal property over 200 random derivation DAGs against five semirings,
+which turns *the same traversal answers a different question for each semiring* from an intention
+into a theorem the suite checks.
+
+> **And it found something.** `FRESHNESS` is **not** a semiring. It is `(max, max)`, and
+> `max(0, 5) ≠ 0`, so its zero does not annihilate and the universal property does not reach it. The
+> practical consequence, worth knowing before reading a number: a claim resting on a *missing* fact
+> reports the freshness of the facts that are present. See
+> [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces).
+
+### Segregation of duties, read from the chain
+
+The usual design is a separate table of who-did-what, consulted when somebody attempts a conflicting
+act — which is a second source of truth about history. `core/authz/segregation.py` instead checks
+against the chain itself: **the same artefact that proves what happened decides who may act next.**
+There is nothing to keep in step, and tampering to clear a conflict breaks the chain. The
+incompatible pairs are held as data, with the reason on each, because *who could have approved this
+version?* is a question an examiner will ask and the answer should be readable rather than
+reconstructed from conditionals.
 
 ---
 
-## 14. Deployment topology
+## 7. B7 — Derived is separated from stored
 
-```mermaid
-flowchart TB
-    subgraph REGION_A["Region A (primary)"]
-        LB_A["Ingress / WAF"]
-        subgraph K8S_A["Kubernetes"]
-            CTRL_A["maya-control ×5"]
-            WARRANT_A["maya-warrants ×20 (HPA)"]
-            WORK_A["maya-worker ×8"]
-            SBX_A["maya-sandbox (Job pool, gVisor)"]
-        end
-        PG_A[("Postgres primary<br/>+ 2 read replicas")]
-        RD_A[("Redis cluster")]
-    end
-    subgraph REGION_B["Region B (DR / read)"]
-        LB_B["Ingress"]
-        WARRANT_B["maya-warrants ×10"]
-        PG_B[("Postgres standby<br/>streaming replication")]
-        RD_B[("Redis replica")]
-    end
-    subgraph SHARED["Shared services"]
-        OBJ[("Object store<br/>cross-region replicated<br/>WORM tier")]
-        DBX["Databricks / Spark<br/>Delta Lake"]
-        KAF["Kafka"]
-        VAULT["Vault / KMS"]
-        IDP["Entra ID / Okta"]
-    end
+### The failure it prevents
 
-    LB_A --> CTRL_A & WARRANT_A
-    LB_B --> WARRANT_B
-    CTRL_A --> PG_A & RD_A & OBJ & KAF
-    WARRANT_A --> RD_A & PG_A
-    WARRANT_B --> RD_B & PG_B
-    WORK_A --> PG_A & DBX & OBJ
-    SBX_A --> OBJ
-    PG_A -.->|streaming| PG_B
-    RD_A -.->|replicate| RD_B
-    CTRL_A --> VAULT & IDP
-```
+A stored derivation is one that can go stale, and a stale derivation is worse than an absent one
+because it is believed. The tier on a dashboard that was computed from facts which have since moved
+is a number nobody can defend and everybody quotes.
 
-**Failure behaviour.** If Region A's control plane is unavailable, Region B's `maya-warrants` continue to
-resolve from the standby and the Redis replica. Reads succeed; new issuance and alias moves fail closed
-with a clear error. This is `P9` and `NFR-AVAIL-002`.
+### The rule, and its two halves
 
----
+**Nothing computable is a column.** The estate summary, the worklist, the documentation dossier, a
+document's staleness, a finding's ageing and overdue-ness, an overlay's persistence, an appetite's
+utilisation: computed on read, from the register. `core/estate/`, `core/docs/dossier.py`,
+`core/validation/ageing.py`, `core/reporting/indicators.py`.
 
-## 15. Performance and scale design
+**What *is* stored is stored with its derivation.** `risk_assessment` keeps the fact snapshot at
+assessment time, the ruleset version, the materiality and complexity joins, the resulting tier, the
+required control set and a rationale — so the tier can be re-derived and disagreed with, which is the
+only kind of tier worth having. `document` keeps `evidence_head`, the point the chain had reached
+when it was compiled, so **staleness is computed** rather than flagged: anything recorded about the
+subject since means the document no longer describes it.
 
-| Concern | Approach |
+### The three things that are stored anyway, and why
+
+| | Why it is not derived |
 |---|---|
-| Warrant resolution p99 < 50 ms | Descriptors pre-computed and cached; Redis GET + Ed25519 verify; **no DB on the hot path** — the resolver reads only `warrant_projection` (finding H-2); local in-process LRU in front of Redis |
-| **Cache stampede on alias move** (finding H-1) | **Pre-warm before invalidate** — build and sign the new descriptor, write it to cache, *then* flip the pointer, so the cache is never empty · **single-flight coalescing** per `(urn, principal, env)` · **TTL jitter ±20%** to prevent synchronised expiry · **stale-while-revalidate** for up to 5 s while the new descriptor is built |
-| Inventory list at 50k models | Keyset pagination, covering indexes, materialised summary view refreshed on domain events, server-side DataTables |
-| Blast radius on a 50k-node graph | Adjacency in Postgres; recursive CTE with depth cap for interactive use; nightly precomputed transitive closure for portfolio analytics |
-| PIT join over 1B rows × 500 features | Spark with broadcast-free range joins, entity bucketing, Z-order on `entity_id`, `AS OF` via Delta time travel |
-| 50k inference-log events/sec | Buffered ingest → Kafka → structured streaming → Delta with optimised writes; auto-compaction; sampling policy by tier |
-| Monitoring at portfolio scale | Delta **Change Data Feed** for incremental computation; only changed partitions recomputed |
-| Evidence graph queries | Provenance polynomials materialised for Tier 1; `Why` form below; depth-limited traversal with memoisation |
-| Document compilation | Async worker; cached rendered fragments keyed by evidence hash — unchanged evidence never re-renders |
+| `board_pack` | a committee minute referring to "the March pack" needs the March pack **as it was read**. A pack recomputed today is a different document with the same name — and movement since the last meeting needs a previous pack to move from |
+| `risk_appetite` (versions) | limits accumulate and nothing is edited. A limit that can be changed without a record is a limit that can be **relaxed** without one, and the relaxation is the event a reader six months later needs to find |
+| `alias_history` | the pointer moves; the history does not. It carries the refinement (`L-7`) and variance (`L-12`) checks that permitted each move, so *why was this allowed* survives the move |
+
+### The board pack, and the number it refuses to produce
+
+`core/reporting/` computes twelve indicators over the estate from the same services the model page
+reads — because a board pack with its own numbers is a board pack that disagrees with the platform,
+and the disagreement surfaces in a committee meeting where nobody can resolve it. There is no
+caching: an indicator is cheap to compute and expensive to be wrong about.
+
+**There is no composite score, and the pack says so in itself** rather than leaving an absence a
+reader has to notice. Aggregating requires the parts to compose and they do not: two models fed by
+the same curve are not two independent risks, so any single figure either double-counts the shared
+dependency or ignores it, and a committee cannot decompose it to find out which. That is `L-14` — lax
+monoidality — arriving as a product decision.
+
+**Slack is reported.** An appetite whose utilisation stays below a quarter of its limit for two
+consecutive packs is flagged. It is not a breach and not an error: a limit never approached is
+indistinguishable from one that cannot fire, and it is the thing a committee reviewing its own
+appetite should be told and never is.
 
 ---
 
-## 16. Failure modes and mitigations
+## 8. Extension: what actually extends without a code change
 
-| Failure | Impact | Mitigation |
+The Extension Theorem of
+[00 §8](00-mathematical-foundations.md#8-how-is-everything-indexed)
+says that adding a model class should need no schema change and no core change. Here is how much of
+that is true today, stated as three tiers rather than as an aspiration.
+
+**Extends with data alone — no code, no DDL:**
+
+| | |
+|---|---|
+| A new **model class** | it is a string on the register. Registering one is an insert |
+| A new **policy gate rule** | drafted with its own cases, published once they pass. `facts_read` is computed from the rule's own AST, so a rule reading a fact the gate does not publish is refused *when it is written* rather than at the moment of a governance decision |
+| A new **warrant profile** | a predicate over derived facts and a set of defaults. Several may match and they fold left-to-right by specificity, rightmost winning — the `L-19` monoid, which is what makes `(A∘B)∘C` and `A∘(B∘C)` the same profile |
+| A new **risk-appetite limit** | over any of the twelve computed metrics. A metric the platform cannot compute is refused **when the limit is written**, because a limit that failed while a committee was reading it would fail at the worst possible moment |
+| A new **monitor**, **validation test**, **overlay**, **featureset**, **document attachment** | all data |
+
+**Extends with a module, no schema change:**
+
+| | |
+|---|---|
+| A new **supervisory regime** | an institution: a signature (the vocabulary it reasons in), sentences (obligations in that vocabulary) and a comorphism into the core signature. `core/regimes/`. Adding MAS, APRA or OSFI E-23 is adding one module — and the **satisfaction condition** is *checked* against probe states before activation, so a regime whose encoding fails it cannot be turned on |
+| A new **runtime** | a class with a `key`, an `available()` and an `invoke()`, registered on a `RuntimeRegistry`. A new model technology is a new *value* in one vocabulary, not a new section and not a new document type |
+| A new **semiring** | a `Semiring` instance and a valuation |
+
+**Does not extend — named, with the reason:**
+
+| | |
+|---|---|
+| **No plugin loader** | there is no `entry_points` discovery, so a bank's own classes cannot ship as a separate package. Model classes being strings is what makes registration free and also what makes `L-15` — every fibre total: evidence schema, lifecycle, metrics, templates — unenforceable. There is no `fibres.py` and no startup gate that refuses to boot on a partial fibre |
+| **No fibre-specific evidence schema** | a class carries no JSON Schema, so class-specific evidence is not validated against anything |
+| **No connectors** | there is no `connectors/` package. Nothing imports from MLflow, SageMaker, Vertex or SAS |
+
+---
+
+## 9. Target versus build
+
+Read this as **the production target and what actually ships**, side by side, so that nobody
+discovers the difference by looking for a service that is not there.
+
+| Layer | Target | What ships |
 |---|---|---|
-| Postgres primary loss | Control plane down | Streaming standby, automated failover, RTO 4 h / RPO 15 min; warrants keep serving (`P9`) |
-| Redis loss | Warrant latency degrades | Resolver falls back to Postgres read replica; latency budget degrades to 200 ms, not an outage |
-| Malicious artifact upload | RCE risk | Quarantine + sandboxed introspection + format policy + signing; control plane never deserialises |
-| Alias move breaks a consumer | Production incident | Contract refinement check (`L-7`) and schema variance check (`L-12`) block the move; canary + shadow first |
-| Feature source restated | Silent model degradation | Bitemporal detection, affected-snapshot identification, automatic finding, downstream notification |
-| Evidence graph corruption | Loss of assurance | Merkle chain verification job; WORM copies of Tier 1 evidence; append-only enforced at the DB role level |
-| Policy misconfiguration blocks everyone | Operational gridlock | Policy changes are themselves versioned, tested against a golden corpus, canaried, and reversible; break-glass with dual authorisation |
-| Runaway GenAI cost | Financial | Per-warrant token/cost budgets, hard stops, anomaly alerting |
-| Clock skew across regions | Bad temporal reasoning | NTP discipline; all temporal logic uses server-assigned monotonic transaction time, never client time |
+| API | FastAPI, Pydantic, Uvicorn behind Gunicorn | as stated, one process |
+| Front end | Bootstrap 5.3, jQuery 3.7, server-rendered Jinja2 | as stated, **vendored** — no CDN, no external call. See [08](08-ui-ux.md) |
+| Database | PostgreSQL 16 | PostgreSQL **or** SQLite, by URL alone. **No ORM, no migration tool.** Two hand-written schemas, forty-six tables. `ltree`, `pgvector`, RLS and partitioning are **not used**; the shipped DDL has no foreign keys, no `CHECK` and no triggers, and referential integrity lives in the repositories ([05](05-data-model.md)) |
+| Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process. **No Spark**; the PIT join is Python over Delta files |
+| Object store | S3/ADLS/GCS with Object Lock for WORM | a content-addressed store on the local filesystem, digest as key, re-hashed on every read |
+| Cache / queue | Redis 7 | **not used.** Warrant TTL and jitter are computed in process |
+| Async | Celery, APScheduler | `core/scheduler/`: **eight idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |
+| Eventing | Kafka with CloudEvents | **not used** |
+| Policy | OPA/Rego | `core/policy/`: a rule is a predicate over a **closed vocabulary** of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions; no loops, no assignment, no attribute access — checked at the AST. Rego is a general language, and a gate written in one is a program a reviewer has to *run* rather than reason about |
+| Auth | OIDC + SAML + SCIM + MFA | OIDC authorisation code with PKCE, state and nonce; HTTP Basic and a session cookie for people; CSRF on cookie authority. **No SAML, no SCIM, no MFA, no Authlib.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason: it *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token |
+| Warrant signing | Ed25519 | HMAC-SHA256. Ed25519 remains the target |
+| Artifact signing | Sigstore/cosign, in-toto | **not used** |
+| Sandboxing | gVisor / Kata on Kubernetes | a `spawn`ed child with `RLIMIT_CPU` and `RLIMIT_AS` from the warrant — §5, and honestly scoped |
+| Search | Postgres FTS + `pgvector` | **not used.** No semantic matching, no duplicate-feature detection |
+| Observability | OpenTelemetry, Prometheus, Grafana | structured JSON logging with request id and principal on every line (`core/log.py`). The rest does not ship |
+| Testing | pytest, Hypothesis, schemathesis, testcontainers | pytest and Hypothesis. The executable laws live beside the code they constrain, plus the discipline walkers of §4.2 and §4.4 — tests that walk the source and hold a rule a review would not catch |
+| Packaging | uv/Poetry, Docker, Helm, Terraform | `requirements.txt` |
+| Clients | Python and JVM SDKs, CLI, notebook and CI plugins | `sdk/python/maya_sdk` — **standard library only**, no dependencies at all, because an SDK with a dependency tree moves the air-gap problem into the client's build pipeline rather than solving it. `sdk/java/` is a **README stating the contract a JVM client must honour**, and no implementation; saying so is the point of the directory |
+
+### 9.1 What deployment actually looks like
+
+One process, one database file or connection string, one Delta directory, one artifact directory. The
+multi-region topology in earlier drafts of this document — a separately scaled warrant service, a
+Postgres standby, a Redis replica, a Kubernetes sandbox pool — described the target and none of it is
+built. The one architectural claim that survives it is `P9`: a warrant descriptor remains valid for
+its TTL whether or not MAYA is reachable, because the descriptor is signed and self-contained, and
+that property costs nothing and needs no second region.
 
 ---
 
-## 17. Architecture decision records
+## 10. Failure modes
 
-See [`docs/adr/`](adr/INDEX.md) for the full set. Summary:
+| Failure | Impact | What actually happens |
+|---|---|---|
+| Register unavailable | no governance decisions; **existing warrants keep working** until their TTL | `P9` by construction — the descriptor is signed and self-contained |
+| Malicious artifact | code execution | the store refuses a declared digest that does not match what arrived, records which of the eight formats **execute code on load**, and the sandbox bounds the child. There is **no quarantine step** — an uploaded artifact is stored and readable at once — and §5 is honest that the sandbox stops accidents and not attacks |
+| Alias move breaks a consumer | production incident | refused before it happens: contract refinement (`L-7`) and schema variance (`L-12`) are checked at the move, and the checks are stored on `alias_history` |
+| An `input_to` edge that never composed | a blast radius over edges nobody validated | refused at the edge (`L-21`). Where either end has no version yet, the edge is recorded **without** a type check *and the log says so* |
+| Feature source restated | silent degradation | `ViewManager.restated` reports that a namespace has moved past its pin, so anybody comparing two runs knows which case they are in. Tracing a restatement forward to the *decisions* that used the superseded values (`FR-FEA-016`) is not built |
+| Evidence chain broken | loss of assurance | the incremental verifier fails readiness and **does not advance the checkpoint**; the scheduled full walk names the sequence number |
+| Policy misconfiguration | operational gridlock | a gate ships with its own cases, at least one a refusal, and cannot be published until they pass. A published row is never edited; a change mints the next version |
+| A scheduler job stops running | conditions never become consequences | `scheduled_run` records every run; one failing job does not stop the others, and a job that has stopped running is itself a finding |
+| Redelivered telemetry | a population that never existed | `telemetry_batch.digest` is `UNIQUE`; a redelivered batch is accepted and not written again |
+| Clock skew | bad temporal reasoning | all temporal logic uses server-assigned time, never client time |
+
+---
+
+## 11. Architecture decision records
+
+[`docs/adr/INDEX.md`](adr/INDEX.md) holds the set. Summary:
 
 | ADR | Decision |
 |---|---|
-| [ADR-001](adr/ADR-001-modular-monolith.md) | Modular monolith + one extracted warrant service |
-| [ADR-002](adr/ADR-002-postgres-delta-split.md) | Postgres for governance, Delta for data-plane volume |
+| [ADR-001](adr/ADR-001-modular-monolith.md) | Modular monolith |
+| [ADR-002](adr/ADR-002-postgres-delta-split.md) | Relational register for governance, Delta for data-plane volume — B2 |
 | [ADR-003](adr/ADR-003-para-stoch-model-definition.md) | `Para(Stoch)` as the universal model definition |
-| [ADR-004](adr/ADR-004-fibration-extensibility.md) | Model classes as fibres, delivered as plugins |
+| [ADR-004](adr/ADR-004-fibration-extensibility.md) | Model classes as fibres, delivered as plugins — §8 records how much is realised |
 | [ADR-005](adr/ADR-005-institutions-for-regimes.md) | Institutions for multi-regulator scoping |
-| [ADR-006](adr/ADR-006-semiring-evidence.md) | Semiring-annotated provenance as the single evidence engine |
-| [ADR-007](adr/ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors |
-| [ADR-008](adr/ADR-008-server-rendered-ui.md) | ~~Server-rendered Jinja2~~ — **superseded by ADR-011** |
-| [ADR-009](adr/ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading; format policy |
+| [ADR-006](adr/ADR-006-semiring-evidence.md) | Semiring-annotated provenance as the single evidence engine — B6 |
+| [ADR-007](adr/ADR-007-warrant-protocol.md) | Signed, TTL'd, alias-aware warrant descriptors — B1 |
+| [ADR-008](adr/ADR-008-server-rendered-ui.md) | ~~Server-rendered Jinja2~~ — superseded by ADR-011 |
+| [ADR-009](adr/ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading; format policy — B5 |
 | [ADR-010](adr/ADR-010-laws-as-tests.md) | The laws enforced by tests in CI |
-| [ADR-011](adr/ADR-011-decoupled-frontend.md) | Decoupled front end consuming backend services over the public API |
+| [ADR-011](adr/ADR-011-decoupled-frontend.md) | Decoupled front end consuming backend services over the public API — B4 |
 
-> **Post-review.** This architecture incorporates the dispositions of
+> **Post-review.** This architecture carries the dispositions of
 > [11 — Adversarial Design Review](11-adversarial-review.md): 27 findings, 17 requiring redesign. The
-> most consequential were **C-2** (the online feature store was unversioned, silently defeating the
-> feature contract) and **C-5** (day-one adoption with 1,200 evidence-less legacy models).
+> two most consequential were **C-2** — the online feature store was unversioned, silently defeating
+> the feature contract, and the same failure has since been found at four further levels
+> ([07 §5](07-feature-platform.md)) — and **C-5**, day-one adoption with 1,200 evidence-less legacy
+> models, answered by `core/baseline/`: a baselined model is governed going forward and carries
+> explicit, dated, tiered **debt** for each piece of evidence it does not have. Debt is not breach,
+> and a Tier 1 model with baseline debt must never render the same colour as one with a missed
+> validation.
+
+The authoritative record of what exists is
+[12 §0, Build status](12-implementation-plan.md#0-build-status), kept current there rather than here.
 
 ---
 

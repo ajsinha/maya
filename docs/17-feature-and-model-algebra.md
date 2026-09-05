@@ -231,7 +231,7 @@ the first thing on the page:
    coefficients               dscr     : ℝ[-5, 20]             Bernoulli
    estimated_coefficients     turnover : ℝ⁺                    over pd_12m
 
-   T3  ·  estimated_coefficients  ·  estimate  ·  runtime estimator
+   T2  ·  estimated_coefficients  ·  estimate  ·  runtime estimator
 ```
 
 Every part is derived from the version. The trainability class is shown **beside

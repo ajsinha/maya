@@ -24,11 +24,11 @@ Here is the whole answer on one page:
 | Model | `P` is | How `P` is filled | `parameter_kind` | `fit_procedure` | Class |
 |---|---|---|---|---|---|
 | Black–Scholes | *empty* | it isn't — nothing to fill | `none` | `none` | T0 |
-| Linear regression | coefficients | a statistical estimator | `estimated_coefficients` | `estimate` | T3 |
-| GARCH(1,1) | ω, α, β | maximum likelihood | `estimated_coefficients` | `estimate` | T3 |
+| Linear regression | coefficients | a statistical estimator | `estimated_coefficients` | `estimate` | T2 |
+| GARCH(1,1) | ω, α, β | maximum likelihood | `estimated_coefficients` | `estimate` | T2 |
 | Hull–White | mean reversion, vol | a solver, against market quotes | `calibration_set` | `calibrate` | T1 |
 | Monte Carlo XVA | the model parameters + seed + path count | calibration plus configuration | `calibration_set` | `calibrate` | T1 |
-| Neural network | **weights** — millions of them | a training run | `learned_weights` | `train` | T4 |
+| Neural network | **weights** — millions of them | a training run | `learned_weights` | `train` | T3 |
 | LLM application | base model + prompt + corpus + tools | configuration and retrieval | `llm_configuration` | `configure` | T5 |
 | Vendor score | exists, unreachable | somebody else's problem | `opaque` | `none` | T6 |
 

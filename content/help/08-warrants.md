@@ -235,7 +235,7 @@ When the parameter object *is* the file, "which numbers did this run at" and
 digest answers neither.
 
 This is the law that bites hardest on a neural network, and it is deliberately
-not written in terms of the class: a PMML scorecard is T3 and carries exactly
+not written in terms of the class: a PMML scorecard is T2 and carries exactly
 the same exposure. Keying it on the trainability class would have missed that.
 
 **L-W13 — a generative runtime must pin the build, not just the model name.**
@@ -263,7 +263,7 @@ document* rather than as different documents.
 The recurring ask is "warrants should be templated by kind of model". It is half
 right, and the wrong half is expensive, so it is worth separating.
 
-**The document must not fork.** If a T4 warrant has a different *shape* from a
+**The document must not fork.** If a T3 warrant has a different *shape* from a
 T3 warrant, every engine, replay path and audit query has to branch on model
 type before it can read anything, and the branch grows a case per model family
 forever.
@@ -280,7 +280,7 @@ what a profile fills in.
 curl -u j.okafor:… -X POST http://localhost:5006/api/v1/warrant-profiles \
   -H 'Content-Type: application/json' \
   -d '{"name": "trained_artifact_prod",
-       "when": {"trainability_class": ["T4"], "environment": ["prod"]},
+       "when": {"trainability_class": ["T3"], "environment": ["prod"]},
        "defaults": {"verb": "score", "max_seconds": 3}}'
 ```
 
@@ -340,7 +340,7 @@ curl -u … -X POST http://localhost:5006/api/v1/warrant-profiles/preview \
  "profiles": [{"name": "everything", "specificity": 0},
               {"name": "trained_artifact_prod", "specificity": 2}],
  "applied": {"verb": "everything@1", "max_seconds": "trained_artifact_prod@1"},
- "facts": {"trainability_class": "T4", "runtime": "onnx", "environment": "prod"}}
+ "facts": {"trainability_class": "T3", "runtime": "onnx", "environment": "prod"}}
 ```
 
 Every value names the profile it came from. A default whose origin cannot be
@@ -348,7 +348,7 @@ named is a value nobody can argue with later.
 
 ### What a profile must not hold
 
-**Obligations.** "A T4 warrant in prod must carry a digest" is not a default —
+**Obligations.** "A T3 warrant in prod must carry a digest" is not a default —
 a default is something you can drop. It is a law (L-W12) or a policy on the
 `warrant:resolve` gate, and both **refuse** rather than suggest. A profile
 supplying a key outside the defaultable list is refused for exactly this reason.

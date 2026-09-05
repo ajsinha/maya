@@ -351,8 +351,8 @@ def check_artifact_digest(verb: str, parameters: Dict[str, Any],
     the engine loads whatever is at the URI, and "what ran is what was approved"
     becomes an assumption rather than a check.
 
-    This is the one law that bites hardest on T4, and it is deliberately not
-    written in terms of the class. A PMML scorecard is T3 and has exactly the
+    This is the one law that bites hardest on T3, and it is deliberately not
+    written in terms of the class. A PMML scorecard is T2 and has exactly the
     same exposure; keying the law on the class would have missed it.
     """
     if verb == FIT:

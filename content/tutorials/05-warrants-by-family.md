@@ -85,14 +85,14 @@ They already are — as **refusals over one document**, never as different
 documents. Each is keyed on a fact the platform *derives*: the parameter kind,
 the source binding, the runtime.
 
-That distinction is worth holding on to. If a T4 warrant had a different
-*shape* from a T3 warrant, every engine, replay path and audit query would have
+That distinction is worth holding on to. If a T3 warrant had a different
+*shape* from a T2 warrant, every engine, replay path and audit query would have
 to branch on model type before it could read anything, and the branch would grow
 a case per model family forever. Instead there is one shape, and the laws that
 apply to it depend on facts nobody had to declare.
 
 Notice too that **L-W12 is not written in terms of the class**. It bites hardest
-on a neural network, but a PMML scorecard is T3 and carries exactly the same
+on a neural network, but a PMML scorecard is T2 and carries exactly the same
 exposure — keying it on the trainability class would have missed that, and the
 miss would have looked like coverage.
 
@@ -106,7 +106,7 @@ before the builder runs, never by changing the document the builder produces.
 curl -u j.okafor:pw -X POST localhost:5006/api/v1/warrant-profiles \
   -H 'Content-Type: application/json' \
   -d '{"name":"trained_artifact_prod",
-       "when":{"trainability_class":["T4"],"environment":["prod"]},
+       "when":{"trainability_class":["T3"],"environment":["prod"]},
        "defaults":{"verb":"score","max_seconds":3}}'
 ```
 

@@ -23,7 +23,7 @@ coefficients — and every control the platform has, applied to them.
 | Filled by | ordinary least squares, in MAYA's own estimator |
 | `parameter_kind` | `estimated_coefficients` |
 | `fit_procedure` | `estimate` |
-| Derived class | **T3** — statistically estimated |
+| Derived class | **T2** — statistically estimated |
 | Runtime | `estimator` |
 | Where `P` lives | in the register, as a record |
 

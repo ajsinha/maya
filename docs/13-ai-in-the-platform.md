@@ -1,347 +1,442 @@
-# 13 — AI, LLMs and Agents *Inside* the Platform
+# 13 — Machine assistance: admitted by the check, never by the model
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-> **A note on what this document is.** The rest of the specification treats AI as something the platform
-> **governs**. This document treats AI as something the platform **uses** — and takes a position on where
-> that is a good idea, where it is a bad idea, and why the distinction is sharper here than in most
-> enterprise settings.
+> **What this document is.** The rest of the specification treats AI as something the platform
+> **governs**. This one treats AI as something the platform **uses**, and takes a position on where
+> that is a good idea, where it is a bad idea, and why the line falls in a place the formalism can
+> draw rather than a place a committee has to.
 >
-> It is an opinion, argued. Where I think the popular answer is wrong, I say so.
+> It is an argued position. Where the popular answer is wrong, it says so.
 
 ---
 
-## 1. The organising principle
+## 1. The criterion, and why it is not a judgement about models
 
-Most enterprise AI strategies sort use cases by *value* and then bolt on controls. That produces the
-familiar pattern: an impressive pilot, a governance review that cannot say anything more specific than
-"a human should check it", and a production system whose failure mode is that nobody checks.
+Most enterprise AI strategies sort use cases by *value* and bolt on controls. That produces the
+familiar shape: an impressive pilot, a governance review that cannot say anything more specific than
+*"a human should check it"*, and a production system whose failure mode is that nobody checks.
 
-For a governance platform, there is a much better sorting criterion available, and it comes directly
-from the formal foundations:
+There is a better sorting criterion available here, and it is a theorem rather than a preference.
+[00 §12a](00-mathematical-foundations.md) states it:
 
-> **Deploy AI where the formalism gives you a mechanical check on the AI's output.
-> Use humans where it does not.**
+> **Definition (oracle).** For a task `T` with outputs in `O`, an *oracle* is a decidable predicate
+> `ok_T : O → 𝔹`, computable from the formal structure and from data independent of the output, such
+> that `ok_T(o)` holds only if `o` is correct.
+>
+> **Proposition (automation admissibility).** If `T` is oracle-backed, the soundness of *verified
+> automation* — compute `g(x)`, accept iff `ok_T(g(x))` — is **independent of the generator `g`**. No
+> incorrect output is accepted, whatever produced it. The generator's error rate determines
+> *throughput*, not correctness.
 
-This is not a general principle of AI deployment — it is available *here* because
-[00 — Mathematical Foundations](00-mathematical-foundations.md) supplies unusually strong checks. The
-satisfaction condition checks a regulatory encoding. Why-provenance checks whether cited evidence
-actually supports a claim. Contract refinement checks a substitution. Probe-relative equivalence checks
-a behavioural claim. A generated test either runs or does not.
+Two consequences follow, and both are unusual enough to be worth stating plainly.
 
-Where such a check exists, an LLM can be wrong loudly and cheaply, and the system catches it. Where no
-check exists, an LLM is wrong *quietly*, and in a governance system quiet wrongness is the failure mode
-that matters.
+**The question is never "is the model good enough".** Where an oracle exists, that question does not
+arise: a wrong output is rejected, and a model that is wrong more often merely wastes more attempts.
+Where no oracle exists, the correctness of the output is exactly the correctness of `g`, and "the
+model is quite good now" is the only argument available — which is not an argument a bank can put in
+front of an examiner.
 
-Everything below is organised on that axis.
+**The criterion is a property of the domain, not of the vendor.** It does not change when the base
+model changes. That is why this document does not have a section on model selection.
+
+Where a check exists, a language model can be wrong **loudly and cheaply** and the system catches it.
+Where no check exists, it is wrong **quietly** — and in a governance system, quiet wrongness is the
+failure mode that matters, because the whole product is the claim that its assertions are derivable.
+
+So this document is organised **by check**, not by use case. §2 is what the checks admit, §3 is the
+checks that exist, §4 is the path an output takes through them, and §9 is what the criterion admits
+that nobody has built.
 
 ---
 
-## 2. The three tiers
+## 2. Two tiers, and the third one is not a tier
 
-```mermaid
-flowchart TD
-    Q{"Is the AI's output<br/>mechanically checkable<br/>against a formal property?"}
-    Q -->|Yes| A["<b>Tier A · Verified</b><br/>Deploy aggressively.<br/>The check is the control."]
-    Q -->|Partially — claims can be<br/>grounded and citations verified| B["<b>Tier B · Grounded</b><br/>Deploy with mandatory<br/>grounding verification and<br/>human approval."]
-    Q -->|No| C["<b>Tier C · Advisory only</b><br/>AI may summarise, cluster,<br/>surface and draft.<br/>It may never conclude."]
-    style A fill:#2d5016,color:#fff
-    style B fill:#8a6d1f,color:#fff
-    style C fill:#8b2f2f,color:#fff
+| | Tier A — **verified** | Tier B — **grounded** |
+|---|---|---|
+| **The control** | A formal property passes or fails. The check *is* the control | Every claim cites evidence, every citation is verified, a person approves what survives |
+| **Autonomy** | Human-approved automation | Human-approved automation, or collaborative assistance |
+| **If the model degrades** | The check fails and nothing is recorded | Citations fail and the claims are removed |
+| **Refusal on failure** | `oracle_failed` — nothing is recorded at all | `nothing_grounded` — if no claim survived, there is nothing left to record |
+
+There is a Tier C in the argument — output that can be neither checked nor grounded, where AI may
+summarise and surface but never conclude. **It is deliberately not registrable**, and the refusal
+says why:
+
+```json
+{"error": "advisory_not_registrable",
+ "detail": "a capability whose output can be neither checked nor grounded is
+            advisory, and advisory AI is a person using a chat window",
+ "remediation": "if the output can be checked, name the oracle and register it as
+                 Tier A; if its claims can cite evidence, register it as Tier B"}
 ```
 
-| | Tier A — Verified | Tier B — Grounded | Tier C — Advisory only |
-|---|---|---|---|
-| **Control** | A formal check passes or fails | Every claim cites evidence; citations are verified; a human approves | A human decides; AI never appears in the decision path |
-| **Autonomy** | Human-approved automation, sometimes higher | Human-approved automation | Collaborative assistance |
-| **Evidence status** | Output may become an evidence node once the check passes | Output is a draft with `ai_drafted` provenance until attested | Never evidence |
-| **If the model degrades** | The check fails; nothing bad ships | Citations fail; the draft is rejected | A human was always deciding |
+That is a stronger position than the usual one, and the reason is structural rather than cautious:
+**a Tier C capability in a registry is a Tier C capability that will one day be wired into a decision
+path**, because everything in a registry eventually is. A person using a chat window is fine. A
+platform capability that produces unverifiable output and has an owner, a key and an endpoint is a
+governance decision waiting for somebody to be in a hurry.
+
+Two further rules are enforced at registration rather than at use, because registration is the
+governance act:
+
+- **A Tier A capability must name its oracle** (`oracle_required`). *"We validate the output"* without
+  naming the check is the sentence that precedes every AI incident.
+- **The named oracle must exist** (`unknown_oracle`), and the refusal lists the ones that do.
+
+Only two autonomy modes are accepted at all: `collaborative_assistance` (a person is doing the work)
+and `human_approved_automation` (the machine drafts, a person signs). Those are precisely the two
+modes that pass the boundary gates in [09 §9.1](09-security-compliance.md), and this is the one place
+in the codebase where that vocabulary is enforced rather than described.
 
 ---
 
-## 3. Tier A — where I would deploy AI aggressively
+## 3. The five oracles that exist
 
-These are the cases where a formal property, already in the design, acts as an oracle.
+`core/assist/oracles.py`. The list is short because **the honest list is short**.
 
-### 3.1 Drafting regulatory institution encodings
+| Key | Checks | Rests on |
+|---|---|---|
+| `warrant.conforms` | A generated warrant validates against the grammar and its admissibility laws | `core/execution/grammar` |
+| `contract.refines` | A proposed contract refines the incumbent (`L-7`) | `core/domain/contracts` |
+| `schemas.substitutable` | Proposed input and output schemas satisfy variance (`L-12`) | `core/domain/schemas` |
+| `test.registered` | A proposed validation test exists in the catalogue | `core/validation/catalogue` |
+| `citations.resolve` | Every cited evidence node exists — Boolean-semiring citation soundness | `core/evidence` |
 
-The institutions approach ([00 §8](00-mathematical-foundations.md)) has exactly one weakness: encoding a
-regime is expensive expert work. A new supervisory statement is forty pages of open-textured prose that
-someone must turn into a signature and a set of sentences.
+**Every one of them is machinery that already existed for another reason, and that is not a
+coincidence.** A platform whose properties are formal enough to check a human's work can check a
+machine's, and the same check serves both. An oracle written specially to bless AI output would be an
+oracle nobody had reason to trust — it would have been designed by the same people, at the same time,
+under the same assumptions as the thing it blesses.
 
-This is an excellent LLM task — read the text, propose the vocabulary, propose the obligations, cite the
-clause for each — and, crucially, **its output is checkable**. The satisfaction condition
-(law `L-8`) is a property test over generated inventory states. A defective encoding fails it.
+`citations.resolve` is the weakest of the five and deliberately so. It asks whether every cited node
+*exists*, which is the Boolean-semiring reading. The stronger question — whether the cited set
+contains a *minimal support* of the claim under its derivation — is available in principle from
+[00 §9.2](00-mathematical-foundations.md) and is **not what runs**. Saying which is the difference
+between grounding verification and grounding aspiration, and this is currently nearer the second than
+the first.
 
-That combination is rare and valuable: the AI does the expensive part, and a theorem checks the answer.
-I would build this early. It converts the extensibility guarantee from "possible" to "cheap", which is
-the difference between a guarantee and a claim.
+### 3.1 Two checks that are not registered as oracles, and should be
 
-**What the AI does not do:** publish. A proposed encoding goes to a human regulatory specialist with the
-satisfaction-condition test results attached. The specialist's job changes from *authoring* to
-*reviewing an encoding that has already passed a consistency check* — which is a much better use of a
-scarce person.
+Regime activation now runs **two** mechanical checks before a regime can be turned on, and both are
+exactly the shape the criterion asks for:
 
-### 3.2 Probe-set generation
+- **`L-16` — deontic consistency.** `core/regimes/sentences.py::deontic_conflicts` finds terms one
+  sentence obliges and another forbids; activation refuses with `obligation_contradiction`, naming
+  the term and both sentences. It is checked **first**, before the satisfaction condition, because it
+  is cheaper and because a regime that contradicts itself makes every determination unsatisfiable —
+  which the satisfaction condition would report as a subtler failure than it is.
+- **`L-8` — the satisfaction condition.** Truth invariant under change of notation, checked against
+  probe states.
 
-[00 §5.3](00-mathematical-foundations.md) is candid that behavioural equivalence is only as strong as the
-probe set, and that thin probe sets are the norm. Generating probes — boundary values, rare segments,
-edge cases in the declared input domain, adversarial inputs — is a task LLMs are genuinely good at, and
-the output is self-checking: a probe either executes and discriminates, or it does not.
+`L-16` matters more for machine-drafted encodings than for hand-written ones, for a reason worth
+naming. It is decidable exactly as far as the sentences **declare their shape**: `obliges`, `forbids`
+and `conditional` are structural, and a sentence built from a bare lambda is `custom`. So
+`undecidable()` **names** the sentences the check could not read, rather than assuming them
+consistent — because a check that quietly ignores what it cannot judge reports success for exactly
+the cases it was least able to judge. A model drafting an encoding is the most likely author of a
+`custom` sentence, so that report is precisely the list a reviewer of machine output needs.
 
-This attacks a real weakness in the design rather than adding a feature. The worked example in the paper
-— a "patch" release that silently changed 2% of scores because no probe covered missing DSCR — is
-exactly what generated probe sets catch.
-
-### 3.3 Code-to-document consistency
-
-Does the methodology described in the model development document match the methodology in the code? This
-is a question humans answer badly, slowly, and inconsistently, and it is where model documentation most
-often becomes fiction.
-
-An LLM comparing a document section against a code diff, and flagging divergence for review, is doing
-something checkable in the weak sense that a human can adjudicate each flag in seconds. Precision matters
-more than recall here; a noisy version of this is worse than nothing.
-
-### 3.4 Format migration
-
-Converting a pickle artifact to ONNX so it can enter production under the format policy
-([09 §2.1](09-security-compliance.md)) is a mechanical task with a perfect oracle: run both artifacts over
-the probe set and assert numerical equivalence within tolerance. An agent can do the conversion, run the
-equivalence test, and open a pull request. If equivalence fails, nothing ships.
-
-I would automate this without hesitation. It removes the main source of friction the format policy
-creates, which is otherwise an adoption risk.
-
-### 3.5 Natural-language query over the inventory
-
-*"Which models fed the Q2 2026 CECL provision, what was their validation status at that date, and which
-had active overlays?"* Text to structured query over a well-defined schema, where the query either parses
-and returns or does not, and the user sees the generated query. Low risk, high daily value, and it makes
-the as-at-date capability actually usable by people who will never write SQL.
-
-### 3.6 Remediation planning — and the nicest tie-in in the design
-
-The tropical semiring `(ℝ⁺∪{∞}, min, +)` from [00 §9.2](00-mathematical-foundations.md) computes, for any
-unmet governance claim, **the cheapest path to close the gap** — in person-days, over the actual evidence
-structure.
-
-That is a plan waiting to be executed. An agent can take the computed path, draft the remediation
-tasks, assign them from the RACI, schedule them against validator capacity, and chase them. The *plan*
-comes from the algebra, not the model; the agent does the coordination. The AI is not deciding what needs
-to happen — the semiring decided that — so there is nothing for it to be creatively wrong about.
+Neither `L-16` nor `L-8` is in `ORACLES`, because the capability they would back — a regulatory
+encoding assistant (§9) — is not built. The checks are ready and the generator is not, which is the
+right way round.
 
 ---
 
-## 4. Tier B — deploy, with grounding verification
+## 4. The path an output takes
 
-### 4.1 Documentation drafting, and why it is different here
+`core/assist/drafting.py` and `core/assist/generations.py`. Five steps, and the **order** is the
+design.
 
-Documentation is the largest cost in model risk — 80 to 200 hours per model, stale on arrival. It is the
-obvious LLM application and it is the one most likely to be done badly.
+```
+1  evidence gathered  →  2  prompt assembled  →  3  provider drafts
+                                                       ↓
+   5  attested by somebody else  ←  4  gate: oracle, then grounding
+```
 
-The usual approach is RAG over a document store, which produces fluent text with plausible-looking
-citations that nobody checks. In this platform the substrate is different in a way that matters:
+1. **The evidence is gathered first, from the register.** Not from the model, and not from the
+   prompt. What the model may cite is fixed **before it is asked**, capped at forty nodes, so a
+   citation it invents has nowhere to land. A subject with no evidence recorded against it is refused
+   outright (`nothing_to_ground`): *"a subject with no record is one nobody should be drafting
+   about."*
 
-> The evidence graph is **typed, hash-addressed, and carries provenance semirings**. So "cite your
-> sources" is not a hope — it is `return the evidence node ids`, and **Why-provenance can verify that
-> the cited set actually supports the claim.**
+2. **The prompt is assembled from that record**, one line per evidence node, each labelled with the
+   node's id, and its digest is recorded — so *"what was it asked"* has an answer that survives the
+   model moving on. The cap is not an efficiency measure: a prompt carrying the whole chain is a
+   prompt nobody can review, and a claim citing one of four thousand nodes is not a citation anybody
+   can check.
 
-That is grounding *verification*, not grounding *aspiration*, and I think it is the single strongest
-argument for building documentation drafting here rather than buying a generic tool.
+3. **The provider drafts, and nothing it returns is believed.** It hands back prose and a list of
+   claims, each naming the evidence it rests on. A provider cannot introduce a fact — only a
+   *candidate* fact, which survives exactly as far as its citation does.
 
-The gate is strict:
+4. **The gate runs, unchanged.** For Tier A the oracle decides, and a failure records **nothing**.
+   For Tier B the grounding gate checks every citation and **removes** the claims that failed.
 
-1. Every generated sentence carrying a factual claim must map to one or more evidence node ids.
-2. The cited set is checked against the claim's actual derivation. A citation that does not support the
-   claim is a **failure**, not a warning.
-3. Unmappable sentences are rendered but visibly flagged as `unverified_narrative` and require explicit
-   human attestation.
-4. Numbers are **never generated**. They are interpolated from evidence. The model writes prose around
-   values it did not compute — which removes the entire class of hallucinated statistics.
-5. The whole capability is registered in the inventory as a T5 model, tiered, evaluated against a frozen
-   eval set, and re-gated on every prompt, corpus or base-model change.
+   Removal rather than flagging is the decision worth defending. A document where the unsupported
+   sentences are marked is a document where the marks are what gets skimmed past — and the sentence
+   still reads as though the platform said it. The rejected claims are kept **separately**, which is a
+   far more useful artifact than an annotated draft: it is the list of places the model was making
+   things up. A claim citing *nothing* is not grounded either, however true it happens to be; uncited
+   prose in a governance document is the thing this gate exists to stop.
 
-### 4.2 Model and EUC discovery
+5. **It lands `drafted`, and drafted is not evidence.** Not *should not be* — **cannot be**. A drafted
+   generation carries no weight anywhere in the platform, and attestation is the only transition that
+   gives it any. `self_attestation` refuses the requester: *"attestation is a person taking
+   responsibility for machine output; it must be somebody other than whoever asked for it."*
 
-Inventory completeness is the top adoption risk ([10](10-roadmap.md)), and discovery is a genuinely good
-agent task: crawl git repositories, notebooks, shared drives, SAS metadata, the CMDB and the LLM gateway;
-classify what is found; propose an inventory record with a provisional class and tier.
-
-Grounded, because every proposal points at a specific artifact a human can open. The agent proposes; a
-human confirms; the confirmation is the evidence.
-
-I would scope this narrowly at first. A discovery agent with poor precision generates a triage queue
-nobody works, and an unworked queue is worse than no queue — it creates the appearance of coverage.
-
-### 4.3 Validation assistance
-
-Not validation. *Assistance.* Summarising a 200-page vendor methodology document against a
-due-diligence checklist. Generating challenge questions from a corpus of prior validation findings for
-similar model classes. Drafting a test plan from the class's test catalogue. Identifying which
-assumptions in the MDD have no corresponding test.
-
-That last one is quietly valuable: "you asserted six assumptions and tested four" is a mechanical gap
-analysis dressed as an AI feature, and it is the kind of finding that surfaces late and embarrassingly
-today.
-
-### 4.4 Finding correlation and triage
-
-Finding **M-8** in the [adversarial review](11-adversarial-review.md) identified notification storms: one
-upstream failure raising findings on every downstream model. Clustering findings into root cause plus
-impact records is a task where an LLM's judgement about semantic similarity genuinely helps, and where
-a human confirms the grouping before notifications go out.
-
-### 4.5 Committee and examiner support
-
-Drafting committee papers from the reporting pack; turning committee minutes into structured decision
-records; assembling a first-pass response to an examiner request by locating relevant evidence. All
-grounded in existing artifacts, all human-approved before they leave the building.
+What a reader eventually sees is **assembled from the claims that survived**, not from the provider's
+prose. The prose is kept for the record under `as_drafted` and is never shown as the answer.
 
 ---
 
-## 5. Tier C — where I would refuse
+## 5. Which model MAYA can ask
 
-I want to be unambiguous about this, because the commercial pressure runs the other way and the
-vocabulary of "AI-powered governance" is already in the market.
+MAYA can now *ask* as well as record, and the ratio is deliberate: **one provider works and three
+refuse by name.**
+
+| Provider | State |
+|---|---|
+| `mock` | Works. Deterministic, seeded from the digest of its own prompt, composing sentences from the evidence it was handed |
+| `anthropic`, `openai`, `self_hosted` | Refuse, each naming itself and the reason |
+
+A stub returning plausible prose into a governance register is a machine writing into the record with
+nothing behind it, and the first person to see the output would have no way to tell. A refusal that
+says which provider, why it cannot run, and what to do instead costs nothing and cannot be mistaken
+for an answer.
+
+**Wiring a real provider is not a matter of filling in an HTTP call.** Four things must be answered
+first, and none of them is code:
+
+| | |
+|---|---|
+| **Egress** | Every other asset here is vendored so the platform can be deployed air-gapped. A remote provider is the first component that must reach the internet, and whether it may is a deployment decision rather than a default |
+| **Confidentiality** | A prompt assembled from this register carries model inventory, validation findings and exposure figures. What may leave the institution is a question for whoever owns the data, not for a client library |
+| **Reproducibility** | A remote model is not deterministic and its weights move under a version string. The warrant grammar already treats `llm.prompt` and `llm.agent` as stochastic runtimes for exactly this reason. What is recorded must be the output and its digest, never *"the model said so"* |
+| **Cost and rate limits** | Operational, which is why they are named here rather than discovered in production |
+
+`self_hosted` is listed separately because it answers the first two by construction, and is therefore
+the likeliest first real provider rather than the least likely.
+
+**The mock is a real test of the path, not a stand-in for one.** It exercises the capability register,
+the oracle, the grounding gate, attestation, edit-distance measurement and automation-bias sampling
+for real; only the sentence is fake, and the sentence is the part the platform was never going to
+trust. It also, on request, produces **one deliberately ungroundable claim** — a citation that reads
+exactly like a real one and names nothing — so the rejection path can be watched doing its job. A
+mock that only ever cited real evidence would leave the control that actually matters untested, and
+the first ungrounded claim anybody saw would be in production.
+
+---
+
+## 6. The measurements that are not about the output
+
+Two things are measured that say nothing about whether a draft was any good, and they are the most
+interesting instrumentation in the package.
+
+**Edit distance on attestation** — how much the reviewer changed, by token overlap. Crude on purpose:
+the absolute number means little, and what matters is whether it **falls** for a given reviewer.
+`automation_bias(reviewer)` splits their attestations in half and reports the two means; a late mean
+under half the early one is flagged: *"this reviewer may have stopped reading."* That is a control
+failure the platform can detect **without anybody reporting it**, which is the only way this class of
+failure is ever detected.
+
+**A review sample** — a fraction of generations, ten per cent by default, pulled for independent
+review regardless of how good they look. Deliberate friction: somebody who has approved forty correct
+drafts is not reviewing the forty-first, and no amount of telling them to will change that.
+
+The sampling is **deterministic on the capability's own counter**, seeded from the capability id and
+how many generations it has already produced. It was seeded on the clock until somebody noticed, and
+that made the docstring false in both halves: the sequence was unrepeatable, so no test could depend
+on it, *and* a drafter watching which of their own drafts were sampled could infer the rate and time
+around it.
+
+---
+
+## 7. What must never happen, and why a credential beats a policy
 
 **AI must never make a governance decision.** Specifically, never:
 
 | Decision | Why not |
 |---|---|
-| **Assign a risk tier** | The tier must be a *derivation* from a versioned rule set over sourced facts. An LLM-assigned tier is unexplainable, unstable across runs, and destroys the audit chain. It may *propose* an input; it may not produce the output. |
-| **Conclude a validation** | Effective challenge is defined by SR 26-2 as critical analysis by objective experts with the standing to effect change. An LLM has no standing, no accountability, and cannot be sanctioned. |
-| **Make a scope determination** | The whole point of the institutions construction is that scope is a derivation with a citation. Replacing it with a model's opinion discards the single most valuable property in the design. |
-| **Approve anything** | Approval is an accountable human act with an e-signature behind it. |
-| **Accept residual risk** | Requires authority. Models do not have authority. |
-| **Close a finding** | Closure requires independent verification by a person who did not raise it. |
-| **Compute a metric** | Do not ask a language model for a Gini coefficient. Compute it and let the model describe it. This sounds obvious and is violated constantly. |
+| **Assign a risk tier** | The tier is a *derivation* from a versioned rule set over sourced facts. An LLM-assigned tier is unexplainable, unstable across runs, and destroys the chain. It may propose an *input*; it may not produce the output |
+| **Conclude a validation** | Effective challenge is defined by SR 26-2 as critical analysis by objective experts with the standing to effect change. A model has no standing, no accountability, and cannot be sanctioned |
+| **Make a scope determination** | The whole point of the institutions construction is that scope is a derivation with a citation. Replacing it with a model's opinion discards the most valuable property in the design |
+| **Approve anything** | Approval is an accountable human act with a signature behind it |
+| **Accept residual risk** | Requires authority. Models do not have authority |
+| **Close a finding** | Closure requires independent verification by a person who did not raise it — and that is enforced from the evidence chain ([09 §2.5](09-security-compliance.md)), not by convention |
+| **Compute a metric** | Do not ask a language model for a Gini coefficient. Compute it and let the model describe it. This sounds obvious and is violated constantly |
 
-**And AI must never be in the warrant path.** [06](06-warrants-and-execution.md) requires p99 under 50 ms and
-deterministic behaviour. Nothing probabilistic goes there.
+**And AI must never be in the warrant path.** [06](06-warrants-and-execution.md) requires a p99 under
+50 ms and deterministic behaviour. Nothing probabilistic goes there.
+
+The formalism explains *why* this list is what it is, rather than leaving it as caution. For a derived
+quantity `q = f(Φ)` defined by a versioned rule `f`, there is no automation question about computing
+`q` — evaluating `f` is deterministic. The question arises only for supplying `Φ`, which is
+oracle-backed when facts come from systems of record, and for **proposing `f`**, which is a normative
+choice. Since `f` *constitutes* the standard, no independent specification exists against which a
+proposed `f` could be checked. Concluding a validation, granting an approval and accepting residual
+risk are in the same class: they have **no notion of correctness independent of the authority
+exercising them**. These are not weakly-checkable tasks withheld out of caution.
+
+### The credential, and how weakly it is currently enforced
+
+The right way to hold this line is architectural: **no AI capability holds a credential permitting a
+governance state transition.** Policy erodes under commercial pressure from sensible people;
+a credential that does not exist does not.
+
+Stated honestly, that is **not yet what the code does**. What is true today:
+
+- the four `assist:*` permissions (`read`, `register`, `generate`, `attest`) are disjoint from every
+  governance permission, and none of them can approve, tier, scope or close anything;
+- no principal is created for a capability, so a capability holds no credential at all — every call
+  is made by a person;
+- and there is **no check that would fail** if somebody later gave a capability a principal and
+  handed it `version:approve`.
+
+The property holds by construction rather than by enforcement, which means it holds until somebody
+changes something. A test asserting that no principal named for a capability holds a governance
+permission is the missing piece, and it is missing.
 
 ---
 
-## 6. The recursion, and why it is a feature
+## 8. The recursion, honestly scoped
 
-There is an obvious objection: a platform that governs AI, using AI, is either circular or hypocritical.
+There is an obvious objection: a platform that governs AI, using AI, is either circular or
+hypocritical.
 
-I think it is neither — provided one rule holds absolutely:
+It is neither, and the reason is precise rather than rhetorical. [00 §12a](00-mathematical-foundations.md)
+puts it as **well-foundedness**: the governing machinery — the tiering map, the evidence structure,
+the institutions, the lifecycle categories — is not an element of the governed population; every
+assistant is. Where the strata touch, at an assistant drafting a regime encoding, the dependency is
+*mediated by an oracle that is not itself machine-produced*.
 
-> **Every AI capability inside the platform is registered in the platform's own inventory as a T5 model:
-> tiered, contracted, evaluated, monitored, and subject to the same gates as anything the bank runs.**
+> **Generation may cross the strata; acceptance may not.**
 
-The documentation assistant has an owner, an approved use, an autonomy mode, a frozen eval set, a
-hallucination-rate threshold, a cost budget, and a kill switch. Its prompt is a versioned artifact. A
-base-model change under a vendor endpoint is detected by canary fingerprinting and treated as a change
-event.
+That is the whole answer, and §4 is the mechanism: a provider produces candidates, a check that
+existed before it decides, and a person attests.
 
-This is not compliance theatre. It is the strongest possible forcing function on the product:
+### What "self-governance" does and does not mean here
+
+The design commitment is that every AI capability is registered in MAYA's own inventory as a **T5
+model** — owner, approved use, autonomy mode, tier, contract, frozen eval set, budget, kill switch —
+visible on the same dashboards, to the same auditors, with the same red marks when it drifts.
+
+**That is a design target, and the honest description of what runs is narrower.** Capabilities live
+in their own table, `ai_capability`, and nothing links a capability to a row in the model register.
+The `tier` on a capability is A or B — an *assistance* tier — and not a trainability class. So:
+
+| Claimed control | State |
+|---|---|
+| Capability registered with an owner, an autonomy mode, a base model and a prompt digest | **Built.** Registration is an evidence-appending governance act |
+| Registered **in the model inventory as a T5 model** | **Not built.** A separate register, not linked |
+| Kill switch | **Built**, as `suspend`, with a reason and an evidence node. A suspended capability refuses with `capability_inactive` |
+| Frozen eval set, regression gate, re-gating on every prompt or base-model change | **Not built.** There is no eval harness anywhere in the code |
+| Canary fingerprinting to detect a base model changing under a vendor endpoint | **Not built** — and moot while every remote provider refuses |
+| Per-capability token, cost and step budgets enforced at a gateway | **Not built** |
+| Prompt as a versioned artifact | **Partial.** `prompt_digest` is a string the registrant supplies and nothing verifies it against a stored artifact |
+| Numbers interpolated from evidence, never generated (`FR-AI-005`) | **Not enforced.** The gate checks citations, not arithmetic. A claim can carry a number and pass on a resolving citation |
+| Unmappable sentences marked `unverified_narrative` and attested per section (`FR-AI-006`) | **Deliberately not built, and superseded.** The gate *removes* an ungrounded claim rather than marking it, for the reason in §4: a marked sentence still reads as though the platform said it, and the marks are what gets skimmed past. The requirement should be restated rather than met |
+
+Two of those gaps matter more than the rest. Without an eval harness there is no regression gate, so
+*"re-gated on every prompt, corpus or base-model change"* is a sentence with nothing behind it. And
+without numeric interpolation, the strongest single claim about drafted documentation — that
+hallucinated statistics are removed as a class — is not true today; what is true is that an
+unsupported *sentence* is removed.
+
+The forcing-function argument survives all of that, and is the reason to close the gaps rather than
+retire the claim:
 
 - **If the platform cannot govern its own AI, it cannot govern the bank's.** Every awkwardness in the
   GenAI track shows up first in our own use, where we cannot blame the user.
-- **It produces the reference implementation.** When a team asks what a governed GenAI application looks
-  like, the answer is a working one they already use.
-- **It makes the platform its own first customer**, which is the most reliable quality mechanism there
-  is.
-
-I would make this non-negotiable, and I would put the platform's own AI capabilities on the same
-dashboard as everything else — visible to the same auditors, with the same red marks when they drift.
+- **It produces the reference implementation.** When a team asks what a governed GenAI application
+  looks like, the answer is a working one they already use.
+- **It makes the platform its own first customer**, which is the most reliable quality mechanism
+  there is.
 
 ---
 
-## 7. Architecture
+## 9. What the criterion admits, and nobody has built
 
-AI is a bounded context behind the same plugin boundary as everything else. It is not a layer that
-reaches into other modules.
+Everything in this section is design. The ordering is by **oracle strength**, not by value, which is
+the whole argument of this document applied to its own roadmap.
 
-```mermaid
-flowchart TB
-    subgraph AICTX["core/assist/ — a bounded context, not a layer"]
-        CAP["Capability registry<br/>one entry per AI capability,<br/>each a T5 model in the inventory"]
-        GRD["Grounding service<br/>retrieve over the evidence graph;<br/>verify citations via Why-provenance"]
-        GATE["Output gate<br/>claim → citation mapping ·<br/>unverified-narrative flagging ·<br/>numeric interpolation only"]
-        EVAL["Eval harness<br/>frozen eval sets · regression gates ·<br/>canary fingerprint on base model"]
-        BUD["Budget & guardrails<br/>token/cost caps · PII redaction ·<br/>injection detection · tool manifest"]
-    end
-    EG[("Evidence graph<br/>typed · hash-addressed")] --> GRD
-    GW["Internal LLM gateway"] --- CAP
-    CAP --> GRD --> GATE
-    EVAL --> CAP
-    BUD --> CAP
-    GATE --> OUT["Draft artifacts<br/>ai_drafted provenance ·<br/>human attestation required"]
-    CAP -.registered as T5 models.-> INV[("The inventory —<br/>self-governance")]
-    style AICTX fill:#1f3a5f,color:#fff
-    style INV fill:#8b2f2f,color:#fff
-```
+| | Capability | Tier | Its oracle | State |
+|---|---|---|---|---|
+| **1** | Feature deduplication and semantic search over the catalogue | A | A human adjudicates each proposed duplicate in seconds; the proposal points at two real rows | Not built. The catalogue's search is deliberately not embedding-based |
+| **2** | Natural-language query over the inventory | A | The generated query parses and returns, or does not — and the user sees the query | Not built |
+| **3** | Probe-set generation | A | A probe either executes and discriminates, or does not | Not built. This attacks an acknowledged weakness — [00 §5.3](00-mathematical-foundations.md) is candid that behavioural equivalence is only as strong as the probe set, and thin probe sets are the norm |
+| **4** | Regulatory institution encoding | A | `L-16` then `L-8`, both of which run today (§3.1) | Not built, and the closest to ready. It converts the extensibility guarantee from *possible* to *cheap*, which is the difference between a guarantee and a claim |
+| **5** | Format migration — re-expressing an artifact so it can enter production under the format policy | A | Run both artifacts over the probe set and assert numerical equivalence within tolerance. If equivalence fails, nothing ships | Not built |
+| **6** | Remediation planning | A | *None needed.* The tropical semiring `(ℝ⁺∪{∞}, min, +)` computes the cheapest path to close a gap, in person-days, over the actual evidence structure. The **plan comes from the algebra**; an agent would only coordinate, so there is nothing for it to be creatively wrong about | Not built |
+| **7** | Documentation drafting with grounding verification | B | Citation soundness — currently existence, ideally minimal support (§3) | **The path is built** (§4); no capability is registered against it in this repository |
+| **8** | Model and EUC discovery | B | Every proposal points at a specific artifact a human can open | Not built. Scope it narrowly: a discovery agent with poor precision generates a triage queue nobody works, and an unworked queue is worse than no queue because it creates the appearance of coverage |
+| **9** | Validation assistance and gap analysis | B | *"You asserted six assumptions and tested four"* is a mechanical gap analysis dressed as an AI feature, and it is the finding that surfaces late and embarrassingly today | Not built |
+| **10** | Finding correlation and triage | B | A human confirms the grouping before notifications go out | Not built. It answers M-8 in the [adversarial review](11-adversarial-review.md): one upstream failure raising findings on every downstream model |
 
-**Design commitments:**
+**Nothing on this list makes a decision.** That is not an accident of the ordering; it is what the
+criterion admits.
 
-| Commitment | Rationale |
-|---|---|
-| No AI capability may write to the inventory without a human transition | Preserves the audit chain (Tier C) |
-| All retrieval is over the evidence graph, never over free-floating documents | Grounding must be verifiable, not plausible |
-| Numbers are interpolated from evidence, never generated | Removes hallucinated statistics entirely |
-| Agent tool manifests are versioned artifacts with declared reversibility and blast radius | Per [09 §5.4](09-security-compliance.md) |
-| Irreversible actions require human approval regardless of tier | Agents chase and draft; they do not commit |
-| Per-capability token, cost and step budgets, hard-enforced at the gateway | Cost is a monitored metric with thresholds |
-| Model-agnostic: the gateway is an interface, capabilities are prompts + evals | Base models change faster than the platform |
+Item 4 deserves the note. Encoding a regime is expensive expert work — a supervisory statement is
+forty pages of open-textured prose that someone must turn into a signature and a set of sentences.
+That is an excellent task for a language model *and* its output is checkable, which is a rare pairing.
+The specialist's job changes from *authoring* to *reviewing an encoding that has already passed two
+consistency checks*, which is a much better use of a scarce person. What the model does not do is
+publish.
 
 ---
 
-## 8. Risks I would watch, including one that is usually missed
+## 10. Risks, including one that is usually missed
 
-| Risk | Why it matters here | Mitigation |
+| Risk | Why it matters here | Mitigation, and whether it exists |
 |---|---|---|
-| **Fluency reduces scrutiny** | This is the one I worry about most and it is rarely named. AI-drafted documentation *reads* complete. Reviewers of fluent text find fewer problems than reviewers of obviously rough text — the artifact's polish becomes a signal of its quality, and it is not one. The risk is not that AI writes bad documentation; it is that AI writes *plausible* documentation and thereby lowers the quality of human review. | Render AI-drafted sections visibly differently. Show the citation for every claim inline. Require attestation per section, not per document. Track reviewer edit distance as a metric and investigate when it drops — a reviewer who changes nothing is a signal, not a success. |
-| **Prompt injection through model metadata** | An attacker — or a careless developer — puts instructions in a model description, a feature definition or a vendor document, and the documentation assistant reads it. This is a real injection surface that a normal enterprise chatbot does not have. | Treat all inventory content as untrusted input. Structural separation of instructions from data. Injection detection. Never grant a capability write access it does not need. |
-| **Evidence poisoning** | If an agent can create evidence nodes, it can create supporting evidence for a claim. | Agents may propose; only humans and instrumented systems may create evidence. AI output carries `ai_drafted` provenance and reduced trust, which the trust semiring propagates automatically. |
-| **Automation bias in triage** | A discovery or triage queue that is usually right trains people to approve without looking. | Deliberate sampling: a fixed fraction of AI proposals routed for full independent assessment, with disagreement tracked as a quality metric. |
-| **Base-model drift** | A vendor silently updates a model behind an endpoint and behaviour changes. | Canary probe-set fingerprinting on a schedule; a detected change is a change event that re-runs the eval gate. |
-| **Cost blowout** | Agentic loops over a large estate can be expensive fast. | Hard per-capability budgets; agent step caps; cost as a monitored metric with alerting. |
-| **Capability creep into Tier C** | The pressure to let a well-performing assistant "just assign the tier" will be constant and will come from sensible people. | Make it architecturally impossible: no AI capability holds a credential permitting a governance state transition. Policy is not enough; the credential must not exist. |
+| **Fluency reduces scrutiny** | The one worth worrying about most, and rarely named. AI-drafted documentation *reads* complete. Reviewers of fluent text find fewer problems than reviewers of obviously rough text — the artifact's polish becomes a signal of its quality, and it is not one. The risk is not that AI writes bad documentation; it is that AI writes *plausible* documentation and thereby lowers the quality of human review | **Partly built.** Edit distance and its falling trend are measured (§6). Rendering AI-drafted sections visibly differently, and requiring attestation per section rather than per document, are not built |
+| **Prompt injection through inventory metadata** | An attacker, or a careless developer, puts instructions in a model description, a feature definition or a vendor document, and the drafting assistant reads it. A real injection surface that an ordinary enterprise chatbot does not have | **Partly built.** The prompt is assembled from labelled evidence nodes and the model is told it may cite only those, so a fabricated citation is dropped. There is no injection detector, and separation is by prompt construction rather than by a parser (`FR-AI-017`) |
+| **Evidence poisoning** | If an agent can create evidence nodes, it can create supporting evidence for a claim | **Built.** Agents propose; only humans and instrumented systems create evidence, and a generation is `drafted` until somebody other than the requester attests it. The `trust` column and the trust semiring exist to carry reduced confidence; nothing currently sets AI output below full trust |
+| **Automation bias** | A triage queue that is usually right trains people to approve without looking | **Built.** Deterministic sampling and edit-distance trend (§6). Nothing acts on a falling trend automatically; somebody has to ask |
+| **Base-model drift** | A vendor silently updates a model behind an endpoint and behaviour changes | **Not built.** Canary probe-set fingerprinting on a schedule is the answer and does not exist. Moot while every remote provider refuses |
+| **Cost blowout** | Agentic loops over a large estate get expensive fast | **Not built.** No budgets, no step caps, no cost metric |
+| **Capability creep into Tier C** | The pressure to let a well-performing assistant *"just assign the tier"* will be constant and will come from sensible people | **Partly built.** Tier C is not registrable, and the assist permissions grant no governance authority — but by construction rather than by a check (§7) |
 
 ---
 
-## 9. What I would build, in order
+## 11. The position, stated plainly
 
-| | Capability | Tier | Why here |
-|---|---|---|---|
-| **1** | Semantic search and feature deduplication | A | Already in the design; embeddings only; immediate daily value; near-zero risk |
-| **2** | Natural-language query over the inventory | A | Makes as-at-date and portfolio views usable by non-technical users |
-| **3** | Documentation drafting with grounding verification | B | Largest cost centre; the evidence graph makes this genuinely better than a generic tool |
-| **4** | Probe-set generation | A | Attacks an acknowledged weakness in the design rather than adding surface |
-| **5** | Regulatory institution encoding assistant | A | Converts the extensibility guarantee from possible to cheap; checkable by `L-8` |
-| **6** | Model and EUC discovery agents | B | Attacks the top adoption risk — but only after precision can be measured |
-| **7** | Validation assistance and gap analysis | B | High value to the scarcest role in the process |
-| **8** | Remediation-planning agents on the tropical semiring | A | The plan comes from the algebra; the agent only coordinates |
-| **9** | Format migration agents with equivalence oracles | A | Removes the friction the format policy creates |
-| **10** | Finding correlation and committee drafting | B | Quality-of-life; deploy once trust is established |
+AI belongs in this platform, substantially, for a reason that is easy to miss: **a governance system
+built on formal foundations is an unusually good place to use AI, because it comes with oracles.**
+The satisfaction condition checks a regulatory encoding. Deontic consistency checks an obligation set.
+Contract refinement checks a substitution. Probe-relative equivalence checks a conversion. Boolean
+evaluation over a derivation checks a citation. Elsewhere in the enterprise, *"the AI might be wrong"*
+is managed with review processes and hope. Here, for a meaningful fraction of the work, it is managed
+with a test.
 
-Items 1, 2, 4, 5, 8 and 9 are Tier A and I would move on them with confidence. Items 3, 6, 7 and 10 are
-Tier B and each needs its grounding gate working before it ships. Nothing on this list is Tier C, because
-nothing on this list makes a decision.
+And the boundary should be drawn **harder** than is currently fashionable. AI may draft, retrieve,
+propose, cluster, convert, generate tests and chase. It may never conclude, approve, tier, scope or
+close. Not because models are untrustworthy in some general sense, but because the entire value of
+this platform is that its claims are *derivable* — and a claim whose provenance is *"a language model
+said so"* is precisely the kind of claim the system exists to eliminate.
+
+The uncomfortable part is the honest one. The path is built and the capabilities are not; the
+criterion is executable and the oracles for the highest-value tasks are ready and unused; the
+strongest self-governance claim in the design — every capability a T5 model in our own inventory — is
+a separate table today. That gap is written down here rather than in a roadmap, because a claim about
+a platform's own AI is the one claim a reader has no independent way to check.
 
 ---
 
-## 10. The position, stated plainly
+## 12. Traceability
 
-I think AI belongs in this platform, substantially, and for a specific reason that is easy to miss: a
-governance system built on formal foundations is an *unusually good* place to use AI, because it comes
-with oracles. The satisfaction condition checks a regulatory encoding. Why-provenance checks a citation.
-Contract refinement checks a substitution. An equivalence test checks a conversion. Elsewhere in the
-enterprise, "the AI might be wrong" is managed with review processes and hope. Here, for a meaningful
-fraction of the work, it is managed with a test.
-
-And I think the boundary should be drawn harder than is currently fashionable. AI should draft, retrieve,
-propose, cluster, convert, generate tests, and chase. It should never conclude, approve, tier, scope, or
-close. Not because models are untrustworthy in some general sense, but because the entire value of this
-platform is that its claims are *derivable* — and a claim whose provenance is "a language model said so"
-is precisely the kind of claim the system exists to eliminate.
-
-The recursion is the best part. A platform that governs models, governed by itself, using models it
-governs. If that turns out to be uncomfortable in practice, we will have learned something important
-about the GenAI track before a single business unit does.
+| Section | Satisfies |
+|---|---|
+| §1 The criterion | [00 §12a](00-mathematical-foundations.md) |
+| §2 Tiers | `FR-AI-001`–`FR-AI-004`; the two autonomy modes of [09 §9.1](09-security-compliance.md) |
+| §3 Oracles | `L-7`, `L-12`, and the grammar's admissibility laws; `L-8` and `L-16` in [00 §12](00-mathematical-foundations.md) |
+| §4 The gate | `FR-AI-003` (retrieval over the evidence graph only), `FR-AI-004` (citation verification); [09 §7](09-security-compliance.md) |
+| §6 Measurement | `FR-AI-015` (deliberate sampling), `FR-AI-016` (edit distance) |
+| §8 Self-governance | `FR-AI-001` (capability registry), `FR-AI-002` (no governance credential), `FR-AI-005`, `FR-AI-006` — each with its gap named |
+| §7 Refusals | `FR-AI-017`; [09 §2.5](09-security-compliance.md) |
+| §9 Format migration | The closed format list in [09 §3](09-security-compliance.md) |
+| §10 Agentic controls | [09 §9.3](09-security-compliance.md) |
+| Build status | [12 §0](12-implementation-plan.md#0-build-status) is authoritative |
 
 ---
 

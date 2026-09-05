@@ -25,7 +25,7 @@ and served with the same warrant machinery as the regression.
 | Filled by | a training run, in the bank's ML platform |
 | `parameter_kind` | `learned_weights` |
 | `fit_procedure` | `train` |
-| Derived class | **T4** — trained |
+| Derived class | **T3** — machine-learned |
 | Runtime | `onnx` |
 | Where `P` lives | in **MAYA's artifact store**, addressed by its own hash |
 
@@ -213,8 +213,8 @@ neither.
 ```
 
 Notice the law is **not written in terms of the class**. It bites hardest on a
-network, but a PMML scorecard is T3 and carries exactly the same exposure —
-keying it on T4 would have missed that, and the miss would have looked like
+network, but a PMML scorecard is T2 and carries exactly the same exposure —
+keying it on T3 would have missed that, and the miss would have looked like
 coverage.
 
 An engine holding this warrant needs nothing else. It knows **what** the bytes

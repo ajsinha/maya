@@ -439,9 +439,10 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
         """Refuse a state-changing request that rides an ambient session cookie
         without proving it came from one of our pages.
 
-        Middleware rather than a check in each route, because there are ninety
-        mutating endpoints and a control ninety places have to remember is a
-        control that will be missing from the ninety-first. The exemptions are
+        Middleware rather than a check in each route, because there are a
+        hundred and four mutating endpoints and a control that many places have
+        to remember is a control that will be missing from the next one. The
+        exemptions are
         exact paths and the condition is narrow — see `core/authz/csrf.py` for
         why it applies only to cookie authority.
         """

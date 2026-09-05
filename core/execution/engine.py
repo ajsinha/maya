@@ -55,7 +55,7 @@ class CaptiveEngine:
     """A reference consumer of the warrant contract, with three real runtimes.
 
     It implements registered Python callables, ONNX graphs and the regression
-    and scorecard subset of PMML. The grammar names seventeen runtimes, and an
+    and scorecard subset of PMML. The grammar names eighteen runtimes, and an
     engine's usefulness lies in being precise about which it has rather than in
     having them all: a warrant naming one it does not implement is refused by
     name, listing what it does.

@@ -41,7 +41,7 @@ wrong tomorrow — that is not degradation, it is the design.
 
 Three consequences follow immediately, and they are why the class exists:
 
-| | Trained (T3/T4) | Calibrated (T1) |
+| | Trained (T2/T3) | Calibrated (T1) |
 |---|---|---|
 | Refit cadence | occasional, an event | daily, a process |
 | A refit is | reviewable individually | reviewable **by exception** |

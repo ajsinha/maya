@@ -144,7 +144,7 @@ note(sl, ML, y + th + 0.30, CW, 1.30,
      "The parameter kind, the source binding, the runtime — not a category "
      "anybody attached to the model. L-W12 is the clearest case: it bites "
      "hardest on a neural network and is deliberately not written in terms of "
-     "the class, because a PMML scorecard is T3 and carries exactly the same "
+     "the class, because a PMML scorecard is T2 and carries exactly the same "
      "exposure. Keying it on the trainability class would have missed that, "
      "and the miss would have looked like coverage.")
 
