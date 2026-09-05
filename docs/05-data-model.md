@@ -478,7 +478,7 @@ CREATE TABLE model_edge (
     from_model_id text NOT NULL REFERENCES model(id),
     to_model_id   text NOT NULL REFERENCES model(id),
     relation      text NOT NULL
-        CHECK (relation IN ('feeds','challenger_of','benchmark_for','replaces',
+        CHECK (relation IN ('input_to','challenger_of','benchmark_for','replaces',
                             'variant_of','component_of','calibrated_by','shares_assumption')),
     criticality   text NOT NULL CHECK (criticality IN ('low','medium','high','critical')),
     description   text,
@@ -495,7 +495,7 @@ WITH RECURSIVE reach(root_id, model_id, depth, path) AS (
   UNION ALL
     SELECT r.root_id, e.to_model_id, r.depth + 1, r.path || e.to_model_id
     FROM reach r
-    JOIN model_edge e ON e.from_model_id = r.model_id AND e.relation = 'feeds'
+    JOIN model_edge e ON e.from_model_id = r.model_id AND e.relation = 'input_to'
     WHERE r.depth < 12 AND NOT e.to_model_id = ANY (r.path)
 )
 SELECT root_id, model_id AS downstream_id, min(depth) AS depth

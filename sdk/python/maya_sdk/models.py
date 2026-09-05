@@ -87,10 +87,10 @@ class Models:
 
     def relate(self, *, from_urn: str, to_urn: str, kind: str,
                note: str = "") -> Dict[str, Any]:
-        """Record a relation. `derives_from` and `feeds` do different work.
+        """Record a relation. `derives_from` and `input_to` do different work.
 
         `derives_from` says where a model came from and does **not** propagate;
-        `feeds` says what breaks when it changes and does. Answering both with
+        `input_to` says what breaks when it changes and does. Answering both with
         one edge makes both answers wrong.
         """
         return self._maya.call("POST", "/model-relations", json={

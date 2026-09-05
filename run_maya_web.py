@@ -206,7 +206,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     # How one model stands to another. Separate from the registry because the
     # registry is about a model in isolation and this is about the estate.
-    # With versions wired, a `feeds` edge is type-checked rather than recorded:
+    # With versions wired, a `input_to` edge is type-checked rather than recorded:
     # what the source produces must stand in for what the target reads.
     composition = ModelComposition(ModelEdgeRepository(db), registry.catalogue,
                                    evidence, VersionRepository(db))

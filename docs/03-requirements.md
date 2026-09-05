@@ -239,7 +239,7 @@ erDiagram
     MODEL ||--o{ ASSUMPTION : "declares"
     MODEL ||--o{ LIMITATION : "declares"
     MODEL ||--o{ OVERLAY : "adjusted by"
-    MODEL ||--o{ MODEL_RELATIONSHIP : "feeds"
+    MODEL ||--o{ MODEL_RELATIONSHIP : "input_to"
     MODEL }o--|| MODEL_CLASS : "typed as"
     MODEL }o--o| VENDOR : "supplied by"
     MODEL_VERSION ||--o{ ARTIFACT : "contains"
@@ -285,7 +285,7 @@ Each requirement carries regulatory traceability where applicable.
 | FR-INV-006 | Record **operating boundaries** — the input domain over which performance is expected acceptable — as structured, machine-checkable ranges/constraints. | M | SS1/23 1.2(c)(i) |
 | FR-INV-007 | First-class **assumption register** and **limitation register** per model, each with owner, materiality, mitigation, review date, and linkage to findings and overlays. | M | SS1/23 1.2(c)(ii) |
 | FR-INV-008 | Named accountable **individual** owner (not a team) plus developer, validator, and approver roles; enforce non-empty and non-conflicting. | M | SR 26-2 VI |
-| FR-INV-009 | **Model relationships**: `feeds`, `consumes`, `challenger_of`, `benchmark_for`, `replaces`, `variant_of`, `component_of`, `calibrated_by`, with strength and criticality. | M | SR 26-2 III (aggregate risk) |
+| FR-INV-009 | **Model relationships**: `input_to`, `consumes`, `challenger_of`, `benchmark_for`, `replaces`, `variant_of`, `component_of`, `calibrated_by`, with strength and criticality. | M | SR 26-2 III (aggregate risk) |
 | FR-INV-010 | Compute and visualise **blast radius** (transitive downstream closure) for any model or proposed change. | M | SS1/23 3.4(d) |
 | FR-INV-011 | Compute **aggregate/concentration analytics**: shared feature views, shared datasets, shared vendors, shared methodologies, shared assumptions; flag single points of failure. | S | SR 26-2 III |
 | FR-INV-012 | **Bulk import** from CSV/Excel and from connectors (MLflow, Unity Catalog, SageMaker, Vertex, git, SAS metadata, ServiceNow CMDB) with reconciliation and de-duplication. | M | — |

@@ -121,7 +121,7 @@ what the model was fitted on, which is a different event with a different contro
 
 | | Pillar | What it means |
 |---|---|---|
-| **1** | **Inventory** | Every model, with an owner, a purpose, a tier and a lifecycle state — and a dependency graph in which `feeds` is a **typed composition** rather than a drawing |
+| **1** | **Inventory** | Every model, with an owner, a purpose, a tier and a lifecycle state — and a dependency graph in which `input_to` is a **typed composition** rather than a drawing |
 | **2** | **Data** | Features and featuresets as governed objects on **two clocks**, with a point-in-time read whose reproducibility is a law rather than a convention |
 | **3** | **Execution** | Warrants: a four-axis grammar with fourteen admissibility laws, checked before the signature |
 | **4** | **Assurance** | Validation, findings, monitoring with delayed labels, overlays, and supervisory regimes encoded as institutions |
@@ -162,7 +162,7 @@ treatment applied to seven families, one tutorial each.
 | What *is* a model? | `Para(Stoch)` — parametric maps into distributions | One definition covering every family; trainability derived rather than declared |
 | When may one replace another? | **Contract refinement** and **schema variance** | An alias move is a proof obligation, not a deployment |
 | Does this fit where that fitted? | A **lattice** on schemas (`L-20`) | One order answering four questions that previously had four implementations |
-| How do models compose? | Typed composition (`L-21`); symmetric monoidal structure | A `feeds` edge that does not type-check is refused; a composite has a *derived* schema |
+| How do models compose? | Typed composition (`L-21`); symmetric monoidal structure | A `input_to` edge that does not type-check is refused; a composite has a *derived* schema |
 | What supports a claim? | **Provenance semirings**, including the universal `ℕ[X]` | Six questions from one traversal — sufficiency, minimal support, corroboration, trust, cost, currency — and the law that makes that a theorem (`L-9`) |
 | Was a training set honest? | **Bitemporal** algebra with a named `AsOf` operator | Reproducibility as a *saturation law*: every read at or after the label gives the same answer |
 | How do regulators differ? | **Institutions** and comorphisms | A regime is a signature, some sentences and a translation; adding one needs no core change |
