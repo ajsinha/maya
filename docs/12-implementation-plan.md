@@ -1,26 +1,50 @@
-# 12 — Implementation Plan
+# 12 — The build: what exists, what it taught, and how it is put together
 
 *MAYA — Model & AI Lifecycle Assurance.*  **Evidence, not assertion.**
 
-**Follows** [10 — Roadmap](10-roadmap.md) (phases and business sequencing) and
-[11 — Adversarial Design Review](11-adversarial-review.md) (findings this plan discharges).
-**Governed by** [ADR-011](adr/ADR-011-decoupled-frontend.md) — front end and backend are separate,
-concurrently running processes.
-
-> Where [10](10-roadmap.md) answers *what we deliver and when*, this document answers *how it is built*:
-> repository topology, module boundaries, the contract between front end and backend, the test pyramid,
-> CI gates, environments, and a workstream-level breakdown with explicit definitions of done.
-
----
+**Annex to** [04 — Architecture](04-architecture.md) and [10 — What Is Left](10-roadmap.md).
 
 ---
 
 ## 0. Build status
 
-*Last updated after milestone 33. This section is the authoritative record of what
-is built; the phases below are the plan it is being built against.*
+**This section is the authoritative record of what is built.** Every other
+document that needs to say whether something exists links here rather than
+repeating it, because two records of what is built are two records that can
+disagree — the same argument that gives the platform one evidence chain instead
+of a chain and an audit log.
 
-| | Component | State | Evidence |
+What remains, and the order it should be done in, is [10](10-roadmap.md). This
+document does not duplicate that either.
+
+### It runs end to end
+
+Register a model → create an immutable version → assess its risk → approve →
+point an alias (refused unless the contract refines and the schemas satisfy
+variance) → issue a warrant → resolve a signed descriptor → execute through an
+engine that checks the operating boundary before it touches an artifact → revoke
+and watch it fail closed.
+
+Alongside it: define features, materialise them bitemporally into Delta, pin them
+by contract, and assemble a point-in-time-correct training set that is refused
+outright if either temporal bound is missing.
+
+And alongside *that*: open a validation episode against a version (refused if a
+validator built it) → record catalogue tests with declared thresholds → try to
+conclude `approved` (refused if any test failed; refused again if a blocking
+finding is open) → raise a finding and watch both the alias gate and warrant
+resolution fail closed → close it with an independent verifier and evidence, and
+watch service resume. Any recorded result can be replayed and compared on its
+digest, which catches a threshold moved after the fact as readily as a changed
+number.
+
+**2,212 tests**, plus a scale suite excluded by default. **15 of 21** foundational
+laws executable and **14 of 14** warrant-admissibility laws checked before every
+signature.
+
+### The components
+
+| | Component | State | What it is, and what it refuses |
 |---|---|---|---|
 | ✅ | **Configuration** (`core/config/`) | **Complete** | YAML with git-ignored `.local` overlay, `${...}` resolution, typed accessors, source tracking, auto-reload, precedence CLI > env > files |
 | ✅ | **Domain algebra** (`core/domain/`) | **Complete** | `Para(Stoch)` kernels, derived trainability T0–T8, schema variance (L-12), contract algebra with refinement (L-7), probe-relative equivalence |
@@ -64,7 +88,7 @@ is built; the phases below are the plan it is being built against.*
 | ⬜ | **Java SDK** (`sdk/java`) | **Not built** | The contract it must honour is written down rather than sketched, because a stub that compiles and does the wrong thing is worse than an empty folder — the folder is honest about where the work is |
 | ✅ | **Export packs** (`core/export/`) | **Complete** | A compiled document answers a question; a pack answers the *person* — a supervisor, an internal auditor, a diligence team, none of whom will be given a login. Every property follows from that: **self-contained** because they cannot query, **digested member by member** because they cannot take the platform's word for it, and carrying **where the chain stood** because they will read it months later and *"has anything changed"* has to be a question with an answer rather than an assurance. The gathering is not reimplemented — it uses the document compiler's own **context builder**, because two gatherers would be two answers to *"what is true about this model"* and the second would drift in the places nobody looks. Three decisions are worth recording. **The content digest excludes the manifest**, which carries the moment the pack was cut: including it would make every pack differ from every other and destroy the one comparison a reader wants. The same reasoning puts the chain head in the manifest rather than in the digested content, and records the *act* of cutting a pack against the **pack** — whose identity is its content digest — rather than against the model, since against the model it would land inside the next pack's own evidence and every pack would differ from the last for no reason but that somebody had taken one. **Documents are rendered, not compiled**: compiling is an act that authors a document and records it, and cutting a pack monthly should not silently author four documents a month — which forced a `render`/`compile` split in the compiler that is worth having on its own. And **a gap is written down**, in `gaps.md`, with its reason: a pack that silently omits what it could not reach reads as complete, and a reader cannot tell a thin model from a thin export. Personal data is not re-materialised — a flagged node carries its erasable pointer into the pack exactly as it does in the platform, because resolving it would put personal data where an erasure request cannot reach it. Writing the digest test found a real documentation defect on the way: the provenance lens quoted the **platform-wide** chain length in a per-model document, so every model's document changed whenever anything happened anywhere |
 | ✅ | **Risk appetite and the board pack** (`core/reporting/`) | **Complete** | An appetite statement in most banks is a sentence in a document, which is not a control: nobody can compute against a sentence, so the quarterly number is prepared by hand and whether it is inside the limit is somebody's judgement. Here a limit is a **declared threshold over a metric the platform derives**, so utilisation is arithmetic and a breach is a fact. Four refusals make it a governance object rather than a dashboard. A metric the platform cannot compute is refused **when the limit is written**, not when the report runs — a limit that failed while a committee was reading it would fail at the worst possible time, and its author is long gone by then. A limit with **no rationale** is refused, because a number nobody can explain is a number nobody will change, so it is either ignored or obeyed without thought and both are worse than not having it. An **amber threshold on the far side of the limit** is refused: a warning that can only fire after the thing it warns about has happened is not a warning. And **direction belongs to the metric**, not to whoever sets the limit — whether more is worse is a property of *open blocking findings*, and letting an author declare it would let one declare it wrongly, producing a limit that reports green while the estate deteriorates. Versions accumulate and nothing is edited, for the same reason the policy register keeps its history: a limit that can be changed without a record can be **relaxed** without one, so the evidence node names a relaxation rather than leaving a reader to compare two numbers in two rows. The pack answers the three questions a committee actually asks — inside the limits, what is outside, what moved — which is why packs are **persisted**: movement needs something to move from, and a minute referring to "the March pack" needs the March pack rather than a document with the same name recomputed today. Two things it deliberately does. An **unmeasured indicator is never reported as clean**: a metric no wired service can answer comes back null with a reason and is named in the headline, because zero is a measurement and an absent service is not. And **slack is reported** — an appetite under 25% utilised pack after pack is a limit constraining nothing, and a control that has never fired is indistinguishable from one that cannot. There is **no composite score**, and the pack says so in itself rather than leaving an absence: aggregating requires the parts to compose, two models fed by the same curve are not two independent risks, and any single figure either double-counts the shared dependency or ignores it — which is the impossibility result from [00 §5](00-mathematical-foundations.md) arriving as a product decision rather than as a footnote |
-| ✅ | **The foundational laws, made executable** (`tests/test_laws.py`, `core/evidence/semirings.py`, `core/regimes/sentences.py`) | **13 of 19** | The strongest claim this design makes is that the laws are the acceptance criteria, and it was **37% true** — which is a claim that reads as 100% true to everybody who does not check. Five were closed: **L-1** (the reachable closure of the lifecycle graph equals its declared state set), **L-2** (a version digest carried through assessment, approval and an alias move), **L-3** (a determinism claim checked by double execution rather than stored and believed), **L-9** (ℕ[X] implemented, so the universal property is checked over 200 random derivation DAGs against five semirings), and **L-16** (deontic consistency, enforced at regime activation). Writing them found two things a table could not. `baselined` was reachable by **no declared edge** — not a violation but a second *initial* object, because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not; `INITIAL` now says so. And **`FRESHNESS` is not a semiring**: it is (max, max), `max(0, 5) ≠ 0`, so its zero does not annihilate and the universal property does not reach it — the practical consequence being that a claim resting on a *missing* fact reports the freshness of the facts that are present. Both are kept as tests so neither is quietly re-assumed. The remaining six are named **in the test file as well as the table**, each with the reason, because a gap recorded only in a document is a gap somebody has to go looking for; and `tests/test_documentation_counts.py` now counts the executable laws from the table itself, so "thirteen of nineteen" cannot drift the way every other count in this repository has |
+| ✅ | **The foundational laws, made executable** (`tests/test_laws.py`, `core/evidence/semirings.py`, `core/regimes/sentences.py`) | **15 of 21** | The strongest claim this design makes is that the laws are the acceptance criteria, and it was **37% true** — which is a claim that reads as 100% true to everybody who does not check. Five were closed: **L-1** (the reachable closure of the lifecycle graph equals its declared state set), **L-2** (a version digest carried through assessment, approval and an alias move), **L-3** (a determinism claim checked by double execution rather than stored and believed), **L-9** (ℕ[X] implemented, so the universal property is checked over 200 random derivation DAGs against five semirings), and **L-16** (deontic consistency, enforced at regime activation). Writing them found two things a table could not. `baselined` was reachable by **no declared edge** — not a violation but a second *initial* object, because an imported record must not enter through `draft` or the register would imply historical evidence was asserted when it was not; `INITIAL` now says so. And **`FRESHNESS` is not a semiring**: it is (max, max), `max(0, 5) ≠ 0`, so its zero does not annihilate and the universal property does not reach it — the practical consequence being that a claim resting on a *missing* fact reports the freshness of the facts that are present. Both are kept as tests so neither is quietly re-assumed. The remaining six are named **in the test file as well as the table**, each with the reason, because a gap recorded only in a document is a gap somebody has to go looking for; and `tests/test_documentation_counts.py` now counts the executable laws from the table itself, so "thirteen of nineteen" cannot drift the way every other count in this repository has |
 | ✅ | **Replay from storage** (`core/validation/storage.py`) | **Complete** | Replay used to need the caller to hand the data back, which made it a control you help perform rather than one somebody can run against you. It now re-reads the dataset snapshot the episode was pinned to, at the Delta version it was pinned at. A validation with no snapshot, a snapshot whose table is gone, or a test whose columns are absent is reported as *skipped* with the reason, because "we checked and it matched" and "we could not check" are opposite findings. It does not follow a restatement: if the table has been written to since, the replay still sees what the validation saw, and the report says separately that the ground has moved — a finding about the data rather than about the test. `replayable()` answers what a second line actually asks: what fraction of what was concluded can be checked without asking whoever concluded it |
 | ✅ | **Delta time travel on reads** (`core/features/views.py`) | **Complete** | An assembly used to read a namespace, and a namespace is a path — two writes produce two Delta versions and a read gets whichever is current, so a snapshot was reproducible only until somebody wrote to the view again. Reads are now pinned to the Delta version the view version was materialised at, and a featureset binding carries that version alongside the path, which is what makes *same featureset version → same bytes* true rather than true-until-Tuesday. `restated()` answers the neighbouring question a reviewer asks before comparing two runs: has anything underneath this pin been written to since |
 | ✅ | **Featuresets and the parameter object** (`core/features/sets.py`, `core/features/derived.py`, `core/features/expressions.py`, `core/parameters/`) | **Complete** | Two of the three letters in `f : P × X → D(Y)` become objects in the register. A **featureset** declares a schema — named slots with types — and a version *fills* it, binding each slot to a feature and to the exact feature view version supplying its values. That separation is what makes "different versions may hold different features, all adhering to the same structure" true rather than hopeful: a model reads the slot, so swapping a constituent does not change it, and a version that cannot fill the schema is refused as a different set or a model change. **Derived features** compute values from values in a deliberately small whitelisted expression language, with lineage as the transitive closure, an ingest clock inherited as `max` over the inputs — the easiest way to leak the future, and arithmetic, so it is computed rather than trusted — and a refusal for any slot derived from the label, checked before resolution so "you cannot train on the answer" beats "no view supplies that". **Parameter sets** are inhabitants of P: a fit produces one and *not* a model version, because the kernel did not change. Accepted only against a warrant MAYA issued, named by the featureset version that produced them, approved by somebody other than whoever recorded them, and refused as ambiguous rather than guessed at when a version has two. Laws **L-W8**, **L-W9** and **L-W10** added — the first two in the grammar, the third at warrant issuance, because a featureset does not exist to be checked against a kernel until a warrant names both. L-W8 caught a real error in the shipped QuantLib calibration example, which claimed its parameters came from an artifact while its verb produced them |
@@ -73,116 +97,88 @@ is built; the phases below are the plan it is being built against.*
 | ✅ | **Engine isolation** (`core/execution/sandbox.py`) | **Complete** | Artifact-backed runtimes (ONNX, PMML) load and run in a child process with CPU and address-space limits read from the warrant's `constraints.resources`. The memory budget is additive to the interpreter's own footprint, and the runtime's dependencies are imported *before* the limit is applied, so a library's import cost is never charged to the model's budget. The boundary is published rather than implied: `describe()` states what it protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact. That needs a container or a VM, and saying so is better than implying an isolation the process model does not provide. Bound callables run in process by construction and are named as such |
 | ✅ | **Baseline import** (`core/baseline/`) | **Complete** | Closes adversarial finding C-5, judged the single most likely cause of total failure. Imported models enter a `baselined` lifecycle state — governed going forward, mutable so their debt can be closed — carrying explicit dated debt for each of thirteen gaps *computed from the register rather than declared*, so an importer cannot under-declare. Debt closes by itself when the evidence arrives, making the burn-down a measurement rather than a self-report, and expires into a finding at its board-approved date. Debt and breach are reported separately everywhere. One bad row does not stop the batch |
 
-### What is genuinely working
+---
 
-The end-to-end governed path runs: register a model → create an immutable version →
-assess its risk → approve → point an alias (refused unless the contract refines and
-the schemas satisfy variance) → issue a warrant → resolve a signed descriptor →
-execute through an engine that checks the boundary first → revoke and watch it fail
-closed. Features can be defined, materialised bitemporally into Delta, pinned by
-contract, and assembled into a point-in-time-correct training set that is refused
-outright if either temporal bound is missing.
+## 1. What the build taught
 
-The validation path runs alongside it: open an episode against a version (refused
-if a validator built it) → record catalogue tests with declared thresholds → try
-to conclude `approved` (refused if any test failed, refused again if a blocking
-finding is open) → raise a finding and watch both the alias gate and warrant
-resolution fail closed → close it with an independent verifier and evidence, and
-watch service resume. Any recorded result can be replayed and compared on its
-digest, which catches a threshold moved after the fact as readily as a changed
-number.
+The most useful thing this repository has produced is not a component. It is a
+short list of ways a control can be **green and inert**, each found the hard way
+and each now held by a test that walks the source rather than by a reviewer
+remembering.
 
-### Every planned component is now built
+### A test that passes for a reason other than its name
 
-The roadmap's components are complete. What remains is not in the plan's
-component list and is recorded below: operational surface, scale, and the parts
-deliberately left outside the platform's boundary.
+The unit test for evidence tampering was named for altering a *payload* and
+actually altered the *stored hash*. It passed, correctly, for years — while the
+verifier it was meant to check re-linked stored hashes and would have accepted an
+edited payload. The scale suite found the real defect, on its first run.
 
-### Honest gaps
+This is the failure mode a green suite is worst at showing you, and it recurred:
+three controls were inert over HTTP while their unit tests were green — effective
+challenge, overlay self-renewal and finding closure — each asserting against a
+value the production path never produced.
 
-- **MAYA can call a language model, and one provider works.** `mock` drafts
-  deterministically from the evidence it was handed and is the default; the
-  three remote providers **refuse by name**, because a stub returning plausible
-  prose into a governance register is worse than no provider — the first reader
-  would have no way to tell. The mock is not a stand-in for the path: what a
-  model may cite is fixed from the register *before* it is asked, so the
-  capability gate, the oracle, the grounding gate, attestation and the
-  automation-bias sample all run for real, and only the sentence is fake —
-  which is the part the platform was never going to trust. Wiring a remote
-  provider needs four answers that are not code: whether the instance may reach
-  the internet, what of the register may leave the institution, how a
-  non-deterministic model is made reproducible, and who pays.
-- **Readiness is incremental; the full chain walk is a scheduled job.** Verifying
-  every node on every probe was O(chain) — 512 ms at forty thousand nodes, and
-  the same call sat on the dashboard. The probe now checks what arrived since
-  the last full verification (1.6 ms, independent of chain length) and
-  `evidence.verify` walks the whole chain on the schedule. A broken chain is
-  never checkpointed, because advancing the mark past a break would bless it.
-- **Every list is paged, and every table in the interface is searchable and
-  sortable.** `limit`/`offset`/`q` on the API with the cap reported rather than
-  applied silently, and a vendored-by-writing table enhancer in the UI. Scope
-  filtering runs before the page is cut.
-- **No document rendering beyond markdown.** No PDF, no house template, no
-  signature page, no export pack. Turning the compiled markdown into a firm's
-  document standard is deliberately outside what the platform tries to own.
-- **Attached documents are stored, not read.** A markdown or text attachment is
-  indexed; a PDF or Word file is served faithfully and reported as *not
-  machine-readable*, because it is. There is no extraction pipeline, no
-  full-text search and no retrieval over document content, so the machine review
-  and question-answering that the register is shaped to support are not built —
-  only made possible, and made honest about what has actually been read.
-- **No SAML and no SCIM.** OIDC is supported; a SAML-only directory and
-  automatic deprovisioning are not, so a leaver is suspended by hand.
-- **Parameters are computed for two families and stored for the rest.** The
-  captive engine now fits, so the path from a featureset version to an approved
-  point of `P` runs end to end: `ols` for the linear estate and `garch11` for
-  the volatility one. Everything else is still recorded rather than produced —
-  the engine that fitted it is wherever you run models, and MAYA refuses the
-  result unless a warrant it issued authorised the run.
-- **Point-in-time correctness is now enforced rather than reported.** The
-  leakage screen used to flag every continuous feature by construction — every
-  value distinct means every bucket holds one label, whatever its relationship
-  to the label — so `pit_verified` was false for essentially every real
-  training set, and it gated nothing. Both halves are fixed: a repeating column
-  is screened for purity and a continuous one for perfect separation, and a fit
-  is **refused** on a snapshot the verifier rejected. The admissibility rule
-  bounds ingest by `min(label_ts, as_of)`, so a value carried backwards by
-  alignment can no longer enter a training row on the grounds that it was known
-  before the set was built.
-- **A policy can tighten a gate and cannot loosen one.** The checks written in
-  the registry are the floor, and a rule runs in addition to them. Loosening a
-  gate still costs a release — deliberately, because a mistyped rule that
-  removed a check would look like a successful deployment.
-- **A finding's workflow ends at the platform's boundary.** Assignment,
-  acknowledgement, planning, extension, escalation and the ageing profile are
-  all here, and none of them does the remediation. MAYA records who agreed to do
-  what by when, and refuses to let the date move quietly; it has no view on
-  whether the work is any good, which is what closure evidence and an
-  independent verifier are for.
-- **File size, not total size.** The governing rule is that no Python source
-  file exceeds 1,500 code lines — blanks, comments and docstrings excluded, so
-  a file that explains itself is not penalised for it. It is now **enforced by
-  `tests/test_size_discipline.py`** rather than by nobody noticing, which is how
-  it was previously kept: the API suite had reached 2,471 code lines, not
-  because anybody decided to break the rule but because everything was appended
-  where the fixtures already were. It is split by subject into five modules, the
-  largest at 758. A second test fails at 90% of the limit, so a split stays a
-  choice rather than becoming a chore for whoever adds the next test.
-- **The captive engine implements five runtimes of eighteen.** No container, no
-  spreadsheet, no SQL, no LLM. Each is refused by name; a real estate needs a
-  real engine for the rest.
-- **The estimator fits *and* scores, at the point of P the warrant names.** A
-  run warrant for a model whose parameters live in the register now binds the
-  approved set rather than the artifact — because for a fitted model the
-  artifact binding was a false statement, there being no artifact and the
-  numbers deciding what it does living somewhere the warrant did not name. The
-  engine reads the values and **re-derives** their digest before anything runs
-  at them, rather than comparing the stored digest against the warrant's: two
-  copies of the same claim would agree over values somebody had edited
-  underneath them, which is the defect the scale suite found in the evidence
-  chain, one object over.
+### A count written once and never recounted
 
-## 1. Engineering principles
+Forty tables when there were forty-two. Seventeen runtimes when there were
+eighteen. Ninety mutating endpoints when there were a hundred and four. Thirteen
+of nineteen laws when it was fifteen of twenty-one.
+
+`tests/test_documentation_counts.py` now derives every claimed number from the
+code and searches the documents for any *other* number claimed against the same
+subject. It has caught something on nearly every milestone since — and once
+caught itself: its `CREATE TABLE` pattern was unanchored and matched the phrase
+inside the schema's own header **comment**, so the test whose entire job is to
+stop a count drifting was the source of a wrong count in four documents.
+
+### A control described in the future tense
+
+*"No ambient cookie authority, so CSRF does not apply to the API"* was true of the
+decoupled front end in ADR-011, which nobody built. What runs is a Jinja
+interface calling the same API under a session cookie. Three reviewers read the
+sentence and believed it, and the API had no CSRF defence for as long as it
+stood.
+
+[08](08-ui-ux.md) is now organised **by tense** for exactly this reason: present
+tense for what runs, conditional for what does not, and nothing mixed.
+
+### A vocabulary that reads as something else
+
+The model relation was called `feeds`. In a bank a *feed* means market data or a
+nightly file, so `A feeds B` read as though MAYA consumed or produced one — which
+it does not, and never has. It is `input_to` now. Nobody would have caught that
+from the code; it took a reader asking what it meant.
+
+### An identifier that is stable over moving contents
+
+Finding **C-2**, and it has now appeared in five disguises: a feature view served
+without its version; a featureset whose constituents could move; a composition
+pinning a parent that advanced; a document filed against a featureset rather than
+a featureset *version*; and a warrant naming a base model family rather than a
+build. The same pin closes all five, and looking for the sixth is a reasonable
+use of a review hour.
+
+### The discipline walkers
+
+Several tests do not test a feature. They walk the source and hold a rule that
+would otherwise rot:
+
+| | |
+|---|---|
+| `test_logging_discipline` | no exception is ignored: every `except` logs, none is bare, none is only `pass` |
+| `test_refusal_discipline` | every coded refusal maps to a status that says who must act, and no code is mapped twice |
+| `test_schema_discipline` | the two dialects agree column for column; no `BOOLEAN` anywhere |
+| `test_size_discipline` | no source file over 1,500 lines |
+| `test_documentation_counts` | every number claimed in prose is recounted from the code |
+| `test_deck_geometry` | no slide has overlapping or escaping content |
+| `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
+| `test_laws` | the foundational laws, run as tests, with the six that do not run named |
+
+Each exists because the rule it holds had already been broken once.
+
+---
+
+## 2. Engineering principles
 
 | # | Principle | Enforcement |
 |---|---|---|
@@ -197,7 +193,7 @@ deliberately left outside the platform's boundary.
 
 ---
 
-## 2. Repository topology
+## 3. Repository topology
 
 Two repositories, because they are two products with two lifecycles. A monorepo was considered and
 rejected: it makes the shared build step tempting, and the shared build step is how decoupling dies.
@@ -226,7 +222,7 @@ ADR-011 exists; the reference implementation is a single tree with `core/`, `db/
 
 This paragraph used to add that the UI "still consumes only the public API, which is the property that
 had to be preserved". That was not true and it is the sentence that made the drift look reviewed:
-`routes/ui_routes.py` makes **41 direct in-process service calls**. Writes go through the API; reads do
+`routes/ui_routes.py` makes **47 direct in-process service calls**. Writes go through the API; reads do
 not, and there is no CORS middleware anywhere, which a two-origin deployment could not function
 without. So neither the process independence nor the API-only property is demonstrated — and principle
 E3 below is a target rather than a description.
@@ -243,7 +239,7 @@ claim than the fibration made and is one the code supports.
 
 ---
 
-## 3. Module boundaries and the dependency rule
+## 4. Module boundaries and the dependency rule
 
 ```mermaid
 flowchart TD
@@ -289,7 +285,7 @@ written an `if regime == ...` and the plugin boundary has been breached.
 
 ---
 
-## 4. The front end / backend contract
+## 5. The front end / backend contract
 
 ```mermaid
 sequenceDiagram
@@ -326,7 +322,7 @@ front-end work is never blocked by backend availability. That is the practical d
 
 ---
 
-## 5. Test strategy
+## 6. Test strategy
 
 | Layer | Scope | Target | Runs |
 |---|---|---|---|
@@ -348,7 +344,7 @@ malicious-artifact corpus.
 
 ---
 
-## 6. CI gates
+## 7. CI gates
 
 A merge requires all of:
 
@@ -367,7 +363,7 @@ criteria green, and signed images with SLSA provenance.
 
 ---
 
-## 7. Environments
+## 8. Environments
 
 | Environment | Purpose | Data | Notes |
 |---|---|---|---|
@@ -379,7 +375,7 @@ criteria green, and signed images with SLSA provenance.
 
 ---
 
-## 8. Workstreams
+## 9. Workstreams
 
 Six concurrent streams, deliberately structured so that no stream blocks another for more than a sprint.
 
@@ -395,116 +391,6 @@ Six concurrent streams, deliberately structured so that no stream blocks another
 
 W5 is unblocked from day one because it works against the spec mock. That is the single most valuable
 consequence of the decoupling mandate: the front end never waits.
-
----
-
-## 9. Phase-level work breakdown
-
-### Phase 0 — Foundations
-
-| Stream | Deliverable | Definition of done |
-|---|---|---|
-| W1 | Domain core: `ParametricKernel`, trainability, contract algebra, schema lattice | Laws L-2, L-4, L-7, L-12 implemented and passing |
-| W1 | Plugin loader + fibre protocol + totality check | A dummy `maya-ext-demo` package registers a class with zero core changes |
-| W6 | Repos, both pipelines, IaC, environments, import contracts | A commit to either repo deploys to `dev` unattended |
-| W6 | Postgres baseline, RLS pattern with **FORCE**, audit chain, Alembic | Cross-entity negative test passes under `maya_app` |
-| W3 | Delta layout, retention classes, outbox writer with idempotent MERGE | Duplicate outbox delivery produces one row |
-| W4 | OpenAPI skeleton, spec-diff gate, generated client, Prism mock | `maya-web` builds and runs against the mock |
-| **Spikes** | PIT join at 1B rows · warrant resolution under stampede load · sandbox escape testing · ONNX/PMML introspection breadth | Each answers a question that could invalidate the architecture |
-
-**Exit:** the laws exist as tests (most failing by design); a model can be created and read end to end
-through the API and the UI; the three spikes have reported.
-
-### Phase 1 — Inventory and evidence spine · MVP
-
-| Stream | Deliverable |
-|---|---|
-| W1 | Registry, URNs, versions (immutable via **trigger**, not rule), 20 seeded fibres |
-| W1 | Evidence graph with `seq` + `prev_hash` chain, daily WORM anchoring; Boolean/Why/How/Freshness semirings |
-| W2 | Regime engine with SR 26-2, SS1/23, EU AI Act, SOX; scope determinations as derivations |
-| W2 | Tiering engine with derivation trace, triggers, **sourced exposure measures** (H-8) |
-| W2 | Lifecycle engine, workflow, approvals, e-signature, SoD |
-| W2 | **Baseline import mode** with compliance-debt tracking (C-5) |
-| W3 | Dependency graph, blast radius, concentration analytics |
-| W4 | Bulk import; MLflow, Unity Catalog, git connectors; SDK v1 |
-| W5 | Inventory grid, model detail page, derivation panels, as-at-date query, **debt vs breach visually distinct** |
-| W6 | IAM, RBAC/ABAC, audit chain verification job |
-
-**Exit:** 300 models registered including 30 vendor and 20 quant; a tier derivation withstands challenge
-from the MRM head; an as-at-date export satisfies a mock examiner request; **baseline import of 300
-models produces a debt burn-down, not a wall of red**.
-
-### Phase 2 — Versions, features, warrants
-
-| Stream | Deliverable |
-|---|---|
-| W1 | Upload, sandboxed introspection, security scanning, format policy, signing, AI-BOM |
-| W1 | Aliases with refinement (L-7) and variance (L-12) gates; calibration sets; prompt bundles |
-| W3 | Feature registry, views, Delta materialisation, quality assertions |
-| W3 | **Three-layer PIT verification** — static, sampled, adversarial (H-6) |
-| W3 | Feature contracts; **version-namespaced online store** with dual-write (C-2); law L-17 |
-| W3 | Run tracking, deterministic replay, challenger management |
-| W4 | Warrant service: `warrant_projection` read model (H-2), resolution, signing, **revocation floor** (C-1) |
-| W4 | Stampede protection: pre-warm, single-flight, jitter, stale-while-revalidate (H-1) |
-| W4 | Flavours: `descriptor_only`, `python_sdk`, `rest_oip_v2`, `batch_spark`; engine certification (C-6) |
-| W5 | Upload wizard, feature reconciliation UI, schema-driven fibre forms |
-
-**Exit:** an engine runs a production model solely via a warrant; an alias move switches the served version
-with no consumer change; a kill switch stops it within 60 s **including under a simulated partition**; a
-PIT-verified training set reproduces a fit bit-for-bit.
-
-### Phase 3 — Validation, findings, documentation
-
-W1 test catalogue and executable tests · W2 validation plans, findings with blocking behaviour, risk-based
-scheduling, vendor workflow · W1 document compiler with lens laws and staleness · templates (MDD,
-validation report, model card, **Annex IV**, AI-BOM) · W5 validation workbench, examiner portal ·
-W6 export packs with signed evidence bundles.
-
-**Exit:** a full Tier 1 validation completed in-system; the validation report compiles with > 90%
-auto-generated content; an Annex IV pack produced for a high-risk model.
-
-### Phase 4 — Monitoring, overlays, reporting
-
-W3 monitor definitions, class-aware defaults, Spark evaluation, delayed labels, slice and fairness
-monitoring, skew detection · W2 breach → **correlated** finding (M-8), overlay register with magnitude,
-ageing, propagation, recurrence · W4 inference logging, **approved-use vs actual-use reconciliation**,
-boundary monitoring · W5 health board, overlay dashboard, KRIs, board pack.
-
-**Exit:** a breach automatically restricts a production warrant; the overlay dashboard is used in a real
-IFRS 9 committee; the board pack is generated rather than assembled.
-
-### Machine assistance, sequenced by oracle strength
-
-W7 does not run as a single phase. Capabilities are introduced when the oracle that checks them exists,
-which is the whole point of the criterion:
-
-| Capability | Ships with | Because its oracle is |
-|---|---|---|
-| Semantic search, feature deduplication | Phase 1 | Embeddings only — no claim to check |
-| Natural-language query | Phase 1 | The query parses and returns, or it does not |
-| Probe-set generation | Phase 2 | Probes execute and discriminate |
-| Format migration agent | Phase 2 | Probe equivalence within tolerance |
-| Regime encoding assistant | Phase 2 | The satisfaction condition (`L-8`), which lands in Phase 1 |
-| Documentation drafting | Phase 3 | Citation verification, which needs the evidence graph and document compiler |
-| Validation assistance | Phase 3 | Partially checkable; ships behind the grounding gate |
-| Remediation-planning agent | Phase 4 | The tropical semiring computes the plan; the agent only coordinates |
-| Discovery agents | Phase 5 | Grounded in a specific artifact; ships only once precision can be measured |
-| Finding correlation, committee drafting | Phase 5 | Grounded; deploy once trust is established |
-
-**No capability ships before its check.** A capability whose oracle is not yet built waits, however
-attractive the demo.
-
-### Phase 5 — GenAI, discovery, intelligence
-
-W2 GenAI track: boundary gates, risk matrix, eval harness, agentic controls · W1 prompt/RAG/tool/guardrail
-versioning, base-model change fingerprinting · W4 LLM gateway integration, cost and token monitoring,
-composite warrants, `sql_udf`/`stream`/`container`/`sheet` flavours · W3 continuous discovery, EUC ingestion,
-semantic search · W1 AI documentation assistant, itself governed as a T5 model in the inventory.
-
-### Phase 6 — Scale-out and migration
-
-Full estate migration; legacy decommissioning; remaining connectors; multi-entity and residency;
-performance hardening to every NFR at full scale; fibre library expansion; bank-specific `maya-ext-*`.
 
 ---
 
