@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The session's CSRF token. Read by the hook below and sent on every
+     state-changing request, so no page has to remember to attach it. -->
+<meta name="csrf-token" content="{{ csrf_token }}">
 <title>{% block title %}{{ app_name }}{% endblock %}</title>
 <link rel="icon" href="/static/img/maya-mark-64.png">
 <!-- Vendored locally: no CDN, so the interface renders in an air-gapped deployment. -->
@@ -166,6 +169,7 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 <!-- Search, sort and paging for every table. Written rather than vendored:
      this platform must run air-gapped, and a table plugin is a hundred lines
      of arithmetic wearing eighty kilobytes. -->
+<script src="/static/js/csrf.js"></script>
 <script src="/static/js/tables.js"></script>
 {% block scripts %}{% endblock %}
 </body>

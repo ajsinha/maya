@@ -17,7 +17,7 @@ from __future__ import annotations
 from fastapi import Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from routes.base import Routes
+from routes.base import Routes, local_path
 
 
 class AuthRoutes(Routes):
@@ -26,7 +26,11 @@ class AuthRoutes(Routes):
 
         @self.app.get("/login", response_class=HTMLResponse, tags=["auth"])
         def login_page(request: Request, next: str = "/dashboard"):
-            return self.page(request, "login.html", next=next, error=None)
+            # Bounded here as well as at the redirect, because the value is
+            # rendered back into the form: a target the form would carry is one
+            # the browser will follow.
+            return self.page(request, "login.html", next=local_path(next),
+                             error=None)
 
         @self.app.post("/login", tags=["auth"])
         def login_submit(request: Request, username: str = Form(...),
@@ -34,10 +38,11 @@ class AuthRoutes(Routes):
                          next: str = Form("/dashboard")):
             principal = people.authenticate(username, password_in)
             if principal is None:
-                return self.page(request, "login.html", http_status=401, next=next,
+                return self.page(request, "login.html", http_status=401,
+                                 next=local_path(next),
                                  error="Those credentials were not recognised.")
             request.session["username"] = principal["username"]
-            return RedirectResponse(next or "/dashboard", status_code=303)
+            return RedirectResponse(local_path(next), status_code=303)
 
         @self.app.get("/logout", tags=["auth"])
         def logout(request: Request):

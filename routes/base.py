@@ -19,6 +19,7 @@ import logging
 import base64
 import binascii
 from typing import Any, Callable, Dict, Optional
+from urllib.parse import quote, urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -36,6 +37,7 @@ from core.baseline import BaselineError
 from core.regimes import RegimeError
 from core.scheduler import SchedulerError
 from core.authz import AuthzError
+from core.authz import csrf
 from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
@@ -131,6 +133,9 @@ STATUS: Dict[str, int] = {
     # trying to be a different kind of object, so the status says forbidden and
     # the remediation names the policy gate that CAN hold an obligation.
     "authority_not_defaultable": 403, "no_such_profile": 404,
+    # cross-site request forgery. 403 rather than 400: the request was
+    # understood, and it is the authority behind it that is not accepted.
+    "csrf_token_invalid": 403,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for
@@ -275,10 +280,46 @@ def basic_credentials(request: Request) -> Optional[tuple]:
     return (username, password) if sep else None
 
 
+# Characters a browser strips or normalises before resolving a URL, which is how
+# `/\tevil.example` and `/\nevil.example` become absolute after passing a naive
+# prefix check. They are removed before the check rather than after it.
+_STRIPPED = "".join(chr(c) for c in range(0x21)) + "\x7f"
+
+
+def local_path(target: Optional[str], fallback: str = "/dashboard") -> str:
+    """A same-origin path, or the fallback. Never a caller-controlled URL.
+
+    `/login?next=https://evil.example` was honoured, which is the whole of a
+    credential-phishing attack: the victim follows a link on the bank's own
+    domain, types real credentials into the real login form, and lands on
+    somebody else's page believing they arrived by the bank's own redirect. The
+    open redirect is what makes the link look legitimate, and it is the part
+    that is ours to remove.
+
+    Only a path is accepted. A scheme, a host, a protocol-relative `//host` and
+    the backslash variants browsers normalise into one are each replaced by the
+    fallback rather than sanitised — a redirect target somebody had to repair is
+    a redirect target nobody understands.
+    """
+    if not target:
+        return fallback
+    cleaned = "".join(c for c in target if c not in _STRIPPED).strip()
+    if not cleaned.startswith("/"):
+        return fallback                     # a scheme, a bare host, or nonsense
+    if cleaned.startswith(("//", "/\\")):
+        return fallback                     # protocol-relative, in both spellings
+    parsed = urlsplit(cleaned)
+    if parsed.scheme or parsed.netloc:
+        return fallback
+    return cleaned
+
+
 def login_required(request: Request) -> Optional[RedirectResponse]:
     """A redirect when the caller is anonymous, otherwise None."""
     if current_user(request) is None:
-        return RedirectResponse(f"/login?next={request.url.path}", status_code=303)
+        return RedirectResponse(
+            f"/login?next={quote(local_path(request.url.path), safe='/')}",
+            status_code=303)
     return None
 
 
@@ -372,7 +413,13 @@ class Routes:
         c = self.ctx["config"]
         return {"app_name": c.get("app.name", "MAYA"), "tagline": c.get("app.tagline", ""),
                 "slogan": c.get("app.slogan", ""), "version": c.get("app.version", ""),
-                "user": current_user(request) if request is not None else None}
+                "user": current_user(request) if request is not None else None,
+                # Every page carries it, because every page can mutate. Minted
+                # on first render rather than at sign-in, so a session that
+                # predates the control still gets one instead of silently
+                # skipping it.
+                "csrf_token": (csrf.token_for(request.session)
+                               if request is not None else "")}
 
     def page_principal(self, request: Request):
         """The signed-in principal for a PAGE, resolved from the session.

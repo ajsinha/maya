@@ -74,10 +74,51 @@ The codes a caller most often has to branch on:
 | `unknown_profile_fact` | 422 | A profile tried to select on something the platform does not derive |
 | `not_defaultable` | 422 | A profile tried to fill in something a caller could not have typed |
 | `authority_not_defaultable` | 403 | A profile reached for authority; write it as a policy gate instead |
+| `csrf_token_invalid` | 403 | A state-changing request rode a session cookie without a valid token |
 
 Segregation refusals are a family, and each names the act it is protecting:
 `self_review` on a document, `self_approval` on a parameter set or an overlay,
 `self_renewal` on an overlay, `self_attestation` on a machine generation.
+
+## Authenticating, and the one case that needs a token
+
+Two ways in, against the same principal register:
+
+**HTTP Basic**, for services, scripts and engines. Nothing else is required — a
+caller who can set an `Authorization` header already holds the credential, so
+the authority is not *ambient* and there is nothing for a token to add.
+
+```bash
+curl -u svc/model-lab:svc-pw localhost:5006/api/v1/models
+```
+
+**A session cookie**, for the browser. This one *is* ambient — the browser sends
+it whether or not the page that triggered the request came from us — so a
+state-changing request under a cookie must also carry the session's CSRF token:
+
+```
+X-MAYA-CSRF: <the value of the page's csrf-token meta tag>
+```
+
+The pages do this for you (`web/static/js/csrf.js` attaches it to every
+same-origin mutation), so this matters only if you are scripting against a
+signed-in session rather than using Basic. If you are, use Basic.
+
+| | Token required |
+|---|---|
+| `POST`/`PUT`/`DELETE` under a session cookie | **yes** |
+| `POST` under HTTP Basic | no |
+| `GET`/`HEAD`/`OPTIONS` | no |
+| `/login`, `/auth/login`, `/auth/callback` | no — they establish the session |
+
+```json
+{"error": "csrf_token_invalid",
+ "detail": "this request changes something and was authenticated by a session
+            cookie, but carries no valid CSRF token",
+ "remediation": "send the token from the page's 'x-maya-csrf' meta tag in that
+                 header, or authenticate with HTTP Basic, which carries no
+                 ambient authority and needs no token"}
+```
 
 ## The endpoints
 

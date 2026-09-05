@@ -79,6 +79,10 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         # Raised by the route layer when a caller asks for a credential in
         # somebody else's name; core has no view on who is asking.
         "principal_not_self", "verifier_not_self",
+        # Raised by the CSRF middleware, which sits above the routes and above
+        # core: whether authority is ambient is a property of the transport,
+        # and core has no view of a cookie.
+        "csrf_token_invalid",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

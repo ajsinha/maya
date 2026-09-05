@@ -23,6 +23,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+
+from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
 from core.execution import (CaptiveEngine, InProcessSandbox,
@@ -389,6 +391,50 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                   version=cfg.get("app.version", "0.1.0"),
                   openapi_url="/api/v1/openapi.json")
     app.state.ctx = ctx
+    # Registered BEFORE the session middleware, which puts it INSIDE it: an
+    # `add_middleware` added later wraps outside, and a CSRF guard that runs
+    # before the session is decoded has no session to compare a token against.
+    # It failed loudly rather than silently, which is the only reason this is a
+    # comment and not an incident.
+    @app.middleware("http")
+    async def csrf_guard(request, call_next):
+        """Refuse a state-changing request that rides an ambient session cookie
+        without proving it came from one of our pages.
+
+        Middleware rather than a check in each route, because there are ninety
+        mutating endpoints and a control ninety places have to remember is a
+        control that will be missing from the ninety-first. The exemptions are
+        exact paths and the condition is narrow — see `core/authz/csrf.py` for
+        why it applies only to cookie authority.
+        """
+        if csrf.required_for(request):
+            supplied = request.headers.get(csrf.HEADER)
+            if supplied is None and request.headers.get("content-type", "").startswith(
+                    ("application/x-www-form-urlencoded", "multipart/form-data")):
+                # Read once and stashed: a form body consumed here would not be
+                # there for the route, and the failure would look like a
+                # missing field rather than a middleware that ate the request.
+                form = await request.form()
+                request._maya_form = form
+                supplied = form.get(csrf.FORM_FIELD)
+            if not csrf.matches(request.session.get(csrf.SESSION_KEY), supplied):
+                logger.warning("refused a %s to %s: no valid CSRF token on a "
+                               "cookie-authenticated request", request.method,
+                               request.url.path)
+                return JSONResponse({
+                    "error": "csrf_token_invalid",
+                    "detail": "this request changes something and was "
+                              "authenticated by a session cookie, but carries "
+                              "no valid CSRF token",
+                    "remediation": f"send the token from the page's "
+                                   f"'{csrf.HEADER}' meta tag in that header, "
+                                   f"or authenticate with HTTP Basic, which "
+                                   f"carries no ambient authority and needs no "
+                                   f"token",
+                }, status_code=403)
+        return await call_next(request)
+
+
     app.add_middleware(SessionMiddleware,
                        secret_key=_session_secret(cfg),
                        max_age=cfg.get_int("auth.session_max_age", 28800),
