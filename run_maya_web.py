@@ -16,6 +16,8 @@ the public WarrantService — the same interface an external engine consumes.
 """
 from __future__ import annotations
 
+import logging
+import time
 from pathlib import Path
 from typing import Any, Dict
 
@@ -31,6 +33,7 @@ from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
+from core import log
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
@@ -383,7 +386,9 @@ def _session_secret(cfg) -> str:
 
 def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     cfg = cfg or PropertiesConfigurator(str(ROOT / "config" / "application.yaml"))
-    configure(cfg.get("logging.level", "INFO"))
+    configure(cfg.get("logging.level", "INFO"),
+              cfg.get("logging.format", log.FORMAT),
+              cfg.get_bool("logging.json", False))
     ctx = build_context(cfg)
 
     app = FastAPI(title=cfg.get("app.name", "MAYA"),
@@ -443,6 +448,59 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                        # coded False, so the session cookie never carried
                        # `Secure` even behind TLS and there was no key to set.
                        https_only=cfg.get_bool("auth.session_https_only", False))
+
+    # Registered LAST, which puts it OUTERMOST: an `add_middleware` added later
+    # wraps the ones before it. That is deliberate here and the opposite of the
+    # CSRF guard above — this one must see every request, including the ones the
+    # guard refuses and the ones that never reach a route, or the lines with no
+    # id would be exactly the lines somebody is trying to chase.
+    @app.middleware("http")
+    async def request_context(request, call_next):
+        """Give every request an id, put it on every line it produces, and say
+        how it ended.
+
+        The id is echoed back so a caller can quote it in a bug report, and an
+        inbound one is honoured when it is safe to log — that is what lets one
+        trace span a gateway, a queue and this process. Honouring it unchecked
+        would be log injection, so `accept_request_id` replaces anything that is
+        not plainly alphanumeric rather than escaping it.
+        """
+        request_id = log.accept_request_id(request.headers.get(log.REQUEST_HEADER))
+        log.bind_request(request_id)
+        # Reset per request rather than trusting the previous one to have
+        # cleared: a worker is reused, and a principal left bound would attribute
+        # the next caller's lines to the last one.
+        log.bind_principal(None)
+        started = time.perf_counter()
+        try:
+            response = await call_next(request)
+        except Exception:
+            # Never swallowed — re-raised after being recorded, because a 500
+            # with no line saying which request produced it is the one failure
+            # nobody can chase.
+            logger.exception("unhandled failure serving %s %s",
+                             request.method, request.url.path)
+            raise
+        elapsed = (time.perf_counter() - started) * 1000.0
+        response.headers[log.REQUEST_HEADER] = request_id
+        # One line per request, at the level its outcome deserves: a refusal is
+        # a governance decision worth seeing at INFO, a fault is not routine.
+        logger.log(
+            logging.ERROR if response.status_code >= 500
+            else logging.WARNING if response.status_code >= 400
+            else logging.INFO,
+            "%s %s -> %s in %.1fms", request.method, request.url.path,
+            response.status_code, elapsed,
+            # The principal is put on the record explicitly as well as by the
+            # context filter. The filter reads a context variable that is gone
+            # by the time anything inspects the record afterwards, so the access
+            # line — the one an operator greps — carries it by value.
+            extra={"method": request.method, "path": request.url.path,
+                   "status": response.status_code,
+                   "duration_ms": round(elapsed, 1),
+                   "principal": log.current_principal()})
+        return response
+
 
     # Vendored assets only: the interface renders with no external network.
     app.mount("/static", StaticFiles(directory=str(ROOT / "web" / "static")), name="static")

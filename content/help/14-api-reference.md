@@ -539,6 +539,8 @@ next request shows it — no restart.
 ```yaml
 logging:
   level: INFO
+  format: "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s %(principal)s] | %(message)s"
+  json: false
 ```
 
 One logger hierarchy, one format, installed at startup. Every module logs
@@ -547,3 +549,49 @@ or swallowed** — a handler may recover, but it may not do so silently. A test
 walks the abstract syntax tree of every source file to enforce it: every
 `except` must log, none may be bare, and none may have a body that is only
 `pass`.
+
+#### Every line says which request, and whose
+
+```
+2026-09-05 09:14:02 WARNING core.execution.warrants [8f2c1a7e4b3d0865 a.mehta] | refused (blocked): an open finding stands against credit.pd.smallbiz
+```
+
+Two fields between the brackets: the **request id** and the **principal**. A
+refusal you cannot trace back to a request is a refusal you diagnose twice, and
+there is a second reason particular to this platform — the evidence chain records
+what was *decided*, the log records what happened around it, and a
+`warrant_resolved` node and the six lines before it join on the request id or
+they do not join at all.
+
+Every response carries the id back in `X-Request-ID`, so a bug report can quote
+it:
+
+```bash
+curl -si -u a.mehta:pw localhost:5006/api/v1/models | grep -i x-request-id
+```
+
+**An inbound `X-Request-ID` is honoured when it is safe to log.** That is what
+lets one trace span a gateway, a queue and this process. Honouring it *unchecked*
+would be log injection — the value lands in a log file, and a newline in it
+writes a line of somebody else's choosing — so anything that is not plainly
+alphanumeric (up to 64 characters of `A-Za-z0-9._:-`) is **replaced** rather than
+escaped, and the response header tells the caller which id was actually used.
+
+One line per request records the method, path, status and duration, at a level
+that follows the outcome: `INFO` for success, `WARNING` for a refusal — a
+governance decision is worth seeing — and `ERROR` for a fault.
+
+#### JSON, when something ships the logs
+
+`json: true` emits one object per line, with the same fields plus `method`,
+`path`, `status` and `duration_ms` on access lines:
+
+```json
+{"ts": "2026-09-05T09:14:02.317Z", "level": "WARNING",
+ "logger": "core.execution.warrants", "request_id": "8f2c1a7e4b3d0865",
+ "principal": "a.mehta", "message": "refused (blocked): an open finding stands"}
+```
+
+Offered rather than imposed: a person reading a terminal is served worse by JSON,
+and an instance nobody ships logs from should not pay for a format only a machine
+reads.
