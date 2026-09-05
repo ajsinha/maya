@@ -4,23 +4,89 @@ slug: documentation
 section: Assurance
 order: 120
 icon: file-earmark-text
-summary: Documents compiled from evidence — citations that resolve, staleness that is computed, gaps that say what is missing — and the register of documents people actually wrote, filed against the version they describe and accepted by somebody else.
+summary: What a document is about, and whether it still describes it. The six pinned subjects, the fifteen lenses that compile four documents from the register, the training record a daily calibration never had, the dossier that walks the whole graph naming its gaps, and the export pack that carries it to somebody with no login.
 audience: Model risk, Model owners, Validators
 ---
 
 # Documentation
 
-MAYA holds two kinds of document and keeps them apart deliberately.
+Two questions decide everything on this page.
 
-**Compiled documents** are generated from the register and the evidence graph.
-Nobody writes them; a lens goes and looks, every section cites what it rests on,
-and staleness is computed rather than remembered.
+**What is this document *about*?** Get that wrong and nobody can find it from the
+thing it describes, or it describes something that has since moved.
 
-**Attached documents** are the papers somebody actually wrote — the development
-document a quant produced in Word, the validation report the second line signed,
-the committee minute, the vendor's manual. MAYA cannot generate those, and
-pretending otherwise would be dishonest. What it can do is make them behave like
-evidence instead of like files on a share drive.
+**Does it still describe it?** A document that was true when written and is
+false now is worse than a missing one, because it is read.
+
+Everything below is one of those two answers. The first is the subject
+vocabulary and the graph it builds; the second is compilation, staleness and
+named gaps.
+
+## What a document is about
+
+Documentation does not arrive all at once about one thing. It arrives at **five
+moments about five objects**:
+
+| When | About | Example |
+|---|---|---|
+| before anything runs | the **model** | the methodology paper, the literature the approach comes from |
+| a version is created | the **model version** | the specification of that kernel |
+| a fit warrant executes | the **parameter set** | the convergence study, the note explaining one morning |
+| a featureset version is filled | the **featureset version** | the data dictionary, the source-system agreement |
+| validation concludes | the **validation** | the independent recode, the reviewer's working |
+
+Everything used to be filed against a model or a version, so the third and
+fourth were **unfilable** — and they are the two that matter most in practice. A
+calibrated model produces a parameter set every morning. A featureset's data
+dictionary is read by every model fitted from it, so filing it against one of
+them makes it invisible to the rest.
+
+Six subjects, published at `GET /api/v1/document-subjects`:
+
+| Subject | Pinned | What belongs here |
+|---|---|---|
+| `model` | no | methodology, literature, board papers — things true of every version |
+| `model_version` | **yes** | one immutable kernel: its specification, its validation report |
+| `parameter_set` | **yes** | one point of `P`: the convergence study, the note explaining the morning a calibration went wrong |
+| `featureset_version` | **yes** | one filled schema: the data dictionary, the source-system agreement |
+| `feature` | no | one governed signal: its business definition, the argument for how it is computed |
+| `validation` | no | one episode: the independent recode, the challenger comparison |
+
+### A subject is pinned, and `featureset` is not a subject
+
+`featureset_version`, never `featureset`. A document filed against the *set*
+would describe something that has since moved — finding C-2 in documentation's
+clothing — so `featureset` is deliberately **absent from the vocabulary** rather
+than discouraged in a comment. Ask for it and the filing is refused:
+
+```json
+{"error": "unknown_subject",
+ "detail": "'featureset' is not something a document can be about",
+ "remediation": "use one of model, model_version, parameter_set,
+                 featureset_version, feature, validation; a subject the platform
+                 cannot resolve is a document nobody will find from the thing it
+                 describes"}
+```
+
+The default is unchanged and deliberately conservative: a caller that names no
+subject files against the **current version**, or against the model if it passes
+`model_level`. A model with no versions at all is refused as
+`no_version_to_attach_to` rather than being quietly filed at model level.
+
+## Compiled, or written
+
+MAYA holds two kinds of document and keeps them apart on purpose.
+
+| | Compiled | Attached |
+|---|---|---|
+| Who wrote it | nobody — a lens read the register | a person, in Word |
+| Can it drift | no; staleness is computed from the chain | yes; that is why supersession exists |
+| What it is for | the reproducible half a supervisor reads | the argument, the judgement, the vendor's manual |
+| Kinds | four, plus the training record | nine |
+
+MAYA cannot generate the second kind, and pretending otherwise would be
+dishonest. What it can do is make those documents behave like evidence rather
+than like files on a share drive.
 
 ## Compiled documentation
 
@@ -59,13 +125,9 @@ moved, an attestation signed — the document no longer describes it:
  "detail": "3 governance event(s) recorded since this document was compiled"}
 ```
 
-Nobody has to remember to check. The platform can always answer whether a
-document still describes the model, because the answer is derived from the same
-chain everything else rests on.
-
-Compiling a *different* document does not make this one stale — compilation
-events are filtered out of the count, because otherwise every document would go
-stale the moment a second one existed.
+Nobody has to remember to check. Compiling a *different* document does not make
+this one stale — compilation events are filtered out of the count, because
+otherwise every document would go stale the moment a second one existed.
 
 ### 3. Gaps say what is missing
 
@@ -80,8 +142,6 @@ content would have been:
 A model development document with a blank "Validation" heading and one that says
 this look identical to a skim, and are completely different findings.
 
-Coverage is reported alongside:
-
 ```json
 {"sections": 12, "filled": 8, "missing_required": ["validation", "monitoring"],
  "complete": false}
@@ -90,7 +150,9 @@ Coverage is reported alongside:
 ### Sections are lenses, not templates
 
 A template interpolates values it was handed. A **lens** goes and looks — so a
-section cannot silently describe a state that no longer holds. There are fifteen:
+section cannot silently describe a state that no longer holds. A lens returns
+prose and the evidence it cited, or `None`, which is how a gap gets named rather
+than guessed. There are fifteen:
 
 | Lens | Reads |
 |---|---|
@@ -111,31 +173,22 @@ section cannot silently describe a state that no longer holds. There are fifteen
 | Provenance | the evidence chain and its verification |
 
 The last three are why the compiled and the filed halves of this page belong
-together: a compiled document reports on the attached ones, and a required
-section that cannot be filled is exactly how a missing development document
-becomes visible.
+together: a compiled document reports on the attached ones, so a missing
+development document becomes visible as a section that could not be filled.
 
-### The four kinds
+### The four kinds compiled from a model
 
-| Kind | For |
-|---|---|
-| `model_development_document` | what the model is, how it was built, under what assumptions it may be relied on |
-| `validation_report` | what independent challenge was performed and what it found |
-| `model_card` | a short, plain description for anyone deciding whether to use it |
-| `annex_iv` | the technical documentation an EU AI Act high-risk system must keep |
+| Kind | For | Lenses |
+|---|---|---|
+| `model_development_document` | what the model is, how it was built, under what assumptions it may be relied on | all fifteen, all required |
+| `annex_iv` | the technical documentation an EU AI Act high-risk system must keep | the same fifteen |
+| `validation_report` | what independent challenge was performed and what it found | eleven, five of them optional |
+| `model_card` | a short, plain description for anyone deciding whether to use it | seven, four of them optional |
 
 A template is an ordered list of lenses and which are required — no prose,
 because prose in a template is prose that cannot be checked against the model.
-The model card is deliberately short: a model card nobody reads because it is
-forty pages is not serving the purpose a model card exists for. An Annex IV pack
-requires everything the development document requires, and then some.
-
-### Compiling one
-
-From the interface: open a model and press **Compile** on the Documentation card.
-The result is rendered with the same markdown pipeline the help system uses, so a
-compiled document reads like the rest of the platform rather than like a report
-generator's output.
+The model card is deliberately short: one nobody reads because it is forty pages
+is not serving the purpose a model card exists for.
 
 ```bash
 POST /api/v1/documents?urn=maya://model/…&kind=model_development_document
@@ -143,148 +196,159 @@ GET  /api/v1/documents/{id}/markdown     # the exportable form
 ```
 
 `document:compile` is held by model owners, model risk managers and validators.
+From the interface: open a model and press **Compile** on the Documentation
+card. The result renders through the same markdown pipeline as this help system,
+so it reads like the rest of the platform rather than like a report generator's
+output.
 
-### What is not built
+## The training record — the fifth kind
 
-There is no PDF renderer, no house template, no signature page and no export
-pack. The output is markdown and JSON. Turning that into whatever your firm's
-document standard requires is a rendering problem, and deliberately outside the
-part MAYA is trying to get right.
-
-
-## Export packs — everything about one model, in one file
-
-A compiled document answers a question. An **export pack** answers the person:
-a supervisor, an internal auditor, an acquirer's diligence team — somebody who
-is not going to be given a login, cannot query the platform, cannot take its word
-for anything, and will read the result months later.
+Four documents are compiled from a model URN. The **training record** is
+compiled from the id of one fit, which is why it sits outside that list.
 
 ```bash
-curl -u a.mehta:pw -X POST \
-  localhost:5006/api/v1/export-packs/credit.pd.smallbiz -o pack.zip
+GET  /api/v1/training-records/{parameter_set_id}/preview   # what it would say
+POST /api/v1/training-records/{parameter_set_id}           # author it
 ```
 
+Six sections, all required, all read from what the register already holds:
+
+| Section | Reads |
+|---|---|
+| **What this is** | the parameter set, its provenance and its state |
+| **Under what authority** | the warrant the fit ran under |
+| **What it read** | the featureset version, the window, the `as_of`, the snapshot |
+| **What it produced** | the values inline, or their URI and digest |
+| **What the fit reported** | the diagnostics the estimator returned |
+| **Who accepted it** | the review, once there is one |
+
+Compiled rather than written, and that is the whole point. A model recalibrated
+every morning produces **two hundred and fifty governed acts a year**, each with
+a warrant behind it and a signature on it, and until now none of them had a
+record anybody could read. Compiling means all of them exist whether or not
+somebody had time to write one — and the fit that needs a human note has a place
+to put it, as an attachment against the same `parameter_set` subject.
+
+### A fit with no warrant is a named gap
+
 ```
-manifest.json          what this is, when it was cut, the digest of every file
-README.md              how to read it and how to verify it
-gaps.md                what could NOT be included, and why
-model.json             identity, ownership, purpose, tier and its derivation
-versions.json          every version, its kernel, its status, its approvals
-documents/             the four compiled documents, markdown and JSON
-attachments/           the documents somebody filed, as the bytes accepted
-evidence/chain.json    the evidence for this model, with the verification result
-findings.json  monitoring.json  overlays.json  warrants.json  validations.json
+**This section is required and could not be filled.**
+
+Nothing in the register supports an `authority` section for this parameter set.
+That is a statement about the record of this fit, not about this document.
 ```
 
-### Read `gaps.md` first
+A *fitted* set with no warrant has no answer to *which data produced these
+numbers*, and that is worth saying out loud rather than papering over. A
+**declared** set is different and says so: those values were chosen and
+recorded, not produced by reading data, so there is no fit warrant to look for.
 
-Everything the pack could not gather is listed there with the reason. That is the
-whole discipline: a pack that silently omits what it could not reach **reads as
-complete**, and a reader has no way to tell a thin model from a thin export. A
-required document section with no evidence behind it appears as a gap; an
-attachment whose bytes could not be read appears as a gap; a document that would
-not compile appears as a gap rather than killing the pack.
+The same discipline applies one level down. If the set does not name a
+featureset version, *What it read* is a gap rather than an invented name.
 
-### The content digest is the comparison
-
-`manifest.json` lists every file with its SHA-256, and carries a **content
-digest** over all of them *except the manifest itself*.
-
-That exclusion is the point. The manifest records the moment the pack was cut, so
-a digest that covered it would differ every time and answer nothing. Excluding it
-means two packs of the same state have the same content digest — so *"has
-anything changed since last quarter's pack?"* is one comparison rather than a
-diff of a hundred files.
+## The dossier — the graph, walked
 
 ```bash
-curl -su a.mehta:pw \
-  localhost:5006/api/v1/export-packs/credit.pd.smallbiz/manifest \
-  | python3 -c 'import json,sys; print(json.load(sys.stdin)["content_digest"])'
+GET /api/v1/dossiers/credit.pd.smallbiz
 ```
 
-The manifest endpoint exists for exactly that: comparing against the last pack
-should not require moving a hundred megabytes to discover that nothing has moved.
+A model's documentation is a graph and was being read as a list. The dossier
+walks it from the model down, following the **pins**:
 
-**Where the chain stood** is in the manifest too — `chain.head_seq` and
-`chain.head_hash` — and deliberately *not* in the digested content. A model's
-pack should not change because a different team registered a model somewhere
-else.
+```
+model
+ ├── attached: methodology paper, literature, vendor note
+ ├── compiled: model development document, model card, Annex IV
+ └── version 1.0.0
+      ├── attached: kernel specification
+      ├── compiled: validation report
+      ├── parameter set ps-8817        (fitted 2026-03-31)
+      │    ├── compiled: training record
+      │    ├── attached: convergence study
+      │    └── fitted from  featureset sb_core @ v1
+      │         ├── attached: data dictionary, source agreement
+      │         └── feature dscr
+      │              └── attached: business definition
+      └── validation val-3391
+           └── attached: independent recode
+```
 
-### What a pack deliberately does not do
+The featureset version hangs under the **parameter set**, not under the model,
+because that is where the pin actually is: this fit read *that* version. A model
+whose next fit reads `sb_core @ v2` gets a second branch rather than an edited
+one.
 
-**It does not author anything.** The documents are *rendered*, not compiled:
-cutting a pack every month should not silently author four documents a month, and
-a pack whose own production changed the record would differ from the last one for
-no reason but that somebody had asked for it.
+**Computed, never stored.** Its inputs are all versioned or immutable, so there
+is nothing to keep in step — and a stored dossier would be a second account of
+the model's documentation, able to disagree with the first.
 
-**It does not re-materialise personal data.** A node that references personal
-data carries an erasable pointer rather than the data (L-18), and the pack
-carries the pointer. Resolving it would put personal data into a file on
-somebody's laptop where an erasure request cannot reach it — which would defeat
-the control rather than export it. The pack says so in `gaps.md`.
+**Every node with nothing filed is a named gap**, with what was expected:
 
-**Cutting one is recorded** — handing a complete record of a model to somebody
-outside is a governance act, and who took a copy is what an auditor asks about
-later. It is recorded against the **pack**, whose identity is its content digest,
-rather than against the model: recorded against the model it would land inside
-the next pack's own evidence and every pack would differ from the last for no
-reason but that somebody had taken one.
+```json
+{"counts": {"nodes": 14, "documents": 9},
+ "gaps": [
+   {"what": "feature dscr",
+    "why": "nothing is filed here; expected the business definition"},
+   {"what": "parameters ps-8820",
+    "why": "a fitted set that does not name the featureset version it came from
+            — 'what data produced these numbers' has no answer from here"}],
+ "detail": "9 document(s) across 14 node(s); 2 gap(s)"}
+```
 
+A page that silently omits what it could not find reads as complete, and a
+reader cannot tell a thin model from a thin page unless the page says which it
+is. A subsystem that is unwired or refusing yields an empty list and a logged
+warning rather than breaking the walk — the rest of the graph is still worth
+seeing.
 
 ## Documents on file
 
-### A document is filed against a version, not a model
-
-This is the rule that matters most, and it is the one most document stores get
-wrong.
+### Filed against the version, not the model
 
 A model development document does not describe *the model*. It describes a
 particular version of it — the one whose coefficients it prints, whose
-assumptions it states, whose back-test it reports. When that version is replaced,
-the document does not automatically describe the replacement.
+assumptions it states, whose back-test it reports. When that version is
+replaced, the document does not automatically describe the replacement.
 
-So the default is version-level. If you do not name a version, the document lands
-on the current one. Filing at model level is possible — a board paper covering
-the whole portfolio is genuinely about the model rather than a version — but you
-have to ask for it with `model_level`, because the ambiguous case should not be
-the default one.
-
-A model with no versions is refused outright as `no_version_to_attach_to`, with
-the remediation spelled out: create a version first, or say explicitly that this
-document is model-level.
+So the default is version-level. Filing at model level is possible — a board
+paper covering the whole portfolio is genuinely about the model — but you have
+to ask for it, because the ambiguous case should not be the default one.
 
 ```bash
 POST /api/v1/attachments        # multipart/form-data
-# urn, kind, title, file — plus optional semver, note, supersedes, model_level
+# urn, kind, title, file
+# plus optional: semver, note, supersedes, model_level, subject_type, subject_id
 ```
+
+`subject_type` and `subject_id` are for the documents that were previously
+unfilable: a convergence study about one parameter set, a data dictionary about
+one featureset version.
 
 ### Stored by digest, so it cannot be edited underneath you
 
-Every document is stored under the SHA-256 of its bytes. Three properties follow,
-and each of them is one this platform relies on elsewhere.
+Every document is stored under the SHA-256 of its bytes. Three properties
+follow, and each is one this platform relies on elsewhere.
 
 **The same file is stored once.** A board paper covering forty models is one
 stored object with forty attachments pointing at it.
 
 **A document cannot be edited in place.** Change a byte and the digest changes,
 which makes it a different document. Replacing one is therefore a *supersession*
-that somebody declares, not an edit nobody sees — the same reasoning that makes
-model versions immutable.
+somebody declares, not an edit nobody sees — the same reasoning that makes model
+versions immutable.
 
-**What was reviewed is what is served.** The digest an approver accepted is the
-digest a reader later fetches, and the store re-hashes the bytes on the way out
-rather than trusting the path it was given. If they disagree the read fails with
-`document_corrupt` and tells you to raise an incident, because at that point the
-store has been tampered with or has corrupted and the document should not be
-relied on.
+**What was reviewed is what is served.** The store re-hashes the bytes on the
+way out rather than trusting the path it was given. If they disagree the read
+fails with `document_corrupt` and tells you to raise an incident, because at
+that point the store has been tampered with or has corrupted, and the document
+should not be relied on.
 
 ### Review is segregated
 
-Whoever attached a document cannot accept it.
-
-A model owner filing their own validation report and marking it accepted is not a
-control, and the fact that the document is genuine does not make the process one.
-This is checked twice and on purpose:
+Whoever attached a document cannot accept it. A model owner filing their own
+validation report and marking it accepted is not a control, and the fact that
+the document is genuine does not make the process one. This is checked twice, on
+purpose:
 
 | Line | Check | Refusal |
 |---|---|---|
@@ -292,8 +356,8 @@ This is checked twice and on purpose:
 | The register | Is this the same person who filed it? | `self_review` |
 
 Owners and developers hold `document:attach`. Validators and model risk managers
-hold `document:review`. The second check exists anyway, because a role grant is a
-policy that can change and segregation of duty is not.
+hold `document:review`. The second check exists anyway, because a role grant is
+a policy that can change and segregation of duty is not.
 
 **Rejection requires a reason** — `reason_required` — and a rejected document
 stays in the register. The set of documents somebody tried to file and could not
@@ -302,13 +366,13 @@ review look cleaner than it was.
 
 ### Supersession keeps the chain
 
-When a revised document replaces an earlier one, the new attachment names what it
-supersedes. The prior document moves to `superseded`, is linked forward to its
-replacement, and drops out of the current set — but stays in the history.
+When a revised document replaces an earlier one, the new attachment names what
+it supersedes. The prior document moves to `superseded`, is linked forward to
+its replacement, and drops out of the current set — but stays in the history.
 
 That is what makes *"which MDD was in force in March"* an answerable question
-rather than a guess, and it is why superseding the same document twice is refused
-as `already_superseded`: the chain would fork.
+rather than a guess, and why superseding the same document twice is refused as
+`already_superseded`: the chain would fork.
 
 ### What machines can read, and what they cannot
 
@@ -317,46 +381,131 @@ read. Plain text, markdown, CSV, HTML, JSON and XML are indexed. A PDF or a Word
 document is stored and served faithfully, but reported as **not
 machine-readable**, and asking for its text returns nothing rather than a guess.
 
-This matters for what comes next. Machine validation of documents, and retrieval
-over them, both depend on knowing which documents have genuinely been read.
-Saying plainly that a scanned PDF has not been read is better than producing a
-confident summary of nothing.
+Machine validation of documents, and retrieval over them, both depend on knowing
+which documents have genuinely been read. Saying plainly that a scanned PDF has
+not been read is better than producing a confident summary of nothing.
 
-### What the register answers
+### The nine kinds, and what the register answers
 
-`GET /api/v1/attachments?urn=…` returns the current set plus a summary: how many
-are accepted, how many await review, how many were rejected, which kinds are
-present, and how many are not machine-readable. Add `history=true` for
-everything, superseded and rejected included.
+`model_development_document`, `validation_report`, `independent_review`,
+`vendor_documentation`, `committee_minute`, `board_paper`,
+`evidence_of_control`, `correspondence`, and `other` — named honestly rather
+than forced into a category.
 
-Two baseline gaps read from it:
+```bash
+GET /api/v1/attachments?urn=…              # the current set, plus a summary
+GET /api/v1/attachments?urn=…&history=true # superseded and rejected included
+```
 
-- **`model_development_document`** — no MDD is on file, so the method is
-  undocumented. Material, because a model whose method exists only in its author's
-  head is a model the bank cannot maintain.
-- **`accepted_documentation`** — documents are on file but none has been accepted
-  by a second person. Filing is not review.
+The summary is how many are accepted, how many await review, how many were
+rejected, which kinds are present, and how many are not machine-readable. Two
+[baseline gaps](/help/estate-and-worklist) read straight from it:
+`model_development_document` (no MDD on file, so the method is undocumented) and
+`accepted_documentation` (documents on file but none accepted by a second
+person — filing is not review).
 
-### Kinds
+## Export packs
 
-| Kind | What it means |
-|---|---|
-| `model_development_document` | How the model was built, by whom, on what data, with what assumptions |
-| `validation_report` | Independent assessment of whether it works as claimed |
-| `independent_review` | Review by a party outside both first and second line |
-| `vendor_documentation` | What a supplier says about a model the bank did not build |
-| `committee_minute` | The record of a governance body's decision |
-| `board_paper` | Material put to the board or a board committee |
-| `evidence_of_control` | Proof that a stated control operated |
-| `correspondence` | Supervisory or internal correspondence bearing on the model |
-| `other` | Everything else, named honestly rather than forced into a category |
+A compiled document answers a question. An **export pack** answers the person: a
+supervisor, an internal auditor, an acquirer's diligence team — somebody who is
+not going to be given a login, cannot query the platform, cannot take its word
+for anything, and will read the result months later.
 
-### What this is not
+```bash
+curl -u a.mehta:pw -X POST \
+  localhost:5006/api/v1/export-packs/credit.pd.smallbiz -o pack.zip
+```
 
-It is not a document management system. There is no check-out, no collaborative
-editing, no rendering pipeline for proprietary formats, and no full-text search.
+```
+manifest.json              what this is, when it was cut, the digest of every file
+README.md                  how to read it and how to verify it
+gaps.md                    what could NOT be included, and why
+model.json                 identity, ownership, purpose, tier and its derivation
+versions.json              every version, its kernel, its status, its approvals
+documents/                 the four compiled documents, markdown and JSON
+documentation/dossier.json the whole graph, with its gaps
+attachments/               the documents somebody filed, as the bytes accepted
+evidence/chain.json        the evidence for this model, with the verification result
+findings.json  monitoring.json  overlays.json  warrants.json  validations.json
+```
 
-It is a register: it knows which version a document describes, who filed it, who
-accepted it, what was rejected and why, and that the bytes served are the bytes
-approved. Everything else is a document management system's job, and MAYA does
-not pretend to be one.
+The dossier travels whole. The pack already held each document but not how they
+relate, and a reader outside the platform cannot walk the register.
+
+### Read `gaps.md` first
+
+Everything the pack could not gather is listed there with the reason. A pack
+that silently omits what it could not reach **reads as complete**, and a reader
+has no way to tell a thin model from a thin export. A required document section
+with no evidence behind it appears as a gap; an attachment whose bytes could not
+be read appears as a gap; a document that would not compile appears as a gap
+rather than killing the pack; and every dossier gap is carried across.
+
+### The content digest is the comparison
+
+`manifest.json` lists every file with its SHA-256 and carries a **content
+digest** over all of them *except the manifest itself*.
+
+That exclusion is the point. The manifest records the moment the pack was cut,
+so a digest covering it would differ every time and answer nothing. Excluding it
+means two packs of the same state share a digest — so *"has anything changed
+since last quarter's pack?"* is one comparison rather than a diff of a hundred
+files. Member order and timestamps inside the zip are fixed for the same reason.
+
+```bash
+curl -su a.mehta:pw \
+  localhost:5006/api/v1/export-packs/credit.pd.smallbiz/manifest \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["content_digest"])'
+```
+
+The manifest endpoint exists for exactly that: comparing against the last pack
+should not require moving a hundred megabytes to discover that nothing has
+moved. **Where the chain stood** is in the manifest too — `chain.head_seq` and
+`chain.head_hash` — and deliberately *not* in the digested content. A model's
+pack should not change because a different team registered a model somewhere
+else.
+
+### What a pack deliberately does not do
+
+**It does not author anything.** The documents are *rendered*, not compiled:
+cutting a pack every month should not silently author four documents a month,
+and a pack whose own production changed the record would differ from the last
+one for no reason but that somebody had asked for it.
+
+**It does not re-materialise personal data.** A node referencing personal data
+carries an erasable pointer rather than the data (L-18), and the pack carries
+the pointer. Resolving it would put personal data into a file on somebody's
+laptop where an erasure request cannot reach it, defeating the control rather
+than exporting it. `gaps.md` says so.
+
+**It refuses rather than truncating.** Past 2 GiB the pack is refused as
+`pack_too_large` with the way out — exclude attachments, or ask for fewer
+documents. An export nobody can open is not an export.
+
+**Cutting one is recorded** — handing a complete record of a model to somebody
+outside is a governance act, and who took a copy is what an auditor asks about
+later. It is recorded against the **pack**, whose identity is its content
+digest, rather than against the model: recorded against the model it would land
+inside the next pack's own evidence, and every pack would differ from the last
+for no reason but that somebody had taken one.
+
+## What is not built
+
+There is no PDF renderer, no house template and no signature page. The output is
+markdown and JSON; turning that into whatever your firm's document standard
+requires is a rendering problem, and deliberately outside the part MAYA is
+trying to get right.
+
+Two laws touching documentation are stated and do **not** run. **L-6**
+(abstraction soundness) needs a replay that checks a document's quantitative
+claims against the register; the replay exists for validation episodes, not for
+documents. **L-11** (the lens laws) needs a `put`, and the compiler regenerates
+whole documents rather than editing them — so the lens here is a `get` and
+nothing else, and building a `put` to satisfy a law would be building the wrong
+thing.
+
+Nothing here is a document management system either: no check-out, no
+collaborative editing, no rendering pipeline for proprietary formats, no
+full-text search. It is a register. It knows which subject a document describes,
+who filed it, who accepted it, what was rejected and why, and that the bytes
+served are the bytes approved.

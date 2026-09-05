@@ -50,9 +50,16 @@ from core.log import get_logger
 
 logger = get_logger(__name__)
 
-#: How deep the walk goes. A model whose featuresets compose eleven levels deep
-#: is a modelling problem, and the dossier says so rather than running forever.
-MAX_DEPTH = 8
+# There was a `MAX_DEPTH = 8` here, with a comment saying the dossier "says so
+# rather than running forever". Nothing read it. The walk is not recursive — it
+# is five named methods calling each other in one direction, model → version →
+# {parameter set, featureset version} → feature, and `_feature` returns a leaf
+# with no children. So the bound is structural and a constant could only ever
+# have been decorative.
+#
+# It is removed rather than wired up, because a limit nobody reaches is a limit
+# nobody tests, and a declared-but-unread constant reads to the next person as a
+# control that exists.
 
 
 class Dossier:

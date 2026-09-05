@@ -127,12 +127,23 @@ class TrainingSetBuilder:
     def _recompute(self, row: Dict[str, Any], views: List[Dict[str, Any]],
                    as_of: float) -> Dict[str, Any]:
         """Independent recomputation used by verification layer 2 — a different
-        route to the same answer, so agreement means something."""
+        route to the same answer, so agreement means something.
+
+        A different route, and it has to reach the SAME answer: this bounded the
+        ingest clock by `as_of` alone while `latest_admissible` bounds it by
+        `min(label_ts, as_of)`. The two therefore disagreed whenever the set was
+        assembled after the label matured — which is the ordinary case — and the
+        verifier reported a mismatch on a *correct* assembly.
+
+        A false positive in the control that exists to verify a control is worse
+        than no control: it trains whoever reads it to discount the report.
+        """
         expected: Dict[str, Any] = {}
+        knowable_by = min(row["label_ts"], as_of)
         for spec in views:
             pin = self.views.pinned(spec["view"], spec["version"])
-            frame = self.delta.as_of(pin["namespace"], row["label_ts"], as_of,
-                                     pin["delta_version"])
+            frame = self.delta.as_of(pin["namespace"], row["label_ts"],
+                                     knowable_by, pin["delta_version"])
             match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame
             if not match.empty:
                 expected.update(payload(match.to_dict("records")[0]))

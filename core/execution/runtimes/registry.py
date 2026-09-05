@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 Which runtimes this engine actually implements.
 
-The grammar names seventeen. No engine implements all of them, and the useful
+The grammar names eighteen. No engine implements all of them, and the useful
 thing an engine can do is be **precise about which** — so a warrant naming a
 runtime this engine does not have is refused by name, listing what it does have,
 rather than failing three layers down inside an artifact loader.

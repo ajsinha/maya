@@ -90,7 +90,10 @@ CLAIMS = {
     # unrelated prose, and a check that cries wolf is a check that gets deleted.
     "runtimes": [r"\*\*(\w+) runtimes\*\*", r"grammar's (\w+) runtimes",
                  r"(\w+) runtimes the grammar", r"realised \((\d+) runtimes\)",
-                 r"`descriptor_only` is one of the (\w+)"],
+                 r"`descriptor_only` is one of the (\w+)",
+                 # Both source docstrings said "seventeen" against eighteen
+                 # entries, and survived because this test read documents only.
+                 r"grammar names (\w+)"],
     "permissions": [r"of \*\*(\d+) permissions\*\*"],
     "help topics": [r"(\d+) help topics"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
@@ -106,10 +109,16 @@ CLAIMS = {
     "mutating endpoints": [r"(\d+|a hundred and \w+) mutating endpoints"],
 }
 
-DOCUMENTS = (list((ROOT / "docs").glob("*.md"))
-             + list((ROOT / "docs" / "adr").glob("*.md"))
-             + list((ROOT / "content" / "help").glob("*.md"))
-             + [ROOT / "README.md", ROOT / "config" / "application.yaml"])
+# Source files are read too. `runtimes/base.py` and `runtimes/registry.py` each
+# said "the grammar names seventeen" against eighteen entries, and both survived
+# every pass of this test because it looked only at markdown — the count was
+# wrong in the two files a reader would most trust, being the code's own account
+# of itself. A docstring is documentation; there is no reason to exempt it.
+DOCUMENTS = (list((ROOT / "docs").rglob("*.md"))
+             + list((ROOT / "content").rglob("*.md"))
+             + [ROOT / "README.md", ROOT / "config" / "application.yaml"]
+             + [p for d in ("core", "routes", "db", "sdk", "tools")
+                for p in (ROOT / d).rglob("*.py")])
 
 
 def _as_number(token: str):
