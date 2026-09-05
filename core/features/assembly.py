@@ -93,6 +93,29 @@ class TrainingSetBuilder:
         is what the model could have known when the decision was made; `as_of`
         is what the platform could have known when the set was built, so a
         restatement arriving after assembly cannot creep into a re-run.
+
+        ## As an operator
+
+        This is the whole point-in-time read, and it is worth naming as one:
+
+            AsOf(R, ℓ, a) = argmax over (event_ts, ingest_ts) of
+                            { r ∈ R : r.event ≤ ℓ ∧ r.ingest ≤ min(ℓ, a) }
+
+        Four properties follow, and each is asserted in `tests/test_laws.py`
+        rather than argued here:
+
+        * **Idempotent.** Reading the result again returns it.
+        * **Commutes with projection.** Reading fewer columns cannot change
+          which row is admissible; the choice is made on the clocks alone.
+        * **Monotone in `a`.** A later `as_of` can only *widen* the admissible
+          set. Nothing that was knowable stops being knowable.
+        * **Saturating at `ℓ`** — and this is the reproducibility guarantee.
+          Because the ingest bound is `min(ℓ, a)`, every `a ≥ ℓ` gives the
+          *same answer*. A training row assembled the day the label matured and
+          the same row re-assembled a year later are identical, however many
+          restatements arrived in between. Without the `min`, a re-run would
+          quietly improve on the original, which is the least useful kind of
+          reproducibility.
         """
         knowable_by = min(label_ts, as_of)
         eligible = [r for r in records

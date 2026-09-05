@@ -106,6 +106,22 @@ def apply(members: Dict[str, Any], operations: Sequence[Dict[str, Any]],
     return out
 
 
+def independent(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
+    """Whether two operations touch different members.
+
+    The property that matters about the edit algebra: **independent edits
+    commute.** If they do, two people editing a shared object produce the same
+    result whichever order their edits are applied in, and a merge is a merge
+    rather than a conflict whose resolution carries meaning. If they did not,
+    there would be a defect that no test of a single edit could find — the same
+    shape as the stateful-artefact argument, one level down.
+
+    Asserted in `tests/test_laws.py`; exposed here so the property has a name
+    rather than living only in a test.
+    """
+    return (left or {}).get("name") != (right or {}).get("name")
+
+
 class Resolver:
     """Resolves a composition to its members, following parents by pin.
 
