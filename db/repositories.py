@@ -384,6 +384,16 @@ class DocumentRepository(Repository):
     TABLE, ORDER = "document", "compiled_at"
     JSON = ("sections", "citations", "coverage", "subjects")
 
+    def about(self, subject_type: str, subject_id: str) -> List[Dict[str, Any]]:
+        """Compiled documents about one thing, latest first.
+
+        The dossier's read. `subjects` is the list a document was compiled FROM,
+        which is a different question and stays where it is: this one is what
+        the document is *about*.
+        """
+        rows = self.many(subject_type=subject_type, subject_id=subject_id)
+        return sorted(rows, key=lambda r: r.get("compiled_at") or 0, reverse=True)
+
 
 class OverlayRepository(Repository):
     TABLE, JSON, ORDER = "overlay", ("basis",), "created_at"

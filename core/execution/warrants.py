@@ -105,12 +105,33 @@ class WarrantService:
         with no approved set fails for a better reason further on, and refusing
         here would make every artifact-backed model depend on a register it does
         not use.
+
+        **Silent for that reason and no other.** This caught bare `Exception`,
+        and `resolve` raises two things. `no_approved_parameters` is the case
+        above, and recovering from it is right. `ambiguous_parameters` is not a
+        failure at all — it is a *refusal*, raised when a version has several
+        approved sets and no name was given, and its own comment says why:
+        "choosing for the caller is how a model quietly runs on last quarter's
+        coefficients."
+
+        Catching it did the choosing. The refusal disappeared into a DEBUG line
+        and the warrant was issued naming no point of `P` — which is the outcome
+        the refusal exists to prevent, reached by the code that was meant to
+        respect it. So only the recoverable one is recovered from, and the
+        refusal travels.
         """
         if self.parameters is None or version.get("artifact_uri"):
             return None
         try:
             return self.parameters.resolve(urn.split("#")[0], version["semver"])
-        except Exception as exc:                  # noqa: BLE001 -- reported below
+        except Exception as exc:                  # noqa: BLE001 -- re-raised below
+            # `self.parameters` is an injected port, so the concrete
+            # `ParameterError` is not imported here — that would make execution
+            # depend on the register it is deliberately held apart from. The
+            # refusal code is part of the port's contract; anything without one,
+            # or with any other one, is not the recoverable case and travels.
+            if getattr(exc, "code", None) != "no_approved_parameters":
+                raise
             swallowed(logger, exc, "looked for an approved parameter set",
                       detail=f"{urn}@{version['semver']} has none, so the "
                              f"warrant binds the artifact instead",

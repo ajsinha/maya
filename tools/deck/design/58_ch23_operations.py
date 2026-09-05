@@ -1,7 +1,12 @@
-# ============================================================ CH 8
-divider("8", "Cross-cutting and Operations", "Transactions, concurrency, errors, SLOs, capacity, testing.",
-        ["Transactions and the outbox", "Concurrency and idempotency", "Error taxonomy",
-         "SLOs and signals", "Capacity", "Testing"])
+# ============================================================ CH 23
+divider("23", "Cross-cutting and Operations",
+        "Transactions, concurrency, errors, SLOs, capacity, testing.",
+        ["Transactions and the outbox",
+         "Concurrency and idempotency",
+         "Error taxonomy",
+         "SLOs and signals",
+         "Capacity",
+         "Testing"])
 
 sl, y = content("Transactions and the outbox", "Cross-cutting · consistency")
 h = code(sl, ML, y, CW * 0.52, [

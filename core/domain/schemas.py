@@ -70,7 +70,16 @@ class VarianceResult:
 
 
 def substitutable(new_in: Schema, new_out: Schema, old_in: Schema, old_out: Schema) -> VarianceResult:
-    """Law L-12: contravariant in inputs, covariant in outputs."""
-    ins = tuple(new_in.accepts_superset_of(old_in))
-    outs = tuple(new_out.provides_superset_of(old_out))
+    """Law L-12: contravariant in inputs, covariant in outputs.
+
+    Expressed through `core.domain.lattice.refines` rather than through its own
+    loop, so that this and `L-W10` — *does this featureset provide what the
+    kernel reads* — are literally the same comparison. They were the same
+    relation written twice, and two implementations of one order eventually
+    disagree in the direction of permitting more.
+    """
+    from core.domain.lattice import provides, refines            # circular at module level
+    contravariant = refines(new_in, old_in)
+    ins = contravariant.missing + contravariant.narrowed
+    outs = provides(new_out, old_out)
     return VarianceResult(ok=not ins and not outs, input_regressions=ins, output_regressions=outs)

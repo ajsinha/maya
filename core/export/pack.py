@@ -28,7 +28,7 @@ pack's own evidence segment, and every pack would then differ from the one
 before it for no reason except that somebody had taken one.
 
 **Personal data is not re-materialised.** An evidence node flagged as carrying
-personal data holds an erasable pointer rather than the data (L-18), and the pack
+personal data holds no payload at all rather than the data (L-18), and the pack
 carries the pointer. A pack that helpfully resolved it would put personal data
 into a zip on somebody's laptop, where an erasure request cannot reach it — and
 the export would have quietly defeated the control the whole chain was built to
@@ -65,7 +65,7 @@ class ExportPacker:
     """Cuts a self-contained, digested pack for one model."""
 
     def __init__(self, context_builder, compiler, attachments=None,
-                 evidence=None, registry=None):
+                 evidence=None, registry=None, dossier=None):
         # The same context builder the document compiler uses. One gatherer,
         # two consumers — see the module docstring.
         self.build_context = context_builder
@@ -73,6 +73,7 @@ class ExportPacker:
         self.attachments = attachments
         self.evidence = evidence
         self.registry = registry
+        self.dossier = dossier
 
     # ------------------------------------------------------------------ build
     def build(self, urn: str, *, documents: Sequence[str] = DEFAULT_DOCUMENTS,
@@ -100,6 +101,7 @@ class ExportPacker:
         members["overlays.json"] = self._json(ctx.get("overlays") or {})
         members["warrants.json"] = self._json({"grants": ctx.get("warrants") or []})
         members["evidence/chain.json"] = self._json(self._evidence(ctx, gaps))
+        self._add_dossier(members, gaps, urn)
 
         for kind in documents:
             self._add_document(members, gaps, kind, urn, actor)
@@ -210,11 +212,36 @@ class ExportPacker:
             members[f"attachments/{short}-{row.get('filename', 'document')}"] = body
         members["attachments/index.json"] = self._json({"attachments": index})
 
+    def _add_dossier(self, members: Dict[str, bytes],
+                     gaps: List[Dict[str, str]], urn: str) -> None:
+        """The documentation graph, carried whole.
+
+        The pack already holds each document; what it did not hold was *how they
+        relate* — which training record belongs to which fit, and which
+        featureset version a fit read. A reader outside the platform cannot walk
+        the register, so the walk travels with them.
+        """
+        if self.dossier is None:
+            gaps.append({"what": "documentation/dossier.json",
+                         "why": "this instance has no dossier wired"})
+            return
+        try:
+            graph = self.dossier.of(urn)
+        except Exception as exc:                             # noqa: BLE001
+            logger.warning("could not build the dossier for %s: %s", urn, exc)
+            gaps.append({"what": "documentation/dossier.json",
+                         "why": f"the documentation graph could not be built: {exc}"})
+            return
+        members["documentation/dossier.json"] = self._json(graph)
+        for gap in graph.get("gaps") or []:
+            gaps.append({"what": f"documentation/{gap['what']}",
+                         "why": gap["why"]})
+
     def _evidence(self, ctx: Dict[str, Any],
                   gaps: List[Dict[str, str]]) -> Dict[str, Any]:
         """The chain segment, with personal data left as a pointer.
 
-        The node already stores an erasable pointer rather than the data — this
+        The node already stores nothing in place of the data — this
         is not a redaction performed here, it is the platform's own storage
         being carried across unchanged. It is stated because an export is where
         somebody would be tempted to resolve it.
@@ -228,7 +255,7 @@ class ExportPacker:
                 redacted += 1
                 entry["payload"] = {
                     "redacted": True,
-                    "note": "this node carries an erasable pointer rather than "
+                    "note": "this node carries no payload rather than "
                             "personal data (L-18); the pack carries the pointer"}
             out.append(entry)
         if redacted:
@@ -339,7 +366,7 @@ was compiled from.
 
 ## What is deliberately not here
 
-Nodes that reference **personal data** carry an erasable pointer rather than the
+Nodes that reference **personal data** carry no payload rather than the
 data, in the pack exactly as in the platform. Resolving it here would put
 personal data into a file an erasure request cannot reach, which would defeat the
 control rather than export it.

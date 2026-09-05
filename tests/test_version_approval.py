@@ -25,6 +25,66 @@ def unapproved(registry, a_model, kernel_spec, contract_spec):
     return registry.version(URN, "3.2.1")
 
 
+class TestParametersMustBeExplained:
+    """A version cannot say both that it has parameters and that nothing
+    produced them.
+
+    Left permitted, this failed in the direction that costs something.
+    `trainability_class` falls back to **T0** for a fit procedure it has no
+    entry for, and the only one missing is `none` — so a model with real,
+    inspectable parameters and no declared fit procedure was classified as
+    having *no parameters at all*, and `requires_fitting_evidence` exempted it
+    from fitting evidence on exactly that basis.
+
+    Nothing caught it. The property test over the derivation asserts it is
+    *total*, which stays true when the answer is wrong; the parametrised table
+    covers the nine well-formed rows and this is not one of them; and the
+    resulting T0 is indistinguishable downstream from a model that genuinely has
+    no parameters. An artefact whose provenance was never recorded is precisely
+    the one that most needs fitting evidence.
+
+    So the state is refused where it would be created, rather than handled
+    everywhere it could propagate.
+    """
+
+    UNEXPLAINED = ("calibration_set", "estimated_coefficients", "learned_weights",
+                   "llm_configuration", "elicited_weights", "rule_set")
+
+    @pytest.mark.parametrize("kind", UNEXPLAINED)
+    def test_inhabited_parameters_with_no_fit_procedure_are_refused(
+            self, registry, a_model, kind):
+        from core.registry.common import RegistryError
+        with pytest.raises(RegistryError, match="nothing produced them"):
+            registry.create_version(URN, "9.0.0",
+                                    {"parameter_kind": kind, "fit_procedure": "none"})
+
+    def test_the_refusal_says_what_to_declare_instead(self, registry, a_model):
+        from core.registry.common import RegistryError
+        with pytest.raises(RegistryError) as exc:
+            registry.create_version(URN, "9.0.1",
+                                    {"parameter_kind": "learned_weights",
+                                     "fit_procedure": "none"})
+        for procedure in ("calibrate", "estimate", "train", "configure",
+                          "elicit", "author"):
+            assert procedure in str(exc.value)
+
+    def test_no_parameters_and_no_procedure_is_the_ordinary_t0_case(
+            self, registry, a_model):
+        """The pricer. `P` really is terminal, and nothing is contradictory."""
+        registry.create_version(URN, "9.1.0",
+                                {"parameter_kind": "none", "fit_procedure": "none"})
+        assert registry.version(URN, "9.1.0")["trainability_class"] == "T0"
+
+    def test_an_opaque_vendor_model_needs_no_procedure(self, registry, a_model):
+        """`P` is inhabited here too, and inaccessibly — which is T6, a real
+        class with its own consequences, decided before this question is asked.
+        Demanding a procedure would refuse the vendor black box the taxonomy
+        exists to accommodate."""
+        registry.create_version(URN, "9.2.0",
+                                {"parameter_kind": "opaque", "fit_procedure": "none"})
+        assert registry.version(URN, "9.2.0")["trainability_class"] == "T6"
+
+
 class TestTheDepthOfControlFollowsTheTier:
     def test_a_tier_one_version_needs_two_signatures(self, approvals, unapproved):
         needed = approvals.needed(URN, "3.2.1")

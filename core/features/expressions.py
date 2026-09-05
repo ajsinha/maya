@@ -19,6 +19,15 @@ and an expression that needs a library, external data or a model is declared
 ``external`` — the definition is still kept, so lineage and the leakage check
 still work, but the values arrive by materialisation and the register says
 plainly that the platform did not compute them.
+
+For a long time this paragraph was aspirational. ``define`` parsed the
+expression before it read ``evaluator``, so the expressions ``external`` names —
+the ones needing a library or a model, which by construction this grammar cannot
+parse — were refused whatever you declared them as. The only way through was to
+register the result as a primitive, which discards the lineage and the leakage
+check that keeping the definition was entirely *for*. An unparseable expression
+now declares the features it reads instead, and a definition with neither a
+parse nor a declared list is refused.
 """
 from __future__ import annotations
 

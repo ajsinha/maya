@@ -51,15 +51,25 @@ class AttachmentRoutes(Routes):
                          note: str = Form(""),
                          supersedes: Optional[str] = Form(None),
                          model_level: bool = Form(False),
+                         subject_type: Optional[str] = Form(None),
+                         subject_id: Optional[str] = Form(None),
                          file: UploadFile = File(...)):
-            """File a document. Version-level by default."""
+            """File a document against what it is ABOUT.
+
+            Version-level by default, so a caller that says nothing files
+            exactly what it filed before. `subject_type` and `subject_id` are
+            for the documents that were previously unfilable: a convergence
+            study about one parameter set, a data dictionary about one
+            featureset version.
+            """
             model = self.guard(lambda: registry.require(urn))
             who = self.authorise(request, "document:attach", model=model)
             data = await file.read()
             return self.guard(lambda: attachments.attach(
                 urn, kind, title, file.filename or "document",
                 data, file.content_type or "application/octet-stream",
-                semver, note, supersedes, model_level, self.actor(who)))
+                semver, note, supersedes, model_level,
+                subject_type, subject_id, actor=self.actor(who)))
 
         @self.app.get(f"{api}/attachments/{{attachment_id}}", tags=["attachments"])
         def read(request: Request, attachment_id: str):

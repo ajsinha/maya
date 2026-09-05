@@ -1,6 +1,6 @@
-# Models as Parametric Kernels, Governance as Verified Automation
+# Models as Parametric Kernels
 
-### A mathematical foundation for heterogeneous model estates — and a criterion for where AI may do the work
+### An order, an operator and a polynomial — deriving the facts a model governance system otherwise makes somebody type in
 
 ---
 
@@ -8,693 +8,846 @@ There is a question that sounds trivial and turns out to be the hardest one in t
 
 **What is a model?**
 
-Not *which* model. Not *whose* model. What *is* one — formally, generally, in a way that covers
-everything an organisation actually has to govern?
+Not *which* model. Not *whose*. What *is* one — formally, generally, in a way that covers everything an
+organisation actually has to govern?
 
-I spent a while on this recently and came away convinced that a whole category of expensive software
-failure traces back to nobody having a good answer.
+I spent a while on this and came away convinced that a whole category of expensive software failure traces
+back to nobody having a good answer. This is that answer.
 
-This is that answer. And then — this is the part I didn't see coming — it turns out to answer a
-completely different question that everyone is currently arguing about badly: **where can you let an AI
-do the work?**
+But the thing I actually want to argue is narrower and, I think, more useful. Every governance system I have
+looked at runs on **facts that somebody typed in**. What kind of model this is. That this version may replace
+that one. That this training set is point-in-time correct. That this conclusion rests on that evidence.
+
+Typed-in facts are true at the moment they are typed and never again checked. And it turns out that four of
+the most consequential ones don't have to be typed in at all — they fall out of structure you already have,
+if you write the structure down.
+
+That's the paper. A definition, an order, an operator and a polynomial. And then, at the end, something I
+didn't go looking for: the line between *derived* and *declared* turns out to be exactly the line between
+where you can safely let a machine do the work and where you can't.
 
 ---
 
 ## The population problem
 
-Picture the quantitative assets running inside a large bank.
+Picture the quantitative assets inside a large bank.
 
-There is a Black–Scholes implementation. Its parameters come from financial theory. It has never
-been trained on anything and never will be.
+There is a Black–Scholes implementation. Its parameters come from financial theory. It has never been trained
+on anything and never will be.
 
-There is a volatility surface, re-solved against market quotes every single morning before the desk
-opens. Its parameters change daily. Its *methodology* changes maybe once every three years.
+There is a volatility surface, re-solved against market quotes every morning before the desk opens. Its
+parameters change daily; its *methodology* changes maybe once every three years.
 
-There is a credit scorecard, refitted annually on a historical sample. A gradient-boosted fraud
-model retrained weekly. An adaptive threshold that updates itself continuously in production, with
-no human in the loop.
+There is a credit scorecard refitted annually. A gradient-boosted fraud model retrained weekly. An adaptive
+threshold that updates itself continuously in production with no human in the loop.
 
-There is a language model drafting suspicious-activity narratives, whose "parameters" are a base
-model, a prompt, a document corpus and a set of tools.
+There is a language model drafting suspicious-activity narratives, whose "parameters" are a base model, a
+prompt, a document corpus and a set of tools.
 
-There is a third-party credit score whose internals are contractually unavailable and always will
-be.
+There is a third-party credit score whose internals are contractually unavailable and always will be.
 
-There is a country-risk rating scheme whose weights were set by a committee of nine people in a
-room.
+There is a country-risk rating scheme whose weights were set by a committee of nine people in a room.
 
 And there are several thousand spreadsheets.
 
-Every one of these has to appear in one inventory. Every one has to be classified by how much damage
-it could do, reviewed by someone independent, monitored, documented, and change-controlled. That is
-not a preference. In most jurisdictions it is supervisory expectation, and in some it is law.
+Every one has to appear in one inventory, be classified by how much damage it could do, be reviewed by
+someone independent, be monitored, documented and change-controlled. In most jurisdictions that is
+supervisory expectation; in some it is law.
 
-Now go and look at the tools built to do this.
+Now go and look at the tools built to do this. They split with unusual cleanliness. **Governance platforms**
+have beautiful workflow and no access to the artefacts — they record assertions *about* things they cannot
+see. **ML platforms** manage artefacts beautifully and have no representation of materiality, approved use,
+independent challenge or remediation. Each solves half.
 
----
-
-## Two halves of a product, neither of them whole
-
-The market splits with unusual cleanliness.
-
-**On one side: governance platforms.** Excellent workflow. Beautiful approval chains, findings
-registers, reporting. They are the descendants of enterprise GRC, and they are good at what they do.
-
-They also cannot see the model. Not "have limited visibility" — cannot see it. The record says a
-model was validated. Nothing in the system establishes that the model described in the record is the
-model executing in production. The claim is unfalsifiable, which is roughly the opposite of what
-assurance is supposed to be.
-
-**On the other side: MLOps platforms.** Genuinely excellent artefact lineage. You can trace a
-deployed model back to the run that produced it, the notebook, the dataset. This is real
-engineering and it works.
-
-They also have no concept of materiality, approved use, independent challenge, remediation, or
-overlay. And — this is the part that gets underestimated — somewhere between 60% and 80% of the
-population above never passes through them at all. The pricer doesn't. The vendor score doesn't.
-The committee-set scorecard doesn't. The spreadsheets certainly don't.
-
-So organisations buy both, end up with two inventories that disagree, and the disagreement is itself
-an audit finding.
-
-The obvious diagnosis is that somebody should build a better product. I think that's wrong. I think
-the problem is that nobody wrote down a definition.
+I don't think that split is a product-strategy accident. I think it's what happens when a field has no
+definition to organise around.
 
 ---
 
-## Four pathologies with one cause
+## The real problem: declared facts rot
 
-Here is what actually goes wrong, repeatedly, in systems built to manage this population.
+The usual way to describe what goes wrong is a list of four pathologies. Let me give you a sharper version,
+because the sharper version points at the fix.
 
-**The training assumption.** Tooling inherited from machine learning assumes a pipeline: train,
-register, deploy. So it asks every artefact for its training dataset. For the Black–Scholes
-implementation, that is not a missing value. It is a *category error* — like asking what colour the
-number seven is. But the system has no way to express that, so the field sits empty, an exception is
-raised, someone types "N/A", and within two years the inventory is full of records that mean
-nothing.
+In each case, **a fact that could have been derived from structure was instead declared by a person.**
 
-**Schema rigidity.** When "kind of model" is a column or an enum, every new kind is a database
-migration that touches every module. Guess what happens? New kinds never get added. The artefacts
-excluded from the inventory are, reliably, the newest and least understood ones — which is exactly
-backwards.
+**Kind is declared.** A field says this is "an ML model" or "a pricer" or "other". Downstream, evidence
+requirements switch on that field, so the closed-form pricer gets asked for its training dataset. That's not
+a missing value — it's a category error, like asking what colour the number seven is. The system has no way
+to say so, so someone types "N/A", and within two years the inventory is full of records that mean nothing.
+And nothing checks that the artefact declared "rule set" doesn't have forty-two fitted coefficients in it.
 
-**Scope as a boolean.** Whether an artefact is inside the governed population is not one fact. It is
-several, one per regulator, and they disagree by design. One regime deliberately narrows its
-definition to exclude spreadsheets and deterministic rules — and, as of 2026, generative AI.
-Another defines it broadly enough to include expert judgment and qualitative outputs. An institution
-operating in both must satisfy a narrow scope and a broad scope over the same inventory,
-simultaneously. Model that as a checkbox and you will re-architect every time a regulator publishes.
+**Fit is declared.** "This version can replace that one." "This featureset provides what that model reads."
+"This model's output feeds that one." Each is the same claim — *can this thing stand where that thing
+stood?* — and in every system I've looked at, each gets its own code path. Four implementations of one
+relation. They disagree eventually, and the direction is predictable: **toward permitting more**, because
+that's the direction in which nobody files a bug.
 
-I want to be concrete about how real this is. While I was working on this, the principal US
-supervisory guidance for model risk — in force since 2011, the document an entire industry's
-practice was built around — was superseded. The replacement narrowed the definition of what counts
-as a model and explicitly put generative AI outside its scope. Under a boolean encoding, that is a
-migration and a re-platforming project. It should have been a configuration change.
+**Currency is declared.** The condition under which a training row is admissible lives inside whatever SQL
+somebody wrote. Nothing checks that the SQL implements the condition. And the failure mode — using a fact
+before it was knowable — is invisible to every performance metric, because it *improves* them.
 
-**Evidence as assertion.** Covered above. The record asserts; nothing verifies.
+**Support is declared.** The evidence log records, in prose, that a version was validated. Nothing in the
+record says what the conclusion rests on. So nothing can compute whether a cited set actually suffices, or
+what the cheapest route to closing a gap is, or whether a document has gone stale. The claim is
+unfalsifiable, which is the opposite of what assurance means.
 
-Four pathologies. One root cause: there is no formal answer to *what is a model?*, so every system
-invents an informal one, and every informal one is wrong in a slightly different way.
+Four declarations. Four things that stop being true quietly.
 
 ---
 
 ## The definition
 
-Here it is, and I promise the payoff is worth the two lines of notation.
+Here it is, and the payoff is worth the two lines of notation.
 
 > A **model** is a parameter object `P`, an input object `X`, an output object `Y`, and a map
 >
 > ```
-> f : P ⊗ X → Y
+> f : P ⊗ X → D(Y)
 > ```
 >
 > that consumes parameters and input and produces output — possibly stochastically.
 
-That's it. In the jargon: a morphism in `Para(Stoch)` — a parametric map in a *Markov category*,
-where morphisms behave like probability kernels rather than plain functions.
+In the jargon: a morphism in `Para(Stoch)` — a parametric map in a *Markov category*, where morphisms behave
+like probability kernels rather than plain functions.
 
-The whole trick is the separation of `P` from `f`.
+The whole trick is separating `P` from `f`.
 
-Because now ask the question that actually distinguishes your artefacts. Not *what kind of model is
-this?* — a question with no principled answer. Instead:
+Because now you stop asking *what kind of model is this?* — a question with no principled answer — and start
+asking the one that actually distinguishes your artefacts:
 
 **How does the parameter object get filled in?**
 
-| The artefact | Its parameter object `P` | How `P` gets filled |
-|---|---|---|
-| Black–Scholes | *empty* — the terminal object | it doesn't; there's nothing to fill |
-| Volatility surface | calibration parameters | a solver, run against market quotes, daily |
-| Credit scorecard | coefficients | a statistical estimator, run annually |
-| Fraud classifier | weights | a training algorithm, run weekly |
-| Adaptive threshold | parameters indexed by time | a process, running continuously |
-| LLM application | base model + prompt + corpus + tools | configuration and retrieval |
-| Vendor score | *exists, but you cannot see it* | someone else's problem, and unavailable |
-| Committee scorecard | weights | nine people in a room |
-| Rule set | the rules | somebody wrote them down |
+| The artefact | Its `P` | How `P` gets filled | Class |
+|---|---|---|---|
+| Black–Scholes | *empty* — the terminal object | it doesn't; there's nothing to fill | T0 |
+| Volatility surface | a calibration set | a solver, against market quotes, daily | T1 |
+| Credit scorecard | coefficients | a statistical estimator, annually | T2 |
+| Fraud classifier | weights | a training run, weekly | T3 |
+| Adaptive threshold | weights that move in production | a training run, then the model itself | T4 |
+| LLM application | base model + prompt + corpus + tools | configuration and retrieval | T5 |
+| Vendor score | *exists, but you cannot see it* | someone else's problem, unavailable | T6 |
+| Committee scorecard | weights a panel agreed | elicitation from people | T7 |
+| Rule set | the rules | somebody wrote them down | T8 |
 
-Look at what just happened.
+Look at what happened. The taxonomy people argue about endlessly — is this an ML model, is a pricer a model,
+does a rule set count — isn't a taxonomy of *things*. It's a taxonomy of *how one slot gets filled*.
 
-The taxonomy people argue about endlessly — is this an ML model? is a pricer a model? does a rule
-set count? — is not a taxonomy of *things*. It's a taxonomy of *how one slot gets filled*.
+And the two extremes are the interesting ones:
 
-And the two extreme cases are the interesting ones:
-
-- **Black–Scholes is the case where `P` is empty.** Not a degenerate model. Not a special case. The
-  parameter object is the terminal object, so `P ⊗ X ≅ X`, and the fitting question is *vacuous*.
-  The system can now say, precisely and correctly: asking this artefact for a training set is a type
-  error.
-
+- **Black–Scholes is the case where `P` is the terminal object.** Not a degenerate model. Not a special case.
+  `P ⊗ X ≅ X`, so the model is just a kernel, and the fitting question is *vacuous*. The system can now say,
+  precisely: asking this artefact for a training set is a **type error**.
 - **The vendor score is the case where `P` exists but is inaccessible.** All you can observe is the
-  composite. Which is *exactly why* the only evidence you can ever gather about a vendor model is
-  behavioural — you compare its outputs against your own realised outcomes. That's not a workaround.
-  It's what the mathematics says is available.
+  composite. Which is *exactly why* the only evidence you will ever get about a vendor model is behavioural —
+  you compare its outputs against your own realised outcomes. That isn't a workaround. It's what the
+  mathematics leaves available.
 
-Pathology one, dissolved. Training was never part of the definition of a model. It is one way of
-inhabiting a parameter object.
+Here is the part that matters for the argument, though: **this class is computed, never stored.** There is no
+field. Nobody types T3. You give the register two facts about how the parameters came to be, and it works out
+the rest — and derives from that what evidence it is entitled to ask you for.
+
+### The honest bit
+
+The class derives from three things: is `P` empty, is `P` reachable, and what procedure filled it. The first
+two are properties of the artefact. The third is still something a person records.
+
+So the derivation *shrinks* the declared surface — from a nine-valued taxonomy with nine ways to be wrong,
+down to one fact about what act produced the numbers — rather than eliminating it. And it shrinks it in a
+place where being wrong is harder to hide, because the shape of `P` and the procedure that filled it are
+recorded separately and can be compared.
+
+I'll flag two soft spots while I'm here, because I'd rather you heard them from me. Nothing currently
+cross-checks the two against each other — you can declare "learned weights" and "elicited from a committee"
+and the register will not blink. And where the fit procedure was never recorded at all, the fallback is
+**T0** — which means an artefact whose parameters exist but whose provenance nobody wrote down gets treated
+like a closed-form pricer, and is quietly exempted from fitting evidence. That's the same failure direction
+as everything else in this article, one level in.
 
 ---
 
-## Then something surprising falls out
+## One order, for four questions
 
-Here's the part I didn't expect.
+Remember the four places that ask *can this stand where that stood?* Here they are again:
 
-Supervisory guidance has said, for fifteen years and in almost identical words across jurisdictions,
-that you must assess model risk *individually and in aggregate*, and that aggregate risk "reflects
-interactions and dependencies among models; reliance on common assumptions, data, or
-methodologies."
+| Where | What it asks |
+|---|---|
+| An alias move | may this replacement version stand where the incumbent stood? |
+| A fit warrant | does this featureset provide what the kernel says it reads? |
+| A contract | does this operating contract refine the one it replaces? |
+| A dependency edge | does what the source produces arrive where the target reads it? |
 
-Everyone nods at this. Almost nobody implements it. In practice, aggregate risk gets computed as the
-maximum — or the join — of the component ratings.
+Four implementations. Actually, in the system I built, three implementations and one **complete absence** —
+the dependency edges were recorded and never checked at all, which meant every blast radius was computed over
+a graph nobody had validated.
+
+So: write the relation once.
+
+> **`A ⊑ B`** iff `A` has every field `B` has, each accepting **at least** what `B`'s did.
+
+Read it as *A can stand in for B*. `A` may have extra fields — nobody has to look at them. Each shared field
+must accept at least what `B`'s accepted, because a replacement that rejects an input its predecessor took is
+a replacement that breaks a caller.
+
+**A correction I want on the record.** My design note said a refinement was "at a type no wider". That is
+backwards. Standing in for something requires accepting **at least** what it accepted, so a *wider* range is
+fine and a *narrower* one regresses. The prose came from the intuition that a subtype is narrower — true of
+the values a type denotes, false of the inputs a slot accepts. The code had it right all along; writing the
+implementation found the error in the design note. That is the ordinary direction of that traffic and I think
+papers that only report their successes misrepresent how the work goes.
+
+### It's a lattice, and the lattice does work
+
+Schemas ordered this way have meets and joins:
+
+| | | |
+|---|---|---|
+| **meet** `A ⊓ B` | the **union** of the fields, each widened to accept both | the schema that can stand in for either — what a featureset must provide to serve two models at once |
+| **join** `A ⊔ B` | the **intersection**, narrowed to what both accepted | what two schemas *agree* on — what a consumer of either may rely on |
+| **top** | the empty schema | it demands nothing, so everything can stand in for it |
+
+There's no bottom, and saying so matters: a least element would have to carry every field name that could
+ever exist. It's a lattice on each finite fragment, which is the only fragment anything ever inhabits.
+
+The meet is the one that earns its keep. *"Can one featureset serve both these models?"* was previously not
+even askable; now it's `S(F) ⊑ in(k₁) ⊓ in(k₂)`, one line.
+
+**And the meet is partial — informatively so.** Two schemas whose shared slot carries two different types
+have *no* meet, because no schema accepts both a number and a string in one slot. So the honest answer to
+"can one featureset serve both?" is **no, and here is the slot**. The implementation raises a named error
+carrying the conflicting field and both types, rather than returning nothing — because the caller who asks
+has a decision to make, and a `None` threaded through three layers becomes a silent empty schema somewhere
+downstream.
+
+One caveat I owe you, since this article is about facts that are asserted and never checked. The *order* is
+called from three production paths and they now go through one function. The *meet and join* are implemented
+and their lattice laws are asserted over generated schemas — but nothing in the running system calls them
+yet. They are a question the structure can now answer and nobody has yet asked. Available, not deployed, and
+I'd rather say so than let the paragraph above imply otherwise.
+
+### A refusal that names the remedy
+
+When `A ⊑ B` fails, it fails in exactly two ways, and they're kept apart:
+
+- **missing** — names `B` has that `A` doesn't. Somebody bound the wrong featureset.
+- **narrowed** — names `A` has that accept less than `B`'s did. Somebody tightened a constraint without
+  noticing it was a promise.
+
+Different mistakes, different fixes. A refusal that says "incompatible" is a message. A refusal that says
+*"does not provide `turnover`; accepts less than before at `dscr`"* is an instruction.
+
+That's a small thing that changes what a control feels like to be on the receiving end of.
+
+---
+
+## Wiring is a type-check, not a drawing
+
+An edge saying *A's output is read by B* is a claim about types. Recorded and never checked, it's a picture:
+the blast radius follows edges nobody validated, a composite has no derived schema, and there's nothing to
+quantify the interaction premium over.
+
+Checked, it's composition — and the check is the same order as everything else:
+
+```
+refines( output_schema(source), input_schema(target) )
+```
+
+| | |
+|---|---|
+| extra outputs | fine — simply unread |
+| a missing output | refused: a wire to nowhere, with the field named |
+| a narrowed output | refused, the same regression an alias move names, one level out |
+| either end has no version yet | recorded **without** a type check, and the log says so |
+| `challenger_of`, `benchmark_for` | not typed: they record how somebody *thinks* about a model. There's no wire |
+| `calibrated_by` | propagates but doesn't compose — solving parameters isn't handing an output to an input |
+
+And the composite's schema is **derived**: the source's inputs, the target's outputs. Not declared — because a
+composite whose signature somebody wrote down is a composite that can disagree with its parts.
+
+**A concrete one.** An ECL stack records that a PD model feeds a provisioning engine. Both entries have
+existed for two years; the edge is on the diagram in every committee pack. The PD model produces `pd_12m`.
+The provisioning engine reads `pd_lifetime`. Nobody ever wired them — an adapter in between computes one from
+the other using a term structure that belongs to a third model, which isn't in the register at all.
+
+Unchecked, the register reports a two-node dependency that is wrong in both directions: it claims a change to
+the PD model reaches provisioning directly, and it omits the term structure entirely. Checked, the edge is
+refused at the moment somebody records it, with `pd_lifetime` named — and the conversation that follows is
+the one that discovers the third model.
+
+### On the name
+
+This relation used to be called `feeds`. That was a bad name in a bank, where a *feed* means market data or a
+nightly file — so "A feeds B" read as though the platform consumed or produced one. It does neither: it moves
+no data and runs no model. The edge is a statement about two entries in a register, describing a wire that
+somebody else's engine carries. It's now called `input_to`. The old spelling still works on the way in and is
+stored under the new name, and is deliberately *not* published in the vocabulary, because offering two words
+for one relation invites somebody to decide they mean different things.
+
+I mention it because I think naming is part of the formalism, not decoration around it. A formal account
+whose terms are read wrongly by its audience has a defect, and the defect is in the account.
+
+---
+
+## What doesn't compose: aggregate risk
+
+Supervisory guidance has said, for fifteen years and in almost identical words across jurisdictions, that you
+must assess model risk *individually and in aggregate*, and that aggregate risk "reflects interactions and
+dependencies among models; reliance on common assumptions, data, or methodologies."
+
+Everyone nods at this. Almost nobody implements it. In practice, aggregate risk gets computed as the maximum
+— or the join — of the component ratings.
 
 That practice is provably wrong, and the proof is three lines.
 
-Take a curve model `A`, and two pricers `B` and `C`.
+Take a curve model `A` and two pricers `B` and `C`.
 
-**Network 1:** `A` feeds both `B` and `C`. One curve, two consumers.
+- **Network 1:** `A`'s output is copied and read by both `B` and `C`.
+- **Network 2:** `A` into `B`, and a *separate, independently built* curve `A′` into `C`.
 
-**Network 2:** `A` feeds `B`, and a *separate, independently built* curve `A′` feeds `C`.
+The component ratings are identical between the two. Same three values. So any scheme computing the aggregate
+as a function of the component ratings alone gives both networks **the same answer**.
 
-The component risk ratings are identical between the two networks. Same three ratings, same values.
-So any scheme that computes the aggregate as the max — or the join, or any function of the component
-ratings alone — gives the two networks **the same aggregate risk**.
+But they are obviously not equally risky. In Network 1, one failure takes down both outputs. In Network 2,
+one failure takes down one. That is the entire concept of concentration risk, and the standard method is
+structurally blind to it.
 
-But they are obviously not equally risky. In Network 1, one failure takes down both outputs. In
-Network 2, one failure takes down one. That is the entire concept of concentration risk, and the
-standard method is structurally blind to it.
+So: *no aggregate risk measure can be both sensitive to shared dependency and computed compositionally from
+its parts.* Pick one. The regulators explicitly want the first, so the second has to go.
 
-So: *no aggregate risk measure can be both sensitive to shared dependency and computed
-compositionally from its parts.* Pick one. And since the regulators explicitly want the first, the
-second has to go.
-
-Now the bit that made me sit up.
-
-**What is the difference between the two networks?** Exactly one thing. Network 1 *copies* `A`'s
-output. Network 2 doesn't.
+Now the bit that made me sit up. **What is the difference between the two networks?** Exactly one thing.
+Network 1 *copies* `A`'s output. Network 2 doesn't.
 
 Shared dependency **is** the copy operation.
 
-And this is why the choice of mathematical setting matters in a way that is usually invisible. In an
-ordinary Cartesian setting — normal functions, normal composition — copying is free and implicit and
-structurally invisible. You literally cannot see the difference between the two networks in the
-algebra. In a **Markov category**, copying is an explicit piece of structure you have to draw.
+Which is why the choice of setting matters in a way that's usually invisible. In an ordinary Cartesian
+setting — normal functions, normal composition — copying is free and implicit and structurally invisible. You
+literally cannot see the difference between the two networks in the algebra. In a Markov category, copying is
+an explicit piece of structure you have to draw. Choosing the setting where probability lives naturally
+*also* gives you the setting where concentration risk becomes visible.
 
-Which means: choosing the setting where probability lives naturally *also* gives you the setting
-where concentration risk becomes visible. The regulator's paragraph about "reliance on common
-assumptions, data, or methodologies" turns out to have precise mathematical content, and that
-content is a comonoid.
-
-The practical consequence is a number you can actually compute and put in a report: the **interaction
-premium** — how much the whole exceeds the join of its parts, attributed to the specific shared
-parameters, shared inputs, and shared methodologies that caused it.
+**And I have to be straight with you about this one:** the theorem is proved, the derived composite signature
+now exists for it to quantify over, and the shared-dependency computation exists. The interaction premium
+itself is **not built**. There is no aggregate risk function in the system. The theorem says what a correct
+one cannot be; it does not construct one. That's one of the six laws I list as not executable further down,
+and it is the one I'm least comfortable about, because it's the result I most want to be true in practice.
 
 ---
 
-## Two more, quickly
+## One operator, and the `min` that everything rests on
 
-I'll be brief, because the pattern is now clear: pick the structure that matches the problem, and
-the guarantee you wanted falls out.
-
-**Kinds of model as fibres.** Instead of "kind" being a column, make it the index of a *fibration* —
-a family of structures indexed by kind. Each kind supplies its own fibre: what evidence it requires,
-what lifecycle it follows, what metrics it's monitored on, what documents it produces.
-
-Adding a kind means supplying a fibre. And there's a small theorem that says the extension is
-*conservative*: nothing about any existing kind changes, because the existing fibres are literally
-untouched.
-
-That's pathology two gone, and it converts "we support new kinds of model" from a marketing claim
-into a structural property. Including kinds nobody has invented yet.
-
-**Regulators as institutions.** This one is my favourite, because the tool has been sitting on the
-shelf since 1992.
-
-Goguen and Burstall defined an **institution**: an abstract formalisation of "a logical system" —
-signatures (vocabulary), sentences (statements), models (things statements are true of), and a
-satisfaction relation. It was built for combining different specification logics.
-
-A regulatory regime is a logical system. It has its own vocabulary (*complexity*, *exposure*,
-*purpose*, *natural persons*, *intended purpose*), its own sentences (the obligations), and its own
-notion of what makes a sentence true of an inventory record.
-
-So: each regime is an institution. Translations between them are institution comorphisms. Adding a
-regulator is adding a module.
-
-And institutions come with the **satisfaction condition**: *truth is invariant under change of
-notation.* Evaluate an obligation in the regulator's vocabulary, or translate it into yours and
-evaluate there — you must get the same answer.
-
-Which gives you something governance systems essentially never have: a **falsifiable consistency
-test**. If the two sides disagree, your encoding of that regulation is wrong. Not "arguably
-suboptimal" — wrong, demonstrably, and detectable by generating inventory states and checking.
-
-Scope determinations are among the most consequential judgements anyone makes in this domain —
-whether an artefact is in the governed population determines whether *any* control applies to it —
-and they are almost always a checkbox with a comment. This turns them into a derivation: the
-sentence, the facts, the specific conjunct that failed, the citation.
-
-
----
-
-## The third letter, and the one everybody skips
-
-We have spent a long time on `P`, because that is where the taxonomy lives. But the definition has
-three letters, and the second one — `X`, the input object — is where the expensive mistakes actually
-happen.
-
-Here is the thing nobody says out loud: **a model is not the artefact you validate. It is the
-artefact plus the data it was fitted on, and the data is the half that moves.**
+Everything above is about `P` and about the *shape* of `X`. This section is about `X`'s contents, and it's
+where the expensive mistakes actually happen.
 
 ### Two clocks, never one
 
-Every fact about the world has two timestamps, and treating them as one is the single most common
-way a model is quietly wrong.
+Every fact about the world has two timestamps:
 
-- **`event_ts`** — when the fact was *true*. The borrower's Q1 debt-service ratio has an event time
-  of 31 March, because that is the period it describes.
-- **`ingest_ts`** — when the fact became *known to you*. That same figure landed in your warehouse
-  on 20 May, because that is when they filed.
+- **`event_ts`** — when the fact was *true*. The borrower's Q1 debt-service ratio has an event time of 31
+  March, because that's the period it describes.
+- **`ingest_ts`** — when the fact became *known to you*. That figure landed in your warehouse on 20 May,
+  because that's when they filed.
 
-A single-timestamp store cannot tell you the difference, so it cannot answer the only question that
-matters when you are assembling a training set: *what did we know at the moment the decision was
-made?*
+A single-timestamp store cannot tell them apart, so it cannot answer the only question that matters when
+assembling a training set: *what did we know at the moment the decision was made?*
 
-Now watch what happens with a restatement — which is not an edge case, it is a Tuesday. In August,
-the borrower revises that Q1 figure downward, from 1.20 to 0.40. Both rows are true. Both belong in
-the store. They have the same event time and different ingest times.
+Watch what happens with a restatement — which is not an edge case, it's a Tuesday. In August the borrower
+revises the Q1 figure downward, 1.20 to 0.40. Both rows are true. Both belong in the store. Same event time,
+different ingest times. You're building a training set for a decision made in June.
 
-You are building a training set for a decision made in May.
+- Read with one clock and you get 0.40, because it's the current value for Q1.
+- Read with two and you get 1.20, because 0.40 was not knowable in June.
 
-- Read with one clock and you get 0.40, because it is the current value for Q1.
-- Read with two and you get 1.20, because 0.40 was not knowable in May.
+Train on 0.40 and your model learns to predict defaults using a number that only exists *because* the default
+already happened. It scores beautifully in backtest and fails in production, and the failure looks like drift
+rather than what it is.
 
-Train on 0.40 and your model learns to predict defaults using a number that only exists *because* the
-default already happened. It will score beautifully in backtest and fail in production, and the
-failure will look like drift rather than what it is.
+So far, so folklore. Here's the part I think isn't folklore.
 
-The rule that prevents it is one line:
+### The read is an operator
 
-> A fact may be used for a row labelled at time `T` only if `event_ts ≤ T` **and** `ingest_ts ≤ T`.
+```
+AsOf(R, ℓ, a) = argmax over (event_ts, ingest_ts) of
+                { r ∈ R : r.event ≤ ℓ  ∧  r.ingest ≤ min(ℓ, a) }
+```
 
-Both bounds, and the second one is the one people drop. It is the difference between "as the world
-was" and "as we knew it" — and only the second can be defended to anybody.
+`ℓ` is the label time — the moment of the decision. `a` is the `as_of` — the moment the assembly was built.
+
+Four properties, each of which is an assertion in the test suite rather than a claim in prose:
+
+| | |
+|---|---|
+| **Idempotent** | read the result again and you get it back |
+| **Commutes with projection** | which row is admissible is decided on the clocks alone, so reading fewer columns cannot change the choice |
+| **Monotone in `a`** | a later read can only *widen* what's admissible; nothing knowable stops being knowable |
+| **Saturating at `ℓ`** | **this is the one** |
+
+Because the ingest bound is `min(ℓ, a)` and not `a`, **every `a ≥ ℓ` gives the same answer**. A training row
+assembled the day its label matured, and the same row re-assembled a year later, are identical — however many
+restatements arrived in between.
+
+That *is* reproducibility. Not a discipline you impose on whoever re-runs the job, not a convention in a
+runbook: a property of the operator.
+
+Without the `min`, a re-run quietly *improves* on the original — which is the least useful kind of
+reproducibility, because the numbers then agree with nothing, including themselves.
+
+Both bounds are there because they refuse different things. `ℓ` is what the model could have known when the
+decision was made. `a` is what the platform could have known when the set was built. Taking the earlier of
+the two is what makes the read stable.
 
 ### The leak that hides inside a helpful feature
 
-Once you have the two clocks, the interesting failures move somewhere subtler.
+Once you have two clocks, the interesting failures move somewhere subtler.
 
-Suppose you have monthly observations with a gap, and you fill it forward from the *next*
-observation — a perfectly ordinary thing to do when presenting a history to a person. The value you
-carried backwards into March was first observed in April. It is now sitting in a March training row.
+Suppose you have monthly observations with a gap and you fill it forward from the *next* observation — a
+perfectly ordinary thing to do when presenting a history to a person. The value you carried backwards into
+March was first observed in April. It's now sitting in a March training row.
 
-The honest fix is not to forbid it. It is to record *when each filled value actually became
-available*, so a value carried backwards keeps April's ingest time — and then the ordinary
-point-in-time rule excludes it without anybody having to remember a flag.
+The honest fix isn't to forbid it. It's to record *when each filled value actually became available*, so a
+value carried backwards keeps April's ingest stamp — and then the ordinary point-in-time rule excludes it
+without anybody having to remember a flag.
 
-I want to flag something here, because I got it wrong myself and it is instructive. Recording the
-stamp is **necessary and not sufficient**. The rule that reads it has to bound the ingest clock by
-the moment of the *decision*, and it is very natural to bound it instead by the moment you built the
-training set — which is usually "now". Do that, and an April value walks into a March row on the
-grounds that April came before Tuesday. The stamp was telling the truth; nothing was reading it
-against the right bound.
+I got this wrong myself, and the way I got it wrong is instructive. Recording the stamp is **necessary and
+not sufficient**. The rule that reads it has to bound the ingest clock by the moment of the *decision*, and
+it is very natural to bound it instead by the moment you built the training set — which is usually "now". Do
+that, and an April value walks into a March row on the grounds that April came before Tuesday. The stamp was
+telling the truth; nothing was reading it against the right bound.
 
-That class of bug is characteristic of this whole area. The mechanism is right, the mechanism is
-sound, and the thing consulting the mechanism asks it a slightly different question than the one it
-answers.
+That class of bug is characteristic of this whole area. The mechanism is right, the mechanism is sound, and
+the thing consulting the mechanism asks it a slightly different question than the one it answers.
 
-### A feature is an object, not a column
+### Two bugs that only appeared when the law became executable
 
-If features are the input half of a model, they need the same treatment the model got.
+Both had been sitting there for months. Both are invisible to ordinary testing. Both are the same shape.
 
-So: a **feature** is a governed object with an owner, a definition, and a lineage. Some are
-primitive — a number that arrives from somewhere. Some are **derived**: `Z = f(X, Y)`, computed from
-other features by a deliberately small expression language.
+**The published rule was not the applied rule.** The platform publishes the point-in-time predicate as a
+string, in every featureset plan and every warrant, because the engines that implement it aren't the ones
+this system runs. The published string said `ingest_ts <= as_of` — the rule from *before* the `min` was
+introduced. So an engine implementing the published contract faithfully admitted rows the platform's own
+assembly refuses, and the disagreement would have surfaced as an unreproducible training set with two
+correct-looking implementations and no way to tell which one was wrong.
 
-Two consequences fall straight out of the definition, and both are things people currently do by
-hand or not at all.
+The old test asserted `"ingest_ts <= as_of" in plan["pit_rule"]` — a substring check loose enough to pass on
+the wrong rule. The new one doesn't read the string. It **executes** it, against the same rows, and demands
+the same answer as the operator.
 
-**A derived feature inherits its ingest clock as the maximum over its inputs.** If `Z` is computed
-from `X` known in May and `Y` known in August, then `Z` was not knowable until August. That is
-arithmetic, not policy — which means it cannot be forgotten, and the easiest route to leakage closes
-itself.
+**The independent verifier disagreed with the thing it verifies.** Assembly is checked by a second
+computation that deliberately does not reuse the assembly path, so that agreement means something. That
+second path bounded ingest by `as_of` alone while the operator bounds it by `min(ℓ, a)`. So the two
+disagreed whenever a set was assembled *after* its labels matured — which is the ordinary case — and the
+verifier reported a mismatch on a **correct** assembly.
 
-**A feature derived from the label is a type error.** `price_per_sqft` is a perfectly good feature
-until your label is `sale_price`, at which point it is the answer wearing a disguise. Walking the
-transitive lineage catches it at the moment somebody tries to use it, and the refusal names the
-derivation chain rather than saying "no".
+A false positive in the control that verifies a control is worse than no control. It teaches whoever reads
+the report to discount it.
 
-### A featureset is a schema, and a version fills it
+### Featuresets: schema and filling
 
-Here is the piece that makes the whole thing composable.
+The operator reads records; something has to say which records.
 
-A **featureset** declares a *schema* — named slots with types. A **version** of that featureset
-*fills* the schema, binding each slot to a specific feature and to the exact version of the view
-supplying its values.
+A **featureset** declares a *schema* — named slots with types, which by the order above is exactly what a
+kernel is defined over. A **version** of that featureset *fills* the schema, binding each slot to a specific
+feature and to the pinned version of the view supplying its values.
 
-That separation does real work:
+That separation does three things:
 
-- A model is defined over the *slots*. So swapping which feature fills a slot does not change the
-  model's input space — it changes what the model was fitted on, which is a different event with a
-  different control.
-- A version that cannot fill the schema is refused. Adding a slot is a change to `X`, and a change
-  to `X` is a model change, not a data change. The register says so instead of letting it happen
-  quietly.
-- Because every binding pins a *version*, one featureset version always resolves to the same bytes.
-  A stable identifier over moving contents is the failure this design exists to prevent, and it is
-  remarkably easy to reintroduce — I have now watched it reappear in four different disguises.
-
-### Composition is a monoid, and that is not decoration
-
-Featuresets compose. So do features. And the composition is the *same* fold in both cases: merge
-left to right, rightmost wins, with the empty set as the identity.
-
-That is a monoid, and saying so buys three things that would otherwise be conventions people
-half-remember:
-
-1. **Associativity**, so `(A ∘ B) ∘ C` and `A ∘ (B ∘ C)` are the same set. Without it, "which order
-   did we build this in" becomes a question with a consequence.
-2. **A stated precedence**: leftmost is least prominent. Not a preference — a property of the fold,
-   which means a child inheriting from three parents has one answer rather than three.
-3. **Totality of the operations.** `add` a slot the parents do not have, `drop` one they do,
-   `override` one with a different type — and each is *refused* when it would be a no-op. Adding a
-   slot that already exists is not harmlessly idempotent; it is somebody believing an operation
-   happened.
-
-This is the sense in which "a combination of features is a feature" is a statement rather than an
-aspiration. It is one fold, applied at two levels, and the reason a featureset composed from three
-others behaves predictably is that the algebra says it must.
+- Swapping which feature fills a slot doesn't change the model's input space. It changes what the model was
+  *fitted on*, which is a different event with a different control.
+- A version that cannot fill the schema is refused. Adding a slot is a change to `X`, and a change to `X` is
+  a model change, not a data change. The register says so instead of letting it happen quietly.
+- Because every binding pins a version, one featureset version resolves to the same bytes forever. A stable
+  identifier over moving contents is the failure this design exists to prevent, and it is remarkably easy to
+  reintroduce — I have now watched it come back in four different disguises.
 
 ---
 
-## Artefacts that remember
+## One polynomial, for everything that rests on something else
 
-Everything so far assumes the artefact's output depends on its parameters and its input and nothing
-else. Plenty of governed things violate that: a simulation engine carrying a random-number state
-across calls, a system that adapts online, an agent that acts and then observes what happened.
+### Evidence is a derivation, not a log
 
-The tempting move is to fold the state into the input — call it part of `X` and carry on. It is
-faithful, and it is wrong in a specific way: the input object of a governed artefact is supposed to
-be *what the caller supplies*, and under that encoding it contains something the caller neither
-supplies nor sees. Every downstream construction that quantifies over inputs is then quantifying
-over a set nobody controls.
+Assurance evidence is a DAG: fitting evidence supports a fitting run, which with code and environment
+supports a version, which supports test outcomes, which support a validation conclusion, which supports an
+authorisation, which supports a deployment. Claims are built from base evidence by AND (joint dependence) and
+OR (alternative routes).
 
-Keep the state where it belongs and the artefact becomes a map
+Annotate each base item with an element of a **semiring** — something playing the role of plus, something
+playing the role of times — and propagate with times for AND and plus for OR.
 
-```
-f : P ⊗ S ⊗ X → S ⊗ Y
-```
+Now the trick. Evaluate the derivation once in **`ℕ[X]`**, the free commutative semiring over evidence
+identifiers, and every other answer is a *substitution* into that result: a homomorphism sending each
+variable to its value in whatever arithmetic you care about.
 
-a stochastic machine that returns a new state alongside its answer. Now here is the part that
-changed how I think about testing.
+| Arithmetic | What the same traversal then tells you |
+|---|---|
+| true/false | is the claim supported at all? |
+| counting | how many independent derivations corroborate it? |
+| minimal support sets | which evidence sets suffice — what you'd put in front of an examiner |
+| `ℕ[X]` itself | exactly how it was derived, keeping multiplicity |
+| `(max, ×)` on `[0,1]` | with what confidence? |
+| `(min, +)` | at what least cost can a gap be closed? |
+| sets of regimes | for which regimes is this evidence admissible? |
 
-**If a thing remembers, you cannot learn what it does by asking it questions one at a time.**
+Nobody wrote seven features. Somebody wrote one traversal and seven valuations of about twenty lines each.
 
-Two systems can give identical answers to every single question you ask and still be completely
-different systems, because what distinguishes them is not any one answer but how the answers relate
-to each other. The smallest example: one system flips a fresh coin on every call; the other flips one
-coin at start-up and repeats it forever. Ask each once — indistinguishable. Ask twice — one gives you
-`(0,1)` a quarter of the time and the other never does.
+And this is a **theorem**, not a coincidence: where evaluating directly in an arithmetic and pushing the
+polynomial forward disagree, one of the two routes is not a homomorphism — which is a fact about the
+structure, not about the traversal. It's checked over 200 randomly generated derivation DAGs against five
+arithmetics.
 
-The consequence for governance is sharp. A "patch release" is a claim that nothing observable
-changed, and that claim is exactly as strong as the tests behind it. For an artefact that carries
-state, **a test set of individual cases cannot support the claim at any size**, and there is no
-length of test sequence at which you can stop and declare yourself safe: for every `n` there are two
-systems that agree on every sequence of length `n` and differ at `n+1`.
+The polynomial is worth keeping rather than just evaluating in each arithmetic separately, because it retains
+what the others throw away. Coefficients count *distinct derivations*; exponents count *how many times one
+fact is used*. Boolean provenance loses both — it cannot tell a claim supported by one document from a claim
+supported by four.
 
-Worked example, because this is not hypothetical. A counterparty simulation engine seeds its random
-generator once at process start. Somebody replaces it with a per-request seed — a pure performance
-change, removes a lock, halves latency, nothing about the model or its calibration touched. Labelled
-a patch. The nightly regression suite runs eleven thousand single-trade valuations and reproduces
-every one within tolerance, because a single valuation averages over paths either way.
+### The same idea, one layer across
 
-What changed is the correlation *between* valuations in one batch. Two trades in the same netting set
-used to be simulated against common paths and now are not. Exposure at the netting-set level moves
-materially, in the direction of understatement.
+A derived feature is a **term**: `Z = f(X, Y)`. So annotate each base feature with its own variable and
+evaluate the term in `ℕ[X]`. Now every question about the feature is a homomorphism out of it:
 
-Eleven thousand tests could not detect it. No number of tests of that shape could have. The defect
-was not that the suite was too small — it was that every element of it had length one.
+| Question | The homomorphism |
+|---|---|
+| what does this rest on? | the free variables of the polynomial |
+| when did it become knowable? | pushforward into `(max, max)` |
+| does it touch the label? | membership of the label's variable |
+
+The ingest clock is the interesting one. *"A derived feature's ingest time is the maximum over its inputs"*
+was documented as a rule — as *arithmetic, so it can't be forgotten*. It's stronger than that. It's a
+**homomorphism**, and a homomorphism has no exceptions to forget. Every route to the number goes through the
+same object, and that's checked: the hand-written rule and the max-pushforward must agree, or one of them
+isn't what the other claims to be.
+
+Two other things fell out that I hadn't separated properly before:
+
+- **`lineage`** is every ancestor including derived ones — the right answer to *what breaks if this changes*.
+- **`rests_on`** is the free variables of the polynomial: base features and nothing else — the right answer to
+  *what data does this ultimately read*.
+
+The second is the first minus its derived members, and that's asserted rather than assumed. And leakage
+detection becomes a **membership test** rather than a graph walk with a depth limit: a derivation of a
+derivation of the label is still the label, and the polynomial knows it without anyone traversing anything.
+
+### The one that isn't a semiring
+
+The design I started from named six arithmetics. One of them was **freshness** — `(max, max)` — answering
+"as of when is this current?"
+
+It isn't a semiring. `max(0, 5)` is 5, not 0, so its zero does not annihilate. And it's worse than that: for
+`max` to have an identity at all, that identity has to be the bottom of the order — on *both* sides. So zero
+equals one. And in any semiring, `0 = 1` forces the whole thing to collapse to a single element. There is no
+choice of constants that repairs it. `(max, max)` is a commutative idempotent monoid used twice, and the
+universal property does not reach it.
+
+The practical consequence is worth knowing rather than hiding: **a claim resting on a *missing* fact reports
+the freshness of the facts that are present, rather than reporting that it has none.** A structure that tells
+you "as of when" for a claim it cannot in fact support is exactly the sort of instrument that reads as
+reassurance.
+
+I found this by writing the test that asserts the universal property, which freshness then failed. It is now
+a test that asserts the *failure*, so nobody quietly re-includes it.
+
+The repair isn't a different pair of operations. Currency is an *aggregate* over provenance rather than a
+valuation of it, and aggregates over semiring-annotated data need semimodule structure rather than a semiring
+on the annotations — which is a known and solved problem in the provenance literature, and one I have not
+built. It's recorded as a gap rather than described as an intention.
 
 ---
 
-## The part I didn't expect: this tells you where AI belongs
+## What you still have to declare
+
+An argument that four facts derive owes you an account of the ones that don't. There are three kinds, and
+only the third is irreducible.
+
+**Derived from a declared rule.** Risk tiering. The *value* is arithmetic: apply an agreed rule to a fact
+set. There's no judgement in the computation at all. What's declared is the rule — the tiering matrix, the
+lattices, the control mapping — and it should be. Two properties are then worth enforcing on it:
+*monotonicity* (nothing you can learn that makes a model more consequential or more complex will ever move it
+into a *lighter* control regime — which is exactly the guarantee an examiner wants and exactly what an
+unconstrained scoring formula can't give), and an *adjunction* between required controls and defensible tier,
+which means a control gap and an inflated tier are one defect seen from two sides rather than two problems
+that never converge.
+
+**Declared, but with a consistency oracle.** Regulatory scope. The same artefact can be outside one regime's
+population, inside a second's, high-risk under a third and a key control under a fourth — simultaneously.
+These are not four values of one attribute. They're four logical systems, each with its own vocabulary and
+its own notion of what makes a sentence true of an inventory record.
+
+Goguen and Burstall's **institutions** are exactly the abstraction for "a logical system", and they've been
+on the shelf since 1992. Each regime is an institution; translations between them are comorphisms; adding a
+regulator is adding a module. And institutions come with the **satisfaction condition**: *truth is invariant
+under change of notation.* Evaluate an obligation in the regulator's vocabulary, or translate it into yours
+and evaluate there — you must get the same answer.
+
+Which gives you a **falsifiable consistency test** on your own encoding. If the two sides disagree, your
+encoding of that regulation is wrong. Not "arguably suboptimal" — wrong, demonstrably. The encoding is still
+a declaration, a claim *about* a regulation rather than the regulation. But a declaration with an oracle
+attached is a strictly better position than a checkbox with a comment.
+
+The same shape shows up for contradiction: whether a regime obliges and forbids the same term is decidable
+over the sentences whose form is declared — and the sentences the checker *cannot* read are **named** rather
+than assumed consistent. A check that silently ignores what it can't judge reports success for exactly the
+cases it was least able to judge.
+
+**Irreducibly declared.** Concluding a validation. Granting an approval. Accepting residual risk. Choosing
+the tiering rule. These aren't weakly-checkable tasks we're conservatively withholding. They have no notion
+of correctness independent of the authority exercising them. More on that in a moment, because it turns out
+to be the whole point.
+
+---
+
+## Laws, or it didn't happen
+
+A foundation that's documented and unenforced becomes ornament within a few releases, and thereafter
+misleads. So: every result above is restated as an executable law and checked by property-based testing
+against *generated* inputs, with failure treated as a build failure.
+
+One discipline matters more than the rest. Each law is tested **as it is stated**, not as the implementation
+happens to behave. A test written from the code proves only that the code agrees with itself.
+
+There are twenty-one laws. **Fifteen execute. Six do not**, and here they are, because a gap recorded only in
+a document is a gap somebody has to go looking for:
+
+| Law | Why it doesn't run |
+|---|---|
+| summary soundness | needs a replay that checks a document's quantitative claims against the register; the replay exists for validation episodes, not for documents |
+| lens laws | needs a `put`. The compiler regenerates whole documents, so there's no round trip — and building one to satisfy a law would be building the wrong thing |
+| evidence gluing | no implementation; no consistency radius is computed anywhere |
+| lax monoidality of risk | needs composite warrants and an aggregate risk function. The composite now has a derived schema to quantify over; the functor is design |
+| fibration completeness | needs a loader that refuses to boot on a partial fibre; model classes are strings today |
+| contract–serving agreement | needs an online store to compare against. Half exists: the system computes what serving *must* read |
+
+And a property test enforces that this list and the public table agree — if the table claims a law runs,
+something has to run it.
+
+**The three defects the executable form found**, all of which had been sitting there for months:
+
+1. **A design note that was backwards.** The prose said "at a type no wider"; the code had it right.
+2. **A published contract that didn't match the implementation.** The point-in-time predicate handed to
+   external engines was the rule from before the `min`.
+3. **An independent verifier that disagreed with the thing it verified.** The second computation bounded the
+   ingest clock differently from the first.
+
+None of the three is exotic. All three are the same shape: a statement and its implementation drifted, and
+nothing compared them — because the comparison had never been written down as something a machine could
+perform.
+
+---
+
+## The part I didn't expect: this is where AI belongs
 
 Here's what happened when I finished the structural work and looked at it again.
 
-Every one of those constructions is a **decision procedure**. The satisfaction condition decides whether
-a regulatory encoding is faithful. Provenance decides whether cited evidence supports a claim. Contract
-refinement decides whether one version may replace another. Probe equivalence decides whether two
-versions behave the same.
+Every one of those derivations is a **decision procedure**. The order decides whether one thing can stand
+where another stood. The operator decides whether a row is admissible. The polynomial decides whether cited
+evidence supports a claim. The satisfaction condition decides whether a regulatory encoding is faithful.
 
-I built them to make governance defensible. But a decision procedure is also exactly the thing that
-makes machine-generated output safe to accept.
+I built them to make governance defensible. But a decision procedure is also exactly the thing that makes
+machine-generated output safe to accept.
 
 ### The question everyone asks is the wrong one
 
-Walk into any enterprise AI discussion and the question on the table is *"is the model good enough for
-this task?"* It gets answered with benchmarks, a pilot, and a control that reduces to "a competent human
-will check it."
+Walk into any enterprise AI discussion and the question on the table is *"is the model good enough for this
+task?"* It gets answered with benchmarks, a pilot, and a control that reduces to "a competent human will
+check it."
 
-That control is weaker than it sounds. It's expensive, it doesn't scale, and — the part that should
-worry you — it degrades exactly when the output is fluent, because fluent text gets checked less
-carefully than rough text.
+That control is weaker than it sounds. It's expensive, it doesn't scale, and — the part that should worry you
+— it degrades exactly when the output is fluent, because fluent text gets checked less carefully than rough
+text.
 
-There's a better question available, and it isn't about the model at all:
+There's a better question, and it isn't about the model at all:
 
 > **Do I have a check?**
 
-If yes, it genuinely does not matter much what produced the answer. A wrong answer gets caught and
-thrown away; the only cost is wasted compute. If no, then trusting the answer is trusting the producer,
-and no review process changes that — the reviewer is facing the same absence of a standard you are.
+If yes, it genuinely doesn't matter much what produced the answer. A wrong answer gets caught and thrown
+away; the only cost is wasted compute. If no, then trusting the answer is trusting the producer, and no
+review process changes that — your reviewer is standing in the same fog you are.
 
-Stated properly: *if a task is oracle-backed, the soundness of automation is independent of the
-generator.* Hallucination stops being a risk and becomes a throughput cost. Base-model upgrades stop
-being governance events. And the boundary between "automate" and "don't" becomes a property of the
-domain, stable as models improve, rather than a nervous guess that has to be revisited every six months.
+Stated properly: *if a task is oracle-backed, the soundness of automation is independent of the generator.*
+Hallucination stops being a correctness risk and becomes a throughput cost. Base-model upgrades stop being
+governance events. And the boundary between "automate" and "don't" becomes a property of the domain, stable
+as models improve, rather than a nervous guess revisited every six months.
 
-### What that classifies as safe
+### And here's the thing
 
-Once you ask that question, the answer for this domain is surprisingly generous:
+**That boundary is the same boundary.**
+
+You have a check exactly where the fact was **derived** rather than **declared**. The derivation *is* the
+oracle. And where the fact constitutes the standard everything else is checked against — the tiering rule,
+the approval, the accepted residual risk — there is nothing independent for a check to appeal to, so there is
+no oracle, and there cannot be one.
+
+I drew that line for governance reasons and then discovered it answers an entirely different question.
 
 | Task | The check |
 |---|---|
-| **Encode a new regulation** as an institution | The satisfaction condition — generated inventory states, tested |
-| **Claim two model versions behave the same** | Run the probe set |
-| **Substitute one version for another** | Contract refinement — decidable |
-| **Convert a model to a portable format** | Run both over the probes, compare numerically |
-| **Cite evidence for a written claim** | Boolean evaluation of the derivation (see below) |
-| **Generate a probe, or a query** | It runs and discriminates, or it doesn't |
-| **Plan how to close a governance gap** | *No check needed* — the plan is computed, not proposed |
+| Encode a new regulation as an institution | the satisfaction condition |
+| Claim two versions behave the same | run the declared probe set |
+| Substitute one version for another | the order: contravariant in inputs, covariant in outputs |
+| Wire one model into another | `out(A) ⊑ in(B)` |
+| Bind a featureset to a kernel | `S(F) ⊑ in(k)` |
+| Assemble a training set without leakage | the point-in-time operator, recomputed independently |
+| Cite evidence for a written claim | Boolean pushforward of the derivation |
+| Propose a remediation plan | *none needed* — it's computed in the `(min,+)` arithmetic |
+| Generate a probe, or a query | it runs and discriminates, or it doesn't |
+| — | — |
+| **Choose the tiering rule** | **none exists** |
+| **Conclude a validation** | **none exists** |
+| **Accept residual risk** | **none exists** |
 
-That first row is my favourite, because it inverts an apparent weakness. The whole "regulators as
-institutions" idea has one real objection: encoding forty pages of supervisory prose into a formal
-vocabulary is expensive expert work, and expensive expert work doesn't happen. But it's a task language
-models are unusually good at — and now the output is checkable. Generation gets cheap; verification is
-mechanical; the expert stops authoring and starts adjudicating something that already passed a
-consistency test.
-
-The last row is a different kind of nice. Remember the "cheapest way to close a gap" semiring? That
-already computes the remediation plan. An agent doesn't have to *invent* the plan and be creatively
-wrong about it — it just executes a plan the algebra produced.
+The first row inverts what looks like a weakness. Encoding a forty-page supervisory statement into signatures
+and sentences is expensive expert work, and that cost is the practical objection to the whole institutional
+approach. It's also a task language models are unusually good at. And the output is *checkable*. Generation
+becomes cheap, verification is mechanical, and the expert's job changes from authoring to adjudicating an
+encoding that has already passed a consistency test.
 
 ### Citation checking is arithmetic, not vibes
 
-This one deserves its own paragraph because I think it's genuinely the sharpest thing in the whole
-exercise.
+The dominant failure mode of machine-generated governance text is the unsupported assertion. The standard
+mitigation — retrieval with citations — usually leaves *"does this citation actually support this claim?"* to
+another model call, which is to say unanswered.
 
-The standard fix for made-up facts is retrieval with citations. But *"does this source actually support
-this claim?"* is normally answered by another model call, or by lexical overlap — which is to say, not
-answered.
+Over a derivation structure it's a computation. Switch on exactly the cited identifiers, evaluate the claim's
+derivation in true/false, and see whether it still comes out true. If it does, the citation is genuine. If it
+doesn't, the sentence is **rejected** — not flagged for review, rejected — with the missing identifiers named.
 
-Over an annotated derivation structure, it's arithmetic. A generated sentence has to name the evidence
-it rests on. You switch on exactly those identifiers, evaluate the claim's derivation in Boolean, and
-see whether it still comes out true. If yes, the citation is real. If no, the sentence is **rejected** —
-not flagged, rejected.
+Take a drafted paragraph: *"Version 3.2.1 was approved for small-business origination following independent
+validation, which found discrimination within tolerance on all monitored slices."* It cites the validation
+report and the committee approval. But the claim's derivation requires the three test results too, so under
+those citations alone it evaluates false: the citation is incomplete, and the sentence is rejected with the
+gap named.
 
-Worked example. An assistant writes: *"Version 3.2.1 was approved for small-business origination
-following independent validation, which found discrimination within tolerance on all monitored slices."*
-It cites the validation report and the approval.
-
-Evaluate it. The approval claim's derivation also requires the underlying test results, which aren't in
-the cited set — so the product comes out false. Citation incomplete, and the system can name exactly
-what's missing.
-
-But look at the second clause. *"On all monitored slices"* is a quantified claim with no supporting
-term in the derivation **at all**. It doesn't get flagged as uncertain. It gets rejected as unsupported.
-
-And that is precisely the sentence a human reviewer waves through, because it reads exactly like the
-rest of the paragraph.
+Note also the second clause — *"on all monitored slices"*. That's a quantified claim whose truth isn't in the
+derivation at all. It has no supporting monomial, so it's rejected as unsupported rather than published as
+plausible. That's the class of sentence human review reliably misses, because it reads exactly like the rest.
 
 ### What it classifies as off-limits — and why "risky" is the wrong word
 
-Here's where I'd draw a harder line than is currently fashionable.
+*"Should we let a model assign risk tiers?"* is a malformed question. Assigning a tier isn't a generation
+task — it's arithmetic on a rule everyone agreed to, and a spreadsheet could do it. The real questions are:
+where do the facts come from (checkable — reconcile against systems of record), and who chose the rule (a
+decision with accountability attached).
 
-Should an AI assign risk tiers? People debate this as a risk-appetite question. I think it's malformed.
+Automating the second isn't risky-but-tempting. It's a **category error**, because there's nothing for the
+automation to be checked against. Same for concluding a validation, granting approval, accepting residual
+risk. These aren't tasks we're conservatively withholding. They're tasks with no notion of correctness
+independent of the authority exercising them.
 
-A risk tier is *defined* as a rule applied to facts. Applying the rule is deterministic — a spreadsheet
-could do it. There's no generation task there at all. The real questions are: where do the facts come
-from (checkable, by reconciling against source systems), and who chose the rule?
+### The reviewer is still in the system
 
-And choosing the rule can't be checked, because **the rule constitutes the standard**. There's no
-independent thing to check a proposed rule against. That's not "too risky to automate." It's a category
-error: there is nothing for the automation to be verified against, so the automation offers nothing.
+An oracle guarantees no incorrect output is accepted *by the oracle*. In a governance process, acceptance is
+an act performed by a person, and the composite that actually runs includes them. Machine-drafted text is
+fluent, fluency reads as care, and reviewers of polished artefacts find fewer defects than reviewers of rough
+ones. I can't dissolve that. Three things the structure does short of dissolving it:
 
-Same argument for concluding a validation, granting an approval, accepting residual risk, and closing a
-finding. These aren't weakly-checkable tasks we're conservatively withholding. They have no notion of
-correctness independent of the authority exercising them.
+- **It determines the division of attention formally.** Where an oracle exists the reviewer isn't checking
+  correctness — that's disposed of — but authority, which admits no oracle. Marking that boundary in the
+  interface is a mitigation available only because the boundary is formally determined rather than a matter
+  of taste.
+- **It supplies constructed objections rather than rhetorical ones.** An uncited claim is a failing conjunct.
+  A refused wire names the field that doesn't compose. A featureset that doesn't serve a kernel names the
+  slot that's missing or narrowed. These survive being stated in prose as fluent as the draft's, because none
+  of them is a matter of emphasis.
+- **It makes one thing measurable.** Whether the derivation nodes a claim rests on were actually *retrieved*
+  during the review is a fact about the session, not an inference about the reviewer. The sharpest signal is
+  the rate at which a reviewer accepts drafts the oracle refused — exactly the population where person and
+  procedure disagree, and a quantity that exists only in a system with a procedure to disagree with.
 
-So the rule I'd write on the wall:
-
-> **A machine may propose anything and decide nothing.**
+None of that has been evaluated. They're hypotheses the framework generates, not results it establishes.
 
 ### Isn't a system that governs AI, using AI, circular?
 
-It sounds like it should be. It isn't — but the reason is structural, not good intentions.
+No, and the reason is stratification rather than good intentions. The governing machinery — the order, the
+operator, the derivation structure, the institutions — is one layer. The governed population is another. An
+assistant is registered *in* the governed population: it has a parameter object (weights, prompt, corpus,
+tools), a fitting morphism (configuration), a contract, a classification, evidence. Nothing in the governing
+layer is an element of the governed one, and no construction needs a fixed point.
 
-The governing machinery — the classification rule, the evidence structure, the institutions — isn't
-AI, and isn't an object in the governed population. Every AI assistant *is* an object in that
-population: it has parameters (weights, prompt, corpus, tools), a fitting procedure (configuration), a
-contract, a risk tier, evidence, and a kill switch. Two layers, one direction. No fixed point required.
+One dependency does cross, and it's worth naming rather than hiding: if an assistant drafts a regime
+encoding, part of the governing layer was produced with help from the governed one. The resolution is that
+the dependency is *mediated by an oracle that is not itself machine-produced*. The satisfaction condition is
+a property of institutions, and it's evaluated mechanically.
 
-There's one dependency that crosses, and it's worth naming rather than hiding: if an assistant drafts a
-regulatory encoding, then part of the governing layer was produced with help from the governed one. The
-resolution is that the crossing is mediated by an oracle that *isn't* machine-produced — the
-satisfaction condition is a theorem, evaluated mechanically.
+**Generation may cross the strata. Acceptance may not.**
 
-Generation may cross the strata. Acceptance may not.
-
-I'd go further and make this a hard rule: no AI capability in the system holds a credential that permits
-a governance state transition. Not policy — credentials. Policy erodes under commercial pressure from
-sensible people with good reasons. Missing credentials don't.
+---
 
 ## The part where I try to talk you out of it
 
-I'd rather flag the weaknesses than have you find them.
+**There's no adoption study.** There's a reference implementation and its law suite runs, which is more than
+a conceptual paper usually has and much less than evidence. I have not shown that a system built this way is
+easier to build, extend or operate than one built without it.
 
-**None of this mathematics is new.** Markov categories, the Para construction, institutions,
-provenance semirings, assume–guarantee contracts, sound abstraction — all established, all borrowed,
-all with better expositions than mine. The contribution is assembly, plus about five results the
-assembly makes visible. If you were hoping for a new theorem, this isn't it.
+**The derivations still read declarations.** The class reads a declared fit procedure. The order compares
+declared schemas. The operator reads declared clocks. The polynomial is built over declared derivation edges.
+The claim is that the declared surface *shrinks and becomes checkable*, not that it vanishes — and where a
+derivation's fallback is permissive, the old failure mode comes back in a smaller place.
 
-**There's no implementation study.** I can argue the extension guarantees are real. I have not
-demonstrated that a system built this way is cheaper to build or operate than one built without.
-That's the missing evidence and I'm not going to pretend otherwise.
+**There are two variance rules for outputs, and the system holds both.** The composition check applies the
+input rule one level out, so a producer with a *narrower* range than the consumer declared is refused. The
+version-substitution check judges outputs on name and type alone, so narrowing is fine there. Both readings
+are defensible. Holding both is not, and this is exactly the kind of divergence that "write the relation
+once" was supposed to prevent.
 
-**The stateful treatment is narrow.** I give the definition and one consequence — that single-shot
-tests cannot support an equivalence claim about something that remembers, at any size. I do not
-develop the coalgebraic semantics properly, and I do not know whether the right ambient setting for
-genuinely interactive artefacts is coalgebra, open games, or something else. What I am confident of
-is the negative result, because it has a two-line counterexample.
+**Six laws don't execute**, and one of them is the interaction premium — which is the result I've been most
+enthusiastic about in this article. The theorem is proved. The number is not computed anywhere.
 
-**An oracle guarantees that no incorrect output is accepted *by the oracle*.** Acceptance in a
-governance process is an act by a person, and machine-drafted text is fluent in a way that suppresses
-the finding of defects — reviewers of polished artefacts find fewer problems than reviewers of rough
-ones. That is documented, it is not solved here, and the honest version of the claim is narrower than
-the one you would like to make.
+**The lattice is finite-fragment, and half of it has no caller.** No bottom element, and the meet is partial
+— both honest, and both meaning the structure is weaker than "schemas form a complete lattice" would lead you
+to believe. And as I said above: the order is wired into three places, the meet and join into none.
 
-What the structure does offer at that boundary is worth stating, because it is not nothing. Where an
-oracle exists, the reviewer is no longer checking *correctness* — the oracle did that — but
-*authority*, which is precisely the thing no oracle can settle. Marking that boundary in the
-interface is itself a mitigation, and it is available only because the boundary is formally
-determined rather than a matter of taste. Beyond that: show the draft alongside the strongest
-constructed case against it rather than alone, and measure whether the reviewer ever opened the
-evidence a claim rests on — which is a fact about the session, not an inference about the person, and
-is only measurable because evidence is a derivation structure. All of that is hypothesis. None of it
-has been evaluated.
+**Formalising regulation is lossy and contestable.** An institution encoding is a claim *about* a regulation.
+Two competent people may encode the same text differently and both be defensible. What the formalism gives
+you is that the claim is explicit, citable and testable for internal consistency — not that it's right.
 
-**It doesn't cover everything gracefully.** Stateful simulation engines and agentic systems that
-take actions and observe consequences fit only by shoving state into the input object. That's
-faithful but ugly, and probably wants coalgebra or open games instead. Unsettled.
+**The oracle boundary might be drawn too conveniently.** It classifies the decisions that matter most as
+admitting no oracle, which is a very comfortable conclusion for anyone who'd prefer humans keep them. I
+believe the argument — a rule that constitutes a standard cannot be checked against that standard — but it's
+exactly the sort of argument whose conclusion deserves scrutiny in proportion to how much you like it.
 
-**Formalising regulation is lossy and contestable.** Encoding a regime as an institution means
-committing to a reading of deliberately open-textured legal prose. The encoding is a *claim about*
-the regulation, not the regulation. What you gain is that the claim is explicit, citable, and
-testable for internal consistency. What you don't gain is being right.
-
-**Oracles are necessary, not sufficient.** The proposition guarantees no incorrect output is
-*accepted*. It says nothing about what a polished, unchecked-but-plausible artefact does to the person
-signing it. Citation checking covers claims; it doesn't cover rhetoric. The best instrument I have is
-measuring how much reviewers actually change — and treating a reviewer who changes nothing as a signal
-rather than a success. That's a partial mitigation, not a fix.
-
-**And I'll flag that my boundary is conveniently drawn.** The constitutivity argument classifies exactly
-the decisions people most want to keep — approval, tiering, sign-off — as the ones AI can't touch. I
-believe the argument. I also notice it's the conclusion I'd have preferred, and that's worth saying out
-loud.
-
-**And there's a real comprehension cost.** I have a rule I tried to hold myself to: an abstraction
-earns its place only if it delivers something you'd otherwise hand-build, hand-check or
-hand-migrate — *and* only if that something can be written as a test that runs in CI. Everything
-above passes. Several things I wanted to include didn't, and I cut them. Homotopy type theory was
-one. It was fun to think about and it bought nothing.
-
-That last discipline matters more than any individual construction. A documented-but-unenforced
-formalism decays into decoration within about two releases, and after that it actively misleads. If
-the monotonicity of your risk classification is a claim in a design document, it will silently stop
-being true. If it's a property test over generated inputs, it can't.
+**What would falsify this?** An artefact class that can't be presented as a parameter object plus a fitting
+morphism without distortion. A governance question about fit that genuinely isn't an instance of the order —
+which would show the unification was a coincidence of four cases. A fragility-sensitive aggregate risk
+measure that is nonetheless compositional. And, most likely of all: a demonstration that practitioners can't
+actually *use* the derivations — that a refusal naming a slot with no meet is no more actionable in practice
+than a flag with a comment.
 
 ---
 
 ## Why I think this matters beyond banking
 
-Every one of these pathologies shows up wherever a heterogeneous population of decision-making
-artefacts has to be governed as one thing.
+Strip the domain away and the shape is general.
 
-Healthcare systems run clinical decision rules, imaging models, risk scores, scheduling optimisers
-and now LLM scribes. Insurers run pricing models, reserving models, catastrophe models and
-underwriting classifiers. Public agencies run eligibility rules, fraud detection and forecasting.
-Every one of them is being told to produce an AI inventory. Every one of them is discovering that
-most of what belongs in it isn't AI, isn't trained, and doesn't fit the tool.
+Every system that governs something maintains a set of facts about what it governs. Some of those facts are
+consequences of structure the system already has. Some of them constitute the standard the system exists to
+apply. Almost every such system stores both kinds the same way — as fields somebody types in — and thereby
+loses the ability to tell them apart.
 
-The instinct is to buy something. I think the sequence runs the other way. You cannot manage a
-population you cannot define, and "model" as currently used is not a definition — it's a gesture at
-a family resemblance. Once you have a definition with structure, the tooling questions get
-noticeably easier, and several of them stop being questions.
+Separating them buys two things at once. The derived facts stop rotting, because they're recomputed rather
+than remembered, and a machine can tell you when they've stopped being true. And the declared facts get the
+attention they deserve, because they're no longer buried among a hundred fields that could have computed
+themselves.
 
-There's a version of this I keep coming back to. Two families of tools each solve half a problem,
-and everyone assumes the gap is a product opportunity. Sometimes it is. But sometimes the gap is
-where a definition should be, and no amount of product fills it.
+The second reason to care, which I'd have found unconvincing a year ago: every one of these organisations is
+also being asked how much of this work AI can do. The honest answer depends almost entirely on the same
+separation. Where a fact derives, generation is free because acceptance is checked. Where it constitutes the
+standard, there is nothing to check against, and the question isn't risk appetite — it's category.
 
-And there's a second reason to care now, which I'd have found unconvincing a year ago. Every one of
-these organisations is also being asked how much of this work AI can do. The honest answer depends
-almost entirely on something they haven't built yet: a structure that can tell them when an answer is
-wrong.
-
-So the generalisation, for whatever it's worth beyond this domain: when you're deciding how much of a
-judgement-laden process to hand to a language model, the first question isn't how good the model is.
-It's *what, in this domain, could ever tell us that the answer was wrong?*
+So the generalisation, for whatever it's worth: when you're deciding how much of a judgement-laden process to
+hand to a language model, the first question isn't how good the model is. It's *what, in this domain, could
+ever tell us that the answer was wrong?*
 
 If there's an answer, build aggressively — verification is doing the work, not trust.
 
-If there isn't, no review process will save you, because your reviewer is standing in the same fog.
-Either build the structure that supplies a standard, or keep the decision with a person who can be held
-to account for it.
+If there isn't, no review process will save you, because your reviewer is standing in the same fog. Either
+build the structure that supplies a standard, or keep the decision with a person who can be held to account
+for it.
 
 ---
 
-*The technical treatment — with the impossibility result stated properly, the conservative-extension
-and satisfaction-condition propositions, the semiring construction for assurance evidence, the
-automation-admissibility and citation-soundness results, and a full account of what I deliberately
-didn't adopt and why — is in the accompanying paper,* **Models as Parametric Kernels, Governance as
-Verified Automation.**
+*The technical treatment — the lattice theorem and the partiality of the meet, the four properties of the
+point-in-time operator with the saturation proof, the universality of the provenance polynomial and the proof
+that `(max, max)` cannot be a semiring, the impossibility result for aggregate risk, the citation-soundness
+proposition, the full register of laws with the six that don't execute, and what I deliberately didn't adopt
+and why — is in the accompanying paper,* **Models as Parametric Kernels: An Order, an Operator and a
+Polynomial.**
 
 ---
 

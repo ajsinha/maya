@@ -58,6 +58,42 @@ class VersionService:
             fit=FitProcedure(spec.get("fit_procedure", "none")),
             adaptive=bool(spec.get("adaptive", False)))
 
+    @staticmethod
+    def _refuse_unexplained_parameters(kernel: ParametricKernel) -> None:
+        """`P` is inhabited and nothing is declared to have inhabited it.
+
+        This was silently permitted, and it failed in the permissive direction,
+        which is the direction that costs something. `trainability_class` ends
+        with `_FIT_TO_CLASS.get(self.fit, "T0")`, and the only key absent from
+        that map is `NONE` — so a kernel with real, inspectable parameters and
+        no declared fit procedure came back **T0**. T0 means `P` is *terminal*:
+        no parameters at all. `requires_fitting_evidence` reads the class, so
+        the model was then exempted from fitting evidence on the grounds that it
+        has no parameters to have fitted, while carrying a set of them.
+
+        The two declarations contradict each other. Every legitimate way `P`
+        gets inhabited has a procedure — hand-set weights are `author` or
+        `elicit`, a foundation model is `configure`, a fit is `estimate` or
+        `train`. `none` genuinely means `P` is empty, which is exactly what
+        `is_terminal` already says. So this is refused at declaration rather
+        than resolved, because a state nothing can reach needs no downstream
+        check, and the permissive resolution is one nobody would have noticed.
+
+        Opaque is untouched: `P` is inhabited there too, but inaccessibly, and
+        that is T6 — a real class with its own consequences, reached before this
+        question is asked.
+        """
+        if (kernel.parameters.is_accessible
+                and not kernel.parameters.is_terminal
+                and kernel.fit is FitProcedure.NONE):
+            raise RegistryError(
+                f"this version declares parameters "
+                f"('{kernel.parameters.kind.value}') and no fit procedure, which "
+                f"says both that the model has parameters and that nothing "
+                f"produced them. Declare how P was inhabited — 'calibrate', "
+                f"'estimate', 'train', 'configure', 'elicit' or 'author' — or "
+                f"declare parameter_kind 'none' if there really are none")
+
     def create(self, urn: str, semver: str, kernel_spec: Dict[str, Any],
                contract_spec: Optional[Dict[str, Any]] = None,
                artifact_digest: Optional[str] = None,
@@ -84,6 +120,7 @@ class VersionService:
                 kernel_spec = dict(kernel_spec, artifact_format=held["format"])
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
+        self._refuse_unexplained_parameters(kernel)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
                     "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,

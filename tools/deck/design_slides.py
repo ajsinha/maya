@@ -3,9 +3,10 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-The detailed system design deck, in fifteen chapters.
+The MAYA deck: philosophy, foundations, concepts, system design and
+worked examples — twenty-five chapters in five parts.
 
-**Why this is a driver over a directory rather than one file.** The deck grew past ninety slides when the practitioner material was merged in, and the
+**Why this is a driver over a directory rather than one file.** The deck grew past a hundred and fifty slides when the practitioner material was merged in, and the
 generator with it — past the fifteen-hundred-line limit this repository holds
 every source file to. Splitting by chapter is the same answer the API test suite
 got: cut by subject, because a file cut at the fifteen-hundredth line is two
@@ -47,5 +48,6 @@ def build(out_path):
 
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "MAYA-System-Design.pptx"
+    target = (sys.argv[1] if len(sys.argv) > 1
+              else "MAYA-Model-and-Feature-Management.pptx")
     print("slides:", build(target))

@@ -81,10 +81,10 @@ class TestParametersInsideAnArtifactNeedItDigested:
         assert "what it loaded is what was approved" in problem.detail
 
     def test_the_law_is_not_keyed_on_the_class(self):
-        """A PMML scorecard is T3 and has exactly the same exposure as a T4
+        """A PMML scorecard is T2 and has exactly the same exposure as a T3
         network. Keying this on the trainability class would have missed it."""
         doc = load("05-logistic-scorecard-score")
-        assert doc["subject"]["trainability_class"] != "T4"
+        assert doc["subject"]["trainability_class"] != "T3"
         doc["parameters"]["source"] = {"binding": "artifact",
                                        "uri": "s3://x/scorecard.pmml"}
         doc["realisation"]["artifact"] = {"uri": "s3://x/scorecard.pmml"}

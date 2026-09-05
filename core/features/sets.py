@@ -46,7 +46,19 @@ logger = get_logger(__name__)
 
 # The point-in-time rule every featureset asserts. Stated once, here, rather than
 # re-declared in every warrant that reads one.
-PIT_RULE = f"{VALID_TIME} <= label_ts AND {INGEST_TIME} <= as_of"
+# The rule an execution engine is handed, and it must be the rule MAYA's own
+# assembly applies. It said `ingest_ts <= as_of`, which is the rule from BEFORE
+# the `min` was added — so an engine implementing the published string admitted
+# rows MAYA itself refuses, and the disagreement would have surfaced as a
+# reproducibility failure nobody could locate.
+#
+# The bound is `min(label_ts, as_of)` because the two clocks refuse different
+# things: `label_ts` is what the model could have known when the decision was
+# made, and `as_of` is what the platform could have known when the set was
+# built. Taking the earlier of the two is what makes a read at any `as_of` at or
+# after the label give the same answer (L-10).
+PIT_RULE = (f"{VALID_TIME} <= label_ts AND "
+            f"{INGEST_TIME} <= min(label_ts, as_of)")
 
 
 class FeaturesetRegistry:
@@ -491,6 +503,20 @@ class FeaturesetRegistry:
             raise FeatureError(f"featureset '{name}' has no version {number}")
         return row
 
+    def version_by_id(self, version_id: str) -> Optional[Dict[str, Any]]:
+        """A filled version, resolved from its id, carrying its set's name.
+
+        The register stores the id on everything that pins a featureset version
+        — a parameter set, a warrant, a snapshot — because a name would go
+        stale. Reading it back therefore needs the name attached, and doing that
+        here rather than at each caller keeps one answer to *which set is this*.
+        """
+        row = self.versions.one(id=version_id)
+        if row is None:
+            return None
+        featureset = self.sets.one(id=row["featureset_id"])
+        return {**row, "featureset": (featureset or {}).get("name")}
+
     def versions_of(self, name: str) -> List[Dict[str, Any]]:
         return sorted(self.versions.many(featureset_id=self.require(name)["id"]),
                       key=lambda v: v["version"])
@@ -528,9 +554,16 @@ class FeaturesetRegistry:
         Contravariance in inputs (law L-12): the set must accept everything the
         kernel's schema does. A missing or mistyped slot is not a warning — the
         model would be fitted over a different X than the one it declares.
+
+        This is `L-W10`, and it is now literally the same comparison `L-12`
+        makes when a version replaces another — `core.domain.lattice.refines`,
+        written once. They were one relation implemented twice, and two
+        implementations of one order eventually disagree in the direction of
+        permitting more.
         """
-        missing = self.schema(name).accepts_superset_of(kernel_input)
-        return not missing, missing
+        from core.domain.lattice import refines
+        outcome = refines(self.schema(name), kernel_input)
+        return outcome.holds, list(outcome.missing + outcome.narrowed)
 
     def restatements(self, name: str, number: int) -> Dict[str, Any]:
         """Which of this version's namespaces have been written to since.

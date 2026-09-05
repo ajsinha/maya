@@ -29,7 +29,8 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+WORDS = {21: "twenty-one", 104: "a hundred and four",
+         1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
          7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
          12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
          16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
@@ -41,6 +42,8 @@ def _truth():
     from core.authz.common import PERMISSIONS
     from core.authz.roles import ROLES
     from core.execution.grammar.vocabulary import BINDINGS, RUNTIMES, VERBS
+    from core.lifecycle import STATES
+    from core.scheduler.jobs import JOBS
 
     schema = (ROOT / "db" / "schema" / "sqlite.sql").read_text(encoding="utf-8")
     # The laws that actually run, counted from the table that states them. The
@@ -51,12 +54,31 @@ def _truth():
         encoding="utf-8")
     law_rows = re.findall(r"^\| \*\*L-\d+\*\* \| .*?\| .*?\| (.*?) \|$",
                           foundations, re.M)
+    # Mutating endpoints. Claimed as "ninety" in two places and checked by
+    # nobody; it was a hundred and four. The CSRF argument rests on the number
+    # being large, so it is worth being right about.
+    routes_src = "\n".join(
+        p.read_text(encoding="utf-8") for p in sorted((ROOT / "routes").glob("*.py")))
+    mutating = len(re.findall(r"self\.app\.(?:post|put|delete|patch)\(",
+                              routes_src))
     return {
+        "mutating endpoints": mutating,
         "executable laws": sum(1 for state in law_rows
                                if "Executable" in state or "Enforcing" in state),
         "foundational laws": len(law_rows),
-        "tables": len(re.findall(r"CREATE TABLE IF NOT EXISTS", schema)),
+        # Anchored at the start of a line. Unanchored, this matched the phrase
+        # inside the schema's own header COMMENT and reported forty-seven tables
+        # where there are forty-six — so the test whose entire job is to stop a
+        # count drifting was itself the source of a wrong count, in every
+        # document that trusted it.
+        "tables": len(re.findall(r"^CREATE TABLE IF NOT EXISTS", schema, re.M)),
         "runtimes": len(RUNTIMES),
+        # Drifted quietly: the docs said seven jobs against eight, and six
+        # lifecycle states against seven — and `baselined` is the state that
+        # matters most, since it exists so an imported model never looks like
+        # one somebody asserted.
+        "scheduler jobs": len(JOBS),
+        "lifecycle states": len(STATES),
         "verbs": len(VERBS),
         "bindings": len(BINDINGS),
         "permissions": len(PERMISSIONS),
@@ -76,25 +98,39 @@ CLAIMS = {
     # unrelated prose, and a check that cries wolf is a check that gets deleted.
     "runtimes": [r"\*\*(\w+) runtimes\*\*", r"grammar's (\w+) runtimes",
                  r"(\w+) runtimes the grammar", r"realised \((\d+) runtimes\)",
-                 r"`descriptor_only` is one of the (\w+)"],
+                 r"`descriptor_only` is one of the (\w+)",
+                 # Both source docstrings said "seventeen" against eighteen
+                 # entries, and survived because this test read documents only.
+                 r"grammar names (\w+)"],
     "permissions": [r"of \*\*(\d+) permissions\*\*"],
     "help topics": [r"(\d+) help topics"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.
-    "executable laws": [r"(\w+) of the nineteen foundational laws are executable",
-                        r"\*\*(\w+) of the nineteen\*\* foundational laws are executable"],
+    "executable laws": [r"(\w+) of the twenty-one foundational laws are executable",
+                        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable"],
     # The word immediately before "foundational laws" is the total. Written this
     # narrowly because the looser form captured "Thirteen" out of "thirteen of
     # the nineteen foundational laws" and reported the executable count as the
     # total — a check that cries wolf is a check that gets deleted.
-    "foundational laws": [r"(\w+) foundational laws"],
+    "foundational laws": [r"of the ([\w-]+) foundational laws"],
+    "mutating endpoints": [r"(\d+|a hundred and \w+) mutating endpoints"],
+    "scheduler jobs": [r"(\w+) idempotent jobs", r"[Tt]he (\w+) jobs",
+                       r"(\w+) scheduler jobs"],
+    "lifecycle states": [r"(\w+)-state record machine",
+                         r"(\w+) lifecycle states"],
 }
 
-DOCUMENTS = (list((ROOT / "docs").glob("*.md"))
-             + list((ROOT / "docs" / "adr").glob("*.md"))
-             + list((ROOT / "content" / "help").glob("*.md"))
-             + [ROOT / "README.md", ROOT / "config" / "application.yaml"])
+# Source files are read too. `runtimes/base.py` and `runtimes/registry.py` each
+# said "the grammar names seventeen" against eighteen entries, and both survived
+# every pass of this test because it looked only at markdown — the count was
+# wrong in the two files a reader would most trust, being the code's own account
+# of itself. A docstring is documentation; there is no reason to exempt it.
+DOCUMENTS = (list((ROOT / "docs").rglob("*.md"))
+             + list((ROOT / "content").rglob("*.md"))
+             + [ROOT / "README.md", ROOT / "config" / "application.yaml"]
+             + [p for d in ("core", "routes", "db", "sdk", "tools")
+                for p in (ROOT / d).rglob("*.py")])
 
 
 def _as_number(token: str):

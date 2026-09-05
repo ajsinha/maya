@@ -301,13 +301,44 @@ class TestCaptiveEngine:
         assert e.value.code == "revoked"
 
     def test_local_revocation_floor_beats_a_valid_descriptor(self, engine, warrants):
-        """Grace never extends revocation ignorance, even with a fresh descriptor."""
-        d = warrants.resolve(f"{URN}#champion", "prod", "svc/origination", "origination_decision")
-        engine.note_revocation(d["warrant_id"])
-        # a fresh resolve yields a new id, so prove the check itself works
-        engine._revoked_locally.add("*")
-        engine.note_revocation(d["warrant_id"])
-        assert d["warrant_id"] in engine._revoked_locally
+        """Grace never extends revocation ignorance, even with a fresh descriptor.
+
+        This test used to read:
+
+            engine.note_revocation(d["warrant_id"])
+            # a fresh resolve yields a new id, so prove the check itself works
+            engine._revoked_locally.add("*")
+            assert d["warrant_id"] in engine._revoked_locally
+
+        which asserts that a set contains what was just added to it. It never
+        called `execute` and never observed a refusal, and the floor it was named
+        for could not fire: `execute` re-resolves, every build mints a fresh
+        `warrant_id`, and the noted id therefore never matched the checked one.
+
+        The comment in the middle is the tell. It states the exact reason the
+        mechanism was broken and treats it as an inconvenience to the test.
+        """
+        engine.note_revocation(URN)
+        with pytest.raises(WarrantError) as e:
+            self.run(engine, dscr=1.2)
+        assert e.value.code == "revoked"
+        assert URN in e.value.detail
+
+    def test_the_floor_survives_a_re_resolve(self, engine, warrants):
+        """The whole point. The engine is told to stop, then obtains a brand new,
+        perfectly valid, correctly signed descriptor — and still refuses."""
+        engine.note_revocation(URN)
+        fresh = warrants.resolve(f"{URN}#champion", "prod", "svc/origination",
+                                 "origination_decision")
+        assert warrants.verify(fresh), "the descriptor is genuinely valid"
+        with pytest.raises(WarrantError) as e:
+            self.run(engine, dscr=1.2)
+        assert e.value.code == "revoked"
+
+    def test_a_model_that_was_not_revoked_still_runs(self, engine, warrants):
+        """A floor that refuses everything is not a floor."""
+        engine.note_revocation("maya://model/some.other.thing")
+        assert self.run(engine, dscr=1.2) is not None
 
     def test_missing_runtime_is_reported_not_guessed(self, registry, warrants, approved_version):
         registry.move_alias(URN, "prod", "champion", "3.2.1")
@@ -323,3 +354,66 @@ class TestCaptiveEngine:
     def test_engine_never_reaches_the_store_directly(self, engine):
         """The boundary that matters: the engine holds a warrant client, nothing else."""
         assert not hasattr(engine, "store") and not hasattr(engine, "registry")
+
+
+# ===================================== a refusal must survive the layer above
+class TestARefusalToGuessIsNotRecoveredFrom:
+    """`ParameterRegister.resolve` refuses `ambiguous_parameters` when a version
+    has several approved sets and none was named, and its own comment says why:
+    *choosing for the caller is how a model quietly runs on last quarter's
+    coefficients.*
+
+    `WarrantService._point_of_p` caught bare `Exception` and returned `None`.
+    So the refusal did the opposite of its purpose one layer up — it vanished
+    into a DEBUG line and the warrant was issued naming no point of `P`.
+
+    The existing test asserted that `resolve` refuses, which was never the
+    question. Nothing asserted the refusal reached anybody. That is the shape to
+    watch for: a control tested where it is *raised* and never where it is
+    *caught*.
+    """
+
+    class _Port:
+        """Stands in for the parameter register, which is an injected port."""
+
+        def __init__(self, code):
+            self.code = code
+
+        def resolve(self, urn, semver, name=None):
+            raise self._Refusal(self.code)
+
+        class _Refusal(RuntimeError):
+            def __init__(self, code):
+                super().__init__(code)
+                self.code = code
+
+    def _service(self, port):
+        from core.execution.warrants import WarrantService
+        service = WarrantService.__new__(WarrantService)
+        service.parameters = port
+        return service
+
+    VERSION = {"semver": "3.2.1", "artifact_uri": None}
+
+    def test_no_approved_parameters_is_recovered_from(self):
+        """The case the recovery was written for: nothing approved yet, and the
+        run fails for a better reason further on."""
+        service = self._service(self._Port("no_approved_parameters"))
+        assert service._point_of_p("maya://model/x", self.VERSION) is None
+
+    def test_ambiguous_parameters_travels(self):
+        service = self._service(self._Port("ambiguous_parameters"))
+        with pytest.raises(Exception) as exc:
+            service._point_of_p("maya://model/x", self.VERSION)
+        assert exc.value.code == "ambiguous_parameters"
+
+    def test_an_unrecognised_failure_travels_too(self):
+        """A recovery that cannot name what it is recovering from is not a
+        recovery. Anything but the one known-recoverable code is re-raised,
+        including a failure with no code at all."""
+        class _Broken:
+            def resolve(self, urn, semver, name=None):
+                raise KeyError("the register is not answering")
+
+        with pytest.raises(KeyError):
+            self._service(_Broken())._point_of_p("maya://model/x", self.VERSION)

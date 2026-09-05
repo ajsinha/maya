@@ -25,6 +25,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
+from core.docs.subjects import (MODEL, MODEL_VERSION, SUBJECTS, known)
 from core.attachments.common import KINDS, TEXT_MEDIA, AttachmentError
 from core.attachments.store import DocumentStore
 from core.evidence import EvidenceEngine
@@ -48,11 +49,33 @@ class AttachmentRegister:
                media_type: str = "application/octet-stream",
                semver: Optional[str] = None, note: str = "",
                supersedes: Optional[str] = None,
-               model_level: bool = False, actor: str = "system") -> Dict[str, Any]:
-        """File a document against a version, or — if asked for — against the model."""
+               model_level: bool = False,
+               subject_type: Optional[str] = None,
+               subject_id: Optional[str] = None,
+               actor: str = "system") -> Dict[str, Any]:
+        """File a document against what it is ABOUT.
+
+        The model and the version it hangs under are still recorded, because
+        that is how it is found from the model page. What is new is the
+        *subject*: a convergence study is about one parameter set, a data
+        dictionary about one featureset version, and both were unfilable while
+        every document had to be about a model or a version.
+
+        A subject is always **pinned**. `featureset_version`, never
+        `featureset` — a document filed against the set would describe something
+        that has since moved.
+        """
         if kind not in KINDS:
             raise AttachmentError("unknown_kind", f"unknown document kind '{kind}'",
                                   f"expected one of {', '.join(KINDS)}")
+        subject_type = subject_type or (MODEL if model_level else MODEL_VERSION)
+        if not known(subject_type):
+            raise AttachmentError(
+                "unknown_subject",
+                f"'{subject_type}' is not something a document can be about",
+                "use one of " + ", ".join(SUBJECTS) + "; a subject the platform "
+                "cannot resolve is a document nobody will find from the thing it "
+                "describes")
         if not title.strip():
             raise AttachmentError(
                 "title_required",
@@ -72,6 +95,10 @@ class AttachmentRegister:
 
         superseded = self._resolve_supersession(supersedes, model["id"], actor)
         row = {"model_id": model["id"], "model_version_id": version_id,
+               "subject_type": subject_type,
+               # Defaults to the version it hangs under, so an existing caller
+               # that says nothing files exactly what it filed before.
+               "subject_id": subject_id or version_id or model["id"],
                "kind": kind, "title": title.strip(), "filename": filename,
                "media_type": media_type, "digest": digest, "size_bytes": size,
                "text_indexed": int(media_type in TEXT_MEDIA),
@@ -86,6 +113,8 @@ class AttachmentRegister:
                              {"attachment_id": row["id"], "kind": kind,
                               "title": title, "digest": digest,
                               "model_version_id": version_id,
+                              "subject_type": subject_type,
+                              "subject_id": row["subject_id"],
                               "supersedes": superseded}, actor=actor)
         logger.info("attached %s '%s' to %s", kind, title, urn)
         return self.attachments.one(id=row["id"])
@@ -195,6 +224,17 @@ class AttachmentRegister:
         if row is None:
             raise AttachmentError("no_attachment", f"no attachment {attachment_id}", "")
         return row
+
+    def about(self, subject_type: str, subject_id: str) -> List[Dict[str, Any]]:
+        """Everything filed about one thing, whatever kind of thing it is.
+
+        The read the dossier walks. Current attachments only: a superseded
+        document is history rather than documentation, and a reader shown both
+        has to work out which one is in force.
+        """
+        return [a for a in self.attachments.many(subject_type=subject_type,
+                                                 subject_id=subject_id)
+                if a.get("state") != "superseded"]
 
     def for_model(self, model_id: str) -> List[Dict[str, Any]]:
         return self.attachments.current_for_model(model_id)

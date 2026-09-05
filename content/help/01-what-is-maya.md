@@ -4,99 +4,133 @@ slug: what-is-maya
 section: Getting started
 order: 10
 icon: compass
-summary: The problem MAYA exists to solve, what it does about it, what it deliberately does not do, and a map of the rest of this library.
+summary: One definition every other page derives from, the refusals that make it a control rather than a list, what MAYA deliberately does not do, and a map of the rest of this library.
 audience: Everyone
 ---
 
 # What MAYA is
 
-MAYA is a **register of record for every model a bank runs**, together with the
-machinery that makes claims about those models checkable rather than asserted.
+MAYA is the **register of record for every model a bank runs**, and the machinery
+that makes claims about those models checkable instead of asserted.
 
-The name is the Sanskrit *māyā* — appearance; the representation that stands in
-for reality and is so easily mistaken for it. That is exactly what a model is,
-and model risk is what happens when an organisation forgets the difference
-between the map and the territory.
+The name is the Sanskrit *māyā* — appearance, the representation that stands in
+for reality and is so easily mistaken for it. Model risk is what happens when an
+organisation forgets the difference between the map and the territory.
 
-## The problem
+## One definition, and what falls out of it
 
-Ask a large bank how many models it runs and you will get a number. Ask how that
-number was arrived at and the answer is usually an inventory spreadsheet
-maintained by people who were not told when a model changed.
+Everything on the other fifteen pages derives from one line:
 
-The gap is structural, not clerical. Most model estates are governed by
-**assertion**: a document says a model was validated, a field says who owns it, a
-ticket says a finding was closed. Nothing connects the assertion to the artifact
-it describes, so the two drift apart quietly and are only reconciled when
-something goes wrong or an examiner asks.
+```
+f : P ⊗ X → D(Y)
+```
 
-Three consequences follow, and every bank has met all three:
+A **parameter object** `P`, tensored with an **input** `X`, mapping to a
+*distribution* over outputs. Three consequences do most of the work, and each one
+dissolves a problem rather than managing it.
 
-- **The inventory is incomplete.** Spreadsheets, vendor black boxes, pricing
-  libraries and — increasingly — prompt bundles are models by any supervisory
-  definition, but they do not look like the "models" the inventory was designed
-  for, so they are not in it.
-- **Documentation describes a version nobody runs.** The model development
-  document was written for v2.1. Production serves v2.4. Both statements are
-  true and neither is discoverable from the other.
-- **Controls are advisory.** A finding is raised, recorded, and the model is
-  promoted anyway, because the register that holds the finding has no
-  relationship to the pipeline that does the promoting.
+**Trainability is derived, never declared.** The useful question is not *is it
+AI* but *how is `P` inhabited?* — from theory, from a solver against market
+quotes, from a statistical estimator, from a training run, from a configuration,
+from a room full of people, or from inside a vendor's binary. The class **T0–T8**
+falls out of that answer, so nobody self-reports it, and asking a closed-form
+pricer for its training set is a type error rather than an empty field. See
+[Registering a model](/help/registering-a-model#trainability-classes-t0-to-t8).
 
-## What MAYA does about it
+**Parameters are not versions.** A version is the kernel; a parameter set is a
+point of `P`. Refitting picks a new point, not a new kernel — which is what lets
+a daily recalibration procedure be approved once rather than pretending a
+committee meets every morning. See
+[Featuresets and fitted parameters](/help/featuresets-and-parameters).
 
-**Evidence, not assertion.** Every governance claim is bound to the artifact it
-is about, by digest, in an append-only hash chain. "This version was validated"
-is a statement you can verify, not one you have to trust.
+**A model's inputs are half of it.** `X` is a **featureset**: a schema of named
+slots, each version binding every slot to an exact feature and an exact pinned
+view version. The model is defined over the *slots*, so changing what fills one
+does not change its input space — it changes what it was fitted on, which is a
+different event with a different control. See
+[Features and the two clocks](/help/features-and-two-clocks).
 
-**One register, all model kinds.** Statistical, machine-learned, generative,
-calibrated, vendor-supplied, expert-judgment, rule-based and end-user-computed
-models sit in one population. They differ in what evidence is appropriate, not
-in whether they are governed. See
-[Registering a model](/help/registering-a-model) for how one definition stretches
-that far without becoming vacuous.
+The model page shows that type for the version you are looking at — `P`, `X`,
+`D(Y)`, with the trainability class printed beside the two facts it is derived
+from, because a class shown next to its derivation is an explanation and a class
+shown alone is a label.
 
-**Controls that actually refuse.** An alias cannot be moved to a version whose
-contract does not refine the incumbent's. A warrant cannot be resolved for a
-model with an open blocking finding. These are not warnings in a dashboard;
-they are refusals in the code path, and the refusal says which clause failed.
+## Why a register needs to refuse things
+
+Most model estates are governed by **assertion**: a document says a model was
+validated, a field says who owns it, a ticket says a finding was closed. Nothing
+connects the assertion to the artifact, so the two drift apart quietly and are
+reconciled only when something goes wrong.
+
+MAYA binds every governance claim to the artifact it rests on, by digest, in an
+append-only hash chain — and then puts the chain in the decision path. The
+interesting behaviour is what it will **not** do:
+
+| It refuses | Because |
+|---|---|
+| A warrant for a model with an open blocking finding | `423 blocked` — a validation finding should stop the model, not generate an email |
+| An alias move to a version that narrows an input range | The replacement must accept at least what the incumbent accepted (**L-12**), however much better it scores |
+| A `fit` warrant for a model whose `parameter_kind` is `none` | `nothing_to_fit` — `P` is the terminal object, so there is no point of `P` to move to |
+| A version approved by whoever created it | `segregation_of_duties`, decided by reading the evidence chain rather than a second table |
+| A training assembly with either clock unbounded | Without both, leakage cannot be excluded, and a warning would be ignored |
+| A new version on an attested model | A new version *is* a change to the model; open an amendment |
+
+Every refusal names what was violated and what to do about it. If you are
+learning the platform, being refused is the fastest way to see what it is for —
+[Quickstart](/help/quickstart) ends by making it happen on purpose.
+
+## Two more properties worth knowing up front
 
 **Versions are immutable.** A version is created once and never edited, which is
-what makes a manifest digest worth computing and what lets a warrant name a
-version and still mean something two years later.
+what makes a manifest digest worth computing and what lets a warrant name
+`3.2.1` and still mean the same thing two years later.
 
-**Conditions are computed, not remembered.** Staleness, expiry, cohort maturity,
-outstanding work and compliance debt are derived from the register when asked.
-There is no second table to fall out of step with the first.
+**Conditions are computed, not remembered.** The tier, staleness, expiry, cohort
+maturity, outstanding work, compliance debt, the estate summary, the documents,
+the board pack: all derived from the register when asked. There is no second
+table to fall out of step with the first.
 
 ## What MAYA does not do
 
 This matters as much as the list above.
 
-**MAYA does not execute models.** It manages them and issues **warrants** — signed,
-expiring, entitlement-bound JSON documents that an execution engine acts on. The
-separation is deliberate: a governance platform that is also the runtime becomes
-a single point of failure for the trading day, and every outage becomes a
-governance outage. A captive engine ships with MAYA as a reference consumer of
-the same public warrant contract an external engine uses, so a deployment works
-out of the box without that ever becoming the only way to run.
+**It does not execute models.** It issues **warrants** — signed, expiring,
+entitlement-bound JSON documents an execution engine acts on. The separation is
+deliberate: a governance platform that is also the runtime is a single point of
+failure for the trading day, and every outage becomes a governance outage. A
+captive engine ships as a reference consumer of the same public contract an
+external engine uses, so a fresh deployment works without that ever becoming the
+only way to run.
 
-**MAYA does not decide your policy.** Thresholds, tier bands, remediation windows
+**It does not decide your policy.** Thresholds, tier bands, remediation windows
 and approval routes are configuration. The platform enforces what you declared;
 it does not tell you what to declare.
 
-**MAYA is not legal or regulatory advice.** It implements controls that map onto
-published supervisory expectations. Whether your implementation satisfies your
-supervisor is a judgement your second line and your regulator make, not one this
-software makes for you.
+**It is not legal or regulatory advice.** It implements controls that map onto
+published supervisory expectations. The three supervisory encodings that ship are
+illustrative, not complete. Whether your implementation satisfies your supervisor
+is a judgement your second line and your regulator make.
+
+## Where things are in the interface
+
+| Page | What it is for |
+|---|---|
+| `/dashboard` | The estate, the worklist, and what is overdue |
+| `/model/{name}` | One model as its type, its versions, aliases, findings and evidence |
+| `/models/new` | Register a model and upload its first version |
+| `/features` · `/featuresets` | Definitions, view versions, pins and what has been restated |
+| `/dossier/{name}` | Every document about a model, its versions, its parameter sets and the featureset versions they were fitted from — with the gaps named |
+| `/board-pack` | Risk appetite against the estate, for a committee |
+| `/policies` | What is in force on each gate |
+| `/telemetry` · `/notifications` | Delivered predictions and outcomes; digests of what needs doing |
 
 ## The rest of this library
 
 | If you want to | Read |
 |---|---|
-| Run the whole governed path in five minutes | [Quickstart](/help/quickstart) |
-| Know what counts as a model, and how one is recorded | [Registering a model](/help/registering-a-model) |
-| Understand how much scrutiny a model gets, and who requires it | [Risk tiering and supervisory regimes](/help/risk-tiering) |
+| Run the whole governed path, and watch it fail closed | [Quickstart](/help/quickstart) |
+| Know what counts as a model, and what a version declares | [Registering a model](/help/registering-a-model) |
+| Know how much scrutiny a model gets, and which supervisor asks | [Risk tiering and supervisory regimes](/help/risk-tiering) |
 | Know who may act, and how a record comes into force | [Approval, attestation and segregation of duties](/help/approval-and-attestation) |
 | Build training data that is not quietly wrong | [Features and the two clocks](/help/features-and-two-clocks) |
 | Name a set of features and store what a fit produced | [Featuresets and fitted parameters](/help/featuresets-and-parameters) |
@@ -106,8 +140,12 @@ software makes for you.
 | Verify the record itself, or govern the platform's own AI | [Evidence, provenance and machine assistance](/help/evidence-and-provenance) |
 | Produce documents a supervisor will read | [Documentation](/help/documentation) |
 | Bring an existing estate in, and see what needs doing | [The estate and what needs doing](/help/estate-and-worklist) |
+| Set a risk appetite and report the estate to a committee | [Risk appetite and the board pack](/help/portfolio-reporting) |
 | Look up an endpoint, a refusal or a configuration key | [The API, refusals and configuration](/help/api-reference) |
 | Look up a term | [Glossary](/help/glossary) |
 
-Worked walkthroughs, with real calls, are in the
-[tutorials](/tutorials/end-to-end).
+Worked walkthroughs with real calls are in the [tutorials](/tutorials/end-to-end).
+Eight cover the platform; [seven are one per kind of
+model](/tutorials/every-kind-of-model), each complete from registration to
+monitoring, so a pricing library and a neural network can be seen getting the
+same treatment.

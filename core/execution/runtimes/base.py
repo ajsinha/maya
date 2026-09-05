@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 What a runtime is, from the engine's side.
 
-The warrant grammar names seventeen ways a kernel can become runnable. An engine
+The warrant grammar names eighteen ways a kernel can become runnable. An engine
 does not have to implement all of them — no engine will — but it does have to be
 **honest about which it implements**, and it has to refuse the rest by name
 rather than by failing somewhere inside an artifact loader.

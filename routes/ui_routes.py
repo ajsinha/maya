@@ -9,11 +9,12 @@ with their rationale. Every asset is vendored, so it renders air-gapped.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
+from core.execution.urn import model_urn as urn
 from core.notify import CHANNEL_MEANING
 from core.parameters import PROVENANCE_MEANING
 from core.policy import GATES, describe_facts
@@ -58,6 +59,9 @@ class UIRoutes(Routes):
             docs = self.ctx["documents"]
             return self.page(
                 request, "model.html", model=m, versions=versions,
+                # The definition the platform is organised around, assembled
+                # once here rather than by a reader across four cards.
+                kernel_type=_kernel_type(versions),
                 history=registry.alias_history(urn),
                 warrants=self.ctx["warrants"].grants_for(urn),
                 evidence=self.ctx["evidence"].for_subject(m["id"]),
@@ -292,6 +296,23 @@ class UIRoutes(Routes):
                 featuresets=self._featureset_labels(sets),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
 
+        @self.app.get("/dossier/{name:path}", response_class=HTMLResponse,
+                      tags=["ui"])
+        def dossier_page(request: Request, name: str):
+            """Everything documented about a model, following the pins."""
+            if (r := login_required(request)) is not None:
+                return r
+            model = self.ctx["registry"].get(urn(name))
+            if not model:
+                return self.page(request, "not_found.html", http_status=404,
+                                 what=f"model {name}")
+            if not self.may_view(request, "document:read", model):
+                return self.refused_page(
+                    request, "reading this model's documentation needs "
+                             "document:read within its scope")
+            return self.page(request, "dossier.html",
+                             dossier=self.ctx["dossier"].of(model["urn"]))
+
         @self.app.get("/board-pack", response_class=HTMLResponse, tags=["ui"])
         def board_pack_page(request: Request):
             """What a committee would be shown, before it is recorded."""
@@ -400,3 +421,53 @@ class UIRoutes(Routes):
                 continue
             labels[identifier] = f"{featureset['name']}@v{version['version']}"
         return labels
+
+
+def _kernel_type(versions) -> Optional[Dict[str, Any]]:
+    """`f : P ⊗ X → D(Y)` for the version a reader is looking at.
+
+    Derived, never declared: the trainability class falls out of how the
+    parameter object is inhabited, and showing it beside the two facts it comes
+    from is the difference between a label and an explanation.
+    """
+    if not versions:
+        return None
+    version = versions[-1]
+    kernel = ((version.get("manifest") or {}).get("kernel") or {})
+
+    def fields(schema):
+        out = []
+        for field in schema or []:
+            low, high = field.get("minimum"), field.get("maximum")
+            span = (f"[{low}, {high}]" if low is not None and high is not None
+                    else f"≥ {low}" if low is not None
+                    else f"≤ {high}" if high is not None else "")
+            out.append({"name": field.get("name"), "dtype": field.get("dtype"),
+                        "range": span})
+        return out
+
+    return {
+        "semver": version.get("semver"),
+        "trainability_class": version.get("trainability_class"),
+        "parameter_kind": version.get("parameter_kind"),
+        "fit_procedure": version.get("fit_procedure"),
+        "runtime": kernel.get("runtime") or "descriptor_only",
+        "output_kind": kernel.get("output_kind") or "point_estimate",
+        "parameters": PARAMETER_MEANING.get(version.get("parameter_kind"), ""),
+        "inputs": fields(version.get("input_schema")),
+        "outputs": fields(version.get("output_schema")),
+    }
+
+
+#: What each way of inhabiting `P` actually is, in a reader's words. Short on
+#: purpose: the page is showing a type, not teaching the taxonomy.
+PARAMETER_MEANING = {
+    "none": "empty — there is nothing to fit",
+    "calibration_set": "solved against market instruments, repeatedly",
+    "estimated_coefficients": "estimated from a historical sample",
+    "learned_weights": "learned by a training run; held as an artifact",
+    "llm_configuration": "a configuration around somebody else's model",
+    "rule_set": "rules somebody wrote down",
+    "elicited_weights": "decided by people, in a room",
+    "opaque": "exists, and cannot be reached from here",
+}

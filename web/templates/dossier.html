@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Dossier — {{ dossier.model }} — {{ app_name }}{% endblock %}
+{% macro node(item, depth) %}
+<div style="margin-left:{{ depth * 1.4 }}rem"
+     class="{% if depth %}border-start ps-3{% endif %} mb-2">
+  <div class="d-flex align-items-baseline gap-2 flex-wrap">
+    <span class="chip">{{ item.subject_type.replace('_', ' ') }}</span>
+    <span class="fw-semibold small">{{ item.label }}</span>
+    {% if not item.attached and not item.compiled %}
+      <span class="text-muted" style="font-size:.72rem">
+        nothing filed &mdash; expected {{ item.expected }}</span>
+    {% endif %}
+  </div>
+  {% for doc in item.compiled %}
+    <div class="small"><span class="evidence-ok">compiled</span>
+      {{ doc.title }} <span class="text-muted mono"
+      style="font-size:.7rem">{{ doc.kind }}</span></div>
+  {% endfor %}
+  {% for doc in item.attached %}
+    <div class="small">
+      <a href="/api/v1/attachments/{{ doc.id }}/content">{{ doc.title }}</a>
+      <span class="text-muted mono" style="font-size:.7rem">{{ doc.kind }}</span>
+      {% if doc.reviewed_by %}<span class="evidence-ok"
+        style="font-size:.7rem">accepted</span>
+      {% else %}<span class="text-muted"
+        style="font-size:.7rem">filed, not reviewed</span>{% endif %}</div>
+  {% endfor %}
+  {% for child in item.children %}{{ node(child, depth + 1) }}{% endfor %}
+</div>
+{% endmacro %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">DOCUMENTATION</p>
+<h1 class="mb-0">{{ dossier.model }}</h1>
+<div class="mono text-muted">{{ dossier.urn }}</div>
+<div class="rule"></div>
+
+<p class="text-muted small">Documentation is a graph, not a list. It arrives at
+different moments about different objects &mdash; a methodology paper about the
+model, a training record about one fit, a data dictionary about one featureset
+<em>version</em> &mdash; and the edges below are the pins the register already
+holds. A training record names <span class="mono">sb_core@v1</span>, never
+<span class="mono">sb_core</span>: a document filed against the set would
+describe something that has since moved.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="stat">
+    <div class="stat-n">{{ dossier.counts.documents }}</div>
+    <div class="stat-l">document(s)</div></div></div>
+  <div class="col-md-4"><div class="stat">
+    <div class="stat-n">{{ dossier.counts.nodes }}</div>
+    <div class="stat-l">node(s) in the graph</div></div></div>
+  <div class="col-md-4"><div class="stat">
+    <div class="stat-n {% if dossier.gaps %}evidence-bad{% endif %}">{{ dossier.gaps|length }}</div>
+    <div class="stat-l">gap(s) named</div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-header">The graph</div>
+  <div class="card-body">
+    {{ node(dossier.root, 0) }}
+  </div></div>
+
+{% if dossier.gaps %}
+<div class="card mb-3"><div class="card-header">Gaps</div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Where</th><th>What is missing</th></tr></thead>
+    <tbody>
+    {% for gap in dossier.gaps %}
+      <tr><td class="small mono">{{ gap.what }}</td>
+          <td class="small text-muted">{{ gap.why }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="card-body py-2 small text-muted">
+    Named rather than left blank. A page that silently omits what it could not
+    find reads as complete, and a reader cannot tell a thin model from a thin
+    page unless the page says which it is.
+  </div></div>
+{% endif %}
+{% endblock %}

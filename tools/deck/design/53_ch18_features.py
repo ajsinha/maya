@@ -1,6 +1,10 @@
-# ============================================================ CH 4
-divider("4", "Data and Features", "Point-in-time correctness, version-namespaced serving, monitoring at scale.",
-        ["The PIT assembly", "Three-layer verification", "Online store namespacing", "Monitoring pipeline"])
+# ============================================================ CH 18
+divider("18", "The Feature Platform",
+        "Point-in-time correctness, version-namespaced serving, monitoring at scale.",
+        ["The PIT assembly",
+         "Three-layer verification",
+         "Online store namespacing",
+         "Monitoring pipeline"])
 
 sl, y = content("Point-in-time assembly", "Data · the feature platform")
 h = code(sl, ML, y, CW * 0.56, [
@@ -25,7 +29,8 @@ h2 = code(sl, x, y, CW * 0.40, [
  "  FROM   <view> VERSION AS OF :dv   -- txn time",
  "  WHERE  entity_id  = s.entity_id",
  "    AND  event_ts  <= s.label_ts    -- valid time",
- "    AND  ingest_ts <= :as_of        -- txn time",
+ "    AND  ingest_ts <= LEAST(          -- txn time, bounded by BOTH:",
+ "           s.label_ts, :as_of)        -- saturates at the label",
  "  ORDER BY event_ts DESC, ingest_ts DESC",
  "  LIMIT 1",
  ") f ON true",
