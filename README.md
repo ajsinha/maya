@@ -345,7 +345,7 @@ registered properly.
 | **14** | [Detailed Design](docs/14-detailed-design.md) ★ | Interfaces, algorithms, transaction boundaries, SLOs, capacity |
 | **15** | [Featuresets & the Parameter Object](docs/15-featuresets-and-parameters.md) | A versioned presentation of `X`; derived features; fitted parameters |
 | **16** | [Features Composed & Shaped](docs/16-features-composed-and-shaped.md) | Dimensionality, the composition monoid, sealing, retrieval policy |
-| **17** | [Feature & Model Algebra](docs/17-feature-and-model-algebra.md) | The lattice, the `AsOf` operator, typed composition, and the documentation graph |
+| **17** | [The Algebra](docs/17-feature-and-model-algebra.md) | One order for four questions; the `AsOf` operator and its saturation law; derived features on the provenance polynomial; typed composition; the documentation graph |
 | — | [ADRs](docs/adr/INDEX.md) | Eleven architecture decision records |
 
 ---
