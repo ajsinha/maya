@@ -1,0 +1,32 @@
+# MAYA — Model & AI Lifecycle Assurance
+# Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+#
+# No dependencies, deliberately. A governance platform that cannot be deployed
+# air-gapped is one somebody works around, and an SDK with a dependency tree
+# moves that problem into the client's build pipeline rather than solving it.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "maya-sdk"
+version = "0.1.0"
+description = "Python client for MAYA — Model & AI Lifecycle Assurance"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+authors = [{name = "Ashutosh Sinha", email = "ajsinha@gmail.com"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Intended Audience :: Financial and Insurance Industry",
+]
+
+[project.optional-dependencies]
+# Only for running the SDK's own tests, which live in the platform repository's
+# suite and drive the real application in-process.
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["maya_sdk*"]
