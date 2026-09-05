@@ -321,6 +321,9 @@ maya/
 │   └── schema/                      two hand-written schemas, 45 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── content/                         help and tutorials, rendered at request time
+├── sdk/                             clients, one folder per language
+│   ├── python/                      maya_sdk — standard library only, no dependencies
+│   └── java/                        not built; the contract it must honour, written down
 ├── examples/warrants/               thirteen worked warrants across the model estate
 ├── docs/                            17 specification documents + ADRs
 │   ├── 00 … 16-*.md                 the specification
