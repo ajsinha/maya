@@ -325,6 +325,53 @@ CREATE TABLE IF NOT EXISTS warrant_profile (
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
 
+-- A declared risk-appetite limit. Versions accumulate; nothing is edited, because
+-- a limit that can be changed without a record is a limit that can be RELAXED
+-- without one, and the relaxation is the event a reader six months later needs
+-- to find.
+CREATE TABLE IF NOT EXISTS risk_appetite (
+    id           TEXT PRIMARY KEY,
+    metric       TEXT NOT NULL,
+    scope_key    TEXT NOT NULL DEFAULT '*',
+    scope        TEXT NOT NULL DEFAULT '{}',
+    version      INTEGER NOT NULL,
+    limit_value  REAL NOT NULL,
+    amber_value  REAL,
+    direction    TEXT NOT NULL,
+    unit         TEXT NOT NULL,
+    rationale    TEXT NOT NULL,
+    owner        TEXT NOT NULL DEFAULT '',
+    review_at    REAL,
+    retired      INTEGER NOT NULL DEFAULT 0,
+    digest       TEXT NOT NULL,
+    created_by   TEXT NOT NULL,
+    created_at   REAL NOT NULL,
+    retired_at   REAL,
+    retired_by   TEXT,
+    UNIQUE (metric, scope_key, version)
+);
+CREATE INDEX IF NOT EXISTS ix_appetite_metric ON risk_appetite (metric, retired);
+
+-- A board pack as it was read. Kept rather than recomputed: a committee minute
+-- referring to "the March pack" needs the March pack, and a pack recomputed
+-- today is a different document with the same name.
+CREATE TABLE IF NOT EXISTS board_pack (
+    id          TEXT PRIMARY KEY,
+    period      TEXT NOT NULL,
+    scope       TEXT NOT NULL DEFAULT '{}',
+    as_at       REAL NOT NULL,
+    models      INTEGER NOT NULL DEFAULT 0,
+    indicators  TEXT NOT NULL DEFAULT '[]',
+    exceptions  TEXT NOT NULL DEFAULT '[]',
+    unmeasured  TEXT NOT NULL DEFAULT '{}',
+    digest      TEXT NOT NULL,
+    note        TEXT NOT NULL DEFAULT '',
+    created_by  TEXT NOT NULL,
+    created_at  REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_board_pack_at ON board_pack (as_at);
+
+
 
 CREATE TABLE IF NOT EXISTS notification (
     id         TEXT PRIMARY KEY,

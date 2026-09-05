@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Board pack — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">PORTFOLIO REPORTING</p>
+<h1>Board pack</h1>
+<div class="rule"></div>
+<p class="text-muted small">A committee asks three questions, in this order: are
+we inside the limits we set, what is outside them, and what moved since we last
+met. A report that answers only the first is a dashboard, and a dashboard is why
+nobody reads the pack. Every number here is derived from the register &mdash;
+none of it is entered.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="stat"><div class="stat-n">{{ pack.models }}</div>
+    <div class="stat-l">model(s) in scope</div></div></div>
+  <div class="col-md-3"><div class="stat">
+    <div class="stat-n {% if breaches %}evidence-bad{% endif %}">{{ breaches|length }}</div>
+    <div class="stat-l">limit(s) breached</div></div></div>
+  <div class="col-md-3"><div class="stat"><div class="stat-n">{{ ambers|length }}</div>
+    <div class="stat-l">at amber</div></div></div>
+  <div class="col-md-3"><div class="stat">
+    <div class="stat-n {% if pack.unmeasured %}evidence-bad{% endif %}">{{ pack.unmeasured|length }}</div>
+    <div class="stat-l">not measured</div></div></div>
+</div>
+
+{% if pack.unmeasured %}
+<div class="card mb-3 border-danger"><div class="card-header">Not measured</div>
+  <div class="card-body small">
+    <p class="mb-2">These indicators were <strong>not computed</strong>. They are
+    not zero, and they are not clean &mdash; zero is a measurement and an absent
+    service is not, and reporting one as the other would tell this committee the
+    estate is healthy when it is unobserved.</p>
+    <dl class="maya-terms" style="font-size:.78rem">
+      {% for key, why in pack.unmeasured.items() %}
+        <div><dt style="width:14rem"><code>{{ key }}</code></dt><dd>{{ why }}</dd></div>
+      {% endfor %}
+    </dl>
+  </div></div>
+{% endif %}
+
+<!-- ------------------------------------------------------------ exceptions -->
+<div class="card mb-3"><div class="card-header">Exceptions &mdash; what to act on</div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Indicator</th><th class="text-end">Value</th>
+      <th class="text-end">Limit</th><th>Standing</th><th>Since the last pack</th></tr></thead>
+    <tbody>
+    {% for row in pack.exceptions %}
+      <tr>
+        <td class="small"><code>{{ row.metric }}</code>
+          <div class="text-muted">{{ row.means }}</div></td>
+        <td class="text-end small">{{ row.value }}</td>
+        <td class="text-end small">{{ row.limit }}</td>
+        <td class="small">
+          {% if row.status == 'breach' %}<span class="evidence-bad">breach</span>
+          {% else %}<span class="text-warning">amber</span>{% endif %}
+          {% if row.utilisation is not none %}
+            <div class="text-muted">{{ (row.utilisation * 100) | round(0) }}% of limit</div>
+          {% endif %}</td>
+        <td class="small">{{ row.movement.detail }}</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="text-muted small p-3">No limit is breached or at
+        amber. Read the indicators below before concluding that means nothing is
+        wrong &mdash; an indicator with no limit declared is a number, not an
+        indicator.</td></tr>
+    {% endfor %}
+    </tbody></table></div></div>
+
+<!-- ------------------------------------------------------------ indicators -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Every indicator</span>
+    <span class="text-muted" style="font-size:.7rem">derived from the register, not entered</span></div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Indicator</th><th class="text-end">Value</th>
+      <th class="text-end">Limit</th><th>Standing</th>
+      <th>Movement</th><th>Why it matters</th></tr></thead>
+    <tbody>
+    {% for row in pack.indicators %}
+      <tr>
+        <td class="small"><code>{{ row.metric }}</code>
+          <div class="text-muted">{{ row.means }}</div>
+          {% if row.slack %}
+            <div class="text-warning" style="font-size:.7rem">slack &mdash;
+              {{ row.slack.detail }}</div>
+          {% endif %}</td>
+        <td class="text-end small">
+          {% if row.value is none %}<span class="text-muted">&mdash;</span>
+          {% else %}{{ row.value }}{% endif %}</td>
+        <td class="text-end small">
+          {% if row.limit is none %}<span class="text-muted">none</span>
+          {% else %}{{ row.limit }}{% endif %}</td>
+        <td class="small">
+          {% if row.status == 'breach' %}<span class="evidence-bad">breach</span>
+          {% elif row.status == 'amber' %}<span class="text-warning">amber</span>
+          {% elif row.status == 'within' %}<span class="evidence-ok">within</span>
+          {% else %}<span class="text-muted">no limit</span>{% endif %}</td>
+        <td class="small text-muted">{{ row.movement.detail }}</td>
+        <td class="small text-muted" style="max-width:22rem">{{ row.matters }}</td></tr>
+    {% endfor %}
+    </tbody></table></div></div>
+
+<!-- --------------------------------------------------------------- appetite -->
+<div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Risk appetite in force</span>
+    <span class="text-muted" style="font-size:.7rem">least specific first &mdash; the order they fold</span></div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Metric</th><th>Applies to</th><th class="text-end">Limit</th>
+      <th class="text-end">Amber</th><th>Set because</th><th>Owner</th></tr></thead>
+    <tbody>
+    {% for a in appetite %}
+      <tr>
+        <td class="small"><code>{{ a.metric }}</code>
+          <div class="text-muted">v{{ a.version }}</div></td>
+        <td class="small">
+          {% if a.scope %}
+            {% for k, v in a.scope.items() %}<div class="mono"
+              style="font-size:.7rem">{{ k }} = {{ v }}</div>{% endfor %}
+          {% else %}<span class="text-muted">the whole estate</span>{% endif %}</td>
+        <td class="text-end small">{{ a.limit_value }}</td>
+        <td class="text-end small">
+          {% if a.amber_value is none %}<span class="text-muted">&mdash;</span>
+          {% else %}{{ a.amber_value }}{% endif %}</td>
+        <td class="small text-muted" style="max-width:22rem">{{ a.rationale }}</td>
+        <td class="small">{{ a.owner or '—' }}</td></tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted small p-3">No limit is declared. Every
+        indicator above is measured and none of them is held to anything, which
+        makes them numbers rather than indicators.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="card-body py-2 small text-muted">
+    A limit carries a <strong>rationale</strong> because a number nobody can
+    explain is a number nobody will change &mdash; so it is either ignored or
+    obeyed without thought, and both are worse than not having it. Versions
+    accumulate and nothing is edited: a limit that can be changed without a
+    record is one that can be <em>relaxed</em> without one, and the relaxation is
+    the event a reader six months later comes looking for.
+  </div></div>
+
+<!-- ----------------------------------------------------------- no composite -->
+<div class="card mb-3"><div class="card-header">Why there is no single number</div>
+  <div class="card-body small text-muted">{{ pack.no_composite }}</div></div>
+
+{% if packs %}
+<div class="card mb-3"><div class="card-header">Packs on record</div>
+  <div class="card-body p-0"><table class="table maya mb-0">
+    <thead><tr><th>Period</th><th class="text-end">Models</th>
+      <th>Breached</th><th>Cut by</th></tr></thead>
+    <tbody>
+    {% for p in packs|reverse %}
+      <tr><td class="small">{{ p.period }}</td>
+        <td class="text-end small">{{ p.models }}</td>
+        <td class="small">{% if p.exceptions %}<span class="evidence-bad">{{
+          p.exceptions|join(', ') }}</span>{% else %}&mdash;{% endif %}</td>
+        <td class="small">{{ p.created_by }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <div class="card-body py-2 small text-muted">
+    A pack is kept as it was read. A committee minute referring to the March pack
+    needs the March pack, and one recomputed today is a different document with
+    the same name.
+  </div></div>
+{% endif %}
+
+{% if may_cut %}
+<div class="card"><div class="card-header d-flex justify-content-between align-items-center">
+    <span>Cut this pack</span>
+    <button id="cut-pack" class="btn btn-sm btn-danger py-0 px-3"
+            style="font-size:.75rem">Record it</button></div>
+  <div class="card-body small">
+    <input class="form-control form-control-sm" id="pack-period"
+           placeholder="period, e.g. 2026-Q1" style="max-width:14rem">
+    <div class="text-muted mt-2" style="font-size:.72rem">Recording it fixes what
+      this committee was shown. Everything above is a preview until you do.</div>
+    <div id="cut-result" class="mt-2"></div>
+  </div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+$("#cut-pack").on("click", function () {
+  var out = $("#cut-result");
+  out.text("recording…");
+  $.ajax({url: "/api/v1/board-packs", method: "POST",
+          contentType: "application/json",
+          data: JSON.stringify({period: $("#pack-period").val() || ""})})
+    .done(function () { window.location.reload(); })
+    .fail(function (xhr) {
+      var d = xhr.responseJSON || {};
+      out.html('<span class="evidence-bad">' + (d.detail || "Refused.") +
+               '</span>' + (d.remediation ?
+               '<div class="text-muted">' + d.remediation + '</div>' : ''));
+    });
+});
+</script>
+{% endblock %}

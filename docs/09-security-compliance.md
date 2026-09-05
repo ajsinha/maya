@@ -115,7 +115,7 @@ vendor's binary behind it.
 ### 3.1 Roles
 
 **Eight roles across three lines of defence**, and each is a named set drawn from a closed vocabulary
-of **70 permissions** in `resource:act` form. Two roles are supersets of others by construction rather
+of **72 permissions** in `resource:act` form. Two roles are supersets of others by construction rather
 than by copying, which is what stops the two drifting apart.
 
 | Role | Line | Holds | The sentence that defines it |
