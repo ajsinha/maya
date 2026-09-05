@@ -204,6 +204,65 @@ distinguishable to a prober.
 
 **SSO — see §3.5.**
 
+### 3.4a Ambient authority, and the two things it cost
+
+A session cookie is *ambient*: the browser sends it whether or not the page that
+triggered the request came from us. Everything below follows from that one
+property, and both defects here were live.
+
+**Cross-site request forgery.** The cookie is `SameSite=Strict`, which is a real
+defence and is **somebody else's** — enforced by the browser, removable by a
+client that does not implement it or an intermediary that strips the attribute,
+and its removal invisible from here. So there is now a token as well, and the
+boundary it applies to is the part worth stating: **a state-changing method whose
+authority came from the session cookie, and nothing else.**
+
+Requiring a token from a Basic-authenticated service client would protect
+nothing — the browser never sends that header unprompted, and a caller who can
+set it already holds the credential — while breaking every engine and script,
+which is how a security control ends up switched off in configuration.
+
+| | Token required |
+|---|---|
+| `POST`/`PUT`/`DELETE` under a session cookie | **yes** |
+| `POST` under HTTP Basic | no — the authority is not ambient |
+| `GET`/`HEAD`/`OPTIONS` | no — nothing changes |
+| `/login`, `/auth/login`, `/auth/callback` | no — they *establish* the session |
+
+Enforced in middleware rather than in each route, because there are ninety
+mutating endpoints and a control ninety places have to remember will be missing
+from the ninety-first. The exemptions are **exact paths, never prefixes**: a
+prefix exemption grows silently as routes are added beneath it.
+
+The token is **per session, not per form**. A single-use token breaks the back
+button, breaks two tabs, and breaks every page here that posts more than once —
+and each breakage teaches somebody to work around the control rather than with
+it. A control people route around is worse than one they never had, because it
+also reports success. It is minted on first render rather than at sign-in, so a
+session predating the control gets one instead of silently skipping the check.
+Comparison is constant-time; it is the one place this codebase compares a secret.
+
+Middleware ordering is load-bearing and worth recording: the guard is registered
+**before** the session middleware, which places it **inside** it. Starlette wraps
+later-added middleware on the outside, and a CSRF guard running before the
+session is decoded has no session to compare a token against. It failed loudly,
+which is the only reason this is a note rather than an incident.
+
+**The open redirect.** `POST /login` honoured whatever `next` carried, so
+`/login?next=https://evil.example/phish` sent the browser there immediately
+after somebody typed real credentials into the real form on the real domain.
+That is the whole of a credential-phishing attack, and the redirect is the part
+that makes the link look legitimate — the part that was ours to remove. The same
+door stood open on the SSO path, where the target survived a round trip through
+the identity provider before being followed, so it is bounded before it is
+*remembered* rather than before it is followed.
+
+Only a path is accepted now. A scheme, a host, a protocol-relative `//host`, the
+backslash spellings browsers normalise, and the control characters they strip
+before resolving a URL are each **replaced by the fallback rather than
+sanitised** — a redirect target somebody had to repair is a redirect target
+nobody understands.
+
 ### 3.5 Single sign-on
 
 The authorisation-code flow with **PKCE, a state parameter and a nonce** — all standard, all checked,

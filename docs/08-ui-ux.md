@@ -97,6 +97,16 @@ required a UI release.
 
 ### 1.4 Authentication
 
+> **Tense warning.** This table is the *design* for the decoupled frontend of
+> [ADR-011](adr/ADR-011-decoupled-frontend.md). The interface that exists is
+> server-rendered Jinja whose pages call the same API **under a session cookie**,
+> so ambient cookie authority is exactly what it has and the row below saying
+> CSRF does not apply describes an architecture nobody has deployed. What is
+> built is documented in [09 §3.4a](09-security-compliance.md): a token required
+> on any state-changing request whose authority came from the cookie, and on
+> nothing else. A control written in the future tense reads as a control, and
+> the tense is the part people skip.
+
 | Element | Design |
 |---|---|
 | Login | OIDC Authorization Code + **PKCE**, initiated by the shell |
