@@ -254,6 +254,23 @@ materialise its values like any primitive — the definition is still kept, so
 lineage and the leakage check still apply
 ```
 
+Such an expression usually cannot be *parsed* either, and then it must declare
+what it reads:
+
+```json
+{"name": "nlp_sentiment",
+ "expression": "hf.sentiment(complaint_text)",
+ "evaluator": "external",
+ "inputs": ["complaint_text"]}
+```
+
+Without the `inputs` the definition is refused, because a feature resting on
+nothing is a feature the leakage check cannot see through — and seeing through it
+is why the definition is kept at all. The list is accepted **only** for an
+expression MAYA cannot parse: where the expression parses, the parse is the
+single source of truth and a second list is refused as something that can
+disagree with it.
+
 ## Worked example — New Jersey home prices
 
 A multiple linear regression predicting residential sale price. Small enough to

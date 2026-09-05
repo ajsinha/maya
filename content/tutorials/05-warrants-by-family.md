@@ -121,7 +121,7 @@ down inside an artifact loader.
 | `L-W2` | `generate` on a non-generative runtime | an ONNX graph does not produce prose |
 | `L-W3` | training from a non-bitemporal binding | it cannot be read as-of, so it cannot be shown leak-free |
 | `L-W4` | a `fit` with no `parameter_object` sink | a fit produces a new parameter object and must say where it goes |
-| `L-W5` | claimed determinism from a stochastic runtime with no seed | an LLM at 0.7 is not reproducible, and the claim would be believed |
+| `L-W5` | claimed determinism, no seed, from a runtime running arbitrary code | an LLM at 0.7 is not reproducible and neither is an unseeded simulation, and the claim would be believed |
 | `L-W6` | `fit` on a `descriptor_only` model | you cannot inhabit what nothing on this side can reach |
 | `L-W7` | a `backtest` with no outcomes | that is a re-score wearing a backtest's name |
 | `L-W8` | a run that will not name its point of `P` | the number would be attributable to nothing. Only a `fit` may leave it unfilled, and a `fit` must bind `to_be_fitted` and nothing else |

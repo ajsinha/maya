@@ -136,7 +136,16 @@ class EvidenceEngine:
         node = {
             "seq": seq, "kind": kind,
             "subject_type": subject_type, "subject_id": subject_id,
-            # Law L-18: personal data is never inline, only an erasable pointer.
+            # Law L-18. The payload is DISCARDED, not replaced by a pointer:
+            # there is no `payload_uri` column, no per-subject key and no shred
+            # path anywhere in this repository. Several documents said "an
+            # erasable pointer", which describes a design nobody built and reads
+            # as though the data is still retrievable under authority.
+            #
+            # Discarding is the stronger guarantee for the law as stated — there
+            # is nothing to erase, so nothing to leak — and the weaker one for
+            # anybody who expected to resolve it later. Saying which is which
+            # matters more than either.
             "payload": stored_payload,
             "parents": parents, "contains_personal_data": personal_data,
             "content_hash": content_hash, "prev_hash": prev_hash,

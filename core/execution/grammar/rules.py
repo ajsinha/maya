@@ -29,7 +29,7 @@ from core.execution.grammar.vocabulary import (BACKTEST, BITEMPORAL_BINDINGS,
                                                PARAMETER_SOURCE_KEYS,
                                                PARAMETER_SOURCES, SCORE, SIMULATE,
                                                TRAINABILITY_CLASSES,
-                                               STOCHASTIC_RUNTIMES,
+                                               UNVERIFIABLE_DETERMINISM,
                                                UNFITTED_SOURCES, VERBS)
 
 # ---------------------------------------------------------------------------
@@ -261,19 +261,29 @@ def check_featureset_bounds(verb: str, inputs: List[Dict[str, Any]]) -> List[Pro
 
 
 def check_determinism(operation: Dict[str, Any], runtime: str) -> Optional[Problem]:
-    """L-W5. A run claiming determinism from a stochastic runtime must pin it.
+    """L-W5. A claim of determinism MAYA cannot verify must be pinned.
 
     An LLM at temperature 0.7 is not reproducible, and a warrant asserting that
-    it is will be believed by whatever reads the result.
+    it is will be believed by whatever reads the result. So will a Monte Carlo
+    simulation in a container, which is the case this law was written for and
+    for a long time could not reach: the set it consulted held the two LLM
+    runtimes and nothing else, so every simulation, R script and MATLAB routine
+    could claim reproducibility with nothing pinning it.
+
+    The set is now the runtimes that execute **arbitrary code**, where MAYA has
+    no way to check the claim — as against `pmml`, `onnx`, `sql` and the rest,
+    whose determinism is a property of the format. See
+    `vocabulary.UNVERIFIABLE_DETERMINISM`, including why `quantlib` is not in it.
     """
     claims_determinism = operation.get("determinism") == "deterministic"
-    if not claims_determinism or runtime not in STOCHASTIC_RUNTIMES:
+    if not claims_determinism or runtime not in UNVERIFIABLE_DETERMINISM:
         return None
     if operation.get("seed") is None:
         return Problem(
             "L-W5", "operation.seed",
-            f"the '{runtime}' runtime is not deterministic unless it is pinned, "
-            "but this operation claims determinism",
+            f"MAYA cannot verify that the '{runtime}' runtime is deterministic, "
+            "because it runs code MAYA does not read — but this operation claims "
+            "determinism",
             "set operation.seed, or declare determinism as 'stochastic'")
     return None
 

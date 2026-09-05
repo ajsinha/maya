@@ -482,7 +482,12 @@ class TestTheFitWarrantChecksTheSchema:
         model, and the shared fixture registers one — correctly."""
         # The runtime is what makes a version locatable; without one the
         # builder emits descriptor_only and L-W6 refuses to fit it, correctly.
-        kernel = {**KERNEL, "runtime": "python.callable",
+        # `seed` is here because L-W5 requires it: `python.callable` runs code
+        # MAYA cannot read, so a version claiming determinism must pin what
+        # makes it deterministic. Without it the fit warrant is refused
+        # `grammar_violation`, and the refusal is right — this version was
+        # asserting reproducibility with nothing behind it.
+        kernel = {**KERNEL, "runtime": "python.callable", "seed": 20260101,
                   "entry": {"module": "sb.estimators", "attr": "ols_fit"}}
         client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
                     json={"semver": "3.3.0", "kernel": kernel,

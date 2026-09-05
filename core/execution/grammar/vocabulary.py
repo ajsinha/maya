@@ -106,6 +106,41 @@ RUNTIME_ENTRY: Dict[str, Tuple[str, ...]] = {
 RUNTIMES: Tuple[str, ...] = tuple(RUNTIME_ENTRY)
 
 # Runtimes whose output is not reproducible from inputs alone unless pinned.
+#
+# This held only the two LLM runtimes, on the reasoning that an LLM at
+# temperature 0.7 is not reproducible. True, and far too narrow: it made the
+# determinism law (`L-W5`) unable to fire on the canonical case for it. A Monte
+# Carlo simulation in a `container`, an R script, a MATLAB routine — each is
+# arbitrary code that MAYA cannot inspect, and a warrant claiming its output is
+# reproducible was accepted with nothing pinning it.
+#
+# The name is the thing that misled. The question is not "is this runtime
+# random", which is undecidable from a runtime name; it is **"can MAYA verify
+# the determinism this warrant claims"** — and for arbitrary code it cannot, so
+# a claim of determinism must be backed by a seed. The runtimes left out are
+# left out because their determinism is a property of the format rather than of
+# whatever somebody wrote: `pmml`, `pfa`, `onnx`, `sql`, `rules`, `spreadsheet`,
+# and `descriptor_only`, which executes nothing here at all.
+#
+# `quantlib` is the honest gap. Its determinism is decidable — from the
+# `pricing_engine` its own entry already declares, analytic or Monte Carlo — so
+# demanding a seed for every QuantLib pricing would refuse a great many
+# reproducible valuations to catch a few that are not. That check belongs
+# against the engine name, and it is not built.
+# `estimator` is deliberately absent. It is MAYA's own captive runtime — `ols`
+# and `garch11`, whose code is in this repository — so it is the one executing
+# runtime whose determinism MAYA genuinely *can* verify, and `L-3` does exactly
+# that, running the same call twice and comparing bit for bit. Including it here
+# would have demanded a seed to back a claim that is already proved by
+# execution, which is the strongest evidence available and stronger than a seed.
+UNVERIFIABLE_DETERMINISM: FrozenSet[str] = frozenset({
+    "llm.prompt", "llm.agent", "container", "python.callable", "r", "matlab",
+    "solver", "rest",
+})
+
+#: Retained under its old name: the two runtimes that are stochastic by nature
+#: rather than merely opaque. `L-W13` reads this one — pinning a generative
+#: build is a different obligation from pinning a seed.
 STOCHASTIC_RUNTIMES: FrozenSet[str] = frozenset({"llm.prompt", "llm.agent"})
 
 # ---------------------------------------------------------------------------

@@ -238,10 +238,22 @@ the three bitemporal bindings: `dataset_snapshot`, `feature_namespace`,
 parameter object rather than editing the old one, so it needs an output whose
 sink is `parameter_object`.
 
-**L-W5 — claimed determinism must be pinned.** An LLM at temperature 0.7 is not
-reproducible, and a warrant asserting that it is will be believed by whatever
-reads the result. Claim determinism from a stochastic runtime and you must supply
-`operation.seed`.
+**L-W5 — a determinism claim MAYA cannot check must be pinned.** An LLM at
+temperature 0.7 is not reproducible, and neither is a Monte Carlo simulation
+without a seed; a warrant asserting either is will be believed by whatever reads
+the result. So a claim of determinism from a runtime that executes **arbitrary
+code** — `container`, `python.callable`, `r`, `matlab`, `solver`, `rest`,
+`llm.prompt`, `llm.agent` — must supply `operation.seed`.
+
+The question is not whether the runtime is random, which no runtime name can
+answer. It is whether MAYA can *check* the claim. `pmml`, `onnx`, `sql`, `rules`,
+`spreadsheet` and `descriptor_only` are exempt because their determinism is a
+property of the format rather than of whatever somebody wrote inside it.
+`quantlib` is exempt as a **named gap**: its determinism is decidable from the
+`pricing_engine` its entry declares, and that check is not built. `estimator` is
+exempt for the opposite reason — it is MAYA's own captive runtime, so `L-3`
+verifies its determinism by *running it twice and comparing bit for bit*, which
+is better evidence than a seed.
 
 **L-W6 — a descriptor-only model cannot be fitted.** Descriptor-only is a
 legitimate state: the bank holds the licence, the engine holds the artifact, MAYA

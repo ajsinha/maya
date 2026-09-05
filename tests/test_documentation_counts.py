@@ -42,6 +42,8 @@ def _truth():
     from core.authz.common import PERMISSIONS
     from core.authz.roles import ROLES
     from core.execution.grammar.vocabulary import BINDINGS, RUNTIMES, VERBS
+    from core.lifecycle import STATES
+    from core.scheduler.jobs import JOBS
 
     schema = (ROOT / "db" / "schema" / "sqlite.sql").read_text(encoding="utf-8")
     # The laws that actually run, counted from the table that states them. The
@@ -71,6 +73,12 @@ def _truth():
         # document that trusted it.
         "tables": len(re.findall(r"^CREATE TABLE IF NOT EXISTS", schema, re.M)),
         "runtimes": len(RUNTIMES),
+        # Drifted quietly: the docs said seven jobs against eight, and six
+        # lifecycle states against seven — and `baselined` is the state that
+        # matters most, since it exists so an imported model never looks like
+        # one somebody asserted.
+        "scheduler jobs": len(JOBS),
+        "lifecycle states": len(STATES),
         "verbs": len(VERBS),
         "bindings": len(BINDINGS),
         "permissions": len(PERMISSIONS),
@@ -107,6 +115,10 @@ CLAIMS = {
     # total — a check that cries wolf is a check that gets deleted.
     "foundational laws": [r"of the ([\w-]+) foundational laws"],
     "mutating endpoints": [r"(\d+|a hundred and \w+) mutating endpoints"],
+    "scheduler jobs": [r"(\w+) idempotent jobs", r"[Tt]he (\w+) jobs",
+                       r"(\w+) scheduler jobs"],
+    "lifecycle states": [r"(\w+)-state record machine",
+                         r"(\w+) lifecycle states"],
 }
 
 # Source files are read too. `runtimes/base.py` and `runtimes/registry.py` each

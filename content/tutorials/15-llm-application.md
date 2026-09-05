@@ -117,13 +117,14 @@ Pinning does not stop the vendor retiring a build. It makes the retirement
 visible as a **mismatch** rather than as a drift.
 
 **`deterministic: false`.** Say so, because here the grammar can actually check
-it. `STOCHASTIC_RUNTIMES` holds exactly `llm.prompt` and `llm.agent`, so a
-determinism claim on this runtime with no seed is refused by **L-W5**:
+it. `llm.prompt` runs code MAYA cannot read, so a determinism claim on it with no
+seed is refused by **L-W5**:
 
 ```json
 {"law": "L-W5", "path": "operation.seed",
- "detail": "the 'llm.prompt' runtime is not deterministic unless it is pinned,
-            but this operation claims determinism",
+ "detail": "MAYA cannot verify that the 'llm.prompt' runtime is deterministic,
+            because it runs code MAYA does not read — but this operation claims
+            determinism",
  "remediation": "set operation.seed, or declare determinism as 'stochastic'"}
 ```
 
@@ -471,7 +472,7 @@ Seven models, seven media, one definition. What actually differed:
 | [GARCH](/tutorials/garch-end-to-end) | ω, α, β | a record | T2 | `L-W9` — bounded in both clocks |
 | [Pricer](/tutorials/derivative-pricing-end-to-end) | empty | — | T0 | `L-W1` — fitting is a type error |
 | [Hull–White](/tutorials/hull-white-end-to-end) | a calibration set | a record, daily | T1 | `L-W11` — a calibration must state its `as_of` |
-| [Monte Carlo](/tutorials/monte-carlo-end-to-end) | parameters + seed | a record | T1 | `L-W11`, and `L-W5` deliberately *not* |
+| [Monte Carlo](/tutorials/monte-carlo-end-to-end) | parameters + seed | a record | T1 | `L-W11`, and `L-W5` — which for a long time did not reach it |
 | [Neural network](/tutorials/neural-network-end-to-end) | weights | an **artifact** | T3 | `L-W12` — an artifact binding needs a digest |
 | [LLM application](/tutorials/llm-end-to-end) | a configuration | a record + artifacts | T5 | `L-W13` — pin the build, not the family |
 
@@ -483,7 +484,14 @@ why the seventh fitted without a redesign, and it is the only evidence for the
 definition that counts.
 
 The last column is also an argument about coverage. `L-W12` bites hardest on the
-network and applies just as hard to a PMML scorecard, which is T2. `L-W5` does
-not fire for the simulation, and the tutorial says so rather than implying it
-does. A law keyed on a *class* would have got both of those wrong, and the
-mistake would have looked like coverage.
+network and applies just as hard to a PMML scorecard, which is T2. A law keyed on
+a *class* would have got that wrong, and the mistake would have looked like
+coverage.
+
+Keying on derived facts is necessary and not sufficient, though, and `L-W5` is
+the example. It quantified over the runtime, which is derived — and consulted a
+set called `STOCHASTIC_RUNTIMES` holding the two LLM runtimes, so it could not
+fire for a Monte Carlo simulation in a container. The law was right, the fact it
+read was right, and the set was too narrow, which no amount of deriving would
+have caught. The tutorial then documented the gap as a principled boundary, which
+is the most durable way for one to survive.

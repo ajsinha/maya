@@ -67,28 +67,47 @@ every warrant this version ever produces:
 That is a **claim**, travelling to whatever runs the model, and it is the reason
 `deterministic` belongs on the version rather than in a deployment file.
 
-### The law that checks it, and the case it does not cover
+### The law that checks it
 
 `L-W5` refuses a determinism claim that nothing backs:
 
 ```json
 {"law": "L-W5", "path": "operation.seed",
- "detail": "the 'llm.prompt' runtime is not deterministic unless it is pinned,
-            but this operation claims determinism",
+ "detail": "MAYA cannot verify that the 'container' runtime is deterministic,
+            because it runs code MAYA does not read — but this operation claims
+            determinism",
  "remediation": "set operation.seed, or declare determinism as 'stochastic'"}
 ```
 
-**Read the runtime in that message, because it is not this one.**
-`STOCHASTIC_RUNTIMES` in `core/execution/grammar/vocabulary.py` holds exactly
-two values, `llm.prompt` and `llm.agent`. A `container` is not among them, so
-`L-W5` **does not fire for this model**, and a version declaring
-`deterministic: true` with no seed is signed without complaint.
+**This tutorial used to say the law did not fire here**, and the reasoning
+sounded solid: MAYA cannot know your container is stochastic, it sees an image
+digest and an entry point, and inferring randomness from either would be a
+guess. All true — and it answers a question the law was never asking.
 
-That is not an oversight to paper over. MAYA cannot know your container is
-stochastic: the platform sees an image digest and an entry point, and inferring
-randomness from either would be a guess. The grammar refuses only what it can
-*derive*, and here it can derive nothing. So the enforcement has to come from
-somewhere else, and it does:
+The law does not ask *is this runtime random*, which is undecidable from a
+runtime name. It asks **can MAYA check the claim this warrant is making**. For a
+container the answer is no, and "I cannot check it" is a reason to demand the
+claim be pinned, not a reason to wave it through. The set it consults was named
+`STOCHASTIC_RUNTIMES` and held the two LLM runtimes, and the name is what carried
+the mistake: the canonical unreproducible-without-a-seed case in all of finance
+is a Monte Carlo simulation, and it was the one case the law could not reach.
+
+It now consults the runtimes that execute **arbitrary code** — `container`,
+`python.callable`, `r`, `matlab`, `solver`, `rest`, and the two LLM runtimes.
+Three sets of runtimes are left out, for three different reasons, and the
+distinctions are the whole content of the law:
+
+| Left out | Why |
+|---|---|
+| `pmml`, `onnx`, `sql`, `rules`, `spreadsheet`, `descriptor_only` | determinism is a property of the **format**, not of whatever somebody wrote inside it |
+| `estimator` | MAYA's own captive runtime, so `L-3` verifies determinism by **running it twice and comparing bit for bit** — better evidence than a seed |
+| `quantlib` | a **named gap**. Whether a valuation is deterministic is decidable from the `pricing_engine` its own entry declares, so the right check is against the engine name. It is not built |
+
+### And the structural control, which still does the harder half
+
+A law can only refuse an unbacked *claim*. It cannot stop the seed being changed
+after the claim was accepted — so that part is made impossible instead of
+checked.
 
 **The seed is in `P`, so it is in the digest.** Change the seed and the
 parameter set's digest changes; a changed digest is a different parameter set,
@@ -107,9 +126,10 @@ approval is refused rather than run:
 409 rather than 422, deliberately: nothing about the request is wrong. The
 platform's own state stopped agreeing with itself, and that is a security event.
 
-The general shape is worth carrying: **a law that quantifies over derived facts
-covers what the platform can see, and everything else has to be made structural
-rather than checked.** Putting the seed in `P` is the structural version.
+The general shape is worth carrying: **a law refuses a claim; a structure refuses
+a change.** `L-W5` catches the version that says "deterministic" with nothing
+behind it. Putting the seed in `P` catches the seed moving afterwards — and no
+law could have, because by then the warrant was already admissible.
 
 ---
 

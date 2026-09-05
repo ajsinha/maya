@@ -59,9 +59,9 @@ note(sl, x, y, CW * 0.42, 2.2,
      "the record can name.")
 note(sl, x, y + 2.40, CW * 0.42, 1.9,
      "It is also where determinism lives. ",
-     "`deterministic` is a CLAIM about the map, and the grammar checks it: a "
-     "stochastic runtime asserting determinism without a pinned seed is refused "
-     "rather than believed (L-W5).")
+     "`deterministic` is a CLAIM about the map, and the grammar checks it: "
+     "asserted without a pinned seed, from any runtime that executes code MAYA "
+     "cannot read, it is refused rather than believed (L-W5).")
 
 # ---------------------------------------------------- trainability derived
 sl, y = content("The class falls out; nobody declares it",

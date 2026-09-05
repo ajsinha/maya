@@ -127,10 +127,23 @@ It does not select a validation checklist either; it changes which evidence is
 coherent to ask for.
 
 And it does not set the tier. Complexity is one input alongside materiality,
-and neither dominates: a T0 pricer on a two-billion-dollar regulatory-capital
-book and a T3 network on a twenty-million-dollar commercial one both come back
-**Tier 2**, by different routes. The tier is derived as well, and from different
-facts — see [risk tiering](/help/risk-tiering) for the two lattices and why
+and neither dominates. Two models arrive at **Tier 2** by opposite routes:
+
+| | Materiality | Complexity | |
+|---|---|---|---|
+| A **T0** pricer, $2bn, regulatory capital | `material` | `simple` | **Tier 2** |
+| A **T3** network, $20m, commercial, 60 features, not interpretable | `negligible` | `advanced` | **Tier 2** |
+
+The second row needs those last two facts, and that is the part worth dwelling
+on. Drop them — the same T3 network on the same book with 20 features and an
+interpretable structure — and it is **Tier 3**. `T3` contributes exactly one
+point of complexity, for opacity; reaching `advanced` needs two more, from more
+than fifty features, alternative data, or a structure nobody can read.
+
+So "a neural network is high risk" is not a fact about neural networks. The
+class earns one point and the rest is earned by the model's own declared facts,
+which is why the tier is derived rather than chosen, and why it moves when those
+facts move. See [risk tiering](/help/risk-tiering) for the two lattices and why
 there is no single score.
 
 ---
