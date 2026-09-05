@@ -491,6 +491,20 @@ class FeaturesetRegistry:
             raise FeatureError(f"featureset '{name}' has no version {number}")
         return row
 
+    def version_by_id(self, version_id: str) -> Optional[Dict[str, Any]]:
+        """A filled version, resolved from its id, carrying its set's name.
+
+        The register stores the id on everything that pins a featureset version
+        — a parameter set, a warrant, a snapshot — because a name would go
+        stale. Reading it back therefore needs the name attached, and doing that
+        here rather than at each caller keeps one answer to *which set is this*.
+        """
+        row = self.versions.one(id=version_id)
+        if row is None:
+            return None
+        featureset = self.sets.one(id=row["featureset_id"])
+        return {**row, "featureset": (featureset or {}).get("name")}
+
     def versions_of(self, name: str) -> List[Dict[str, Any]]:
         return sorted(self.versions.many(featureset_id=self.require(name)["id"]),
                       key=lambda v: v["version"])
