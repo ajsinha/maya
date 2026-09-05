@@ -528,9 +528,16 @@ class FeaturesetRegistry:
         Contravariance in inputs (law L-12): the set must accept everything the
         kernel's schema does. A missing or mistyped slot is not a warning — the
         model would be fitted over a different X than the one it declares.
+
+        This is `L-W10`, and it is now literally the same comparison `L-12`
+        makes when a version replaces another — `core.domain.lattice.refines`,
+        written once. They were one relation implemented twice, and two
+        implementations of one order eventually disagree in the direction of
+        permitting more.
         """
-        missing = self.schema(name).accepts_superset_of(kernel_input)
-        return not missing, missing
+        from core.domain.lattice import refines
+        outcome = refines(self.schema(name), kernel_input)
+        return outcome.holds, list(outcome.missing + outcome.narrowed)
 
     def restatements(self, name: str, number: int) -> Dict[str, Any]:
         """Which of this version's namespaces have been written to since.

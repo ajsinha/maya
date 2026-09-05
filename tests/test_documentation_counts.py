@@ -29,7 +29,8 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
+WORDS = {21: "twenty-one",
+         1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
          7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
          12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
          16: "sixteen", 17: "seventeen", 18: "eighteen", 19: "nineteen",
@@ -82,13 +83,13 @@ CLAIMS = {
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.
-    "executable laws": [r"(\w+) of the nineteen foundational laws are executable",
-                        r"\*\*(\w+) of the nineteen\*\* foundational laws are executable"],
+    "executable laws": [r"(\w+) of the twenty-one foundational laws are executable",
+                        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable"],
     # The word immediately before "foundational laws" is the total. Written this
     # narrowly because the looser form captured "Thirteen" out of "thirteen of
     # the nineteen foundational laws" and reported the executable count as the
     # total — a check that cries wolf is a check that gets deleted.
-    "foundational laws": [r"(\w+) foundational laws"],
+    "foundational laws": [r"of the ([\w-]+) foundational laws"],
 }
 
 DOCUMENTS = (list((ROOT / "docs").glob("*.md"))

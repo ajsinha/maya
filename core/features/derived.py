@@ -54,6 +54,11 @@ ON_ERROR = ("null", "refuse")
 CERTIFICATION_ORDER = ("experimental", "reviewed", "certified", "gold")
 
 
+# A derivation deeper than this is a modelling problem rather than a depth
+# problem, and the refusal says so instead of exhausting the stack.
+MAX_DEPTH = 12
+
+
 class DerivedFeatures:
     """Defines derived features, keeps their lineage, and evaluates them."""
 
@@ -145,6 +150,54 @@ class DerivedFeatures:
 
     def depends_on(self, name: str, candidate: str) -> bool:
         return candidate in self.lineage(name)
+
+    # ------------------------------------------------------------ provenance
+    def provenance(self, name: str,
+                   depth: int = 0) -> Dict[Any, int]:
+        """This feature as a polynomial over the base features it rests on.
+
+        The same `ℕ[X]` the evidence chain uses (`L-9`), applied one layer
+        across. A derivation is a term; annotating each base feature with its
+        own variable and evaluating the term in the free commutative semiring
+        gives the object every other question about the feature is a
+        *homomorphism out of*:
+
+        | Question | The homomorphism |
+        |---|---|
+        | what does this rest on? | the variables of the polynomial |
+        | when did it become knowable? | pushforward into (max, max) |
+        | does it touch the label? | membership of the label's variable |
+        | how much do we trust it? | pushforward into the trust semiring |
+
+        The ingest clock in particular stops being a rule somebody could forget
+        to apply. It is a homomorphism, and homomorphisms do not have
+        exceptions — which is the strongest form the platform's "arithmetic, not
+        policy" claim can take.
+        """
+        from core.evidence.semirings import (POLYNOMIAL, poly_variable)
+        if depth > MAX_DEPTH:
+            raise FeatureError(
+                f"'{name}' derives through more than {MAX_DEPTH} levels; that is "
+                f"a modelling problem rather than a depth problem")
+        definition = self.derived.current(name)
+        if definition is None:
+            return poly_variable(name)              # a base feature IS a variable
+        total = POLYNOMIAL.zero
+        term = POLYNOMIAL.one
+        for parent in definition["inputs"]:
+            term = POLYNOMIAL.times(term, self.provenance(parent, depth + 1))
+        return POLYNOMIAL.plus(total, term)
+
+    def rests_on(self, name: str) -> Set[str]:
+        """The variables of the polynomial — lineage, read off the algebra.
+
+        Agrees with `lineage()` on every derivation, which is asserted rather
+        than assumed: two routes to one answer are worth having only while they
+        agree, and worth testing for exactly that reason.
+        """
+        return {variable
+                for monomial in self.provenance(name)
+                for variable, _ in monomial}
 
     def dependants_of(self, feature_name: str) -> List[str]:
         """What would break if this feature were retired."""

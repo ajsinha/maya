@@ -39,6 +39,8 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from core.evidence import EvidenceEngine
 from core.log import get_logger
+from core.domain.lattice import refines
+from core.domain.schemas import Field, Schema
 from core.registry.common import RegistryError
 
 logger = get_logger(__name__)
@@ -68,6 +70,13 @@ KIND_MEANING: Dict[str, str] = {
 # somebody thinks about a model; this one records what a change does to it.
 PROPAGATING: frozenset = frozenset({FEEDS, CALIBRATED_BY})
 
+# Relations that are COMPOSITION rather than commentary. A `feeds` edge asserts
+# that what one model produces arrives where another reads, which is a claim
+# about types and is checked as one. `calibrated_by` propagates but does not
+# compose: a calibration procedure solves parameters rather than handing an
+# output to an input, so there is no wire to type-check.
+COMPOSING: frozenset = frozenset({FEEDS})
+
 # A dependency graph deeper than this in a model estate is either wrong or is
 # something nobody can reason about. Bounded so a cycle introduced by two edges
 # added independently cannot make a traversal run forever.
@@ -77,8 +86,12 @@ MAX_DEPTH = 20
 class ModelComposition:
     """The edges between models, and what they let you ask."""
 
-    def __init__(self, edges, catalogue, evidence: EvidenceEngine):
+    def __init__(self, edges, catalogue, evidence: EvidenceEngine,
+                 versions=None):
         self.edges, self.catalogue, self.evidence = edges, catalogue, evidence
+        # Optional so a register with no versions still records edges. Where it
+        # is wired, a `feeds` edge is type-checked rather than believed.
+        self.versions = versions
 
     # ----------------------------------------------------------------- relate
     def relate(self, from_urn: str, to_urn: str, kind: str, note: str = "",
@@ -111,6 +124,14 @@ class ModelComposition:
                 f"input has no defined value, and a blast radius over it does "
                 f"not terminate")
 
+        # A `feeds` edge is a CLAIM ABOUT TYPES: whatever the source produces
+        # arrives where the target reads. Recorded and never checked, it was a
+        # drawing — a blast radius over edges nobody validated. Checked, it is
+        # composition, and a composite has a derived schema rather than a
+        # declared one.
+        if kind in COMPOSING:
+            self._check_composes(from_urn, to_urn, source, target)
+
         row = {"from_model": source["id"], "to_model": target["id"], "kind": kind,
                "note": note, "created_by": actor, "created_at": time.time()}
         self.edges.add(row)
@@ -120,6 +141,68 @@ class ModelComposition:
         logger.info("recorded %s %s %s", from_urn, kind, to_urn)
         return {**row, "from_urn": source["urn"], "to_urn": target["urn"],
                 "means": KIND_MEANING[kind]}
+
+    # ------------------------------------------------------------ composition
+    def _check_composes(self, from_urn: str, to_urn: str,
+                        source: Dict[str, Any], target: Dict[str, Any]) -> None:
+        """Refuse a `feeds` edge whose ends do not compose.
+
+        The order is the platform's one order (`core.domain.lattice.refines`),
+        the same comparison `L-12` makes at an alias move and `L-W10` makes at
+        warrant issuance. What the source *provides* must stand in for what the
+        target *reads*; extra outputs are fine and simply unread, a missing one
+        is a wire to nowhere.
+
+        Checked against the latest version at each end, and only where both ends
+        have one. A model with no version yet is a model whose schema is not
+        decided, and refusing an edge for a schema that does not exist would
+        make the register harder to build than the estate is to describe.
+        """
+        if self.versions is None:
+            return
+        producing = self._latest(source["id"])
+        consuming = self._latest(target["id"])
+        if producing is None or consuming is None:
+            logger.info("feeds %s -> %s recorded without a type check: %s has "
+                        "no version yet", from_urn, to_urn,
+                        from_urn if producing is None else to_urn)
+            return
+
+        outcome = refines(
+            schema_of_fields(producing.get("output_schema") or []),
+            schema_of_fields(consuming.get("input_schema") or []))
+        if outcome.holds:
+            return
+        raise RegistryError(
+            f"{from_urn} does not compose with {to_urn}: what it produces "
+            f"{outcome.reason()}. A `feeds` edge asserts that the output arrives "
+            f"where the input is read, and an edge that does not type-check is "
+            f"a wire to nowhere — the blast radius would follow it and the "
+            f"composite would have no defined schema")
+
+    def _latest(self, model_id: str) -> Optional[Dict[str, Any]]:
+        rows = self.versions.many(model_id=model_id)
+        return rows[-1] if rows else None
+
+    def composite_schema(self, from_urn: str, to_urn: str) -> Dict[str, Any]:
+        """The type of `to ∘ from`: the source's inputs, the target's outputs.
+
+        Derived rather than declared, which is the whole reason to type the edge
+        — a composite whose schema somebody wrote down is a composite that can
+        disagree with its parts.
+        """
+        source = self.catalogue.require(from_urn)
+        target = self.catalogue.require(to_urn)
+        producing, consuming = self._latest(source["id"]), self._latest(target["id"])
+        if producing is None or consuming is None:
+            raise RegistryError(
+                "a composite has no schema until both ends have a version")
+        return {"composite": f"{to_urn} ∘ {from_urn}",
+                "input_schema": producing.get("input_schema") or [],
+                "output_schema": consuming.get("output_schema") or [],
+                "detail": "the source's inputs and the target's outputs; the "
+                          "wire between them type-checks or the edge does not "
+                          "exist"}
 
     def unrelate(self, from_urn: str, to_urn: str, kind: str,
                  reason: str, actor: str = "system") -> Dict[str, Any]:
@@ -291,3 +374,11 @@ class ModelComposition:
         """The relations and what each one means."""
         return [{"kind": k, "means": KIND_MEANING[k],
                  "propagates": k in PROPAGATING} for k in KINDS]
+
+
+def schema_of_fields(fields) -> Schema:
+    """A stored input/output schema list as a `Schema`, for the order."""
+    return Schema(tuple(
+        Field(f["name"], f.get("dtype", "numeric"), bool(f.get("nullable", False)),
+              f.get("minimum"), f.get("maximum"))
+        for f in fields or []))
