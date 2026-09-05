@@ -492,8 +492,8 @@ Everything in §6.1 is a product argument. This one is a technical position, and
 | **Composition type-checks.** An `input_to` edge holds only if what the source produces can stand in for what the target reads; a composite's schema is *derived* rather than declared | `L-21`, `core/registry/composition.py`, `tests/test_laws.py::TestL21FeedsIsCompositionRatherThanADrawing` |
 | Composition of definitions is a **monoid**, and independent edits **commute**, so the order two people happened to edit a shared featureset in carries no meaning | `L-19`, `L-20`, `tests/test_composition.py` |
 
-Full treatment in [17 — The Algebra](17-feature-and-model-algebra.md). Fifteen of the twenty-one
-foundational laws are executable and a failing one fails the build; the six that are not are named with
+Full treatment in [17 — The Algebra](17-feature-and-model-algebra.md). Sixteen of the twenty-one
+foundational laws are executable and a failing one fails the build; the five that are not are named with
 the reason in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces).
 
 ### 6.3 What MAYA has since built, against this survey

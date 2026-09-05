@@ -36,6 +36,7 @@ from core.evidence import EvidenceEngine
 from core import log
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
+from core.fibres import FibreRegistry
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
@@ -178,8 +179,27 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     telemetry = TelemetryCollector(DeltaStore(delta.root), registry, evidence,
                                    TelemetryBatchRepository(db))
 
+    # `L-15`, checked before anything is served. A partial fibre found at run
+    # time is found by whoever was relying on it.
+    fibres = FibreRegistry()
+    fibres.verify()          # L-15, before anything is served
+
+    def _class_of(model_id: str):
+        """The trainability class of a model's latest version, or None.
+
+        A model with no version yet has no class, and the fibre check holds no
+        opinion rather than guessing one — the fit and approval gates refuse
+        further on for better reasons.
+        """
+        model = registry.by_id(model_id)
+        if not model:
+            return None
+        versions = registry.versions(model["urn"])
+        return versions[-1]["trainability_class"] if versions else None
+
     monitoring = MonitoringService(
-        MonitorRegistry(MonitorRepository(db), catalogue, evidence),
+        MonitorRegistry(MonitorRepository(db), catalogue, evidence,
+                        fibres=fibres, class_of=_class_of),
         ObservationRepository(db),
         BreachRegister(BreachRepository(db), findings, evidence),
         catalogue, evidence, telemetry, registry)
@@ -343,7 +363,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "composition": composition,
+                           "registry": registry, "composition": composition, "fibres": fibres,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
                            "export": export, "dossier": dossier,

@@ -16,7 +16,7 @@ at the moment somebody wrote it down.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.monitoring.common import (ADMISSIBLE_TESTS, DAY, KINDS, LABEL_DEPENDENT,
@@ -24,13 +24,58 @@ from core.monitoring.common import (ADMISSIBLE_TESTS, DAY, KINDS, LABEL_DEPENDEN
 from core.validation import SEVERITIES, TestCatalogue
 from db import MonitorRepository
 
+if TYPE_CHECKING:                        # pragma: no cover
+    # Type-only. `core.fibres.library` reads this package's vocabulary, so a
+    # runtime import here would close a cycle: monitoring names the questions,
+    # the fibre says which class may ask them, and neither owns the other.
+    from core.fibres import FibreRegistry
+
 
 class MonitorRegistry:
     """Defines and lists monitors."""
 
     def __init__(self, monitors: MonitorRepository, catalogue: TestCatalogue,
-                 evidence: EvidenceEngine):
+                 evidence: EvidenceEngine,
+                 fibres: Optional["FibreRegistry"] = None,
+                 class_of: Optional[Callable[[str], Optional[str]]] = None):
         self.monitors, self.catalogue, self.evidence = monitors, catalogue, evidence
+        # The fibre says which questions this class can answer at all. Passed as
+        # a lookup rather than a registry reference so monitoring does not
+        # import the register it is monitoring — see `test_import_discipline`.
+        self.fibres, self.class_of = fibres, class_of
+
+    def _refuse_unanswerable(self, model_id: str, kind: str) -> None:
+        """A monitor asking a question this class cannot answer.
+
+        `test_key` was already checked against `kind` — pairing input drift with
+        a discrimination test is a definition error. What was never checked is
+        `kind` against the *model*: a `performance` monitor on a **T0** pricer
+        has no parameters and no fitted relationship to lose, and a
+        `calibration` monitor on a **T5** generative assembly is asking for a
+        Brier score over text.
+
+        Both were accepted, and both produce a monitor that runs forever without
+        ever meaning anything — which reads on the estate screen as coverage.
+        That is worse than an absent monitor, because an absent monitor is
+        visible in the worklist and a meaningless one is not.
+
+        The answer comes from the fibre (`L-15`), which is the point of having
+        one: the class already knew what it could answer, in a table in
+        `docs/02` that nothing could read.
+        """
+        if self.fibres is None or self.class_of is None:
+            return                       # not wired: no opinion rather than a wrong one
+        trainability = self.class_of(model_id)
+        if not trainability:
+            return                       # no version yet; the fit gate refuses later
+        fibre = self.fibres.get(trainability)
+        if fibre is None or fibre.admits_monitor(kind):
+            return
+        raise MonitorError(
+            "kind_not_answerable",
+            f"a '{kind}' monitor cannot answer anything about a {trainability} "
+            f"model ({fibre.label}); what it can answer is: {fibre.answers}",
+            f"for {trainability} use one of {', '.join(fibre.metrics)}")
 
     def define(self, model_id: str, name: str, kind: str, test_key: str,
                threshold: Dict[str, Any], owner: str,
@@ -50,6 +95,7 @@ class MonitorRegistry:
                 "test_not_admissible",
                 f"'{test_key}' cannot answer a '{kind}' question",
                 f"for {kind}, use one of {', '.join(admissible)}")
+        self._refuse_unanswerable(model_id, kind)
         if not threshold:
             raise MonitorError(
                 "threshold_required",

@@ -386,7 +386,7 @@ recorded in one place is a gap somebody has to go looking for.
 | **`L-11`** lens laws | needs a `put`; the compiler regenerates whole documents |
 | **`L-13`** evidence gluing | no consistency radius is computed anywhere |
 | **`L-14`** interaction premium | §6 gives it something to quantify over; the aggregate `ρ` and composite warrants are not built |
-| **`L-15`** fibration completeness | needs a plugin loader that refuses to boot on a partial fibre; model classes are strings |
+| ~~**`L-15`**~~ | **now executable** — `core/fibres/`, gated at start-up, indexed by the derived trainability class rather than the declared `model_class` |
 | **`L-17`** contract–serving agreement | needs an online store. Half exists: `serving_namespaces` computes what serving *must* read |
 | Featureset morphisms (`Δ/Σ/Π`) | §9; vocabulary borrowed, machinery not built |
 | The two diagrams | §7 |

@@ -45,6 +45,7 @@ from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
 from core.lifecycle import LifecycleError
+from core.fibres import FibreError
 from core.monitoring import MonitorError
 from core.overlays import OverlayError
 from core.log import get_logger, swallowed
@@ -74,7 +75,20 @@ STATUS: Dict[str, int] = {
     "reason_required": 422, "unknown_decision": 422,
     "role_not_required": 403, "role_not_held": 403, "deletion_refused": 403,
     "no_attestation": 404, "no_amendment": 404,
+    # the fibration (L-15)
+    #
+    # `no_fibre` is 422 and not 404: the class is a real value, the caller named
+    # it correctly, and what is missing is something the platform should have
+    # supplied. A 404 would read as "you asked for the wrong thing".
+    #
+    # `fibration_incomplete` is 503, and it is the only refusal here a caller
+    # should never see — the gate runs at start-up, so if it reaches HTTP the
+    # platform is serving on a fibration it already knows is partial, and the
+    # honest answer is that this instance is not fit to answer.
+    "no_fibre": 422, "partial_fibre": 422, "fibre_exists": 409,
+    "fibration_incomplete": 503,
     # monitoring
+    "kind_not_answerable": 422,
     "unknown_kind": 422, "test_not_admissible": 422, "threshold_required": 422,
     "label_delay_required": 422, "unknown_status": 422, "no_reference": 422,
     "cohort_immature": 409, "monitor_inactive": 409, "duplicate_monitor": 409,
@@ -384,7 +398,7 @@ class Routes:
                 ParameterError, TelemetryError, NotifyError,
                 FindingWorkflowError, PolicyError,
                 ArtifactError, ProfileError, ExportError,
-                ReportingError) as exc:
+                ReportingError, FibreError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

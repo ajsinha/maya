@@ -272,7 +272,7 @@ current there:
 | | |
 |---|---|
 | Tests | **over 2,200 passing**, plus a scale suite excluded by default |
-| Foundational laws executable | **15 of 21** — the six that are not are named with the reason |
+| Foundational laws executable | **16 of 21** — the five that are not are named with the reason |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
 | Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **46 tables**, no migrations |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
