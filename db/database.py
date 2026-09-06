@@ -13,7 +13,7 @@ import time
 from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.pool import StaticPool
@@ -264,10 +264,33 @@ class Database:
         return gaps
 
     # ------------------------------------------------------------- transaction
+    #: Distinct per contended sequence, so two different serialised writes do
+    #: not queue behind each other on PostgreSQL. Only the evidence chain uses
+    #: one today; the argument is named rather than numbered so a second caller
+    #: cannot collide with it by picking the same integer.
+    _ADVISORY_LOCKS: ClassVar[Dict[str, int]] = {"evidence_seq": 0x4D415941}
+
     @contextmanager
-    def transaction(self):
+    def transaction(self, *, serialise: Optional[str] = None):
         """Run several statements on one connection, committed or rolled back
         together.
+
+        `serialise` names a contended sequence and takes the write lock BEFORE
+        the transaction reads anything, which is a stronger thing than atomicity
+        and the evidence chain needs it. The chain is read-then-write — take the
+        head, insert head+1 — and a plain transaction is deferred: under WAL two
+        writers both read the same head, and the second INSERT dies on the UNIQUE
+        over `seq`. A retry loop covered it, and under a loaded machine four
+        writers exhausted twelve attempts and an append was lost. A lost append
+        is not a slow request: segregation of duties is decided by reading the
+        chain, so a missing `version_created` node means "you cannot approve what
+        you created" has nothing to read.
+
+        SQLite gets `BEGIN IMMEDIATE`, which takes the write lock at BEGIN
+        rather than at the first write, so the second writer waits there and
+        then reads a head that is actually current. PostgreSQL gets a
+        transaction-scoped advisory lock, which releases on commit or rollback
+        with no unlock to forget.
 
         Without this there was no way to make a read and a write atomic, because
         every statement opened its own connection: `execute` began a transaction
@@ -281,14 +304,29 @@ class Database:
         """
         existing = _CONNECTION.get()
         if existing is not None:
+            # Already inside one. The lock, if any, was taken when it opened —
+            # taking a second here would be taking it after reads have already
+            # happened, which is the ordering this exists to prevent.
             yield existing
             return
         with self.engine.begin() as conn:
+            if serialise is not None:
+                self._take_write_lock(conn, serialise)
             token = _CONNECTION.set(conn)
             try:
                 yield conn
             finally:
                 _CONNECTION.reset(token)
+
+    def _take_write_lock(self, conn: Any, name: str) -> None:
+        """Escalate to a write lock now, before the transaction reads."""
+        if self.dialect == "sqlite":
+            # pysqlite defers BEGIN to the first write statement, so nothing has
+            # started a transaction yet and this is the BEGIN, not a second one.
+            conn.exec_driver_sql("BEGIN IMMEDIATE")
+        elif self.dialect.startswith("postgres"):
+            conn.exec_driver_sql(
+                f"SELECT pg_advisory_xact_lock({self._ADVISORY_LOCKS[name]})")
 
     # ------------------------------------------------------------------ access
     def execute(self, sql: str, params: Optional[Dict[str, Any]] = None) -> int:

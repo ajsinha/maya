@@ -1692,10 +1692,10 @@
     "/api/v1/models/{name}/assess": {
       "post": {
         "body": [
-          "exposure",
+          "exposure!",
           "feature_count",
           "interpretable",
-          "purpose_class",
+          "purpose_class!",
           "uses_alternative_data"
         ],
         "parameters": [
