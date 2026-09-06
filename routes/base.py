@@ -632,6 +632,27 @@ class Routes:
         response code taken from a domain word. Nothing raised; the page simply
         rendered nothing where the status should have been.
         """
+        brand = self.brand(request)
+        # A page may not shadow a brand key.
+        #
+        # Three pages passed `version=` meaning *the model version* and shadowed
+        # `brand()`'s `version`, which is the application's. The footer renders
+        # `{{ version }}`, so every one of them printed the whole version record
+        # — kernel, schemas and artifact digest — as the footer's text, on a
+        # page nobody had opened. Nothing raised, because shadowing is what a
+        # merged dict does.
+        #
+        # This is the same shape as the `status` collision documented above, and
+        # the second instance is what makes it worth a check rather than a
+        # comment. Refused rather than renamed: a page silently given a
+        # different key than it asked for is the next version of this defect.
+        if collisions := sorted(set(context) & set(brand)):
+            raise RuntimeError(
+                f"{template} passes {', '.join(collisions)}, which the brand "
+                f"context already supplies. Rename the page's key to what it "
+                f"holds — `model_version` rather than `version` — because "
+                f"whichever wins, one of the two readers is getting the other's "
+                f"value.")
         return self.templates.TemplateResponse(
-            request, template, {**self.brand(request), **context},
+            request, template, {**brand, **context},
             status_code=http_status)

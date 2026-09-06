@@ -99,6 +99,21 @@ just finished a fit uses the same two endpoints.</p>
               </select>
               <div class="text-muted" style="font-size:.7rem">the trainability class is derived from these two</div></div>
 
+            {# Adaptive and deterministic decide the trainability class as much
+               as the parameter kind does — `train` plus `adaptive` is T4 and
+               `train` alone is T3 — and this form could not say either, so a
+               version created here could not be a T4 at all. #}
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="adaptive">
+                <option value="0">adaptive: 0 — frozen once released</option>
+                <option value="1">adaptive: 1 — continues to learn</option>
+              </select></div>
+            <div class="col-md-6">
+              <select class="form-select form-select-sm" name="deterministic">
+                <option value="1">deterministic: 1 — same inputs, same answer</option>
+                <option value="0">deterministic: 0 — samples</option>
+              </select></div>
+
             <div class="col-md-6">
               <select class="form-select form-select-sm" name="runtime">
                 <option value="">descriptor_only — MAYA holds the governance, not the artifact</option>
@@ -109,8 +124,16 @@ just finished a fit uses the same two endpoints.</p>
                 {% for o in output_kinds %}<option>{{ o }}</option>{% endfor %}
               </select></div>
 
+            {# The placeholder showed `python.callable`'s shape as though it
+               were universal, so a developer following it against the estimator
+               runtime got a version that registered cleanly and failed at
+               execution — the shape is only discovered when something tries to
+               run it. `runtime_entry` was already in this page's context and
+               nothing read it. #}
             <div class="col-12"><input class="form-control form-control-sm" name="entry"
-                   placeholder='entry, e.g. {"module": "nj.estimators", "attr": "ols_score"}'></div>
+                   id="entry-input"
+                   placeholder='entry — choose a runtime above and this will show its shape'></div>
+            <div class="col-12 text-muted" id="entry-shape" style="font-size:.72rem"></div>
             <div class="col-md-7"><input class="form-control form-control-sm" name="artifact_uri"
                    placeholder="artifact uri (where to look) — leave empty if you upload below"></div>
             <div class="col-md-5"><input class="form-control form-control-sm" name="artifact_digest"
@@ -195,6 +218,36 @@ function fail(where) {
       (e.remediation ? '<div class="text-muted">' + e.remediation + '</div>' : ''));
   };
 }
+// The entry keys each runtime requires, from the grammar rather than from a
+// list in this page. A form that documents one runtime's shape and offers
+// seventeen is a form that teaches the wrong one.
+var RUNTIME_ENTRY = {{ runtime_entry|tojson }};
+function showEntryShape() {
+  var runtime = $("select[name=runtime]").val();
+  var keys = RUNTIME_ENTRY[runtime];
+  if (!runtime) {
+    $("#entry-input").attr("placeholder",
+      "entry — not needed for descriptor_only").prop("disabled", true).val("");
+    $("#entry-shape").text("A descriptor-only version records governance and " +
+      "no artifact, so there is nothing to enter.");
+    return;
+  }
+  $("#entry-input").prop("disabled", false);
+  if (!keys || !keys.length) {
+    $("#entry-input").attr("placeholder", "entry, as JSON");
+    $("#entry-shape").text("");
+    return;
+  }
+  var example = {};
+  keys.forEach(function (k) { example[k] = "…"; });
+  $("#entry-input").attr("placeholder", "entry, e.g. " + JSON.stringify(example));
+  $("#entry-shape").html("<strong>" + runtime + "</strong> needs " +
+    keys.map(function (k) { return "<code>" + k + "</code>"; }).join(", ") +
+    " — a shape it does not have is only discovered when something tries to run it.");
+}
+$("select[name=runtime]").on("change", showEntryShape);
+showEntryShape();
+
 $("#new-model").on("submit", function (e) {
   e.preventDefault();
   var form = new FormData(this);

@@ -452,10 +452,10 @@ def regimes(evidence):
 # ------------------------------------------------------------------ estate view
 @pytest.fixture
 def worklist(registry, lifecycle, findings, monitoring, overlays, compiler, debts,
-             validation, finding_workflow):
+             validation, finding_workflow, composition):
     from core.estate import WorkList
     return WorkList(registry, lifecycle, findings, monitoring, overlays, compiler,
-                    debts, validation, finding_workflow)
+                    debts, validation, finding_workflow, composition=composition)
 
 
 @pytest.fixture

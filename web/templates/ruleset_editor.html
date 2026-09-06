@@ -1,9 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Rules — {{ model.name }} {{ version.semver }} — {{ app_name }}{% endblock %}
+{% block title %}Rules — {{ model.name }} {{ model_version.semver }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
-<p class="kicker mt-2 mb-1">RULE SET &middot; {{ version.trainability_class }}</p>
-<h1>{{ model.name }} <span class="text-muted">{{ version.semver }}</span></h1>
+<p class="kicker mt-2 mb-1">RULE SET &middot; {{ model_version.trainability_class }}</p>
+<h1>{{ model.name }} <span class="text-muted">{{ model_version.semver }}</span></h1>
 <div class="rule"></div>
 <p class="text-muted small">
   The parameter object of a <strong>T8</strong> model is a rule set somebody
@@ -125,7 +125,7 @@
 <script>
 window.MAYA_RULES = {
   urn: {{ model.urn|tojson }},
-  semver: {{ version.semver|tojson }},
+  semver: {{ model_version.semver|tojson }},
   vocabulary: {{ vocabulary|tojson }},
   inputs: {{ inputs|tojson }},
   outputs: {{ outputs|tojson }},

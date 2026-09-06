@@ -61,6 +61,7 @@ from core.registry.common import RegistryError
 from core.registry.versions import VersionService
 from core.risk import COMPLEXITY, CONTROLS, MATERIALITY
 from core.registry.versions import latest_version
+from core.execution.grammar import RUNTIME_ENTRY
 from routes.base import Body, Routes, login_required
 
 logger = get_logger(__name__)
@@ -279,6 +280,13 @@ class ModelAlgebraRoutes(Routes):
                 parameter_kinds=[k.value for k in ParameterKind],
                 fit_procedures=[p.value for p in FitProcedure],
                 output_kinds=[k.value for k in OutputKind],
+                # The realisation half. This form had the derived-class preview
+                # and no way to say what runs, while `/models/new` could say
+                # what runs and showed no class — so the screen tutorial 01
+                # sends you to could not create a version that executes, and
+                # the one that could gave no feedback on what it was producing.
+                runtimes=sorted(RUNTIME_ENTRY),
+                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},
                 unchecked=list(UNCHECKED),
                 # Whether this person may create is the API's answer. This only
                 # decides whether to say so before the form is filled in rather

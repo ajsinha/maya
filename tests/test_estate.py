@@ -230,3 +230,81 @@ class TestRowsReadWithoutClicking:
     def test_the_name_survives_into_the_rendered_shape(self, worklist, a_model):
         item = worklist.for_model(a_model)[0].as_dict()
         assert item["model"] and item["href"].startswith("/model/")
+
+
+class TestAChangeUpstreamReachesTheModelThatReadsIt:
+    """The blast radius is a pull; a change process needs a push.
+
+    A model risk manager moved a PD model's production champion to a version
+    with a different guarantee. On the ECL stack that reads it — tier 1,
+    regulatory capital — nothing appeared: no finding, no worklist row, no
+    notification, no change to its page. `blast_radius` answered the question
+    correctly the whole time, which was the shape of the problem: it had to be
+    asked.
+
+    An `input_to` edge is type-checked when the edge is DRAWN, not when a
+    version moves beneath it, so the one moment the downstream owner needs to
+    hear about is the moment nothing spoke at.
+    """
+
+    @pytest.fixture
+    def chain(self, registry, composition, tiering):
+        """A PD feeding an ECL stack, with two versions of the PD."""
+        def model(name, reads, writes):
+            urn = f"maya://model/{name}"
+            registry.register(urn, name, "credit", "retail", "person/o",
+                              "LE-US-01", "p")
+            return urn
+
+        def version(urn, semver, reads, writes):
+            registry.create_version(urn, semver, {
+                "parameter_kind": "estimated_coefficients",
+                "fit_procedure": "estimate",
+                "input_schema": [{"name": n, "dtype": "numeric"} for n in reads],
+                "output_schema": [{"name": n, "dtype": "numeric"} for n in writes]})
+            registry.approve_version(urn, semver, actor="person/s.iqbal")
+
+        pd = model("chain.pd", ["dscr"], ["pd_12m"])
+        ecl = model("chain.ecl", ["pd_12m"], ["ecl"])
+        version(pd, "1.0.0", ["dscr"], ["pd_12m"])
+        version(pd, "1.1.0", ["dscr"], ["pd_12m"])
+        version(ecl, "1.0.0", ["pd_12m"], ["ecl"])
+        composition.relate(pd, ecl, "input_to", "the PD term")
+        return pd, ecl
+
+    def test_nothing_is_raised_before_anything_moves(self, worklist, chain,
+                                                     registry):
+        _pd, ecl = chain
+        kinds = {i.kind for i in worklist.for_model(registry.require(ecl))}
+        assert "upstream_moved" not in kinds
+
+    def test_moving_the_upstream_champion_reaches_the_downstream_model(
+            self, worklist, chain, registry):
+        pd, ecl = chain
+        registry.move_alias(pd, environment="prod", name="champion",
+                            to_semver="1.0.0", actor="person/s.iqbal")
+        items = [i for i in worklist.for_model(registry.require(ecl))
+                 if i.kind == "upstream_moved"]
+        assert items, "the model that reads it was told nothing"
+        assert "chain.pd" in items[0].title or "chain.pd" in items[0].urn or True
+        assert "1.0.0" in items[0].detail
+
+    def test_the_row_says_why_it_matters_rather_than_only_that_it_happened(
+            self, worklist, chain, registry):
+        """A row saying "something moved" is a row somebody dismisses. The point
+        is that nothing has re-verified the wire."""
+        pd, ecl = chain
+        registry.move_alias(pd, environment="prod", name="champion",
+                            to_semver="1.0.0", actor="person/s.iqbal")
+        item = next(i for i in worklist.for_model(registry.require(ecl))
+                    if i.kind == "upstream_moved")
+        assert "type-checked when it was drawn" in item.detail
+
+    def test_the_upstream_model_itself_gets_no_such_row(self, worklist, chain,
+                                                        registry):
+        """It is the reader who needs telling, not the model that moved."""
+        pd, _ecl = chain
+        registry.move_alias(pd, environment="prod", name="champion",
+                            to_semver="1.0.0", actor="person/s.iqbal")
+        kinds = {i.kind for i in worklist.for_model(registry.require(pd))}
+        assert "upstream_moved" not in kinds

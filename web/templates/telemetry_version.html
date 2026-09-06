@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Telemetry — {{ model.name }} v{{ version.semver }} — {{ app_name }}{% endblock %}
+{% block title %}Telemetry — {{ model.name }} v{{ model_version.semver }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
 <p class="kicker mt-2 mb-1">TELEMETRY</p>
-<h1>{{ model.name }} <span class="text-muted">v{{ version.semver }}</span></h1>
+<h1>{{ model.name }} <span class="text-muted">v{{ model_version.semver }}</span></h1>
 <div class="rule"></div>
 <p class="text-muted small">
   <a href="/model/{{ model.urn.replace('maya://model/','') }}"
      style="color:var(--crimson);text-decoration:none">{{ model.urn }}</a>
-  &middot; version {{ version.status }}
+  &middot; version {{ model_version.status }}
   &middot; <a href="/telemetry" style="color:var(--crimson);text-decoration:none">every
     version's telemetry</a></p>
 
@@ -81,7 +81,7 @@
     <div class="card-body py-2 small text-muted border-top">
       The first {{ shown|length }} of {{ "{:,}".format(rows) }} rows. The whole
       cohort is at
-      <code>/api/v1/telemetry/cohort?urn={{ model.urn }}&amp;semver={{ version.semver }}</code>.</div>
+      <code>/api/v1/telemetry/cohort?urn={{ model.urn }}&amp;semver={{ model_version.semver }}</code>.</div>
   {% endif %}
   <div class="card-body py-2 small text-muted border-top">
     Rows with no outcome yet come back unlabelled rather than dropped. That is

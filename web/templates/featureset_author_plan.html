@@ -11,8 +11,8 @@
   the pinned namespaces, the point-in-time rule, the slots and what fills each.
   Digest <code>{{ plan.digest }}</code> &middot; entity
   <code>{{ plan.entity }}</code> &middot; {{ plan.grain }}
-  {% if version.created_by %}&middot; published by {{ version.created_by }}{% endif %}
-  {% if version.note %}&middot; &ldquo;{{ version.note }}&rdquo;{% endif %}
+  {% if featureset_version.created_by %}&middot; published by {{ featureset_version.created_by }}{% endif %}
+  {% if featureset_version.note %}&middot; &ldquo;{{ featureset_version.note }}&rdquo;{% endif %}
 </p>
 
 <div class="card mb-3"><div class="card-header">The point-in-time rule</div>
@@ -147,7 +147,7 @@
         since moved &mdash; but it is filed through
         <code>POST /api/v1/attachments</code> with a model URN,
         <code>subject_type=featureset_version</code> and this version's id
-        <code>{{ version.id }}</code>. There is no endpoint that lists what is
+        <code>{{ featureset_version.id }}</code>. There is no endpoint that lists what is
         filed against a subject, so this card reads the register directly.</td></tr>
     {% endfor %}
     </tbody></table></div>

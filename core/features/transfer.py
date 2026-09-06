@@ -62,6 +62,25 @@ MEDIA_TYPE: Dict[str, str] = {
 }
 BY_MEDIA_TYPE: Dict[str, str] = {v: k for k, v in MEDIA_TYPE.items()}
 
+#: File extensions a page's upload control should offer, derived from the media
+#: types above rather than typed into a template.
+#:
+#: Two templates carried their own list and they disagreed: one offered
+#: `.parquet,.arrow,.ndjson,.jsonl` and the other added `.csv`. Every worked
+#: example in the product — both tutorials, the SDK's own `load` — uses CSV, so
+#: the screen refused the file the documentation tells you to bring. A second
+#: copy of a vocabulary is a second vocabulary.
+SUFFIXES: Dict[str, Tuple[str, ...]] = {
+    ARROW: (".arrow",), PARQUET: (".parquet",),
+    NDJSON: (".ndjson", ".jsonl"), JSON: (".json",), CSV: (".csv",),
+}
+
+
+def accept_attribute() -> str:
+    """The `accept` attribute for an upload control, from the formats read."""
+    return ",".join(suffix for fmt in (CSV, NDJSON, PARQUET, ARROW, JSON)
+                    for suffix in SUFFIXES[fmt])
+
 FORMAT_MEANING: Dict[str, str] = {
     ARROW: "streaming Arrow IPC — zero-copy, incremental both ways; use this "
            "from an execution engine",
