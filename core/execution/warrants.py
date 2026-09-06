@@ -219,6 +219,28 @@ class WarrantService:
                 "this warrant service was built without a featureset registry, "
                 "so it cannot check that the set provides what the kernel reads",
                 "wire the featureset registry before issuing fit warrants")
+        # An UNDECLARED input schema is not an empty one.
+        #
+        # `input_schema` defaults to `[]` at version creation, and the check
+        # below then reads it as "this kernel reads nothing" — which every
+        # featureset satisfies. So the version that skipped the declaration was
+        # the version exempt from L-W10, and the law reported success. The whole
+        # point of this check is that adding a regressor is a model change; a
+        # kernel that names no regressors makes that unfalsifiable.
+        #
+        # Refused here rather than at version creation because an absent schema
+        # is an absence, not a contradiction: a draft or a descriptor may
+        # legitimately not have one. It is only when a FIT WARRANT is issued
+        # against it that the silence starts standing in for a passed check.
+        if not (version.get("input_schema") or []):
+            raise WarrantError(
+                "input_schema_not_declared",
+                f"version {version.get('semver')} declares no input schema, so "
+                f"'what this featureset must provide' is the empty set and "
+                f"L-W10 would pass against any featureset at all",
+                "declare the fields the kernel reads on the version — an "
+                "undeclared schema is not a permissive one, it is an unchecked "
+                "one")
         plan = self.featuresets.plan(featureset, featureset_version)
         declared = Schema(tuple(
             Field(f["name"], f["dtype"], f.get("nullable", False))

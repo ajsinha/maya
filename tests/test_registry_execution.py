@@ -513,3 +513,67 @@ class TestTheRevocationEpochSurvivesARestart:
         fresh = restarted.issue(URN, "prod", "svc/origination",
                                 "origination_decision")
         assert fresh["epoch"] == 1
+
+
+class TestAnUndeclaredInputSchemaIsNotAnEmptyOne:
+    """`input_schema` defaults to `[]`, and `[]` means "reads nothing".
+
+    Every input-side control then passes vacuously while reporting success:
+    L-W10 resolves to "does this featureset provide the empty set", which any
+    featureset does, and L-12's contravariance is checked over no fields at all.
+    So the version that skipped the cheapest declaration a developer makes was
+    the version exempt from the checks — and each of them said it had passed.
+    """
+
+    def test_a_fit_warrant_refuses_a_version_that_declares_no_inputs(
+            self, repos, registry, evidence, full_features):
+        import pytest
+
+        from core.execution import WarrantService
+        from core.execution.warrants import WarrantError
+
+        warrants = WarrantService(repos["warrants"], registry, evidence,
+                                  jitter_pct=0, featuresets=full_features)
+        urn = "maya://model/credit.undeclared"
+        registry.register(urn, "Undeclared", "credit", "retail", "person/o",
+                          "LE-US-01", "reads nothing, apparently")
+        registry.create_version(urn, "1.0.0", {
+            "parameter_kind": "estimated_coefficients",
+            "fit_procedure": "estimate",
+            "output_schema": [{"name": "pd", "dtype": "numeric"}]})
+        version = registry.versions(urn)[-1]
+        with pytest.raises(WarrantError) as refusal:
+            warrants._check_schema(version, "anything", 1)
+        assert refusal.value.code == "input_schema_not_declared"
+        assert "any featureset" in str(refusal.value)
+
+    def test_the_variance_proof_refuses_to_be_discharged_over_nothing(self):
+        from core.registry.aliases import AliasService
+
+        blank = {"input_schema": [], "output_schema": [], "contract": {}}
+        proof = AliasService.obligations(dict(blank), dict(blank))
+        assert not proof["variance"]["ok"], \
+            "L-12 held between two versions that declare nothing"
+        assert "no input schema" in proof["variance"]["reason"]
+
+    def test_two_declared_versions_are_still_compared_normally(self):
+        """So the refusal is about silence, not about the check itself."""
+        from core.registry.aliases import AliasService
+
+        schema = [{"name": "dscr", "dtype": "numeric"}]
+        out = [{"name": "pd", "dtype": "numeric"}]
+        same = {"input_schema": schema, "output_schema": out, "contract": {}}
+        assert AliasService.obligations(dict(same), dict(same))["variance"]["ok"]
+
+    def test_the_rule_validator_already_failed_closed(self):
+        """Recorded because it is the one that got this right: an empty input
+        schema refuses every rule that reads a field, rather than accepting
+        them all. Worth a test so a later 'simplification' cannot invert it."""
+        import pytest
+
+        from core.rules.conditions import Condition
+        from core.rules.common import RuleError
+
+        with pytest.raises(RuleError, match="does not declare"):
+            Condition.parse({"field": "dscr", "op": "gt", "value": 1.0}) \
+                     .conforms({}, path="rule 'r1'")

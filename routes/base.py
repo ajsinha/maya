@@ -195,7 +195,8 @@ STATUS: Dict[str, int] = {
     "featureset_required": 422, "self_approval": 403,
     "no_parameter_set": 404, "no_approved_parameters": 409,
     "ambiguous_parameters": 409, "different_version": 409,
-    "schema_not_satisfied": 409, "no_featureset_registry": 501,
+    "schema_not_satisfied": 409, "input_schema_not_declared": 409,
+    "no_featureset_registry": 501,
     # version approval as a quorum
     # telemetry
     # notification
