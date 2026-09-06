@@ -5,12 +5,17 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
 The layering rule, made mechanical.
 
-`docs/12 §5` states it as **"The rule, enforced in CI"** and prints an
-`.importlinter` configuration to show how. There is no `.importlinter`, no
-`pyproject.toml`, no `ruff`, no `mypy` and no CI of any kind in this repository,
-so for as long as that sentence has existed the rule has been enforced by
-nobody — a control described in a tense it had not earned, which is the fourth
-of the ways a control reports success while doing nothing (`docs/11 §3`).
+`docs/12 §5` stated it as **"The rule, enforced in CI"** and printed an
+`.importlinter` configuration to show how. For as long as that sentence existed
+there was no CI of any kind here, so the rule was enforced by nobody — a control
+described in a tense it had not earned, which is the fourth of the ways a
+control reports success while doing nothing (`docs/11 §3`).
+
+There is CI now, and this file runs in it. That does not make the walker
+redundant: the pipeline decides *when* the rule is checked, and this decides
+*what* the rule is. There is still no `.importlinter`, no `ruff` and no `mypy`,
+so the rule holds because of what is written below rather than because of
+anything installed.
 
 The boundaries turned out to be held anyway, which is the good news and also the
 reason it went unnoticed: a rule everybody happens to keep is indistinguishable

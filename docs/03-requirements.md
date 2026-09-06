@@ -831,7 +831,7 @@ at all.
 | NFR-AVAIL-001 | Availability | Control plane 99.9%; **resolution plane 99.99%** with regional failover | **Not demonstrated** |
 | NFR-AVAIL-002 | Degradation | Resolution serves from cache or replica if the primary is down | **Partial** — issued descriptors remain valid for their TTL (`FR-WARRANT-008`); there is no replica path |
 | NFR-AVAIL-003 | RTO/RPO | RTO 4 h, RPO 15 min; RPO 0 for the evidence chain | **Not demonstrated** |
-| NFR-SEC-001 | Security | Tier 1 application security standard; annual penetration test; SAST/DAST/SCA in CI; SBOM per release | **Not built** — there is no CI configuration in the repository |
+| NFR-SEC-001 | Security | Tier 1 application security standard; annual penetration test; SAST/DAST/SCA in CI; SBOM per release | **Partly built** — `.github/workflows/ci.yml` runs the suite, the discipline walkers, the laws and both SQL dialects. No SAST, DAST, SCA, secret scanning, SBOM or penetration test |
 | NFR-SEC-002 | Security | No untrusted deserialisation in the control plane; artifact introspection in a sandbox | **Built** — by format exclusion and subprocess isolation, with the boundary published |
 | NFR-SEC-003 | Security | Least privilege; no standing production data access for engineers | Deployment concern |
 | NFR-COMP-001 | Compliance | Audit records retained ≥ 7 years; telemetry per AI Act Art. 19; WORM option | **Not built** |

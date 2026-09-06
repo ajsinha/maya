@@ -34,8 +34,52 @@ def write_yaml(tmp_path):
 
 @pytest.fixture
 def db():
+    """The control-plane database the unit fixtures run against.
+
+    SQLite in memory by default. `MAYA_TEST_DATABASE_URL` points the same suite
+    at PostgreSQL instead, which is the only way the second dialect is exercised
+    at all: `db/schema/postgres.sql` is maintained column-for-column beside the
+    SQLite one and, until CI, had never been run. Adversarial review found
+    fourteen BOOLEAN columns in it that no insert could have succeeded against —
+    a schema nobody had executed, kept in step by reading it.
+
+    **Isolation is this fixture's job, and only PostgreSQL makes that obvious.**
+    `sqlite:///:memory:` hands every test its own database for free, so the
+    suite grew to depend on a fresh chain per test without anybody deciding it
+    should. Pointed at PostgreSQL — one database for the whole run — evidence
+    sequences accumulate across tests and thirteen assertions fail on numbers
+    that were never about the dialect: `assert 467 == 1`.
+
+    So the tables are emptied between tests. A fresh container per CI job is not
+    the same guarantee and never was; that mistake is exactly the kind this
+    fixture exists to stop the suite making.
+    """
+    import os
+
     from db import Database
-    return Database("sqlite:///:memory:")
+
+    url = os.environ.get("MAYA_TEST_DATABASE_URL")
+    if not url:
+        return Database("sqlite:///:memory:")
+
+    database = Database(url)
+    _empty(database)
+    return database
+
+
+def _empty(database) -> None:
+    """Truncate every table the schema declares.
+
+    `TRUNCATE ... CASCADE` in one statement, so ordering does not matter and no
+    partial state can survive a failure part-way through the list.
+    """
+    import re
+
+    names = sorted(set(re.findall(
+        r"^CREATE TABLE IF NOT EXISTS (\w+)",
+        database.schema_file().read_text(encoding="utf-8"), re.M)))
+    if names:
+        database.execute("TRUNCATE " + ", ".join(names) + " RESTART IDENTITY CASCADE")
 
 
 @pytest.fixture
