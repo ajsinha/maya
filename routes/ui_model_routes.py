@@ -49,6 +49,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from pydantic import Field
 
+from core.execution.urn import urn_of
 from core.attachments import KIND_MEANING as DOCUMENT_MEANING, KINDS as DOCUMENT_KINDS
 from core.docs.subjects import describe as describe_subjects
 from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
@@ -583,8 +584,9 @@ class ModelAlgebraRoutes(Routes):
                       key=lambda row: (row["rank"], row["purpose"]))
 
 
-def _urn(name: str) -> str:
-    return f"maya://model/{name}"
+#: One spelling, shared with the API: a path segment may be a bare name or the
+#: full urn, because MAYA prints the urn and somebody will paste it.
+_urn = urn_of
 
 
 def _spec(body: KernelIn) -> Dict[str, Any]:

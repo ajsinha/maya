@@ -39,8 +39,17 @@ is greedy and would swallow any segment after it. So it is
 name *is* in the path it is the last thing there, and the URN is assembled
 server-side:
 
+**Either spelling works in the path.** MAYA prints the full urn everywhere — in
+warrant descriptors, evidence nodes, compiled documents, every `GET /models`
+response — so pasting one into a URL has to work, and for a long time it did
+not: the server wrapped it a second time and answered 404 naming an identifier
+nobody had written. A path segment may now be the bare name or the urn, in
+either the `maya://` or the `maya:/` spelling that a URL path produces when it
+collapses the double slash.
+
 ```bash
 GET /api/v1/models/credit.pd.smallbiz            # → maya://model/credit.pd.smallbiz
+GET /api/v1/models/maya://model/credit.pd.smallbiz   # the same model
 GET /api/v1/dossiers/credit.pd.smallbiz
 GET /api/v1/findings?urn=maya://model/credit.pd.smallbiz
 ```
