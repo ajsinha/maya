@@ -13,6 +13,15 @@ from fastapi import Request
 from routes.base import Body, Routes
 
 
+class ServingAttestationIn(Body):
+    """What an engine says it read. `served` is view name to namespace."""
+    urn: str
+    semver: str
+    served: Dict[str, str]
+    warrant_id: Optional[str] = None
+    descriptor_id: Optional[str] = None
+
+
 class FeatureIn(Body):
     name: str
     entity: str
@@ -138,6 +147,45 @@ class FeatureRoutes(Routes):
             """What serving MUST read. Law L-17 compares this to what it did read."""
             return {"namespaces": self.guard(
                 lambda: f.serving_namespaces(model_version_id))}
+
+        # ------------------------------------------------- L-17, the other half
+        @self.app.post(f"{self.api}/serving-attestations", status_code=201,
+                       tags=["features"])
+        def attest_serving(request: Request, body: ServingAttestationIn):
+            """Declare which feature namespaces a run actually read.
+
+            `L-17` is contract–serving agreement, and MAYA cannot check it by
+            looking: it does not own the online store and deliberately does not
+            sit on the serving path. The engine knows what it read, so it says
+            so and the platform compares against what the version's contract
+            pins.
+
+            This is an attestation, not an observation, and the difference is
+            not rhetorical: it is evidence that somebody asserted something. It
+            proves disagreement rather than agreement — and disagreement is the
+            thing worth catching, because it is training–serving skew.
+
+            Recorded whether it agrees or not. A refusal that left no row would
+            lose exactly the event this exists for.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "monitor:observe", model=model)
+            return self.guard(lambda: self.ctx["serving"].attest(
+                body.urn, body.semver, body.served, body.warrant_id,
+                body.descriptor_id, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/serving-attestations", tags=["features"])
+        def serving_agreement(request: Request, urn: str, semver: str):
+            """Whether `L-17` holds for this version, and on what evidence.
+
+            Three answers, not two: `agrees`, `disagrees`, and `unattested` —
+            which is the absence of an answer. Reporting silence as agreement
+            would be the failure this platform is written against.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            return self.guard(
+                lambda: self.ctx["serving"].agreement(urn, semver))
 
         @self.app.post(f"{self.api}/training-sets", status_code=201, tags=["features"])
         def training_set(request: Request, body: TrainingSetIn):

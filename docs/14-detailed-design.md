@@ -1463,7 +1463,7 @@ fine at one process and is not a design that reaches the latency targets in 03.
 | Layer | What it proves |
 |---|---|
 | **Unit and service** | Each package against real repositories on a temporary SQLite file. There are no mocks of the thing under test, because a mock of that proves only that the mock agrees with itself |
-| **Laws** (`tests/test_laws.py`, `test_risk.py`, `test_domain.py`, `test_composition.py`) | Sixteen of the twenty-one foundational laws are executable, beside the code they constrain rather than in a `tests/laws/` package. The five that are not are named in the file with the reason |
+| **Laws** (`tests/test_laws.py`, `test_risk.py`, `test_domain.py`, `test_composition.py`) | Eighteen of the twenty-one foundational laws are executable, beside the code they constrain rather than in a `tests/laws/` package. The three that are not are named in the file with the reason |
 | **API** (`test_api*.py`) | Every endpoint through the real application, including the pages, because three controls were once inert over HTTP while their unit tests were green |
 | **Dialect** (`test_postgres_dialect.py`) | The second dialect actually runs — it did not, for as long as nobody tried |
 | **Concurrency** | The chain under contention. There were zero of these in fourteen thousand lines of test code, and a reviewer found the defect that gap was hiding |

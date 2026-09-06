@@ -65,15 +65,17 @@ from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
+from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
 from core.policy import PolicyGate, PolicyRegister
-from core.risk import TieringEngine
+from core.risk import AggregateRisk, TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, FindingWorkflow, Replayer,
                              SnapshotProvider, TestCatalogue, ValidationService)
-from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
+from db import (ServingAttestationRepository,
+                AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
                 NotificationRepository, PolicyRuleRepository,
                 WarrantProfileRepository, RiskAppetiteRepository,
@@ -387,8 +389,18 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    finding_workflow=finding_workflow,
                    evidence=evidence))
 
+    # L-17: what an engine says it served, against what the contract pins.
+    # MAYA does not read the online store — it does not own one, deliberately —
+    # so the engine declares and the platform compares.
+    serving = ServingRegister(ServingAttestationRepository(db),
+                              features.contracts, registry, evidence)
+
+    # L-14: aggregate risk, and the interaction premium that makes it lax.
+    aggregate = AggregateRisk(registry.catalogue, composition)
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
-                           "evidence": evidence,
+                           "evidence": evidence, "serving": serving,
+                           "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules,
                            "artifacts": artifacts,

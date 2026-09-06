@@ -73,6 +73,19 @@
         ]
       }
     },
+    "/api/v1/aggregate-risk": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:from_urn!",
+          "query:to_urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/artifact-formats": {
       "get": {
         "body": [],
@@ -2546,6 +2559,33 @@
         "parameters": [],
         "responses": [
           "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/serving-attestations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "descriptor_id",
+          "semver!",
+          "served!",
+          "urn!",
+          "warrant_id"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
           "422"
         ]
       }

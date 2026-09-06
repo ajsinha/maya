@@ -41,13 +41,12 @@ done.
 | **A third-party time source for the anchors** | Anchoring is built: `WORMReader`/`WORMWriter` in `core/ports.py`, a filesystem implementation writing under `./data/worm`, and `verify_against_anchors` comparing the chain against heads held outside the database. What is not built is an RFC-3161 timestamping authority, which is a third party rather than code | The anchors say *this head existed before that one*; they do not say *at this time, attested by somebody who is not us*. A bank arguing with a supervisor about **when** wants the second. Finding **C-4**'s third disposition is now half-closed |
 | **Five foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Sixteen of twenty-one run; a law stated and not executed prevented nothing |
 | **`entry_points` discovery for fibres** | The fibration itself is built — `core/fibres/`, nine fibres over the derived trainability class, a totality gate at start-up (`L-15`) | A bank's own fibre ships inside this repository rather than as its own package. The structure and the gate exist; third-party packaging does not |
-| **Full coverage checking for rule sets** | The shipped analysis decides whether a **single** earlier rule covers a later one. Deciding whether a *union* of earlier rules does is satisfiability over the theory — decidable here, and a solver | A rule that two earlier rules jointly shadow is not reported. The promise is stated in exactly those words wherever it appears — *no rule is shadowed by any single earlier rule* — and the gap is a stated limit rather than a discovered one. A solver would be a dependency whose failure modes nobody in the bank can debug, which is why this is a row here rather than a library import |
 
 ### 2.2 Reach — these change what MAYA can *cover*
 
 | | Why it is not built | What it costs while absent |
 |---|---|---|
-| **An online feature store** | The Delta namespace is the serving contract; reading it at request latency is deliberately the engine's problem | `L-17` has nothing to compare against, so training–serving skew is undetectable. This is the one absence that makes a whole law inert |
+| **An online feature store** | The Delta namespace is the serving contract; reading it at request latency is deliberately the engine's problem — and §7 says MAYA will not sit on the serving path, so building one here would contradict this document | Nothing, for `L-17`. That row said the law was inert without a store, and the law was blocked on the wrong thing: the engine knows which namespaces it read, so it **attests** and MAYA compares (`core/features/serving.py`). Training–serving skew is now detectable without the platform being on the request path. What a store would still buy is *observation* rather than attestation — MAYA seeing for itself rather than being told — and that is a different, smaller claim than the one this row used to make |
 | **Connectors** — MLflow, Unity Catalog, git | Each is a real integration against an external API | Bulk import exists for a spreadsheet; the models already sitting in an ML platform have to be entered by hand |
 | **Discovery and an EUC scanner** | Nothing sweeps for unregistered models | The inventory is what somebody registered. An inventory campaign finds what people declare; discovery finds what they did not |
 | **Composite warrants and the interaction premium** | Typed composition (`L-21`) now gives `L-14` something to quantify over; the aggregate `ρ` is not built | The question supervisors actually ask — *how much riskier is the network than its parts* — has a definition and no computation |
@@ -84,8 +83,11 @@ self-consistency is the claim most likely to be challenged by an examiner who
 understands what a hash chain does and does not prove.
 
 **Then the law gap, because it is cheap and it is the platform's own standard.**
-`L-14` needs composite warrants and `L-17` needs the online store, so two of the
-five are blocked on items below rather than on effort. `L-6`, `L-11` and `L-13`
+`L-14` needs composite warrants, so one of the four is blocked on an item below
+rather than on effort. `L-17` was listed here too, blocked on the online store,
+and that was a mistake worth recording: the store is a component §7 says MAYA
+will not own, so the law had been made to depend on something the architecture
+forbids. The engine attests instead. `L-6`, `L-11` and `L-13`
 are honest refusals: building a document `put` to satisfy the lens laws would be
 building the wrong thing, and the table says so rather than leaving a gap that
 looks like neglect.
@@ -100,18 +102,15 @@ out in `docs/02 §5`.
 
 **Then reach, in the order a bank actually feels the absence.**
 
-1. **The online store**, because it unblocks `L-17` and skew detection together,
-   and because the second question anybody asks after "is it governed" is "does
-   what runs match what was approved".
-2. **Connectors**, because an inventory somebody has to type is an inventory
+1. **Connectors**, because an inventory somebody has to type is an inventory
    that stays incomplete — and completeness is the precondition for everything
    else. This is the *earn the inventory* principle below, and it is the one
    most often skipped.
-3. **The examiner portal and PDF**, together: they are the same user, and half
+2. **The examiner portal and PDF**, together: they are the same user, and half
    the artefact already exists.
-4. **Composite warrants and the interaction premium**, which turn a theorem into
+3. **Composite warrants and the interaction premium**, which turn a theorem into
    a number.
-5. **Discovery**, last of the reach items and deliberately so — it should run
+4. **Discovery**, last of the reach items and deliberately so — it should run
    against a register that is already good, or it produces a queue nobody
    triages.
 

@@ -560,7 +560,7 @@ gates are **not** among them, which is the narrowing recorded against `FR-TIER-0
 | FR-SEC-013 | **Documents attached to a version are content-addressed and re-hashed on read**: what an approver accepted is what a reader fetches, checked rather than assumed. | M | **Built** |
 | FR-SEC-014 | **Attachment review is segregated twice** — by role grant and again in the register — so the person who filed a document cannot accept or reject it. Rejection requires a reason and the rejected document stays on file. | M | **Built** |
 | FR-SEC-015 | Each attachment records whether its bytes are text the platform can genuinely read, so later machine review knows what has been read and what has only been stored. | M | **Built** |
-| FR-SEC-016 | **A session cookie is ambient**, so a state-changing request whose authority came from one carries a CSRF token checked in **middleware** — a hundred and sixteen mutating endpoints is a hundred and sixteen chances to forget — with exemptions as exact paths rather than prefixes, so the exempt set cannot grow as routes are added beneath it. A redirect target is **bounded before it is remembered**, and an unacceptable one is replaced by the fallback rather than sanitised, because a target somebody had to repair is one nobody understands. | M | **Built** |
+| FR-SEC-016 | **A session cookie is ambient**, so a state-changing request whose authority came from one carries a CSRF token checked in **middleware** — a hundred and seventeen mutating endpoints is a hundred and seventeen chances to forget — with exemptions as exact paths rather than prefixes, so the exempt set cannot grow as routes are added beneath it. A redirect target is **bounded before it is remembered**, and an unacceptable one is replaced by the fallback rather than sanitised, because a target somebody had to repair is one nobody understands. | M | **Built** |
 | FR-SEC-017 | **Every log line names the request that produced it.** The evidence chain records what was *decided* and the log records what happened around it; a `warrant_resolved` node and the six lines preceding it join on the request id or they do not join at all. An inbound request id is honoured when it is safe to log and replaced when it is not, because the value lands in a log file and a newline in it writes a line of somebody else's choosing. | M | **Built** |
 
 ### 6.10 Cold start (`FR-BAS`)
@@ -891,7 +891,7 @@ Grouped, with source. `A` = derived by MAYA, `H` = human-entered, `I` = from an 
 
 | Data class | Store | Why |
 |---|---|---|
-| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — two hand-written schemas, 46 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
+| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — two hand-written schemas, 47 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
 | Feature values, snapshots, telemetry streams | **Delta** | Columnar scale, ACID, time travel, cheap retention |
 | Artifact bytes | **Content-addressed local store**, two-level fan-out, 8 GiB ceiling | A file's name is its own digest, so an artifact cannot be edited in place and deduplication is free |
 | Attachments | Content-addressed, re-hashed on read | What an approver accepted is what a reader fetches |

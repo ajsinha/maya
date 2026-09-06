@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.log import get_logger
 from core.rules.common import MAX_RULES, RuleError
 from core.rules.conditions import Condition
-from core.rules.domains import covers, satisfiable
+from core.rules.domains import Undecided, covers, union_covers, satisfiable
 
 logger = get_logger(__name__)
 
@@ -69,6 +69,11 @@ class RuleSet:
     def __init__(self, rules: List[Rule], otherwise: Dict[str, Any],
                  note: str = ""):
         self.rules, self.otherwise, self.note = rules, otherwise, note
+        # Rules the union check could not finish on. Kept apart from
+        # `shadowed`, because "not checked" is not "no problem found" and a
+        # report that merged them would be claiming a coverage guarantee it did
+        # not compute.
+        self.undecided: List[Dict[str, str]] = []
 
     # ------------------------------------------------------------------ build
     @classmethod
@@ -215,14 +220,53 @@ class RuleSet:
                 f"{', '.join(sorted(schema))}")
 
     def _shadowed(self) -> List[Dict[str, str]]:
-        """Rules an earlier rule already covers. Sound and incomplete — see
-        `domains.py`; a union of earlier rules is not considered."""
-        found = []
+        """Rules the earlier rules already cover.
+
+        Two passes, and the difference between them is reported rather than
+        smoothed over, because they support different promises.
+
+        **One earlier rule.** Cheap, and it names the culprit: *rule 7 can never
+        fire because rule 3 already covers it* sends an author straight to a
+        line.
+
+        **All of them together.** `ltv > 0.8` and `ltv <= 0.8` between them
+        cover everything after, and no single-rule comparison sees it. This was
+        for a long time a stated limit — *no rule is shadowed by any single
+        earlier rule* — on the grounds that full coverage is satisfiability and
+        a solver is a dependency nobody in the bank can debug. The premise was
+        right and the conclusion did not follow: a conjunction here is already a
+        box, so coverage is geometry, and `union_covers` decides it exactly by
+        subtraction with no solver at all.
+
+        The union answer says *these rules together* rather than naming one, so
+        it is reported as its own kind. An author told "something above covers
+        this" and an author told "rule 3 covers this" are doing different work.
+        """
+        found: List[Dict[str, str]] = []
         for index, rule in enumerate(self.rules):
-            for earlier in self.rules[:index]:
-                if covers(earlier.when, rule.when):
-                    found.append({"rule": rule.id, "shadowed_by": earlier.id})
-                    break
+            single = next((e for e in self.rules[:index]
+                           if covers(e.when, rule.when)), None)
+            if single is not None:
+                found.append({"rule": rule.id, "shadowed_by": single.id,
+                              "by": "one_earlier_rule"})
+                continue
+            if not self.rules[:index]:
+                continue
+            try:
+                if union_covers([e.when for e in self.rules[:index]], rule.when):
+                    found.append({
+                        "rule": rule.id,
+                        "shadowed_by": ", ".join(e.id for e in self.rules[:index]),
+                        "by": "the earlier rules together"})
+            except Undecided as exc:
+                # Undecided is not "no problems found", and must never be
+                # recorded as one. The rule set is still publishable; what is
+                # reported is that this rule was not checked.
+                logger.info("union coverage undecided for rule '%s': %s",
+                            rule.id, exc)
+                found_undecided = {"rule": rule.id, "by": "undecided",
+                                   "shadowed_by": ""}
+                self.undecided.append(found_undecided)
         return found
 
     def _contradictions(self) -> List[Dict[str, str]]:

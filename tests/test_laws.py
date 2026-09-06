@@ -521,15 +521,10 @@ class TestTheLawsStillNotExecutable:
                 "one to satisfy a law would be building the wrong thing",
         "L-13": "evidence gluing has no implementation; no consistency radius "
                 "is computed anywhere",
-        "L-14": "lax monoidality needs composite warrants and an aggregate risk "
-                "function; the interaction premium is design",
-        "L-17": "contract-serving agreement needs an online store to compare "
-                "against. Half of it exists: `serving_namespaces` computes what "
-                "serving MUST read",
     }
 
     def test_the_list_is_stated_rather_than_implied(self):
-        assert len(self.NOT_EXECUTABLE) == 5
+        assert len(self.NOT_EXECUTABLE) == 3
         for law, why in self.NOT_EXECUTABLE.items():
             assert why, f"{law} is listed with no reason"
 
@@ -541,14 +536,14 @@ class TestTheLawsStillNotExecutable:
         exists to stop counts drifting.
 
         So the totals are derived from the table, and the only hand-written
-        thing left is the list of six, which carries a reason each and is
+        thing left is the list above, which carries a reason each and is
         checked against the table by the test below.
         """
         import pathlib
         import re
         doc = (pathlib.Path(__file__).resolve().parent.parent
-               / "docs" / "00-mathematical-foundations.md").read_text(encoding="utf-8")
-        rows = re.findall(r"^\| \*\*(L-[\w\d]+)\*\* \| .*?\| .*?\| (.*?) \|$",
+               / "docs" / "00-mathematical-foundations.md").read_text()
+        rows = re.findall(r"^\| \*\*(L-\d+)\*\* \|[^|]*\|[^|]*\| (.*?) \|$",
                           doc, re.M)
         stated = {name for name, _ in rows}
         runs = {name for name, status in rows
@@ -572,6 +567,83 @@ class TestTheLawsStillNotExecutable:
             assert "Executable" not in row.group(0), (
                 f"{law} is listed here as not executable and the table claims "
                 f"it runs; one of the two is wrong")
+
+
+# ===========================================================================
+# L-17 — Contract-serving agreement
+# ===========================================================================
+class TestL17ContractServingAgreement:
+    """*For every active warrant, the namespace served equals the namespace the
+    contract pins.*
+
+    Recorded for a long time as blocked on an online feature store, and blocked
+    on the wrong thing. A store is a component on the serving path at request
+    latency, and `docs/10 section 7` says MAYA will not own that: governance on
+    the serving path makes it the bank's single point of failure. Building one
+    to satisfy the law would have put the platform exactly where its own design
+    says it must never be.
+
+    The engine already knows which namespaces it read. It declares them and MAYA
+    compares — the shape of every other claim here, which is that the platform
+    does not perform the act, it holds whoever did to what they said they did.
+
+    An attestation proves disagreement rather than agreement, and disagreement
+    is the thing worth catching: it is training-serving skew.
+    """
+
+    def test_an_engine_serving_what_the_contract_pins_agrees(self, serving):
+        register, urn, semver, pinned = serving
+        answer = register.attest(urn, semver, pinned, actor="svc/engine")
+        assert answer["agrees"] == 1 and answer["divergence"] == []
+
+    def test_a_different_namespace_is_caught(self, serving):
+        """The skew case: a number that looks right and came from the wrong
+        data."""
+        register, urn, semver, pinned = serving
+        view = sorted(pinned)[0]
+        answer = register.attest(urn, semver,
+                                 {**pinned, view: "features/x/wrong"},
+                                 actor="svc/engine")
+        assert answer["agrees"] == 0
+        assert answer["divergence"][0]["how"] == "different_namespace"
+
+    def test_a_namespace_nobody_approved_is_caught(self, serving):
+        register, urn, semver, pinned = serving
+        answer = register.attest(urn, semver,
+                                 {**pinned, "smuggled": "features/x/smuggled"},
+                                 actor="svc/engine")
+        assert answer["agrees"] == 0
+        assert any(d["how"] == "served_but_not_pinned"
+                   for d in answer["divergence"])
+
+    def test_a_pinned_namespace_left_unserved_is_caught(self, serving):
+        register, urn, semver, _pinned = serving
+        answer = register.attest(urn, semver, {}, actor="svc/engine")
+        assert answer["agrees"] == 0
+        assert all(d["how"] == "pinned_but_not_served"
+                   for d in answer["divergence"])
+
+    def test_a_disagreement_is_recorded_and_not_only_reported(self, serving):
+        """*We served the wrong namespace and then said we had not* is the event
+        this exists to make impossible to lose."""
+        register, urn, semver, _pinned = serving
+        register.attest(urn, semver, {}, actor="svc/engine")
+        assert len(register.for_version(urn, semver)) == 1
+
+    def test_never_attested_is_neither_satisfied_nor_violated(self, serving):
+        """Three states, not two. Reporting silence as agreement is the failure
+        this codebase is written against."""
+        register, urn, semver, _pinned = serving
+        answer = register.agreement(urn, semver)
+        assert answer["state"] == "unattested" and answer["holds"] is None
+
+    def test_the_estate_counts_silence_apart_from_agreement(self, serving,
+                                                            serving_version):
+        register, urn, semver, pinned = serving
+        assert register.estate([serving_version])["unattested"] == 1
+        register.attest(urn, semver, pinned, actor="svc/engine")
+        after = register.estate([serving_version])
+        assert after["agreeing"] == 1 and after["unattested"] == 0 and after["holds"]
 
 
 # ===========================================================================
@@ -1195,3 +1267,92 @@ class TestL21FeedsIsCompositionRatherThanADrawing:
         composite = graph.composite_schema(upstream, downstream)
         assert composite["input_schema"] == reads
         assert composite["output_schema"] == writes
+
+
+# ===========================================================================
+# L-14 — Aggregate risk is lax monoidal
+# ===========================================================================
+class TestL14AggregateRiskIsLaxMonoidal:
+    """*`ρ(g ∘ f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs.*
+
+    SR 26-2 asks that aggregate model risk reflect "interactions and
+    dependencies among models; reliance on common assumptions, data, or
+    methodologies". If `ρ` were strict, aggregate risk would be the join of the
+    components and a spreadsheet could compute it. It is lax, and the gap is
+    exactly what the guidance is asking about.
+
+    This law was stated as a formula with nothing behind it for most of the
+    build — which is worse than not stating it, because a law nobody computes
+    cannot be violated and therefore prevents nothing.
+
+    `ρ` is deliberately **not a score**. The board pack refuses to produce a
+    single model-risk number and this must not be the side door: `ρ` is the risk
+    tier, and the interaction term is a set of *named obstructions* rather than a
+    magnitude. Every one is read from something the register holds; none is
+    estimated, because a premium with an invented coefficient is a number that
+    has to be defended and cannot be.
+    """
+
+    def test_the_join_takes_the_more_material_tier(self):
+        from core.risk import Risk, join
+        assert join(Risk(tier=3), Risk(tier=1)).tier == 1
+        assert join(Risk(tier=4), Risk(tier=4)).tier == 4
+
+    def test_an_unassessed_component_is_the_top_and_not_the_bottom(self):
+        """A model nobody has tiered is not a safe model.
+
+        Treating `None` as least risky would make the aggregate of an untiered
+        estate look excellent, which is the failure this codebase is named for.
+        """
+        from core.risk import Risk, join
+        assert join(Risk(tier=4), Risk(tier=None)).tier is None
+        assert Risk(tier=None).at_least_as_risky_as(Risk(tier=1))
+        assert not Risk(tier=1).at_least_as_risky_as(Risk(tier=None))
+
+    def test_escalation_stops_at_the_most_material_tier(self):
+        """There is nothing above tier 1, and inventing a tier 0 would be
+        inventing a control regime."""
+        from core.risk.aggregate import escalate
+        assert escalate(3, 1) == 2 and escalate(2, 5) == 1
+        assert escalate(1, 3) == 1 and escalate(None, 2) is None
+
+    def test_the_law_holds_on_a_pair_with_no_interaction(self, aggregate_pair):
+        """Laxity holding with EQUALITY is laxity holding, not laxity absent."""
+        risk, source, target = aggregate_pair
+        answer = risk.holds(source, target)
+        assert answer["holds"]
+
+    def test_a_composite_is_never_less_risky_than_its_parts(self, aggregate_pair):
+        """The inequality itself, which is the whole law."""
+        risk, source, target = aggregate_pair
+        answer = risk.holds(source, target)
+        parts, composite = answer["components"]["tier"], answer["composite"]["tier"]
+        assert composite <= parts, (
+            f"the pair came back at tier {composite} and its parts at {parts}; "
+            f"a composite cannot be LESS material than what it is made of")
+
+    def test_a_shared_dependency_escalates(self, aggregate_shared):
+        """The obstruction the guidance names: a fault in a common input is not
+        two independent faults."""
+        risk, source, target = aggregate_shared
+        answer = risk.holds(source, target)
+        assert not answer["strict"], "a shared upstream did not escalate"
+        kinds = {o["kind"] for o in answer["composite"]["obstructions"]}
+        assert "shared_dependency" in kinds
+        assert answer["holds"]
+
+    def test_every_obstruction_says_what_it_means(self):
+        """A premium a reader cannot open is a premium they cannot defend, which
+        is the objection this module exists to answer."""
+        from core.risk import OBSTRUCTIONS
+        assert OBSTRUCTIONS
+        for kind, means in OBSTRUCTIONS.items():
+            assert means and not means.endswith("."), kind
+
+    def test_the_estate_reports_no_single_number(self, aggregate_shared):
+        """The board pack refuses to produce one, and this must not be the side
+        door it comes in through."""
+        risk, source, target = aggregate_shared
+        summary = risk.estate([source, target])
+        assert summary["holds"] and summary["pairs"] >= 1
+        assert "score" not in summary and "rho" not in summary
