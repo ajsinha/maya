@@ -47,7 +47,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.attachments import KIND_MEANING as DOCUMENT_MEANING, KINDS as DOCUMENT_KINDS
 from core.docs.subjects import describe as describe_subjects
@@ -61,6 +61,7 @@ from core.registry.common import RegistryError
 from core.registry.versions import VersionService
 from core.risk import COMPLEXITY, CONTROLS, MATERIALITY
 from core.registry.versions import latest_version
+from core.execution.grammar import RUNTIME_ENTRY
 from routes.base import Body, Routes, login_required
 
 logger = get_logger(__name__)
@@ -279,6 +280,13 @@ class ModelAlgebraRoutes(Routes):
                 parameter_kinds=[k.value for k in ParameterKind],
                 fit_procedures=[p.value for p in FitProcedure],
                 output_kinds=[k.value for k in OutputKind],
+                # The realisation half. This form had the derived-class preview
+                # and no way to say what runs, while `/models/new` could say
+                # what runs and showed no class — so the screen tutorial 01
+                # sends you to could not create a version that executes, and
+                # the one that could gave no feedback on what it was producing.
+                runtimes=sorted(RUNTIME_ENTRY),
+                runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},
                 unchecked=list(UNCHECKED),
                 # Whether this person may create is the API's answer. This only
                 # decides whether to say so before the form is filled in rather
@@ -506,6 +514,22 @@ class ModelAlgebraRoutes(Routes):
                 "ok": int(proof["refinement"]["holds"] and proof["variance"]["ok"]),
                 "detail": _substitution_detail(proof, other_urn == body.urn),
             }
+
+        @self.app.get(f"{self.api}/aggregate-risk", tags=["models"])
+        def aggregate_risk(request: Request, from_urn: str, to_urn: str):
+            """`L-14` for one composable pair: is the composite at least as
+            risky as the join of its parts, and what makes it riskier?
+
+            No single number comes back. The board pack refuses to produce one
+            and this is not the side door — the interaction term is a set of
+            named obstructions, each read from something the register holds.
+            """
+            source = self.guard(lambda: registry.require(from_urn))
+            target = self.guard(lambda: registry.require(to_urn))
+            self.authorise(request, "model:read", model=source)
+            self.authorise(request, "model:read", model=target)
+            return self.guard(
+                lambda: self.ctx["aggregate"].holds(from_urn, to_urn))
 
         @self.app.get(f"{self.api}/model-algebra/composite", tags=["models"])
         def composite(request: Request, from_urn: str, to_urn: str):

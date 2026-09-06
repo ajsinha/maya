@@ -21,8 +21,22 @@ from core.docs.dossier import Dossier
 from core.docs.subjects import SUBJECTS, SUBJECT_MEANING
 from core.docs.training import TrainingRecordCompiler
 
-__all__ = ["DocumentCompiler", "ContextBuilder", "Lens", "TEMPLATES", "KINDS",
-           "ALL_KINDS", "TRAINING_RECORD", "Dossier", "TrainingRecordCompiler",
-           "SUBJECTS", "SUBJECT_MEANING", "TITLES",
-           "DocumentError", "MODEL_DEVELOPMENT", "VALIDATION_REPORT",
-           "MODEL_CARD", "ANNEX_IV"]
+__all__ = [
+                              "ALL_KINDS",
+                              "ANNEX_IV",
+                              "KINDS",
+                              "MODEL_CARD",
+                              "MODEL_DEVELOPMENT",
+                              "SUBJECTS",
+                              "SUBJECT_MEANING",
+                              "TEMPLATES",
+                              "TITLES",
+                              "TRAINING_RECORD",
+                              "VALIDATION_REPORT",
+                              "ContextBuilder",
+                              "DocumentCompiler",
+                              "DocumentError",
+                              "Dossier",
+                              "Lens",
+                              "TrainingRecordCompiler",
+]

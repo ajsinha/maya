@@ -448,7 +448,7 @@ test rather than asserted by a document:
 - *Two models compose only if their schemas do, so the dependency graph is typed
   and a composite's schema is derived rather than declared.* (`L-21`)
 - *For one class of model — the class a bank has most of — no rule is shadowed by
-  any single earlier rule, no input falls through, no two rules with the same
+  the earlier rules singly or together, no input falls through, no two rules with the same
   condition disagree, and every field a rule reads is one the version declares.*
   (`core/rules/`, and the incompleteness is stated in the same breath)
 - *Every document about this model, every fit that produced its parameters, and

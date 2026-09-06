@@ -26,10 +26,30 @@ from core.validation.storage import SnapshotProvider
 from core.validation.service import ValidationService
 from core.validation.workflow import FindingWorkflow
 
-__all__ = ["ValidationService", "FindingRegister", "FindingWorkflow",
-           "FindingWorkflowError", "ageing", "TestCatalogue", "TestDefinition",
-           "TestOutcome", "Replayer", "SnapshotProvider", "ValidationError", "SEVERITIES", "OUTCOMES",
-           "KINDS", "SOURCES", "ACTS", "ACT_MEANING", "ESCALATION_ROLE",
-           "DEFAULT_ACKNOWLEDGE_DAYS", "DEFAULT_ESCALATE_DAYS",
-           "DEFAULT_EXTENSION_LIMIT", "BLOCKING_BY_DEFAULT", "same_person",
-           "severity_rank", "worst"]
+__all__ = [
+                                    "ACTS",
+                                    "ACT_MEANING",
+                                    "BLOCKING_BY_DEFAULT",
+                                    "DEFAULT_ACKNOWLEDGE_DAYS",
+                                    "DEFAULT_ESCALATE_DAYS",
+                                    "DEFAULT_EXTENSION_LIMIT",
+                                    "ESCALATION_ROLE",
+                                    "KINDS",
+                                    "OUTCOMES",
+                                    "SEVERITIES",
+                                    "SOURCES",
+                                    "FindingRegister",
+                                    "FindingWorkflow",
+                                    "FindingWorkflowError",
+                                    "Replayer",
+                                    "SnapshotProvider",
+                                    "TestCatalogue",
+                                    "TestDefinition",
+                                    "TestOutcome",
+                                    "ValidationError",
+                                    "ValidationService",
+                                    "ageing",
+                                    "same_person",
+                                    "severity_rank",
+                                    "worst",
+]

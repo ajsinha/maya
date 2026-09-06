@@ -122,3 +122,9 @@ docs/examples/*.xlsx
 # Nothing at runtime depends on it, and the suite skips without it.
 node_modules/
 package-lock.json
+
+# Coverage, produced by the hygiene gate and combined in CI.
+.coverage
+.coverage.*
+htmlcov/
+sbom.json

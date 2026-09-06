@@ -33,7 +33,7 @@ from typing import Any, Callable, Dict, List, Mapping, Sequence
 
 from core.log import get_logger
 from core.regimes.sentences import Sentence
-from core.regimes.signature import CORE, Interpretation, Signature
+from core.regimes.signature import Interpretation, Signature
 
 logger = get_logger(__name__)
 

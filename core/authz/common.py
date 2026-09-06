@@ -83,6 +83,46 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "principal:read", "principal:manage",
 })
 
+#: Permissions whose subject is ONE model, so a check without one is a check
+#: with no scope.
+#:
+#: `authorise` applied the legal-entity scope only when a caller passed
+#: `model=`, which made it opt-in: about a dozen write routes did not, and a
+#: UK-scoped principal who is refused *read* access to a US model could sign
+#: half its Tier 2 quorum, issue and revoke its production warrants, and close
+#: its findings. Every one of those is an act on a specific model, and the
+#: read that would have refused it was one argument away.
+#:
+#: Declared here rather than inferred from the permission's prefix, because
+#: `feature:*` and `featureset:*` genuinely are estate-wide and would be caught
+#: by a prefix rule — and a scope check that refuses a correct act is one
+#: somebody removes.
+#: ACTS, not reads. A `:read` permission is used both for one model — where the
+#: route passes it — and for a listing, where `visible()` filters instead, so
+#: requiring a model there would refuse the inventory. Every permission below
+#: names a change to one identified model, and there is no listing form of it.
+MODEL_SCOPED: FrozenSet[str] = frozenset({
+    "model:retire", "model:delete", "model:submit", "model:approve",
+    "model:attest", "model:amend",
+    "version:create", "version:approve", "version:sign",
+    "alias:move", "risk:assess",
+    "warrant:issue", "warrant:revoke", "warrant:execute", "warrant:resolve",
+    "validation:open", "validation:record", "validation:conclude",
+    "finding:raise", "finding:close", "finding:assign",
+    "finding:acknowledge", "finding:plan", "finding:extend",
+    "monitor:define", "monitor:evaluate", "monitor:observe",
+    "document:compile", "document:attach", "document:review",
+    "parameter:record", "parameter:approve",
+    "overlay:propose", "overlay:approve", "overlay:measure",
+})
+
+# Deliberately NOT in the set above: `assist:generate` and `assist:attest`. A
+# generation's subject may be a model, but it may equally be a feature, a
+# featureset version or a parameter set, and those live outside the model
+# scope. Listing them here would force every assist route to invent a model it
+# does not have. They are scoped conditionally instead, at the call site, by
+# resolving the subject — see `Routes.model_of_subject`.
+
 READ_PERMISSIONS: FrozenSet[str] = frozenset(
     p for p in PERMISSIONS if p.endswith(":read"))
 

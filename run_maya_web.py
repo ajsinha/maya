@@ -44,7 +44,7 @@ from core.fibres import FibreRegistry
 from core.rules import RuleSetEditor
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
-from core.execution import WarrantError, WarrantService
+from core.execution import WarrantService
 from core.artifacts import ArtifactStore
 from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,
@@ -65,15 +65,18 @@ from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
+from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
 from core.policy import PolicyGate, PolicyRegister
-from core.risk import TieringEngine
+from core.policy.wiring import GateFacts
+from core.risk import AggregateRisk, TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, FindingWorkflow, Replayer,
                              SnapshotProvider, TestCatalogue, ValidationService)
-from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
+from db import (ServingAttestationRepository,
+                AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
                 NotificationRepository, PolicyRuleRepository,
                 WarrantProfileRepository, RiskAppetiteRepository,
@@ -96,6 +99,41 @@ from db import (AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
 from routes import ALL_ROUTES
+
+#: Sent on every response.
+#:
+#: There were none. The interface is entirely self-hosted — every asset is
+#: vendored so it renders air-gapped — which makes a strict policy cheap to
+#: state and expensive to omit: an injected `<script src>` had nothing stopping
+#: it, on pages that render model names, findings and document titles supplied
+#: by people.
+#:
+#: `'unsafe-inline'` is here for scripts and styles and it is not an oversight.
+#: Several pages carry inline handlers and `<style>` blocks, and a policy that
+#: broke them would be turned off within a week — which is worse than a policy
+#: that blocks the external-origin case and says so. Removing it means moving
+#: the inline blocks out first, which is its own change.
+SECURITY_HEADERS: Dict[str, str] = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        # Nothing here calls out. A governance platform that can be made to
+        # fetch from somewhere else is one somebody can exfiltrate through.
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"),
+    # Belt and braces with frame-ancestors, for the proxies that strip CSP.
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    # A URL here carries a model URN and sometimes a semver. Neither belongs in
+    # somebody else's referrer log.
+    "Referrer-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+}
 from routes.base import authz_problem
 
 ROOT = Path(__file__).resolve().parent
@@ -340,7 +378,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Both are derived from the services above rather than from tables of their
     # own: a task table or a summary table would be a second source of truth.
     worklist = WorkList(registry, lifecycle, findings, monitoring, overlays,
-                        documents, debts, validation, finding_workflow)
+                        documents, debts, validation, finding_workflow,
+                        # So a version moving beneath a model reaches the person
+                        # who reads it. The blast radius answered this correctly
+                        # all along and nobody was told: a pull where a change
+                        # process needs a push.
+                        composition=composition)
     # Delivery, not a queue: the work is derived, and this makes it arrive
     # somewhere rather than waiting to be looked at.
     # None unless an issuer is configured: local credentials only is the
@@ -351,8 +394,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # a check would let a typo weaken the platform and look like a successful
     # deployment.
     policies = PolicyRegister(PolicyRuleRepository(db), evidence)
-    registry.attach_policy(PolicyGate(policies, RegistryError))
+    # The facts the gates judge on, from the registers that hold them.
+    gate_facts = GateFacts(findings=findings, documents=documents,
+                           validation=validation, approvals=approvals,
+                           parameters=parameters, attachments=attachments)
+    registry.attach_policy(PolicyGate(policies, RegistryError), gate_facts)
     warrants.policy = PolicyGate(policies)
+    warrants.facts = gate_facts
 
     oidc = build_oidc(cfg)
 
@@ -387,8 +435,18 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    finding_workflow=finding_workflow,
                    evidence=evidence))
 
+    # L-17: what an engine says it served, against what the contract pins.
+    # MAYA does not read the online store — it does not own one, deliberately —
+    # so the engine declares and the platform compares.
+    serving = ServingRegister(ServingAttestationRepository(db),
+                              features.contracts, registry, evidence)
+
+    # L-14: aggregate risk, and the interaction premium that makes it lax.
+    aggregate = AggregateRisk(registry.catalogue, composition)
+
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
-                           "evidence": evidence,
+                           "evidence": evidence, "serving": serving,
+                           "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules,
                            "artifacts": artifacts,
@@ -564,6 +622,8 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
             raise
         elapsed = (time.perf_counter() - started) * 1000.0
         response.headers[log.REQUEST_HEADER] = request_id
+        for header, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
         # One line per request, at the level its outcome deserves: a refusal is
         # a governance decision worth seeing at INFO, a fault is not routine.
         logger.log(

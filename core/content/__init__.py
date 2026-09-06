@@ -14,4 +14,4 @@ from core.content.frontmatter import split
 from core.content.library import ContentLibrary, Topic
 from core.content.renderer import MarkdownRenderer
 
-__all__ = ["ContentLibrary", "Topic", "MarkdownRenderer", "split"]
+__all__ = ["ContentLibrary", "MarkdownRenderer", "Topic", "split"]

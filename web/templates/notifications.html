@@ -50,7 +50,16 @@ There is no task table to go stale. What this adds is that the work
 
 <div class="row g-3">
   <div class="col-lg-7">
-    <div class="card mb-3"><div class="card-header">What has been sent</div>
+    <div class="card mb-3"><div class="card-header">
+        {% if sees_everyone %}What has been sent{% else %}What has been sent to you{% endif %}
+      </div>
+      {% if not sees_everyone %}
+        <div class="card-body py-2 small text-muted border-bottom">
+          Your own deliveries. Reading the estate's needs
+          <code>principal:read</code> &mdash; the same permission
+          <code>GET /notifications/history</code> asks for, so the screen and
+          the endpoint answer the same question.</div>
+      {% endif %}
       <table class="table maya mb-0">
         <thead><tr><th>When</th><th>To</th><th>What came of it</th><th>Items</th></tr></thead>
         <tbody>

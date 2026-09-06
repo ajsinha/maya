@@ -18,7 +18,19 @@ from core.authz.roles import (DESCRIPTIONS, INCOMPATIBLE_ROLES, ROLES, conflicts
 from core.authz.scope import Scope
 from core.authz.segregation import RULES, Incompatibility, SegregationPolicy
 
-__all__ = ["AuthorizationPolicy", "PrincipalService", "SegregationPolicy", "Scope",
-           "AuthzError", "PERMISSIONS", "READ_PERMISSIONS", "ROLES", "DESCRIPTIONS",
-           "INCOMPATIBLE_ROLES", "RULES", "Incompatibility", "permissions_for",
-           "conflicts"]
+__all__ = [
+                              "DESCRIPTIONS",
+                              "INCOMPATIBLE_ROLES",
+                              "PERMISSIONS",
+                              "READ_PERMISSIONS",
+                              "ROLES",
+                              "RULES",
+                              "AuthorizationPolicy",
+                              "AuthzError",
+                              "Incompatibility",
+                              "PrincipalService",
+                              "Scope",
+                              "SegregationPolicy",
+                              "conflicts",
+                              "permissions_for",
+]

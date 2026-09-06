@@ -19,7 +19,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.validation import ACT_MEANING, ACTS
 from routes.base import Body, Routes
@@ -117,6 +117,7 @@ class FindingWorkflowRoutes(Routes):
             """Hand a finding to somebody else, with the handover on the record."""
             finding = self.guard(lambda: workflow.open_finding(finding_id))
             who = self.authorise(request, "finding:assign",
+                                 model=self.model_of(finding["model_id"]),
                                  subject_id=finding["model_id"], about=finding_id)
             return self.guard(lambda: workflow.assign(
                 finding_id, body.to, body.reason, actor=self.actor(who)))
@@ -127,6 +128,7 @@ class FindingWorkflowRoutes(Routes):
             """The owner accepts it and names the date. Nobody may do this for them."""
             finding = self.guard(lambda: workflow.open_finding(finding_id))
             who = self.authorise(request, "finding:acknowledge",
+                                 model=self.model_of(finding["model_id"]),
                                  subject_id=finding["model_id"], about=finding_id)
             return self.guard(lambda: workflow.acknowledge(
                 finding_id, self.actor(who), body.committed_at, body.days,
@@ -137,6 +139,7 @@ class FindingWorkflowRoutes(Routes):
             """What will be done to close it, and by when."""
             finding = self.guard(lambda: workflow.open_finding(finding_id))
             who = self.authorise(request, "finding:plan",
+                                 model=self.model_of(finding["model_id"]),
                                  subject_id=finding["model_id"], about=finding_id)
             return self.guard(lambda: workflow.plan_for(
                 finding_id, body.plan, actor=self.actor(who)))
@@ -149,6 +152,7 @@ class FindingWorkflowRoutes(Routes):
             # finding, so acknowledging one finding does not disqualify somebody
             # from extending every other finding on the same model.
             who = self.authorise(request, "finding:extend",
+                                 model=self.model_of(finding["model_id"]),
                                  subject_id=finding["model_id"], about=finding_id)
             return self.guard(lambda: workflow.extend(
                 finding_id, self.actor(who), body.reason, body.days, body.due_at))

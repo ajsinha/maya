@@ -16,6 +16,8 @@ the artifact instead of an opinion about it.
 """
 from __future__ import annotations
 
+import logging
+
 import time
 from typing import Any, Dict, List, Optional
 
@@ -29,9 +31,30 @@ from core.registry.common import RegistryError
 from core.registry.specs import schema_of
 from db import VersionRepository
 from db.database import digest as canonical_digest
-from core.log import get_logger
+from core.log import get_logger, swallowed
 
 logger = get_logger(__name__)
+
+
+def _one_of(enum, value: Any, field: str):
+    """Convert to an enum member, or refuse naming the field and the choices.
+
+    Every vocabulary here is small and closed, so the useful refusal is the one
+    that lists it. `ValueError: 'not_a_kind' is not a valid ParameterKind` names
+    the Python class rather than the field somebody typed into.
+    """
+    try:
+        return enum(value)
+    except ValueError as exc:
+        allowed = ", ".join(m.value for m in enum)
+        swallowed(logger, exc, f"converted '{value}' to a {field}",
+                  detail="translated into a refusal that names the field and "
+                         "the vocabulary; the bare ValueError reached the "
+                         "caller as a 500 with an empty body",
+                  level=logging.INFO)
+        raise RegistryError(
+            f"'{value}' is not a {field}; expected one of {allowed}",
+        ) from exc
 
 
 def semver_key(semver: str):
@@ -84,6 +107,11 @@ class VersionService:
         self.versions, self.catalogue, self.evidence = versions, catalogue, evidence
         self.gate = gate
         self.policy = None
+        # Set at wiring time, like `policy` and `artifacts`. It answers the
+        # governance facts this service does not hold — open findings,
+        # validations, documents — so a gate is judged on what is true rather
+        # than on what a default says.
+        self.facts = None
         # Set at wiring time. When present, a digest naming bytes MAYA holds is
         # resolved here rather than taken on faith, and its size and address go
         # onto the version so a warrant can state them.
@@ -91,14 +119,25 @@ class VersionService:
 
     @staticmethod
     def kernel_of(spec: Dict[str, Any], artifact_digest: Optional[str]) -> ParametricKernel:
+        """The kernel a spec describes, or a refusal naming the word.
+
+        `ParameterKind("not_a_kind")` raises a bare `ValueError`, which reached
+        the caller as a 500 with an empty body — no code, no remediation, and
+        nothing saying which of the three enum fields was wrong. A typo in a
+        vocabulary is the most ordinary mistake there is here, and it was the
+        one refusal in the register that told you nothing.
+        """
         return ParametricKernel(
-            parameters=ParameterObject(ParameterKind(spec.get("parameter_kind", "none")),
-                                       artifact_digest),
+            parameters=ParameterObject(
+                _one_of(ParameterKind, spec.get("parameter_kind", "none"),
+                        "parameter_kind"), artifact_digest),
             input_schema=schema_of(spec.get("input_schema", [])),
             output_schema=schema_of(spec.get("output_schema", [])),
-            output_kind=OutputKind(spec.get("output_kind", "point_estimate")),
+            output_kind=_one_of(OutputKind, spec.get("output_kind", "point_estimate"),
+                                "output_kind"),
             deterministic=bool(spec.get("deterministic", True)),
-            fit=FitProcedure(spec.get("fit_procedure", "none")),
+            fit=_one_of(FitProcedure, spec.get("fit_procedure", "none"),
+                        "fit_procedure"),
             adaptive=bool(spec.get("adaptive", False)))
 
     @staticmethod
@@ -291,10 +330,15 @@ class VersionService:
         v = self.require(urn, semver)
         if self.policy is not None:
             model = self.catalogue.require(urn)
+            # Every fact the gate advertises, not the four this service can
+            # see. `blocking_findings` was defaulted to 0 for the life of the
+            # gate, so the built-in rule's "not approved over an open blocking
+            # finding" had never been able to fire.
             self.policy.check("version:approve", {
                 "tier": model.get("tier"), "status": v["status"],
                 "has_artifact_digest": bool(v.get("artifact_digest")),
-                "has_contract": bool(v.get("contract"))},
+                "has_contract": bool(v.get("contract")),
+                **(self.facts.version_approve(model, v) if self.facts else {})},
                 f"{urn}@{semver}")
         self.versions.set({"status": "approved"}, id=v["id"])
         self.evidence.append("version_approved", "version", v["id"],

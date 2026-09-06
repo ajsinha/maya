@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.features.common import FeatureError
 from core.features.normalisation import (METHOD_MEANING, METHODS, NONE,
-                                         Statistics, knowable, normalise)
+                                         Statistics, knowable)
 from core.log import get_logger
 
 logger = get_logger(__name__)

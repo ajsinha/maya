@@ -40,6 +40,15 @@ def describe() -> list:
     return out
 
 
-__all__ = ["Draft", "Provider", "MockProvider", "AnthropicProvider",
-           "OpenAIProvider", "SelfHostedProvider", "PROVIDERS", "build",
-           "describe", "refuse_unavailable"]
+__all__ = [
+    "PROVIDERS",
+    "AnthropicProvider",
+    "Draft",
+    "MockProvider",
+    "OpenAIProvider",
+    "Provider",
+    "SelfHostedProvider",
+    "build",
+    "describe",
+    "refuse_unavailable",
+]

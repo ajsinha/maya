@@ -266,7 +266,7 @@ Because evaluation is first-match-wins it can never fire, and nothing about
 reading the document tells you so: it appears in the model card, gets cited in a
 committee paper and survives every review, because a rule that never fires also
 never produces a wrong answer. MAYA's check is **sound and incomplete** — the
-promise is *no rule is shadowed by any single earlier rule*, not *no rule is
+promise is *no rule is shadowed by the earlier rules, singly or together*, and not *no rule is
 unreachable*.
 
 **Shared dependency** — what two or more models both rest on. The reason

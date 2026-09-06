@@ -25,11 +25,13 @@ this one.
 from __future__ import annotations
 
 import time
+
+from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.evidence import EvidenceEngine
 from core.lifecycle.common import LifecycleError
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from db import VersionApprovalRepository, VersionApprovalSignatureRepository
 
 logger = get_logger(__name__)
@@ -204,14 +206,41 @@ class VersionApproval:
                 f"{username} has already signed this approval under another role",
                 "a quorum is a number of people, not a number of hats")
 
-        self.signatures.add({"version_approval_id": approval_id,
-                             "principal": username, "role": role,
-                             "decision": decision, "statement": statement,
-                             "signed_at": time.time()})
-        self.evidence.append("version_approval_signed", "version",
-                             approval["model_version_id"],
-                             {"approval_id": approval_id, "role": role,
-                              "decision": decision}, actor=username)
+        # The two checks above are a read-then-write, and the database is what
+        # decides the race.
+        #
+        # Two requests from one dual-hatted principal, fired through a barrier,
+        # both passed the `already_signed_personally` read and both wrote: 1
+        # trial in 25 put BOTH signatures of a Tier 1 quorum on one person, and
+        # the approval record and the evidence chain each said a quorum had
+        # approved it. Nothing anywhere said the two signatures were the same
+        # person. `model_risk_manager` is a superset of `validator`, so holding
+        # both is a supported configuration and exactly the one the check exists
+        # to neutralise.
+        #
+        # `UNIQUE (version_approval_id, principal)` is the fix; the transaction
+        # is what makes the signature and its evidence node one act. The
+        # integrity error is translated back into the refusal the reader was
+        # going to get anyway, because losing a race is not a different answer
+        # from being told you have already signed.
+        try:
+            with self.signatures.db.transaction():
+                self.signatures.add({"version_approval_id": approval_id,
+                                     "principal": username, "role": role,
+                                     "decision": decision, "statement": statement,
+                                     "signed_at": time.time()})
+                self.evidence.append("version_approval_signed", "version",
+                                     approval["model_version_id"],
+                                     {"approval_id": approval_id, "role": role,
+                                      "decision": decision}, actor=username)
+        except IntegrityError as exc:
+            swallowed(logger, exc, f"recorded {username}'s '{role}' signature",
+                      detail="the uniqueness constraint refused it, which means "
+                             "another request for the same approval won the race")
+            raise LifecycleError(
+                "already_signed_personally",
+                f"{username} has already signed this approval under another role",
+                "a quorum is a number of people, not a number of hats") from exc
         return self._settle(approval_id)
 
     def _settle(self, approval_id: str) -> Dict[str, Any]:

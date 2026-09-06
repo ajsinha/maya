@@ -22,7 +22,17 @@ from maya_sdk.errors import (Blocked, MayaError, NotAuthenticated, NotFound,
                              NotPermitted, Refused, Unreachable)
 from maya_sdk.transport import HttpTransport, Response
 
-__all__ = ["Maya", "MayaError", "Refused", "Unreachable", "NotAuthenticated",
-           "NotPermitted", "NotFound", "Blocked", "HttpTransport", "Response"]
+__all__ = [
+                             "Blocked",
+                             "HttpTransport",
+                             "Maya",
+                             "MayaError",
+                             "NotAuthenticated",
+                             "NotFound",
+                             "NotPermitted",
+                             "Refused",
+                             "Response",
+                             "Unreachable",
+]
 
 __version__ = "0.1.0"

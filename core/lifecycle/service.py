@@ -20,15 +20,13 @@ chain behind, including the entry recording that it was deleted and by whom.
 """
 from __future__ import annotations
 
-import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.evidence import EvidenceEngine
 from core.lifecycle.amendments import AmendmentService
 from core.lifecycle.attestation import AttestationService
 from core.lifecycle.common import LifecycleError
-from core.lifecycle.states import (AMENDING, APPROVED, ATTESTED, DRAFT, RETIRED,
-                                   SUBMITTED, allowed_from, describe, is_mutable,
+from core.lifecycle.states import (AMENDING, ATTESTED, DRAFT, allowed_from, describe, is_mutable,
                                    MEANING, transition)
 from core.log import get_logger
 from core.registry import ModelRegistry
@@ -142,7 +140,6 @@ class LifecycleService:
         elif progress["status"] == "declined":
             # A decline returns the record to work, not to limbo.
             back = "amend" if current.get("amendment_id") else "return"
-            fresh = self.registry.get(model["urn"])
             self.registry.catalogue.models.set(
                 {"status": AMENDING if back == "amend" else DRAFT}, id=model["id"])
             self.evidence.append("model_attestation_declined", "model", model["id"],

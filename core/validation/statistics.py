@@ -113,7 +113,7 @@ def psi(expected: Sequence[float], actual: Sequence[float], bins: int = 10) -> O
     if len(expected) < bins or not actual:
         return None
     ordered = sorted(expected)
-    edges = [ordered[int(round(q * (len(ordered) - 1) / bins))] for q in range(1, bins)]
+    edges = [ordered[round(q * (len(ordered) - 1) / bins)] for q in range(1, bins)]
     floor = 1.0 / (bins * 10.0)
 
     def shares(sample: Sequence[float]) -> List[float]:

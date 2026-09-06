@@ -649,7 +649,7 @@ could tell you a rule set had changed and not one thing about what it said.
 A rule set now has a structure the platform can read — ordered rules, first match
 wins, a required `otherwise`, a required `because` per rule — and four checks run
 before it can be recorded: nothing falls through, no rule is shadowed by any
-single earlier rule, no two rules with the same condition disagree, and every
+the earlier rules singly or together, no two rules with the same condition disagree, and every
 field a rule reads is one the version's input schema declares. Publishing one is
 this same `POST /parameters` act with the same consequences: the set lands
 `proposed`, and whoever wrote it may not approve it.

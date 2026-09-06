@@ -35,10 +35,8 @@ would put the problem two layers away from where it was caused.
 """
 from __future__ import annotations
 
-import io
 import json
 import tempfile
-from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple
 
 from core.features.common import ENTITY, INGEST_TIME, RESERVED, VALID_TIME, FeatureError
@@ -63,6 +61,25 @@ MEDIA_TYPE: Dict[str, str] = {
     CSV: "text/csv",
 }
 BY_MEDIA_TYPE: Dict[str, str] = {v: k for k, v in MEDIA_TYPE.items()}
+
+#: File extensions a page's upload control should offer, derived from the media
+#: types above rather than typed into a template.
+#:
+#: Two templates carried their own list and they disagreed: one offered
+#: `.parquet,.arrow,.ndjson,.jsonl` and the other added `.csv`. Every worked
+#: example in the product — both tutorials, the SDK's own `load` — uses CSV, so
+#: the screen refused the file the documentation tells you to bring. A second
+#: copy of a vocabulary is a second vocabulary.
+SUFFIXES: Dict[str, Tuple[str, ...]] = {
+    ARROW: (".arrow",), PARQUET: (".parquet",),
+    NDJSON: (".ndjson", ".jsonl"), JSON: (".json",), CSV: (".csv",),
+}
+
+
+def accept_attribute() -> str:
+    """The `accept` attribute for an upload control, from the formats read."""
+    return ",".join(suffix for fmt in (CSV, NDJSON, PARQUET, ARROW, JSON)
+                    for suffix in SUFFIXES[fmt])
 
 FORMAT_MEANING: Dict[str, str] = {
     ARROW: "streaming Arrow IPC — zero-copy, incremental both ways; use this "
@@ -165,7 +182,6 @@ class FeatureTransfer:
                 columns: Optional[Sequence[str]] = None,
                 limit: Optional[int] = None) -> Iterator[Any]:
         """Arrow record batches, straight off the files. Nothing whole."""
-        import pyarrow as pa
         from deltalake import DeltaTable
 
         if not self.delta.exists(table):
@@ -349,7 +365,7 @@ class FeatureTransfer:
                 table = pa.Table.from_pylist(json.loads(data.decode()))
                 for batch in table.to_batches(self.batch_rows):
                     yield batch
-        except Exception as exc:                       # noqa: BLE001 — reported
+        except Exception as exc:
             # Nothing inside the block raises FeatureError: the format check
             # happens above it, so every exception here is a parse failure.
             logger.warning("could not parse a %s upload: %s", fmt, exc)
@@ -495,7 +511,6 @@ class FeatureTransfer:
         true from the latest of its constituents and knowable from the latest of
         their ingest times, which is the same rule a derived feature uses.
         """
-        import pyarrow as pa
         import pyarrow.compute as pc
 
         for clock in (VALID_TIME, INGEST_TIME):

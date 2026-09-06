@@ -11,12 +11,9 @@ corroboration, confidence, cost, currency.
 """
 from __future__ import annotations
 
-import time
-from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Generic, List, Optional, Set, Tuple, TypeVar
+from dataclasses import dataclass
+from typing import Any, Callable, Dict, Generic, Set, Tuple, TypeVar
 
-from db import EvidenceRepository
-from db.database import digest as canonical_digest
 
 K = TypeVar("K")
 

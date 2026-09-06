@@ -25,6 +25,7 @@ from email.message import EmailMessage
 from typing import Any, Dict, Optional, Tuple
 
 from core.log import get_logger, swallowed
+from core.outbound import permit
 from core.notify.common import EMAIL, LOG, WEBHOOK
 
 logger = get_logger(__name__)
@@ -67,11 +68,15 @@ class WebhookChannel:
         if (why := self.available()):
             return False, why
         payload = json.dumps({"to": to, "subject": subject, **body}).encode()
+        # Configuration rather than a fetched document, but the same guard: an
+        # operator who pastes a `file:` URL here should be told, not obeyed.
+        permit(self.url, what="the webhook url")
         request = urllib.request.Request(
             self.url, data=payload,
             headers={"Content-Type": "application/json"})
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            with urllib.request.urlopen(request,
+                                        timeout=self.timeout) as response:
                 return True, f"posted, {response.status}"
         except (urllib.error.URLError, OSError, ValueError) as exc:
             # Recorded rather than raised: one unreachable webhook must not stop

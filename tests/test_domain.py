@@ -11,7 +11,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from core.domain import (Bound, Contract, ContractError, Field, FitProcedure,
-                         OutputKind, ParameterKind,
+                         ParameterKind,
                          ParameterObject, ParametricKernel, Probe, Schema, pi_equivalent,
                          substitutable)
 

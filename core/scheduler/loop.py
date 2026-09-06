@@ -22,7 +22,6 @@ rather than silently ending the thread.
 from __future__ import annotations
 
 import threading
-import time
 from typing import Optional
 
 from core.log import get_logger
@@ -70,5 +69,5 @@ class SchedulerLoop:
             try:
                 report = self.scheduler.run(actor=self.actor)
                 logger.info("scheduler pass: %s", report["detail"])
-            except Exception as exc:      # the thread must survive, and be heard
-                logger.exception("scheduler pass failed, continuing: %s", exc)
+            except Exception:             # the thread must survive, and be heard
+                logger.exception("scheduler pass failed, continuing")

@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
@@ -433,7 +433,9 @@ class FeaturesetRoutes(Routes):
                        tags=["parameters"])
         def review(request: Request, parameter_set_id: str, body: ReviewIn):
             """A parameter set changes behaviour, so it is approved like a version."""
-            who = self.authorise(request, "parameter:approve")
+            who = self.authorise(
+                request, "parameter:approve",
+                model=self.model_behind(parameters.get(parameter_set_id)))
             actor = self.actor(who)
             return self.guard(
                 lambda: parameters.approve(parameter_set_id, actor, body.note)

@@ -10,5 +10,13 @@ from core.export.common import (CONTENTS, DEFAULT_DOCUMENTS, MANIFEST,
                                 MAX_BYTES, PACK_VERSION, ExportError)
 from core.export.pack import ExportPacker, sha256_of
 
-__all__ = ["ExportPacker", "ExportError", "CONTENTS", "DEFAULT_DOCUMENTS",
-           "MANIFEST", "MAX_BYTES", "PACK_VERSION", "sha256_of"]
+__all__ = [
+                                "CONTENTS",
+                                "DEFAULT_DOCUMENTS",
+                                "MANIFEST",
+                                "MAX_BYTES",
+                                "PACK_VERSION",
+                                "ExportError",
+                                "ExportPacker",
+                                "sha256_of",
+]

@@ -183,7 +183,10 @@ class FeaturesetAuthoringRoutes(Routes):
                 request, "featureset_author_plan.html",
                 featureset=features.sets.resolved(name),
                 plan=features.featureset_plan(name, version),
-                version=row, versions=versions,
+                # `featureset_version`, not `version`: the brand context
+                # supplies the application's version, and a page shadowing it
+                # prints its own object as the footer's text.
+                featureset_version=row, versions=versions,
                 moved=features.sets.diff(previous, row) if previous else None,
                 previous=previous,
                 attachments=self._attachments(request, row["id"]),

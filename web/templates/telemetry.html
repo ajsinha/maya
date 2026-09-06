@@ -43,6 +43,14 @@ and not when they arrive.</p>
             <a href="/telemetry/{{ v.semver }}/{{ v.model.replace('maya://model/','') }}"
                style="color:var(--crimson);text-decoration:none">
               {{ v.model_name }} v{{ v.semver }}</a>
+            {# The screen's whole argument is that the silence is the finding,
+               and it could not say that the silent version was the one serving
+               production. #}
+            {% set serving = in_force.get(v.model ~ "@" ~ v.semver) %}
+            {% if serving %}
+              <div class="mt-1">{% for a in serving %}<span class="frozen-badge me-1"
+                >{{ a|upper }}</span>{% endfor %}</div>
+            {% endif %}
             <div class="text-muted mono">{{ v.model }}</div></td>
           <td class="small">
             {% if v.silent %}

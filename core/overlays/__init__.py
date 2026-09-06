@@ -15,5 +15,12 @@ from core.overlays.common import (DIRECTIONS, KIND_MEANING, KINDS, STATUSES,
                                   OverlayError)
 from core.overlays.register import OverlayRegister
 
-__all__ = ["OverlayRegister", "OverlayError", "analysis", "KINDS", "KIND_MEANING",
-           "DIRECTIONS", "STATUSES"]
+__all__ = [
+                                  "DIRECTIONS",
+                                  "KINDS",
+                                  "KIND_MEANING",
+                                  "STATUSES",
+                                  "OverlayError",
+                                  "OverlayRegister",
+                                  "analysis",
+]

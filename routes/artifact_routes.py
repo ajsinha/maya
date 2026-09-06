@@ -12,7 +12,7 @@ view of.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from fastapi import Request
 from fastapi.responses import StreamingResponse
@@ -49,7 +49,14 @@ class ArtifactRoutes(Routes):
             rather than trusted, so a truncated upload is refused instead of
             being stored under the address of whatever arrived.
             """
-            who = self.authorise(request, "version:create")
+            # Bytes land at a content address before any version names them,
+            # so there is no model to scope against yet. The binding act — a
+            # version citing this digest — is scoped, and that is where an
+            # out-of-entity artifact is actually refused.
+            who = self.authorise(
+                request, "version:create",
+                estate_wide="an artifact is stored at a content address that "
+                            "no model owns until a version cites it")
             body = await request.body()
             import io
             result = self.guard(lambda: store.put(io.BytesIO(body), format, digest))

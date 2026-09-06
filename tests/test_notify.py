@@ -13,7 +13,7 @@ import time
 
 import pytest
 
-from core.notify import EmailChannel, LogChannel, NotifyError, WebhookChannel
+from core.notify import EmailChannel, NotifyError, WebhookChannel
 
 DAY = 86400.0
 URN = "maya://model/credit.pd.smallbiz"

@@ -32,11 +32,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "sdk" / "python"))
 
-from maya_sdk import (Blocked, Maya, NotAuthenticated, NotFound, NotPermitted,  # noqa: E402
+from maya_sdk import (Blocked, Maya, NotAuthenticated, NotFound, NotPermitted,
                       Refused, Unreachable)
-from maya_sdk.artifacts import digest_of  # noqa: E402
-from maya_sdk.models import short  # noqa: E402
-from maya_sdk.transport import IDEMPOTENT  # noqa: E402
+from maya_sdk.artifacts import digest_of
+from maya_sdk.models import short
+from maya_sdk.transport import IDEMPOTENT
 
 URN = "maya://model/credit.pd.smallbiz"
 
@@ -120,7 +120,9 @@ class TestRegisteringAModel:
                              domain="credit", owner="person/admin",
                              legal_entity="LE-1", purpose="p")
         out = maya.models.assess(URN, exposure=2_000_000_000,
-                                 purpose_class="regulatory_capital")
+                                 purpose_class="regulatory_capital",
+                                 feature_count=12, uses_alternative_data=False,
+                                 interpretable=True)
         assert out["tier"] in (1, 2, 3, 4)
         assert out.get("derivation") or out.get("rationale"), \
             "a tier without its derivation is an opinion"

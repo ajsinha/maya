@@ -61,6 +61,8 @@ class WarrantService:
         # As everywhere: consulted after the checks above, and only
         # ever to refuse.
         self.policy = None
+        # Set at wiring time; see core/policy/wiring.py.
+        self.facts = None
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
         self.signer = WarrantSigner(signing_key, key_id, jitter_pct)
         self.builder = WarrantBuilder(self.signer)
@@ -92,7 +94,9 @@ class WarrantService:
                 # the whole register — and the descriptor printed
                 # `"model_status": "draft"` while signing it.
                 "record_status": m.get("status"),
-                "version_status": version.get("status")}, urn)
+                "version_status": version.get("status"),
+                **(self.facts.warrant_resolve(m, version) if self.facts else {})},
+                urn)
         return self.builder.build(urn, m, version, grant, principal,
                                   declared_use, environment, self.epoch, verb=verb,
                                   parameter_set=self._point_of_p(urn, version))
@@ -138,7 +142,7 @@ class WarrantService:
             # the one that already parses it.
             return self.parameters.resolve(
                 model_urn(parse_urn(urn)[0]), version["semver"])
-        except Exception as exc:                  # noqa: BLE001 -- re-raised below
+        except Exception as exc:
             # `self.parameters` is an injected port, so the concrete
             # `ParameterError` is not imported here — that would make execution
             # depend on the register it is deliberately held apart from. The

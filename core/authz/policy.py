@@ -23,7 +23,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Iterable, List, Optional
 
-from core.authz.common import AuthzError, require_known
+from core.authz.common import MODEL_SCOPED, AuthzError, require_known
 from core.authz.roles import permissions_for
 from core.authz.scope import Scope
 from core.authz.segregation import SegregationPolicy
@@ -88,11 +88,45 @@ class AuthorizationPolicy:
     def authorise(self, principal: Dict[str, Any], permission: str,
                   model: Optional[Dict[str, Any]] = None,
                   subject_id: Optional[str] = None,
-                  about: Optional[str] = None) -> None:
-        """The whole decision. Raises AuthzError naming which gate refused."""
+                  about: Optional[str] = None,
+                  estate_wide: Optional[str] = None) -> None:
+        """The whole decision. Raises AuthzError naming which gate refused.
+
+        `estate_wide` is for the handful of acts that are genuinely not about
+        one model — a warrant PROFILE sets defaults across the estate, an
+        artifact upload puts bytes at a content address that no model owns yet.
+        Passing it is not a way to skip the check: it makes the act require an
+        UNRESTRICTED principal, because someone who may only reach the UK entity
+        has no business writing policy that binds the US one. The string is the
+        reason, and it is read back to whoever is refused.
+        """
         self.require_permission(principal, permission)
         if model is not None:
             self.require_scope(principal, model)
+        elif estate_wide is not None:
+            if not self.scope(principal).unrestricted:
+                raise AuthzError(
+                    "scope_insufficient",
+                    f"{estate_wide} — that reaches the whole estate, and your "
+                    f"scope is {self.scope(principal).describe()}",
+                    "an act that binds models you cannot read requires an "
+                    "unrestricted scope; ask for one, or act model by model")
+        elif permission in MODEL_SCOPED:
+            # A model-scoped permission checked without a model is a check with
+            # no scope, and scope was opt-in: whoever wrote the route had to
+            # remember. About a dozen write routes did not, so a principal
+            # refused READ access to a model could still act on it.
+            #
+            # Raised rather than skipped, and raised as a defect in the caller
+            # rather than as a refusal of the principal — because it is one, and
+            # a 403 here would send somebody to ask for a permission they
+            # already hold.
+            raise AuthzError(
+                "scope_not_checked",
+                f"'{permission}' is a permission about one model and the route "
+                f"did not say which, so the legal-entity scope was not applied",
+                "pass `model=` to authorise(); the model is already loaded at "
+                "every one of these call sites, because the act needs it")
         self.require_segregation(principal, permission, subject_id, about)
 
     def explain(self, principal: Dict[str, Any]) -> Dict[str, Any]:

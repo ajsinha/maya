@@ -281,6 +281,42 @@ CREATE TABLE IF NOT EXISTS feature_contract (
     UNIQUE (model_version_id)
 );
 
+-- ------------------------------------------------------- serving attestation
+-- What an engine says it READ, against what the contract says it must.
+--
+-- L-17 is contract-serving agreement, and half of it existed: `serving_namespaces`
+-- computes the namespaces a version's contract pins. The other half was said to
+-- need an online feature store, which MAYA deliberately does not own -- putting
+-- governance on the serving path makes it the bank's single point of failure
+-- (10 section 7). The engine already knows what it read, so it declares it; MAYA
+-- compares and records. That is the same shape as every other claim here: the
+-- platform does not do the thing, it holds whoever did to what they said.
+--
+-- Append-only in practice. A disagreement is recorded rather than corrected,
+-- because "we served the wrong namespace and then said we had not" is precisely
+-- the event this exists to make impossible to lose.
+CREATE TABLE IF NOT EXISTS serving_attestation (
+    id               TEXT PRIMARY KEY,
+    model_version_id TEXT NOT NULL,
+    warrant_id       TEXT,
+    descriptor_id    TEXT,
+    -- What the engine says it read: view name to namespace.
+    served           TEXT NOT NULL DEFAULT '{}',
+    -- What the contract pinned at the moment of comparison, kept so the answer
+    -- survives the contract being rebound afterwards.
+    pinned           TEXT NOT NULL DEFAULT '{}',
+    -- 0/1 rather than BOOLEAN: the two dialects and Delta all take an integer,
+    -- and a BOOLEAN here once broke the whole PostgreSQL dialect.
+    agrees           INTEGER NOT NULL DEFAULT 0,
+    -- The views that disagreed, and how.
+    divergence       TEXT NOT NULL DEFAULT '[]',
+    detail           TEXT NOT NULL DEFAULT '',
+    attested_by      TEXT NOT NULL,
+    attested_at      DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_serving_version
+    ON serving_attestation (model_version_id);
+
 -- ---------------------------------------------------------------- derived features
 -- A feature whose values are computed from other features: Z = f(X, Y). The
 -- definition lives here so lineage, the leakage check and the retirement guard
@@ -438,7 +474,11 @@ CREATE TABLE IF NOT EXISTS version_approval_signature (
     decision             text NOT NULL DEFAULT 'approve',
     statement            text NOT NULL DEFAULT '',
     signed_at            double precision NOT NULL,
-    UNIQUE (version_approval_id, role)
+    UNIQUE (version_approval_id, role),
+    -- A quorum is a number of PEOPLE, not a number of hats. See sqlite.sql for
+    -- the race this refuses: two requests from one dual-hatted principal put
+    -- both signatures of a Tier 1 quorum on one person, 1 trial in 25.
+    UNIQUE (version_approval_id, principal)
 );
 
 CREATE TABLE IF NOT EXISTS derived_feature (

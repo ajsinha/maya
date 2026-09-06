@@ -25,7 +25,20 @@ from core.assist.drafting import DraftingService
 from core.assist.generations import GenerationLog
 from core.assist.oracles import ORACLES, Oracle, Verdict
 
-__all__ = ["CapabilityRegistry", "GenerationLog", "DraftingService",
-           "providers", "AssistError", "grounding",
-           "oracles", "ORACLES", "Oracle", "Verdict", "TIERS", "TIER_A", "TIER_B",
-           "TIER_MEANING", "AUTONOMY"]
+__all__ = [
+                                "AUTONOMY",
+                                "ORACLES",
+                                "TIERS",
+                                "TIER_A",
+                                "TIER_B",
+                                "TIER_MEANING",
+                                "AssistError",
+                                "CapabilityRegistry",
+                                "DraftingService",
+                                "GenerationLog",
+                                "Oracle",
+                                "Verdict",
+                                "grounding",
+                                "oracles",
+                                "providers",
+]

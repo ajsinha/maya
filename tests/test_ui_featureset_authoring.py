@@ -411,7 +411,6 @@ class TestTheLatticeIsAskableRatherThanAsserted:
         inherited = {"living_area_sqft", "bedrooms", "sale_price"}
         assert set(resolved["slots"]) == inherited
 
-        from core.features.sets import FeaturesetRegistry  # noqa: F401
         registry = published.app.state.ctx["features"].sets
         named = {f.name for f in registry.schema("nj_child").fields}
         assert named == inherited - {"sale_price"}, (

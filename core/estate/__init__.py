@@ -13,4 +13,4 @@ week — and a stale worklist is worse than none, since somebody will act on it.
 from core.estate.summary import EstateSummary
 from core.estate.worklist import HORIZON_DAYS, Item, WorkList
 
-__all__ = ["WorkList", "EstateSummary", "Item", "HORIZON_DAYS"]
+__all__ = ["HORIZON_DAYS", "EstateSummary", "Item", "WorkList"]

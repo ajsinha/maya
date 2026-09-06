@@ -10,6 +10,12 @@ from core.artifacts.common import (EXECUTES_ON_LOAD, FORMAT_MEANING, FORMATS,
                                    is_content_address)
 from core.artifacts.store import ArtifactStore
 
-__all__ = ["ArtifactStore", "ArtifactError", "FORMATS", "FORMAT_MEANING",
-           "is_content_address",
-           "EXECUTES_ON_LOAD", "MAX_BYTES"]
+__all__ = [
+                                   "EXECUTES_ON_LOAD",
+                                   "FORMATS",
+                                   "FORMAT_MEANING",
+                                   "MAX_BYTES",
+                                   "ArtifactError",
+                                   "ArtifactStore",
+                                   "is_content_address",
+]

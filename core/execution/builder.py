@@ -26,7 +26,7 @@ signature can also trust the shape.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional
 
 from core.artifacts.common import EXECUTES_ON_LOAD
 from core.execution.errors import WarrantError

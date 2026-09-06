@@ -61,16 +61,34 @@ class Models:
             "domain": domain, "tier": tier, "q": q,
             "limit": limit, "offset": offset})
 
-    def assess(self, urn: str, *, exposure: float,
-               purpose_class: str) -> Dict[str, Any]:
+    def assess(self, urn: str, *, exposure: float, purpose_class: str,
+               feature_count: Optional[int] = None,
+               uses_alternative_data: Optional[bool] = None,
+               interpretable: Optional[bool] = None) -> Dict[str, Any]:
         """Assess the risk tier. Returns the derivation, not just a number.
 
         Worth reading rather than discarding: it names which facts were used,
         which bands they fell in, the control set that follows, and the ruleset
         version that decided. A tier without its derivation is an opinion.
+
+        The three complexity facts are optional here and omitted from the
+        request when you do not pass them, rather than sent at their low-risk
+        default. That distinction is the point: this method used to send only
+        exposure and purpose, and the server's schema filled in "under fifty
+        features, no alternative data, interpretable" — three declarations
+        nobody made, each of which lowers the tier. MAYA now refuses the
+        assessment when the omission would change the answer, and tells you
+        which fact to send.
         """
-        return self._maya.call("POST", f"/models/{short(urn)}/assess", json={
-            "exposure": exposure, "purpose_class": purpose_class})
+        facts: Dict[str, Any] = {"exposure": exposure,
+                                 "purpose_class": purpose_class}
+        if feature_count is not None:
+            facts["feature_count"] = feature_count
+        if uses_alternative_data is not None:
+            facts["uses_alternative_data"] = uses_alternative_data
+        if interpretable is not None:
+            facts["interpretable"] = interpretable
+        return self._maya.call("POST", f"/models/{short(urn)}/assess", json=facts)
 
     def submit(self, urn: str, *, note: str = "") -> Dict[str, Any]:
         return self._maya.call("POST", f"/models/{short(urn)}/submit",

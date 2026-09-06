@@ -89,10 +89,20 @@ STATUS: Dict[str, int] = {
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,
     "duplicate_principal": 409, "no_such_principal": 404, "unknown_role": 422,
+    # 500, not 403: a model-scoped permission checked without a model is a
+    # defect in the route, and the caller may well hold the permission. A 403
+    # here would send somebody to ask for access they already have.
+    "scope_insufficient": 403,
+    "scope_not_checked": 500,
     # Reinstating somebody who is already active is a no-op the caller should
     # know about rather than a silent success; a short password is the caller's
     # to fix.
     "already_active": 409, "password_too_short": 422,
+    # What the platform will fetch. 502 rather than 4xx: the caller did nothing
+    # wrong — an identity provider named an address MAYA refuses to open, and
+    # that is a fault in something upstream of this request.
+    "outbound_scheme_refused": 502, "outbound_not_encrypted": 502,
+    "outbound_host_missing": 502, "outbound_url_missing": 502,
     "unknown_permission": 422,
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,
@@ -509,7 +519,8 @@ class Routes:
     def authorise(self, request: Request, permission: str,
                   model: Optional[Dict[str, Any]] = None,
                   subject_id: Optional[str] = None,
-                  about: Optional[str] = None) -> Dict[str, Any]:
+                  about: Optional[str] = None,
+                  estate_wide: Optional[str] = None) -> Dict[str, Any]:
         """Authenticate, then check permission, scope and segregation.
 
         ``subject_id`` is where the evidence lives; ``about`` narrows it to one
@@ -521,8 +532,45 @@ class Routes:
         against 'system'.
         """
         who = self.principal(request)
-        self.ctx["authz"].authorise(who, permission, model, subject_id, about)
+        self.ctx["authz"].authorise(who, permission, model, subject_id, about,
+                                    estate_wide)
         return who
+
+    def model_of(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """The model a finding, validation or generation belongs to.
+
+        These routes load the subject and have its `model_id`; what they did not
+        do is turn it back into a model, so `authorise` had nothing to apply the
+        legal-entity scope to. A principal refused READ access to a model could
+        close its findings.
+        """
+        return self.ctx["registry"].catalogue.by_id(model_id)
+
+    def model_behind(self, row: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """The model a warrant, monitor, overlay, parameter set, validation or
+        attachment hangs off. Every one of those tables has `model_id NOT NULL`,
+        so this is total wherever the row exists."""
+        if not row:
+            return None
+        model_id = row.get("model_id")
+        return self.model_of(model_id) if model_id else None
+
+    def model_of_subject(self, subject_type: str,
+                         subject_id: str) -> Optional[Dict[str, Any]]:
+        """The model a generation is about, when its subject has one.
+
+        An assist subject is not always a model — it may be a feature, a
+        featureset version or a parameter set — so this returns None rather
+        than refusing. What it stops is the case that was open: a UK-scoped
+        principal generating and attesting claims about a US model.
+        """
+        registry = self.ctx["registry"]
+        if subject_type == "model":
+            return registry.catalogue.by_id(subject_id)
+        if subject_type == "model_version":
+            version = registry.version_by_id(subject_id)
+            return registry.get(version["urn"]) if version else None
+        return None
 
     @staticmethod
     def actor(principal: Dict[str, Any]) -> str:
@@ -611,6 +659,21 @@ class Routes:
                       level=logging.INFO)
             return False
 
+    def page_gate(self, request: Request, permission: str):
+        """Signed in, and holding the permission this screen's API needs.
+
+        Returns a response to return, or None to carry on. The permission is the
+        SAME one the endpoints behind the page ask for, never a page-only rule:
+        two authorisation rules for one screen is exactly how a screen ends up
+        rendering in full and then answering 403 to everything it does.
+        """
+        if (redirect := login_required(request)) is not None:
+            return redirect
+        who = self.page_principal(request)
+        if who is None or not self.ctx["authz"].permits(who, permission):
+            return self.refused_page(request, permission)
+        return None
+
     def refused_page(self, request: Request, what: str):
         """A page-shaped refusal, matching the API's 403 rather than pretending
         the thing does not exist."""
@@ -627,6 +690,27 @@ class Routes:
         response code taken from a domain word. Nothing raised; the page simply
         rendered nothing where the status should have been.
         """
+        brand = self.brand(request)
+        # A page may not shadow a brand key.
+        #
+        # Three pages passed `version=` meaning *the model version* and shadowed
+        # `brand()`'s `version`, which is the application's. The footer renders
+        # `{{ version }}`, so every one of them printed the whole version record
+        # — kernel, schemas and artifact digest — as the footer's text, on a
+        # page nobody had opened. Nothing raised, because shadowing is what a
+        # merged dict does.
+        #
+        # This is the same shape as the `status` collision documented above, and
+        # the second instance is what makes it worth a check rather than a
+        # comment. Refused rather than renamed: a page silently given a
+        # different key than it asked for is the next version of this defect.
+        if collisions := sorted(set(context) & set(brand)):
+            raise RuntimeError(
+                f"{template} passes {', '.join(collisions)}, which the brand "
+                f"context already supplies. Rename the page's key to what it "
+                f"holds — `model_version` rather than `version` — because "
+                f"whichever wins, one of the two readers is getting the other's "
+                f"value.")
         return self.templates.TemplateResponse(
-            request, template, {**self.brand(request), **context},
+            request, template, {**brand, **context},
             status_code=http_status)

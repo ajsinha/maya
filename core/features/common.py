@@ -12,6 +12,8 @@ when did we know it" is a different question from "what was true".
 """
 from __future__ import annotations
 
+from typing import Tuple
+
 VALID_TIME = "event_ts"      # when the fact was true
 INGEST_TIME = "ingest_ts"    # when we learned it
 ENTITY = "entity_id"
@@ -21,6 +23,20 @@ RESERVED = (ENTITY, VALID_TIME, INGEST_TIME)
 
 class FeatureError(RuntimeError):
     """A feature operation was refused. The message always says why."""
+
+
+#: The dtypes a form should OFFER. Not a constraint — `feature_author_define`
+#: says so on the page, and the register accepts anything a bank calls a type.
+#:
+#: Published here because two forms carried their own list and they disagreed:
+#: `/features` offered `boolean` and `/features/new` did not, so whether a
+#: feature could be boolean depended on which screen you happened to open. A
+#: suggestion is still a vocabulary, and two of them is two vocabularies.
+#:
+#: Ordered by how often a model actually reads one.
+SUGGESTED_DTYPES: Tuple[str, ...] = (
+    "numeric", "integer", "categorical", "boolean", "string", "date", "datetime",
+)
 
 
 def payload(record: dict) -> dict:

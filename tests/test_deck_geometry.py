@@ -38,12 +38,14 @@ DECKS = [
     # engineering material is the same system described one level down.
     # Renamed and restructured: the deck is not only a system design, it is
     # the philosophy, the foundations, the concepts and the worked examples
-    # as well — five parts, twenty-five chapters.
-    # 152, down from 155. The count is asserted so that a chapter accidentally
-    # dropped from the build is caught — `design_slides.py` executes whatever
-    # `.py` files it finds, so a rename or a syntax error removes slides
-    # silently and the deck still builds.
-    ("MAYA-Model-and-Feature-Management", 110),
+    # as well — five parts, twenty-six chapters.
+    # 113, from 110: chapter 3A is the business case a CIO reviewing the deck
+    # found missing — no cost figure anywhere, and a build-or-buy argument that
+    # never named who it was arguing against. The count is asserted so that a
+    # chapter accidentally dropped from the build is caught — `design_slides.py`
+    # executes whatever `.py` files it finds, so a rename or a syntax error
+    # removes slides silently and the deck still builds.
+    ("MAYA-Model-and-Feature-Management", 113),
 ]
 
 

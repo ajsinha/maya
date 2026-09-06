@@ -16,7 +16,6 @@ import time
 import pytest
 
 from core.scheduler import JOBS, JobContext, Scheduler, SchedulerError
-from tests.conftest import URN
 
 DAY = 86400.0
 

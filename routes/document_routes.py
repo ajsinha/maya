@@ -9,7 +9,6 @@ and **ask whether it has gone stale**.
 """
 from __future__ import annotations
 
-from typing import Any, Dict
 
 from fastapi import Request
 from fastapi.responses import PlainTextResponse
@@ -92,7 +91,10 @@ class DocumentRoutes(Routes):
             all — two hundred and fifty calibrations a year, each a governed act
             with a warrant behind it and none of them readable.
             """
-            who = self.authorise(request, "document:compile")
+            who = self.authorise(
+                request, "document:compile",
+                model=self.model_behind(
+                    self.ctx["parameters"].get(parameter_set_id)))
             return self.guard(lambda: self.ctx["training_records"].compile(
                 parameter_set_id, actor=self.actor(who)))
 

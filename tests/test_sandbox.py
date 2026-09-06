@@ -11,8 +11,6 @@ says it is — and the one proving the engine is honest about what it does *not*
 protect against. An engine that claims isolation it does not have is more
 dangerous than one that claims none.
 """
-import pathlib
-import time
 
 import pytest
 
