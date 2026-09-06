@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS serving_attestation (
     divergence       TEXT NOT NULL DEFAULT '[]',
     detail           TEXT NOT NULL DEFAULT '',
     attested_by      TEXT NOT NULL,
-    attested_at      REAL NOT NULL
+    attested_at      DOUBLE PRECISION NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ix_serving_version
     ON serving_attestation (model_version_id);
@@ -474,7 +474,11 @@ CREATE TABLE IF NOT EXISTS version_approval_signature (
     decision             text NOT NULL DEFAULT 'approve',
     statement            text NOT NULL DEFAULT '',
     signed_at            double precision NOT NULL,
-    UNIQUE (version_approval_id, role)
+    UNIQUE (version_approval_id, role),
+    -- A quorum is a number of PEOPLE, not a number of hats. See sqlite.sql for
+    -- the race this refuses: two requests from one dual-hatted principal put
+    -- both signatures of a Tier 1 quorum on one person, 1 trial in 25.
+    UNIQUE (version_approval_id, principal)
 );
 
 CREATE TABLE IF NOT EXISTS derived_feature (
