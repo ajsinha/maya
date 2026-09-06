@@ -20,10 +20,10 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.rules.common import OPERATOR_MEANING, OPERATORS, ORDERED_DTYPES, ORDERED_ONLY
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class RuleSetIn(BaseModel):
+class RuleSetIn(Body):
     urn: str
     semver: str
     document: Dict[str, Any]

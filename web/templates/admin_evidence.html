@@ -60,6 +60,34 @@ only check here that somebody holding the database cannot simply satisfy.</p>
   </div>
 </div>
 
+<div class="card mb-3" {{ 'style=border-color:var(--crimson)' if drift }}>
+  <div class="card-header" {{ 'style=background:#FBEEF0' if drift }}>Does the database still match the release?</div>
+  <div class="card-body py-3 small">
+    {% if drift %}
+      <p class="evidence-bad mb-2"><strong>No.</strong> The schema is applied
+      with <span class="mono">CREATE TABLE IF NOT EXISTS</span>, so a table that
+      already exists is skipped entirely and a column added in a later release
+      is never created. This instance is running on a schema that does not match
+      its own code, and the queries touching these columns will fail at the point
+      of use rather than here.</p>
+      <table class="table table-sm maya mb-2">
+        <thead><tr><th>Table</th><th>What is missing</th></tr></thead>
+        <tbody>{% for table, why in drift.items() %}
+          <tr><td class="mono">{{ table }}</td>
+              <td class="evidence-bad">{{ why|join(", ") }}</td></tr>
+        {% endfor %}</tbody>
+      </table>
+      <p class="text-muted mb-0">There is no migration tool. Apply the
+      difference by hand, against a backup, before serving traffic.</p>
+    {% else %}
+      <span class="evidence-ok">Yes.</span> Every table and column the shipped
+      DDL declares is present. There is no migration tool here, so this check is
+      what stands between a partial upgrade and finding out about it inside a
+      workflow weeks later.
+    {% endif %}
+  </div>
+</div>
+
 <div class="card mb-3">
   <div class="card-header">The cheap question</div>
   <div class="card-body py-3 small">

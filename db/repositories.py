@@ -383,6 +383,26 @@ class FindingRepository(Repository):
             params["b"] = int(blocking)
         return [self._decode(r) for r in self.db.query(sql + " ORDER BY raised_at", params)]
 
+    def open_across(self, model_ids: Sequence[str]) -> List[Dict[str, Any]]:
+        """Every open finding across a set of models, worst first.
+
+        The estate-wide question, which had no answer anywhere: `open_for` takes
+        one model and the API required a `urn`, so a model risk manager could
+        not produce a list of what is outstanding across the register by any
+        route in the product — while their own worklist read "nothing is
+        outstanding for you".
+
+        Scoped by the caller: the ids come from what that principal may see, so
+        this cannot become a way around the visibility rules.
+        """
+        if not model_ids:
+            return []
+        keys = {f"m{i}": mid for i, mid in enumerate(model_ids)}
+        named = ", ".join(f":{k}" for k in keys)
+        sql = (f"SELECT * FROM {self.TABLE} WHERE status <> 'closed' "
+               f"AND model_id IN ({named}) ORDER BY raised_at")
+        return [self._decode(r) for r in self.db.query(sql, keys)]
+
 
 class FindingActionRepository(Repository):
     """What happened to a finding between raising it and closing it.

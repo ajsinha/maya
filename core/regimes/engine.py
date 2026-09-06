@@ -208,6 +208,9 @@ class RegimeEngine:
             "has_documentation": bool(state.get("documents")),
             "is_attested": bool(lifecycle.get("attested_at")),
             "has_warrants": bool(state.get("warrants")),
+            # Declared by the model, not assumed. Absent means MAYA has not
+            # been told, which is not the same as "yes" and must not read as it.
+            "human_in_the_loop": bool(model.get("human_in_the_loop")),
             "has_overlays": bool(overlays.get("active")),
             "overlay_persistent": bool(overlays.get("persistent")),
         }

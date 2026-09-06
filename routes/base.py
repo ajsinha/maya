@@ -21,6 +21,8 @@ import binascii
 from typing import Any, Callable, Dict, Optional
 from urllib.parse import quote, urlsplit
 
+from pydantic import BaseModel, ConfigDict
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -58,6 +60,25 @@ API = "/api/v1"
 # domain refusal -> HTTP status. One table, checked in one place.
 logger = get_logger(__name__)
 
+class Body(BaseModel):
+    """The base every request body extends. Unknown fields are REFUSED.
+
+    Pydantic's default is to drop a field the model does not declare, silently.
+    That is how the SDK came to send `note` to an endpoint reading `statement`:
+    the signature recorded, the signer's rationale vanished, and both sides
+    reported success. A quorum signature with no reasoning is the one thing a
+    quorum is for.
+
+    Forbidding the extra turns every such mismatch into a 422 naming the field,
+    at the first call rather than at the first audit. The cost is that a client
+    sending a field a *newer* server would understand is refused by an older
+    one — which is the right way round, because this SDK ships with this server
+    and a silently ignored field is indistinguishable from a working one.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+
 STATUS: Dict[str, int] = {
     "not_found": 404, "validation_failed": 422, "assembly_rejected": 422,
     "no_entitlement": 403, "use_not_approved": 403, "signature_invalid": 403,
@@ -68,6 +89,10 @@ STATUS: Dict[str, int] = {
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,
     "duplicate_principal": 409, "no_such_principal": 404, "unknown_role": 422,
+    # Reinstating somebody who is already active is a no-op the caller should
+    # know about rather than a silent success; a short password is the caller's
+    # to fix.
+    "already_active": 409, "password_too_short": 422,
     "unknown_permission": 422,
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,

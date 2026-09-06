@@ -17,6 +17,8 @@ the public WarrantService — the same interface an external engine consumes.
 from __future__ import annotations
 
 import logging
+import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict
@@ -611,6 +613,29 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                              cfg.get_float("scheduler.loop.interval_seconds", 3600.0))
         loop.start()
         ctx["scheduler_loop"] = loop
+    else:
+        # Said out loud, at the same volume as the secret warnings, because the
+        # failure it precedes is the quietest one this platform has.
+        #
+        # Expiry, staleness, cohort maturity, outstanding signatures and missing
+        # evidence are all DERIVED when somebody asks. The batch is what turns a
+        # derived condition into a recorded consequence — an attestation lapses,
+        # a monitor is marked silent, a finding goes overdue, the chain head is
+        # anchored. An instance whose batch never runs therefore looks exactly
+        # like an estate with nothing outstanding, and it looks that way to
+        # every screen, every health probe and every digest.
+        #
+        # Cron is a supported answer and for more than one replica it is the
+        # right one. Nobody wiring it up is the failure.
+        logger.warning(
+            "the in-process scheduler loop is DISABLED, so nothing in this "
+            "instance will run the governance batch. Attestation lapses, silent "
+            "monitors, overdue findings and evidence anchoring are all recorded "
+            "by that batch — an instance where it never runs is "
+            "indistinguishable from an estate with nothing outstanding. Either "
+            "set scheduler.loop.enabled, or point cron at "
+            "'POST %s/scheduler/run' and check /admin/scheduler afterwards to "
+            "confirm it arrived.", cfg.get("api.prefix", "/api/v1"))
 
     for routes in ALL_ROUTES:
         routes(app, ctx, templates)
@@ -620,9 +645,31 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     return app
 
 
+def config_path() -> str:
+    """Which configuration file to start from.
+
+    `--config`, then `MAYA_CONFIG`, then the one in the repository. The path was
+    hard-coded, which meant a second instance — a demonstration estate, a
+    training environment, a copy of production to reproduce something against —
+    could only be started by editing a tracked file, and whoever did that was
+    one `git commit -a` away from shipping it.
+    """
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg == "--config" and i + 1 < len(argv):
+            return argv[i + 1]
+        if arg.startswith("--config="):
+            return arg.split("=", 1)[1]
+    return os.environ.get("MAYA_CONFIG") or str(ROOT / "config" / "application.yaml")
+
+
 def main() -> None:
     import uvicorn
-    cfg = PropertiesConfigurator(str(ROOT / "config" / "application.yaml"))
+    path = config_path()
+    if not Path(path).is_file():
+        raise SystemExit(f"no configuration file at {path}")
+    cfg = PropertiesConfigurator(path)
+    logger.info("starting from %s", path)
     uvicorn.run(create_app(cfg), host=cfg.get("server.host", "0.0.0.0"),
                 port=cfg.get_int("server.port", 5006))
 

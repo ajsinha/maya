@@ -134,7 +134,7 @@ def author(client):
                    "output_schema": [{"name": "value", "dtype": "numeric"}]},
         "contract": {"assumptions": [], "guarantees": [],
                      "on_boundary_violation": "reject"},
-        "artifact_digest": "sha256:abc"})
+        "artifact_digest": "sha256:" + "a" * 64})
 
     _login(client, "d.raman", "dev-pw")
     client.auth = None

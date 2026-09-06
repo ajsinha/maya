@@ -238,3 +238,122 @@ class TestPolicyTightensAndDoesNotLoosen:
         with pytest.raises(PolicyError) as exc:
             policies.decide("model:bless", {})
         assert exc.value.code == "unknown_gate"
+
+
+class TestNoGateCouldSeeTheRecordItself:
+    """Every gate spoke about the version. None spoke about the model.
+
+    A model risk manager walked a Tier 2, regulatory-capital model from
+    registration to a signed execution credential in four calls, without the
+    record ever being submitted or approved — no validation, no parameters, no
+    monitor, no accepted document. The descriptor printed
+    `"model_status": "draft"` and was signed anyway.
+
+    The four built-in gates read `version_status`, `to_status`,
+    `blocking_findings`, `refinement_holds`, `variance_ok`, `attested`,
+    `amending`. Every one of those is a fact about a version or about
+    attestation. Nothing asked the question a supervisor asks first: has anybody
+    approved this model at all?
+    """
+
+    def test_the_record_s_own_state_is_in_the_vocabulary(self):
+        from core.policy import vocabulary
+        assert "record_status" in vocabulary("warrant:resolve")
+        assert "record_status" in vocabulary("alias:move")
+
+    def test_the_built_in_resolve_rule_consults_it(self):
+        from core.policy import BUILT_IN
+        from core.policy.language import Rule
+        from core.policy.facts import vocabulary
+        rule, _reason = BUILT_IN["warrant:resolve"]
+        assert "record_status" in Rule(rule, vocabulary("warrant:resolve")).facts_read()
+
+    def test_a_draft_record_is_refused(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        verdict = register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "draft"})
+        assert not verdict["allowed"]
+        assert "draft" in verdict["reason"]
+
+    def test_a_retired_record_is_refused(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert not register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "retired"})["allowed"]
+
+    def test_an_approved_record_with_an_approved_version_resolves(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "approved"})["allowed"]
+
+    def test_a_baselined_record_still_resolves(self, db, evidence):
+        """Deliberate. A baselined record is an estate imported from a legacy
+        inventory, governed going forward and carrying its debt explicitly.
+        Refusing it would mean a bank cannot bring what it already runs under
+        governance without first re-approving all of it, which is the opposite
+        of what importing is for."""
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "baselined"})["allowed"]
+
+
+def _policy_repo(db):
+    from db import PolicyRuleRepository
+    return PolicyRuleRepository(db)
+
+
+class TestAGateNobodyReviewedIsRefused:
+    """`/policies` said the register enforces this. It did not.
+
+    The page reads, in these words: "Drafting and publishing are separate
+    duties, and the register enforces it: a validator writes a rule and a model
+    risk manager puts it in force." `publish()` never compared `published_by` to
+    the row's author and `policy:publish` was not in the segregation table, so a
+    reviewer holding both permissions authored a gate and enacted it alone — and
+    the page then rendered "s.iqbal / put in force by s.iqbal" directly beneath
+    that sentence.
+    """
+
+    def test_the_act_is_in_the_segregation_table(self):
+        from core.authz.segregation import BY_ACT
+        assert "policy:publish" in BY_ACT
+        assert "policy_drafted" in BY_ACT["policy:publish"].conflicting_kinds
+
+    def test_the_drafter_may_not_publish_their_own_rule(self, client, people):
+        drafted = client.post("/api/v1/policies", auth=people["s.iqbal"], json={
+            "gate": "warrant:resolve",
+            "rule": "version_status == 'approved'",
+            "reason": "a warrant resolves only against an approved version",
+            "cases": [
+                {"name": "approved runs", "facts": {"version_status": "approved"},
+                 "expect": "allow"},
+                {"name": "draft does not", "facts": {"version_status": "draft"},
+                 "expect": "refuse"}]})
+        assert drafted.status_code in (200, 201), drafted.text
+        policy_id = drafted.json()["id"]
+
+        alone = client.post(f"/api/v1/policies/{policy_id}/publish",
+                            auth=people["s.iqbal"])
+        assert alone.status_code == 403, alone.text
+        assert alone.json()["error"] == "segregation_of_duties"
+        assert "drafted" in alone.json()["detail"]
+
+    def test_somebody_else_holding_the_permission_may(self, client, people):
+        """The control is independence, not scarcity: the act stays possible."""
+        drafted = client.post("/api/v1/policies", auth=people["a.mehta"], json={
+            "gate": "warrant:resolve",
+            "rule": "version_status == 'approved'",
+            "reason": "a warrant resolves only against an approved version",
+            "cases": [
+                {"name": "approved runs", "facts": {"version_status": "approved"},
+                 "expect": "allow"},
+                {"name": "draft does not", "facts": {"version_status": "draft"},
+                 "expect": "refuse"}]})
+        assert drafted.status_code in (200, 201), drafted.text
+        published = client.post(
+            f"/api/v1/policies/{drafted.json()['id']}/publish",
+            auth=people["s.iqbal"])
+        assert published.status_code in (200, 201), published.text

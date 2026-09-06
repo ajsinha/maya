@@ -87,8 +87,8 @@ class TestModelApi:
         assert registered.get("/api/v1/evidence/chain").json()["valid"] is True
 
 class TestWarrantApi:
-    def test_resolve_returns_a_signed_descriptor(self, registered):
-        r = registered.post("/api/v1/resolve", json={
+    def test_resolve_returns_a_signed_descriptor(self, in_service):
+        r = in_service.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
         d = r.json()
@@ -130,8 +130,8 @@ class TestWarrantApi:
 class TestExecutionBoundary:
     """MAYA issues warrants. The captive engine is one consumer of that contract."""
 
-    def test_execute_without_a_runtime_reports_not_implemented(self, registered):
-        r = registered.post("/api/v1/execute", json={
+    def test_execute_without_a_runtime_reports_not_implemented(self, in_service):
+        r = in_service.post("/api/v1/execute", json={
             "urn": f"{URN}#champion", "environment": "prod", "principal": "svc/origination",
             "declared_use": "origination_decision", "inputs": {"dscr": 1.2}})
         assert r.status_code == 501 and r.json()["error"] == "no_runtime"
@@ -211,26 +211,26 @@ class TestGrammarApi:
                         json=json.loads(path.read_text())).json()
         assert r["valid"] is True
 
-    def test_a_resolved_warrant_conforms_to_the_published_grammar(self, registered):
+    def test_a_resolved_warrant_conforms_to_the_published_grammar(self, in_service):
         """The strongest check: what MAYA hands out passes its own grammar."""
         from core.execution.grammar import validate
-        warrant = registered.post("/api/v1/resolve", json={
+        warrant = in_service.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination",
             "declared_use": "origination_decision"}).json()
         assert validate(warrant).valid, validate(warrant).as_dict()["detail"]
 
-    def test_the_verb_is_carried_through_to_the_warrant(self, registered):
-        warrant = registered.post("/api/v1/resolve?verb=explain", json={
+    def test_the_verb_is_carried_through_to_the_warrant(self, in_service):
+        warrant = in_service.post("/api/v1/resolve?verb=explain", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination",
             "declared_use": "origination_decision"}).json()
         assert warrant["operation"]["verb"] == "explain"
 
-    def test_an_inadmissible_verb_is_refused_at_issue(self, registered):
+    def test_an_inadmissible_verb_is_refused_at_issue(self, in_service):
         """A T2 scorecard registered without a locatable artifact is
         descriptor-only, and a descriptor-only model cannot be warranted to fit."""
-        r = registered.post("/api/v1/resolve?verb=fit", json={
+        r = in_service.post("/api/v1/resolve?verb=fit", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
         assert r.status_code == 422
@@ -394,19 +394,19 @@ class TestAWarrantCannotBeMintedForSomebodyElse:
         assert r.status_code == 403, r.text
         assert r.json()["error"] == "principal_not_self"
 
-    def test_resolving_for_yourself_is_allowed(self, registered, people, client):
+    def test_resolving_for_yourself_is_allowed(self, in_service, people, client):
         client.post("/api/v1/principals", json={
             "username": "svc/origination", "display_name": "Origination",
             "roles": ["service"], "password": "svc-pw"})
-        r = self._resolve(registered, ("svc/origination", "svc-pw"))
+        r = self._resolve(in_service, ("svc/origination", "svc-pw"))
         assert r.status_code == 200, r.text
         assert r.json()["signature"]["value"]
 
     def test_holding_warrant_issue_still_permits_minting_for_a_service(
-            self, registered, people):
+            self, in_service, people):
         """Minting on another principal's behalf stays possible, but only for
         somebody already entitled to create the entitlement itself."""
-        assert self._resolve(registered, people["j.okafor"]).status_code == 200
+        assert self._resolve(in_service, people["j.okafor"]).status_code == 200
 
 
 class TestListsArePaged:

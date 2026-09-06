@@ -49,7 +49,7 @@ class TestGapsAreComputed:
     def test_a_fully_governed_model_has_no_gaps(self):
         state = {
             "model": {"owner": "o", "purpose": "p", "tier": 1},
-            "versions": [{"artifact_digest": "sha256:x", "contract": {"assumptions": []}}],
+            "versions": [{"artifact_digest": "sha256:" + "8" * 64, "contract": {"assumptions": []}}],
             "feature_contract": {"items": []}, "validations": [{"id": "v"}],
             "monitoring": {"monitors": 1}, "documents": [{"id": "d"}],
             "lifecycle": {"attested_at": 1.0},
@@ -150,7 +150,7 @@ class TestBurnDown:
         before = debts.status(imported["id"])["debt_open"]
         filled = {
             "model": {**imported, "owner": "o", "purpose": "p", "tier": 1},
-            "versions": [{"artifact_digest": "sha256:x",
+            "versions": [{"artifact_digest": "sha256:" + "8" * 64,
                           "contract": {"assumptions": []}}],
             "validations": [{"id": "v"}], "monitoring": {"monitors": 1},
             "documents": [{"id": "d"}], "feature_contract": {"items": []},

@@ -86,6 +86,12 @@ class WarrantService:
                 "tier": m.get("tier"), "environment": environment,
                 "declared_use": declared_use, "principal": principal,
                 "attested": m.get("status") == "attested",
+                # The record's own state, which no gate could see. Every fact
+                # here spoke about the version, so a model nobody had submitted
+                # or approved resolved exactly like one that had been through
+                # the whole register — and the descriptor printed
+                # `"model_status": "draft"` while signing it.
+                "record_status": m.get("status"),
                 "version_status": version.get("status")}, urn)
         return self.builder.build(urn, m, version, grant, principal,
                                   declared_use, environment, self.epoch, verb=verb,

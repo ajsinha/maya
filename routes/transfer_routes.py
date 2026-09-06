@@ -23,9 +23,10 @@ from core.features.alignment import align
 from core.features.preparation import prepare
 from core.features.transfer import MEDIA_TYPE, describe as describe_transfer
 from core.features.transfer import normalise
+from routes.base import Body, Routes
 
 
-class PrepareIn(BaseModel):
+class PrepareIn(Body):
     """What a caller asks MAYA to do to the values on the way out."""
     as_of: Any = None
     fill: Dict[str, Any] = {}
@@ -56,7 +57,6 @@ def _prepare(rows: List[Dict[str, Any]], policy: Dict[str, Any],
     report.update({k: v for k, v in out.items() if k != "rows"})
     return {"rows": out["rows"], "count": len(out["rows"]),
             "policy_applied": policy, "report": report}
-from routes.base import Routes
 
 
 class TransferRoutes(Routes):

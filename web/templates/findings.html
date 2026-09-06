@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Open findings — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT IS OUTSTANDING, ACROSS THE ESTATE</p>
+<h1>Open findings</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">Every open finding on every
+model you can see, worst first. This screen did not exist, and neither did the
+query behind it: findings could be read one model at a time, so the question a
+second line actually asks — <em>what is outstanding anywhere</em> — had no
+answer in the product, while a worklist could still report that nothing was
+outstanding for you.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if findings }}">{{ findings|length }}</div>
+    <div class="stat-l">open findings</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if blocking }}">{{ blocking }}</div>
+    <div class="stat-l">blocking service</div>
+    <div class="stat-l mt-1">a warrant will not resolve</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat {{ 'evidence-bad' if overdue }}">{{ overdue }}</div>
+    <div class="stat-l">past their due date</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ models }}<span class="text-muted">/{{ estate }}</span></div>
+    <div class="stat-l">models affected</div></div></div></div>
+</div>
+
+<div class="card">
+  <div class="card-header">Worst first, then by how overdue</div>
+  {% if findings %}
+  <table class="table maya mb-0">
+    <thead><tr><th>Severity</th><th>Finding</th><th>Model</th><th>Owner</th>
+               <th>Status</th><th>Due</th></tr></thead>
+    <tbody>
+      {% for f in findings %}
+      <tr>
+        <td><span class="chip {{ 'evidence-bad' if f.severity in ('Critical', 'High') }}"
+            >{{ f.severity }}</span>
+          {% if f.blocking %}<div class="evidence-bad" style="font-size:.68rem"
+            >blocking</div>{% endif %}</td>
+        <td><a href="/model/{{ f.model.urn.replace('maya://model/','') }}"
+               style="color:var(--ink);text-decoration:none;font-weight:600"
+            >{{ f.title }}</a>
+          {% if f.description %}<div class="text-muted" style="font-size:.74rem"
+            >{{ f.description[:160] }}{{ '…' if f.description|length > 160 }}</div>{% endif %}</td>
+        <td class="small">{{ f.model.name }}
+          <span class="tier tier-{{ f.model.tier if f.model.tier else 'none' }}"
+            >{{ 'T' ~ f.model.tier if f.model.tier else 'UNTIERED' }}</span></td>
+        <td class="small text-muted">{{ f.owner }}</td>
+        <td class="small">{{ f.status }}</td>
+        <td class="small">
+          {% if f.due_at %}
+            {% if f.overdue %}<span class="evidence-bad"
+              >{{ ((now - f.due_at) / 86400)|round(0)|int }} days over</span>
+            {% else %}in {{ ((f.due_at - now) / 86400)|round(0)|int }} days{% endif %}
+          {% else %}<span class="text-muted">no date</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="card-body py-3 small text-muted">
+    Nothing open across {{ estate }} model{{ 's' if estate != 1 }} you can see.
+    That is a statement about these models and about your scope, not about the
+    estate: a finding on a model outside your scope is not shown here and is not
+    counted above.
+  </div>
+  {% endif %}
+</div>
+
+<p class="text-muted small mt-3">A finding blocks service when it is marked
+blocking: <span class="mono">/api/v1/resolve</span> refuses while one is open,
+which is checked at resolution rather than at issue because that is the single
+point every consumer passes through. Raising, accepting, planning and closing
+are separate acts by separate people &mdash; whoever raised a finding may not
+close it.</p>
+{% endblock %}

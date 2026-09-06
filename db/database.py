@@ -7,21 +7,55 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import secrets
 import time
 from dataclasses import dataclass
 from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Set
 
-from sqlalchemy import create_engine, event, text
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.engine import Engine
 
-from core.log import get_logger
+from core.log import get_logger, swallowed
 
 logger = get_logger(__name__)
+
+# Enough to read a hand-written CREATE TABLE. Not a SQL parser, and not trying
+# to be: the shipped DDL has no foreign keys, no CHECK and no triggers.
+_CREATE_TABLE = re.compile(
+    r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\((.*)\)\s*$",
+    re.S | re.I)
+
+# Words that begin a table constraint rather than a column.
+_NOT_A_COLUMN = {"PRIMARY", "UNIQUE", "CONSTRAINT", "FOREIGN", "CHECK", "INDEX"}
+
+
+def _without_trailing_comments(sql: str) -> str:
+    """Drop `-- …` from the end of each line.
+
+    `_statements` removes lines that BEGIN with a comment, which is all it
+    needed to do for splitting on semicolons. A column list also carries
+    comments after the column, and reading those as columns produced a drift
+    report naming `--` as a missing column on six tables — a check whose first
+    output is nonsense is a check nobody reads twice.
+
+    Quote-aware, because a `--` inside a string default would not be a comment.
+    """
+    out = []
+    for line in sql.splitlines():
+        quoted, cut = False, len(line)
+        for i, ch in enumerate(line):
+            if ch == "'":
+                quoted = not quoted
+            elif ch == "-" and not quoted and line[i:i + 2] == "--":
+                cut = i
+                break
+        out.append(line[:cut])
+    return "\n".join(out)
 
 # The connection a transaction() is running on, if any. A ContextVar
 # rather than a thread local so it is correct under async as well.
@@ -146,6 +180,89 @@ class Database:
             for stmt in self._statements(path.read_text()):
                 conn.execute(text(stmt))
         logger.info("schema applied from %s (%s)", path.name, self.dialect)
+        self.check_drift()
+
+    # --------------------------------------------------------------- drift
+    def columns_of(self, table: str) -> List[str]:
+        """The columns a table actually has, from the database itself."""
+        try:
+            return [c["name"] for c in inspect(self.engine).get_columns(table)]
+        except Exception as exc:                          # pragma: no cover
+            swallowed(logger, exc, f"inspected columns of '{table}'",
+                      detail="treated as absent")
+            return []
+
+    def declared_schema(self) -> Dict[str, Set[str]]:
+        """Table to columns, parsed out of the shipped DDL.
+
+        Deliberately a small parser rather than a dependency: the DDL is
+        hand-written, has no foreign keys, no CHECK and no triggers, and the
+        only thing needed here is which columns each CREATE TABLE declares.
+        """
+        declared: Dict[str, Set[str]] = {}
+        for stmt in self._statements(self.schema_file().read_text()):
+            match = _CREATE_TABLE.match(_without_trailing_comments(stmt))
+            if not match:
+                continue
+            table, body = match.group(1), match.group(2)
+            columns = set()
+            depth = 0
+            current = ""
+            for ch in body:
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    columns.add(current.strip().split()[0] if current.strip() else "")
+                    current = ""
+                else:
+                    current += ch
+            if current.strip():
+                columns.add(current.strip().split()[0])
+            declared[table] = {c for c in columns
+                               if c and c.upper() not in _NOT_A_COLUMN}
+        return declared
+
+    def drift(self) -> Dict[str, List[str]]:
+        """Where the live database and the shipped DDL disagree.
+
+        `CREATE TABLE IF NOT EXISTS` is how the schema is applied, which means a
+        table that already exists is SKIPPED ENTIRELY. Add a column to the DDL,
+        deploy onto a database that predates it, and the statement does nothing:
+        the application starts cleanly on a schema that does not match its own
+        code and fails weeks later, inside a workflow, on a query nobody
+        associates with the deployment.
+
+        There is no migration tool here and this is not one. It is the check
+        that turns that silence into a sentence at start-up.
+        """
+        gaps: Dict[str, List[str]] = {}
+        for table, columns in self.declared_schema().items():
+            live = set(self.columns_of(table))
+            if not live:
+                gaps[table] = ["the table is absent"]
+                continue
+            if missing := sorted(columns - live):
+                gaps[table] = [f"missing column '{c}'" for c in missing]
+        return gaps
+
+    def check_drift(self) -> Dict[str, List[str]]:
+        """Report the drift, loudly. Reported rather than raised: refusing to
+        start would take an instance out of service over a column that may not
+        be on any path it serves, and an operator who cannot start the platform
+        cannot read its logs either."""
+        gaps = self.drift()
+        if gaps:
+            detail = "; ".join(f"{t}: {', '.join(why)}" for t, why in sorted(gaps.items()))
+            logger.error(
+                "SCHEMA DRIFT — the database does not match the shipped DDL: %s. "
+                "The schema is applied with CREATE TABLE IF NOT EXISTS, so an "
+                "existing table is skipped and a new column is never added. "
+                "Apply the difference by hand before serving traffic; queries "
+                "touching these columns will fail at the point of use, not here.",
+                detail)
+        return gaps
 
     # ------------------------------------------------------------- transaction
     @contextmanager

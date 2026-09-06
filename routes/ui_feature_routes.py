@@ -56,7 +56,7 @@ from core.features.expressions import Expression, describe as describe_language
 from core.features.preparation import describe as describe_preparation
 from core.features.transfer import FORMAT_MEANING, MEDIA_TYPE, UPLOAD_FORMATS
 from core.log import get_logger, swallowed
-from routes.base import Routes, login_required
+from routes.base import Body, Routes, login_required
 
 logger = get_logger(__name__)
 
@@ -84,13 +84,35 @@ UNCHECKED = (
 
 
 # ---------------------------------------------------------------- the bodies
-class DefinitionCheckIn(BaseModel):
-    """A draft definition. Nothing here is recorded."""
+class DefinitionCheckIn(Body):
+    """A draft definition. Nothing here is recorded.
+
+    It carries every field `FeatureIn` carries, because the question it answers
+    is *would `define` accept this* — and a check that refuses a field the real
+    call accepts is answering a different question about a different object.
+    The divergence was invisible while unknown fields were silently dropped:
+    a caller building one draft and sending it to both got a cheerful 200 from
+    a check that had quietly discarded half of it.
+    """
     kind: str = PRIMITIVE
     name: str = ""
     entity: str = ""
     dtype: str = "numeric"
     description: str = ""
+    # Everything `define` takes and does not decide for itself. Governance
+    # attributes rather than type: they do not change whether the definition is
+    # well-formed, and refusing them here would still be wrong.
+    owner: str = ""
+    business_definition: str = ""
+    source_system: str = ""
+    sensitivity: str = "internal"
+    pii: bool = False
+    protected_basis: bool = False
+    proxy_risk: str = "none"
+    # An ephemeral feature expires; the check has to be able to say whether a
+    # draft that declares one would be accepted.
+    ephemeral: bool = False
+    ttl_days: Optional[float] = None
     # Primitive and composed.
     shape: Any = None
     components: Optional[List[str]] = None
@@ -105,14 +127,14 @@ class DefinitionCheckIn(BaseModel):
     inputs: List[str] = Field(default_factory=list)
 
 
-class ExpressionTrialIn(BaseModel):
+class ExpressionTrialIn(Body):
     """A draft expression and some rows to read it over."""
     expression: str
     on_error: str = "null"
     rows: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class AlignmentTrialIn(BaseModel):
+class AlignmentTrialIn(Body):
     """Rows, an axis and a fill rule. Aligns nothing that is stored."""
     rows: List[Dict[str, Any]] = Field(default_factory=list)
     columns: List[str] = Field(default_factory=list)
@@ -126,7 +148,7 @@ class AlignmentTrialIn(BaseModel):
     carry_limit: Optional[float] = None
 
 
-class AsOfIn(BaseModel):
+class AsOfIn(Body):
     """A decision moment and an assembly moment — the two bounds of the read."""
     label_ts: float
     as_of: float

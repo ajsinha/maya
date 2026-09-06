@@ -152,8 +152,40 @@ class PropertiesConfigurator:
             merged[k], sources[k] = v, "commandline"
 
         with self._lock:
+            previous = dict(self._properties)
             self._properties, self._sources = merged, sources
-        logger.info("configuration loaded: %d keys from %s", len(merged), self._files)
+
+        if not previous:
+            logger.info("configuration loaded: %d keys from %s",
+                        len(merged), self._files)
+            return
+
+        # What CHANGED, said out loud.
+        #
+        # A reload rewrote the map and logged a count. Quorum thresholds,
+        # warrant TTLs, risk bands and whether the sandbox is enabled all live
+        # here, so a governing parameter could be changed on a running instance
+        # and leave no trace on the log and none on the evidence chain — the two
+        # places anybody would look. WARNING rather than INFO because a change
+        # to a control is not routine operation, and the value is not printed:
+        # this file also holds the signing key and the session secret.
+        added = sorted(set(merged) - set(previous))
+        removed = sorted(set(previous) - set(merged))
+        altered = sorted(k for k in set(merged) & set(previous)
+                         if merged[k] != previous[k])
+        if added or removed or altered:
+            logger.warning(
+                "configuration RELOADED and %d setting(s) changed — altered: %s; "
+                "added: %s; removed: %s. Values are not logged because this file "
+                "also carries the signing key and the session secret; the keys "
+                "are, because a governing parameter that changes with no trace "
+                "is a change nobody can be asked about",
+                len(added) + len(removed) + len(altered),
+                ", ".join(altered) or "none",
+                ", ".join(added) or "none",
+                ", ".join(removed) or "none")
+        else:
+            logger.info("configuration reloaded, nothing changed")
 
     def _reload_worker(self) -> None:
         while not self._stop.wait(self._reload_interval):

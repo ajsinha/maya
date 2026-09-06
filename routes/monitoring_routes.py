@@ -15,10 +15,10 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.monitoring import ADMISSIBLE_TESTS, KINDS
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class MonitorIn(BaseModel):
+class MonitorIn(Body):
     urn: str
     name: str
     kind: str
@@ -33,7 +33,7 @@ class MonitorIn(BaseModel):
     escalate_after: int = 3
 
 
-class EvaluateIn(BaseModel):
+class EvaluateIn(Body):
     rows: List[Dict[str, Any]] = Field(
         default_factory=list,
         description="scored_at, score, and label once the outcome is known")
