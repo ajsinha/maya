@@ -22,7 +22,8 @@ from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
 
 from core.evidence import EvidenceEngine
-from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, payload
+from core.features.common import (ENTITY, INGEST_TIME, VALID_TIME, payload,
+                                  pit_order_key)
 from core.features.pit import (AssemblyRejected, AssemblyRequest, PitReport, screen_leakage,
                                static_check, verify_sampled)
 from core.features.views import ViewManager
@@ -238,7 +239,7 @@ class TrainingSetBuilder:
                     if r[VALID_TIME] <= label_ts and r[INGEST_TIME] <= knowable_by]
         if not eligible:
             return None
-        return max(eligible, key=lambda r: (r[VALID_TIME], r[INGEST_TIME]))
+        return max(eligible, key=pit_order_key)
 
     def _recompute(self, row: Dict[str, Any], columns: List[Column],
                    as_of: float) -> Dict[str, Any]:

@@ -42,3 +42,10 @@ SUGGESTED_DTYPES: Tuple[str, ...] = (
 def payload(record: dict) -> dict:
     """A record's feature columns — everything that is not a key or a clock."""
     return {k: v for k, v in record.items() if k not in RESERVED}
+
+
+# The point-in-time tie-break, re-exported rather than reimplemented. It lives
+# in `db.delta_store` because `db` may not import `core`, and the store's own
+# as-of read has to apply the identical order — two copies of this rule is
+# exactly how the two paths came to disagree in the first place.
+from db.delta_store import pit_order_key  # noqa: F401
