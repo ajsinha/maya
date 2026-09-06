@@ -22,7 +22,7 @@ from core.policy.language import describe as describe_language
 from core.features.common import SUGGESTED_DTYPES
 from core.features.transfer import accept_attribute
 from core.telemetry import STREAM_MEANING
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from routes.base import Routes, login_required
 from core.registry.versions import latest_version
 
@@ -120,8 +120,31 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             f = self.ctx["features"]
-            catalogue = [f.catalogue.resolved(row["name"])
-                         for row in f.list_features()]
+            # Resolved one at a time, and a refusal is shown rather than
+            # thrown.
+            #
+            # This was an unguarded comprehension, so ONE feature the resolver
+            # refuses — a composition whose parent has moved, say — took the
+            # whole catalogue down with a 500 and twenty-one bytes of plain
+            # text. Every feature in the estate became unreadable because of a
+            # fault in one of them, which is the opposite of what a catalogue is
+            # for; and the refusal that caused it was correct.
+            #
+            # `/dossier` already answers this shape per node. A row that cannot
+            # be resolved is listed WITH its reason, because a catalogue that
+            # silently omits what it could not read is a catalogue nobody can
+            # tell is incomplete.
+            catalogue, unresolved = [], []
+            for row in f.list_features():
+                try:
+                    catalogue.append(f.catalogue.resolved(row["name"]))
+                except Exception as exc:
+                    swallowed(logger, exc, f"resolved feature '{row['name']}'",
+                              detail="listed with the refusal instead, so the "
+                                     "catalogue degrades by one row rather than "
+                                     "entirely")
+                    catalogue.append({**row, "unresolved": str(exc)})
+                    unresolved.append(row["name"])
             derived = {d["name"]: d for d in f.derived.list()} if f.derived else {}
             views = []
             for view in f.views.views.many():
@@ -129,7 +152,7 @@ class UIRoutes(Routes):
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
             return self.page(
-                request, "features.html",
+                request, "features.html", unresolved=unresolved,
                 # From the code. Two forms carried their own list and they
                 # disagreed about `boolean`, so whether a feature could be one
                 # depended on which screen you opened.
