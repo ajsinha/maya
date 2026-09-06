@@ -520,3 +520,58 @@ class TestModelCompositionOverTheApi:
         r = registered.post("/api/v1/model-relations", auth=people["j.okafor"],
                             json={"from_urn": URN, "to_urn": curve, "kind": "input_to"})
         assert r.status_code == 409 and "cycle" in r.text
+
+
+class TestTheUrnMayaPrintsIsOneMayaAnswersTo:
+    """MAYA prints the full urn everywhere and its API would not accept one.
+
+    `maya://model/credit.pd.smallbiz` appears in warrant descriptors, evidence
+    nodes, compiled documents and every `GET /models` response. Pasting it into
+    a URL produced `maya://model/maya:/model/credit.pd.smallbiz` — a 404 naming
+    an identifier nobody had written — and the only way to discover that was to
+    try it. The `maya:/` spelling is what actually arrives, because a URL path
+    collapses the double slash before any handler sees it: the caller who
+    pasted it correctly is not the one who mangled it.
+    """
+
+    @staticmethod
+    def _forms(name, urn):
+        return (name, urn, urn.replace("//", "/", 1))
+
+    def test_every_spelling_of_the_identifier_reaches_the_model(
+            self, registered, people):
+        from tests.conftest import NAME, URN
+
+        for path in self._forms(NAME, URN):
+            r = registered.get(f"/api/v1/models/{path}", auth=people["s.iqbal"])
+            assert r.status_code == 200, f"{path} -> {r.status_code} {r.text}"
+            assert r.json()["model"]["urn"] == URN
+
+    def test_an_act_addressed_by_urn_works_too(self, registered, people):
+        """Not only the read. A script that holds the urn holds it for writes."""
+        from tests.conftest import URN
+
+        r = registered.post(f"/api/v1/models/{URN}/assess",
+                            auth=people["j.okafor"],
+                            json={"exposure": 2e9,
+                                  "purpose_class": "regulatory_capital",
+                                  "feature_count": 12,
+                                  "uses_alternative_data": False,
+                                  "interpretable": True})
+        assert r.status_code == 200, r.text
+
+    def test_a_name_that_is_not_a_model_is_still_a_clean_404(
+            self, registered, people):
+        """The point is to accept the identifier, not to accept anything."""
+        r = registered.get("/api/v1/models/maya://model/nothing.here",
+                           auth=people["s.iqbal"])
+        assert r.status_code == 404
+        assert "nothing.here" in r.json()["detail"]
+
+    def test_the_ui_accepts_it_as_well(self, registered, client):
+        """The urn is what a person copies off the model page."""
+        from tests.api_helpers import login
+        from tests.conftest import URN
+
+        login(client)
+        assert registered.get(f"/model/{URN}").status_code == 200

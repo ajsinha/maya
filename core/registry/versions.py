@@ -176,6 +176,134 @@ class VersionService:
                 f"'estimate', 'train', 'configure', 'elicit' or 'author' — or "
                 f"declare parameter_kind 'none' if there really are none")
 
+    #: Everything a contract may say, and everything one clause of it may say.
+    #: Read off `contract_of`, `bounds_of` and the execution builder, which are
+    #: the only readers.
+    CONTRACT_KEYS = frozenset({"assumptions", "guarantees",
+                               "on_boundary_violation"})
+    BOUND_KEYS = frozenset({"key", "minimum", "maximum", "allowed"})
+    BOUNDARY_POLICIES = frozenset({"reject", "flag", "clamp"})
+
+    @classmethod
+    def _refuse_malformed_contract(cls, spec: Optional[Dict[str, Any]]) -> None:
+        """A contract that pins nothing, stored as though it pinned something.
+
+        `contract_of` reads `assumptions` and `guarantees` with `.get`, and
+        `bounds_of` reads `minimum`, `maximum` and `allowed` the same way. Every
+        spelling mistake therefore produced a VALID, EMPTY contract that was
+        digested into the manifest and used to gate alias promotion:
+
+        * `min`/`max` instead of `minimum`/`maximum` — the clause survives with
+          no bounds at all, so `dscr` "constrained to [0, 20]" admits anything.
+        * `assumption` for `assumptions` — the whole section vanishes.
+        * `minimum` above `maximum` — an admissible region that is empty, which
+          no input can satisfy and which L-7 nonetheless compares.
+        * a clause with no `key` — a raw `KeyError` out of `bounds_of`, which is
+          a 500 rather than a refusal naming the clause.
+
+        The first two are the dangerous ones: L-7 refinement between two empty
+        contracts holds, and a boundary check with no bounds never fires. The
+        version reads as governed and is not.
+        """
+        spec = spec or {}
+        if not isinstance(spec, dict):
+            raise RegistryError(
+                f"the contract must be an object with 'assumptions' and "
+                f"'guarantees', not {type(spec).__name__}")
+        if unknown := sorted(set(spec) - cls.CONTRACT_KEYS):
+            raise RegistryError(
+                f"the contract names {', '.join(unknown)}, which nothing reads. "
+                f"A section MAYA does not read is a constraint that silently "
+                f"does not exist — 'assumption' for 'assumptions' produces an "
+                f"empty contract that passes every check. Known keys: "
+                f"{', '.join(sorted(cls.CONTRACT_KEYS))}")
+        policy = spec.get("on_boundary_violation", "reject")
+        if policy not in cls.BOUNDARY_POLICIES:
+            raise RegistryError(
+                f"on_boundary_violation '{policy}' is not one of "
+                f"{', '.join(sorted(cls.BOUNDARY_POLICIES))}")
+        for section in ("assumptions", "guarantees"):
+            clauses = spec.get(section) or []
+            if not isinstance(clauses, list):
+                raise RegistryError(f"'{section}' must be a list of clauses")
+            for index, clause in enumerate(clauses):
+                cls._refuse_malformed_bound(section, index, clause)
+
+    @classmethod
+    def _refuse_malformed_bound(cls, section: str, index: int,
+                                clause: Any) -> None:
+        where = f"{section}[{index}]"
+        if not isinstance(clause, dict):
+            raise RegistryError(f"{where} must be an object, not "
+                                f"{type(clause).__name__}")
+        if not clause.get("key"):
+            raise RegistryError(
+                f"{where} names no 'key', so there is nothing for it to "
+                f"constrain")
+        if unknown := sorted(set(clause) - cls.BOUND_KEYS):
+            raise RegistryError(
+                f"{where} ('{clause['key']}') names {', '.join(unknown)}, which "
+                f"nothing reads — 'min'/'max' are spelled 'minimum'/'maximum', "
+                f"and a misspelled bound leaves the clause UNBOUNDED while "
+                f"still appearing in the contract")
+        lo, hi = clause.get("minimum"), clause.get("maximum")
+        for name, value in (("minimum", lo), ("maximum", hi)):
+            if value is not None and not isinstance(value, (int, float)):
+                raise RegistryError(f"{where} ('{clause['key']}') has a "
+                                    f"non-numeric {name}: {value!r}")
+        if lo is not None and hi is not None and lo > hi:
+            raise RegistryError(
+                f"{where} ('{clause['key']}') has minimum {lo} above maximum "
+                f"{hi}, which admits nothing at all — no input can satisfy it "
+                f"and no guarantee conditioned on it can ever apply")
+        allowed = clause.get("allowed")
+        if allowed is not None and not isinstance(allowed, (list, tuple)):
+            raise RegistryError(f"{where} ('{clause['key']}') has a "
+                                f"non-list 'allowed'")
+
+    @staticmethod
+    def _refuse_unbound_assumptions(kernel_spec: Dict[str, Any],
+                                    contract_spec: Optional[Dict[str, Any]]
+                                    ) -> None:
+        """An assumption about a field the kernel never reads.
+
+        The contract and the schemas were two independent declarations that
+        nobody compared, so `{"key": "dscr_typo", "minimum": 0}` beside an
+        `input_schema` naming `dscr` was stored, digested and carried into the
+        warrant. At execution the engine finds no value for `dscr_typo`, skips
+        the clause and writes an INFO line — so the model runs unconstrained on
+        `dscr` while its contract appears to bound it, and the only trace is a
+        log nobody is reading.
+
+        `unchecked_inputs` already exists in the engine for exactly this shape,
+        which is the tell: the runtime was built to notice a condition that
+        should never have been declarable.
+
+        Assumptions only. A GUARANTEE legitimately names something that is not
+        an output field — `gini` is a property of the model, not a column it
+        returns — and there is no closed vocabulary of those to check against,
+        so refusing there would mean inventing one.
+        """
+        clauses = (contract_spec or {}).get("assumptions") or []
+        declared = {f.get("name") for f in (kernel_spec.get("input_schema") or [])
+                    if isinstance(f, dict)}
+        if not clauses or not declared:
+            # No assumptions, or no schema to bind them to. The second is its
+            # own problem and `_check_schema` refuses it where it does damage.
+            return
+        unbound = sorted({c["key"] for c in clauses
+                          if isinstance(c, dict) and c.get("key")
+                          and c["key"] not in declared})
+        if unbound:
+            raise RegistryError(
+                f"the contract assumes something about "
+                f"{', '.join(unbound)}, which this kernel's input_schema does "
+                f"not declare. An assumption about a field the model never "
+                f"reads cannot be checked: the engine finds no value, skips the "
+                f"clause and logs it, so the model runs unconstrained while its "
+                f"contract appears to bound it. Declared inputs are "
+                f"{', '.join(sorted(declared))}")
+
     #: Everything a kernel spec may say. Read off the code that consumes one:
     #: `kernel_of` and the schemas here, and the realisation keys the execution
     #: grammar reads from it.
@@ -248,11 +376,31 @@ class VersionService:
             # gets the URI wrong is corrected rather than believed.
             artifact_uri = held["uri"]
             artifact_size = held["size"]
-            if not kernel_spec.get("artifact_format"):
+            declared_format = kernel_spec.get("artifact_format")
+            if not declared_format:
                 kernel_spec = dict(kernel_spec, artifact_format=held["format"])
+            elif declared_format != held["format"]:
+                # The store filled this in when the kernel was silent and
+                # BELIEVED the kernel when it was not, so the two could disagree
+                # about the same bytes and the version's word won. That is not a
+                # cosmetic disagreement: `builder.py` picks the runtime from the
+                # kernel's declaration, and `EXECUTES_ON_LOAD` is a property of
+                # the format — so a version declaring `onnx` over an artifact
+                # stored as `torchscript` routed code out of the sandbox that
+                # exists to contain it.
+                raise RegistryError(
+                    f"this version declares artifact_format "
+                    f"'{declared_format}' and the stored artifact "
+                    f"{artifact_digest[:23]}… is a '{held['format']}'. The "
+                    f"format decides which runtime loads the bytes and whether "
+                    f"that load path executes code, so the two cannot differ. "
+                    f"Declare '{held['format']}', or upload the artifact you "
+                    f"meant")
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         self._refuse_unexplained_parameters(kernel)
+        self._refuse_malformed_contract(contract_spec)
+        self._refuse_unbound_assumptions(kernel_spec, contract_spec)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
                     "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,

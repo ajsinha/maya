@@ -32,6 +32,33 @@ logger = get_logger(__name__)
 VALID_TIME = "event_ts"
 INGEST_TIME = "ingest_ts"
 ENTITY = "entity_id"
+RESERVED = frozenset({ENTITY, VALID_TIME, INGEST_TIME})
+
+
+def pit_order_key(record: Dict[str, Any]) -> tuple:
+    """The total order the point-in-time read picks its winner by.
+
+    `(event_ts, ingest_ts)` alone is a PARTIAL order: two records for one entity
+    stamped identically on both clocks are equal under it, and the two
+    point-in-time implementations broke the tie opposite ways. The assembler
+    took `max(...)`, which keeps the FIRST maximal element; this file sorted
+    stably and took `drop_duplicates(keep="last")`, which keeps the last. So a
+    view holding a duplicate stamp put one value into the training set and made
+    the independent verifier report a violation against it — a correct assembly
+    marked `pit_verified: false`, which is how a verifier stops being believed.
+
+    The third component is the record's own content, canonically serialised.
+    Arbitrary in the sense that neither record is genuinely later — nothing can
+    make one later — but TOTAL, and independent of storage order, so a Delta
+    rewrite cannot change which row wins and the two paths cannot disagree.
+
+    It lives here, in the lower layer, because `db` may not import `core`:
+    `core.features.common` re-exports it rather than keeping a second copy that
+    could drift from this one.
+    """
+    return (record[VALID_TIME], record[INGEST_TIME],
+            repr(sorted((str(k), repr(v)) for k, v in record.items()
+                        if k not in RESERVED)))
 
 
 class DeltaStore:
@@ -85,7 +112,20 @@ class DeltaStore:
         eligible = df[(df[VALID_TIME] <= valid_before) & (df[INGEST_TIME] <= known_before)]
         if eligible.empty:
             return eligible
-        ordered = eligible.sort_values([VALID_TIME, INGEST_TIME], kind="stable")
+        # Sorted by the SAME total order the assembler uses, content included.
+        #
+        # `[VALID_TIME, INGEST_TIME]` is a partial order: two records for one
+        # entity stamped identically on both clocks are equal under it, and the
+        # two point-in-time implementations then broke the tie opposite ways —
+        # `max(...)` keeps the first maximal element, `keep="last"` keeps the
+        # last. A view holding a duplicate stamp therefore put one value in the
+        # training set and made this, the independent verifier, report a
+        # violation against it. `pit_order_key` is total and content-based, so
+        # neither path can pick differently and a Delta rewrite cannot change
+        # the answer.
+        ordered = eligible.assign(
+            _pit_order=[pit_order_key(r) for r in eligible.to_dict("records")]
+        ).sort_values("_pit_order", kind="stable").drop(columns=["_pit_order"])
         # The last ROW per entity, not the last non-null value per column.
         #
         # `groupby().last()` does the second, and the difference is a defect

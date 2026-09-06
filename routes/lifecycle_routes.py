@@ -16,6 +16,7 @@ from typing import Any, Dict, List
 from fastapi import Request
 from pydantic import Field
 
+from core.execution.urn import urn_of
 from core.lifecycle import describe
 from routes.base import Body, Routes
 
@@ -49,7 +50,7 @@ class LifecycleRoutes(Routes):
         api = self.api
 
         def model_of(name: str) -> Dict[str, Any]:
-            return self.guard(lambda: registry.require(f"maya://model/{name}"))
+            return self.guard(lambda: registry.require(urn_of(name)))
 
         @self.app.get(f"{api}/lifecycle", tags=["lifecycle"])
         def machine(request: Request):

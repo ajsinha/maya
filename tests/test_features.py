@@ -369,3 +369,61 @@ class TestABackFilledValueCannotEnterATrainingRow:
         assert march["px"] == 999.0
         assert march["ingest_ts"] == 2000.0, "stamped with when it became knowable"
         assert out["point_in_time_safe"] is False
+
+
+class TestTheTwoPointInTimePathsAgreeOnATie:
+    """`(event_ts, ingest_ts)` is a PARTIAL order, and both paths used it.
+
+    Two records for one entity stamped identically on both clocks are equal
+    under it. The assembler took `max(...)`, which keeps the first maximal
+    element; the store sorted stably and took `drop_duplicates(keep="last")`,
+    which keeps the last. So a view holding a duplicate stamp put one value in
+    the training set and made the independent verifier — whose whole job is to
+    recompute the same read a different way — report a violation against it.
+
+    A correct assembly marked `pit_verified: false` is worse than no verifier:
+    it teaches whoever reads the report to discount it.
+    """
+
+    ROWS = [{"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0, "dscr": 1.1},
+            {"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0, "dscr": 9.9}]
+
+    def test_the_assembler_and_the_store_pick_the_same_record(self):
+        import pandas as pd
+
+        from core.features.assembly import TrainingSetBuilder
+        from db.delta_store import ENTITY, pit_order_key
+
+        picked = TrainingSetBuilder.latest_admissible(self.ROWS, 200.0, 200.0)
+
+        frame = pd.DataFrame(self.ROWS)
+        ordered = frame.assign(
+            _k=[pit_order_key(r) for r in frame.to_dict("records")]
+        ).sort_values("_k", kind="stable")
+        store = ordered.drop_duplicates(subset=[ENTITY], keep="last") \
+                       .to_dict("records")[0]
+
+        assert picked["dscr"] == store["dscr"], (
+            "the assembler and its own verifier disagreed about which of two "
+            "identically-stamped records is the fact")
+
+    def test_the_choice_does_not_depend_on_the_order_they_arrive_in(self):
+        """Otherwise a Delta rewrite would silently change the training set."""
+        from core.features.assembly import TrainingSetBuilder
+
+        forward = TrainingSetBuilder.latest_admissible(self.ROWS, 200.0, 200.0)
+        backward = TrainingSetBuilder.latest_admissible(
+            list(reversed(self.ROWS)), 200.0, 200.0)
+        assert forward["dscr"] == backward["dscr"]
+
+    def test_a_genuinely_later_record_still_wins(self):
+        """The tie-break must only break ties. If content ordered ahead of the
+        clocks, the point-in-time rule itself would be broken."""
+        from core.features.assembly import TrainingSetBuilder
+
+        rows = [{"entity_id": "E1", "event_ts": 100.0, "ingest_ts": 100.0,
+                 "dscr": 9.9},
+                {"entity_id": "E1", "event_ts": 150.0, "ingest_ts": 150.0,
+                 "dscr": 1.1}]
+        assert TrainingSetBuilder.latest_admissible(rows, 200.0, 200.0)["dscr"] \
+            == 1.1, "the later fact wins whatever its content sorts as"

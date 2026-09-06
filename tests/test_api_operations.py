@@ -112,7 +112,12 @@ class TestSchedulerApi:
                 # And the full walk compares the chain against itself, which is
                 # what a rewritten chain passes — so the head is also written
                 # somewhere the database cannot reach.
-                "evidence.anchor"} == keys
+                "evidence.anchor",
+                # `next_review_due` was computed from the tier onto every
+                # assessment and read by nothing at all — no job, no screen, no
+                # endpoint — so a Tier 1 model could go four years unreviewed
+                # with every other control green.
+                "review.overdue"} == keys
         assert all(j["what"] and j["why"] for j in body["jobs"])
         assert body["health"]["ever_run"] == 0
 

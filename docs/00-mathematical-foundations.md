@@ -821,7 +821,7 @@ constructions, so an obligation engine could in principle be a compiler from dec
 specifications rather than a hand-written scheduler with cases.
 
 > **State, stated.** That compiler is **not built**. What ships is the thing it would have
-> generated: **nine idempotent jobs**, each doing one obligation's work — the evidence chain is
+> generated: **ten idempotent jobs**, each doing one obligation's work — the evidence chain is
 > walked and checkpointed only when it verifies; worklists are delivered and unchanged ones
 > suppressed; a lapsed attestation and a stalled monitor each raise a finding; overlays past their
 > window close; baseline debt reconciles or expires into a breach; a missed remediation window is
@@ -1045,7 +1045,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
 | The fibration | `core/fibres/` — nine fibres over the trainability classes, a totality gate at start-up (`L-15`), and the per-class metric set that makes an unanswerable monitor a refusal |
-| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the nine scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the ten scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
 | An online feature store (`L-17`) | **Not built** — `serving_namespaces` is the half that can exist without one |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its

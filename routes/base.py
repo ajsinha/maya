@@ -195,7 +195,8 @@ STATUS: Dict[str, int] = {
     "featureset_required": 422, "self_approval": 403,
     "no_parameter_set": 404, "no_approved_parameters": 409,
     "ambiguous_parameters": 409, "different_version": 409,
-    "schema_not_satisfied": 409, "no_featureset_registry": 501,
+    "schema_not_satisfied": 409, "input_schema_not_declared": 409,
+    "no_featureset_registry": 501,
     # version approval as a quorum
     # telemetry
     # notification
@@ -219,6 +220,7 @@ STATUS: Dict[str, int] = {
     # which is a 502; these mean the store was asked for something it does not
     # hold or was handed bytes that are not what the caller said they were.
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
+    "artifact_format_mismatch": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
     "artifact_not_stored": 404,
     # warrant profiles: request defaults, selected by derived facts
