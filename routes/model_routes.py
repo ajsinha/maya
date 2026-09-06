@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from core.domain import paging
 from routes.base import Routes
+from core.registry.versions import latest_version
 
 
 class RelateIn(BaseModel):
@@ -234,7 +235,8 @@ class ModelRoutes(Routes):
             who = self.authorise(request, "risk:assess", model=m)
             versions = reg.versions(urn(name))
             facts = {**body.model_dump(),
-                     "trainability_class": versions[-1]["trainability_class"] if versions else "T0"}
+                     "trainability_class": (latest_version(versions) or {})
+                                           .get("trainability_class", "T0")}
             a = tiering.assess(facts)
             tiering.persist(risk_repo, m["id"], a)
             reg.set_tier(m["id"], a.tier)

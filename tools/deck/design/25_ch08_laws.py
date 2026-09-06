@@ -1,9 +1,5 @@
 # ============================================================ CH 8
-divider("8", "The Laws, and Which of Them Run",
-        "Twenty-one stated, sixteen executable, five not — and the five are "
-        "named with the reason.",
-        ["Why a law rather than a test", "What runs, and what does not",
-         "What the laws refuse"])
+_state["chapter"] = "8 · The Laws, and Which of Them Run"
 
 # ------------------------------------------------------ why laws at all
 sl, y = content("A law is a claim about the system, not about a function",
@@ -17,12 +13,11 @@ para(tf, "A unit test says “this function returns 4”. Somebody who changes t
      size=11.5, color=INK, space_after=8, line=1.28)
 para(tf, "A law says “no state is reachable except along declared "
          "transitions”. Somebody who adds an edge does not get to update that "
-         "sentence — the sentence is the requirement, and the test computes "
-         "whether it still holds.",
+         "sentence — the sentence is the requirement.",
      size=11.5, color=INK, space_after=8, line=1.28)
-para(tf, "So a law is tested as it is STATED, not as the implementation "
-         "happens to behave. A test written from the code proves only that the "
-         "code agrees with itself.",
+para(tf, "So a law is tested as it is STATED, not as the implementation happens "
+         "to behave. A test written from the code proves only that the code "
+         "agrees with itself.",
      size=11.5, color=CRIMSON, bold=True, space_after=0, line=1.28)
 
 x = ML + CW * 0.58
@@ -36,8 +31,7 @@ note(sl, x, y + th + 0.28, CW * 0.42, 1.55,
      "Sixteen of twenty-one is the honest number. ",
      "The strongest claim this design makes is that the laws are the acceptance "
      "criteria, and a claim only partly true reads as wholly true to everybody "
-     "who does not check. The number is computed from the table's own rows, so "
-     "it cannot drift.")
+     "who does not check. The count is computed from the table's own rows.")
 
 # --------------------------------------------------- what runs, what does not
 sl, y = content("Sixteen of the twenty-one run; five do not",
@@ -54,7 +48,7 @@ left = [["Law", "What it says"],
 right = [["Law", "What it says"],
          ["L-10", "the as-of read saturates at the moment of the decision"],
          ["L-12", "a replacement accepts at least what it replaced"],
-         ["L-15", "every trainability class has its own evidence and metrics"],
+         ["L-15", "every trainability class has a complete fibre — and none is empty"],
          ["L-16", "no regulatory regime obliges and forbids one term"],
          ["L-18", "no personal data inside an evidence node"],
          ["L-19", "composition is associative, with an identity"],
@@ -102,10 +96,14 @@ outs = [("A run that will not say which numbers it used  ·  L-W8",
          "unannounced. A warrant carrying only the family describes a model "
          "that can change between two runs while every field of the document "
          "stays identical."),
-        ("And one thing the laws cannot reach  ·  L-9",
-         "Freshness is not a semiring — (max, max) has no annihilating zero — "
-         "so a claim resting on a MISSING fact reports the freshness of the "
-         "facts that are present. The limit is stated rather than hidden.")]
+        ("And one law whose name oversells it  ·  L-15",
+         "Every class gets a complete fibre — evidence schema, lifecycle, "
+         "metrics, templates — and the gate runs at start-up, so a partial "
+         "fibre is refused before anything is served. It is a dictionary over "
+         "T0–T8 with a totality check rather than a fibration. What closed it "
+         "was moving the base off the free-text model_class onto the DERIVED "
+         "class: a totality gate over free text is defeated by typing a word "
+         "nobody registered.")]
 cw2 = (CW - 0.30) / 2
 for i, (t, d) in enumerate(outs):
     card(sl, ML + (i % 2) * (cw2 + 0.30), y + (i // 2) * 2.35, cw2, 2.15,

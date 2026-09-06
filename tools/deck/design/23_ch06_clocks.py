@@ -1,10 +1,5 @@
 # ============================================================ CH 6
-divider("6", "Two Clocks",
-        "When a fact was true, when it became known — and the read that keeps "
-        "them apart.",
-        ["Why one clock cannot answer", "The as-of operator",
-         "Four properties, one of which is reproducibility",
-         "Alignment, and hiding nothing"])
+_state["chapter"] = "6 · Two Clocks"
 
 # --------------------------------------------------------- why two clocks
 sl, y = content("Every fact has two timestamps, and one of them is skipped",
@@ -38,7 +33,12 @@ note(sl, ML + CW * 0.58, y2, CW * 0.42, h,
      "looks like drift rather than what it is.")
 
 # ------------------------------------------------------------ the operator
-sl, y = content("The read, named as an operator", "Two clocks · AsOf")
+# This slide used to be two. The second walked the May/August restatement a
+# second time to arrive at saturation, and the first offered four properties of
+# AsOf of which one has content. Both halves now sit here, and the three
+# properties that were packaging are described as packaging.
+sl, y = content("The read, named as an operator",
+                "Two clocks · AsOf, and the one property that carries it")
 h = code(sl, ML, y, CW * 0.56, [
     "AsOf(R, ℓ, a) =",
     "    argmax over (event_ts, ingest_ts) of",
@@ -47,44 +47,36 @@ h = code(sl, ML, y, CW * 0.56, [
     "#  ℓ  the moment the decision was made — what the model could have known",
     "#  a  the assembly's as-of — what the PLATFORM could have known",
 ], fs=10, title="core/features/assembly.py")
-note(sl, ML, y + h + 0.28, CW * 0.56, 1.40,
+note(sl, ML, y + h + 0.28, CW * 0.56, 1.35,
      "Both bounds, because they refuse different things. ",
      "Without a, a restatement arriving after assembly creeps into a re-run. "
      "Dropping either admits a different leak, and a is the one people drop.")
+note(sl, ML, y + h + 1.83, CW * 0.56, 1.35,
+     "The other three properties L-10 states are packaging. ",
+     "Idempotence is type-incorrect as written: the operator returns a row, not "
+     "a relation. Projection-commutation is trivial, the predicate naming only "
+     "the clocks. Monotonicity is real, but its test recomputes the admissible "
+     "set rather than calling the read.")
 
 x = ML + CW * 0.60
-data = [["Property", "Says"],
-        ["Idempotent", "reading the result again returns it"],
-        ["Commutes with projection",
-         "the choice is made on the clocks alone, so fewer columns cannot change it"],
-        ["Monotone in a",
-         "a later read can only WIDEN what is admissible"],
-        ["Saturating at ℓ", "every a ≥ ℓ gives the SAME ANSWER"]]
-th = table(sl, data, x, y, CW * 0.40, col_w=[1.85, 3.49],
-           row_h=0.30, fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, x, y + th + 0.26, CW * 0.40, 0.6)
-para(tf, "L-10", size=9.5, color=MUTED, bold=True, font=MONO, first=True,
-     space_after=0)
-
-# ------------------------------------------------------------- saturation
-sl, y = content("Why the ingest bound is min(ℓ, a)",
-                "Two clocks · the reproducibility guarantee")
-steps(sl, ML, y, CW, [
-    ("01", "Assemble in May", "the row for a decision made in May reads "
-                              "dscr = 1.20, the value knowable then"),
-    ("02", "A restatement arrives", "August: the same Q1 figure, revised to "
-                                    "0.40. Both rows are true and both stay"),
-    ("03", "Re-assemble a year later", "the ingest bound is min(decision, "
-                                       "as_of), so it saturates at the decision"),
-    ("04", "The answer is identical", "1.20 — however many restatements arrived "
-                                      "between, and however long ago it was"),
-], h=1.75)
-note(sl, ML, y + 2.05, CW, 1.40,
-     "Without the min, a re-run quietly IMPROVES on the original. ",
-     "That is the least useful kind of reproducibility: a validator replaying a "
-     "decision gets a better answer than the one that was made, cannot tell "
-     "that is what happened, and reports agreement. The bound is one function "
-     "call and it is the whole guarantee.")
+tf = txt(sl, x, y, CW * 0.40, 4.6)
+para(tf, "Saturation is the whole of the guarantee", size=12.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=9)
+para(tf, "The ingest bound is min(ℓ, a), so every as-of at or after the "
+         "decision gives the SAME ANSWER.",
+     size=11, color=INK, space_after=8, line=1.26)
+para(tf, "Assemble in May and the row reads dscr = 1.20. August's restatement "
+         "to 0.40 arrives; both rows are true and both stay. Re-assemble a year "
+         "later and the answer is still 1.20 — however many restatements landed "
+         "in between.",
+     size=11, color=INK, space_after=8, line=1.26)
+para(tf, "Without the min, a re-run quietly IMPROVES on the original. That is "
+         "the least useful kind of reproducibility: a validator replaying a "
+         "decision gets a better answer than the one that was made, cannot tell "
+         "that is what happened, and reports agreement.",
+     size=11, color=SLATE, space_after=8, line=1.26)
+para(tf, "One function call, and it is the reproducibility guarantee.",
+     size=11.5, color=CRIMSON, bold=True, space_after=0, line=1.26)
 
 # ------------------------------------------------------------- alignment
 sl, y = content("Alignment: three of the five rules reach into the future",
@@ -105,14 +97,14 @@ para(tf, "Alignment fills a moment the source never observed.", size=13,
 para(tf, "Three of the five rules do it by reaching forward in time. They are "
          "not refused. They are stamped.",
      size=11, color=INK, space_after=9, line=1.26)
-para(tf, "Back-filling is right for drawing a curve or an explicitly "
-         "retrospective backtest, and wrong for training. Refusing it would "
-         "push it into a spreadsheet where nothing can see it.",
+para(tf, "Back-filling is right for drawing a curve or a retrospective "
+         "backtest and wrong for training. Refusing it would push it into a "
+         "spreadsheet where nothing can see it.",
      size=11, color=INK, space_after=9, line=1.26)
 para(tf, "So a value carried backwards inherits the LATER observation's "
-         "ingest_ts, because that is genuinely when it became knowable. An "
-         "ordinary point-in-time read then excludes it, with nobody having to "
-         "remember a flag.",
+         "ingest_ts, because that is when it became knowable. An ordinary "
+         "point-in-time read then excludes it, with nobody having to remember "
+         "a flag.",
      size=11, color=INK, space_after=9, line=1.26)
 para(tf, "The leakage is not caught by a check. It is made arithmetically "
          "impossible to hide.",

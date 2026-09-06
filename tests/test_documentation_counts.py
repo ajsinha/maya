@@ -158,7 +158,12 @@ def test_every_stated_count_matches_the_code(subject):
         # with a stated gap. Grep for the bare number when a count changes.
         for line_number, line in enumerate(text.splitlines(), 1):
             for pattern in CLAIMS[subject]:
-                for token in re.findall(pattern, line):
+                # Case-insensitive. `docs/14 §17` opened with "A hundred and
+                # four mutating endpoints" while §17.2 of the same file said a
+                # hundred and fourteen, and this check missed the first because
+                # the sentence began with a capital. A count guard that only
+                # sees lower-case sentences guards the middles of sentences.
+                for token in re.findall(pattern, line, re.I):
                     claimed = _as_number(token)
                     if claimed is not None and claimed != actual:
                         wrong.append(

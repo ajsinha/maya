@@ -1,8 +1,5 @@
 # ============================================================ CH 14
-divider("14", "Documentation, as a Graph",
-        "Five moments, five objects, and the pins that connect them.",
-        ["When documentation actually arrives", "The act with nowhere to file it",
-         "The dossier", "What travels to somebody without a login"])
+_state["chapter"] = "14 · Documentation, as a graph"
 
 # ------------------------------------------------------- five moments
 sl, y = content("Documentation does not arrive all at once about one thing",

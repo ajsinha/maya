@@ -1,10 +1,5 @@
 # ============================================================ CH 10
-divider("10", "What a Feature Is",
-        "Five things it is not, and what each one costs when you assume otherwise.",
-        ["Not always a number",
-         "Derived features",
-         "The leakage rules",
-         "Sealing and ownership"])
+_state["chapter"] = "10 · What a feature is"
 
 # ------------------------------------------------------------ dimensionality
 sl, y = content("A feature is not always a number", "Engineering a feature")
@@ -71,8 +66,10 @@ data = [["Rule", "What it prevents"],
          "before its inputs were"],
         ["No slot may derive from the label",
          "leakage with a division sign in front of it"],
-        ["Certification is the meet \u2014 the weakest input wins",
-         "deriving from an uncertified feature to launder it"]]
+        ["Certification is the meet, recomputed on every read \u2014 the "
+         "weakest input wins, and deprecated is the weakest rank of all",
+         "deriving from an uncertified feature to launder it \u2014 and a "
+         "derivation still claiming certified after an input was deprecated"]]
 table(sl, data, x, y + 0.40, CW * 0.46, col_w=[2.3, 3.1], row_h=0.30, fs=9,
       hfs=9, bold_col0=True, first_col_color=CRIMSON)
 

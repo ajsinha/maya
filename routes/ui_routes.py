@@ -22,6 +22,7 @@ from core.policy.language import describe as describe_language
 from core.telemetry import STREAM_MEANING
 from core.log import get_logger
 from routes.base import Routes, login_required
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -502,7 +503,7 @@ def _kernel_type(versions) -> Optional[Dict[str, Any]]:
     """
     if not versions:
         return None
-    version = versions[-1]
+    version = latest_version(versions)
     kernel = ((version.get("manifest") or {}).get("kernel") or {})
 
     def fields(schema):

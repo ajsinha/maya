@@ -1195,7 +1195,7 @@ makes** — two views of one derivation, not two derivations.
 
 One FastAPI application, 232 route registrations across thirty modules in `routes/`. Two hundred and three sit
 under `/api/v1`; the other twenty-nine are three health endpoints, five authentication endpoints and
-twenty-one further pages — twenty-two page routes in all, since `GET /login` is both. A hundred and four
+twenty-one further pages — twenty-two page routes in all, since `GET /login` is both. A hundred and fourteen
 mutating endpoints — `POST`, `PUT`, `PATCH`, `DELETE` — and the rest are reads.
 
 ### 17.1 Conventions, and which of them exist

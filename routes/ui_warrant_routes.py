@@ -49,6 +49,7 @@ from core.export.common import GAPS
 from core.log import get_logger
 from core.parameters import PROVENANCE_MEANING
 from routes.base import Routes, login_required
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -193,7 +194,8 @@ class WarrantAuthoringRoutes(Routes):
                 # reimplemented, and the form still offers all ten so that a
                 # developer meets the refusal rather than a greyed-out option.
                 verbs=[{"verb": v, "means": VERB_MEANING[v]} for v in VERBS],
-                admits=admissible_verbs(versions[-1]["trainability_class"])
+                admits=admissible_verbs(
+                    (latest_version(versions) or {}).get("trainability_class", "T0"))
                        if versions else list(VERBS),
                 sections=SECTIONS, laws=_laws(), curl=CURL,
                 featuresets=self._featuresets(),

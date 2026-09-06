@@ -43,7 +43,7 @@ DECKS = [
     # dropped from the build is caught — `design_slides.py` executes whatever
     # `.py` files it finds, so a rename or a syntax error removes slides
     # silently and the deck still builds.
-    ("MAYA-Model-and-Feature-Management", 152),
+    ("MAYA-Model-and-Feature-Management", 110),
 ]
 
 

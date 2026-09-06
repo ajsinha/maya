@@ -30,6 +30,7 @@ from core.evidence import EvidenceEngine
 from core.log import get_logger
 from core.scheduler.jobs import JOBS, JobContext
 from db import ScheduledRunRepository
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -106,7 +107,7 @@ class Scheduler:
 
     def last(self, key: str) -> Optional[Dict[str, Any]]:
         rows = self.runs.many(job=key)
-        return rows[-1] if rows else None
+        return latest_version(rows)
 
     def history(self, limit: int = 50) -> List[Dict[str, Any]]:
         return self.runs.many()[-limit:]

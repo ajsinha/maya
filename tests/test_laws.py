@@ -815,13 +815,32 @@ class TestL10TheAsOfOperator:
         return TrainingSetBuilder.latest_admissible(rows, label, as_of)
 
     def test_it_is_idempotent(self):
+        """Reading the admissible rows again returns the same row.
+
+        The old form fed the single returned row back in and asserted it came
+        out — which cannot fail for any function that returns one of its own
+        inputs, so it held no content.
+
+        Stated so that it does: restrict the relation to the rows the operator
+        admits, read again, and get the same answer. That is a real property of
+        the selection — it says the choice depends on the admissible set and not
+        on what was filtered away — and it can fail.
+        """
         rng = random.Random(SEED)
         for _ in range(200):
             rows, label = self._rows(rng), rng.randint(20, 100)
-            once = self._read(rows, label, label + 10)
+            as_of = label + 10
+            once = self._read(rows, label, as_of)
             if once is None:
                 continue
-            assert self._read([once], label, label + 10) == once
+            # Admissibility asked of the OPERATOR, one row at a time, rather
+            # than restated here. A test that rewrites the rule to check the
+            # rule is the thing this rewrite exists to stop.
+            admissible = [r for r in rows
+                          if self._read([r], label, as_of) is not None]
+            assert self._read(admissible, label, as_of) == once, (
+                "restricting to the rows the operator itself admits changed the "
+                "answer, so the choice depends on rows it claims to exclude")
 
     def test_it_commutes_with_projection(self):
         """Which row is admissible is decided on the clocks alone, so reading
@@ -839,21 +858,45 @@ class TestL10TheAsOfOperator:
                 assert full["row"] == projected["row"]
 
     def test_it_is_monotone_in_as_of(self):
-        """A later read can only widen what is admissible. Nothing that was
-        knowable stops being knowable."""
+        """A later read never moves the answer backwards.
+
+        **This used to test arithmetic.** It rebuilt the admissible set from its
+        own inline `min(label, as_of)` predicate and asserted those sets nest —
+        so it proved that `min` is monotone, which nobody doubted, and
+        `latest_admissible` could have returned anything at all and it would
+        still have passed. A law test that never calls the implementation is the
+        purest form of the failure this suite exists to catch, and it was in the
+        suite that catches it.
+
+        Stated over the operator, monotonicity is: as `as_of` advances, the row
+        chosen never regresses under the lexicographic order the operator maximises.
+
+        **What it still does not distinguish**, said plainly so nobody reads
+        more into a green tick than is there: monotonicity holds whether the
+        ingest bound is `min(ℓ, a)` or plain `a`. Remove the `min` and this test
+        passes. That is not a defect in the test — monotonicity is a real
+        property and both rules have it — but saturation is the one that carries
+        the reproducibility guarantee, and it is the test below that fails when
+        the `min` goes.
+        """
         from core.features.common import INGEST_TIME, VALID_TIME
         rng = random.Random(SEED)
         for _ in range(200):
             rows, label = self._rows(rng), rng.randint(20, 100)
-            seen = None
+            previous = None
             for as_of in sorted(rng.sample(range(0, 140), 5)):
-                admissible = {r["row"] for r in rows
-                              if r[VALID_TIME] <= label
-                              and r[INGEST_TIME] <= min(label, as_of)}
-                if seen is not None:
-                    assert seen <= admissible, (
-                        "a later as_of removed a row that was already knowable")
-                seen = admissible
+                chosen = self._read(rows, label, as_of)
+                if chosen is None:
+                    assert previous is None, (
+                        "a later as_of returned nothing where an earlier one "
+                        "had an answer")
+                    continue
+                key = (chosen[VALID_TIME], chosen[INGEST_TIME])
+                if previous is not None:
+                    assert key >= previous, (
+                        "a later as_of chose an earlier row: the answer moved "
+                        "backwards as more became knowable")
+                previous = key
 
     def test_it_saturates_at_the_label_and_that_is_the_reproducibility_law(self):
         """**The one that matters.** The ingest bound is `min(label, as_of)`, so
