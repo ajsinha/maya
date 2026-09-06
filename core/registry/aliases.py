@@ -59,6 +59,26 @@ class AliasService:
             return {"refinement": {"holds": True, "reason": NO_INCUMBENT},
                     "variance": {"ok": True, "reason": NO_INCUMBENT}}
         r = contract_of(new["contract"]).refines(contract_of(old["contract"]))
+        # An UNDECLARED schema is not an empty one. When neither version names a
+        # field, `refines(Schema(()), Schema(()))` holds and `provides` agrees —
+        # so L-12 was discharged over nothing at all and reported `ok: True`. A
+        # variance proof between two versions that declare nothing proves that
+        # nothing changed about nothing.
+        #
+        # Said rather than passed. The move is still refused by `move`, which
+        # reads `ok`, so this fails closed and names what to declare.
+        undeclared = [which for which, v in (("incoming", new), ("incumbent", old))
+                      if not (v.get("input_schema") or [])]
+        if undeclared:
+            return {
+                "refinement": {"holds": r.holds, "reason": r.reason()},
+                "variance": {
+                    "ok": False,
+                    "reason": (f"the {' and '.join(undeclared)} version declares "
+                               f"no input schema, so contravariance would be "
+                               f"checked over the empty set and hold for any "
+                               f"pair of versions; declare the fields the kernel "
+                               f"reads before promoting it")}}
         v = substitutable(schema_of(new["input_schema"]), schema_of(new["output_schema"]),
                           schema_of(old["input_schema"]), schema_of(old["output_schema"]))
         return {"refinement": {"holds": r.holds, "reason": r.reason()},
