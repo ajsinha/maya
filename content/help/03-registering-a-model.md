@@ -199,7 +199,7 @@ inhabited**, and training is one of the ways.
 | **T5** | Configuration of a pre-trained foundation model | Prompt bundles, RAG pipelines, fine-tune-free LLM applications |
 | **T6** | Opaque — `P` exists, you cannot see it | Vendor black boxes, licensed scoring services |
 | **T7** | Expert elicitation | Judgemental overlays, expert-weighted scorecards, scenario narratives |
-| **T8** | Authorship — a human wrote the parameters | Credit policy rulebooks, deterministic eligibility logic |
+| **T8** | Authorship — a human wrote the parameters | Credit policy rulebooks, deterministic eligibility logic. The one class whose parameter object the platform can *read*: see [Rule sets](/help/rule-sets) |
 
 ### It is derived, never declared
 

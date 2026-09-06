@@ -40,3 +40,50 @@ class LifecycleGate(Protocol):
     def may_mutate(self, model_id: str) -> Tuple[bool, str]:
         """(allowed, reason). The reason is empty when allowed."""
         ...
+
+
+@runtime_checkable
+class WORMReader(Protocol):
+    """Reads from write-once storage.
+
+    Separated from the writer because the two are held by different parties in
+    any deployment that means it. Verification needs only this half, so a
+    verifying process can be given read credentials and nothing else — and a
+    reader that cannot write is a reader that cannot be turned against the
+    evidence it exists to check.
+    """
+
+    def names(self) -> List[str]:
+        """Everything held, in a stable order. A listing is the history."""
+        ...
+
+    def get(self, name: str) -> bytes:
+        """One object's bytes. Raises if it is absent or unreadable — an object
+        that cannot be read must never be treated as absent, or deleting one
+        becomes the way to pass."""
+        ...
+
+
+@runtime_checkable
+class WORMWriter(Protocol):
+    """Writes to write-once storage.
+
+    `put` must **refuse to replace** an object that already exists. That refusal
+    is the whole of the guarantee: everything above it — the evidence anchor,
+    tamper detection, the argument that a rewritten database is caught — rests
+    on the store declining a second write to a name it already holds, rather
+    than on the caller remembering not to ask.
+
+    A filesystem directory satisfies this by convention and not by enforcement;
+    S3 with Object Lock, a WORM appliance or an append-only volume satisfies it
+    properly. Both are the same interface, which is the point: which one a
+    deployment uses is a configuration decision, and nothing above this line
+    changes.
+    """
+
+    def put(self, name: str, content: bytes) -> None:
+        """Write once. Raises if `name` is already held with other content."""
+        ...
+
+    def exists(self, name: str) -> bool:
+        ...

@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from core.log import get_logger, swallowed
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -97,13 +98,13 @@ class ContextBuilder:
         resolved = self._optional(
             lambda: self.registry.resolve_alias(urn, "prod", "champion"),
             "prod champion")
-        return resolved or (versions[-1] if versions else None)
+        return resolved or latest_version(versions)
 
     def _assessment(self, model_id: str) -> Optional[Dict[str, Any]]:
         if self.risk_repo is None:
             return None
         rows = self.risk_repo.many(model_id=model_id)
-        return rows[-1] if rows else None
+        return latest_version(rows)
 
     @staticmethod
     def _optional(fetch, what: str, default=None):

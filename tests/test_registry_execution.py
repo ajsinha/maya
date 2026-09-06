@@ -417,3 +417,53 @@ class TestARefusalToGuessIsNotRecoveredFrom:
 
         with pytest.raises(KeyError):
             self._service(_Broken())._point_of_p("maya://model/x", self.VERSION)
+
+
+class TestTheOperatingBoundaryReachesNestedInputs:
+    """`check_inputs` skipped any assumption whose key was not in the top level
+    of the input dict.
+
+    The estimator reads `inputs["features"]`, so an assumption on `turnover`
+    found no `turnover` at the top level, and the "absent key passes" clause let
+    it through. A signed operating boundary was therefore **unenforced for every
+    runtime that nests its inputs** — silently, with `boundary_ok: true` on the
+    response, which is the shape of a control that reports success.
+    """
+
+    @staticmethod
+    def _contract():
+        from core.domain.contracts import Bound, Contract
+        return Contract(assumptions=(Bound("turnover", minimum=0, maximum=2000),))
+
+    def test_a_top_level_value_outside_the_band_is_caught(self):
+        assert self._contract().check_inputs({"turnover": 9000}) == ["turnover"]
+
+    def test_a_nested_value_outside_the_band_is_caught(self):
+        """The case that was not."""
+        assert self._contract().check_inputs(
+            {"features": {"turnover": 9000}}) == ["turnover"]
+
+    def test_a_nested_value_inside_the_band_passes(self):
+        assert self._contract().check_inputs({"features": {"turnover": 500}}) == []
+
+    def test_an_absent_assumption_is_not_a_violation_but_is_reported(self):
+        """An assumption constrains a value that was supplied; a caller who
+        supplied nothing has not violated a band. But 'the boundary held' and
+        'the boundary never applied' must be answerable separately."""
+        contract = self._contract()
+        assert contract.check_inputs({"unrelated": 1}) == []
+        assert contract.unchecked_inputs({"unrelated": 1}) == ["turnover"]
+
+    def test_the_top_level_wins_a_name_collision(self):
+        """Where the caller addressed it wins. A deep walk would start matching
+        an assumption against a value that happens to share a name several
+        objects down, and a boundary firing on the wrong field is worse than one
+        that does not fire."""
+        assert self._contract().check_inputs(
+            {"turnover": 500, "features": {"turnover": 9000}}) == []
+
+    def test_it_does_not_walk_deeper_than_one_level(self):
+        contract = self._contract()
+        deep = {"a": {"b": {"turnover": 9000}}}
+        assert contract.check_inputs(deep) == []
+        assert contract.unchecked_inputs(deep) == ["turnover"]

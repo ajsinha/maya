@@ -91,7 +91,10 @@
                    style="color:var(--crimson);text-decoration:none">parameters</a>
                 &middot;
                 <a href="/telemetry/{{ v.semver }}/{{ slug }}"
-                   style="color:var(--crimson);text-decoration:none">telemetry</a></td></tr>
+                   style="color:var(--crimson);text-decoration:none">telemetry</a>
+                {% if v.parameter_kind == 'rule_set' %}&middot;
+                <a href="/rules/{{ slug }}/{{ v.semver }}"
+                   style="color:var(--crimson);text-decoration:none">rules</a>{% endif %}</td></tr>
         {% else %}
           <tr><td colspan="6" class="text-muted small">No versions yet.</td></tr>
         {% endfor %}

@@ -1,10 +1,5 @@
 # ============================================================ CH 25
-divider("25", "A Worked Example",
-        "Real data, real fits: the S&P 500 and the US unemployment rate.",
-        ["The data, and its two clocks",
-         "The gap that is really there",
-         "Two models over one X",
-         "Extending it, and what that forces"])
+_state["chapter"] = "25 · A Worked Example"
 
 # ------------------------------------------------------------- the raw data
 sl, y = content("Two real series, on two different clocks",
@@ -20,7 +15,7 @@ h = table(sl, data, ML, y, CW * 0.46, col_w=[1.85, 1.35, 1.35, 1.2],
           row_h=0.27, fs=8.5, hfs=8.5, bold_col0=True)
 tf = txt(sl, ML, y + h + 0.14, CW * 0.46, 0.44)
 runs(tf, [("sp500_daily.csv", CRIMSON, True),
-          ("   FRED series SP500, 258 rows. The two clocks are equal: an index "
+          ("   FRED series SP500, 254 rows. The two clocks are equal: an index "
            "close is known the day it happens.", SLATE, False)],
      size=8.8, first=True, space_after=0, line=1.18)
 
@@ -33,9 +28,11 @@ h2 = table(sl, data2, ML, y + h + 0.62, CW * 0.46,
            bold_col0=True)
 tf = txt(sl, ML, y + h + h2 + 0.76, CW * 0.46, 0.60)
 runs(tf, [("us_unemployment_monthly.csv", CRIMSON, True),
-          ("   FRED series UNRATE. ingest_ts is the first Friday of the "
-           "following month \u2014 the BLS release convention, computed and "
-           "labelled as such rather than passed off as a fetched vintage date.",
+          ("   FRED series UNRATE, keyed to the same entity: the index is what "
+           "is being modelled and the rate is a feature of it. ingest_ts is the "
+           "first Friday of the following month \u2014 the BLS release "
+           "convention, computed and labelled as such rather than passed off as "
+           "a fetched vintage date.",
            SLATE, False)],
      size=8.8, first=True, space_after=0, line=1.18)
 
@@ -47,10 +44,9 @@ para(tf, "A model trained on the 1st of September using August\u2019s figure "
          "is using a number that did not exist yet. It back-tests beautifully "
          "and disappoints in production, and no metric says why.",
      size=11, color=INK, space_after=10, line=1.25)
-para(tf, "That is not a hypothetical about leakage. It is the ordinary shape "
-         "of every macroeconomic series a bank uses \u2014 published late, "
-         "revised afterwards \u2014 and it is why every row here carries two "
-         "stamps rather than one.",
+para(tf, "That is the ordinary shape of every macroeconomic series a bank "
+         "uses \u2014 published late, revised afterwards \u2014 and it is why "
+         "every row here carries two stamps rather than one.",
      size=11, color=SLATE, space_after=10, line=1.25)
 runs(tf, [("Both are scalars, shape []. ", CRIMSON, True),
           ("The curve earlier was a vector; these are not. The shape is "
@@ -80,9 +76,8 @@ h = table(sl, data, ML, y, CW * 0.60, col_w=[1.1, 1.55, 1.15, 1.6, 1.58],
           row_h=0.28, fs=9, hfs=9, bold_col0=True, first_col_color=CRIMSON)
 tf = txt(sl, ML, y + h + 0.18, CW * 0.60, 0.60)
 runs(tf, [("Twelve months, one of them missing. ", CRIMSON, True),
-          ("FRED publishes no unemployment rate for October 2025. Nothing was "
-           "constructed to make this slide interesting \u2014 the hole is in "
-           "the series.", SLATE, False)],
+          ("FRED publishes no unemployment rate for October 2025 \u2014 the hole "
+           "is in the series, not in the example.", SLATE, False)],
      size=10, first=True, space_after=0, line=1.22)
 
 x = ML + CW * 0.64
@@ -224,18 +219,15 @@ sl, y = content("The data itself", "A worked example")
 tf = txt(sl, ML, y, CW * 0.52, 2.6)
 para(tf, "Both files are inside this deck.", size=13, color=CRIMSON, bold=True,
      font=SERIF, first=True, space_after=9)
-para(tf, "Double-click either icon and it opens in Excel. They are the data "
-         "every number "
-         "in this chapter was computed from, carrying their own provenance in "
-         "the header \u2014 which series, from where, retrieved when, and "
-         "which column means what.",
+para(tf, "Double-click either icon and it opens in Excel: the data every number "
+         "in this chapter was computed from, with its provenance in the header "
+         "\u2014 which series, from where, retrieved when, what each column means.",
      size=11, color=INK, space_after=10, line=1.25)
 runs(tf, [("Including what is not certain. ", CRIMSON, True),
           ("The unemployment file says plainly that its ingest_ts is the BLS "
            "release CONVENTION computed from the calendar, not a fetched "
            "vintage date. The lag is real and material; the exact day may be a "
-           "day or two out, and a file that did not say so would be inviting "
-           "somebody to rely on it.", SLATE, False)],
+           "day or two out.", SLATE, False)],
      size=11, space_after=10, line=1.25)
 para(tf, "A deck that quotes figures nobody can check is a deck that has to be "
          "believed. These can be checked.",
@@ -253,7 +245,7 @@ import xlsx as _xlsx
 from pptx.enum.shapes import PROG_ID
 
 files = [("sp500_daily", "S&P 500, daily close", "S&P 500 daily",
-          "FRED series SP500  \u00b7  258 rows  \u00b7  Sep 2025 \u2013 Sep 2026"),
+          "FRED series SP500  \u00b7  254 rows  \u00b7  Sep 2025 \u2013 Sep 2026"),
          ("us_unemployment_monthly", "US unemployment rate (U-3)",
           "US unemployment",
           "FRED series UNRATE  \u00b7  12 months  \u00b7  one of them empty")]
@@ -276,36 +268,7 @@ for stem, title, sheet, detail in files:
     yy += 1.52
 
 note(sl, ML, y + 3.22, CW, 0.86,
-     "They also ship in the repository, at docs/examples/, as CSV. ",
-     "The deck is regenerated from source rather than edited as a binary, so "
-     "the figures and the files cannot drift apart \u2014 ",
-     "the generator reads these same two CSVs.")
-
-
-# ------------------------------------------- end of the engineering part
-sl = blank()
-rect(sl, 0, 0, SW, SH, fill=CRIMSON)
-rect(sl, 0, 0, 0.20, SH, fill=CRIMSON_D)
-rect(sl, ML + 0.4, 1.10, 1.7, 0.035, fill=RGBColor(0xE8, 0xB8, 0xC0))
-tf = txt(sl, ML + 0.4, 1.40, CW * 0.80, 2.6)
-para(tf, "One idea, applied everywhere", size=34, color=WHITE, font=SERIF,
-     first=True, space_after=14)
-para(tf, "A pin is to a version, never to a name. A clock records when something "
-         "became knowable, not when it was written down. A refusal says what to "
-         "do instead. And what the platform will not do is written down beside "
-         "what it will.",
-     size=15, color=RGBColor(0xF4, 0xDF, 0xE3), italic=True, space_after=0,
-     line=1.32)
-tf = txt(sl, ML + 0.4, 4.22, CW * 0.74, 2.10)
-para(tf, "Ashutosh Sinha", size=18, color=WHITE, bold=True, first=True,
-     space_after=4)
-para(tf, "Independent Researcher   \u00b7   ajsinha@gmail.com", size=12,
-     color=RGBColor(0xF2, 0xD8, 0xDC), space_after=14)
-para(tf, "Featuresets and parameters: docs/15-featuresets-and-parameters.md   "
-         "\u00b7   Composition and retrieval: docs/16-features-composed-and-shaped.md   "
-         "\u00b7   Feature platform: docs/07-feature-platform.md",
-     size=10.5, color=RGBColor(0xE8, 0xC4, 0xCA), line=1.3)
-para(tf, "\u00a9 2026 Ashutosh Sinha. All rights reserved. Proprietary and "
-         "confidential \u2014 see LICENSE and NOTICE. Not legal, regulatory or "
-         "financial advice.",
-     size=8.5, color=RGBColor(0xD8, 0xA0, 0xAC), space_before=10, line=1.25)
+     "They also ship as CSV, at docs/examples/. ",
+     "The generator reads those same two files when it draws these slides, so "
+     "the figures and the data ",
+     "cannot drift apart.")

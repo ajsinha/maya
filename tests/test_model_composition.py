@@ -239,3 +239,168 @@ class TestTheRelationIsNamedForWhatItIs:
                                        reason="no longer consumed",
                                        actor="person/o")
         assert removed
+
+
+class TestAnEdgeCarriesSomeInputsAndNotAllOfThem:
+    """`_check_composes` asked whether the source's output could stand in for
+    the target's **entire** input schema.
+
+    So a PD model feeding an ECL stack that also reads LGD, EAD and a discount
+    curve was refused — *"PD does not provide lgd"*, which is true and is not
+    what an edge claims. That is the ordinary shape of a model network, so the
+    check refused the normal case and admitted only the degenerate one where a
+    model reads nothing but its predecessor's output.
+
+    The single test that covered composition constructed exactly that degenerate
+    case, which is why it passed.
+    """
+
+    @pytest.fixture
+    def typed(self, db, registry, evidence):
+        """Wired WITH the version repository, so the type check actually runs.
+
+        The file's shared `composition` fixture omits it, which makes
+        `_check_composes` return early — so every test using that fixture
+        exercises the edge *recording* and none of them exercises the typing.
+        """
+        from core.registry.composition import ModelComposition
+        from db import ModelEdgeRepository, VersionRepository
+        return ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                                evidence, VersionRepository(db))
+
+    @pytest.fixture
+    def ecl_stack(self, registry):
+        """PD → ECL, where ECL also reads three things PD does not produce."""
+        def model(name, inputs, outputs):
+            urn = f"maya://model/{name}"
+            registry.register(urn, name, "credit", "retail", "person/o",
+                              "LE-US-01", "p")
+            registry.create_version(urn, "1.0.0", {
+                "parameter_kind": "estimated_coefficients",
+                "fit_procedure": "estimate",
+                "input_schema": [{"name": n, "dtype": "numeric"} for n in inputs],
+                "output_schema": [{"name": n, "dtype": "numeric"} for n in outputs]})
+            return urn
+
+        pd = model("credit.pd", ["dscr", "ltv"], ["pd_12m"])
+        ecl = model("credit.ecl", ["pd_12m", "lgd", "ead", "discount_rate"],
+                    ["ecl"])
+        return pd, ecl
+
+    def test_an_edge_supplying_one_of_four_inputs_is_recorded(self, typed,
+                                                              ecl_stack):
+        """The normal case, and the one that was refused."""
+        pd, ecl = ecl_stack
+        edge = typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        assert edge["kind"] == "input_to"
+
+    def test_an_edge_supplying_nothing_is_still_refused(self, typed,
+                                                        registry, ecl_stack):
+        """The refusal has to keep meaning something. An edge carrying no field
+        the target reads is the wire to nowhere it is named for."""
+        pd, ecl = ecl_stack
+        urn = "maya://model/unrelated.thing"
+        registry.register(urn, "unrelated", "credit", "retail", "person/o",
+                          "LE-US-01", "p")
+        registry.create_version(urn, "1.0.0", {
+            "parameter_kind": "none", "fit_procedure": "none",
+            "input_schema": [], "output_schema": [{"name": "temperature",
+                                                   "dtype": "numeric"}]})
+        with pytest.raises(RegistryError, match="carries nothing|wire to nowhere"):
+            typed.relate(urn, ecl, "input_to", "nonsense")
+
+    def test_a_shared_field_that_does_not_type_check_is_refused(
+            self, typed, registry, ecl_stack):
+        """The order still applies — to the fields the two ends share. A wire
+        arriving with the wrong type is worse than no wire, because everything
+        downstream believes it."""
+        _, ecl = ecl_stack
+        urn = "maya://model/credit.pd_text"
+        registry.register(urn, "pd text", "credit", "retail", "person/o",
+                          "LE-US-01", "p")
+        registry.create_version(urn, "1.0.0", {
+            "parameter_kind": "rule_set", "fit_procedure": "author",
+            "input_schema": [], "output_schema": [{"name": "pd_12m",
+                                                   "dtype": "string"}]})
+        with pytest.raises(RegistryError, match="share"):
+            typed.relate(urn, ecl, "input_to", "wrong type on the wire")
+
+    def test_the_composite_says_what_the_caller_must_still_supply(
+            self, typed, ecl_stack):
+        """This returned the source's inputs alone, so the derived type claimed
+        the pair could be run on `dscr` and `ltv` — omitting the three fields
+        the ECL stack reads from elsewhere."""
+        pd, ecl = ecl_stack
+        typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        composite = typed.composite_schema(pd, ecl)
+        needs = {f["name"] for f in composite["input_schema"]}
+        assert needs == {"dscr", "ltv", "lgd", "ead", "discount_rate"}
+        assert composite["supplied_by_the_edge"] == ["pd_12m"]
+        assert set(composite["still_supplied_by_the_caller"]) == {
+            "lgd", "ead", "discount_rate"}
+        assert [f["name"] for f in composite["output_schema"]] == ["ecl"]
+
+
+class TestAnUncheckedEdgeSaysSo:
+    """An `input_to` edge whose either end has no version is recorded with the
+    type check skipped — refusing would make the register harder to build than
+    the estate is to describe, since models cannot always be added in dependency
+    order.
+
+    But it was recorded looking exactly like a checked one. It then propagated,
+    appeared in blast radius and was believed, and the only outward sign was a
+    later refusal from `composite_schema`. An edge admitted *because there was
+    nothing to check* is a different object from one admitted *because the check
+    passed*, and the register can now tell them apart.
+    """
+
+    @pytest.fixture
+    def typed(self, db, registry, evidence):
+        from core.registry.composition import ModelComposition
+        from db import ModelEdgeRepository, VersionRepository
+        return ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                                evidence, VersionRepository(db))
+
+    def _model(self, registry, name, *, versioned=True, reads=(), writes=()):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o", "LE-US-01", "p")
+        if versioned:
+            registry.create_version(urn, "1.0.0", {
+                "parameter_kind": "estimated_coefficients",
+                "fit_procedure": "estimate",
+                "input_schema": [{"name": n, "dtype": "numeric"} for n in reads],
+                "output_schema": [{"name": n, "dtype": "numeric"} for n in writes]})
+        return urn
+
+    def test_a_checked_edge_records_that_it_was_checked(self, typed, registry):
+        a = self._model(registry, "up.a", writes=["pd_12m"])
+        b = self._model(registry, "down.b", reads=["pd_12m"])
+        edge = typed.relate(a, b, "input_to", "checked")
+        assert edge["type_checked"] == 1
+        assert "compared" in edge["type_checked_detail"]
+
+    def test_an_edge_over_an_unversioned_end_records_that_it_was_not(
+            self, typed, registry):
+        a = self._model(registry, "up.c", writes=["pd_12m"])
+        b = self._model(registry, "down.d", versioned=False)
+        edge = typed.relate(a, b, "input_to", "nothing to check yet")
+        assert edge["type_checked"] == 0
+        assert "no version yet" in edge["type_checked_detail"]
+
+    def test_a_relation_that_asserts_nothing_about_types_is_not_checked(
+            self, typed, registry):
+        """`challenger_of` records how somebody thinks about two models. Marking
+        it unchecked is the honest value, not a gap."""
+        a = self._model(registry, "up.e", writes=["pd_12m"])
+        b = self._model(registry, "down.f", reads=["pd_12m"])
+        edge = typed.relate(a, b, "challenger_of", "a challenger")
+        assert edge["type_checked"] == 0
+
+    def test_the_flag_is_an_integer_and_never_a_boolean(self, typed, registry):
+        """The platform rule, and the reason it exists: a BOOLEAN column broke
+        the whole Postgres dialect once."""
+        a = self._model(registry, "up.g", writes=["pd_12m"])
+        b = self._model(registry, "down.h", reads=["pd_12m"])
+        edge = typed.relate(a, b, "input_to", "checked")
+        assert edge["type_checked"] in (0, 1)
+        assert not isinstance(edge["type_checked"], bool)

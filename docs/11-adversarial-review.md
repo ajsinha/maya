@@ -342,7 +342,7 @@ nine lines, whose only directive is to exclude the scale suite from the default 
 
 **The honest answer, in three parts.** First, the tests themselves are real and are the thing that matters
 most: 2,246 collected, of which 2,227 run by default and 19 are the scale suite. Second, the law suite is
-real — fifteen of the twenty-one foundational laws are executable, and the six that are not are named in
+real — sixteen of the twenty-one foundational laws are executable, and the five that are not are named in
 `tests/test_laws.py` as well as in the table, which is more than most projects manage. Third,
 none of that is a *gate*. It is a suite somebody runs. A law that fails on a developer's machine and is not
 run before a merge has not prevented anything, and the sentence *"a failing law fails the build"* describes
@@ -534,8 +534,8 @@ no CSRF defence for as long as it stood.
 **A control described in the future tense reads as a control, and the tense is the part people skip.** The
 defence exists now, in middleware, applying to exactly one case — a state-changing method whose authority
 came from the session cookie — with exemptions as exact paths rather than prefixes, so the exempt set
-cannot grow as routes are added beneath it. Middleware rather than per-route, because a hundred and four
-mutating endpoints is a hundred and four chances to forget.
+cannot grow as routes are added beneath it. Middleware rather than per-route, because a hundred and fourteen
+mutating endpoints is a hundred and fourteen chances to forget.
 
 ---
 
@@ -553,7 +553,7 @@ were attacked deliberately and held.
 | **The schema lattice** | **Held, and it is the best structural change since the review.** Four places asked *can this stand in for that* with four implementations, and four implementations of one order disagree eventually, in the direction of permitting more. `L-20` gives one order and `L-12`, `L-W10` and `L-21` all go through it. The meet is **partial** and informatively so: two schemas whose shared slot has two types have no meet, which is the honest answer to *can one featureset serve both models* |
 | **The overlay register** | **Held.** No defects found across two reviews; still the element with no equivalent in any competing product |
 | **Refusals as the product** | **Held.** 272 coded refusals mapped to fourteen HTTP statuses in one table, each carrying what was violated and what to do about it, with `tests/test_refusal_discipline.py` asserting that every code maps to a status saying who must act and that no code is mapped twice |
-| **Laws as acceptance criteria** | **Held in principle, and see [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) for what the principle currently rests on.** Fifteen of the twenty-one foundational laws are executable, plus fourteen warrant-admissibility laws checked before every signature. `L-W8`, `L-W11` and `L-W13` each caught a real error in a shipped example on the day it was written, which is the strongest available evidence that the discipline pays for itself |
+| **Laws as acceptance criteria** | **Held in principle, and see [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) for what the principle currently rests on.** Sixteen of the twenty-one foundational laws are executable, plus fourteen warrant-admissibility laws checked before every signature. `L-W8`, `L-W11` and `L-W13` each caught a real error in a shipped example on the day it was written, which is the strongest available evidence that the discipline pays for itself |
 | **Sandbox honesty** | **Held, and it is the shape every other boundary in the platform should copy.** `core/execution/sandbox.py::describe` publishes what the sandbox protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact, because the child shares the filesystem and the network namespace. Saying so beats implying an isolation the process model does not provide |
 
 ---
@@ -585,7 +585,7 @@ exists to find.
 **It cannot see a control that is inert for a reason outside the repository.** Every check here is a grep,
 a read and a test. A control that is correct in the source and disabled by configuration, unreachable
 behind a load balancer, or never invoked because the deployment does not run the scheduler is invisible to
-all three. The scheduler is the concrete case: eight idempotent jobs turn computed conditions into recorded
+all three. The scheduler is the concrete case: nine idempotent jobs turn computed conditions into recorded
 consequences, the in-process loop is **off by default**, and an instance whose operator never wired a cron
 entry has a governance platform in which no attestation ever lapses, no monitor is ever recorded as
 stalled, no overlay expires, no debt reconciles, and the evidence chain is never fully verified. Nothing in

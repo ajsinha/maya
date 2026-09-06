@@ -37,7 +37,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from maya_sdk import artifacts, features, models, parameters, warrants
+from maya_sdk import (artifacts, documents, features, governance, models,
+                      parameters, warrants)
 from maya_sdk.errors import Refused, Unreachable, refusal
 from maya_sdk.transport import HttpTransport, REQUEST_HEADER, new_request_id
 
@@ -67,6 +68,15 @@ class Maya:
         self.warrants = warrants.Warrants(self)
         self.artifacts = artifacts.Artifacts(self)
         self.parameters = parameters.Parameters(self)
+        # Filled in by the SDK completion pass. Attached here rather than
+        # discovered, because a client that grows subjects dynamically is one
+        # whose surface nobody can read.
+        self.attachments = documents.Attachments(self)
+        self.documents = documents.Documents(self)
+        self.packages = documents.Packages(self)
+        self.rules = governance.Rules(self)
+        self.lifecycle = governance.Lifecycle(self)
+        self.fibres = governance.Fibres(self)
 
     # ------------------------------------------------------------- the wire
     def call(self, method: str, path: str, *, json: Any = None,

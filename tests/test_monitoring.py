@@ -72,6 +72,45 @@ class TestMonitorDefinitions:
         assert exc.value.code == "test_not_admissible"
         assert "stability.psi" in exc.value.remediation
 
+    def test_a_question_the_class_cannot_answer_is_refused(self, monitors,
+                                                           registry, a_model):
+        """The fibre, doing work (`L-15`).
+
+        `test_key` was always checked against `kind`. What was never checked is
+        `kind` against the **model**: a `performance` monitor on a T0 pricer has
+        no parameters and no fitted relationship to lose, and it was accepted.
+
+        It then runs forever without ever meaning anything, which shows on the
+        estate screen as coverage — worse than no monitor at all, because an
+        absent monitor appears in the worklist and a meaningless one does not.
+        """
+        registry.create_version(a_model["urn"], "1.0.0",
+                                {"parameter_kind": "none", "fit_procedure": "none"})
+        assert registry.versions(a_model["urn"])[-1]["trainability_class"] == "T0"
+        with pytest.raises(MonitorError) as exc:
+            monitors.define(a_model["id"], "gini", "performance",
+                            "discrimination.gini", {"min": 0.4}, "person/o",
+                            label_delay_days=365)
+        assert exc.value.code == "kind_not_answerable"
+        assert "input_drift" in exc.value.remediation
+
+    def test_the_question_that_class_can_answer_is_admitted(self, monitors,
+                                                            registry, a_model):
+        """A refusal that refuses everything is not a control."""
+        registry.create_version(a_model["urn"], "1.0.0",
+                                {"parameter_kind": "none", "fit_procedure": "none"})
+        m = monitors.define(a_model["id"], "inputs in range", "input_drift",
+                            "stability.psi", {"max": 0.25}, "person/o")
+        assert m["kind"] == "input_drift"
+
+    def test_a_model_with_no_version_yet_gets_no_opinion(self, monitors, a_model):
+        """No version, no derived class, nothing to check against. Guessing one
+        would refuse on a fact that does not exist yet."""
+        m = monitors.define(a_model["id"], "early", "performance",
+                            "discrimination.gini", {"min": 0.4}, "person/o",
+                            label_delay_days=365)
+        assert m["kind"] == "performance"
+
     def test_a_performance_monitor_must_declare_its_label_delay(self, monitors, a_model):
         with pytest.raises(MonitorError) as exc:
             monitors.define(a_model["id"], "gini", "performance",

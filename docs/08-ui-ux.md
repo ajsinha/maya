@@ -73,7 +73,7 @@ than a 404 that pretends otherwise.
 
 ## 2. Every page there is
 
-Twenty-two routes render a page. Seven are reachable without a session; fifteen are not.
+Twenty-four routes render a page. Seven are reachable without a session; seventeen are not.
 
 ### 2.1 Public
 
@@ -81,8 +81,8 @@ Twenty-two routes render a page. Seven are reachable without a session; fifteen 
 |---|---|---|
 | `/` | `landing.html` | The argument, and a live count of registered models |
 | `/about` | `about.html` | What this is and what it is not |
-| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 16 help topics, markdown on disk rendered at request time |
-| `/tutorials`, `/tutorials/{slug}` | same two templates | Fifteen walkthroughs, the same renderer, one dictionary entry apart |
+| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 17 help topics, markdown on disk rendered at request time |
+| `/tutorials`, `/tutorials/{slug}` | same two templates | Six walkthroughs, the same renderer, one dictionary entry apart |
 | `/login` | `login.html` | The only page that establishes a session |
 
 Help and tutorials are **files under `content/`, not templates**. They are versioned, reviewable in
@@ -108,6 +108,8 @@ without them.
 | `/dossier/{name}` | `dossier.html` | Everything documented about a model, following the pins — §5 | `document:read` |
 | `/models/new` | `new_model.html` | Register a model, or upload a version of one | — (the model list is scope-filtered) |
 | `/document/{id}` | `document.html` | One compiled document, its anchors, its staleness and its citations | `document:read` on the subject model |
+| `/rules/{name}/{semver}` | `ruleset_editor.html` | The rule set of one **T8** version: the rules in order, the `otherwise`, the document itself, what it says in English, and a trial against sample rows. One page per *version*, not per model, because a rule set is checked against a particular version's `input_schema` and picking one silently is how a rule set comes to be validated against something other than what it runs on | 404 where the version is not registered; `model:read` out of scope |
+| `/rulesets/{parameter_set_id}` | `ruleset.html` | A recorded rule set read back in English, with what the checks found when it was recorded — and a paragraph stating exactly what *none shadowed* means, because the promise is narrow and a narrow promise read as a wide one is worse than none | 404 where the set is not a rule set; `model:read` |
 
 Two routing details are load-bearing. The model segment is a greedy `:path` converter because a URN
 carries dots and slashes, so **the version comes before the model** on `/telemetry/{semver}/{name}`

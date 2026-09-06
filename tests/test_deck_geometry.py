@@ -39,7 +39,11 @@ DECKS = [
     # Renamed and restructured: the deck is not only a system design, it is
     # the philosophy, the foundations, the concepts and the worked examples
     # as well — five parts, twenty-five chapters.
-    ("MAYA-Model-and-Feature-Management", 155),
+    # 152, down from 155. The count is asserted so that a chapter accidentally
+    # dropped from the build is caught — `design_slides.py` executes whatever
+    # `.py` files it finds, so a rename or a syntax error removes slides
+    # silently and the deck still builds.
+    ("MAYA-Model-and-Feature-Management", 110),
 ]
 
 

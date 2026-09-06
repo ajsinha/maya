@@ -1,0 +1,433 @@
+{% extends "base.html" %}
+{% block title %}Define a feature — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE CATALOGUE &middot; AUTHORING</p>
+<h1>Define a feature</h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  A feature is a <em>meaning</em>, not a column: an entity, a type, an owner and
+  a definition. It is declared before it has values, because the declaration is
+  what a featureset pins and what an owner is accountable for &mdash; a view
+  that materialised an undeclared column would be a feature nobody owns.
+</p>
+<p class="small mb-3">
+  <a href="/features" style="color:var(--crimson);text-decoration:none">The catalogue</a>
+  &middot; <a href="/features/load" style="color:var(--crimson);text-decoration:none">Load values</a>
+  &middot; <a href="/features/point-in-time" style="color:var(--crimson);text-decoration:none">Ask a point-in-time question</a>
+</p>
+
+{% if not may_define %}
+<div class="state-note mb-3">
+  You may read the catalogue but not define into it. The forms below still
+  check a draft &mdash; checking records nothing &mdash; and the define itself
+  will be refused by the API, in full, with the permission it wanted.
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <!-- ------------------------------------------------------- a primitive -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">1 &mdash; A primitive feature</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          A value the platform is <strong>given</strong> rather than one it
+          computes. Its rows arrive by materialisation.
+        </p>
+        <form id="primitive" class="small">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-name">Name</label>
+              <input class="form-control form-control-sm" id="p-name" name="name"
+                     placeholder="dscr" required></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-entity">Entity &mdash; what one row is about</label>
+              <input class="form-control form-control-sm" id="p-entity" name="entity"
+                     list="known-entities" placeholder="borrower" required>
+              <datalist id="known-entities">
+                {% for e in entities %}<option value="{{ e }}"></option>{% endfor %}
+              </datalist></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-dtype">Type</label>
+              <select class="form-select form-select-sm" id="p-dtype" name="dtype">
+                <option>numeric</option><option>integer</option>
+                <option>categorical</option><option>string</option>
+              </select>
+              <div class="form-text" style="font-size:.7rem">
+                MAYA records the type; it does not constrain the vocabulary.</div></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-owner">Owner</label>
+              <input class="form-control form-control-sm" id="p-owner" name="owner"
+                     placeholder="person/d.raman" required>
+              <div class="form-text" style="font-size:.7rem">
+                Who is accountable. Who <em>creates</em> it is recorded separately.</div></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="p-description">What it means</label>
+              <input class="form-control form-control-sm" id="p-description"
+                     name="description" placeholder="debt service coverage ratio at origination"></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="p-business">Business definition</label>
+              <input class="form-control form-control-sm" id="p-business"
+                     name="business_definition"
+                     placeholder="the sentence a reviewer would check the number against"></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-source">Source system</label>
+              <input class="form-control form-control-sm" id="p-source" name="source_system"
+                     placeholder="core banking"></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-sensitivity">Sensitivity</label>
+              <input class="form-control form-control-sm" id="p-sensitivity"
+                     name="sensitivity" value="internal" list="sensitivities">
+              <datalist id="sensitivities">
+                <option value="public"></option><option value="internal"></option>
+                <option value="confidential"></option><option value="restricted"></option>
+              </datalist>
+              <div class="form-text" style="font-size:.7rem">
+                Recorded, not enforced &mdash; the platform holds no vocabulary for it.</div></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-proxy">Proxy risk</label>
+              <input class="form-control form-control-sm" id="p-proxy" name="proxy_risk"
+                     value="none" list="proxy-risks">
+              <datalist id="proxy-risks">
+                <option value="none"></option><option value="low"></option>
+                <option value="material"></option>
+              </datalist></div>
+            <div class="col-md-6 d-flex align-items-end gap-3 pb-1">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="p-pii" name="pii">
+                <label class="form-check-label" for="p-pii">personal data</label></div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="p-protected"
+                       name="protected_basis">
+                <label class="form-check-label" for="p-protected">protected basis</label></div></div>
+
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-shape">Shape</label>
+              <input class="form-control form-control-sm" id="p-shape" name="shape"
+                     placeholder="blank = scalar &middot; 10 = vector &middot; 10,10 = matrix"></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-components">Component names</label>
+              <input class="form-control form-control-sm" id="p-components"
+                     name="components" placeholder="1m, 3m, 1y, 5y, 10y"></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="p-defaults">Default retrieval policy</label>
+              <input class="form-control form-control-sm mono" id="p-defaults"
+                     name="defaults"
+                     placeholder='{"fill": {"dscr": "last_observation"}}'></div>
+            <div class="col-md-6 d-flex align-items-end pb-1">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="p-ephemeral"
+                       name="ephemeral">
+                <label class="form-check-label" for="p-ephemeral">ephemeral</label></div></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="p-ttl">Days to live</label>
+              <input class="form-control form-control-sm" id="p-ttl" name="ttl_days"
+                     placeholder="30"></div>
+          </div>
+          <div id="primitive-verdict" class="mt-3 small"></div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" id="primitive-submit"
+                  style="font-size:.75rem" disabled>Define</button>
+          <span class="text-muted ms-2" style="font-size:.7rem">
+            enabled by the server&rsquo;s verdict, never by this page</span>
+        </form>
+        <div id="primitive-result" class="small mt-2"></div>
+        <div class="text-muted mt-3" style="font-size:.72rem">
+          The components name the first axis, so a composition can speak about a
+          tenor rather than about an index. An ephemeral feature cannot be
+          sealed and cannot be composed from &mdash; a child that resolves today
+          and dangles tomorrow is worse than no child.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --------------------------------------------------------- a derived -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">2 &mdash; A derived feature: Z = f(X, Y)</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          A value computed from other values. The lineage is recorded, so a
+          primitive cannot be withdrawn while something derives from it; the
+          ingest clock is inherited as a <em>maximum</em>, because you did not
+          know Z before you knew its inputs.
+        </p>
+        <form id="derived" class="small">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="d-name">Name</label>
+              <input class="form-control form-control-sm" id="d-name" name="name"
+                     placeholder="coverage" required></div>
+            <div class="col-md-3">
+              <label class="form-label mb-1" for="d-dtype">Type</label>
+              <select class="form-select form-select-sm" id="d-dtype" name="dtype">
+                <option>numeric</option><option>integer</option>
+              </select></div>
+            <div class="col-md-3">
+              <label class="form-label mb-1" for="d-evaluator">Evaluator</label>
+              <select class="form-select form-select-sm" id="d-evaluator" name="evaluator">
+                {% for e in evaluators %}<option value="{{ e }}">{{ e }}</option>{% endfor %}
+              </select></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="d-expression">Expression</label>
+              <textarea class="form-control form-control-sm mono" id="d-expression"
+                        name="expression" rows="2"
+                        placeholder="revenue / dscr"></textarea></div>
+            <div class="col-12" id="d-inputs-wrap" hidden>
+              <label class="form-label mb-1" for="d-inputs">Inputs it reads</label>
+              <input class="form-control form-control-sm" id="d-inputs" name="inputs"
+                     placeholder="revenue, dscr">
+              <div class="form-text" style="font-size:.7rem">
+                Only for <code>external</code>, and only when MAYA cannot parse
+                the expression. Declared so lineage and the leakage check still
+                have something to work with.</div></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="d-onerror">When the arithmetic has no answer</label>
+              <select class="form-select form-select-sm" id="d-onerror" name="on_error">
+                {% for o in on_error %}<option value="{{ o }}">{{ o }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="d-note">Note</label>
+              <input class="form-control form-control-sm" id="d-note" name="note"
+                     placeholder="what changed and why"></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="d-description">What it means</label>
+              <input class="form-control form-control-sm" id="d-description"
+                     name="description" placeholder="turnover per unit of cover"></div>
+          </div>
+          <div id="derived-verdict" class="mt-3 small"></div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" id="derived-submit"
+                  style="font-size:.75rem" disabled>Define</button>
+          <span class="text-muted ms-2" style="font-size:.7rem">
+            enabled by the server&rsquo;s verdict, never by this page</span>
+        </form>
+        <div id="derived-result" class="small mt-2"></div>
+        <div class="text-muted mt-3" style="font-size:.72rem">
+          A correction is a new <em>definition version</em>, never an edit:
+          somebody may already have trained against the old one. A definition
+          that would close a loop is refused, and the refusal names the feature
+          the loop closes through.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- composition -->
+<div class="card mt-3">
+  <div class="card-header">3 &mdash; A feature composed from others</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <p class="text-muted small mb-3">
+          A combination of features is a feature. Inheriting from one parent and
+          combining several differ only in how many parents there are, so there
+          is one mechanism and inheritance is the one-parent case.
+        </p>
+        <form id="composed" class="small">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="c-name">Name</label>
+              <input class="form-control form-control-sm" id="c-name" name="name"
+                     placeholder="gbp_curve_extended" required></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="c-entity">Entity</label>
+              <input class="form-control form-control-sm" id="c-entity" name="entity"
+                     list="known-entities" placeholder="book" required></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="c-composes">Parents, in fold order</label>
+              <input class="form-control form-control-sm" id="c-composes" name="composes"
+                     placeholder="gbp_curve, ois_overrides">
+              <div class="form-text" style="font-size:.7rem">
+                Left to right; the rightmost wins.</div></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="c-operations">Its own operations, applied last</label>
+              <textarea class="form-control form-control-sm mono" id="c-operations"
+                        name="operations" rows="2"
+placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op": "drop", "name": "1m"}]'></textarea></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="c-description">What it means</label>
+              <input class="form-control form-control-sm" id="c-description"
+                     name="description" placeholder="the curve, with a fifty-year point"></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="c-owner">Owner</label>
+              <input class="form-control form-control-sm" id="c-owner" name="owner"
+                     placeholder="person/d.raman"></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="c-dtype">Type</label>
+              <select class="form-select form-select-sm" id="c-dtype" name="dtype">
+                <option>numeric</option><option>integer</option>
+                <option>categorical</option><option>string</option>
+              </select></div>
+          </div>
+          <div id="composed-verdict" class="mt-3 small"></div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3" id="composed-submit"
+                  style="font-size:.75rem" disabled>Compose</button>
+          <span class="text-muted ms-2" style="font-size:.7rem">
+            enabled by the server&rsquo;s verdict, never by this page</span>
+        </form>
+        <div id="composed-result" class="small mt-2"></div>
+      </div>
+      <div class="col-lg-6">
+        <p class="small mb-1"><strong>The rule</strong></p>
+        <p class="small text-muted mb-2">{{ composition.rule }}</p>
+        <p class="small text-muted mb-2"><em>{{ composition.why }}</em></p>
+        <dl class="maya-terms mb-2">
+          {% for o in composition.operations %}
+          <div><dt style="width:5.5rem"><code>{{ o.op }}</code></dt>
+               <dd>{{ o.means }}</dd></div>
+          {% endfor %}
+        </dl>
+        <p class="text-muted mb-0" style="font-size:.72rem">{{ composition.totality }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------ certification as a meet -->
+<div class="card mt-3">
+  <div class="card-header">Certification is a meet, not a claim</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">
+      A derived feature is as certified as its <strong>weakest</strong> input and
+      no more: deriving from an uncertified feature does not launder it. The
+      order the meet is taken over, weakest first:
+    </p>
+    <p class="small mb-2">
+      {% for level in certification_order %}<span class="chip">{{ level }}</span>
+      {{ "" if loop.last else "&nbsp;&le;&nbsp;" }}{% endfor %}
+    </p>
+    <div id="meet"><p class="text-muted small mb-0">
+      Write an expression above and the meet is computed here, input by input.
+    </p></div>
+    <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+      The certification a feature can be <em>set</em> to is a shorter list than
+      the one the meet ranks over &mdash; see the feature&rsquo;s own page.
+    </p>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- try it on rows -->
+<div class="card mt-3">
+  <div class="card-header">Read the expression over some rows</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">
+      Records nothing and decides nothing &mdash; there is no feature here yet.
+      Two things are worth seeing before the definition exists: where the
+      arithmetic has <strong>no answer</strong>, and where the inherited
+      <strong>ingest clock</strong> moves. One JSON object per line; give a row
+      <code>&lt;input&gt;__{{ clocks.ingest_time }}</code> to see the clock
+      inherited upward.
+    </p>
+    <textarea id="trial-rows" class="form-control form-control-sm mono mb-2" rows="5"
+placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 5.0, "dscr": 1.2}
+{"{{ clocks.entity }}": "C2", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 9.0, "dscr": 0}
+{"{{ clocks.entity }}": "C3", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 4.0, "dscr": 2.0, "revenue__{{ clocks.ingest_time }}": 900}'></textarea>
+    <button class="btn btn-sm btn-outline-secondary" id="trial-run">Read these rows</button>
+    <div id="trial-out" class="mt-2 small"></div>
+  </div>
+</div>
+
+<!-- ---------------------------------------------------------- the language -->
+<div class="row g-3 mt-0">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">The expression language</div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">
+          Deliberately small. What cannot be expressed cannot be smuggled in:
+          no attribute access, no subscripting, no calls except these.
+        </p>
+        <dl class="maya-terms mb-2">
+          {% for f in language.functions %}
+          <div><dt style="width:5rem"><code>{{ f.name }}</code></dt>
+               <dd>{{ f.means }}</dd></div>
+          {% endfor %}
+        </dl>
+        <p class="small mb-1"><strong>Operators</strong></p>
+        <p class="mono mb-2" style="font-size:.76rem">
+          {% for o in language.operators %}{{ o }}{{ "" if loop.last else " &middot; " }}{% endfor %}
+        </p>
+        <p class="small mb-1"><strong>The row&rsquo;s own clock</strong></p>
+        <dl class="maya-terms mb-2">
+          {% for c in language.clock %}
+          <div><dt style="width:9rem"><code>{{ c.name }}</code></dt>
+               <dd>{{ c.means }}</dd></div>
+          {% endfor %}
+        </dl>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          Excluded: {{ language.excluded }}
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Missing values, and the default policy</div>
+      <div class="card-body">
+        <p class="small mb-1"><strong>What counts as missing</strong></p>
+        <p class="small text-muted mb-2">{{ preparation.missing }}</p>
+        <table class="table maya mb-2 small">
+          <thead><tr><th>Section</th><th>What it may name</th></tr></thead>
+          <tbody>
+            <tr><td><code>fill</code></td>
+                <td>{% for s in preparation.fill %}<code>{{ s.strategy }}</code>{{ "" if loop.last else " &middot; " }}{% endfor %}
+                  <div class="text-muted">fitted from what was knowable at the
+                    stated moment: {% for s in preparation.fitted_strategies %}<code>{{ s }}</code>{{ "" if loop.last else " " }}{% endfor %}</div></td></tr>
+            <tr><td><code>normalise</code></td>
+                <td>{% for m in preparation.normalise %}<code>{{ m.method }}</code>{{ "" if loop.last else " &middot; " }}{% endfor %}</td></tr>
+            <tr><td><code>align</code></td>
+                <td class="text-muted">an axis, a grid and a fill rule &mdash;
+                  see <a href="/features/point-in-time"
+                         style="color:var(--crimson);text-decoration:none">the
+                  point-in-time page</a></td></tr>
+          </tbody>
+        </table>
+        <p class="small text-muted mb-1">{{ preparation.order }}</p>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          {{ policy.precedence }}
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">Already defined</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Feature</th><th>Entity</th><th>Type</th>
+               <th>How it is produced</th><th>Certification</th></tr></thead>
+    <tbody>
+      {% for f in catalogue %}
+      <tr><td class="small"><a href="/feature/{{ f.name }}"
+              style="color:var(--crimson);text-decoration:none">{{ f.name }}</a>
+            <div class="text-muted">{{ f.description }}</div></td>
+          <td class="small">{{ f.entity }}</td>
+          <td class="small">{{ f.dtype }}</td>
+          <td class="small">
+            {% set d = derived | selectattr("name", "equalto", f.name) | first %}
+            {% if d %}<code style="font-size:.72rem">{{ d.expression }}</code>
+              <div class="text-muted">{{ d.evaluator }} &middot; def v{{ d.definition_version }}</div>
+            {% else %}<span class="text-muted">materialised</span>{% endif %}</td>
+          <td class="small">{{ f.certification }}</td></tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted small">
+        Nothing defined yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURE_AUTHOR = {
+  page: "define",
+  clocks: {{ clocks|tojson }},
+  certificationOrder: {{ certification_order|tojson }},
+  external: "external"
+};
+</script>
+<script src="/static/js/feature-author.js"></script>
+{% endblock %}

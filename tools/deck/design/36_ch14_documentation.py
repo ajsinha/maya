@@ -1,8 +1,5 @@
 # ============================================================ CH 14
-divider("14", "Documentation, as a Graph",
-        "Five moments, five objects, and the pins that connect them.",
-        ["When documentation actually arrives", "The moment that had no document",
-         "The dossier", "What travels to somebody without a login"])
+_state["chapter"] = "14 · Documentation, as a graph"
 
 # ------------------------------------------------------- five moments
 sl, y = content("Documentation does not arrive all at once about one thing",
@@ -20,16 +17,16 @@ data = [["When", "About", "Example", "Could it be filed?"],
          "the independent recode, the reviewer's working", "yes"]]
 th = table(sl, data, ML, y, CW, col_w=[2.4, 2.5, 4.9, 1.834],
            row_h=0.36, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.30, CW, 1.55,
-     "Two of the five were unfilable, and they are the two that matter most. ",
+note(sl, ML, y + th + 0.30, CW, 1.40,
+     "Two of the five have no document to be filed against, and they are the "
+     "two that matter most. ",
      "A calibrated model produces a parameter set every morning. A featureset's "
      "documentation is read by every model fitted from it, so filing it against "
      "one of them makes it invisible to the rest — and filing it against the "
-     "SET rather than the version describes something that has since moved, "
-     "which is finding C-2 in documentation's clothing.")
+     "SET rather than the version describes something that has since moved.")
 
 # ------------------------------------------------- the training record
-sl, y = content("Two hundred and fifty governed acts a year, none of them readable",
+sl, y = content("A calibration is a governed act, two hundred and fifty times a year",
                 "Documentation · the training record")
 tf = txt(sl, ML, y, CW * 0.52, 3.4)
 para(tf, "Hull–White is solved every morning.", size=13, color=CRIMSON,
@@ -37,8 +34,8 @@ para(tf, "Hull–White is solved every morning.", size=13, color=CRIMSON,
 para(tf, "Each solve is a governed act: a warrant behind it, a featureset "
          "version read, diagnostics returned, a reviewer's signature on it.",
      size=12, color=INK, space_after=9, line=1.28)
-para(tf, "And none of them had a record anybody could read. The note explaining "
-         "the one morning it went wrong lived in an email.",
+para(tf, "In most estates none of them has a record anybody can read, and the "
+         "note explaining the one morning it went wrong lives in an email.",
      size=12, color=INK, space_after=9, line=1.28)
 para(tf, "So the record is COMPILED, from what the register already holds. All "
          "two hundred and fifty exist whether or not somebody had time to write "
@@ -56,11 +53,11 @@ data = [["Section", "From"],
         ["Who accepted it", "and who recorded it — never the same person"]]
 th = table(sl, data, x, y, CW * 0.44, col_w=[2.0, 3.34],
            row_h=0.30, fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, x, y + th + 0.26, CW * 0.44, 1.5,
+note(sl, x, y + th + 0.26, CW * 0.44, 1.25,
      "A fit with no warrant is a NAMED GAP, not a blank section. ",
-     "A fitted set with no warrant has no answer to “which data produced these "
-     "numbers”, and that is worth saying out loud rather than leaving a heading "
-     "with nothing under it.")
+     "It has no answer to “which data produced these numbers”, and that is "
+     "worth saying out loud rather than leaving a heading with nothing under "
+     "it.")
 
 # ------------------------------------------------------------ the dossier
 sl, y = content("The dossier: the graph, walked from a model",
@@ -68,7 +65,8 @@ sl, y = content("The dossier: the graph, walked from a model",
 h = code(sl, ML, y, CW * 0.56, [
     "model",
     " ├── attached : methodology paper, literature, vendor note",
-    " ├── compiled : development document, model card, Annex IV",
+    " ├── compiled : development document, model card,",
+    " │               EU AI Act Annex IV technical file",
     " └── version 1.0.0",
     "      ├── attached : kernel specification",
     "      ├── compiled : validation report",
@@ -114,11 +112,10 @@ steps(sl, ML, y, CW, [
                          "one comparison"),
     ("04", "Honest", "gaps.md first: what could not be included, and why"),
 ], h=1.80)
-note(sl, ML, y + 2.10, CW, 1.60,
+note(sl, ML, y + 2.10, CW, 1.30,
      "Two things it deliberately does not do. ",
-     "It does not AUTHOR anything — the documents are rendered, not compiled, "
-     "because cutting a pack monthly should not silently author four documents a "
-     "month. And it does not re-materialise personal data: a flagged node "
-     "carries its erasable pointer into the pack exactly as it does in the "
-     "platform, because resolving it would put personal data where an erasure "
-     "request cannot reach it.")
+     "It does not AUTHOR anything: documents are rendered, not compiled, so "
+     "cutting a pack monthly does not silently author four documents a month. "
+     "And it does not re-materialise personal data — a flagged node carries its "
+     "erasable pointer into the pack, because resolving it would put personal "
+     "data where an erasure request cannot reach.")

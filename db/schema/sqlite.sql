@@ -59,6 +59,15 @@ CREATE TABLE IF NOT EXISTS model_edge (
     to_model     TEXT NOT NULL,          -- and the one it points TO
     kind         TEXT NOT NULL,
     note         TEXT NOT NULL DEFAULT '',
+    -- 0 or 1, never BOOLEAN. Whether the schemas at the two ends were actually
+    -- compared when this edge was recorded.
+    --
+    -- An `input_to` edge is type-checked, unless one end has no version yet —
+    -- and refusing then would make the register harder to build than the estate
+    -- is to describe. But an unchecked edge that looks exactly like a checked
+    -- one is a claim nobody made, propagating through blast radius as though
+    -- somebody had. So the distinction is recorded rather than lost.
+    type_checked INTEGER NOT NULL DEFAULT 0,
     created_by   TEXT NOT NULL,
     created_at   REAL NOT NULL,
     UNIQUE (from_model, to_model, kind)

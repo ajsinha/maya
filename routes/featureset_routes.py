@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
 from routes.base import Routes
+from routes.warrant_routes import strip_qualifier
 
 
 class FeatureIn(BaseModel):
@@ -411,7 +412,12 @@ class FeaturesetRoutes(Routes):
                     "remediation": "enable execution.captive, or POST the "
                                    "parameters to /parameters under the warrant "
                                    "that produced them"})
-            model = self.guard(lambda: registry.require(body.urn))
+            # Stripped, like every other warrant-facing route. Without it a
+            # caller pinning `…@1.0.0` — which is the ordinary way to name the
+            # version being fitted — is refused `registry_refused` for a model
+            # that exists.
+            model = self.guard(
+                lambda: registry.require(strip_qualifier(body.urn)))
             who = self.authorise(request, "parameter:record", model=model)
             return self.guard(lambda: fitting.fit(
                 body.urn, body.snapshot_id, body.environment, body.principal,

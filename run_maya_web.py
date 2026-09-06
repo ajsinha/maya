@@ -33,9 +33,13 @@ from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
+from core.evidence.anchor import ChainAnchor
+from core.evidence.worm import FilesystemWORM
 from core import log
 from core.log import configure, get_logger
 from core.features import FeatureRegistry
+from core.fibres import FibreRegistry
+from core.rules import RuleSetEditor
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantError, WarrantService
@@ -108,14 +112,28 @@ def _tier_roles(cfg: PropertiesConfigurator, prefix: str) -> Dict[int, list]:
 
 def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     """Construct the services. Ordering is the dependency order, nothing more."""
-    for key in ("data.dir", "data.artifacts", "data.sqlite.dir"):
+    for key in ("data.dir", "data.artifacts", "data.sqlite.dir", "data.worm"):
         if (path := cfg.get(key)):
             Path(path).mkdir(parents=True, exist_ok=True)
     delta = DeltaPaths.from_config(cfg).ensure()
 
     db = Database(cfg.get("database.url", "sqlite:///data/sqlite/maya.db"),
                   cfg.get_bool("database.echo", False))
-    evidence = EvidenceEngine(EvidenceRepository(db), EvidenceCheckpointRepository(db))
+    # Defaulted from `data.dir` rather than to a literal "./data/worm". A
+    # hardcoded relative default put every instance that did not configure one —
+    # including every test — on the SAME directory, so one chain's anchors were
+    # compared against another chain's nodes and disagreed. An anchor root
+    # shared between two chains is worse than none: it reports tampering that
+    # did not happen, and a control that cries wolf is one somebody switches off.
+    # `FilesystemWORM` is one implementation of the two WORM ports; the anchor
+    # never learns which. A bank that needs write-once enforced rather than
+    # conventional points this at S3 with Object Lock or an append-only volume,
+    # and nothing above this line changes — which is the reason the seam exists
+    # at all: hardening the storage must not mean editing the control.
+    anchors = ChainAnchor(FilesystemWORM(
+        cfg.get("data.worm") or str(Path(cfg.get("data.dir", "./data")) / "worm")))
+    evidence = EvidenceEngine(EvidenceRepository(db), EvidenceCheckpointRepository(db),
+                              anchors=anchors)
     registry = ModelRegistry(ModelRepository(db), VersionRepository(db),
                              AliasRepository(db), AliasHistoryRepository(db), evidence)
     tiering = TieringEngine(
@@ -178,8 +196,27 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     telemetry = TelemetryCollector(DeltaStore(delta.root), registry, evidence,
                                    TelemetryBatchRepository(db))
 
+    # `L-15`, checked before anything is served. A partial fibre found at run
+    # time is found by whoever was relying on it.
+    fibres = FibreRegistry()
+    fibres.verify()          # L-15, before anything is served
+
+    def _class_of(model_id: str):
+        """The trainability class of a model's latest version, or None.
+
+        A model with no version yet has no class, and the fibre check holds no
+        opinion rather than guessing one — the fit and approval gates refuse
+        further on for better reasons.
+        """
+        model = registry.by_id(model_id)
+        if not model:
+            return None
+        versions = registry.versions(model["urn"])
+        return versions[-1]["trainability_class"] if versions else None
+
     monitoring = MonitoringService(
-        MonitorRegistry(MonitorRepository(db), catalogue, evidence),
+        MonitorRegistry(MonitorRepository(db), catalogue, evidence,
+                        fibres=fibres, class_of=_class_of),
         ObservationRepository(db),
         BreachRegister(BreachRepository(db), findings, evidence),
         catalogue, evidence, telemetry, registry)
@@ -198,11 +235,18 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Parameters are recorded against the version that was fitted, only under a
     # warrant this register issued, and named by the featureset that produced them.
     parameters = ParameterRegister(ParameterSetRepository(db), registry, evidence,
-                                   warrants, features.sets)
+                                   warrants, features.sets,
+                                   snapshots=SnapshotRepository(db))
     # Late-bound in the other direction too, and for the same reason: the two
     # refer to each other. A warrant names the point of P a run is at; the
     # register knows which point is approved.
     warrants.parameters = parameters
+
+    # The rule-set editor. It composes the register and the parameter register
+    # and adds no authority of its own — publishing is `parameters.record` with
+    # a validated document, so the set still lands `proposed` and still needs a
+    # second person.
+    rules = RuleSetEditor(registry, parameters, evidence)
 
     # How one model stands to another. Separate from the registry because the
     # registry is about a model in isolation and this is about the estate.
@@ -343,7 +387,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence,
-                           "registry": registry, "composition": composition,
+                           "registry": registry, "composition": composition, "fibres": fibres,
+                           "rules": rules,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
                            "export": export, "dossier": dossier,

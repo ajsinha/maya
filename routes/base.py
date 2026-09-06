@@ -45,6 +45,8 @@ from core.execution import WarrantError
 from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
 from core.lifecycle import LifecycleError
+from core.fibres import FibreError
+from core.rules.common import RuleError
 from core.monitoring import MonitorError
 from core.overlays import OverlayError
 from core.log import get_logger, swallowed
@@ -74,7 +76,56 @@ STATUS: Dict[str, int] = {
     "reason_required": 422, "unknown_decision": 422,
     "role_not_required": 403, "role_not_held": 403, "deletion_refused": 403,
     "no_attestation": 404, "no_amendment": 404,
+    # rule sets (T8). Every one is 422: the document is well-formed JSON and
+    # wrong as a *policy*, which is a problem with what was written rather than
+    # with the state of the register — the caller has something to fix.
+    #
+    # `ruleset_malformed` is the exception when it comes from the runtime rather
+    # than the editor: a stored rule set that no longer parses means the
+    # register holds a document its own checks would refuse, and the engine
+    # raises it as a `WarrantError` mapped elsewhere.
+    "ruleset_malformed": 422, "condition_malformed": 422,
+    "condition_ambiguous": 422, "condition_too_deep": 422,
+    "unknown_operator": 422, "value_required": 422, "value_not_expected": 422,
+    "value_malformed": 422, "empty_range": 422, "unknown_field": 422,
+    "unordered_comparison": 422, "unknown_outcome_field": 422,
+    "value_wrong_type": 422,
+    "value_not_comparable": 422,
+    "no_rules": 422, "too_many_rules": 422, "otherwise_required": 422,
+    "rule_id_required": 422, "rule_id_malformed": 422, "duplicate_rule_id": 409,
+    "outcome_required": 422,
+    # The three the analysis exists for. A rule that can never fire and two
+    # rules that disagree are not malformed documents — they are policy
+    # mistakes, and the remediation says which.
+    "rule_never_fires": 422, "rule_unreachable": 422, "rules_contradict": 409,
+    "not_a_ruleset": 409, "not_a_ruleset_model": 409, "no_ruleset": 409,
+    # the evidence chain's anchor
+    #
+    # `anchor_disagreement` is 409 and not 422: nothing about the request is
+    # wrong. The chain and the heads written outside it no longer agree, which
+    # is a security event, and the caller cannot fix it by sending something
+    # else. `chain_broken` likewise — a refusal to anchor a chain that does not
+    # verify, because writing the broken state down would make every later
+    # comparison agree with it.
+    "anchor_disagreement": 409, "anchor_unreadable": 409, "chain_broken": 409,
+    "nothing_to_anchor": 409, "worm_overwrite_refused": 409,
+    "worm_unreadable": 409, "worm_bad_name": 422,
+    # A parameter set naming a training set the register does not hold.
+    "unknown_snapshot": 422,
+    # the fibration (L-15)
+    #
+    # `no_fibre` is 422 and not 404: the class is a real value, the caller named
+    # it correctly, and what is missing is something the platform should have
+    # supplied. A 404 would read as "you asked for the wrong thing".
+    #
+    # `fibration_incomplete` is 503, and it is the only refusal here a caller
+    # should never see — the gate runs at start-up, so if it reaches HTTP the
+    # platform is serving on a fibration it already knows is partial, and the
+    # honest answer is that this instance is not fit to answer.
+    "no_fibre": 422, "partial_fibre": 422, "fibre_exists": 409,
+    "fibration_incomplete": 503,
     # monitoring
+    "kind_not_answerable": 422,
     "unknown_kind": 422, "test_not_admissible": 422, "threshold_required": 422,
     "label_delay_required": 422, "unknown_status": 422, "no_reference": 422,
     "cohort_immature": 409, "monitor_inactive": 409, "duplicate_monitor": 409,
@@ -384,7 +435,7 @@ class Routes:
                 ParameterError, TelemetryError, NotifyError,
                 FindingWorkflowError, PolicyError,
                 ArtifactError, ProfileError, ExportError,
-                ReportingError) as exc:
+                ReportingError, FibreError, RuleError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

@@ -90,15 +90,29 @@ class AliasService:
                 f"{urn} {environment}/{name}")
 
         now = time.time()
-        self.aliases.point(m["id"], environment, name, new["id"], now, actor)
-        self.history.add({
-            "model_id": m["id"], "environment": environment, "name": name,
-            "from_version_id": current["version_id"] if current else None,
-            "to_version_id": new["id"], **proof,
-            "moved_at": now, "moved_by": actor, "justification": justification})
-        self.evidence.append("alias_moved", "model", m["id"],
-                             {"alias": name, "environment": environment,
-                              "to": to_semver, **proof}, actor=actor)
+        # All three writes together, or none.
+        #
+        # An alias is what production reads. These ran as three separate
+        # statements, so a crash between them left the alias moved with no
+        # history row and no evidence node — a change to what the bank is
+        # serving, with nothing recording that it happened or why. That is the
+        # precise failure this platform exists to prevent, in the one act where
+        # it matters most.
+        #
+        # `db.transaction()` is re-entrant and its own docstring names this use:
+        # "a service can wrap a whole governance act without knowing what its
+        # collaborators do." The evidence append opens its own and joins this
+        # one rather than deadlocking against it.
+        with self.aliases.db.transaction():
+            self.aliases.point(m["id"], environment, name, new["id"], now, actor)
+            self.history.add({
+                "model_id": m["id"], "environment": environment, "name": name,
+                "from_version_id": current["version_id"] if current else None,
+                "to_version_id": new["id"], **proof,
+                "moved_at": now, "moved_by": actor, "justification": justification})
+            self.evidence.append("alias_moved", "model", m["id"],
+                                 {"alias": name, "environment": environment,
+                                  "to": to_semver, **proof}, actor=actor)
         return {"model": urn, "environment": environment, "alias": name,
                 "version": to_semver, **proof}
 

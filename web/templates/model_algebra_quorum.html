@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Version approval — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">APPROVAL AS A QUORUM</p>
+<h1>{{ model.name }} — how many signatures, and whose</h1>
+<div class="rule"></div>
+{% set here = 'quorum' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">The model record was attested
+by several people; the version &mdash; which is what actually runs &mdash; was
+approved by one. These screens close that asymmetry. <strong>The depth of
+control follows the tier</strong>, so a version whose model has no tier cannot be
+approved at all: approving first and assessing afterwards would be a way of
+choosing your own control depth.</p>
+
+<div class="card mb-3"><div class="card-header">Who must sign, by tier</div>
+  <div class="card-body">
+    <table class="table table-sm maya mb-2">
+      <thead><tr><th>Tier</th><th>Signatures</th><th>Roles</th></tr></thead>
+      <tbody>
+      {% for q in quorum %}
+        <tr class="{{ 'fw-bold' if q.tier == model.tier }}">
+          <td><span class="tier tier-{{ q.tier }}">TIER {{ q.tier }}</span>
+            {% if q.tier == model.tier %} &larr; this model{% endif %}</td>
+          <td>{{ q.signatures }}</td>
+          <td>{{ q.required_roles|join(', ') or 'one authorised person' }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="small text-muted mb-1">
+      {% if may_open %}You may open an approval.{% else %}Opening an approval needs
+      <code>version:approve</code>, which your roles do not carry.{% endif %}
+      {% if may_sign %}You may sign one, for a role you hold.{% else %}Signing needs
+      <code>version:sign</code>.{% endif %}
+      Whether either act is <em>allowed</em> is decided at the act: the person who
+      created a version may not approve it, and that is read off the evidence chain.</p>
+    <p class="small text-muted mb-0">Published rather than configured out of
+    sight: nobody should have to read a configuration file to learn how many
+    people have to agree. A quorum is a number of <em>people</em>, not a number
+    of roles &mdash; the same person may not sign twice under two hats, and one
+    decline closes it.</p>
+  </div></div>
+
+{% for v in versions %}
+  {% set n = needed[v.semver] %}
+  <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
+      <span>{{ v.semver }} &mdash; <span class="mono">{{ v.trainability_class }}</span></span>
+      <span class="chip">{{ v.status }}</span>
+    </div>
+    <div class="card-body">
+      <p class="small mb-2">{{ n.detail }}</p>
+
+      {% if n.progress %}
+        <div class="kicker mb-1">OPEN APPROVAL &mdash;
+          {{ n.progress.signatures|length }} of {{ n.required_roles|length }} signed</div>
+        {% for role in n.required_roles %}
+          {% set sig = (n.progress.signatures | selectattr('role', 'equalto', role) | list | first) %}
+          <div class="sig {{ 'signed' if sig and sig.decision == 'approve'
+                          else ('declined' if sig else 'waiting') }}">
+            <span class="ic">{{ '✓' if sig and sig.decision == 'approve'
+                              else ('✕' if sig else '·') }}</span>
+            <span class="flex-grow-1">{{ role.replace('_', ' ') }}
+              {% if sig %}<span class="who">&mdash; {{ sig.principal }}</span>{% endif %}
+              {% if sig and sig.statement %}<div class="who">{{ sig.statement }}</div>{% endif %}
+            </span>
+            {% if not sig %}
+              <button class="btn btn-sm btn-outline-danger py-0 sign" style="font-size:.7rem"
+                      data-approval="{{ n.open_approval }}" data-role="{{ role }}"
+                      data-decision="approve">Sign</button>
+              <button class="btn btn-sm btn-outline-secondary py-0 sign" style="font-size:.7rem"
+                      data-approval="{{ n.open_approval }}" data-role="{{ role }}"
+                      data-decision="decline">Decline</button>
+            {% endif %}
+          </div>
+        {% endfor %}
+        <div class="small text-muted mt-1">{{ n.progress.detail }}</div>
+      {% endif %}
+
+      <div class="mt-3 pt-2" style="border-top:1px solid var(--rule)">
+        {% if n.quorum_required and not n.open_approval %}
+          <button class="btn btn-sm btn-danger act open-approval py-0 px-3"
+                  style="font-size:.75rem" data-semver="{{ v.semver }}">Open the approval</button>
+        {% endif %}
+        {% if n.open_approval %}
+          <button class="btn btn-sm btn-outline-secondary act withdraw py-0 px-3"
+                  style="font-size:.75rem" data-approval="{{ n.open_approval }}">Withdraw</button>
+        {% endif %}
+        <button class="btn btn-sm btn-outline-danger act approve-directly py-0 px-3"
+                style="font-size:.75rem" data-semver="{{ v.semver }}">Approve with one signature</button>
+        <div class="small mt-1 quorum-msg"></div>
+      </div>
+      <p class="small text-muted mt-2 mb-0">The single-signature button is offered
+      on purpose. Where a quorum applies the register refuses it and names the
+      endpoint that does the right thing; hiding the button would teach nobody
+      why one signature is not enough.</p>
+
+      {% if history[v.semver] %}
+        <div class="kicker mt-3 mb-1">APPROVALS ON RECORD</div>
+        <table class="table table-sm maya mb-0">
+          <thead><tr><th>Status</th><th>Required</th><th>Signed by</th><th>Outcome</th></tr></thead>
+          <tbody>
+          {% for a in history[v.semver] %}
+            <tr><td>{{ a.status }}</td>
+              <td style="font-size:.74rem">{{ a.required_roles|join(', ') }}</td>
+              <td style="font-size:.74rem">
+                {% for s in a.signatures %}{{ s.principal }} ({{ s.role }}, {{ s.decision }}){% if not loop.last %}; {% endif %}{% endfor %}</td>
+              <td style="font-size:.74rem">{{ a.detail }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    </div></div>
+{% else %}
+  <div class="card"><div class="card-body small text-muted">
+    No versions yet, so there is nothing to approve. Create one on the
+    <a href="/model-algebra/version/{{ name }}">version screen</a>.
+  </div></div>
+{% endfor %}
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-quorum.js"></script>
+<script>window.mayaAlgebraQuorum({name: "{{ name }}", urn: "{{ model.urn }}"});</script>
+{% endblock %}

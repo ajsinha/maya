@@ -1,9 +1,5 @@
 # ============================================================ CH 15
-divider("15", "What MAYA Refuses, and Why",
-        "The refusals are the product. Everything else is bookkeeping.",
-        ["The refusals that matter",
-         "What it deliberately will not do",
-         "Where the boundary is"])
+_state["chapter"] = "15 · What MAYA refuses, and why"
 
 # ------------------------------------------------------------ the refusals
 sl, y = content("The refusals that matter", "What MAYA refuses, and why")
@@ -39,7 +35,8 @@ note(sl, ML, y + h + 0.22, CW, 0.86,
 sl, y = content("Where the boundary is", "What MAYA refuses, and why")
 card(sl, ML, y, CW * 0.315, 2.6, "1", "It does not compute",
      "No fitting, no calibration, no scoring. MAYA issues a warrant and takes "
-     "delivery of the result. The captive engine exists so a fresh deployment "
+     "delivery of the result. The engine shipped with it exists so a fresh "
+     "deployment "
      "can demonstrate the whole governed path against real artifacts \u2014 not "
      "so anybody runs an estate on it.")
 card(sl, ML + CW * 0.343, y, CW * 0.315, 2.6, "2", "It does not transform",
@@ -53,6 +50,6 @@ card(sl, ML + CW * 0.686, y, CW * 0.314, 2.6, "3", "It does not choose",
      "refuses the combinations that are type errors.")
 note(sl, ML, y + 2.82, CW, 0.94,
      "A platform that claimed to do all three ",
-     "would be believed about the parts it does badly. Stating the boundary is "
-     "what makes the rest of it worth relying on \u2014 ",
-     "and every honest gap is written down in the implementation plan.")
+     "would be believed about the parts it does badly. Stating the boundary "
+     "is what makes ",
+     "the rest of it worth relying on.")

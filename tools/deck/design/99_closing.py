@@ -19,8 +19,8 @@ outs = [("A model is a representation, and error is a quantity",
          "computed. A stored derivation is one that can go stale, and the stale "
          "one is what somebody reads."),
         ("The laws are the acceptance criteria",
-         "Fifteen of twenty-one foundational laws run, and all fourteen warrant "
-         "laws run before a signature. The six that do not are named with the "
+         "Sixteen of twenty-one foundational laws run, and all fourteen warrant "
+         "laws run before a signature. The five that do not are named with the "
          "reason, because a law stated but not executed prevented nothing."),
         ("The compliant path is the fast path",
          "If registering a model properly took forty lines of plumbing and "
@@ -34,10 +34,13 @@ for i, (t, d) in enumerate(outs):
 # ------------------------------------------------------ what it does not do
 sl, y = content("And what it does not do", "Closing · the honest half")
 data = [["Not built", "What that means today"],
-        ["Evidence chain anchoring",
-         "verification compares the chain against itself. Self-consistency of a "
-         "chain an attacker could rewrite proves less than it appears to; WORM "
-         "and RFC-3161 timestamping remain a design"],
+        ["An external timestamp on the chain head",
+         "the WORM half is now built — the chain head is written once, to a "
+         "second medium, and verification asks whether the chain still agrees "
+         "with what was written before. The shipped store is a directory, which "
+         "gives separation of medium rather than enforcement; the control sees "
+         "nothing before the first anchor; and RFC-3161 signing by an authority "
+         "nobody here holds a key for is still a design"],
         ["Asymmetric warrant signatures",
          "HMAC today, so verifying a warrant requires holding the key that could "
          "mint one — the wrong shape for a contract handed to engines you do not "
@@ -46,22 +49,26 @@ data = [["Not built", "What that means today"],
          "the Delta namespace IS the serving contract. Until a store exists, "
          "L-17 has nothing to compare against and training–serving skew is not "
          "detectable"],
-        ["Six foundational laws",
-         "L-6, L-11, L-13, L-14, L-15, L-17 — each named in chapter 8 with the "
-         "reason it does not yet run"],
+        ["Five foundational laws",
+         "L-6, L-11, L-13, L-14, L-17 — each named in chapter 8 with the reason "
+         "it does not yet run — and each of the five is a claim the deck makes "
+         "and does not enforce"],
         ["Composite warrants and the interaction premium",
          "typed composition gives L-14 something to quantify over; the aggregate "
          "ρ is not built"],
         ["Discovery",
          "nothing sweeps for unregistered models or scans an EUC estate. The "
-         "inventory is what somebody registered"]]
+         "inventory is what somebody registered"],
+        ["The infrastructure Part IV assumes",
+         "no cache, no broker, no outbox, no read replica, no row-level "
+         "security, no metrics endpoint, no CI — docs/14 §26 and §27 hold the "
+         "list, and every performance figure here is a target, not a measurement"]]
 th = table(sl, data, ML, y, CW, col_w=[3.6, 8.034],
            row_h=0.38, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.28, CW, 1.05,
+note(sl, ML, y + th + 0.22, CW, 0.72,
      "A deck that ends on what it built has told you half of it. ",
-     "This list is maintained in 12 §0 and in the law table, and both are "
-     "checked by tests — because the gap is the part that goes stale first, and "
-     "it is the part a reader most needs to be told without asking.")
+     "The gap is the part a reader most needs ",
+     "to be told without asking.")
 
 # -------------------------------------------------------------- last slide
 sl = blank()
@@ -73,9 +80,17 @@ para(tf, "A model is a representation of the world.", size=30, color=WHITE,
 para(tf, "Governance is knowing the difference.", size=30,
      color=RGBColor(0xF2, 0xD8, 0xDC), font=SERIF, space_after=0, line=1.2)
 rect(sl, ML + 0.4, 4.55, 1.7, 0.035, fill=RGBColor(0xE8, 0xB8, 0xC0))
-tf = txt(sl, ML + 0.4, 4.85, CW * 0.6, 0.9)
+tf = txt(sl, ML + 0.4, 4.85, CW * 0.74, 1.5)
 para(tf, "MAYA  ·  Evidence, not assertion.", size=13,
      color=RGBColor(0xF4, 0xDF, 0xE3), bold=True, first=True, space_after=4)
-para(tf, "Ashutosh Sinha  ·  Independent Researcher", size=11,
-     color=RGBColor(0xE8, 0xB8, 0xC0), space_after=0)
+para(tf, "Ashutosh Sinha  ·  Independent Researcher  ·  ajsinha@gmail.com",
+     size=11, color=RGBColor(0xE8, 0xB8, 0xC0), space_after=10)
+para(tf, "Featuresets and parameters: docs/15-featuresets-and-parameters.md   "
+         "\u00b7   Composition and retrieval: docs/16-features-composed-and-shaped.md   "
+         "\u00b7   Feature platform: docs/07-feature-platform.md",
+     size=9.5, color=RGBColor(0xE8, 0xC4, 0xCA), space_after=8, line=1.28)
+para(tf, "\u00a9 2026 Ashutosh Sinha. All rights reserved. Proprietary and "
+         "confidential \u2014 see LICENSE and NOTICE. Not legal, regulatory or "
+         "financial advice.",
+     size=8.5, color=RGBColor(0xD8, 0xA0, 0xAC), space_after=0, line=1.25)
 _state["n"] += 1

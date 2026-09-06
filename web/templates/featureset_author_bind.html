@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% block title %}Fill the slots — {{ featureset.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">FILL THE SCHEMA &middot; PUBLISH A VERSION</p>
+<h1>{{ featureset.name }}</h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  {% if featureset.sealed %}<span class="evidence-ok">sealed by {{ featureset.sealed_by }}</span> &middot;
+  {% elif featureset.lifetime.ephemeral %}<span class="evidence-bad">ephemeral &mdash; {{ featureset.lifetime.detail }}</span> &middot;
+  {% endif %}
+  owned by {{ featureset.ownership.owner }} &middot; {{ featureset.grain }} &middot;
+  entity <code>{{ featureset.entity }}</code>
+  {% if featureset.label_slot %}&middot; label <code>{{ featureset.label_slot }}</code>
+    {% if featureset.outcome_window_days %}with a
+    {{ featureset.outcome_window_days }}-day outcome window{% endif %}{% endif %}
+</p>
+
+{% if featureset.sealed %}
+<div class="card mb-3 border-danger"><div class="card-header">Sealed &mdash; it takes no further versions</div>
+  <div class="card-body small text-muted">
+    Sealing is what makes a featureset final. It does <em>not</em> make it
+    inert: a sealed set can still be composed from, still assembled from, and
+    still named by a warrant &mdash; that is what sealing is for. What it
+    forbids is another version and a change of policy, so that a child which
+    composed against it cannot have the ground move. Breaking a seal needs
+    <code>principal:manage</code> and is recorded as an act, never quietly.
+  </div></div>
+{% endif %}
+
+{% if featureset.drift %}
+<div class="card mb-3 border-danger"><div class="card-header">A parent has moved</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Parent</th><th>Composed against</th><th>Now at</th><th>Sealed</th></tr></thead>
+    <tbody>
+    {% for d in featureset.drift %}
+      <tr><td class="small"><a href="/featureset/{{ d.parent }}"
+             style="color:var(--crimson);text-decoration:none">{{ d.parent }}</a></td>
+          <td class="small">definition v{{ d.composed_against }}</td>
+          <td class="small"><span class="evidence-bad">definition v{{ d.now_at }}</span></td>
+          <td class="small">{% if d.sealed %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    This featureset recorded which <em>definition</em> of each parent it was
+    composed against, and one has changed since. Reported rather than refused: a
+    child whose parent has moved is a thing to be told about, and refusing the
+    read would take the schema away from whoever most needs to look at it. The
+    slots below are what it resolves to <em>now</em>. Re-declare against the new
+    definition, or seal the parent so it cannot move again.
+  </div></div>
+{% endif %}
+
+{% if featureset.lineage %}
+<div class="card mb-3"><div class="card-header">Composed from &mdash; what each parent contributes</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Parent</th><th>Depth</th><th>Contributes</th><th>Sealed</th></tr></thead>
+    <tbody>
+    {% for l in featureset.lineage %}
+      <tr><td class="small"><a href="/featureset/{{ l.name }}"
+             style="color:var(--crimson);text-decoration:none">{{ l.name }}</a></td>
+          <td class="small" data-sort="{{ l.depth }}">{{ l.depth }}</td>
+          <td class="small">{{ l.contributes|join(', ') }}</td>
+          <td class="small">{% if l.sealed %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="text-muted">no</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Folded left to right, the rightmost winning; this featureset's own slots and
+    operations are applied last and are therefore the most prominent of all. A
+    version owes the slots it <em>inherited</em> as much as the ones it
+    declared, which is why they all appear below.
+  </div></div>
+{% endif %}
+
+<div class="row">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header">Bind each slot &mdash; one feature, one pinned view version</div>
+      <div class="card-body p-0"><div id="bind-rows"></div></div>
+      <div class="card-body py-2 small text-muted border-top">
+        Leaving the view blank asks the register to find the one view carrying
+        that feature and take its newest version. Where two views carry it the
+        binding is <strong>refused</strong> rather than guessed at, and the
+        refusal names them &mdash; guessing here is how a set silently reads the
+        wrong bytes. Naming a view without a version is refused for the same
+        reason: a version that did not pin exactly would resolve to different
+        bytes next month with its digest unchanged.
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">Publish this version</div>
+      <div class="card-body">
+        <label class="form-label small mb-1" for="bind-note">Note</label>
+        <input id="bind-note" class="form-control form-control-sm mb-2"
+               placeholder="what changed and why">
+        <button class="btn btn-sm btn-danger" id="bind-publish"
+                {% if featureset.sealed %}disabled{% endif %}>Publish</button>
+        {% if not featureset.sealed %}
+          <button class="btn btn-sm btn-outline-secondary" id="bind-roll"
+                  {% if not latest %}disabled{% endif %}>Roll forward to newest views</button>
+          {% if may_seal %}
+            <button class="btn btn-sm btn-outline-secondary" id="bind-seal">Seal</button>
+          {% endif %}
+        {% endif %}
+        {% if not featureset.sealed and not may_seal %}
+          <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+            Sealing is not offered here because your account does not hold
+            <code>featureset:seal</code>. That is not an oversight: publishing
+            is a first-line act and declaring something final is a second-line
+            one, so the person who filled the schema is not the person who
+            closes it.
+          </p>
+        {% endif %}
+        <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+          <strong>There is no dry run for bindings.</strong> The platform
+          previews a <em>composition</em> and offers nothing that resolves a
+          filling without recording it, so this button is the check. It is
+          enabled because the featureset is not sealed, which is a fact rather
+          than a verdict &mdash; and a refused publish writes nothing at all:
+          the schema check, the leakage check and every pin happen before a row
+          is added.
+        </p>
+        <div id="bind-result" class="small mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Leakage</div>
+      <div class="card-body">
+        {% if featureset.label_slot %}
+          <p class="small text-muted mb-2">
+            This set declares <code>{{ featureset.label_slot }}</code> as its
+            label, so no other slot may hold a feature computed from whatever
+            fills it &mdash; however many hops away. Pick the label's feature
+            and the register will say which features that rules out.
+          </p>
+          <div id="bind-leakage" class="small text-muted">Bind the label slot to see it.</div>
+        {% else %}
+          <p class="small text-muted mb-0">
+            This set declares no label slot, so the leakage check does not run.
+            That is not the same as there being no leak: it means nothing here
+            names the answer, and an unsupervised set has no answer to leak.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">The schema a version must fill</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Slot</th><th>Type</th><th>Nullable</th><th>Role</th></tr></thead>
+        <tbody>
+        {% for slot, spec in featureset.slots.items() %}
+          <tr><td class="small">{{ slot }}
+                {% if slot in featureset.inherited_slots %}
+                  <div class="text-muted">inherited</div>{% endif %}</td>
+              <td class="small">{{ spec.dtype }}</td>
+              <td class="small">{{ 'yes' if spec.nullable else 'no' }}</td>
+              <td class="small">
+                {% if slot == featureset.label_slot %}
+                  <span class="evidence-bad">label</span>
+                {% else %}<span class="text-muted">feature</span>{% endif %}</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        A version that cannot fill this schema is refused &mdash; it is not a
+        version of this featureset, it is a different one or it is a model
+        change, and the register decides which rather than leaving somebody to
+        remember. A binding naming a slot that is not here is refused for the
+        same reason.
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for v in versions|reverse %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>v{{ v.version }} <span class="text-muted small">&nbsp;<code>{{ v.digest[7:23] }}&hellip;</code></span></span>
+      <a class="small" href="/featureset/{{ featureset.name }}/plan/{{ v.version }}"
+         style="color:var(--crimson);text-decoration:none">the plan an engine reads</a></div>
+    <table class="table maya mb-0">
+      <thead><tr><th>Slot</th><th>Feature</th><th>View</th><th>Namespace</th><th>Pinned at</th></tr></thead>
+      <tbody>
+      {% for s in plans[v.version].slots %}
+        <tr><td class="small">{{ s.slot }}</td>
+            <td class="small">{{ s.feature }}
+              {% if s.derived %}<div class="text-muted">derived &middot; def v{{ s.definition_version }}</div>{% endif %}</td>
+            <td class="small">{{ s.view }} v{{ s.view_version }}</td>
+            <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
+            <td class="small">delta v{{ s.delta_version }}</td></tr>
+      {% endfor %}
+      </tbody></table>
+    <div class="card-body py-2 small border-top">
+      {% if restatements[v.version].restated %}
+        <span class="evidence-bad">Restated underneath.</span>
+        <span class="text-muted">{{ restatements[v.version].detail }}. A reader
+        who dropped the pin would now see something else; this version still
+        reads what it pinned.</span>
+      {% else %}
+        <span class="text-muted">{{ restatements[v.version].detail }}.
+        {% if v.note %}{{ v.note }}.{% endif %}</span>
+      {% endif %}
+    </div></div>
+{% else %}
+  <div class="card mb-3"><div class="card-body small text-muted">
+    No versions yet. The schema is declared; nothing fills it, so nothing can be
+    assembled and no warrant can name it.</div></div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURESET_BIND = {
+  name: {{ featureset.name|tojson }},
+  sealed: {{ (1 if featureset.sealed else 0)|tojson }},
+  labelSlot: {{ featureset.label_slot|tojson }},
+  slots: {{ featureset.slots|tojson }},
+  inherited: {{ featureset.inherited_slots|tojson }},
+  catalogue: {{ catalogue|tojson }},
+  supply: {{ supply|tojson }},
+  bindings: {{ (latest.bindings if latest else {})|tojson }}
+};
+</script>
+<script src="/static/js/featureset-author-bind.js"></script>
+{% endblock %}

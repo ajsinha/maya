@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Lifecycle — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE LIFECYCLE MACHINE</p>
+<h1>{{ model.name }} — where the record is, and what may move it</h1>
+<div class="rule"></div>
+{% set here = 'lifecycle' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">Seven states. The whole design
+turns on one distinction: an <strong>attested</strong> record is immutable
+&mdash; no field changes, and <em>no new versions</em> &mdash; and a mutable one
+is a record somebody has explicitly opened for change and will have to attest
+again. Immutability is a state rather than a flag because the question is not
+&ldquo;is this locked&rdquo; but &ldquo;what is in force, who said so, and when
+did they say it&rdquo;.</p>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    {% include "_workflow.html" %}
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">The moves out of
+      <span class="mono">{{ flow.state }}</span></div>
+      <div class="card-body">
+        {% if flow.available_transitions %}
+        <table class="table table-sm maya mb-2">
+          <thead><tr><th>Move</th><th>To</th><th>Needs</th><th>What it is</th></tr></thead>
+          <tbody>
+          {% for t in flow.available_transitions %}
+            <tr><td class="mono">{{ t.name }}</td><td class="mono">{{ t.to }}</td>
+              <td class="mono" style="font-size:.72rem">{{ t.permission }}
+                {% if t.permission in permissions %}<span class="evidence-ok">held</span>
+                {% else %}<span class="evidence-bad">not held</span>{% endif %}</td>
+              <td style="font-size:.74rem">{{ t.note }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+          <p class="small text-muted">Nothing moves from here.</p>
+        {% endif %}
+        <p class="small text-muted mb-0">Whether a permission is held is read from
+        your roles; whether the act is <em>allowed</em> is decided at the act, and
+        includes scope and segregation &mdash; the person who created a version
+        may not approve it, and that is checked against the evidence chain.</p>
+      </div></div>
+
+    <div class="card"><div class="card-header">Revise a field</div>
+      <div class="card-body">
+        <form id="update-form" class="row g-2 small align-items-end">
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">field</label>
+            <select class="form-select form-select-sm" name="field">
+              <option>purpose</option><option>description</option><option>owner</option>
+            </select></div>
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">new value</label>
+            <input class="form-control form-control-sm" name="value" required></div>
+          <div class="col-md-2"><button class="btn btn-sm btn-outline-danger w-100 py-0"
+            style="font-size:.75rem">Revise</button></div>
+        </form>
+        <div id="update-result" class="small mt-2"></div>
+        <p class="small text-muted mt-2 mb-0">An attested record refuses this,
+        and refuses a new version too. Amendment is the only route out of
+        immutability: it says what is changing and why, and it must itself be
+        attested before the record is back in force.</p>
+      </div></div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ the machine -->
+<div class="card mt-3"><div class="card-header">The machine itself</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-5">
+        <table class="table table-sm maya mb-0">
+          <thead><tr><th>State</th><th>Open to change</th><th>Means</th></tr></thead>
+          <tbody>
+          {% for s in states %}
+            <tr class="{{ 'fw-bold' if s.state == flow.state }}">
+              <td class="mono">{{ s.state }}{% if s.state == flow.state %} &larr; here{% endif %}</td>
+              <td>{{ 'yes' if s.mutable else 'frozen' }}</td>
+              <td style="font-size:.74rem">{{ s.means }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="col-lg-7">
+        <table class="table table-sm maya mb-0">
+          <thead><tr><th>Move</th><th>From</th><th>To</th><th>Who</th><th>What it is</th></tr></thead>
+          <tbody>
+          {% for t in machine %}
+            <tr><td class="mono">{{ t.name }}</td>
+              <td style="font-size:.72rem">{{ t['from']|join(', ') }}</td>
+              <td class="mono">{{ t.to }}</td>
+              <td class="mono" style="font-size:.72rem">{{ t.permission }}</td>
+              <td style="font-size:.74rem">{{ t.note }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <p class="small text-muted mt-2 mb-0"><code>baselined</code> has no inbound
+        arrow and is not a mistake: a record imported from a legacy inventory
+        <em>starts</em> there, governed going forward and mutable so its debt can
+        be closed. There are two initial states, not one, and an import must never
+        imply that historical evidence was asserted when it was not.</p>
+      </div>
+    </div>
+  </div></div>
+
+<!-- ------------------------------------------------------- what it refuses -->
+<div class="card mt-3"><div class="card-header">What this state refuses right now</div>
+  <div class="card-body small">
+    <dl class="maya-terms">
+      <div><dt>Field changes</dt>
+        <dd>{% if flow.mutable %}accepted — the record is open{% else %}refused —
+          <code>record_frozen</code>; the form above will say so in the platform's
+          own words{% endif %}</dd></div>
+      <div><dt>New versions</dt>
+        <dd>{% if flow.mutable %}accepted{% else %}refused — a new version IS a
+          change to the model, and pretending otherwise is how an attested record
+          quietly stops describing what runs. Try it on the
+          <a href="/model-algebra/version/{{ name }}">version screen</a>{% endif %}</dd></div>
+      <div><dt>Submission</dt>
+        <dd>refused where the model has no versions (nothing to approve) or no
+          risk tier (approval depth depends on it)</dd></div>
+      <div><dt>Attestation</dt>
+        <dd>each required role signs once, for a role that person actually holds;
+          one decline ends it and returns the record to work</dd></div>
+    </dl>
+    <div class="mt-2">
+      {{ versions|length }} version(s) on file &middot;
+      tier {{ model.tier if model.tier else 'not assessed' }}
+      {% if not model.tier %}&mdash; <a href="/model-algebra/risk/{{ name }}">assess it</a>
+      before submitting{% endif %}
+    </div>
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-lifecycle.js"></script>
+<script>window.mayaAlgebraLifecycle({name: "{{ name }}"});</script>
+{% endblock %}

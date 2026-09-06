@@ -1,169 +1,150 @@
 # ============================================================ CH 17
-divider("17", "Core Domain and Registry",
-        "The algebra in code, and the registry that indexes it.",
-        ["The model algebra",
-         "Trainability is derived",
-         "Contract algebra",
-         "The fibre registry",
-         "Version creation",
-         "Alias moves"])
+_state["chapter"] = "17 · Core domain and registry"
 
-sl, y = content("The model algebra", "Core domain · core/domain/algebra.py")
-h = code(sl, ML, y, CW * 0.56, [
+sl, y = content("The model algebra, and the class it derives",
+                "Core domain · core/domain/algebra.py")
+h = code(sl, ML, y, CW * 0.53, [
  "@dataclass(frozen=True)",
  "class ParameterObject:",
- "    kind: ParameterKind          # none | calibration_set | learned_weights |",
- "                                 # llm_configuration | rule_set | opaque | ...",
+ "    kind: ParameterKind      # none | calibration_set |",
+ "                             #   learned_weights | rule_set | opaque | ...",
  "    artifact_digest: str | None",
  "",
  "    @property",
- "    def is_terminal(self) -> bool:      # P ≅ I  — the T0 case",
+ "    def is_terminal(self) -> bool:    # P ≅ I  — the T0 case",
  "        return self.kind == \"none\"",
  "",
- "    @property",
- "    def is_accessible(self) -> bool:    # False for vendor black boxes",
- "        return self.kind != \"opaque\"",
- "",
  "@dataclass(frozen=True)",
- "class ParametricKernel:              # a model:  f : P ⊗ X → Y",
+ "class ParametricKernel:          # a model:  f : P ⊗ X → Y",
  "    parameters: ParameterObject",
- "    input:  ObjectSpec",
- "    output: ObjectSpec",
- "    deterministic: int               # 0/1 — law L-3; never BOOLEAN",
+ "    input: ObjectSpec ; output: ObjectSpec",
+ "    deterministic: int           # 0/1 — law L-3; never BOOLEAN",
 ], fs=9.5, title="THE DEFINITION, AS A TYPE")
-x = ML + CW * 0.60
-tf = txt(sl, x, y, CW * 0.40, 3.6)
-para(tf, "Why it is shaped this way", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=9)
-bullets(tf, [("Parameters are an object, not a blob", "P is first-class, so “no parameters” and “inaccessible parameters” are expressible states rather than nulls"),
-             ("Determinism is stored and tested", "f commutes with copy — which is exactly the reproducibility replay in §8.2"),
-             ("No framework, no I/O", "Fully unit-testable; the laws run in milliseconds over generated inputs"),
-             ("Frozen dataclasses", "Immutability at the type level mirrors immutability at the storage level")],
-        size=11.5, gap=8, indent_size=10)
-
-sl, y = content("Trainability is derived, never declared", "Core domain · the classification")
-h = code(sl, ML, y, CW, [
- "def trainability_class(self, fit: FitProcedure, adaptive: bool) -> str:",
- "    if not self.parameters.is_accessible:   return \"T6\"    # vendor black box",
- "    if self.parameters.is_terminal:         return \"T0\"    # analytic — P ≅ I",
+x = ML + CW * 0.56
+h2 = code(sl, x, y, CW * 0.44, [
+ "def trainability_class(self, fit, adaptive) -> str:",
+ "    if not self.parameters.is_accessible:",
+ "        return \"T6\"                  # vendor black box",
+ "    if self.parameters.is_terminal:",
+ "        return \"T0\"                  # analytic — P ≅ I",
  "    return {\"calibrate\": \"T1\", \"estimate\": \"T2\",",
  "            \"train\": \"T4\" if adaptive else \"T3\",",
- "            \"configure\": \"T5\", \"elicit\": \"T7\", \"author\": \"T8\"}[fit]",
-], fs=10.5, title="core/domain/algebra.py")
-tf = txt(sl, ML, y + h + 0.30, CW * 0.47, 2.4)
-para(tf, "What this buys", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=8)
-bullets(tf, ["The class is a function of the parameter object and the fitting procedure — never an enum a user picks",
-             "Mislabelled records become impossible, so the estate cannot quietly drift",
-             "T0 and T6 are the two extremal cases and both fall out, rather than being special-cased"], size=11.5, gap=7)
-x = ML + CW * 0.53
-rect(sl, x, y + h + 0.30, CW * 0.47, 1.55, fill=PARCH)
-rect(sl, x, y + h + 0.30, 0.045, 1.55, fill=CRIMSON)
-tf = txt(sl, x + 0.26, y + h + 0.44, CW * 0.47 - 0.5, 1.3)
-runs(tf, [("The consequence that matters. ", CRIMSON, True),
-          ("Asking a closed-form pricer for its training set is a type error, and the system can say so precisely. "
-           "Every mandatory-field workaround that fills an inventory with meaningless records disappears at this line.",
-           INK, False)], size=11.5, first=True, space_after=0, line=1.28)
+ "            \"configure\": \"T5\", \"elicit\": \"T7\",",
+ "            \"author\": \"T8\"}[fit]",
+], fs=9.5, title="THE CLASS IS A FUNCTION, NOT A FIELD")
+tf = txt(sl, x, y + h2 + 0.26, CW * 0.44, 1.9)
+bullets(tf, [("Parameters are an object, not a blob", "“no parameters” and “inaccessible parameters” are states, not nulls"),
+             ("The class is derived", "never an enum a user picks, so a mislabelled record is unreachable"),
+             ("No framework, no I/O", "the laws run in milliseconds over generated inputs")],
+        size=10.5, gap=6, indent_size=9.5)
+note(sl, ML, y + h + 0.30, CW * 0.53, 1.25,
+     "The consequence that matters. ",
+     "Asking a closed-form pricer for its training set is a type error, and the system can say so precisely. Every "
+     "mandatory-field workaround that fills an inventory with meaningless records disappears at this line.")
 
-sl, y = content("Contract algebra", "Core domain · reasoning about black boxes")
+sl, y = content("Contract algebra — what the code really does",
+                "Core domain · core/domain/contracts.py")
 h = code(sl, ML, y, CW * 0.55, [
  "def refines(self, other: Contract) -> RefinementResult:",
- "    \"\"\"C' ⪯ C  iff  A ⊆ A'  and  (A ∧ G') ⊆ G.\"\"\"",
- "    weaker_assumption  = other.assumptions.implies(self.assumptions)",
- "    stronger_guarantee = (other.assumptions & self.guarantees) \\",
- "                            .implies(other.guarantees)",
- "    return RefinementResult(",
- "        holds = weaker_assumption and stronger_guarantee,",
- "        failing_clauses = [...],   # DR-7: always name what failed",
- "    )",
-], fs=9.5, title="DECIDABLE SUBSTITUTABILITY")
+ "    \"\"\"C' ⪯ C iff A ⊆ A' and (A ∧ G') ⊆ G. Law L-7.\"\"\"",
+ "    weak   = [k for k, b in other._a().items()",
+ "              if k in self._a() and not self._a()[k].weaker_than(b)]",
+ "    strong = [k for k, b in other._g().items()",
+ "              if k not in self._g() or not self._g()[k].stronger_than(b)]",
+ "    return RefinementResult(holds = not weak and not strong,",
+ "                            assumption_failures=tuple(weak),",
+ "                            guarantee_failures=tuple(strong))",
+], fs=9.5, title="WHAT THE CODE ACTUALLY DOES")
 x = ML + CW * 0.59
-tf = txt(sl, x, y, CW * 0.41, 1.8)
-para(tf, "A deliberately restricted predicate language", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
-para(tf, "Conjunctions of interval constraints, set membership, metric comparisons and freshness bounds — chosen so refinement stays decidable.",
-     size=11, color=SLATE, space_after=7, line=1.25)
+tf = txt(sl, x, y, CW * 0.41, 2.2)
+para(tf, "A clause is an interval or a set, not a predicate", size=12, color=INK, bold=True, font=SERIF, first=True, space_after=7)
+para(tf, "A Bound is a key with a minimum, a maximum or an allowed set. Refinement compares bounds key by key — it does not "
+         "form A ∧ G' and does not evaluate a predicate language. There is no implication solver here, and the refusal names "
+         "the failing keys rather than a clause.",
+     size=10.5, color=SLATE, space_after=7, line=1.24)
 runs(tf, [("Richer assumptions are recorded as ", SLATE, False), ("narrative", INK, True, True),
-          (" and explicitly excluded from automated refinement — so nobody believes a check happened that did not.", SLATE, False)],
-     size=11, line=1.25)
-tf = txt(sl, ML, y + h + 0.32, CW, 0.4)
-para(tf, "Where the four operations are used", size=13, color=INK, bold=True, font=SERIF, first=True, space_after=0)
-data = [["Operation", "Question it answers", "Used at"],
-        ["Refinement  ⪯", "May version B replace version A?", "Every alias move — a proof obligation, not a meeting"],
-        ["Composition  ⊗", "What does this model chain promise end to end?", "Composite warrants"],
-        ["Conjunction  ∧", "Satisfy performance and fairness and latency together", "Merging viewpoints on one model"],
-        ["Quotient  /", "Given the target and what we have, what must the missing piece guarantee?", "Turns a validation gap into a specification"]]
-table(sl, data, ML, y + h + 0.72, CW, col_w=[2.0, 4.6, 5.0], row_h=0.34, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
+          (" and excluded from the check — so nobody believes a proof happened that did not.", SLATE, False)],
+     size=10.5, line=1.24)
+data = [["Operation", "What it is meant to answer", "What the code does today"],
+        ["Refinement  ⪯", "May version B replace version A?", "Built, and enforced at every alias move"],
+        ["Composition  ⊗", "What does this chain promise end to end?", "Unions assumptions and guarantees — it does not discharge the downstream's assumptions against the upstream's guarantees"],
+        ["Conjunction  ∧", "Performance and fairness and latency together", "The same function as composition, under a second name. Right here, wrong there"],
+        ["Quotient  /", "What must the missing piece guarantee?", "Drops the guarantee keys already held — a keyed difference, not a residual"]]
+table(sl, data, ML, y + h + 0.34, CW, col_w=[1.9, 3.7, 6.0], row_h=0.44, fs=10, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 
-sl, y = content("The fibre registry, and why it fails at startup", "Core domain · extensibility")
+sl, y = content("Every class is complete, or the platform does not start",
+                "Core domain · the fibration")
 h = code(sl, ML, y, CW * 0.58, [
- "class FibreRegistry:",
- "    def __init__(self, plugins: PluginLoader):",
- "        for ep in plugins.entry_points(\"maya.model_class\"):",
- "            f = ep.load()()",
- "            self._validate_total(f)      # law L-15",
- "            self._fibres[f.key] = f",
+ "FACETS = (\"evidence\", \"lifecycle\", \"metrics\", \"templates\")",
+ "BASE   = (\"T0\", \"T1\", …, \"T8\")        # the nine classes",
  "",
- "    def _validate_total(self, f) -> None:",
- "        missing = [n for n in (\"evidence_schema\", \"lifecycle\",",
- "                   \"default_monitors\", \"document_templates\",",
- "                   \"tiering_hints\", \"contract_template\")",
- "                   if not getattr(f, n)()]",
- "        if missing:",
- "            raise FibreIncomplete(f.key, missing)  # refuse to boot",
-], fs=9.5, title="STARTUP TOTALITY CHECK")
+ "def register(self, fibre):              # the extension point",
+ "    if missing := fibre.missing_facets():",
+ "        raise FibreError(\"partial_fibre\", …)",
+ "",
+ "def verify(self):                       # law L-15, at start-up",
+ "    if gaps := self.totality():         # no fibre, or a partial one",
+ "        raise FibreError(\"fibration_incomplete\", …)",
+], fs=9.5, title="core/fibres/registry.py")
 x = ML + CW * 0.62
 tf = txt(sl, x, y, CW * 0.38, 3.4)
-para(tf, "Nine extension points", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
-para(tf, "model class · regime · semiring · artifact format · validation test · metric · document template · warrant flavour · connector",
-     size=11, color=SLATE, space_after=12, line=1.3)
-para(tf, "Why refuse to boot?", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
-para(tf, "A half-registered fibre would otherwise surface as a confusing runtime error weeks later, in the one place the platform has to be trustworthy. Failing loudly at startup is the cheaper failure.",
-     size=11, color=SLATE, space_after=12, line=1.3)
-runs(tf, [("Not built. ", CRIMSON, True),
-          ("A model class is a string on the register today; there is no plugin loader and no "
-           "totality check, so L-15 is stated and not enforced. The extensibility that ", INK, False),
-          ("is", INK, True),
-          (" built is the warrant grammar's: a new model technology is a new value in one "
-           "vocabulary, not a new document type.", INK, False)],
+para(tf, "A fibre is what a class needs", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=7)
+para(tf, "Four facets: what evidence it must carry, which lifecycle it follows, what can be monitored on it, what compiles for it. A new kind of model supplies a fibre and nothing else changes — no migration, no new table, no new screen.",
+     size=11, color=SLATE, space_after=11, line=1.3)
+para(tf, "The base is the trainability class", size=12.5, color=INK, bold=True, font=SERIF, space_after=7)
+para(tf, "Not the model class, which is free text: a totality gate over free text is defeated by typing a word nobody registered. T0–T8 is derived from how P is inhabited, so the index cannot be typed wrong.",
+     size=11, color=SLATE, space_after=11, line=1.3)
+runs(tf, [("The fibre is not inert. ", CRIMSON, True),
+          ("A performance monitor on a T0 pricer, or a calibration monitor on a T5 assembly, is refused ", INK, False),
+          ("kind_not_answerable", INK, False, False, MONO),
+          (" — the class decides what may be asked of it.", INK, False)],
      size=10.5, space_after=0, line=1.26)
 
-sl, y = content("Version creation — the full path", "Core domain · registry")
-steps(sl, ML, y, CW, [
-    ("1", "Validate", "Manifest checked against the fibre's JSON Schema"),
-    ("2", "Quarantine", "Artifact streamed to a no-execute, content-addressed store"),
-    ("3", "Sandbox", "Malware, pickle opcodes, SCA, secrets, licence; then graph parse"),
-    ("4", "Policy", "Format policy for the target environment; reject with an exception path"),
-    ("5", "Features", "Declared inputs reconciled against the feature registry"),
-    ("6", "Commit", "Version created immutable; artifact promoted, signed, attested"),
-    ("7", "Evidence", "Nodes appended: artifact, introspection, scans, contract, manifest"),
-], h=1.62)
-rect(sl, ML, y + 1.92, CW, 1.05, fill=PARCH)
-rect(sl, ML, y + 1.92, 0.045, 1.05, fill=CRIMSON)
-tf = txt(sl, ML + 0.30, y + 2.06, CW - 0.6, 0.85)
-runs(tf, [("Transaction boundary. ", CRIMSON, True),
-          ("Steps 6–7 are one Postgres transaction plus an outbox row for the object-store promotion. If promotion fails the "
-           "outbox retries; the version exists but is marked artifact_pending and cannot be aliased. ", INK, False),
-          ("Partial visibility is preferable to a lost write.", CRIMSON, True)],
-     size=12, first=True, space_after=0, line=1.28)
+sl, y = content("Version creation — what runs, and what is still design",
+                "Core domain · registry")
+steps(sl, ML, y, CW * 0.62, [
+    ("1", "Validate", "Kernel spec parsed, class derived, unexplained parameters refused"),
+    ("2", "Resolve", "Digest looked up in the content-addressed store; the store is the authority on its own contents"),
+    ("3", "Commit", "Version inserted immutable, status draft, manifest digest computed"),
+    ("4", "Evidence", "version_created appended to the chain"),
+], h=1.70)
+x = ML + CW * 0.65
+listbox(sl, x, y, CW * 0.35, "Designed, not built",
+        [("Quarantine to a no-execute store", SLATE, ""),
+         ("Malware, pickle-opcode, SCA, secret and licence scans", SLATE, ""),
+         ("Format policy per target environment", SLATE, ""),
+         ("Declared inputs reconciled against the feature registry", SLATE, ""),
+         ("Artifact promotion, signing and attestation", SLATE, "")],
+        sub="core/artifacts/store.py hashes and stores; it does not scan",
+        row=0.30)
+note(sl, ML, y + 2.10, CW * 0.62, 1.55,
+     "There is no outbox. ",
+     "A two-phase commit with an outbox row for the object-store promotion, and an artifact_pending state that cannot "
+     "be aliased, is the design. What runs is one insert followed by one evidence append — and the append opens its own "
+     "transaction, so the two are not atomic. The transaction-boundary argument is a plan, not a property.")
 
-sl, y = content("Alias moves — the most dangerous operation", "Core domain · registry")
+sl, y = content("Alias moves — the most dangerous operation",
+                "Core domain · core/registry/aliases.py")
 h = code(sl, ML, y, CW, [
- "with uow.transaction():",
- "    lock = advisory_lock(f\"alias:{model_id}:{env}\")     # serialise per (model, env)",
- "    ref  = new.contract.refines(cur.contract)            # law L-7",
- "    var  = substitutable(new.schema, cur.schema)         # law L-12",
- "    if not (ref.holds and var.ok):",
- "        raise AliasMoveRefused(ref, var, consumers=warrants.consumers_of(...))",
- "    if not policy.evaluate(\"gates.alias_move\", ctx).allow: raise PolicyDenied(...)",
+ "m   = catalogue.require(urn)",
+ "new = versions.require(urn, to_semver)",
+ "if new[\"status\"] != \"approved\": raise RegistryError(...)   # only approved versions",
+ "self._check_not_blocked(m)                        # an open blocking finding stops it first",
  "",
- "    warrant_projection.rebuild(model_id, env, name, new)    # PRE-WARM before invalidate",
- "    aliases.point(model_id, env, name, new)",
- "    alias_history.append(cur, new, ref, var, actor, justification)",
- "    outbox.put(CacheInvalidate(...), AliasMoved(...))",
- "monitoring.schedule_post_move_comparison(model_id, env, window=\"P7D\")",
-], fs=9.5, title="core/registry/aliases.py")
-tf = txt(sl, ML, y + h + 0.30, CW, 1.1)
-runs(tf, [("Three things are happening. ", CRIMSON, True),
-          ("Substitutability is a ", INK, False), ("proof", INK, True),
-          (" — consumers cannot be broken and are not redeployed. Pre-warming before invalidating is the fix for the cache "
-           "stampede found in adversarial review, so a hot alias is never served from an empty cache. And the automatic "
-           "seven-day post-move comparison is SS1/23's parallel outcomes analysis, performed as infrastructure rather than as a project.",
-           INK, False)], size=12, first=True, space_after=0, line=1.30)
+ "proof = obligations(new, incumbent)               # L-7 refinement AND L-12 variance",
+ "if not (proof[\"refinement\"][\"holds\"] and proof[\"variance\"][\"ok\"]):",
+ "    raise RegistryError(f\"alias move refused: {reason}\")     # the refusal names the clause",
+ "policy.check(\"alias:move\", {...})                 # policy may refuse; it may never permit",
+ "",
+ "aliases.point(...); history.add({..., **proof}); evidence.append(\"alias_moved\", ...)",
+], fs=9.5, title="THE GOVERNED SWITCH")
+tf = txt(sl, ML, y + h + 0.28, CW * 0.55, 1.6)
+runs(tf, [("Substitutability is a proof, not a meeting. ", CRIMSON, True),
+          ("Consumers bind to the alias, so they cannot be broken and are not redeployed. The proof is stored on the "
+           "history row, which is what makes “why was this allowed” answerable a year later.", INK, False)],
+     size=11, first=True, space_after=0, line=1.26)
+note(sl, ML + CW * 0.58, y + h + 0.28, CW * 0.42, 1.60,
+     "What is not here. ",
+     "No advisory lock serialising per (model, environment), no transaction around the three writes, no cache "
+     "pre-warm and no scheduled post-move comparison. Each was described as built and none is. The three writes "
+     "in the last line are the ones to fix first.")

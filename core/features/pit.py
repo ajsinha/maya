@@ -74,11 +74,23 @@ def static_check(req: AssemblyRequest) -> PitReport:
 
 
 def verify_sampled(rows: List[Dict[str, Any]], recompute, sample: int = 200) -> PitReport:
-    """Layer 2. Independently recompute a stratified sample and compare.
+    """Layer 2. Recompute a sample by a second route and compare.
 
-    Strata span label period, entity and label value, because a leak confined to
-    a rare, high-value segment is exactly where uniform sampling fails and where
-    the damage is greatest.
+    **What it strata on, exactly.** `_stratified` buckets on the **label value**
+    and nothing else. This said strata span "label period, entity and label
+    value" — a claim the deck repeated from here, and neither was true. On the
+    featureset path there is no `label` column at all, so every row falls into
+    one bucket and the sampling is uniform.
+
+    **And what a second route is worth here.** `_recompute` is pinned by test to
+    apply the same `min(label_ts, as_of)` bound as the assembler, which is
+    right — the two must not diverge — but it means this catches implementation
+    drift between two paths rather than a wrong rule. Both would be wrong
+    together. Layer 1's static refusal is the check that proves something about
+    the data; this one proves the two code paths still agree, which is worth
+    having and is a smaller claim.
+
+    The sample is 200 rows, fixed. There is no power computation anywhere.
     """
     if not rows:
         return PitReport(True, "sampled", 0, detail="nothing to verify")

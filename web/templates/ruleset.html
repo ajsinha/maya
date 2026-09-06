@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}{{ ruleset.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">RULE SET</p>
+<h1>{{ ruleset.name }}</h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  <span class="{% if ruleset.state == 'approved' %}evidence-ok{% else %}evidence-bad{% endif %}">{{ ruleset.state }}</span>
+  &middot; {{ ruleset.rules }} rules &middot; reads <code>{{ ruleset.reads|join(', ') }}</code>
+  &middot; recorded by {{ row.created_by }}
+  {% if row.approved_by %}&middot; approved by {{ row.approved_by }}{% endif %}
+</p>
+
+<div class="card mb-3">
+  <div class="card-header">What it says, in order &mdash; first match wins</div>
+  <div class="card-body">
+    <p class="text-muted small mb-2">
+      One rendering. The model card, the committee paper and the export pack
+      quote these sentences rather than each writing their own &mdash; the
+      differences between three renderings are where a misreading survives.
+    </p>
+    <ol class="mb-0" style="padding-left:1.2rem">
+      {% for line in ruleset.explanation %}<li class="mb-1">{{ line }}</li>{% endfor %}
+    </ol>
+  </div>
+</div>
+
+{% if row.diagnostics %}
+<div class="card mb-3">
+  <div class="card-header">What the checks found when it was recorded</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Check</th><th>What it found</th></tr></thead>
+    <tbody>
+      <tr><td class="small">Rules</td><td class="small">{{ row.diagnostics.rules }}</td></tr>
+      <tr><td class="small">Fields read</td><td class="small"><code>{{ row.diagnostics.reads|join(', ') }}</code></td></tr>
+      <tr><td class="small">Shadowed by an earlier rule</td>
+          <td class="small">{% if row.diagnostics.shadowed %}<span class="evidence-bad">{{ row.diagnostics.shadowed|length }}</span>
+              {% else %}<span class="evidence-ok">none</span>{% endif %}</td></tr>
+      <tr><td class="small">Contradictions</td>
+          <td class="small">{% if row.diagnostics.contradictions %}<span class="evidence-bad">{{ row.diagnostics.contradictions|length }}</span>
+              {% else %}<span class="evidence-ok">none</span>{% endif %}</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="text-muted small">
+  <strong>What &ldquo;none shadowed&rdquo; means, exactly.</strong> No rule is
+  covered by any <em>single</em> earlier rule. Two earlier rules that between
+  them cover a third are not detected &mdash; that is satisfiability over the
+  whole set, which is a solver, and a solver here would be a dependency whose
+  failure modes nobody in the bank can debug. The promise is the narrow one, and
+  it is stated narrowly.
+</p>
+{% endif %}
+{% endblock %}

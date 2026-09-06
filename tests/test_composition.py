@@ -582,3 +582,4 @@ class TestAFeaturesetPinsItsParentsToo:
         with pytest.raises(FeatureError, match="no such featureset"):
             f.define_featureset("plus", "book_id", "person/o", {},
                                 composes=[{"name": "nothing_by_that_name"}])
+

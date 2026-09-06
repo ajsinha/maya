@@ -934,3 +934,39 @@ class TestAFitWarrantIsSelfDescribing:
     _fittable_version = TestTheFitWarrantChecksTheSchema._fittable_version
     _setup = TestTheFitWarrantChecksTheSchema._setup
     _fit = TestTheFitWarrantChecksTheSchema._fit
+
+
+class TestTheFeatureReadsAnyClientHitsFirst:
+    """Three GET endpoints returned 500 on every call.
+
+    `GET /features` called `f.features.many(...)`, `GET /feature-views` called
+    `f.views.many()`, and `GET /feature-views/{name}/versions` called
+    `f.views.one(...)` and `f.view_versions` — four attributes that do not
+    exist on `FeatureRegistry` or `ViewManager`.
+
+    None had a test. They are the first three calls any client makes and the
+    only ones in the feature surface that take no arguments, so the suite
+    covered every act that *writes* and none of the three that merely list —
+    which is the shape of test coverage that comes from testing the interesting
+    paths.
+    """
+
+    def test_listing_features_answers(self, client, people):
+        r = client.get("/api/v1/features", auth=people["d.raman"])
+        assert r.status_code == 200 and "features" in r.json()
+
+    def test_listing_features_filters_by_entity(self, client, people):
+        r = client.get("/api/v1/features?entity=borrower_id",
+                       auth=people["d.raman"])
+        assert r.status_code == 200
+
+    def test_listing_views_answers(self, client, people):
+        r = client.get("/api/v1/feature-views", auth=people["d.raman"])
+        assert r.status_code == 200 and "views" in r.json()
+
+    def test_versions_of_an_unknown_view_is_a_refusal_not_a_crash(
+            self, client, people):
+        r = client.get("/api/v1/feature-views/no-such-view/versions",
+                       auth=people["d.raman"])
+        assert r.status_code != 500
+        assert r.json()["detail"]

@@ -40,7 +40,7 @@ for numeral, name, detail in [
     ("II", "Foundations", "the mathematics, run as tests rather than claimed"),
     ("III", "Concepts", "the objects a practitioner works with"),
     ("IV", "System design", "components, algorithms, boundaries"),
-    ("V", "Worked examples", "seven kinds of model, then real data"),
+    ("V", "Worked examples", "eight kinds of model, then real data"),
 ]:
     runs(tf, [(f"{numeral:<4}", CRIMSON, True), (f"{name}  ", INK, True),
               (detail, SLATE, False)], size=10, space_after=4)

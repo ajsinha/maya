@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}Compose a featureset — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">COMPOSE &middot; A PRESENTATION OF X</p>
+<h1>Compose a featureset</h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  A featureset declares a <strong>schema</strong> &mdash; named slots with types
+  &mdash; and a version <em>fills</em> it. Nothing here is written until you
+  press <em>Declare</em>; everything above that button is
+  <code>POST /featuresets/preview</code>, which resolves what you have typed and
+  declares nothing. The button follows that call and nothing decided in this
+  browser.
+</p>
+
+<div class="row">
+  <div class="col-lg-7">
+    <form id="fs-form">
+      <div class="card mb-3">
+        <div class="card-header">1 &middot; What it is called</div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-4"><label class="form-label small mb-1" for="fs-name">Name</label>
+              <input class="form-control form-control-sm" id="fs-name" name="name"
+                     placeholder="nj_home_core" required></div>
+            <div class="col-md-4"><label class="form-label small mb-1" for="fs-entity">Entity</label>
+              <input class="form-control form-control-sm" id="fs-entity" name="entity"
+                     placeholder="property_id" required></div>
+            <div class="col-md-4"><label class="form-label small mb-1" for="fs-grain">Grain</label>
+              <input class="form-control form-control-sm" id="fs-grain" name="grain"
+                     placeholder="one row per property_id"></div>
+          </div>
+          <label class="form-label small mb-1 mt-2" for="fs-description">What it is for</label>
+          <input class="form-control form-control-sm" id="fs-description" name="description"
+                 placeholder="the columns the NJ valuation kernel reads">
+          <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+            Owned by <code>{{ user }}</code> &mdash; the register takes the owner
+            from whoever is acting and there is no field for it, because an owner
+            somebody typed is an owner nobody is.
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>2 &middot; Slots it declares itself</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" id="add-slot">Add a slot</button></div>
+        <div class="card-body">
+          <p class="text-muted mb-2" style="font-size:.74rem">
+            The slots are the schema, and the schema is what a kernel is defined
+            over. Adding one later changes <code>X</code>, which is a model
+            change rather than a data change &mdash; so it becomes a different
+            featureset and the register says so instead of letting it happen
+            quietly. A slot's type must equal its feature's exactly, so the
+            list offered is the types the catalogue actually carries.
+          </p>
+          <div id="slot-rows"></div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>3 &middot; Featuresets it composes from</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" id="add-parent">Compose from another</button></div>
+        <div class="card-body">
+          <p class="text-muted mb-2" style="font-size:.74rem">
+            A combination of featuresets is a featureset. {{ composition.rule }}.
+            The <em>definition</em> of each parent is recorded as you compose, so
+            a parent that moves afterwards is reported as drift rather than
+            changing this one silently. No more than
+            {{ composition.max_depth }} levels.
+          </p>
+          <div id="parent-rows"></div>
+          <p class="text-muted mb-0 mt-1" style="font-size:.74rem" id="parent-empty">
+            {% if not featuresets %}Nothing to compose from yet &mdash; this is
+            the first featureset in the register.{% endif %}
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>4 &middot; What it changes about what it inherited</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" id="add-op">Add an operation</button></div>
+        <div class="card-body">
+          <table class="table maya mb-2">
+            <thead><tr><th>Operation</th><th>Means</th></tr></thead>
+            <tbody>
+            {% for op in composition.operations %}
+              <tr><td class="small"><code>{{ op.op }}</code></td>
+                  <td class="small">{{ op.means }}</td></tr>
+            {% endfor %}
+            </tbody></table>
+          <p class="text-muted mb-2" style="font-size:.74rem">
+            {{ composition.totality }} &mdash; because an operation that silently
+            does nothing is one somebody believes happened.
+          </p>
+          <div id="op-rows"></div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">5 &middot; The label, and how long the outcome takes</div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-5"><label class="form-label small mb-1" for="fs-label">Label slot</label>
+              <input class="form-control form-control-sm" id="fs-label" name="label_slot"
+                     placeholder="optional — the slot holding the answer"></div>
+            <div class="col-md-3"><label class="form-label small mb-1" for="fs-window">Outcome window (days)</label>
+              <input class="form-control form-control-sm" id="fs-window" name="outcome_window_days"
+                     inputmode="numeric" placeholder="0"></div>
+            <div class="col-md-4 d-flex align-items-end">
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" id="fs-ephemeral" name="ephemeral">
+                <label class="form-check-label small" for="fs-ephemeral">ephemeral</label></div>
+              <div class="ms-2 flex-grow-1">
+                <input class="form-control form-control-sm" id="fs-ttl" name="ttl_days"
+                       placeholder="TTL days" aria-label="Time to live in days"></div></div>
+          </div>
+          <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+            Naming a label slot turns the leakage check on: from then on no other
+            slot may hold a feature computed from that one, however many hops
+            away. The window is how long the outcome takes to be known, and it is
+            the reason a model cannot be judged the week it ships.
+          </p>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">6 &middot; Default retrieval policy</div>
+        <div class="card-body">
+          <textarea class="form-control form-control-sm" id="fs-defaults" name="defaults"
+                    rows="2" style="font-family:var(--mono,monospace);font-size:12px"
+                    placeholder='{"normalise": {"living_area_sqft": "zscore"}, "align": {"rule": "forward"}}'></textarea>
+          <p class="text-muted mb-2 mt-1" style="font-size:.74rem">
+            Attached as this featureset's default behaviour; a request may still
+            override it column by column, and a child inherits it and may
+            override part &mdash; the same fold, with the rightmost winning
+            ({{ retrieval.precedence }}). It says
+            {{ retrieval.sections|join(', ') }} and nothing else: a policy that
+            could say anything would be a scripting language wearing a
+            dictionary's clothes.
+          </p>
+          <table class="table maya mb-0">
+            <thead><tr><th>Section</th><th>Value</th><th>Means</th></tr></thead>
+            <tbody>
+            {% for f in retrieval.fill %}
+              <tr><td class="small">fill</td><td class="small"><code>{{ f.value }}</code></td>
+                  <td class="small">{{ f.means }}</td></tr>
+            {% endfor %}
+            {% for m in retrieval.normalise %}
+              <tr><td class="small">normalise</td><td class="small"><code>{{ m.value }}</code></td>
+                  <td class="small">{{ m.means }}</td></tr>
+            {% endfor %}
+            {% for a in retrieval.align %}
+              <tr><td class="small">align</td><td class="small"><code>{{ a.value }}</code></td>
+                  <td class="small">{{ a.means }}
+                    {% if not a.point_in_time_safe %}
+                      <div><span class="evidence-bad">reaches into the future</span>
+                        <span class="text-muted">&mdash; not forbidden, but every
+                        filled value is stamped with the ingest time at which it
+                        actually became knowable, so an ordinary point-in-time
+                        read excludes it without anybody remembering a flag</span></div>
+                    {% endif %}</td></tr>
+            {% endfor %}
+            </tbody></table>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header">What it would resolve to</div>
+      <div class="card-body">
+        <div id="fs-verdict" class="mb-2 small text-muted">Type a slot, or compose
+          from a parent, and the register will say what that resolves to.</div>
+        <div id="fs-resolved"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">Declare it</div>
+      <div class="card-body">
+        <button class="btn btn-sm btn-danger" id="fs-declare" disabled>Declare this featureset</button>
+        <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+          Enabled by the preview returning 200, and by nothing computed here.
+          The preview answers the <em>composition</em> half: the slots, the
+          parents, the operations and the policy. It never sees the name, the
+          label slot or the outcome window, so three refusals can only reach you
+          when you press this &mdash; a name already taken, a label slot that is
+          not one of the slots this resolves to, and a negative window. They are
+          refusals, not damage: nothing is written when one happens.
+        </p>
+        <div id="fs-result" class="small mt-2"></div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">The fold, once</div>
+      <div class="card-body">
+        <p class="small text-muted mb-2">{{ composition.why }}</p>
+        <p class="small text-muted mb-0">{{ composition.pinning }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Featuresets already declared</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Featureset</th><th>Slots</th><th>Owner</th><th>Newest</th>
+               <th>State</th><th>Author</th></tr></thead>
+    <tbody>
+    {% for s in featuresets %}
+      <tr><td class="small"><a href="/featureset/{{ s.name }}"
+                 style="color:var(--crimson);text-decoration:none">{{ s.name }}</a>
+            <div class="text-muted">{{ s.description or s.grain }}</div></td>
+          <td class="small" data-sort="{{ s.slots|length }}">{{ s.slots|length }}
+            {% if s.inherited_slots %}
+              <div class="text-muted">{{ s.inherited_slots|length }} inherited</div>{% endif %}
+            {% if s.label_slot %}
+              <div class="text-muted">label: {{ s.label_slot }}</div>{% endif %}</td>
+          <td class="small">{{ s.ownership.owner }}</td>
+          <td class="small">
+            {% if s.latest %}
+              <a href="/featureset/{{ s.name }}/plan/{{ s.latest.version }}"
+                 style="color:var(--crimson);text-decoration:none">v{{ s.latest.version }} plan</a>
+            {% else %}<span class="text-muted">unfilled</span>{% endif %}</td>
+          <td class="small">
+            {% if s.sealed %}<span class="evidence-ok">sealed</span>
+            {% elif s.drift %}<span class="evidence-bad">a parent has moved</span>
+            {% else %}<span class="text-muted">{{ s.versions|length }} version(s)</span>{% endif %}</td>
+          <td class="small">
+            {% if not s.sealed %}
+              <a href="/featureset/{{ s.name }}/bind"
+                 style="color:var(--crimson);text-decoration:none">fill the slots</a> &middot;
+            {% endif %}
+            <a href="/featureset/{{ s.name }}/refusals"
+               style="color:var(--crimson);text-decoration:none">refusals</a></td></tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted small">
+        None declared. A featureset is what lets a warrant say <em>train this
+        model on that data</em> and mean something checkable.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURESET_AUTHOR = {
+  dtypes: {{ dtypes|tojson }},
+  parents: {{ featuresets | map(attribute='name') | list | tojson }},
+  catalogue: {{ catalogue|tojson }}
+};
+</script>
+<script src="/static/js/featureset-author-define.js"></script>
+{% endblock %}

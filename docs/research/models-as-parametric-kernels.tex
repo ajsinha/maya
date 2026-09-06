@@ -129,9 +129,10 @@ rule, a regime encoding, an approval. That boundary, drawn for governance reason
 same boundary that decides where machine generation is admissible, which we regard as the most useful
 consequence of the account.
 
-Each claim is marked with where it is enforced. Fifteen of the twenty-one stated laws execute against
-generated inputs; six do not, and are named with the reason. Three defects were found by writing the
-executable form of laws that had been stated for months.
+Each claim is marked with where it is enforced. Sixteen of the twenty-one stated laws execute against
+generated inputs; five do not, and are named with the reason in the place a reader would look for the
+executable one. That marking is itself part of the argument: a law that is stated and not executed
+prevents nothing, and a document implying otherwise is the failure the discipline exists to prevent.
 \end{abstract}
 
 \section{Introduction}
@@ -216,11 +217,16 @@ polynomial.
       (\Cref{prop:universal}), including the ingest clock of a derived feature
       (\Cref{prop:clockhom}). D4 dissolves. We also prove that the currency valuation cannot be one of
       these homomorphisms (\Cref{prop:freshness}).
+\item \Cref{sec:fibration} indexes evidence requirements as the fibres of a fibration, and shows that the
+      base of that fibration must itself be derived: a declared base cannot deliver conservative extension
+      and totality together (\Cref{prop:derivedbase}). \Cref{sec:rulesets} treats the one class whose
+      parameter object has logical rather than numerical structure, and states exactly what becomes
+      decidable there and what does not (\Cref{prop:reachability}).
 \item \Cref{sec:declared} draws the complement honestly: the facts that must be declared because they
       \emph{constitute} the standard against which anything else is checked.
 \item \Cref{sec:laws} states the discipline that keeps the rest from becoming ornament, gives the
-      register of twenty-one laws with the six that do not execute named, and records three defects that
-      only the executable form exposed.
+      register of twenty-one laws with the five that do not execute named, and states the properties an
+      executable law delivers that a documented one does not.
 \item \Cref{sec:automation} observes that the derive/declare boundary of
       \Cref{sec:order,sec:asof,sec:poly,sec:declared} is exactly the boundary that decides where
       machine-generated output may be accepted (\Cref{prop:automation,prop:citation}).
@@ -259,7 +265,10 @@ $\min(\ell,a)$ and that this is what makes the read stable;
 features, so that a data-engineering rule becomes a homomorphism (\Cref{prop:clockhom});
 (vi) \Cref{prop:freshness}, an elementary negative result that we record because the corresponding
 positive claim appears in our own earlier design notes and, we suspect, in others';
-(vii) the observation that the derive/declare boundary and the oracle boundary coincide
+(vii) \Cref{prop:derivedbase}, which we believe to be new and which is the paper's own thesis applied to
+its own machinery: an indexed family of governance obligations cannot be both freely extensible and
+provably total unless its index is computed rather than recorded;
+(viii) the observation that the derive/declare boundary and the oracle boundary coincide
 (\Cref{sec:automation}).
 
 \subsection{How to read this paper, and how to check it}
@@ -270,7 +279,7 @@ it earns one, a worked example from banking. A reader who wants the argument wit
 follow the shaded material alone and lose nothing essential.
 
 Every formal claim carries a marker saying where it is enforced in the reference implementation. The
-marker names a test, a module, or --- for six of the twenty-one laws --- says plainly that the claim is
+marker names a test, a module, or --- for five of the twenty-one laws --- says plainly that the claim is
 stated and not executed. We regard the second kind of marker as the more important one, for the reason
 \Cref{sec:laws} gives: a document implying that every law is checked, while six are not, is the exact
 failure that section exists to prevent.
@@ -437,6 +446,162 @@ your own realised defaults. That is not a compromise forced by commercial realit
 mathematics permits.
 \end{worked}
 
+\subsection{The classification is the index}\label{sec:fibration}
+
+Almost every structure in this domain is a family indexed by something else: versions by artefact,
+calibrations by version, deployments by environment, and --- the one that matters here --- \emph{evidence
+requirements by kind of artefact}. The mathematics of indexed families is the fibration, and the
+governance question it answers is what a new kind of artefact costs.
+
+Let $p \colon \mathcal{E} \to \mathcal{B}$ be a fibration with $\mathcal{B}$ a category of artefact kinds,
+and let the fibre $\mathcal{E}_c$ over kind $c$ carry the four things that vary with kind: an evidence
+schema, a lifecycle, a set of monitors that can answer a question about it, and a set of documents that
+compile for it.
+
+\begin{proposition}[Conservative extension]\label{prop:conservative}
+Let $\mathcal{B}^{+}$ extend $\mathcal{B}$ by a new object $c$ with a chosen fibre $\mathcal{E}_c$ and no
+new morphisms into or out of existing objects. Then the inclusion
+$\mathcal{E} \hookrightarrow \mathcal{E}^{+}$ is full and faithful, commutes with the projections, and
+satisfies $\mathcal{E}^{+}_b = \mathcal{E}_b$ for every $b \in \mathcal{B}$. No judgement expressible over
+$\mathcal{B}$ is altered by the extension.
+\end{proposition}
+
+\begin{proof}
+$\mathcal{E}^{+}$ is the coproduct $\mathcal{E} + \mathcal{E}_c$ over $\mathcal{B} + \{c\}$; fullness,
+faithfulness and fibrewise identity are immediate, and the cartesian liftings over $\mathcal{B}$ are
+unchanged since no morphisms were added.
+\end{proof}
+
+\begin{proposition}[Totality]\label{prop:totality}
+The extension claim is worth exactly the totality of the fibration: if some fibre is empty in one of the
+four facets, there is a kind about which the system has nothing to say, and it will say nothing by
+omission rather than by refusal. Totality is therefore a checkable property --- no fibre is empty --- and
+it is checked before the system serves rather than when a caller relies on it.
+\end{proposition}
+\runs{core/fibres/registry.py::verify (start-up gate) and ::register (refuses a partial fibre, so the
+registry cannot hold one); tests/test\_laws.py::TestL15NoFibreIsEmpty}
+
+\begin{plain}
+\pt Think of a filing cabinet where each drawer holds one kind of artefact and comes with its own forms:
+what must be filled in, what gets monitored, what documents come out. The bad design writes the list of
+drawers into the cabinet's frame, so adding a drawer means rebuilding the cabinet. The good design makes
+drawers independent, so adding one is adding one --- and \Cref{prop:conservative} is the guarantee that
+adding one cannot disturb what is in the others.
+
+\Cref{prop:totality} is the other half, and it is the half that is usually missing: every drawer has to
+actually contain its forms. A drawer with no forms in it is worse than an absent drawer, because the
+cabinet looks complete.
+\end{plain}
+
+\subsubsection*{The base has to be derived}
+
+There is a constraint on $\mathcal{B}$ that the fibration literature has no reason to state and that this
+domain does. It is the paper's own thesis applied to the paper's own machinery, and it is sharp enough to
+be a dilemma.
+
+\begin{proposition}[A declared base admits no total fibration]\label{prop:derivedbase}
+Suppose the base $\mathcal{B}$ is a free-text attribute recorded by a person. Then totality
+(\Cref{prop:totality}) and conservative extension (\Cref{prop:conservative}) cannot both be delivered:
+\begin{enumerate}[leftmargin=1.6em,itemsep=2pt]
+\item If the admissible values are closed, then extension requires enlarging the closed set, which is a
+      change to the base rather than the supply of a fibre --- and \Cref{prop:conservative} no longer
+      describes what adding a kind costs.
+\item If they are open, then a value with no fibre is producible at any time by writing one down, so the
+      totality check quantifies over a set that does not contain the values actually in use. The gate
+      passes and the fibration is not total.
+\end{enumerate}
+Both horns are avoided exactly when the base is \emph{derived}: an index computed from the artefact
+cannot be typed wrong, cannot be extended by accident, and cannot disagree with the artefact it indexes.
+\end{proposition}
+
+\begin{proof}
+The two cases are exhaustive for an attribute whose values are supplied rather than computed. In the
+closed case, admitting a new kind changes $\mathcal{B}$'s object set by an act external to supplying
+$\mathcal{E}_c$, which is what \Cref{prop:conservative} assumes is the whole of the extension. In the open
+case, let $b$ be a value no fibre covers; the totality check ranges over the registered indices, which by
+construction excludes $b$, so it returns success on a fibration that has no fibre over $b$. If instead the
+index is a function of the artefact into a fixed finite set --- as $\kappa$, $\varphi$ and $\mathrm{ad}$
+are in \Cref{prop:classification} --- neither case arises: the index set is fixed, so totality quantifies
+over all of it, and extension is the supply of a fibre.
+\end{proof}
+
+The trainability classification of \Cref{prop:classification} is such a base. That is the reason it is
+worth deriving twice over: once so that a closed-form pricer is a type rather than an exception, and once
+so that the structure indexed by it can be required to be complete. An organisational label --- what desk
+owns this, what business it serves --- remains useful for grouping and reporting, and indexes nothing.
+
+\begin{worked}
+\wk{a monitor that ran for two years and meant nothing}
+A discount-curve pricer is registered and somebody attaches a \emph{performance} monitor: discrimination
+against realised outcomes, evaluated monthly. It runs. It never fires. On the estate screen the model is
+green and monitored.
+
+The pricer has no parameters and no fitted relationship to outcomes, so discrimination is not a question
+about it. The monitor was not failing to detect anything; there was nothing of that kind to detect. And
+this is worse than an absent monitor, because an absent monitor appears in the coverage worklist and a
+meaningless one does not --- it reads as coverage.
+
+With a fibre over the class, the monitor kind is checked against what the class can answer, and the
+attachment is refused with what \emph{is} answerable for a $\textsf{T0}$ artefact named instead: whether
+the inputs are still inside the range it was benchmarked over. The refusal is not a restriction on what
+validators may do. It is the fibre being read rather than merely held.
+\end{worked}
+
+\subsection{When the parameter object can be inspected}\label{sec:rulesets}
+
+For most classes $P$ is a vector of numbers and the interesting questions about it are statistical. For
+$\textsf{T8}$ it is an authored rule set, and that changes what is askable: a rule set has \emph{logical}
+structure, so questions about it can be decided rather than estimated.
+
+The condition for this is a restriction, and the restriction is the point. If rules are written in a
+general expression language, questions about them are questions about programs. Confine a condition to
+comparisons on declared fields combined by \textsc{and}, \textsc{or} and \textsc{not} --- no arithmetic,
+no function calls, no free text --- and each condition has a disjunctive normal form whose conjunctions
+reduce to a domain per field: an interval, a permitted set, an excluded set and a null state. Emptiness
+and containment are then arithmetic.
+
+\begin{proposition}[Reachability under first-match-wins]\label{prop:reachability}
+Let a rule set be an ordered list of rules with a required \emph{otherwise} clause, evaluated first match
+wins. Under the restriction above, ``rule $r_j$ is shadowed by some single earlier rule $r_i$'' is
+decidable, by testing whether $r_i$'s condition covers $r_j$'s. The decision procedure is \emph{sound}: a
+rule it reports as shadowed is unreachable. It is \emph{incomplete}: a rule covered only by the
+\emph{union} of two or more earlier rules is not reported.
+\end{proposition}
+\runs{core/rules/domains.py::covers, satisfiable; core/rules/ruleset.py; core/rules/editor.py}
+
+\begin{proof}
+Soundness: if $r_i$'s condition covers $r_j$'s, then every input reaching $r_j$ in evaluation order has
+already matched $r_i$, so $r_j$ never fires. Incompleteness is exhibited by $r_1 = (x > c)$,
+$r_2 = (x \le c)$ and any $r_3$: no single earlier condition covers $r_3$, and their union covers
+everything.
+\end{proof}
+
+We state the limit exactly rather than describing the check as ``unreachable rule detection'', because
+the gap is the interesting part. Complete coverage checking is satisfiability over the theory, decidable
+here but requiring a solver; the promise made is the one delivered --- \emph{no rule is shadowed by any
+single earlier rule} --- and a check that claims more than it delivers is precisely the failure mode the
+analysis exists to find.
+
+\begin{plain}
+\pt Rule sets are read top to bottom and the first match wins. That makes them easy to read and quietly
+easy to get wrong: a rule that an earlier rule already covers can never fire, and nothing about reading
+the document tells you so. Somebody believes that rule is in force. It appears in the model card, gets
+cited in a committee paper, and survives every review --- because a rule that never fires also never
+produces a wrong answer.
+
+The analysis finds those, and it is deliberately honest about its reach: it catches a rule blocked by one
+earlier rule, not a rule blocked by two of them working together. Saying which is the difference between
+a check people trust and a check people switch off.
+\end{plain}
+
+\begin{remark}[Why this belongs in this paper]
+Two of the account's threads meet here. \Cref{prop:classification} says $\textsf{T8}$ is a class because
+of \emph{how} $P$ is inhabited --- somebody wrote it down --- and \Cref{prop:reachability} says that when
+$P$ is inhabited that way, and is held in a structured form rather than as text, properties of $P$ become
+derivable facts about the model. An authored rule set is the most declared parameter object there is, and
+it is the one whose contents the platform can say the most about.
+\end{remark}
+
 \subsection{What the derivation still reads}\label{sec:stilldeclared}
 
 Honesty requires the converse. \Cref{prop:classification} derives the class from
@@ -567,14 +732,17 @@ about any of it. Extra things you provide are fine --- nobody has to look at the
 fine, because someone was relying on the old tolerance.
 \end{plain}
 
-\begin{remark}[An error this corrected]\label{rem:backwards}
-The design note preceding the implementation said that a refinement is ``at a type no wider''. That is
-backwards: standing in for something requires accepting \emph{at least} what it accepted, so a wider
-acceptance is admissible and a narrower one regresses. The prose came from the intuition that a subtype
-is narrower --- true of the values a type denotes, false of the inputs a slot accepts --- while the code's
-acceptance relation had it right. Writing the implementation found the error in the note, which is the
-ordinary direction of that traffic and is recorded here because a paper that reports only its successes
-misrepresents how the results were obtained.
+\begin{remark}[The direction is counterintuitive, and reliably so]\label{rem:backwards}
+The order runs opposite to the intuition most readers bring to it. ``Refinement'' suggests narrowing, and
+a subtype \emph{is} narrower --- in the set of values it denotes. But a schema here is read as a set of
+\emph{inputs a slot will accept}, and standing in for something requires accepting at least what it
+accepted. So a wider acceptance is admissible and a narrower one regresses, which is the reverse of the
+reading the word invites.
+
+This is why the relation is worth writing as an order with a stated direction rather than as a rule of
+thumb in prose. The two readings of ``narrower'' are easy to hold at once and impossible to hold
+consistently, and the failure they produce is silent: an order stated in the intuitive direction admits
+exactly the replacements that break callers.
 \end{remark}
 
 \begin{proposition}[Preorder, and a partial order on canonical form]\label{prop:preorder}
@@ -698,12 +866,16 @@ $\mathrm{out}(v)$ promised is still present at the same datatype.
 core/features/sets.py::FeaturesetRegistry.satisfies; core/registry/composition.py::\_check\_composes;
 tests/test\_laws.py::TestL20TheSameOrderAnswersEveryQuestion. Line four is law-tested and has no caller.}
 
-The first three lines were previously three implementations of one relation; they are now one function,
-which is checkable by inspection and is checked by inspection. The fourth line was not previously askable
-at all. It is the meet doing work: a featureset that must serve two models must refine their meet, and
-when the meet does not exist, the honest answer is that no featureset can, with the offending slot named.
-That the question is now expressible is a consequence of \Cref{thm:lattice}; that nothing yet asks it is a
-consequence of nobody having needed to, and is recorded rather than presented as a capability in use.
+The first three lines are answered by one function, and that they are is asserted rather than assumed:
+a test reads the source of each call site and requires the order to appear in it. That is a crude check
+and it holds the property that matters, which is not that the three agree today but that they cannot
+drift apart tomorrow. Three implementations of one relation drift in a predictable direction, and it is
+not the safe one.
+
+The fourth line is the meet doing work: a featureset that must serve two models must refine their meet,
+and when the meet does not exist, the honest answer is that no featureset can, with the offending slot
+named. It is a question the structure can answer and that no production path yet asks --- available
+rather than deployed, and marked as such.
 
 \subsection{A refusal that names the remedy}
 
@@ -992,28 +1164,36 @@ Read with two, it gets 1.20 --- and by \Cref{cor:repro} it still gets 1.20 when 
 the restatement was knowable.
 \end{worked}
 
-\subsection{What writing the operator down found}\label{sec:operatorfound}
+\subsection{Two properties the operator has to carry beyond itself}\label{sec:operatorfound}
 
-Two defects were exposed by stating \Cref{prop:asof} as executable properties rather than as a
-description. Both had been present for months, both are of a kind that is invisible to ordinary testing,
-and both are worth reporting because they are characteristic.
+\Cref{prop:asof} is a statement about a function. A governance platform does not execute the training
+assembly --- an engine somewhere else does --- and it checks the assembly with a second computation of its
+own. So the operator has to hold in two more places than the one it is defined in, and each of those is a
+property worth stating on its own.
 
-\paragraph{The published rule was not the applied rule.} The platform publishes the point-in-time
-predicate as a string, in every feature-set plan and every execution warrant, because the engines that
-implement it are not the ones this system runs. The published string bounded ingest by the observation
-time alone --- the rule from before $\min$ was introduced. An engine implementing the published contract
-faithfully therefore admitted rows the platform's own assembly refuses, and the disagreement would have
-surfaced as an unreproducible training set with two correct-looking implementations and no way to tell
-which was wrong. The test that now guards this does not compare strings; it \emph{evaluates} the published
-predicate against the same records and demands the same answer as the operator.
+\paragraph{The published rule is the applied rule.} The point-in-time predicate is published as a string,
+in every feature-set plan and every execution warrant, because the engines that implement it are not the
+ones the platform runs. That string is a \emph{contract}, and the property required of it is agreement:
+for every set of records, the rows the published predicate admits are the rows the operator admits.
 
-\paragraph{The independent verifier disagreed with the thing it verifies.} Assembly is checked by a second
-computation that deliberately does not reuse the assembly path, so that agreement means something. That
-second path bounded ingest by the observation time alone, while the operator bounds it by $\min(\ell,a)$.
-The two therefore disagreed whenever a set was assembled after its labels matured --- which is the
-ordinary case --- and the verifier reported a mismatch on a \emph{correct} assembly. A false positive in
-the control that verifies a control is worse than no control, because it teaches whoever reads the report
-to discount it.
+The way to check that is to \emph{execute} the published string against the same records and compare with
+\Cref{def:asof}, which is what the law test does. Comparing the text instead --- asserting that the
+published rule contains some expected substring --- is a weaker check in the specific way that matters: it
+passes on a rule that reads plausibly and admits different rows. An engine faithfully implementing a
+published contract that disagrees with the platform's own read produces an unreproducible training set
+with two correct-looking implementations and no way to tell which one is wrong.
+
+\paragraph{The independent recomputation bounds the clock identically.} Assembly is verified by a second
+computation that deliberately does not reuse the assembly path, so that agreement between them carries
+information. The value of that arrangement rests entirely on the two routes implementing the \emph{same}
+operator: a verifier that bounds the ingest clock by the observation time while the assembly bounds it by
+$\min(\ell,a)$ disagrees on every set assembled after its labels matured, which is the ordinary case, and
+therefore reports a mismatch on a correct assembly.
+
+That failure mode deserves naming, because it is worse than the one it looks like. A control that reports
+a violation where there is none is not a conservative control; it is one that teaches whoever reads the
+report to discount it, and it does so precisely for the population it was built to examine. Stating the
+operator once and requiring both routes to be it is what removes the possibility.
 
 \subsection{The input object, made an object}
 
@@ -1130,12 +1310,12 @@ exceptions to forget. Every route to the number goes through the same object.
 
 Two further questions fall out of the same polynomial:
 
-\emph{What does this rest on?} The free variables. This is distinct from the transitive ancestor set, and
-writing the tests made the distinction precise rather than leaving it to be discovered: the ancestor walk
-returns every ancestor including derived ones, which is the right answer to \emph{what breaks if this
-changes}; the free variables are the base features and nothing else, which is the right answer to
-\emph{what data does this ultimately read}. The second is the first minus its derived members, and that is
-asserted rather than assumed.
+\emph{What does this rest on?} The free variables --- and these are deliberately \emph{not} the transitive
+ancestor set, because the two answer different questions. The ancestor walk returns every ancestor,
+derived ones included, which is the right answer to \emph{what breaks if this changes}. The free variables
+are the base features and nothing else, which is the right answer to \emph{what data does this ultimately
+read}. The second is the first minus its derived members, and the identity is asserted rather than
+assumed: two routes to one answer are worth having only while they agree.
 
 \emph{Does it touch the label?} Membership of the label's variable in the free variables. A feature
 derived from a derivation of the label is still the label, and leakage detection becomes a membership test
@@ -1350,7 +1530,7 @@ itself.
 
 \subsection{What runs, and what does not}
 
-The reference implementation states twenty-one laws. Fifteen execute; six do not.
+The reference implementation states twenty-one laws. Sixteen execute; five do not.
 
 \begin{center}
 \small
@@ -1372,7 +1552,7 @@ The reference implementation states twenty-one laws. Fifteen execute; six do not
 \textsf{L-12} & schema variance (\Cref{prop:onerelation}) & runs, and enforces \\
 \textsf{L-13} & evidence gluing within a consistency radius & \emph{not built} \\
 \textsf{L-14} & lax monoidality of risk (\Cref{cor:lax}) & \emph{not built} \\
-\textsf{L-15} & fibration completeness: no empty fibre & \emph{not built} \\
+\textsf{L-15} & fibration totality (\Cref{prop:totality}) & runs, and gates start-up \\
 \textsf{L-16} & no obligation contradiction & runs, and enforces \\
 \textsf{L-17} & contract--serving agreement & \emph{not built} \\
 \textsf{L-18} & no personal data inline in evidence nodes & runs, and enforces \\
@@ -1383,15 +1563,14 @@ The reference implementation states twenty-one laws. Fifteen execute; six do not
 \end{tabular}
 \end{center}
 
-The six that do not run are named with their reasons, in the test file as well as in the table, because a
+The five that do not run are named with their reasons, in the test file as well as in the table, because a
 gap recorded only in a document is a gap somebody has to go looking for. \textsf{L-6} needs a replay that
 checks a document's quantitative claims against the register; the replay exists for validation episodes and
 not for documents. \textsf{L-11} needs a \emph{put}: the compiler regenerates whole documents, so there is
 no round trip, and building one merely to satisfy a law would be building the wrong thing. \textsf{L-13} has
 no implementation; no consistency radius is computed anywhere. \textsf{L-14} needs composite warrants and an
-aggregate risk function; \Cref{prop:compose} now gives it a derived signature to quantify over, but the
-functor is design. \textsf{L-15} needs a loader that refuses to boot on a partial fibre; artefact classes are
-strings today. \textsf{L-17} needs an online serving store to compare against; half of it exists, in that the
+aggregate risk function; \Cref{prop:compose} gives it a derived signature to quantify over, but the functor
+is design. \textsf{L-17} needs an online serving store to compare against; half of it exists, in that the
 system computes what serving \emph{must} read.
 
 A property test enforces that this list and the public table agree: if the table claims a law runs, something
@@ -1399,26 +1578,32 @@ must run it.
 
 \runs{tests/test\_laws.py::TestTheLawsStillNotExecutable}
 
-\subsection{What executing them found}
+\subsection{What an executable law delivers that a documented one does not}
 
-Three defects were found by writing the executable form of laws that had been stated for months, and each
-is characteristic of a different failure mode.
+The difference is not diligence. A statement in a document and the code it describes are two accounts of
+one rule, and two accounts of one rule diverge --- not because anybody decides to let them, but because
+only one of the two is executed, and the executed one is the only one that anything pushes back on. An
+executable law is the comparison between them, performed by a machine, on a schedule nobody sets.
+
+Four properties follow, and each is a property of the arrangement rather than of the people in it.
 
 \begin{enumerate}[leftmargin=*,itemsep=3pt]
-\item \emph{A design note that was backwards} (\Cref{rem:backwards}). The prose said refinement was at a type
-      no wider; the code's acceptance relation had it right. Stating the order found the disagreement.
-\item \emph{A published contract that did not match the implementation} (\Cref{sec:operatorfound}). The
-      point-in-time predicate handed to external engines was the rule from before the $\min$ was introduced.
-      The old test asserted a substring of it, which is a check loose enough to pass on the wrong rule; the
-      new one executes the published predicate and demands the operator's answer.
-\item \emph{An independent verifier that disagreed with the thing it verified}
-      (\Cref{sec:operatorfound}). The second computation bounded the ingest clock differently from the first,
-      so it reported a mismatch on correct assemblies.
+\item \emph{A rule stated once cannot disagree with itself.} \Cref{prop:onerelation} is the instance: four
+      questions, one function, and a test that reads each call site to keep it that way.
+\item \emph{A published contract can be executed rather than quoted.} \Cref{sec:operatorfound} is the
+      instance. Where a rule is handed to a system this one does not run, the executable form of the law
+      runs the published rule and compares answers, which is a check on the contract rather than on its
+      spelling.
+\item \emph{Two routes to one answer can be required to be the same route.} Independent recomputation is
+      worth its cost only under that requirement, and the requirement is a law rather than a convention.
+\item \emph{A property that holds on the examples somebody chose is not the property.} Laws are checked
+      against generated inputs \cite{claessen2000}, and stated as the law is stated rather than as the
+      implementation behaves --- a test written from the code proves only that the code agrees with
+      itself.
 \end{enumerate}
 
-None of the three is exotic. All three are the same shape: a statement and its implementation drifted, and
-nothing compared them, because the comparison had never been written down as something a machine could
-perform.
+The fourth is the one that decides whether the other three are real. It is also the reason the five
+unexecuted laws above are listed rather than described: the property they lack is not documentation.
 
 \section{Automation is the same boundary}\label{sec:automation}
 
@@ -1583,6 +1768,14 @@ system- and application-time periods into the standard \cite{kulkarni2012}. Leak
 failure mode is documented by Kaufman and collaborators \cite{kaufman2012}. The contribution here is not the
 two clocks but \Cref{prop:asof}.
 
+\paragraph{Indexed families.} Fibrations and the Grothendieck construction are standard
+\cite{jacobs1999}, and \Cref{prop:conservative} is an unremarkable instance. What we have not seen stated
+is \Cref{prop:derivedbase}: that an indexed family of \emph{obligations} carries a constraint on its base
+which an indexed family of mathematical structures does not, because the totality of the family is a
+property somebody will rely on, and a base whose values are supplied rather than computed cannot support
+both totality and free extension. The constraint is invisible in the mathematics and decisive in the
+application, which is the general shape of what this paper is trying to do.
+
 \paragraph{Specification over multiple logics, contracts, abstraction, lenses.} Institution theory is due to
 Goguen and Burstall \cite{goguen1992,diaconescu2008}; we are not aware of prior application to overlapping
 normative regimes over a shared asset inventory, nor of the use of the satisfaction condition as a
@@ -1617,7 +1810,7 @@ place.
 substitution judge output narrowing differently. Both readings are defensible; holding both is not, and this
 is the sort of divergence that \Cref{prop:onerelation} exists to prevent.
 
-\paragraph{Six laws do not execute.} They are listed in \Cref{sec:laws} with reasons. In particular
+\paragraph{Five laws do not execute.} They are listed in \Cref{sec:laws} with reasons. In particular
 \Cref{cor:lax} --- the interaction premium, which we present as one of the paper's more useful consequences
 --- is not computed anywhere. \Cref{thm:noncomp} says what a correct aggregate cannot be, and does not
 construct one.
@@ -1673,7 +1866,7 @@ homomorphism that has no exceptions.
 
 We have been equally concerned to say what does not derive. Aggregate risk cannot be compositional, and the
 obstruction is the copy map. Currency is not a semiring valuation, and no choice of constants makes it one.
-Six of twenty-one laws do not execute. And some facts --- the tiering rule, the regime encoding, the
+Five of twenty-one laws do not execute. And some facts --- the tiering rule, the regime encoding, the
 approval --- constitute the standard they would be checked against, and are therefore irreducibly
 declarations made by somebody accountable.
 
@@ -1743,6 +1936,9 @@ Morgan Kaufmann, 2000.
 
 \bibitem{kaufman2012} S.~Kaufman, S.~Rosset, C.~Perlich, O.~Stitelman. Leakage in data mining: formulation,
 detection, and avoidance. \emph{ACM Transactions on Knowledge Discovery from Data}, 6(4), 2012.
+
+\bibitem{jacobs1999} B.~Jacobs. \emph{Categorical Logic and Type Theory}. Studies in Logic and the
+Foundations of Mathematics 141, Elsevier, 1999.
 
 \bibitem{goguen1992} J.~A.~Goguen, R.~M.~Burstall. Institutions: abstract model theory for specification and
 programming. \emph{Journal of the ACM}, 39(1):95--146, 1992.

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Load feature values — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">FEATURE VALUES &middot; AUTHORING</p>
+<h1>Create a view, and load values into it</h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  A feature view is the namespace values live in, and <strong>a version is a
+  namespace</strong>. Loading again does not overwrite what an earlier version
+  serves &mdash; they are different Delta paths &mdash; so a model pinned to v7
+  keeps reading v7 after v8 is written. Every row carries
+  <code>{{ clocks.entity }}</code> and both clocks:
+  <code>{{ clocks.valid_time }}</code> when the fact was true and
+  <code>{{ clocks.ingest_time }}</code> when the platform learned it. A row
+  missing either is refused here rather than discovered in a training set.
+</p>
+<p class="small mb-3">
+  <a href="/features" style="color:var(--crimson);text-decoration:none">The catalogue</a>
+  &middot; <a href="/features/new" style="color:var(--crimson);text-decoration:none">Define a feature</a>
+  &middot; <a href="/features/point-in-time" style="color:var(--crimson);text-decoration:none">Ask a point-in-time question</a>
+</p>
+
+{% if not may_load %}
+<div class="state-note mb-3">
+  You may read feature values but not materialise them. The forms below still
+  submit, and the API refuses in full with the permission it wanted.
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <!-- ---------------------------------------------------------- the view -->
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">1 &mdash; Create a view</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          A view names a set of features at one grain. Every feature it names
+          must already be in the catalogue &mdash; the refusal lists the ones
+          that are not.
+        </p>
+        <form id="new-view" class="small">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="v-name">Name</label>
+              <input class="form-control form-control-sm" id="v-name" name="name"
+                     placeholder="sb_financials" required></div>
+            <div class="col-md-6">
+              <label class="form-label mb-1" for="v-entity">Entity</label>
+              <input class="form-control form-control-sm" id="v-entity" name="entity"
+                     placeholder="borrower" required></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="v-owner">Owner</label>
+              <input class="form-control form-control-sm" id="v-owner" name="owner"
+                     placeholder="person/d.raman" required></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="v-description">What it holds</label>
+              <input class="form-control form-control-sm" id="v-description"
+                     name="description" placeholder="quarterly financials as filed"></div>
+            <div class="col-12">
+              <label class="form-label mb-1" for="v-features">Features</label>
+              <select class="form-select form-select-sm" id="v-features" multiple
+                      size="8">
+                {% for f in catalogue %}
+                <option value="{{ f.name }}">{{ f.name }} &mdash; {{ f.entity }}</option>
+                {% endfor %}
+              </select>
+              <div class="form-text" style="font-size:.7rem">
+                Hold ctrl or cmd to choose several.</div></div>
+          </div>
+          <button class="btn btn-sm btn-danger mt-2 py-0 px-3"
+                  style="font-size:.75rem">Create the view</button>
+        </form>
+        <div id="view-result" class="small mt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- --------------------------------------------------------- the values -->
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">2 &mdash; Load values</div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          The whole load becomes <strong>one version</strong>, because a version
+          is what a featureset pins and half a version is not something anybody
+          can pin.
+        </p>
+        <div class="row g-2 small mb-3">
+          <div class="col-md-6">
+            <label class="form-label mb-1" for="load-view">View</label>
+            <select class="form-select form-select-sm" id="load-view">
+              {% for v in views %}<option value="{{ v.name }}">{{ v.name }} &mdash; {{ v.entity }}</option>{% endfor %}
+            </select></div>
+        </div>
+
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">A file</p>
+        <div class="row g-2 small align-items-end mb-2">
+          <div class="col-md-7">
+            <label class="form-label mb-1" for="load-file">Choose one</label>
+            <input class="form-control form-control-sm" type="file" id="load-file"
+                   accept=".csv,.jsonl,.ndjson,.parquet,.arrow"></div>
+          <div class="col-md-5">
+            <button class="btn btn-sm btn-danger w-100 py-0" id="load-file-go"
+                    style="font-size:.75rem">Load the file</button></div>
+        </div>
+        <table class="table maya mb-3 small">
+          <thead><tr><th>Format</th><th>Sent as</th><th>Why</th></tr></thead>
+          <tbody>
+            {% for u in uploads %}
+            <tr><td><code>{{ u.format }}</code></td>
+                <td class="mono" style="font-size:.72rem">{{ u.media_type }}</td>
+                <td class="text-muted">{{ u.means }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <p class="small fw-bold mb-2" style="color:var(--crimson)">Or paste rows</p>
+        <div class="row g-2 small mb-2">
+          <div class="col-md-5">
+            <label class="form-label mb-1" for="paste-format">What you are pasting</label>
+            <select class="form-select form-select-sm" id="paste-format">
+              <option value="json">JSON rows &mdash; one object per line</option>
+              <option value="csv">CSV &mdash; with a header row</option>
+            </select></div>
+        </div>
+        <textarea id="paste-rows" class="form-control form-control-sm mono mb-2" rows="6"
+placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "dscr": 1.2}
+{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 900, "dscr": 0.4}
+{"{{ clocks.entity }}": "C2", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "dscr": 2.1}'></textarea>
+        <button class="btn btn-sm btn-danger py-0 px-3" id="paste-go"
+                style="font-size:.75rem">Load these rows</button>
+        <div class="text-muted mt-2" style="font-size:.72rem">
+          JSON rows go to <code>/feature-views/{name}/materialise</code>; CSV is
+          sent as bytes to <code>/feature-views/{name}/data</code>, the same
+          endpoint an execution engine uses. The interface exercises the
+          contract rather than a convenience beside it.
+        </div>
+        <div id="load-result" class="mt-3 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- what is there -->
+<div class="card mt-3">
+  <div class="card-header">Views, versions, and whether the ground has moved</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>View</th><th>Version</th><th data-sort-numeric>Rows</th>
+               <th>The two clocks</th><th>Delta pin</th><th>Restated</th>
+               <th>Retirable</th><th>Take a copy</th></tr></thead>
+    <tbody>
+      {% for v in views %}
+        {% for n in v.versions %}
+        <tr><td class="small"><a href="/feature-views/{{ v.name }}"
+                style="color:var(--crimson);text-decoration:none">{{ v.name }}</a>
+              <div class="text-muted">{{ v.entity }}</div></td>
+            <td class="small">v{{ n.version }}</td>
+            <td class="small" data-sort="{{ n.row_count }}">{{ "{:,}".format(n.row_count) }}</td>
+            <td class="small mono" style="font-size:.72rem">{{ n.valid_time_column }}
+              <div>{{ n.ingest_time_column }}</div></td>
+            <td class="small">pinned at v{{ n.delta_version }}
+              <div class="text-muted">now v{{ n.current_delta_version }}</div></td>
+            <td class="small">
+              {% if n.restated %}<span class="evidence-bad">restated</span>
+                <div class="text-muted">{{ n.detail }}</div>
+              {% else %}<span class="evidence-ok">unchanged</span>{% endif %}</td>
+            <td class="small">
+              {% if n.retirable %}<span class="text-muted">yes</span>
+              {% else %}<span class="evidence-bad">pinned</span>
+                <div class="text-muted">by {{ n.pinned_by|length }} contract(s)</div>
+              {% endif %}</td>
+            <td class="small">
+              <a href="/api/v1/feature-views/{{ v.name }}/versions/{{ n.version }}/data?format=parquet"
+                 style="color:var(--crimson);text-decoration:none">parquet</a> &middot;
+              <a href="/api/v1/feature-views/{{ v.name }}/versions/{{ n.version }}/data?format=arrow"
+                 style="color:var(--crimson);text-decoration:none">arrow</a></td></tr>
+        {% else %}
+        <tr><td class="small">{{ v.name }}</td>
+            <td class="small text-muted" colspan="7">never materialised</td></tr>
+        {% endfor %}
+      {% else %}
+      <tr><td colspan="8" class="text-muted small">
+        No views yet. Create one on the left; a view with no versions is a
+        namespace with nothing in it, which is a legitimate state.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="card-body py-2 small text-muted border-top">
+    A version that has been <em>restated</em> still serves the bytes it pinned
+    &mdash; that is what the pin is for. It means a read that did not name the
+    pin would return something else, and anybody comparing two runs needs to
+    know which case they are in. A version a contract still pins cannot be
+    retired, and the refusal names the contracts.
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURE_AUTHOR = {
+  page: "load",
+  clocks: {{ clocks|tojson }},
+  uploads: {{ uploads|tojson }}
+};
+</script>
+<script src="/static/js/feature-author.js"></script>
+{% endblock %}

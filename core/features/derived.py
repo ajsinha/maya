@@ -51,7 +51,25 @@ EVALUATORS = (INTERNAL, EXTERNAL)
 ON_ERROR = ("null", "refuse")
 
 # Certification is a chain, weakest first; a derived feature sits at the meet.
-CERTIFICATION_ORDER = ("experimental", "reviewed", "certified", "gold")
+#: The order the meet ranks over, worst first. It **is** the catalogue's own
+#: `LEVELS`, in the order that makes a meet mean something.
+#:
+#: This used to read `("experimental", "reviewed", "certified", "gold")`, which
+#: is a different vocabulary from the one `certify` accepts. Two consequences,
+#: both silent:
+#:
+#: * `reviewed` and `gold` could never be set, so two of the four ranks were
+#:   unreachable and the order had half the resolution it appeared to;
+#: * **`deprecated` was not in the order at all**, so the fallback ranked it
+#:   `0` — the same rank as `experimental`. A derived feature built on a
+#:   deprecated input was therefore reported exactly as well-certified as one
+#:   built on a merely experimental input, which is the opposite of what
+#:   deprecating something is for.
+#:
+#: `deprecated` is now the *lowest* rank, below experimental, because a
+#: deprecated feature is one nothing new should be built on — and a meet whose
+#: worst input is deprecated should say so.
+CERTIFICATION_ORDER = ("deprecated", "experimental", "certified")
 
 
 # A derivation deeper than this is a modelling problem rather than a depth
@@ -259,12 +277,39 @@ class DerivedFeatures:
                        if feature_name in self.lineage(d["name"])})
 
     def certification_of(self, inputs: Sequence[str]) -> str:
-        """The meet: as certified as the least-certified input, never more."""
+        """The meet: as certified as the least-certified input, never more.
+
+        Computed on every call, and never stored on the derived feature's row.
+        It used to be written once at `define` and never recomputed, so the
+        invariant this method states was true at the moment of definition and
+        false from the first demotion onwards: certify two inputs, derive from
+        them, then deprecate one, and the derivation went on reporting itself
+        `certified`.
+
+        That is the same defect this platform keeps finding — a value that is
+        derived, then stored, then allowed to disagree with what it was derived
+        from. A meet is cheap; a stale meet is a claim nobody can trust.
+        """
         levels = [self.catalogue.require(n).get("certification", "experimental")
                   for n in inputs]
+        # An unrecognised level ranks worst rather than best. Somebody's own
+        # vocabulary is not evidence of quality, and the direction a check fails
+        # in is the whole of its value.
         ranks = [CERTIFICATION_ORDER.index(l) if l in CERTIFICATION_ORDER else 0
                  for l in levels]
         return CERTIFICATION_ORDER[min(ranks)] if ranks else "experimental"
+
+    def certification_now(self, name: str) -> str:
+        """A derived feature's certification as it stands, from its inputs.
+
+        The row carries what the meet said when the feature was defined. This
+        asks the question again, which is the only way the answer stays true
+        after an input moves.
+        """
+        definition = self.derived.current(name)
+        if definition is None:
+            return self.catalogue.require(name).get("certification", "experimental")
+        return self.certification_of(definition["inputs"])
 
     # ---------------------------------------------------------------- leakage
     def refuse_if_reads(self, name: str, label: str) -> None:

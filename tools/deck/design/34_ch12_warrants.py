@@ -1,14 +1,10 @@
 # ============================================================ CH 12
-divider("12", "Warrants, and What Comes Back",
-        "A featureset version and a model version meet; a parameter set returns.",
-        ["The fit warrant",
-         "The parameter object",
-         "The scoring warrant",
-         "Three routes to P"])
+_state["chapter"] = "12 · Warrants, and what comes back"
 
 # ---------------------------------------------------------- the fit warrant
 sl, y = content("The fit warrant", "Warrants, and what comes back")
 h = code(sl, ML, y, CW * 0.54, [
+ '# a BINDING names where something comes from, or goes',
  '"operation":  {"verb": "fit"},',
  '"parameters": {"kind": "estimated_coefficients",',
  '               "source": {"binding": "to_be_fitted"}},',
@@ -62,8 +58,7 @@ para(tf, "But a parameter set does change behaviour \u2014 so it is immutable, "
          "whoever recorded it has approved.",
      size=11, color=INK, first=True, space_after=9, line=1.25)
 para(tf, "Accepted ONLY against a warrant MAYA issued, and only when it names "
-         "the featureset version that produced it. Without that, \u201cwhich "
-         "data produced these numbers\u201d has no answer.",
+         "the featureset version that produced it.",
      size=11, color=SLATE, space_after=0, line=1.25)
 
 x = ML + CW * 0.56
@@ -105,7 +100,7 @@ para(tf, "Model version AND parameter set, both pinned. The run is determined: "
      size=11.5, color=INK, first=True, space_after=9, line=1.25)
 para(tf, "L-W8 refuses each of to_be_fitted and parameter_set in the "
          "other\u2019s position. A fit that claims to read parameters has the "
-         "direction backwards; a score that will not name its inhabitant "
+         "direction backwards; a score that will not name its point in P "
          "produces a number attributable to nothing.",
      size=10.5, color=SLATE, space_after=0, line=1.25)
 
@@ -139,14 +134,13 @@ data = [["Law", "Bites when", "What it refuses", "The failure it prevents"],
          "the weights are replaced by the host and\nevery field in the document stays the same"]]
 th = table(sl, data, ML, y, CW, col_w=[1.0, 3.0, 3.3, 4.334],
            row_h=0.30, fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.30, CW, 1.30,
-     "Each is keyed on a fact the platform DERIVES. ",
-     "The parameter kind, the source binding, the runtime — not a category "
-     "anybody attached to the model. L-W12 is the clearest case: it bites "
-     "hardest on a neural network and is deliberately not written in terms of "
-     "the class, because a PMML scorecard is T2 and carries exactly the same "
-     "exposure. Keying it on the trainability class would have missed that, "
-     "and the miss would have looked like coverage.")
+note(sl, ML, y + th + 0.30, CW, 1.15,
+     "Each is keyed on a fact the platform DERIVES ",
+     "— the parameter kind, the source binding, the runtime — never on a "
+     "category anybody attached to the model. L-W12 bites hardest on a neural "
+     "network, yet is not written in terms of the class, because a PMML "
+     "scorecard is T2 and carries the same exposure: ",
+     "keying it on the class would have missed that, and looked like coverage.")
 
 # ------------------------------------------------------------------ profiles
 sl, y = content("Profiles template the request, never the warrant",
@@ -165,17 +159,17 @@ steps(sl, ML, y, CW, [
 data = [["What you want", "Where it goes", "Because"],
         ["Save typing", "a profile", "it fills holes, and the grammar "
                                      "re-validates the result anyway"],
-        ["Refuse something", "a law, or the warrant:resolve policy gate",
+        ["Refuse something", "a law, or the policy gate at warrant resolution",
          "a default is something you can drop; a refusal is not"],
-        ["Decide who may act", "a grant", "authority is per principal and per "
-                                          "use, never inherited"]]
+        ["Decide who may act", "a grant — authority given to one principal for "
+                               "one stated use", "authority is never inherited"]]
 th = table(sl, data, ML, y + 1.98, CW, col_w=[2.6, 4.0, 5.034],
            row_h=0.32, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + 1.98 + th + 0.26, CW, 1.05,
-     "Principal, declared use, environment, TTL and binding kind are refused "
-     "AT CREATION. ",
-     "Not defended at use — a check performed when the profile is written is "
-     "one nobody can forget to perform later, and the refusal points at the "
-     "policy gate that can hold an obligation. A template able to widen "
-     "authority is an authority mechanism wearing a convenience mechanism's "
-     "clothes.")
+note(sl, ML, y + 1.98 + th + 0.26, CW, 0.94,
+     "Principal, declared use, environment, time to live and binding kind are "
+     "refused "
+     "AT CREATION, ",
+     "not defended at use: a check performed when the profile is written is one "
+     "nobody can forget later. ",
+     "A template able to widen authority is an authority mechanism in a "
+     "convenience mechanism's clothes.")

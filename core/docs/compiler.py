@@ -38,6 +38,7 @@ from core.evidence import EvidenceEngine
 from core.log import get_logger
 from db import DocumentRepository
 from db.database import digest as canonical_digest
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -216,4 +217,4 @@ class DocumentCompiler:
 
     def latest(self, model_id: str, kind: str) -> Optional[Dict[str, Any]]:
         rows = [d for d in self.for_model(model_id) if d["kind"] == kind]
-        return rows[-1] if rows else None
+        return latest_version(rows)
