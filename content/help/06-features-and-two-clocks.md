@@ -99,8 +99,23 @@ In code:
 knowable_by = min(label_ts, as_of)
 eligible = [r for r in records
             if r[VALID_TIME] <= label_ts and r[INGEST_TIME] <= knowable_by]
-return max(eligible, key=lambda r: (r[VALID_TIME], r[INGEST_TIME]))
+return max(eligible, key=pit_order_key)
 ```
+
+`pit_order_key` is `(event_ts, ingest_ts, the record's own content)`. The two
+clocks alone are a **partial** order: two records for one entity stamped
+identically on both are equal under it, and nothing can make one of them later.
+Something still has to be chosen, and the third component chooses — arbitrarily,
+but *totally*, and independently of storage order, so a Delta rewrite cannot
+change the answer.
+
+That matters because MAYA reads point-in-time twice by two different routes: the
+assembler picks the record in Python, and the verifier asks the store for the
+as-of frame. Ordering on the clocks alone, those two broke a tie opposite ways —
+`max` keeps the first maximal element, the store's `drop_duplicates(keep="last")`
+keeps the last — so a view holding a duplicate stamp put one value in the
+training set and made the verifier report a violation against it. A correct
+assembly marked `pit_verified: false` is worse than no verifier.
 
 **The `min` is the whole reproducibility story**, and it is the part most
 implementations get wrong. Four properties follow, each asserted over generated
