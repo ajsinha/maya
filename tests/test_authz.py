@@ -381,3 +381,45 @@ class TestTheWarrantSigningKeyIsNotPublished:
                        actor="person/j.okafor")
         doc = warrants.resolve(URN, "prod", "svc/x", "origination_decision")
         assert self.SECRET not in json.dumps(doc)
+
+
+class TestTheValidatorPairs:
+    """`validator` is described as second line that never builds. Nothing
+    enforced it until these pairs were added."""
+
+    def test_a_developer_cannot_also_validate(self):
+        from core.authz.roles import conflicts
+        found = conflicts(["model_developer", "validator"])
+        assert found, "the builder must not run their own effective challenge"
+        assert "own version" in found[0]
+
+    def test_an_owner_cannot_also_validate(self):
+        from core.authz.roles import conflicts
+        assert conflicts(["model_owner", "validator"])
+
+    def test_a_validator_alone_is_fine(self):
+        from core.authz.roles import conflicts
+        assert conflicts(["validator"]) == []
+        assert conflicts(["validator", "model_risk_manager"]) == [], \
+            "second line with authority is still second line"
+
+    def test_the_documented_list_is_the_enforced_list(self):
+        """The help page prints the pairs. A page that lists four while the code
+        refuses six is the failure mode this whole review keeps finding: a
+        control that is real and a document that describes a different one."""
+        import pathlib
+        import re
+        from core.authz.roles import INCOMPATIBLE_ROLES
+
+        page = (pathlib.Path(__file__).resolve().parents[1]
+                / "content" / "help" / "05-approval-and-attestation.md").read_text()
+        block = re.search(r"```\n((?:\w+\s+\+\s+\w+.*\n)+)```", page)
+        assert block, "the page must still print the pairs as a block"
+        documented = {
+            tuple(sorted(line.split("+", 1)[0].strip().split()
+                         + [line.split("+", 1)[1].split()[0]]))
+            for line in block.group(1).strip().splitlines()}
+        enforced = {tuple(sorted((a, b))) for a, b, _ in INCOMPATIBLE_ROLES}
+        assert documented == enforced, (
+            f"documented but not enforced: {documented - enforced}; "
+            f"enforced but not documented: {enforced - documented}")
