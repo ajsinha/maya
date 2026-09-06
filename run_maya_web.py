@@ -70,6 +70,7 @@ from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
 from core.notify import NotificationService, build as build_channels
 from core.policy import PolicyGate, PolicyRegister
+from core.policy.wiring import GateFacts
 from core.risk import AggregateRisk, TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, FindingWorkflow, Replayer,
@@ -393,8 +394,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # a check would let a typo weaken the platform and look like a successful
     # deployment.
     policies = PolicyRegister(PolicyRuleRepository(db), evidence)
-    registry.attach_policy(PolicyGate(policies, RegistryError))
+    # The facts the gates judge on, from the registers that hold them.
+    gate_facts = GateFacts(findings=findings, documents=documents,
+                           validation=validation, approvals=approvals,
+                           parameters=parameters, attachments=attachments)
+    registry.attach_policy(PolicyGate(policies, RegistryError), gate_facts)
     warrants.policy = PolicyGate(policies)
+    warrants.facts = gate_facts
 
     oidc = build_oidc(cfg)
 

@@ -102,4 +102,9 @@ class PolicyRoutes(Routes):
             understand a refusal they have already had.
             """
             self.authorise(request, "policy:read")
-            return self.guard(lambda: policies.decide(body.gate, body.facts))
+            # Not strict: this is the sandbox. A caller asking "what would the
+            # gate decide about these facts" expects the ones they did not name
+            # to take their documented defaults — which is exactly what the LIVE
+            # path must not do.
+            return self.guard(
+                lambda: policies.decide(body.gate, body.facts, strict=False))

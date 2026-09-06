@@ -273,10 +273,9 @@ class TestAQuorumIsANumberOfPeople:
                   "('{id}', 'A', 'z.dual', '{role}', 'approve', '', 1.0)")
         with db.engine.begin() as connection:
             connection.exec_driver_sql(insert.format(id="1", role="validator"))
-        with pytest.raises(IntegrityError):
-            with db.engine.begin() as connection:
-                connection.exec_driver_sql(
-                    insert.format(id="2", role="model_risk_manager"))
+        with pytest.raises(IntegrityError), db.engine.begin() as connection:
+            connection.exec_driver_sql(
+                insert.format(id="2", role="model_risk_manager"))
 
     def test_two_different_people_still_sign(self, tmp_path):
         """The control is independence, not scarcity: the quorum must still be

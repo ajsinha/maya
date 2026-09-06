@@ -107,6 +107,11 @@ class VersionService:
         self.versions, self.catalogue, self.evidence = versions, catalogue, evidence
         self.gate = gate
         self.policy = None
+        # Set at wiring time, like `policy` and `artifacts`. It answers the
+        # governance facts this service does not hold — open findings,
+        # validations, documents — so a gate is judged on what is true rather
+        # than on what a default says.
+        self.facts = None
         # Set at wiring time. When present, a digest naming bytes MAYA holds is
         # resolved here rather than taken on faith, and its size and address go
         # onto the version so a warrant can state them.
@@ -325,10 +330,15 @@ class VersionService:
         v = self.require(urn, semver)
         if self.policy is not None:
             model = self.catalogue.require(urn)
+            # Every fact the gate advertises, not the four this service can
+            # see. `blocking_findings` was defaulted to 0 for the life of the
+            # gate, so the built-in rule's "not approved over an open blocking
+            # finding" had never been able to fire.
             self.policy.check("version:approve", {
                 "tier": model.get("tier"), "status": v["status"],
                 "has_artifact_digest": bool(v.get("artifact_digest")),
-                "has_contract": bool(v.get("contract"))},
+                "has_contract": bool(v.get("contract")),
+                **(self.facts.version_approve(model, v) if self.facts else {})},
                 f"{urn}@{semver}")
         self.versions.set({"status": "approved"}, id=v["id"])
         self.evidence.append("version_approved", "version", v["id"],
