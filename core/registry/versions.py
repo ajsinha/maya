@@ -333,8 +333,26 @@ class VersionService:
             # gets the URI wrong is corrected rather than believed.
             artifact_uri = held["uri"]
             artifact_size = held["size"]
-            if not kernel_spec.get("artifact_format"):
+            declared_format = kernel_spec.get("artifact_format")
+            if not declared_format:
                 kernel_spec = dict(kernel_spec, artifact_format=held["format"])
+            elif declared_format != held["format"]:
+                # The store filled this in when the kernel was silent and
+                # BELIEVED the kernel when it was not, so the two could disagree
+                # about the same bytes and the version's word won. That is not a
+                # cosmetic disagreement: `builder.py` picks the runtime from the
+                # kernel's declaration, and `EXECUTES_ON_LOAD` is a property of
+                # the format — so a version declaring `onnx` over an artifact
+                # stored as `torchscript` routed code out of the sandbox that
+                # exists to contain it.
+                raise RegistryError(
+                    f"this version declares artifact_format "
+                    f"'{declared_format}' and the stored artifact "
+                    f"{artifact_digest[:23]}… is a '{held['format']}'. The "
+                    f"format decides which runtime loads the bytes and whether "
+                    f"that load path executes code, so the two cannot differ. "
+                    f"Declare '{held['format']}', or upload the artifact you "
+                    f"meant")
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         self._refuse_unexplained_parameters(kernel)

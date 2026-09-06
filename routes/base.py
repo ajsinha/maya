@@ -220,6 +220,7 @@ STATUS: Dict[str, int] = {
     # which is a 502; these mean the store was asked for something it does not
     # hold or was handed bytes that are not what the caller said they were.
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
+    "artifact_format_mismatch": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
     "artifact_not_stored": 404,
     # warrant profiles: request defaults, selected by derived facts

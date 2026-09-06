@@ -37,6 +37,7 @@ from typing import Any, BinaryIO, Dict, Iterator, Optional
 
 from core.artifacts.common import (CHUNK, EXECUTES_ON_LOAD, FORMAT_MEANING,
                                    FORMATS, MAX_BYTES, ArtifactError)
+from core.artifacts.sniff import HEAD, contradicts, looks_like
 from core.log import get_logger
 
 logger = get_logger(__name__)
@@ -71,9 +72,12 @@ class ArtifactStore:
         staged = self.root / f"upload-{os.getpid()}-{time.time_ns()}.partial"
         digest = hashlib.sha256()
         size = 0
+        head = b""
         try:
             with staged.open("wb") as out:
                 while chunk := stream.read(CHUNK):
+                    if len(head) < HEAD:
+                        head += chunk[:HEAD - len(head)]
                     size += len(chunk)
                     if size > MAX_BYTES:
                         raise ArtifactError(
@@ -87,6 +91,27 @@ class ArtifactStore:
             if not size:
                 raise ArtifactError("empty_artifact", "the upload is empty",
                                     "send the model file as the request body")
+
+            # The format was a claim from beginning to end: the uploader named
+            # it here, the version's kernel named it again, and nothing ever
+            # opened the file. It is not a label — it decides which runtime
+            # loads the artifact, and `EXECUTES_ON_LOAD` exists because two of
+            # these formats run somebody's code on open. So a TorchScript
+            # archive uploaded as `onnx` was a request to run code outside the
+            # sandbox that isolates it, granted on the uploader's word.
+            #
+            # Only a POSITIVE contradiction is refused. Bytes the sniffer cannot
+            # place are stored as declared: a sniffer that guesses produces
+            # false refusals, and a control people route around is worse than no
+            # control at all.
+            if contradicts(fmt, sniffed := looks_like(head)):
+                raise ArtifactError(
+                    "artifact_format_mismatch",
+                    f"you declared '{fmt}' and the first bytes are a "
+                    f"'{sniffed}'",
+                    f"store it as '{sniffed}', or send the file you meant — the "
+                    f"format decides which runtime loads this and whether that "
+                    f"load path executes code")
             resolved = "sha256:" + digest.hexdigest()
             if declared_digest and declared_digest != resolved:
                 raise ArtifactError(

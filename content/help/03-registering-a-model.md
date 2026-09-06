@@ -385,7 +385,22 @@ security incident.*
 
 Registering a version whose digest the store already holds rewrites
 `artifact_uri` to `maya://artifact/{digest}` and fills the format from the store,
-because **the store is the authority on its own contents**.
+because **the store is the authority on its own contents**. If the version's
+kernel names a *different* `artifact_format` from the one the artifact is stored
+under, that is refused rather than believed. The format is not a label: it
+decides which runtime loads the bytes, and two of the formats — `torchscript`
+and `tar` — execute code on load. A version declaring `onnx` over a TorchScript
+archive routes code out of the sandbox that exists to contain it.
+
+**The upload itself is sniffed.** `POST /artifacts` reads the first 512 bytes
+and refuses `artifact_format_mismatch` when they definitively say something
+else: a ZIP header uploaded as `onnx`, a gzip stream as `safetensors`, a file
+that opens `GGUF` as `json`. Only a *positive contradiction* refuses. ONNX is
+protobuf and protobuf has no magic number, so an ONNX graph is unplaceable and
+is stored on your word — recognising it by its usual first byte was tried and
+refused a correct TorchScript upload within a minute, which is the failure mode
+this avoids. `pfa` and `json` are both JSON documents and are never reported as
+contradicting each other.
 
 Why the digest matters even when MAYA does not hold the bytes:
 
