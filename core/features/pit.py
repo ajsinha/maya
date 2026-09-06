@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.log import get_logger, swallowed
 import itertools
@@ -48,12 +48,18 @@ class PitReport:
     checked: int = 0
     violations: List[Dict[str, Any]] = field(default_factory=list)
     leakage: List[str] = field(default_factory=list)
+    #: Whether the leakage screen ran at all, and under which column. A screen
+    #: that could not find the label returns no suspects, which reads exactly
+    #: like a screen that found none — so it says which it was.
+    leakage_screened: bool = False
+    label_column: Optional[str] = None
     detail: str = ""
 
     def as_dict(self) -> Dict[str, Any]:
         return {"passed": self.passed, "layer": self.layer, "checked": self.checked,
                 "violations": self.violations[:20], "leakage": self.leakage,
-                "detail": self.detail}
+                "leakage_screened": int(self.leakage_screened),
+                "label_column": self.label_column, "detail": self.detail}
 
 
 class AssemblyRejected(RuntimeError):
@@ -111,6 +117,38 @@ def verify_sampled(rows: List[Dict[str, Any]], recompute, sample: int = 200) -> 
 # Above this many distinct values per row, a column is continuous for our
 # purposes and the purity screen below says nothing about it.
 CONTINUOUS_RATIO = 0.5
+
+
+def screen_leakage(rows: List[Dict[str, Any]], label_key: str = "label"
+                   ) -> Tuple[List[str], Optional[str]]:
+    """The suspects, and — if the screen could not run — why not.
+
+    `detect_leakage` returns a list, and an empty list is the same object
+    whether nothing was suspicious or nothing was examined. Three separate
+    conditions produce that empty list without a single column being compared:
+    fewer than eight rows, no label column in the frame, and a label with only
+    one distinct value. A fourth is subtler — a CONTINUOUS label, where the
+    only test available is a threshold split and `_separates_perfectly`
+    declines anything that is not binary. A regression training set therefore
+    came back clean having been screened for nothing at all.
+
+    This is the same function with the reason kept. `detect_leakage` stays as
+    the list-only form for callers that only want the suspects.
+    """
+    if len(rows) < 8:
+        return [], (f"only {len(rows)} rows; below eight a relationship between "
+                    f"a column and the label is not evidence of anything")
+    if label_key not in rows[0]:
+        return [], f"no '{label_key}' column in the assembled frame"
+    labels = [r.get(label_key) for r in rows]
+    distinct_labels = len(set(labels))
+    if distinct_labels < 2:
+        return [], f"every row carries the same '{label_key}', so nothing separates"
+    if distinct_labels > 2 and distinct_labels / len(labels) > CONTINUOUS_RATIO:
+        return [], (f"'{label_key}' is continuous, and the only screen available "
+                    f"for a continuous column is a threshold split, which means "
+                    f"nothing unless the label is binary")
+    return detect_leakage(rows, label_key), None
 
 
 def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List[str]:

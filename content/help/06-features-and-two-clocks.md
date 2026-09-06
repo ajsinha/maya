@@ -208,8 +208,15 @@ this is not hypothetical: the recomputation once walked the same view list the
 same way, so a featureset binding the assembler ignored was one the verifier
 could not see, and `pit_verified: true` could not be false about it.
 
-**Layer 3 — leakage screen.** Two screens, chosen per column, and it needs at
-least eight rows and two distinct labels to run at all:
+**Layer 3 — leakage screen.** It screens every column *against the label*, so
+the first thing it needs is to know which column that is. On a featureset
+assembly the label sits under the slot the author named it — `defaulted_12m`,
+`charged_off`, `sale_price` — and the screen takes that slot from the published
+featureset version. A views-only assembly declares no label, and then there is
+nothing to screen against.
+
+Two screens, chosen per column, and it needs at least eight rows and two
+distinct labels to run at all:
 
 - A column with more than half its values distinct is treated as **continuous**
   and screened for **perfect separation** — one threshold along the sorted column
@@ -222,9 +229,18 @@ real continuous column and a check that cries wolf is a check somebody turns off
 Both are sharper than a correlation threshold, which fires on ordinary strong
 predictors.
 
+**An empty `leakage` list is not the same as a clean one**, and the report says
+which it is. `leakage_screened` is false, with the reason in `detail`, whenever
+the screen could not conclude: fewer than eight rows, no label column in the
+frame, one distinct label value, or — the subtle one — a **continuous** label,
+where the only available test is a threshold split and a threshold split means
+nothing unless the label is binary. A regression training set is therefore
+reported as *unscreened*, not as clean. `label_column` names the column it ran
+against.
+
 The snapshot's `pit_report` carries `{passed, layer, checked, violations,
-leakage, detail}`, and `pit_verified` is false if layer 2 or 3 failed. **The
-snapshot is still written** — you may need to inspect it — but it is marked, its
+leakage, leakage_screened, label_column, detail}`, and `pit_verified` is false
+if layer 2 or 3 failed. **The snapshot is still written** — you may need to inspect it — but it is marked, its
 status travels with it, and a fit warrant will refuse a snapshot that is not
 verified.
 

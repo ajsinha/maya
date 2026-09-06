@@ -23,7 +23,7 @@ from dataclasses import dataclass
 
 from core.evidence import EvidenceEngine
 from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, payload
-from core.features.pit import (AssemblyRejected, AssemblyRequest, detect_leakage,
+from core.features.pit import (AssemblyRejected, AssemblyRequest, PitReport, screen_leakage,
                                static_check, verify_sampled)
 from core.features.views import ViewManager
 from db import DeltaStore, SnapshotRepository
@@ -71,7 +71,8 @@ class TrainingSetBuilder:
               actor: str = "system",
               featureset: Optional[str] = None,
               featureset_version: Optional[int] = None,
-              columns: Optional[List[Column]] = None) -> Dict[str, Any]:
+              columns: Optional[List[Column]] = None,
+              label_slot: Optional[str] = None) -> Dict[str, Any]:
         """Assemble, verify, and persist — or refuse.
 
         `columns` is the authority on what the frame contains when the caller
@@ -88,12 +89,36 @@ class TrainingSetBuilder:
         self._refuse_ambiguous(plan)
         rows = self._join(spine, plan, as_of)
         report = verify_sampled(rows, lambda r: self._recompute(r, plan, as_of))
-        report.leakage = detect_leakage(rows)
+        self._screen_for_leakage(report, rows, label_slot)
+        return self._persist(name, rows, as_of, report, actor,
+                             featureset, featureset_version)
+
+    @staticmethod
+    def _screen_for_leakage(report: "PitReport", rows: List[Dict[str, Any]],
+                            label_slot: Optional[str]) -> None:
+        """Run the leakage screen under the column the label actually occupies.
+
+        It used to call `detect_leakage(rows)`, which looks for a column named
+        `label` — and on the featureset path the label sits under whatever slot
+        the author named it, `defaulted_12m` or `charged_off`. `detect_leakage`
+        returns `[]` the moment that key is missing, so on the path the platform
+        recommends the screen never ran. Every snapshot came back with no
+        suspected leakage, which is indistinguishable from a clean one.
+
+        Two things follow. The slot travels here from the featureset plan; and
+        when there is no label column to screen against, the report SAYS the
+        screen did not run rather than reporting an empty list of suspects.
+        """
+        key = label_slot or "label"
+        report.label_column = key if rows and key in rows[0] else None
+        report.leakage, why_not = screen_leakage(rows, key)
+        report.leakage_screened = why_not is None
+        if why_not is not None:
+            report.detail += f"; the leakage screen did not run: {why_not}"
+            return
         if report.leakage:
             report.passed = False
             report.detail += f"; suspected label leakage in {', '.join(report.leakage)}"
-        return self._persist(name, rows, as_of, report, actor,
-                             featureset, featureset_version)
 
     # ---------------------------------------------------------------- columns
     def _columns_of(self, views: List[Dict[str, Any]]) -> List[Column]:
