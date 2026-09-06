@@ -629,10 +629,22 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
         assert "owner" in body.lower()
         assert "ask an administrator" not in body.lower()
 
-    def test_an_owner_is_not_told_anything_they_do_not_need(self, client, people):
+    def test_an_owner_is_not_told_they_cannot_register(self, client, people):
+        """The note they do not need is the one about the act they CAN perform.
+
+        This used to assert the page carried no withheld-permission note at all,
+        which was wrong as soon as the page grew a second card. An owner
+        registers models and does not create versions — that is the segregation,
+        not a gap — so the version card telling them to ask the developer is the
+        page working. What would be noise is telling an owner they cannot
+        register.
+        """
         _login(client, "j.okafor", "owner-pw")
         body = client.get("/models/new").text
-        assert "which your account does not hold" not in body
+        assert "<code>model:register</code>, which your account does not hold" \
+            not in body
+        assert "<code>version:create</code>, which your account does not hold" \
+            in body, "and say who to ask for the half that is not theirs"
 
     def test_a_developer_is_told_who_to_ask_for_a_warrant(self, client, people):
         _login(client, "d.raman", "dev-pw")

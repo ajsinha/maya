@@ -473,7 +473,9 @@ class TestRiskAndTheFibre:
         assert "has no versions" in body
         assert "T0" in body
         r = client.post("/api/v1/models/empty/assess", headers=token(client),
-                        json={"exposure": 0, "purpose_class": "commercial"})
+                        json={"exposure": 0, "purpose_class": "commercial",
+                              "feature_count": 0, "uses_alternative_data": False,
+                              "interpretable": True})
         assert "class T0" in r.json()["rationale"]
 
     def test_the_index_shows_what_each_class_owes(self, signed_in):

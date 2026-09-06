@@ -191,6 +191,11 @@ jobs:
       # Sharded by file so a shard is reproducible from its number alone: the
       # same files run in the same shard on every commit, which makes a flake
       # attributable. Splitting by test id would reshuffle on every addition.
+      #
+      # Inside a shard, `pytest.ini` fans the files across the runner's cores.
+      # The two splits compose: the shard decides WHICH files, xdist decides
+      # which core runs each. Coverage still lands in one `.coverage*` per
+      # shard — pytest-cov combines the workers before writing it.
       - name: Run this shard
         run: |
           mapfile -t files < <(ls tests/test_*.py | sort)

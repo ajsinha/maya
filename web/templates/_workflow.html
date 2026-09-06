@@ -75,8 +75,21 @@
     {% endif %}
 
     {% if flow.available_transitions %}
+      {# A transition legal for the RECORD is not a transition legal for the
+         READER. This used to render every one of them as a live button to
+         everybody, so an auditor was offered Attest, Retire and Decline and
+         learned they could not do it from a 403. The permission each move needs
+         already travels on the transition; `may` is the reader's permission set.
+
+         What is offered is still not the same as what is allowed — scope and
+         segregation are checked at the act, and the API stays the thing that
+         refuses. This removes only the offers that were never going to work. #}
+      {% set offered = flow.available_transitions
+                       | selectattr('permission', 'in', may) | list %}
+      {% set withheld = flow.available_transitions
+                        | rejectattr('permission', 'in', may) | list %}
       <div class="mt-3 pt-2" style="border-top:1px solid var(--rule)">
-        {% for t in flow.available_transitions %}
+        {% for t in offered %}
           <button class="btn btn-sm act {{ 'btn-danger' if t.name in ('approve','attest')
                                         else 'btn-outline-secondary' }}"
                   data-action="{{ t.name }}" data-note="{{ t.note }}"
@@ -84,8 +97,20 @@
             {{ t.name|capitalize }}
           </button>
         {% endfor %}
-        {% if flow.state == 'approved' and flow.open_attestation %}
+        {% if flow.state == 'approved' and flow.open_attestation
+              and 'model:attest' in may %}
           <button class="btn btn-sm btn-outline-danger act" data-action="decline">Decline</button>
+        {% endif %}
+        {% if not offered %}
+          <div class="state-note mt-0">This record is ready to move, but not by
+            you. Nothing here is yours to do.</div>
+        {% endif %}
+        {% if withheld %}
+          <div class="small text-muted mt-2">Also legal for this record, and not
+            yours:
+            {% for t in withheld %}<span class="chip">{{ t.name }} &mdash;
+              needs <code>{{ t.permission }}</code></span> {% endfor %}
+          </div>
         {% endif %}
         <div class="small text-muted mt-2" id="flow-msg"></div>
       </div>
