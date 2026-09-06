@@ -25,6 +25,8 @@ from __future__ import annotations
 
 import concurrent.futures
 
+import pathlib
+
 import pytest
 
 
@@ -228,3 +230,83 @@ class TestTheDatabaseIsCheckedAgainstTheRelease:
                 f"{table} has a column that is a fragment of a comment: {columns}")
         # A column known to exist, so the parser is not merely returning noise.
         assert "purpose" in declared["model"]
+
+
+class TestAQuorumIsANumberOfPeople:
+    """One person completed a two-person Tier 1 quorum by racing two requests.
+
+    `sign` enforced "a quorum is a number of people, not a number of hats" with
+    a read-then-write and nothing behind it. Fired through a barrier by a
+    principal holding `validator` and `model_risk_manager`, both requests passed
+    the read and both wrote: 1 trial in 25 put BOTH signatures on one person,
+    and the approval record and the evidence chain each said a quorum had
+    approved it. Nothing anywhere said the two signatures were the same person.
+
+    `model_risk_manager` is defined as a superset of `validator`, so holding
+    both is a supported configuration — and it is exactly the configuration the
+    check exists to neutralise.
+
+    The database constraint is the fix. A transaction alone is not enough on a
+    read-committed store, which is why the test below asserts the constraint
+    rather than the wrapper.
+    """
+
+    def test_the_constraint_exists_in_both_dialects(self):
+        """Asserted on the DDL, because this is the half that does the work."""
+        for dialect in ("sqlite", "postgres"):
+            root = pathlib.Path(__file__).resolve().parents[1]
+            sql = (root / "db" / "schema" / f"{dialect}.sql").read_text()
+            table = sql.split("CREATE TABLE IF NOT EXISTS version_approval_signature")[1]
+            table = table.split(");")[0]
+            assert "UNIQUE (version_approval_id, principal)" in table, (
+                f"{dialect}.sql lets one person sign a quorum twice")
+
+    def test_the_database_refuses_a_second_signature_from_one_person(self, tmp_path):
+        """Below the service, so a future refactor of `sign` cannot lose it."""
+        from sqlalchemy.exc import IntegrityError
+
+        from db.database import Database
+
+        db = Database(f"sqlite:///{tmp_path}/quorum.db")
+        insert = ("INSERT INTO version_approval_signature (id, version_approval_id, "
+                  "principal, role, decision, statement, signed_at) VALUES "
+                  "('{id}', 'A', 'z.dual', '{role}', 'approve', '', 1.0)")
+        with db.engine.begin() as connection:
+            connection.exec_driver_sql(insert.format(id="1", role="validator"))
+        with pytest.raises(IntegrityError):
+            with db.engine.begin() as connection:
+                connection.exec_driver_sql(
+                    insert.format(id="2", role="model_risk_manager"))
+
+    def test_two_different_people_still_sign(self, tmp_path):
+        """The control is independence, not scarcity: the quorum must still be
+        completable by the two people it is for."""
+        from db.database import Database
+
+        db = Database(f"sqlite:///{tmp_path}/quorum2.db")
+        insert = ("INSERT INTO version_approval_signature (id, version_approval_id, "
+                  "principal, role, decision, statement, signed_at) VALUES "
+                  "('{id}', 'A', '{who}', '{role}', 'approve', '', 1.0)")
+        with db.engine.begin() as connection:
+            connection.exec_driver_sql(
+                insert.format(id="1", who="a.mehta", role="validator"))
+            connection.exec_driver_sql(
+                insert.format(id="2", who="s.iqbal", role="model_risk_manager"))
+        with db.engine.begin() as connection:
+            count = connection.exec_driver_sql(
+                "SELECT COUNT(*) FROM version_approval_signature").scalar()
+        assert count == 2
+
+    def test_losing_the_race_reads_as_having_already_signed(self):
+        """The integrity error is translated back into the refusal the reader
+        was going to get anyway. Losing a race is not a different answer from
+        being told you have already signed, and a caller who saw a 500 here
+        would retry — which is the one thing that must not work."""
+        import inspect
+
+        from core.lifecycle import approval
+        source = inspect.getsource(approval.VersionApproval.sign)
+        assert "IntegrityError" in source
+        assert source.count("already_signed_personally") >= 2, (
+            "the constraint's refusal must carry the same code as the read's")
+        assert "db.transaction()" in source
