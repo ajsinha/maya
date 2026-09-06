@@ -91,6 +91,8 @@ class AttachmentRoutes(Routes):
                        tags=["attachments"])
         def review(request: Request, attachment_id: str, body: ReviewIn):
             """Accept or reject. Never by whoever attached it."""
-            who = self.authorise(request, "document:review")
+            who = self.authorise(
+                request, "document:review",
+                model=self.model_behind(attachments.get(attachment_id)))
             return self.guard(lambda: attachments.review(
                 attachment_id, body.accept, self.actor(who), body.note))

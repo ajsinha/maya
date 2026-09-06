@@ -127,7 +127,9 @@ Then the tier, which is also derived — from exposure and purpose, not from an
 opinion:
 
 ```python
-owner.models.assess(URN, exposure=2.0e9, purpose_class="regulatory_capital")
+owner.models.assess(URN, exposure=2.0e9, purpose_class="regulatory_capital",
+                    feature_count=12, uses_alternative_data=False,
+                    interpretable=True)
 ```
 
 ```json

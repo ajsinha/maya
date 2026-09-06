@@ -166,3 +166,79 @@ class TestAssessment:
         low = repos["risk"].first("assessed_at", desc=True, model_id="m2")
         assert high["tier"] < low["tier"]
         assert high["next_review_due"] < low["next_review_due"]
+
+
+class TestAnUndeclaredFactThatWouldChangeTheTier:
+    """`AssessIn` defaults the three complexity facts to their low-risk reading.
+
+    The SDK sent only exposure and purpose, so every model assessed through it
+    silently declared "under fifty features, no alternative data, interpretable"
+    — and the stored rationale read those back as if somebody had said them.
+    """
+
+    def test_a_load_bearing_omission_is_named(self, tiering):
+        facts = {"exposure": 2e9, "purpose_class": "regulatory_capital",
+                 "trainability_class": "T0", "feature_count": 0,
+                 "uses_alternative_data": False, "interpretable": True}
+        missing = tiering.load_bearing(facts, declared=["exposure",
+                                                        "purpose_class"])
+        assert set(missing) == {"feature_count", "uses_alternative_data",
+                                "interpretable"}
+        # And it is load-bearing because the tier really does move.
+        worst = {**facts, **tiering.CONSERVATIVE}
+        assert tiering.assess(worst).tier != tiering.assess(facts).tier
+
+    def test_an_omission_that_cannot_matter_is_allowed(self, tiering):
+        """Materiality dominates: above the critical band the tier is 1 whatever
+        the complexity facts say, so refusing there would be noise."""
+        facts = {"exposure": 1e10, "purpose_class": "regulatory_capital",
+                 "trainability_class": "T0", "feature_count": 0,
+                 "uses_alternative_data": False, "interpretable": True}
+        assert tiering.load_bearing(facts, declared=["exposure",
+                                                     "purpose_class"]) == []
+
+    def test_declaring_them_settles_it(self, tiering):
+        facts = {"exposure": 2e9, "purpose_class": "regulatory_capital",
+                 "trainability_class": "T0", "feature_count": 12,
+                 "uses_alternative_data": False, "interpretable": True}
+        assert tiering.load_bearing(
+            facts, declared=list(facts)) == [], "nothing was left to assume"
+
+
+class TestTheAssessRouteRefuses:
+    def test_the_api_refuses_an_assessment_that_assumes_its_own_tier(
+            self, client, people):
+        from tests.conftest import URN
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+        from tests.conftest import NAME
+        r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                        json={"exposure": 2e9,
+                              "purpose_class": "regulatory_capital"})
+        assert r.status_code == 422, r.text
+        assert r.json()["error"] == "fact_not_supplied", r.text
+        for fact in ("feature_count", "uses_alternative_data", "interpretable"):
+            assert fact in r.json()["detail"], "name the fact"
+
+        # Saying so is all it takes.
+        ok = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                         json={"exposure": 2e9,
+                               "purpose_class": "regulatory_capital",
+                               "feature_count": 12,
+                               "uses_alternative_data": False,
+                               "interpretable": True})
+        assert ok.status_code == 200, ok.text
+
+    def test_exposure_and_purpose_have_no_default_at_all(self, client, people):
+        """A default of 'nothing, commercial' tiers a model at the bottom of the
+        lattice on nobody's word, so those two are simply required."""
+        from tests.conftest import NAME, URN
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+        r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                        json={"feature_count": 12})
+        assert r.status_code == 422, r.text

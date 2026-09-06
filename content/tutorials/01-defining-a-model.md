@@ -151,7 +151,9 @@ curl -u d.raman:dev-pw -X POST \
 curl -u j.okafor:owner-pw -X POST \
   localhost:5006/api/v1/models/credit.pd.smallbiz/assess \
   -H 'Content-Type: application/json' \
-  -d '{"exposure": 40000000, "purpose_class": "risk_management"}'
+  -d '{"exposure": 40000000, "purpose_class": "risk_management",
+       "feature_count": 12, "uses_alternative_data": false,
+       "interpretable": true}'
 ```
 
 ```json

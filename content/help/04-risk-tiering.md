@@ -31,7 +31,15 @@ curl -u j.okafor:… -X POST \
     "interpretable": true}'
 ```
 
-Five facts, and that is the whole request. A sixth — the **trainability class** —
+Five facts, and that is the whole request. `exposure` and `purpose_class` are
+required outright — a default of "nothing, commercial" would tier a model at the
+bottom of the lattice on nobody's word. The other three have low-risk defaults in
+the schema, and MAYA refuses the assessment with `fact_not_supplied` whenever
+taking those defaults would land on a **different tier** from reading them at
+their worst. An omission that cannot change the answer is allowed through; one
+that can is a caller choosing their own tier by staying silent.
+
+A sixth fact — the **trainability class** —
 is taken from the model's latest version rather than accepted from the caller,
 because it is the single largest driver of complexity and a caller who could set
 it could choose their own tier. A model with no versions yet is assessed as

@@ -63,7 +63,10 @@ class TestModelApi:
 
     def test_assessment_returns_its_rationale(self, registered):
         r = registered.post(f"/api/v1/models/{NAME}/assess",
-                            json={"exposure": 1e10, "purpose_class": "regulatory_capital"})
+                            json={"exposure": 1e10, "purpose_class": "regulatory_capital",
+                                  "feature_count": 12,
+                                  "uses_alternative_data": False,
+                                  "interpretable": True})
         b = r.json()
         assert b["tier"] == 1 and "materiality=" in b["rationale"] and b["required_controls"]
 
@@ -302,7 +305,9 @@ class TestAuthorisationApi:
         # Tier 4, so a single signature is the correct control depth here and
         # the test stays about segregation rather than about the quorum.
         client.post("/api/v1/models/sod.demo/assess", auth=people["j.okafor"],
-                    json={"exposure": 1e5, "purpose_class": "commercial"})
+                    json={"exposure": 1e5, "purpose_class": "commercial",
+                          "feature_count": 4, "uses_alternative_data": False,
+                          "interpretable": True})
         r = client.post("/api/v1/models/sod.demo/versions", auth=solo,
                         json={"semver": "1.0.0", "kernel": KERNEL})
         assert r.status_code == 201, "both roles are held, so creation is permitted"

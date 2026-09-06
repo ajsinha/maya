@@ -89,6 +89,11 @@ STATUS: Dict[str, int] = {
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,
     "duplicate_principal": 409, "no_such_principal": 404, "unknown_role": 422,
+    # 500, not 403: a model-scoped permission checked without a model is a
+    # defect in the route, and the caller may well hold the permission. A 403
+    # here would send somebody to ask for access they already have.
+    "scope_insufficient": 403,
+    "scope_not_checked": 500,
     # Reinstating somebody who is already active is a no-op the caller should
     # know about rather than a silent success; a short password is the caller's
     # to fix.
@@ -514,7 +519,8 @@ class Routes:
     def authorise(self, request: Request, permission: str,
                   model: Optional[Dict[str, Any]] = None,
                   subject_id: Optional[str] = None,
-                  about: Optional[str] = None) -> Dict[str, Any]:
+                  about: Optional[str] = None,
+                  estate_wide: Optional[str] = None) -> Dict[str, Any]:
         """Authenticate, then check permission, scope and segregation.
 
         ``subject_id`` is where the evidence lives; ``about`` narrows it to one
@@ -526,8 +532,45 @@ class Routes:
         against 'system'.
         """
         who = self.principal(request)
-        self.ctx["authz"].authorise(who, permission, model, subject_id, about)
+        self.ctx["authz"].authorise(who, permission, model, subject_id, about,
+                                    estate_wide)
         return who
+
+    def model_of(self, model_id: str) -> Optional[Dict[str, Any]]:
+        """The model a finding, validation or generation belongs to.
+
+        These routes load the subject and have its `model_id`; what they did not
+        do is turn it back into a model, so `authorise` had nothing to apply the
+        legal-entity scope to. A principal refused READ access to a model could
+        close its findings.
+        """
+        return self.ctx["registry"].catalogue.by_id(model_id)
+
+    def model_behind(self, row: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        """The model a warrant, monitor, overlay, parameter set, validation or
+        attachment hangs off. Every one of those tables has `model_id NOT NULL`,
+        so this is total wherever the row exists."""
+        if not row:
+            return None
+        model_id = row.get("model_id")
+        return self.model_of(model_id) if model_id else None
+
+    def model_of_subject(self, subject_type: str,
+                         subject_id: str) -> Optional[Dict[str, Any]]:
+        """The model a generation is about, when its subject has one.
+
+        An assist subject is not always a model — it may be a feature, a
+        featureset version or a parameter set — so this returns None rather
+        than refusing. What it stops is the case that was open: a UK-scoped
+        principal generating and attesting claims about a US model.
+        """
+        registry = self.ctx["registry"]
+        if subject_type == "model":
+            return registry.catalogue.by_id(subject_id)
+        if subject_type == "model_version":
+            version = registry.version_by_id(subject_id)
+            return registry.get(version["urn"]) if version else None
+        return None
 
     @staticmethod
     def actor(principal: Dict[str, Any]) -> str:

@@ -74,7 +74,15 @@ class ApprovalRoutes(Routes):
             # the segregation check has no node to look at and permits
             # everything, which is how this path came to be unguarded.
             approval = self.guard(lambda: approvals.require(approval_id))
-            who = self.authorise(request, "version:sign",
+            # The model as well as the version. Without it the legal-entity
+            # scope was never applied, so a UK-scoped validator who is refused
+            # READ access to a US model signed half its Tier 2 quorum — and
+            # `decision: "decline"` on the same endpoint closes the approval, so
+            # it was a cross-entity veto too.
+            version = self.guard(
+                lambda: registry.version_by_id(approval["model_version_id"]))
+            model = self.guard(lambda: registry.require(version["urn"]))
+            who = self.authorise(request, "version:sign", model=model,
                                  subject_id=approval["model_version_id"])
             return self.guard(lambda: approvals.sign(
                 approval_id, who, body.role, body.decision, body.statement))
@@ -82,6 +90,10 @@ class ApprovalRoutes(Routes):
         @self.app.post(f"{api}/version-approvals/{{approval_id}}/withdraw",
                        tags=["versions"])
         def withdraw(request: Request, approval_id: str):
-            who = self.authorise(request, "version:approve")
+            approval = self.guard(lambda: approvals.require(approval_id))
+            version = self.guard(
+                lambda: registry.version_by_id(approval["model_version_id"]))
+            model = self.guard(lambda: registry.require(version["urn"]))
+            who = self.authorise(request, "version:approve", model=model)
             return self.guard(lambda: approvals.withdraw(approval_id,
                                                          self.actor(who)))

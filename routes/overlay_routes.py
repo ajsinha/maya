@@ -72,14 +72,18 @@ class OverlayRoutes(Routes):
 
         @self.app.post(f"{api}/overlays/{{overlay_id}}/approve", tags=["overlays"])
         def approve(request: Request, overlay_id: str, days: Optional[int] = None):
-            who = self.authorise(request, "overlay:approve")
+            who = self.authorise(
+                request, "overlay:approve",
+                model=self.model_behind(overlays.get(overlay_id)))
             return self.guard(lambda: overlays.approve(overlay_id, self.actor(who),
                                                        days))
 
         @self.app.post(f"{api}/overlays/{{overlay_id}}/measure", status_code=201,
                        tags=["overlays"])
         def measure(request: Request, overlay_id: str, body: MeasureIn):
-            who = self.authorise(request, "overlay:measure")
+            who = self.authorise(
+                request, "overlay:measure",
+                model=self.model_behind(overlays.get(overlay_id)))
             return self.guard(lambda: overlays.measure(
                 overlay_id, body.period, body.base_value, body.adjusted_value,
                 self.actor(who)))
@@ -88,12 +92,16 @@ class OverlayRoutes(Routes):
         def renew(request: Request, overlay_id: str, days: Optional[int] = None,
                   period: Optional[str] = None):
             """Extend it. Refused unless its size has been measured."""
-            who = self.authorise(request, "overlay:approve")
+            who = self.authorise(
+                request, "overlay:approve",
+                model=self.model_behind(overlays.get(overlay_id)))
             return self.guard(lambda: overlays.renew(overlay_id, self.actor(who),
                                                      days, period))
 
         @self.app.post(f"{api}/overlays/{{overlay_id}}/close", tags=["overlays"])
         def close(request: Request, overlay_id: str, body: CloseIn):
-            who = self.authorise(request, "overlay:approve")
+            who = self.authorise(
+                request, "overlay:approve",
+                model=self.model_behind(overlays.get(overlay_id)))
             return self.guard(lambda: overlays.close(overlay_id, body.status,
                                                      body.reason, self.actor(who)))
