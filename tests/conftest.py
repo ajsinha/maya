@@ -646,3 +646,23 @@ def registered(client, people):
         "urn": f"{URN}#champion", "environment": "prod",
         "principal": "svc/origination", "declared_use": "origination_decision"})
     return client
+
+
+@pytest.fixture
+def in_service(registered, people):
+    """`registered`, and then the RECORD taken through the register too.
+
+    A separate fixture rather than a change to `registered`, because the two
+    are genuinely different states and most tests need the first. An approved
+    record is **frozen** — `MUTABLE` is draft, baselined and amending — so a
+    fixture that approved the record would block every test that adds a version,
+    opens a quorum or moves an alias, which is most of them.
+
+    What it exists for: resolving a warrant now requires that somebody approved
+    the model, not merely a version of it. Until a review walked the path by
+    hand, every test here resolved against a record still sitting in `draft`
+    and nothing noticed, because no gate read the record's own state.
+    """
+    from tests.api_helpers import approve_record
+    approve_record(registered, people)
+    return registered

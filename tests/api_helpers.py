@@ -37,3 +37,30 @@ def login(client, username="admin", password="admin123"):
     return client.post("/login", data={"username": username, "password": password,
                                        "next": "/dashboard"},
                        follow_redirects=False)
+
+
+def approve_record(client, people, name=None):
+    """Take the model RECORD through the register: submitted, then approved.
+
+    Two acts, by two different people, and they are not the same thing as
+    approving a *version*. Resolving a warrant requires this — until a review
+    walked the path by hand, the whole suite resolved against records still
+    sitting in `draft`, and no gate read the record's own state.
+
+    Do the version work FIRST. An approved record is frozen (`MUTABLE` is
+    draft, baselined and amending), so adding a version afterwards is refused
+    with `this model is 'approved' … and is frozen`. That refusal is the
+    register working: a new version IS a change to the model.
+    """
+    from tests.conftest import NAME
+
+    model = name or NAME
+    submitted = client.post(f"/api/v1/models/{model}/submit",
+                            auth=people["j.okafor"],
+                            json={"note": "ready for second-line review"})
+    assert submitted.status_code in (200, 201), submitted.text
+    approved = client.post(f"/api/v1/models/{model}/approve",
+                           auth=people["s.iqbal"],
+                           json={"note": "reviewed and approved"})
+    assert approved.status_code in (200, 201), approved.text
+    return approved.json()

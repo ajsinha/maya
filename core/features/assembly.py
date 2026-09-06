@@ -19,6 +19,8 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
+from dataclasses import dataclass
+
 from core.evidence import EvidenceEngine
 from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, payload
 from core.features.pit import (AssemblyRejected, AssemblyRequest, detect_leakage,
@@ -26,6 +28,33 @@ from core.features.pit import (AssemblyRejected, AssemblyRequest, detect_leakage
 from core.features.views import ViewManager
 from db import DeltaStore, SnapshotRepository
 from db.database import digest as canonical_digest
+
+
+@dataclass(frozen=True)
+class Column:
+    """One column of the assembled frame: where it is read from, and what it is
+    called once it arrives.
+
+    This type exists because the assembler used to take a list of *views* and
+    copy every column of each of them into the row by name, last write winning.
+    A featureset's whole purpose is to say which feature fills which slot — the
+    binding was published, signed into the fit warrant and rendered on four
+    screens, and then discarded one call before it was used. A frame assembled
+    that way is not the frame the featureset describes, and nothing downstream
+    can tell.
+
+    `slot` and `feature` differ whenever a featureset names a slot for something
+    other than the feature filling it, which is the ordinary case in a set
+    composed from parents.
+    """
+    slot: str
+    feature: str
+    view: str
+    view_version: int
+
+    @property
+    def source(self) -> tuple:
+        return (self.view, self.view_version)
 
 
 class TrainingSetBuilder:
@@ -41,14 +70,24 @@ class TrainingSetBuilder:
               transaction_time_bound: bool = True,
               actor: str = "system",
               featureset: Optional[str] = None,
-              featureset_version: Optional[int] = None) -> Dict[str, Any]:
+              featureset_version: Optional[int] = None,
+              columns: Optional[List[Column]] = None) -> Dict[str, Any]:
+        """Assemble, verify, and persist — or refuse.
+
+        `columns` is the authority on what the frame contains when the caller
+        has one, which a featureset always does. Without it the columns are
+        derived from the named views, which is the honest reading of a request
+        that named views and nothing else.
+        """
         req = AssemblyRequest(spine, views, as_of, valid_time_bound, transaction_time_bound)
         gate = static_check(req)
         if not gate.passed:
             raise AssemblyRejected(gate.detail)
 
-        rows = self._join(spine, views, as_of)
-        report = verify_sampled(rows, lambda r: self._recompute(r, views, as_of))
+        plan = columns if columns is not None else self._columns_of(views)
+        self._refuse_ambiguous(plan)
+        rows = self._join(spine, plan, as_of)
+        report = verify_sampled(rows, lambda r: self._recompute(r, plan, as_of))
         report.leakage = detect_leakage(rows)
         if report.leakage:
             report.passed = False
@@ -56,15 +95,61 @@ class TrainingSetBuilder:
         return self._persist(name, rows, as_of, report, actor,
                              featureset, featureset_version)
 
-    # ------------------------------------------------------------------- join
-    def _join(self, spine: List[Dict[str, Any]], views: List[Dict[str, Any]],
-              as_of: float) -> List[Dict[str, Any]]:
-        rows = [dict(s) for s in spine]
+    # ---------------------------------------------------------------- columns
+    def _columns_of(self, views: List[Dict[str, Any]]) -> List[Column]:
+        """The columns a views-only request asks for.
+
+        A caller who names views and no bindings is asking for everything those
+        views carry, under its own name — so slot and feature are the same
+        thing. Deriving the list explicitly rather than copying whatever turns
+        up means the collision check below applies to this path too.
+        """
+        plan: List[Column] = []
         for spec in views:
+            pin = self.views.pinned(spec["view"], spec["version"])
+            for name in pin["features"]:
+                plan.append(Column(name, name, spec["view"], spec["version"]))
+        return plan
+
+    @staticmethod
+    def _refuse_ambiguous(columns: List[Column]) -> None:
+        """Two sources for one output column is not a preference, it is a
+        question nobody answered.
+
+        The old join resolved this by letting whichever view happened to be
+        processed last win — silently, and differently depending on sort order.
+        A frame whose contents depend on iteration order is not reproducible,
+        which is the one property this whole module exists to provide.
+        """
+        seen: Dict[str, set] = {}
+        for column in columns:
+            seen.setdefault(column.slot, set()).add((column.feature, *column.source))
+        clashing = sorted(slot for slot, sources in seen.items() if len(sources) > 1)
+        if clashing:
+            raise AssemblyRejected(
+                "two different sources are mapped onto the same column, so the "
+                f"frame would depend on which was read last: {', '.join(clashing)}. "
+                "Bind each slot to one feature in one view version.")
+
+    # ------------------------------------------------------------------- join
+    def _join(self, spine: List[Dict[str, Any]], columns: List[Column],
+              as_of: float) -> List[Dict[str, Any]]:
+        """Read each view once, and take from it only the columns asked for.
+
+        Grouped by source so a view holding six features is read once rather
+        than six times; selected by name so a view holding six features
+        contributes only the ones bound to a slot.
+        """
+        rows = [dict(s) for s in spine]
+        by_source: Dict[tuple, List[Column]] = {}
+        for column in columns:
+            by_source.setdefault(column.source, []).append(column)
+
+        for (view, version), wanted in by_source.items():
             # Read at the pinned Delta version, not at whatever the namespace
             # currently holds. Without this an assembly is reproducible only for
             # as long as nobody writes to the view again.
-            pin = self.views.pinned(spec["view"], spec["version"])
+            pin = self.views.pinned(view, version)
             frame = self.delta.read(pin["namespace"], pin["delta_version"])
             by_entity: Dict[str, List[Dict[str, Any]]] = {}
             for rec in frame.to_dict("records") if not frame.empty else []:
@@ -72,7 +157,13 @@ class TrainingSetBuilder:
             for row in rows:
                 pick = self.latest_admissible(by_entity.get(row[ENTITY], []),
                                               row["label_ts"], as_of) or {}
-                row.update(payload(pick))
+                values = payload(pick)
+                for column in wanted:
+                    # `.get`, so a bound feature absent from this version of the
+                    # view arrives as a null rather than as a missing key. A
+                    # missing key would make the frame ragged and the mistake
+                    # would surface as a KeyError somewhere else entirely.
+                    row[column.slot] = values.get(column.feature)
         return rows
 
     @staticmethod
@@ -124,30 +215,75 @@ class TrainingSetBuilder:
             return None
         return max(eligible, key=lambda r: (r[VALID_TIME], r[INGEST_TIME]))
 
-    def _recompute(self, row: Dict[str, Any], views: List[Dict[str, Any]],
+    def _recompute(self, row: Dict[str, Any], columns: List[Column],
                    as_of: float) -> Dict[str, Any]:
-        """Independent recomputation used by verification layer 2 — a different
-        route to the same answer, so agreement means something.
+        """Independent recomputation used by verification layer 2.
 
-        A different route, and it has to reach the SAME answer: this bounded the
-        ingest clock by `as_of` alone while `latest_admissible` bounds it by
-        `min(label_ts, as_of)`. The two therefore disagreed whenever the set was
-        assembled after the label matured — which is the ordinary case — and the
-        verifier reported a mismatch on a *correct* assembly.
+        Two things make it independent, and both are load-bearing.
 
-        A false positive in the control that exists to verify a control is worse
-        than no control: it trains whoever reads it to discount the report.
+        **A different point-in-time route.** `_join` bulk-reads a view and picks
+        the admissible record in Python; this asks the store for the as-of frame
+        directly. That is the check on the clock arithmetic, and it is subtle
+        enough to have been wrong once already: this bounded the ingest clock by
+        `as_of` alone while `latest_admissible` bounds it by
+        `min(label_ts, as_of)`, so the two disagreed whenever a set was assembled
+        after its labels matured — the ordinary case — and the verifier reported
+        a mismatch on a *correct* assembly. A false positive in the control that
+        verifies a control is worse than no control: it teaches whoever reads it
+        to discount the report.
+
+        **A different resolution order.** Every column is resolved on its own,
+        from its own binding, one read per column. `_join` groups columns by
+        source and reads each view once, which is right for cost and is exactly
+        the step that can go wrong — a mis-grouped source, or two columns of one
+        view landing in the wrong slots. Grouping here as well would reproduce
+        that mistake faithfully and agree with it.
+
+        That second property is why this method exists at all. It previously
+        walked the same list of views the same way and did the same
+        `update(payload(...))`, so it agreed with the assembler by construction:
+        a binding the assembler ignored was a binding the verifier could not
+        notice, and `pit_verified: true` could not fail on it.
         """
         expected: Dict[str, Any] = {}
         knowable_by = min(row["label_ts"], as_of)
-        for spec in views:
-            pin = self.views.pinned(spec["view"], spec["version"])
+        for column in columns:
+            pin = self.views.pinned(column.view, column.view_version)
             frame = self.delta.as_of(pin["namespace"], row["label_ts"],
                                      knowable_by, pin["delta_version"])
             match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame
-            if not match.empty:
-                expected.update(payload(match.to_dict("records")[0]))
+            if match.empty:
+                continue
+            expected[column.slot] = payload(
+                match.to_dict("records")[0]).get(column.feature)
         return expected
+
+
+    @staticmethod
+    def content_digest(rows: List[Dict[str, Any]]) -> str:
+        """A hash of what is in the frame.
+
+        This was computed from the snapshot's NAME, its `as_of` and its ROW
+        COUNT. Nothing about the contents entered it, so every 60-row set built
+        under one name at one instant had one digest — a developer reproduced
+        the digest published in the shipped tutorial on completely different
+        data, then produced a second, different 60-row set and got it a third
+        time.
+
+        This value is what a fit warrant pins in order to say *this model was
+        trained on this data*. Reproducibility, replay and the training record
+        all rest on it, and it identified nothing.
+
+        Rows are canonicalised before hashing: each row's keys are sorted, and
+        the rows themselves are sorted by their own serialisation. Two
+        assemblies that produced the same facts in a different order are the
+        same dataset and must digest alike, or a replay that legitimately
+        reorders reports tampering.
+        """
+        canonical = sorted(
+            [{k: r[k] for k in sorted(r)} for r in rows],
+            key=lambda r: repr(sorted(r.items())))
+        return canonical_digest({"rows": canonical})
 
     # ---------------------------------------------------------------- persist
     def _persist(self, name: str, rows: List[Dict[str, Any]], as_of: float,
@@ -166,7 +302,7 @@ class TrainingSetBuilder:
                # survive reading the row back rather than only being known to
                # whoever happened to call the assembler.
                "featureset": featureset, "featureset_version": featureset_version,
-               "digest": canonical_digest({"name": name, "as_of": as_of, "rows": len(rows)}),
+               "digest": self.content_digest(rows),
                "created_at": time.time()}
         self.snapshots.add(row)
         self.evidence.append("dataset_snapshot_created", "snapshot", row["id"],

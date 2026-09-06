@@ -18,7 +18,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.evidence import EvidenceEngine
-from core.features.assembly import TrainingSetBuilder
+from core.features.assembly import Column, TrainingSetBuilder
 from core.features.catalogue import FeatureCatalogue
 from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
 from core.features.contracts import ContractBinder
@@ -194,13 +194,25 @@ class FeatureRegistry:
         pin the snapshot instead and recompute nothing.
         """
         plan = self._sets().plan(name, version)
-        views = sorted({(b["view"], b["view_version"])
-                        for b in plan["slots"]}
-                       | ({(plan["label"]["view"], plan["label"]["view_version"])}
-                          if plan["label"] else set()))
+        # The BINDINGS, not a set of the views they happen to mention.
+        #
+        # This reduced the plan to `{(view, view_version)}` and handed that to
+        # the assembler, which then name-joined every column of every view. The
+        # slot-to-feature mapping — the entire content of a featureset version,
+        # published, digested and signed into the fit warrant — was discarded
+        # one call before it was used, so a set pinning `turnover` to one view
+        # was fitted on whichever view supplied a column of that name last.
+        columns = [Column(b["slot"], b["feature"], b["view"], b["view_version"])
+                   for b in plan["slots"]]
+        if plan["label"]:
+            label = plan["label"]
+            columns.append(Column(label["slot"], label["feature"],
+                                  label["view"], label["view_version"]))
+        views = [{"view": v, "version": n}
+                 for v, n in sorted({c.source for c in columns})]
         snapshot = self.assembly.build(
             snapshot_name or f"{name}-v{version}",
-            spine, [{"view": v, "version": n} for v, n in views], as_of,
+            spine, views, as_of, columns=columns,
             actor=actor, featureset=name, featureset_version=version)
         return {**snapshot, "featureset": name, "featureset_version": version,
                 "featureset_digest": plan["digest"]}

@@ -198,9 +198,15 @@ layer 1 never appears in a `pit_report`.
 
 **Layer 2 — independent recomputation.** A sample of assembled rows — **200 by
 default**, stratified across label values so a rare class is not missed — is
-recomputed by a *different code path*, a bitemporal read against Delta rather
-than the in-memory join the assembly used. Verification that reuses the assembly
-path lets a bug hide behind itself.
+recomputed by a *different code path*. Different in two ways, and both matter:
+it is a bitemporal read against Delta rather than the in-memory join, **and** it
+resolves each column on its own from that column's own binding, where the
+assembler groups columns by view and reads each view once.
+
+Verification that reuses the assembly path lets a bug hide behind itself, and
+this is not hypothetical: the recomputation once walked the same view list the
+same way, so a featureset binding the assembler ignored was one the verifier
+could not see, and `pit_verified: true` could not be false about it.
 
 **Layer 3 — leakage screen.** Two screens, chosen per column, and it needs at
 least eight rows and two distinct labels to run at all:

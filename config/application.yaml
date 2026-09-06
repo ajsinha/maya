@@ -266,8 +266,17 @@ scheduler:
   # baseline debt whose evidence arrived.
   #
   # Every job is idempotent and derives its own work from the register, so this
-  # loop is a convenience only. Cron calling POST /api/v1/scheduler/run produces
-  # identical results, and is the right answer for more than one replica.
+  # loop is a convenience only. Cron produces identical results and is the right
+  # answer for more than one replica:
+  #
+  #   0 * * * * curl -sf -u svc:… -X POST https://maya/api/v1/scheduler/run
+  #
+  # The body is optional; that call is complete as written. Whichever you
+  # choose, check /admin/scheduler afterwards — an instance where NOTHING runs
+  # the batch looks exactly like an estate with nothing outstanding, because
+  # every condition this platform reports is derived and the batch is what
+  # turns a derived condition into a recorded consequence. Leaving this false
+  # and wiring no cron is announced at start-up, loudly, for that reason.
   loop:
     enabled: false
     interval_seconds: 3600

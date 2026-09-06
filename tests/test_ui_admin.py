@@ -84,9 +84,48 @@ class TestAdminPages:
         assert "Gaps in the fibration" not in body
 
     def test_regimes_says_whether_the_encoding_survives_translation(self, client):
+        """The VERDICT, not the label above it.
+
+        This asserted only that the question appeared on the page, and passed
+        with the answer inverted: the template read a key the service does not
+        return, so every regime — including the ones in force — rendered a red
+        "No." while the API said `holds: true`. A test that checks the heading
+        is a test of the heading.
+        """
         _login(client)
         body = client.get("/admin/regimes").text
         assert "Does truth survive translation?" in body
+
+        # What the service says, asked directly, one regime at a time.
+        catalogue = client.get("/api/v1/regimes").json()["regimes"]
+        assert catalogue, "no regimes are encoded, so this proves nothing"
+        verdicts = {r["key"]: client.get(
+            f"/api/v1/regimes/{r['key']}/satisfaction").json()["holds"]
+            for r in catalogue}
+        assert all(verdicts.values()), (
+            f"the shipped regimes do not hold, so the page is right: {verdicts}")
+
+        # And the page must agree with it. Every regime holds, so there is no
+        # "No." on the page and nothing is counted as broken.
+        assert ">No.<" not in body
+        assert body.count(">Yes.<") == len(catalogue)
+        assert "0</div>\n    <div class=\"stat-l\">whose encoding does not hold" \
+            in body or ">0<" in body
+
+    def test_the_regime_page_reads_the_key_the_service_returns(self, client):
+        """The specific defect, held apart from the verdict above.
+
+        `check()` returns `holds`, `failures` and `untranslated_terms`. A
+        template reading anything else gets Jinja's Undefined, which is falsy —
+        so the failure branch renders and nothing raises.
+        """
+        _login(client)
+        answer = client.get("/api/v1/regimes").json()["regimes"][0]
+        satisfaction = client.get(
+            f"/api/v1/regimes/{answer['key']}/satisfaction").json()
+        for key in ("holds", "failures", "untranslated_terms", "detail"):
+            assert key in satisfaction, (
+                f"the page renders '{key}'; the service no longer returns it")
 
 
 class TestNavigation:
@@ -301,3 +340,143 @@ class TestTheFooterCarriesTheClaim:
         collapsed = " ".join(source.split()).replace('" "', "")
         assert self.LINE in collapsed, (
             "the fallback in Routes.brand no longer matches config/application.yaml")
+
+
+class TestTheBatchCannotStopQuietly:
+    """Two ways the governance batch silently never runs.
+
+    Expiry, staleness, cohort maturity, outstanding signatures and missing
+    evidence are all DERIVED when somebody asks. The batch is what turns a
+    derived condition into a recorded consequence. An instance whose batch
+    never runs is therefore indistinguishable from an estate with nothing
+    outstanding — to every screen, every health probe and every digest.
+    """
+
+    def test_the_documented_cron_call_needs_no_body(self, client):
+        """`POST /api/v1/scheduler/run`, exactly as the configuration file
+        recommends it.
+
+        It returned 422. A cron entry written from that comment failed, mailed
+        its error to a mailbox nobody reads, and the batch never ran while every
+        other signal stayed green. This is the test for a documentation defect
+        that presents as an operations one.
+        """
+        r = client.post("/api/v1/scheduler/run")
+        assert r.status_code == 200, r.text
+        assert r.json()["ran"] > 0
+
+    def test_naming_jobs_still_runs_only_those(self, client):
+        first = client.get("/api/v1/scheduler").json()["jobs"][0]["job"]
+        r = client.post("/api/v1/scheduler/run", json={"jobs": [first]})
+        assert r.status_code == 200 and r.json()["ran"] == 1
+
+    def test_a_disabled_loop_is_announced_at_startup(self, tmp_path, monkeypatch):
+        """At the volume of the secret warnings, because the failure it precedes
+        is quieter than either of them.
+
+        The warning is captured by intercepting the module's own logger rather
+        than with `caplog`: `core.log.configure` calls `basicConfig(force=True)`,
+        which removes pytest's handler, so a caplog assertion here passes or
+        fails on handler ordering rather than on whether anything was said.
+        """
+        import run_maya_web
+        from core.config import PropertiesConfigurator
+        from run_maya_web import create_app
+
+        said = []
+        real = run_maya_web.logger.warning
+        monkeypatch.setattr(run_maya_web.logger, "warning",
+                            lambda msg, *a, **k: (said.append(msg % a if a else msg),
+                                                  real(msg, *a, **k))[0])
+
+        config = tmp_path / "application.yaml"
+        config.write_text(f"""
+app: {{name: MAYA, version: "0.1.0", tagline: t, slogan: s}}
+database: {{url: "sqlite:///{tmp_path}/data/sqlite/maya.db"}}
+data: {{dir: "{tmp_path}/data"}}
+scheduler: {{loop: {{enabled: false}}}}
+logging: {{level: WARNING}}
+""")
+        PropertiesConfigurator.reset()
+        create_app(PropertiesConfigurator(str(config), reload_interval=0))
+        spoken = " ".join(said)
+        assert "scheduler loop is DISABLED" in spoken
+        # And it must say what to do instead, or it is a warning nobody acts on.
+        assert "scheduler/run" in spoken and "/admin/scheduler" in spoken
+
+
+class TestADraftRecordCannotReachProduction:
+    """The model risk manager's path, walked again and refused.
+
+    Registered, tiered, versioned, quorum-approved, aliased to prod/champion and
+    warranted — with the model RECORD never submitted and never approved. It
+    returned a signed execution credential whose own body read
+    `"model_status": "draft"`.
+
+    This is the platform's central claim: MAYA authorises execution. It
+    authorised a model nothing had approved.
+    """
+
+    def _to_the_edge_of_production(self, client, people):
+        """Everything the reviewer did, stopping before the resolve."""
+        from tests.api_helpers import quorum_approve
+        from tests.conftest import KERNEL, CONTRACT, NAME, URN
+
+        owner, dev, mrm = people["j.okafor"], people["d.raman"], people["s.iqbal"]
+        client.post("/api/v1/models", auth=owner, json={
+            "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "12-month PD at origination"})
+        client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+        client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                    json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
+                          "artifact_digest": "sha256:abc"})
+        quorum_approve(client, people)
+        client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
+                   json={"environment": "prod", "alias": "champion",
+                         "semver": "3.2.1"})
+        client.post("/api/v1/warrants", auth=owner, json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"})
+        return owner, mrm
+
+    def test_the_record_is_still_a_draft_at_that_point(self, client, people):
+        """Stated, so the next test is unambiguous about what it refuses."""
+        from tests.conftest import NAME
+        self._to_the_edge_of_production(client, people)
+        body = client.get(f"/api/v1/models/{NAME}", auth=people["j.okafor"]).json()
+        assert body["model"]["status"] == "draft"
+
+    def test_resolving_against_it_is_refused(self, client, people):
+        from tests.conftest import URN
+        self._to_the_edge_of_production(client, people)
+        r = client.post("/api/v1/resolve", auth=("admin", "admin123"), json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"})
+        assert r.status_code == 403, r.text
+        assert "draft" in r.text
+
+    def test_it_resolves_once_the_record_has_been_through_the_register(
+            self, client, people):
+        """Two acts, by two different people, and then it runs.
+
+        The fix is not that production became harder to reach. It is that
+        reaching it now requires the thing everybody assumed had happened.
+        """
+        from tests.conftest import NAME, URN
+        owner, mrm = self._to_the_edge_of_production(client, people)
+        assert client.post(f"/api/v1/models/{NAME}/submit", auth=owner,
+                           json={"note": "ready"}).status_code in (200, 201)
+        assert client.post(f"/api/v1/models/{NAME}/approve", auth=mrm,
+                           json={"note": "approved"}).status_code in (200, 201)
+        r = client.post("/api/v1/resolve", auth=("admin", "admin123"), json={
+            "urn": f"{URN}#champion", "environment": "prod",
+            "principal": "svc/origination",
+            "declared_use": "origination_decision"})
+        assert r.status_code == 200, r.text
+        # The descriptor prints the record's state; it used to print "draft"
+        # and sign it anyway.
+        assert "draft" not in r.text
