@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block title %}The schema lattice — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">ONE ORDER, ASKED DIRECTLY</p>
+<h1>The schema lattice</h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  <code>A &sqsubseteq; B</code> reads <strong>&ldquo;A can stand in for
+  B&rdquo;</strong>: A has every field B has, each accepting at least what B's
+  did. A may have extra fields &mdash; they are simply not read &mdash; and a
+  shared field that accepts <em>less</em> is a regression, because a replacement
+  that rejects an input its predecessor took breaks a caller. Four questions in
+  this platform are that one relation: can this version replace that one
+  (<code>L-12</code>), can this featureset be fitted from by that kernel
+  (<code>L-W10</code>), can one featureset serve two models, and what do two
+  schemas agree on. They are answered by
+  <code>core.domain.lattice</code>, written once, and this page asks it.
+</p>
+
+<form method="get" action="/featuresets/lattice" class="card mb-3">
+  <div class="card-header">Pick two</div>
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-5"><label class="form-label small mb-1" for="left">A</label>
+        <select class="form-select form-select-sm" name="left" id="left">
+          <option value="">&mdash;</option>
+          {% for o in operands %}
+            <option value="{{ o.key }}"{% if left and o.key == left.key %} selected{% endif %}>
+              {{ o.label }} — {{ o.detail }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="col-md-5"><label class="form-label small mb-1" for="right">B</label>
+        <select class="form-select form-select-sm" name="right" id="right">
+          <option value="">&mdash;</option>
+          {% for o in operands %}
+            <option value="{{ o.key }}"{% if right and o.key == right.key %} selected{% endif %}>
+              {{ o.label }} — {{ o.detail }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-danger w-100">Compare</button></div>
+    </div>
+    <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+      A featureset contributes <code>FeaturesetRegistry.schema</code> &mdash;
+      the same object <code>L-W10</code> compares, with the label left out,
+      because a kernel does not read the answer. A model version contributes the
+      input schema it declares. <code>&top;</code> is the empty schema, which
+      demands nothing. A <code>GET</code> because nothing here is written or
+      recorded.
+    </p>
+    {% set unseen = operands|selectattr('invisible')|list %}
+    {% if unseen %}
+      <p class="mb-0 mt-2" style="font-size:.74rem">
+        <span class="evidence-bad">Some featuresets contribute less than they
+        resolve to.</span>
+        <span class="text-muted">
+        {% for o in unseen %}<code>{{ o.name }}</code> ({{ o.invisible|join(', ') }}){{ "; " if not loop.last }}{% endfor %}.
+        <code>schema()</code> resolves before comparing, so a set composed from
+        parents is judged on everything it inherited &mdash; the same slots
+        <code>publish</code> fills. The two used to disagree, and a composed set
+        was judged on nothing, which meant it satisfied no kernel at all.</span>
+      </p>
+    {% endif %}
+  </div>
+</form>
+
+{% if comparison %}
+<div class="card mb-3"><div class="card-header">Can one stand in for the other?</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Claim</th><th>Holds</th><th>Missing</th><th>Narrowed</th></tr></thead>
+    <tbody>
+      <tr><td class="small"><code>A &sqsubseteq; B</code> &mdash; {{ left.label }} can stand in for {{ right.label }}</td>
+          <td class="small">{% if comparison.forward.holds %}
+              <span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>{% endif %}</td>
+          <td class="small">{{ comparison.forward.missing|join(', ') or '—' }}</td>
+          <td class="small">{{ comparison.forward.narrowed|join(', ') or '—' }}</td></tr>
+      <tr><td class="small"><code>B &sqsubseteq; A</code> &mdash; {{ right.label }} can stand in for {{ left.label }}</td>
+          <td class="small">{% if comparison.backward.holds %}
+              <span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>{% endif %}</td>
+          <td class="small">{{ comparison.backward.missing|join(', ') or '—' }}</td>
+          <td class="small">{{ comparison.backward.narrowed|join(', ') or '—' }}</td></tr>
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    {% if comparison.equivalent %}
+      Each refines the other, so as inputs they are interchangeable: anything
+      that reads one reads the other.
+    {% else %}
+      {{ left.label }}: {{ comparison.forward.reason }}.
+    {% endif %}
+    <em>Missing</em> and <em>narrowed</em> are separated deliberately &mdash;
+    they are different mistakes with different remedies. A missing field means
+    somebody bound the wrong featureset; a narrowed one means somebody tightened
+    a constraint and did not notice it was a promise.
+  </div></div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">A &sqcap; B &mdash; the meet: what could serve both</div>
+      {% if comparison.no_meet %}
+        <table class="table maya mb-0">
+          <thead><tr><th>Field</th><th>In A</th><th>In B</th></tr></thead>
+          <tbody>
+          {% for c in comparison.no_meet.conflicts %}
+            <tr><td class="small">{{ c.field }}</td>
+                <td class="small">{{ c.left }}</td>
+                <td class="small">{{ c.right }}</td></tr>
+          {% endfor %}
+          </tbody></table>
+        <div class="card-body py-2 small border-top">
+          <span class="evidence-bad">There is no meet.</span>
+          <span class="text-muted">No schema can accept both a
+          {{ comparison.no_meet.conflicts[0].left }} and a
+          {{ comparison.no_meet.conflicts[0].right }} in one slot, so the honest
+          answer to <em>can one featureset serve both these models</em> is no,
+          with the slot named. The meet is partial by design, and its failure is
+          informative rather than an inconvenience.</span>
+        </div>
+      {% else %}
+        <table class="table maya mb-0">
+          <thead><tr><th>Field</th><th>Type</th><th>Nullable</th><th>Minimum</th><th>Maximum</th></tr></thead>
+          <tbody>
+          {% for f in comparison.meet %}
+            <tr><td class="small">{{ f.name }}</td><td class="small">{{ f.dtype }}</td>
+                <td class="small">{{ 'yes' if f.nullable else 'no' }}</td>
+                <td class="small">{{ '—' if f.minimum is none else f.minimum }}</td>
+                <td class="small">{{ '—' if f.maximum is none else f.maximum }}</td></tr>
+          {% else %}
+            <tr><td colspan="5" class="small text-muted">Both are empty, so the
+              meet is empty too.</td></tr>
+          {% endfor %}
+          </tbody></table>
+        <div class="card-body py-2 small text-muted border-top">
+          The <em>union</em> of the fields, each widened enough to accept both.
+          This is the greatest schema that can stand in for either, so a
+          featureset intended to serve both models must refine this &mdash;
+          which is the same check as the third card on any set's refusals page,
+          run against this schema instead of a kernel's.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">A &sqcup; B &mdash; the join: what they agree on</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Field</th><th>Type</th><th>Nullable</th><th>Minimum</th><th>Maximum</th></tr></thead>
+        <tbody>
+        {% for f in comparison.join %}
+          <tr><td class="small">{{ f.name }}</td><td class="small">{{ f.dtype }}</td>
+              <td class="small">{{ 'yes' if f.nullable else 'no' }}</td>
+              <td class="small">{{ '—' if f.minimum is none else f.minimum }}</td>
+              <td class="small">{{ '—' if f.maximum is none else f.maximum }}</td></tr>
+        {% else %}
+          <tr><td colspan="5" class="small text-muted">They share no field of the
+            same type, so a consumer of either may rely on nothing.</td></tr>
+        {% endfor %}
+        </tbody></table>
+      <div class="card-body py-2 small text-muted border-top">
+        The <em>intersection</em>, each field narrowed to what both accepted.
+        This is what a consumer of <em>either</em> may safely rely on, and it is
+        total: fields disagreeing on their type are simply not shared, which is
+        why the join always exists and the meet does not.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3"><div class="card-header">The structure, checked rather than claimed</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Property</th><th>Holds here</th><th>What it means</th></tr></thead>
+    <tbody>
+      <tr><td class="small"><code>&top;</code> is the identity for &sqcap;</td>
+          <td class="small">{% if comparison.top_is_identity %}
+              <span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>{% endif %}</td>
+          <td class="small">The empty schema demands nothing, so meeting with it
+            changes nothing and everything refines it. There is deliberately no
+            bottom: a least element would carry every field name that could ever
+            exist, and the structure is a lattice on each finite fragment, which
+            is the only fragment anything here inhabits.</td></tr>
+      <tr><td class="small">outputs, judged covariantly</td>
+          <td class="small">{{ comparison.provides|join(', ') or 'nothing lost' }}</td>
+          <td class="small">Fields B promised that A no longer provides, by name
+            and type only. An output is judged more coarsely than an input on
+            purpose: narrowing the range of something you <em>produce</em> is a
+            promise kept more tightly, not one broken.</td></tr>
+    </tbody></table></div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">A &mdash; {{ left.label }}</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Field</th><th>Type</th><th>Nullable</th></tr></thead>
+        <tbody>
+        {% for f in left.schema.fields %}
+          <tr><td class="small">{{ f.name }}</td><td class="small">{{ f.dtype }}</td>
+              <td class="small">{{ 'yes' if f.nullable else 'no' }}</td></tr>
+        {% else %}
+          <tr><td colspan="3" class="small text-muted">No fields.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card mb-3"><div class="card-header">B &mdash; {{ right.label }}</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Field</th><th>Type</th><th>Nullable</th></tr></thead>
+        <tbody>
+        {% for f in right.schema.fields %}
+          <tr><td class="small">{{ f.name }}</td><td class="small">{{ f.dtype }}</td>
+              <td class="small">{{ 'yes' if f.nullable else 'no' }}</td></tr>
+        {% else %}
+          <tr><td colspan="3" class="small text-muted">No fields.</td></tr>
+        {% endfor %}
+        </tbody></table></div>
+  </div>
+</div>
+{% else %}
+<div class="card mb-3"><div class="card-body small text-muted">
+  Pick two and compare. Nothing is written; the page answers a question about
+  two schemas already in the register.</div></div>
+{% endif %}
+
+{% if fold %}
+<div class="card mb-3"><div class="card-header">The composition fold, run both ways round</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>{{ fold.order|join(' then ') }}</th>
+               <th>{{ fold.order|reverse|join(' then ') }}</th><th>Same</th></tr></thead>
+    <tbody>
+    {% for slot in (fold.forward.keys()|list + fold.backward.keys()|list)|unique|sort %}
+      <tr><td class="small">{{ slot }}</td>
+          <td class="small">{{ fold.forward.get(slot, {}).get('dtype', '—') }}</td>
+          <td class="small">{{ fold.backward.get(slot, {}).get('dtype', '—') }}</td>
+          <td class="small">{% if slot in fold.differs %}
+              <span class="evidence-bad">no</span>
+            {% else %}<span class="evidence-ok">yes</span>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Composition is a monoid &mdash; {{ composition.why }} &mdash; and that is
+    <code>L-19</code>, asserted in <code>tests/test_composition.py</code> rather
+    than argued here. What a screen can usefully show is the part people get
+    wrong: the fold is <strong>not commutative</strong>. {{ composition.rule }}.
+    {% if fold.differs %}
+      These two orders differ at
+      <code>{{ fold.differs|join(', ') }}</code>, so composing
+      <code>[{{ fold.order|join(', ') }}]</code> and
+      <code>[{{ fold.order|reverse|join(', ') }}]</code> are two different
+      featuresets.
+    {% else %}
+      These two parents overlap nowhere, so the order happens not to matter
+      between them. It would as soon as they shared a slot name.
+    {% endif %}
+    Both answers come from <code>POST /featuresets/preview</code>, which is the
+    same fold <code>define</code> runs, with nothing written.
+  </div></div>
+{% endif %}
+{% endblock %}

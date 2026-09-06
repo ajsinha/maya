@@ -27,7 +27,9 @@ from core.execution.runtimes.onnx import OnnxRuntime
 from core.execution.runtimes.pmml import PmmlRuntime
 from core.execution.runtimes.quantlib import QuantLibRuntime
 from core.execution.runtimes.registry import RuntimeRegistry
+from core.execution.runtimes.rules import RulesRuntime
 
 __all__ = ["RuntimeRegistry", "Runtime", "Invocation", "CallableRuntime",
            "OnnxRuntime", "PmmlRuntime", "QuantLibRuntime", "EstimatorRuntime",
+           "RulesRuntime",
            "digest_of", "verify_artifact"]

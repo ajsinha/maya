@@ -173,10 +173,15 @@ The grammar's eighteen runtimes, grouped by what they are:
 | Generative | `llm.prompt` · `llm.agent` |
 | The honest one | `descriptor_only` |
 
-`estimator` is the odd one and the newest: it is the only runtime whose job is to
-**inhabit** a parameter object rather than to read one. `descriptor_only` is one
-of the eighteen and matters most in a bank, because much of the estate already
-runs inside engines nobody is going to replace.
+Two are odd ones. `estimator` is the only runtime whose job is to **inhabit** a
+parameter object rather than to read one. `rules` is the newest, and the only one
+whose parameter object is a document MAYA can *read*: for a T8 model the rule set
+**is** `P`, so it arrives the way every register-held parameter object does, and
+running one at an unapproved point of `P` is refused by the same mechanism that
+refuses running a scorecard at unapproved coefficients. See
+[Rule sets](/help/rule-sets). `descriptor_only` is one of the eighteen and
+matters most in a bank, because much of the estate already runs inside engines
+nobody is going to replace.
 
 Two further closed vocabularies sit alongside the four. Where an output may go —
 `response`, `delta_table`, `stream`, `artifact`, `parameter_object`, `evidence`.
@@ -246,14 +251,15 @@ code** — `container`, `python.callable`, `r`, `matlab`, `solver`, `rest`,
 `llm.prompt`, `llm.agent` — must supply `operation.seed`.
 
 The question is not whether the runtime is random, which no runtime name can
-answer. It is whether MAYA can *check* the claim. `pmml`, `onnx`, `sql`, `rules`,
+answer. It is whether MAYA can *check* the claim. `pmml`, `onnx`, `sql`,
 `spreadsheet` and `descriptor_only` are exempt because their determinism is a
 property of the format rather than of whatever somebody wrote inside it.
 `quantlib` is exempt as a **named gap**: its determinism is decidable from the
-`pricing_engine` its entry declares, and that check is not built. `estimator` is
-exempt for the opposite reason — it is MAYA's own captive runtime, so `L-3`
-verifies its determinism by *running it twice and comparing bit for bit*, which
-is better evidence than a seed.
+`pricing_engine` its entry declares, and that check is not built. `estimator` and
+`rules` are exempt for the opposite reason — MAYA holds what they run, so it can
+verify the claim by *executing* it. `L-3` runs the estimator twice and compares
+bit for bit; a rule set is a document the platform reads and evaluates itself.
+Both are better evidence than a seed.
 
 **L-W6 — a descriptor-only model cannot be fitted.** Descriptor-only is a
 legitimate state: the bank holds the licence, the engine holds the artifact, MAYA
@@ -748,6 +754,6 @@ on the parameter set that came back.
 Each carries a `_comment` explaining what it demonstrates, and a test asserts that
 every one validates and that between them they exercise every axis.
 
-See [warrants by model family](/tutorials/warrants-by-family) for the walkthrough,
-and [every kind of model, worked](/tutorials/every-kind-of-model) for seven
+See [warrants by model family](/tutorials/warrants-and-training) for the walkthrough,
+and [every kind of model, worked](/tutorials/defining-a-model) for seven
 complete paths, one per family.

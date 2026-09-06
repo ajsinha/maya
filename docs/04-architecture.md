@@ -114,11 +114,19 @@ because somebody ticked a box. Full protocol in [06](06-warrants-and-execution.m
 
 `core/execution/engine.py` ships a **captive engine** so that the protocol has a reference
 implementation, and it is deliberately not privileged: it resolves a warrant like any other consumer
-and refuses by name a runtime it does not have. It implements five of the eighteen —
-`python.callable`, `onnx`, `pmml`, `quantlib`, `estimator`, and answers for `descriptor_only` as
-well. `RuntimeRegistry.invoke` distinguishes two refusals that need different actions: a runtime
-never implemented (route the warrant elsewhere) and one whose dependency is missing (install the
-package).
+and refuses by name a runtime it does not have. It implements six of the eighteen —
+`python.callable`, `onnx`, `pmml`, `quantlib`, `estimator` and `rules`, and answers for
+`descriptor_only` as well. `RuntimeRegistry.invoke` distinguishes two refusals that need different
+actions: a runtime never implemented (route the warrant elsewhere) and one whose dependency is
+missing (install the package).
+
+`rules` is the newest and the odd one out: it loads no artifact, needs no dependency, and its
+parameter object is a document MAYA can read. The rule set reaches it the way every register-held
+parameter object does — `CaptiveEngine._with_parameters` resolves the approved set and re-derives
+its digest — so running a rule set at an unapproved point of `P` is refused by the same mechanism that
+refuses running a scorecard at unapproved coefficients, rather than by anything written in the
+runtime. It is also absent from `UNVERIFIABLE_DETERMINISM` (`L-W5`) for the same reason the captive
+estimator is: MAYA holds the rules and can verify a determinism claim by executing them.
 
 ---
 
@@ -190,6 +198,10 @@ core/
 │   └── paging.py        keyset paging, so a listing cannot be a full scan
 ├── registry/        models, immutable versions, governed aliases
 │   └── composition.py   the model graph, and `input_to` TYPE-CHECKED (L-21)
+├── rules/           the T8 parameter object, given a shape: a condition tree with no
+│                    arithmetic, reachability over interval-and-set domains (sound and
+│                    INCOMPLETE), contradiction, conformance — and an editor that mints
+│                    no authority the parameter register did not already hold
 ├── features/        eighteen modules: catalogue, registry, views, contracts, assembly,
 │                    pit, derived, expressions, sets, shapes, composition, lifecycle,
 │                    policy, normalisation, preparation, alignment, transfer, common
@@ -215,7 +227,7 @@ core/
 ├── assist/          machine assistance: capabilities, oracles, grounding, providers
 ├── baseline/        cold-start import and dated compliance debt (C-5)
 ├── estate/          the worklist and the summary, derived from the register
-├── scheduler/       eight idempotent jobs, a runner and an optional in-process loop
+├── scheduler/       nine idempotent jobs, a runner and an optional in-process loop
 ├── notify/          a digest per person per run; silence when nothing has changed
 ├── content/         help, about and tutorials as markdown, rendered server-side
 ├── config/          YAML with a git-ignored .local overlay and ${...} resolution
@@ -224,9 +236,11 @@ core/
 
 db/       the ONLY package that knows about storage. Two hand-written schemas,
           forty-six tables, no migrations. Repositories are the only interface.
-routes/   30 HTTP route modules over one piece of shared scaffolding. Thin, no
+routes/   31 HTTP route modules over one piece of shared scaffolding. Thin, no
           domain logic, one refusal table for all of them.
 web/      Jinja2 templates and vendored assets (Bootstrap 5, jQuery). No CDN.
+          The rule-set editor is the one page with real client-side state, and it
+          is jQuery over a vendored Bootstrap page like every other one.
 sdk/      python/ (standard library only) and java/ (a contract, not a build).
 ```
 
@@ -475,6 +489,7 @@ that is true today, stated as three tiers rather than as an aspiration.
 | A new **warrant profile** | a predicate over derived facts and a set of defaults. Several may match and they fold left-to-right by specificity, rightmost winning — the `L-19` monoid, which is what makes `(A∘B)∘C` and `A∘(B∘C)` the same profile |
 | A new **risk-appetite limit** | over any of the twelve computed metrics. A metric the platform cannot compute is refused **when the limit is written**, because a limit that failed while a committee was reading it would fail at the worst possible moment |
 | A new **monitor**, **validation test**, **overlay**, **featureset**, **document attachment** | all data |
+| A new **rule set** for a T8 version | a parameter set, and nothing else. Written in the editor or posted as a document, checked against the version's schemas, landing `proposed` for a second person. Adding a rule changes no code, no DDL and no vocabulary — but adding an **operator** does, and would end the reachability analysis, which is why the eleven are closed |
 
 **Extends with a module, no schema change:**
 
@@ -488,7 +503,7 @@ that is true today, stated as three tiers rather than as an aspiration.
 
 | | |
 |---|---|
-| **No plugin loader** | there is no `entry_points` discovery, so a bank's own classes cannot ship as a separate package. Model classes being strings is what makes registration free and also what makes `L-15` — every fibre total: evidence schema, lifecycle, metrics, templates — unenforceable. There is no `fibres.py` and no startup gate that refuses to boot on a partial fibre |
+| **No `entry_points` discovery** | a bank's own fibre ships in `core/fibres/library.py` rather than as a separate package. The fibration itself exists — nine fibres over the trainability classes, with a start-up gate that refuses to serve on a partial one (`L-15`) — so what is missing is third-party packaging, not the structure or the gate |
 | **No fibre-specific evidence schema** | a class carries no JSON Schema, so class-specific evidence is not validated against anything |
 | **No connectors** | there is no `connectors/` package. Nothing imports from MLflow, SageMaker, Vertex or SAS |
 
@@ -502,12 +517,12 @@ discovers the difference by looking for a service that is not there.
 | Layer | Target | What ships |
 |---|---|---|
 | API | FastAPI, Pydantic, Uvicorn behind Gunicorn | as stated, one process |
-| Front end | Bootstrap 5.3, jQuery 3.7, server-rendered Jinja2 | as stated, **vendored** — no CDN, no external call. See [08](08-ui-ux.md) |
+| Front end | Bootstrap 5.3, jQuery 3.7, server-rendered Jinja2 | as stated, **vendored** — no CDN, no external call. See [08](08-ui-ux.md). The rule-set editor (`web/static/js/ruleset-editor.js`, ~300 lines) is the only page holding a document in the browser; it introduces no framework, no build step and no new asset host. It **decides nothing** — every question about whether a rule set is valid is answered by `POST /rulesets/check` and the screen renders the answer, so the publish button is enabled by the server's verdict and never by anything computed in the browser. That is the SDK's rule (§9, *Clients*) applied to a page: a client that re-implemented a governance check would be a second implementation, and it disagrees with the first eventually, in the direction of permitting more. The operator list is rendered into the page from `core/rules/common.py` rather than written into the script, because a screen holding its own vocabulary is a second vocabulary |
 | Database | PostgreSQL 16 | PostgreSQL **or** SQLite, by URL alone. **No ORM, no migration tool.** Two hand-written schemas, forty-six tables. `ltree`, `pgvector`, RLS and partitioning are **not used**; the shipped DDL has no foreign keys, no `CHECK` and no triggers, and referential integrity lives in the repositories ([05](05-data-model.md)) |
 | Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process. **No Spark**; the PIT join is Python over Delta files |
 | Object store | S3/ADLS/GCS with Object Lock for WORM | a content-addressed store on the local filesystem, digest as key, re-hashed on every read |
 | Cache / queue | Redis 7 | **not used.** Warrant TTL and jitter are computed in process |
-| Async | Celery, APScheduler | `core/scheduler/`: **eight idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |
+| Async | Celery, APScheduler | `core/scheduler/`: **nine idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |
 | Eventing | Kafka with CloudEvents | **not used** |
 | Policy | OPA/Rego | `core/policy/`: a rule is a predicate over a **closed vocabulary** of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions; no loops, no assignment, no attribute access — checked at the AST. Rego is a general language, and a gate written in one is a program a reviewer has to *run* rather than reason about |
 | Auth | OIDC + SAML + SCIM + MFA | OIDC authorisation code with PKCE, state and nonce; HTTP Basic and a session cookie for people; CSRF on cookie authority. **No SAML, no SCIM, no MFA, no Authlib.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason: it *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token |

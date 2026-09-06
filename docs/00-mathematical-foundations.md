@@ -26,8 +26,8 @@ the build. Where it does not, §12 says so by name, because an unexecuted law is
 design, and a document that lets the two look alike has stopped being a foundation and become a
 brochure.
 
-**Fifteen of the twenty-one foundational laws are executable** today. The six that are not are
-`L-6`, `L-11`, `L-13`, `L-14`, `L-15` and `L-17`, each named in §12 with the reason. That list is
+**Sixteen of the twenty-one foundational laws are executable** today. The five that are not are
+`L-6`, `L-11`, `L-13`, `L-14` and `L-17`, each named in §12 with the reason. That list is
 itself asserted in `tests/test_laws.py`, which reads this document's table and fails if the two
 disagree — so the count above cannot quietly drift from the code.
 
@@ -84,7 +84,7 @@ that is the direction in which nobody files a bug.
 | how do regulators coexist? | institutions and comorphisms | a regime whose encoding changes the truth, or contradicts itself | `L-8`, `L-16` |
 | how is risk ordered? | monotone maps and a Galois connection between lattices | a tier that falls when exposure rises | `L-4`, `L-5` |
 
-Three of those refusals are **not made today**: `L-6`, `L-14` and `L-15` are stated and do not run,
+Two of those refusals are **not made today**: `L-6` and `L-14` are stated and do not run,
 so a summary that understates risk, a composite risk figure and a model class with no evidence
 schema each pass unremarked. The row says what the structure licenses; §12 says what is checked, and
 the two are deliberately not the same column.
@@ -124,7 +124,7 @@ nine answers to one question — **how is `P` inhabited?** — each characterise
 | **T5** foundation / pretrained | base weights, prompt, corpus, tools, guardrails | configuration, retrieval, an optional adapter fit |
 | **T6** vendor black box | `P` exists and is **not accessible**; only `f(P, −)` is observable | external and opaque |
 | **T7** expert judgment | weights and thresholds | an elicitation protocol over a panel |
-| **T8** deterministic rule / EUC | a rule set | policy authoring |
+| **T8** deterministic rule / EUC | a rule set: ordered rules, first match wins, a stated `otherwise` | policy authoring — `φ` is a person, and that is what `declared` provenance means |
 
 `ParametricKernel.trainability_class` computes this and stores nothing: T6 if `P` is inaccessible,
 T0 if `P` is terminal, T4 if the procedure is training and the model is adaptive, otherwise the
@@ -163,6 +163,19 @@ the kernel did not change. Minting a version per retrain would make *"the model 
 different things, and the more common meaning would win. A parameter set nonetheless changes
 behaviour, so it is immutable, versioned, accepted only against a warrant MAYA issued, named by the
 featureset version that produced it, and approved by somebody other than whoever recorded it.
+
+**One inhabitant of `P` has a structure the platform can read.** For every other class the values
+are numbers, and MAYA holds them, digests them and refuses a run at an unapproved point without ever
+knowing what they mean. For **T8** the point of `P` is a rule set somebody wrote, and `core/rules/`
+gives it a shape — a tree of `field op value` with `all`/`any`/`not`, no arithmetic — over which four
+questions are decidable that are undecidable over a free expression: does every input reach an
+outcome, can this rule ever fire, do two rules disagree, and does every field a rule reads exist in
+the version's `input_schema`. That last one is the `refines` question again, asked of a read-set
+instead of a schema — the same order, asked directly rather than routed through
+`core/domain/lattice.py`. The gain is not convenience; it is that a governed object stopped being opaque to the thing
+governing it. [02](02-model-taxonomy.md#t8-the-fibre-that-was-least-served) states the boundary that
+keeps this from being a training tool, and states precisely how incomplete the reachability analysis
+is.
 
 Specification: [15 — X and P](15-featuresets-and-parameters.md).
 
@@ -646,10 +659,25 @@ an indexed family `B^op → Cat`.
 
 That is what makes "every kind of model is fair game" architectural rather than aspirational.
 
-**`L-15` is not built.** A model class is a **string on the register**. There is no plugin loader
-that refuses to boot on a partial fibre, so nothing today prevents a class existing with no evidence
-schema behind it. The structure is real and the totality gate is not, and those are different
-claims.
+**`L-15` is built, and closing it moved the base.** The law says the base is the *model class*, and
+that is wrong — `model_class` is a free-text column, and totality over free text has two resolutions,
+both bad. Close the vocabulary, and *"adding a class adds a fibre — no migration"* becomes false.
+Leave it open, and the gate is defeated by typing a word nobody registered, which is a gate that
+reports success.
+
+The base is the **trainability class**, `T0`…`T8`. It is derived from how `P` is inhabited and never
+declared, so the index cannot be typed wrong, extended by accident, or disagree with the model it
+indexes. `core/fibres/` holds the nine fibres, `FibreRegistry.verify()` runs at start-up and refuses
+to serve on a partial one, and `register()` refuses a partial fibre so the registry cannot hold one
+between restarts.
+
+The fibre content was not invented for this. It was already written out class by class in
+[02 §5](02-model-taxonomy.md) — what conceptual soundness rests on, what outcomes analysis is, what
+monitoring can answer — which is a good sign that this was the real base all along; that document
+even calls the T-classes "typical fibre" in its bindings table. It was a fibration written in a table
+nothing could read.
+
+`model_class` keeps its job: an organisational label for grouping and reporting. It indexes nothing.
 
 ---
 
@@ -749,7 +777,7 @@ constructions, so an obligation engine could in principle be a compiler from dec
 specifications rather than a hand-written scheduler with cases.
 
 > **State, stated.** That compiler is **not built**. What ships is the thing it would have
-> generated: **eight idempotent jobs**, each doing one obligation's work — the evidence chain is
+> generated: **nine idempotent jobs**, each doing one obligation's work — the evidence chain is
 > walked and checkpointed only when it verifies; worklists are delivered and unchanged ones
 > suppressed; a lapsed attestation and a stalled monitor each raise a finding; overlays past their
 > window close; baseline debt reconciles or expires into a breach; a missed remediation window is
@@ -892,7 +920,7 @@ this section exists to prevent.
 | **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §3.2 | **Executable and enforcing.** `core/domain/schemas.py::substitutable`, now routed through `core/domain/lattice.py::refines`, at alias moves and — as `L-W10` — at warrant issuance; `tests/test_domain.py` |
 | **L-13** | *Evidence gluing.* Overlapping evidence sections have consistency radius ≤ declared tolerance. | §6.5 | **Not built.** No gluing computation exists anywhere; no consistency radius is computed |
 | **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | **Not built.** There is no aggregate `ρ` and no interaction premium. `L-21` now gives a composite a derived schema to quantify over, and `shared_dependencies` computes the obstruction; the functor itself is design |
-| **L-15** | *Fibration completeness.* Every model class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §8 | **Not built as a startup gate.** A model class is a string on the register; there is no plugin loader refusing to boot on a partial fibre |
+| **L-15** | *Fibration completeness.* Every class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §8 | **Executable and enforcing.** `core/fibres/registry.py::verify` runs at start-up and refuses to serve on a partial fibration; `register` refuses a partial fibre, so the registry cannot hold one between restarts; `tests/test_laws.py::TestL15NoFibreIsEmpty`. The base is the **trainability class**, not the free-text `model_class` — see §8 for why that distinction is the whole of the closure. The fibre is not inert: a `performance` monitor on a T0 pricer and a `calibration` monitor on a T5 assembly are now refused `kind_not_answerable` |
 | **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §9.4 | **Executable and enforcing**, over the sentences whose shape is declared. `core/regimes/sentences.py::deontic_conflicts` finds every term both obliged and forbidden, activation refuses it as `obligation_contradiction`, and `undecidable()` **names** the sentences the check cannot read rather than assuming them consistent. A conditional obligation is not counted against an unconditional prohibition: they may never both apply |
 | **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | **Not built — there is no online store.** `core/features/contracts.py::serving_namespaces` computes what serving *must* read, which is the half of the comparison that can exist without one. The other half arrives with the store |
 | **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no payload. | §6.4 | **Executable and enforcing**, in the append path rather than in DDL: `core/evidence/engine.py` stores an empty payload for such a node *and hashes what it stored*, so the node verifies against itself; `tests/test_evidence.py`. This row said "only an erasable pointer", and there is no pointer — no `payload_uri`, no per-subject key, no shred path. The payload is **discarded**, which is stronger than the law requires and weaker than the sentence implied |
@@ -964,6 +992,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Institutions and comorphisms | `core/regimes/` — `signature.py`, `sentences.py` (incl. `deontic_conflicts`, `undecidable`), `translation.py`, `library.py` |
 | Warrant grammar and its laws | `core/execution/grammar/` — `vocabulary.py`, `rules.py`, `validator.py`, `schema.py`; `L-W10` in `core/execution/warrants.py` |
 | Featuresets and parameter sets | `core/features/sets.py`, `core/parameters/register.py` |
+| Rule sets: the T8 parameter object, given a shape | `core/rules/` — `conditions.py` (the tree, `describe`, `conforms`), `domains.py` (reachability, **sound and incomplete**), `ruleset.py` (`Rule`, `RuleSet`, canonical form, `decide`), `editor.py` (`check`, `trial`, `publish`, `explain` — no authority the parameter register did not already hold), and the `rules` runtime in `core/execution/runtimes/rules.py` |
 | The content-addressed artifact store | `core/artifacts/store.py` — the digest is the address, so *the bytes match the warrant* is true by construction rather than by a check somebody remembered to write |
 | Document lenses | `core/docs/lenses.py` — fifteen lenses, `get` only (see `L-11`) |
 | Oracles for machine assistance | `core/assist/oracles.py` — five registered; `core/assist/capabilities.py` refuses a Tier A capability that names none |
@@ -971,8 +1000,8 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | The executable laws | Beside the code they constrain: `tests/test_laws.py` (L-1, L-2, L-3, L-9, L-10, L-16, L-20, L-21), `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_regimes.py` (L-8), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W0…L-W9), `tests/test_warrant_profiles.py` (L-W11…L-W13), `tests/test_api.py` (L-W10) |
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
-| A fibre registry with a startup totality gate (`L-15`) | **Not built** — a model class is a string on the register |
-| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the eight scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
+| The fibration | `core/fibres/` — nine fibres over the trainability classes, a totality gate at start-up (`L-15`), and the per-class metric set that makes an unanswerable monitor a refusal |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the nine scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
 | An online feature store (`L-17`) | **Not built** — `serving_namespaces` is the half that can exist without one |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its

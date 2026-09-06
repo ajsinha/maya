@@ -1,11 +1,5 @@
 # ============================================================ CH 20
-divider("20", "The Execution Plane",
-        "How a governed model actually gets run — and stopped.",
-        ["The warrant grammar",
-         "Resolution algorithm",
-         "Caching and stampede control",
-         "Revocation",
-         "Use reconciliation"])
+_state["chapter"] = "20 · The Execution Plane"
 
 sl, y = content("The warrant grammar — a product, not a union", "Execution · the contract")
 tf = txt(sl, ML, y, CW, 0.62)
@@ -15,8 +9,8 @@ para(tf, "Every model a bank runs differs along exactly four independent axes. T
 yy = y + 0.72
 AXES = [("1  Parameter object  ·  8", "how P is inhabited",
          "none · calibration_set · estimated_coefficients · learned_weights · llm_configuration · rule_set · elicited_weights · opaque"),
-        ("2  Realisation  ·  17", "how the kernel becomes runnable",
-         "quantlib · onnx · pmml · pfa · python.callable · container · rest · sql · spreadsheet · rules · solver · sas · r · matlab · llm.prompt · llm.agent · descriptor_only"),
+        ("2  Realisation  ·  18", "how the kernel becomes runnable",
+         "quantlib · onnx · pmml · pfa · estimator · rules · python.callable · container · rest · sql · spreadsheet · solver · sas · r · matlab · llm.prompt · llm.agent · descriptor_only"),
         ("3  Operation  ·  10", "what is asked of it",
          "score · fit · validate · backtest · explain · simulate · stress · optimise · generate · monitor"),
         ("4  Data binding  ·  12", "where its data comes from",
@@ -35,7 +29,8 @@ for i, (name, gloss, values) in enumerate(AXES):
 tf = txt(sl, ML, yy + 0.24, CW, 0.5)
 runs(tf, [("Extends the right way. ", CRIMSON, True),
           ("A model technology nobody anticipated is a new value in one vocabulary \u2014 almost always a runtime "
-           "\u2014 not a new section, not a new document type, and not a change to anything that already works.",
+           "\u2014 not a new document type. Six of the eighteen run inside MAYA; the rest name an engine the bank "
+           "already operates, and the warrant is what MAYA hands it.",
            INK, False)],
      size=11.5, first=True, space_after=0, line=1.26)
 
@@ -47,9 +42,7 @@ COORDS = [["Model", "1  parameters", "2  runtime", "3  verb", "4  data"],
           ["KYC summariser", "llm_configuration  (T5)", "llm.prompt", "generate", "document_corpus"],
           ["Vendor AML engine", "opaque  (T6)", "descriptor_only", "score", "stream"]]
 COORDS += [["Behaviour scorecard", "estimated_coefficients  (T2)", "pmml", "score", "feature_namespace"],
-           ["Credit-memo agent", "llm_configuration  (T5)", "llm.agent", "generate", "document_corpus"],
-           ["Treasury spreadsheet", "rule_set  (T8)", "spreadsheet", "score", "request"],
-           ["VaR backtest", "calibration_set  (T1)", "python.callable", "backtest", "dataset_snapshot"]]
+           ["Origination rule set", "rule_set  (T8)", "rules", "score", "request"]]
 th = table(sl, COORDS, ML, y, CW, col_w=[3.0, 3.1, 2.4, 1.5, 1.7], row_h=0.42,
            fs=10.5, bold_col0=True, first_col_color=CRIMSON)
 rect(sl, ML, y + th + 0.26, CW, 0.86, fill=PARCH)
@@ -62,104 +55,117 @@ runs(tf, [("The first two rows are the argument. ", CRIMSON, True),
      size=11, first=True, space_after=0, line=1.26)
 
 sl, y = content("What the grammar refuses, and why", "Execution · admissibility")
-tf = txt(sl, ML, y, CW, 0.56)
-para(tf, "Not invented for the grammar. They fall out of the algebra: the trainability class is DERIVED from how "
-         "the parameter object is inhabited, so what a class admits is what the class means.",
-     size=11.5, color=SLATE, first=True, space_after=0, line=1.25)
 data = [["Law", "Refuses", "Because"],
         ["L-W0", "a malformed document", "ten sections, a known verb, a runtime without its entry keys"],
         ["L-W1", "fit on T0 or T6", "T0's parameters come from theory; T6's are inside a vendor black box"],
         ["L-W2", "generate on a non-generative runtime", "an ONNX graph does not produce prose"],
-        ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so not shown leak-free"],
+        ["L-W3", "training from a non-bitemporal source", "it cannot be shown point-in-time correct, so it cannot be shown leak-free"],
         ["L-W4", "a fit with no parameter_object sink", "a fit produces a NEW parameter object, it does not edit the old one"],
-        ["L-W5", "claimed determinism with no seed, runtime runs arbitrary code",
-         "an LLM at 0.7 is not reproducible and neither is an unseeded simulation"],
+        ["L-W5", "claimed determinism with no seed", "an LLM at 0.7 is not reproducible, and neither is an unseeded simulation"],
         ["L-W6", "fit on a descriptor-only model", "you cannot inhabit what nothing on this side can reach"],
         ["L-W7", "a backtest with no outcomes", "that is a re-score wearing a backtest's name"],
-        ["L-W8", "a run that will not name its point in P", "training does not change the kernel, so a run declining to say which inhabitant it runs at produces a number attributable to nothing"],
-        ["L-W9", "a featureset read for training, unbounded in either clock", "the set fixes the columns; the warrant must fix the period"],
-        ["L-W10", "a featureset that does not provide what the kernel reads", "contravariance in inputs — L-12, one level out. Checked at issuance: it needs the register, not the document"]]
-th = table(sl, data, ML, y + 0.44, CW, col_w=[0.85, 3.15, 7.6], row_h=0.26, fs=8.5, hfs=9,
+        ["L-W8", "a run that will not name its point in P", "a number produced at an unstated point in P is attributable to nothing"],
+        ["L-W9", "a training read unbounded in either clock", "the set fixes the columns; the warrant must fix the period"],
+        ["L-W10", "a featureset that misses what the kernel reads", "contravariance in inputs — L-12, one level out, checked at issuance against the register"],
+        ["L-W11", "a calibration with no as-of", "yesterday's numbers and this morning's are not the same run"],
+        ["L-W12", "parameters inside an artifact with no digest", "P would then be whatever that file happens to contain today"],
+        ["L-W13", "a generative runtime pinned to a model name", "the name survives a provider's build change; the behaviour does not"]]
+th = table(sl, data, ML, y, CW, col_w=[0.85, 3.35, 7.4], row_h=0.24, fs=8.5, hfs=9,
            bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, ML, y + 0.44 + th + 0.06, CW, 0.44)
+tf = txt(sl, ML, y + th + 0.10, CW, 0.44)
 runs(tf, [("Validated before signed, never after. ", CRIMSON, True),
-          ("A signature over a non-conforming document would assure it is authentic and not that it is usable, "
-           "and an engine would read it as both. ", INK, False),
-          ("L-W8 caught a real error in a shipped example the day it was written.", INK, True)],
-     size=9.5, first=True, space_after=0, line=1.18)
+          ("A signature over a non-conforming document assures that it is authentic and not that it is usable, "
+           "and an engine reads it as both.", INK, False)],
+     size=10, first=True, space_after=0, line=1.18)
 
-sl, y = content("Warrant resolution", "Execution · the hot path")
-h = code(sl, ML, y, CW * 0.60, [
- "def resolve(req) -> WarrantDescriptor:",
- "    principal = authn.verify(req.token)      # workload identity",
- "    key = (req.urn, principal.id, req.environment, req.declared_use_id)",
- "",
- "    if (d := local_lru.get(key)) and d.fresh(): return d",
- "    if revocations.contains(d): raise Revoked(...)   # floor beats every cache",
- "",
- "    with singleflight(key):                  # coalesce concurrent misses",
- "        row = warrant_projection.get(req.urn, req.environment)  # ONLY table read",
- "        if row.revoked:                     raise Revoked(...)",
- "        ent = row.entitlements.get(principal.id)",
- "        if ent is None or ent.model_use_id != req.declared_use_id:",
- "                                            raise NoEntitlement(...)",
- "        if row.governance_snapshot.blocking_findings: raise Restricted(...)",
- "        d = sign(build_descriptor(row, ent, req))",
- "        redis.setex(key, ttl_with_jitter(row.tier), d)",
- "    return d",
-], fs=9, title="core/execution/warrants.py")
-x = ML + CW * 0.64
-tf = txt(sl, x, y, CW * 0.36, 3.7)
-para(tf, "How p99 < 50 ms is met", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=8)
-bullets(tf, [("Never touch the primary", "warrant_projection is served from a read replica — and it is the ONLY table this service knows"),
-             ("Common case is a Redis GET", "plus one signature check — HMAC-SHA256 today, Ed25519 the production target"),
-             ("Two cache tiers", "in-process LRU in front of Redis"),
-             ("Schema decoupling", "the projection is a published contract with its own version, so a control-plane migration cannot break the one component that must never break")],
-        size=11, gap=7, indent_size=9.5)
+sl, y = content("Warrant resolution — the order of the checks",
+                "Execution · the resolution path")
+h = code(sl, ML, y, CW * 0.57, [
+ "def resolve(urn, environment, principal, declared_use, verb=\"score\"):",
+ "    name, semver, alias = parse_urn(urn)",
+ "    m = self._model(urn, model_urn(name))       # the register, by URN",
+ "    self._check_not_blocked(m)                  # a blocking finding restricts",
+ "    grant = self._grant(m, environment, principal, declared_use)",
+ "    version = self._version(m[\"urn\"], environment, semver,",
+ "                            alias or grant[\"alias_name\"], urn)",
+ "    if self.policy is not None:        # consulted last, and only to refuse",
+ "        self.policy.check(\"warrant:resolve\", {...}, urn)",
+ "    return self.builder.build(urn, m, version, grant, principal,",
+ "                              declared_use, environment, self.epoch,",
+ "                              verb=verb,",
+ "                              parameter_set=self._point_of_p(urn, version))",
+], fs=8.5, title="core/execution/warrants.py")
+x = ML + CW * 0.61
+tf = txt(sl, x, y, CW * 0.39, 3.4)
+para(tf, "What the order is for", size=12.5, color=INK, bold=True, font=SERIF,
+     first=True, space_after=6)
+bullets(tf, [("Refuse before anything is loaded",
+              "Entitlement, blocking findings and version status are all decided out of the register. No artifact is opened on this path"),
+             ("Policy is consulted last, and only to refuse",
+              "A gate that can only subtract cannot grant what the checks above it withheld"),
+             ("Signed HMAC-SHA256",
+              "So verifying a warrant needs the key that could mint one. Asymmetric signing is designed and not built"),
+             ("TTL and grace follow the tier",
+              "60 s and zero grace at Tier 1; the TTL is jittered ±20% so a fleet does not re-resolve in lockstep")],
+        size=10.5, gap=6, indent_size=9)
+cy = y + h + 0.28
+tf = txt(sl, ML, cy, CW * 0.50, 0.30)
+para(tf, "Revocation — what actually propagates", size=12, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=0)
+data = [["Path", "What it stops"],
+        ["Withdraw the grant", "No further descriptor is minted for that principal"],
+        ["Epoch bump on every revocation", "A descriptor minted under an older epoch is stale on its face — the counter is in-process, so a restart resets it"],
+        ["The consumer's local revocation list", "Refused regardless of grace — grace extends currency, never ignorance"]]
+table(sl, data, ML, cy + 0.34, CW * 0.50, col_w=[2.3, 3.5], row_h=0.30,
+      fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+nx = ML + CW * 0.54
+rect(sl, nx, cy, CW * 0.46, 1.86, fill=PARCH)
+rect(sl, nx, cy, 0.045, 1.86, fill=CRIMSON)
+tf = txt(sl, nx + 0.26, cy + 0.13, CW * 0.46 - 0.5, 1.62)
+runs(tf, [("There is no cache, so there is no stampede. ", CRIMSON, True),
+          ("Resolution reads four to six tables on every call. The Redis descriptor "
+           "cache, single-flight coalescing, pre-warm-before-invalidate, the "
+           "warrant_projection read model and a Kafka revocation event are "
+           "designed and not built — docs/14 §26 — and the 50 ms p99 in the "
+           "requirements is a target that nothing here measures. TTL jitter is "
+           "built, which is the one piece that matters only once a cache exists.",
+           INK, False)],
+     size=10, first=True, space_after=0, line=1.22)
 
-sl, y = content("Stampede control and revocation", "Execution · the two failure modes")
-tf = txt(sl, ML, y, CW * 0.47, 0.35)
-para(tf, "Stampede — a routine operation, not an incident", size=12.5, color=INK, bold=True, font=SERIF, first=True, space_after=0)
-data = [["Control", "What it prevents"],
-        ["Pre-warm before invalidate", "The cache is never empty for a hot alias"],
-        ["Single-flight coalescing", "N concurrent misses become one backend call"],
-        ["TTL jitter ±20%", "Synchronised expiry across the fleet"],
-        ["Stale-while-revalidate 5 s", "A latency cliff during rebuild"]]
-th = table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[2.2, 3.3], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, ML, y + 0.40 + th + 0.20, CW * 0.47, 1.4)
-runs(tf, [("Why it matters. ", CRIMSON, True),
-          ("An alias move on a model taking 14,000 requests/second causes every in-flight consumer to miss simultaneously. "
-           "Without pre-warming, a governed, routine operation takes the database down.", INK, False)],
-     size=11.5, first=True, space_after=0, line=1.26)
-x = ML + CW * 0.53
-tf = txt(sl, x, y, CW * 0.47, 0.35)
-para(tf, "Revocation — four propagation paths", size=12.5, color=CRIMSON, bold=True, font=SERIF, first=True, space_after=0)
-data = [["Path", "Latency"],
-        ["Redis revocation set → resolvers fail closed", "immediate"],
-        ["Kafka event → SDKs drop the descriptor", "≈ 1 s"],
-        ["Epoch on every response → polling engines re-resolve", "≤ 30 s"],
-        ["TTL expiry → fully partitioned engine", "≤ 60 s (Tier 1)"]]
-th = table(sl, data, x, y + 0.40, CW * 0.47, col_w=[4.0, 1.5], row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-cy = y + 0.40 + th + 0.20
-rect(sl, x, cy, CW * 0.47, 1.50, fill=PARCH)
-rect(sl, x, cy, 0.045, 1.50, fill=CRIMSON)
-tf = txt(sl, x + 0.26, cy + 0.14, CW * 0.47 - 0.5, 1.25)
-runs(tf, [("The revocation floor. ", CRIMSON, True),
-          ("SDKs persist a local revocation list. A descriptor on that list is refused ", INK, False),
-          ("regardless of grace state", INK, True),
-          (". Grace extends authorisation currency; it never extends revocation ignorance. Tier 1 default grace is zero.", INK, False)],
-     size=11, first=True, space_after=0, line=1.24)
-
-sl, y = content("Approved use versus actual use", "Execution · the capability nobody else has")
-tf = txt(sl, ML, y, CW, 0.45)
-runs(tf, [("SS1/23 asks the inventory to record intended use ", INK, False), ("compared to actual use", CRIMSON, True, True),
-          (". Warrant telemetry makes that observable rather than aspirational. A nightly job compares the observed context "
-           "distribution against approved model_use rows.", INK, False)], size=12.5, first=True, space_after=0, line=1.28)
-data = [["Exception", "Example", "Becomes"],
-        ["Off-label portfolio", "223 calls for a portfolio that is not an approved use", "Finding, owner, due date"],
-        ["Unapproved geography", "Calls originating outside the approval's scope", "Finding + scope review"],
-        ["Volume anomaly", "40× expected daily volume — suggests a new, unassessed use", "Investigation task"],
-        ["Boundary violation rate", "0.26% of inputs outside declared operating boundaries", "Contract assumption A is failing"],
-        ["Dormant approval", "An approved use with zero calls for 180 days", "Candidate for withdrawal"],
-        ["Undeclared consumer", "A new principal resolving the warrant", "Entitlement review"]]
-table(sl, data, ML, y + 0.62, CW, col_w=[2.7, 5.6, 3.3], row_h=0.38, fs=10.5, bold_col0=True, first_col_color=CRIMSON)
+sl, y = content("Approved use, and the use nobody has compared it with",
+                "Execution · designed, not built")
+tf = txt(sl, ML, y, CW, 0.50)
+runs(tf, [("SS1/23 asks the inventory to record intended use ", INK, False),
+          ("compared to actual use", CRIMSON, True, True),
+          (". Every input that comparison needs is recorded. The comparison itself is not written — "
+           "so what follows on the right is a design, and is marked as one.", INK, False)],
+     size=12, first=True, space_after=0, line=1.26)
+tf = txt(sl, ML, y + 0.60, CW * 0.44, 0.30)
+para(tf, "Built — the inputs", size=12, color=INK, bold=True, font=SERIF,
+     first=True, space_after=0)
+data = [["What", "Where"],
+        ["Principal, environment and declared use, per grant", "warrant table, one row per entitlement"],
+        ["A resolution whose declared use has no grant is refused", "core/execution/warrants.py"],
+        ["Issue and revoke are evidence nodes with an actor", "the chain"],
+        ["Scores and outcomes per version", "core/telemetry/collector.py, into Delta"]]
+table(sl, data, ML, y + 0.94, CW * 0.44, col_w=[3.2, 2.4], row_h=0.34,
+      fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+x = ML + CW * 0.48
+tf = txt(sl, x, y + 0.60, CW * 0.52, 0.30)
+para(tf, "Designed — the six exceptions it would raise", size=12, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=0)
+data = [["Exception", "Would become"],
+        ["A portfolio that is not an approved use", "Finding, owner, due date"],
+        ["Calls originating outside the approval's scope", "Finding + scope review"],
+        ["Volume far above the assessed use", "Investigation task"],
+        ["Inputs outside declared operating boundaries", "Contract assumption A is failing"],
+        ["An approved use with no calls for 180 days", "Candidate for withdrawal"],
+        ["A new principal resolving the warrant", "Entitlement review"]]
+th = table(sl, data, x, y + 0.94, CW * 0.52, col_w=[4.0, 2.4], row_h=0.30,
+           fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, x, y + 0.94 + th + 0.18, CW * 0.52, 0.60)
+runs(tf, [("None of this runs. ", CRIMSON, True),
+          ("Use reconciliation is one of the eight screens in docs/14 §27 that are designed "
+           "and not built; the boundary check on the left is the one part of it that is enforced today, "
+           "at execution rather than in a report.", INK, False)],
+     size=10, first=True, space_after=0, line=1.22)

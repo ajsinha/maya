@@ -33,6 +33,48 @@ from core.log import get_logger
 logger = get_logger(__name__)
 
 
+def semver_key(semver: str):
+    """A sortable key for a version string, numeric parts compared as numbers.
+
+    `"1.10.0"` must sort above `"1.9.0"`, which string comparison gets wrong,
+    and `"2.0.0"` above `"1.0.1"` however recently the hotfix was cut.
+
+    Anything unparseable sorts below everything parseable rather than raising:
+    a version somebody named `"draft"` is not a reason to refuse to answer which
+    version is latest, and putting it last would let it silently become the
+    answer.
+    """
+    parts = []
+    for chunk in str(semver or "").split("."):
+        digits = "".join(c for c in chunk if c.isdigit())
+        parts.append(int(digits) if digits else -1)
+    return tuple(parts) or (-1,)
+
+
+def latest_version(rows):
+    """The highest-numbered version, or None.
+
+    `VersionRepository.ORDER` is `created_at`, so `rows[-1]` is the most
+    recently *created* version — which is not the latest one. Cut `2.0.0`, then
+    hotfix `1.0.1` against the old line, and `rows[-1]` is the hotfix: the
+    composition type check would then compare schemas against `1.0.1`, and a
+    risk assessment would read its trainability class, while everybody involved
+    believes the answer is about `2.0.0`.
+
+    Ten call sites took `rows[-1]`. This is what they all meant, written once —
+    because ten copies of "the latest version" is ten chances for one of them to
+    mean something else.
+
+    Order of creation still breaks a tie, so two rows sharing a version number
+    resolve to the later one rather than to whichever the database returned
+    first.
+    """
+    if not rows:
+        return None
+    return max(rows, key=lambda r: (semver_key(r.get("semver")),
+                                    r.get("created_at") or 0))
+
+
 class VersionService:
     """Creates and approves immutable model versions."""
 

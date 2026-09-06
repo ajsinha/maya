@@ -99,6 +99,15 @@ data:
   attachments: "${data.dir}/attachments"
   artifacts: "${data.dir}/artifacts"
 
+  # Where evidence chain heads are anchored. A directory is NOT write-once
+  # storage: what it buys is separation of medium, so that compromising the
+  # database is no longer sufficient on its own. Point this at S3 with Object
+  # Lock, a WORM appliance or an append-only volume in any deployment that
+  # matters — the verification works unchanged, which is why it is a path and
+  # not a code path. See core/evidence/anchor.py for what this does and does
+  # not prove.
+  worm: "${data.dir}/worm"
+
   # SQLite lives here by default. Switch database.url to PostgreSQL and this
   # directory is simply unused.
   sqlite:
@@ -164,9 +173,10 @@ execution:
     enabled: true
     max_seconds: 30
     # Artifacts are read from data.artifacts and their digest is verified against
-    # the warrant before anything is loaded. The engine implements three of the
-    # grammar's eighteen runtimes -- registered callables, ONNX, the
-    # regression and scorecard subset of PMML -- and refuses the rest by name.
+    # the warrant before anything is loaded. The engine implements six of the
+    # grammar's eighteen runtimes -- registered callables (which also answer for
+    # descriptor_only), ONNX, the regression and scorecard subset of PMML,
+    # QuantLib, the estimator and rules -- and refuses the rest by name.
     #
     # Artifact-backed runtimes run in a child process with CPU and memory limits
     # taken from the warrant's constraints.resources. That protects against a

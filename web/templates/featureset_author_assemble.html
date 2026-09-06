@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Assemble from {{ featureset.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">ASSEMBLE A TRAINING SET</p>
+<h1>{{ featureset.name }}</h1>
+<div class="rule"></div>
+{% include "featureset_author_nav.html" %}
+<p class="text-muted small">
+  The featureset supplies the columns and the pins; you supply the
+  <strong>spine</strong> &mdash; which entity, and when its label matured &mdash;
+  and the <strong>as_of</strong>. That division is the whole design: a set that
+  chose its own spine would be a dataset, and a spine that chose its own
+  namespaces would not be reproducible.
+</p>
+
+{% if not versions %}
+<div class="card mb-3"><div class="card-body small text-muted">
+  This featureset has no version, so there is nothing to assemble from: a schema
+  with nothing filling it names no namespaces.
+  <a href="/featureset/{{ featureset.name }}/bind"
+     style="color:var(--crimson);text-decoration:none">Fill its slots</a> first.
+</div></div>
+{% else %}
+
+<div class="card mb-3"><div class="card-header">The point-in-time rule this assembly obeys</div>
+  <div class="card-body">
+    <p class="mono mb-2"><code>{{ pit_rule }}</code></p>
+    <p class="small text-muted mb-0">
+      Two clocks, and they refuse different things. <code>event_ts</code> is
+      when a fact was true; <code>ingest_ts</code> is when the platform learned
+      it. A row is admitted only if it was true by the label's timestamp
+      <em>and</em> knowable by <code>min(label_ts, as_of)</code> &mdash; so a
+      figure that was true in March and restated in August is read at its March
+      value in a March training row, whatever month the set is built in. That
+      <code>min</code> is the reproducibility guarantee: every
+      <code>as_of</code> at or after the label gives the same answer.
+    </p>
+  </div></div>
+
+<div class="row">
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>The spine</span>
+        <button class="btn btn-sm btn-outline-secondary py-0 px-2"
+                style="font-size:.72rem" id="add-spine">Add a row</button></div>
+      <div class="card-body p-0"><div id="spine-rows"></div></div>
+      <div class="card-body py-2 small text-muted border-top">
+        One row per decision: the entity, and the moment its outcome became
+        known. The label column itself comes from the pinned label view, not
+        from here &mdash; what you supply is <em>when</em>, because that is the
+        bound every feature read is made under.
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card mb-3">
+      <div class="card-header">Assemble</div>
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-4"><label class="form-label small mb-1" for="asm-version">Version</label>
+            <select class="form-select form-select-sm" id="asm-version">
+              {% for v in versions|reverse %}
+                <option value="{{ v.version }}"{% if chosen and v.version == chosen.version %} selected{% endif %}>
+                  v{{ v.version }}</option>
+              {% endfor %}
+            </select></div>
+          <div class="col-md-4"><label class="form-label small mb-1" for="asm-asof">as_of</label>
+            <input class="form-control form-control-sm" id="asm-asof"
+                   placeholder="epoch seconds"></div>
+          <div class="col-md-4"><label class="form-label small mb-1" for="asm-name">Snapshot name</label>
+            <input class="form-control form-control-sm" id="asm-name"
+                   placeholder="{{ featureset.name }}-v{{ chosen.version if chosen else 1 }}"></div>
+        </div>
+        <button class="btn btn-sm btn-danger mt-2" id="asm-run">Assemble</button>
+        <p class="text-muted mb-0 mt-2" style="font-size:.74rem">
+          Assembly is not best effort. Layer 1 refuses outright if either
+          temporal bound is missing &mdash; that is a proof, not a warning
+          &mdash; and layer 2 independently recomputes a stratified sample by a
+          <em>different route</em> and compares, because an independent
+          recomputation is what stops a bug hiding behind itself. Both answers
+          come back below, and the snapshot records them whichever way they go.
+        </p>
+        <div id="asm-result" class="small mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if plan %}
+<div class="card mb-3"><div class="card-header">What v{{ plan.version }} reads &mdash; pinned</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Slot</th><th>Feature</th><th>Namespace</th><th>Pinned at</th></tr></thead>
+    <tbody>
+    {% for s in plan.slots %}
+      <tr><td class="small">{{ s.slot }}</td><td class="small">{{ s.feature }}</td>
+          <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
+          <td class="small">delta v{{ s.delta_version }}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+
+{% for namespace, sample in rows.items() %}
+<div class="card mb-3">
+  <div class="card-header">Rows already in <code>{{ namespace }}</code>
+    <span class="text-muted small">&mdash; delta v{{ sample.delta_version }},
+      {{ sample.total }} row(s), showing {{ sample.rows|length }}</span></div>
+  <table class="table maya mb-0">
+    <thead><tr>{% for c in sample.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in sample.rows %}
+      <tr>{% for c in sample.columns %}
+            <td class="small">{{ r[c] }}</td>{% endfor %}</tr>
+    {% else %}
+      <tr><td colspan="{{ sample.columns|length or 1 }}" class="small text-muted">
+        This namespace is empty at the pinned version.</td></tr>
+    {% endfor %}
+    </tbody></table>
+  <div class="card-body py-2 small text-muted border-top">
+    Read at the pinned Delta version, not at the head of the namespace &mdash;
+    the same bytes the assembly will read. Build a spine against these
+    <code>entity_id</code> values and watch the two clocks decide: a row whose
+    <code>ingest_ts</code> is after <code>min(label_ts, as_of)</code> is
+    refused, however true it was.
+  </div></div>
+{% endfor %}
+{% endif %}
+
+<div class="card mb-3"><div class="card-header">Training sets already built from this featureset</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Snapshot</th><th>From</th><th>Rows</th><th>as_of</th>
+               <th>Point-in-time</th><th>Delta</th></tr></thead>
+    <tbody>
+    {% for s in snapshots %}
+      <tr><td class="small">{{ s.name }}
+            <div class="text-muted"><code style="font-size:.7rem">{{ s.id }}</code></div></td>
+          <td class="small">v{{ s.featureset_version }}</td>
+          <td class="small" data-sort="{{ s.row_count }}">{{ s.row_count }}</td>
+          <td class="small">{{ s.as_of }}</td>
+          <td class="small">
+            {% if s.pit_verified %}<span class="evidence-ok">verified</span>
+            {% else %}<span class="evidence-bad">not verified</span>{% endif %}
+            <div class="text-muted">{{ s.pit_report.detail }}</div></td>
+          <td class="small"><code style="font-size:.7rem">{{ s.delta_table }}</code>
+            <div class="text-muted">v{{ s.delta_version }}</div></td></tr>
+    {% else %}
+      <tr><td colspan="6" class="small text-muted">
+        None yet. A snapshot built here names the featureset version, so a fit
+        warrant may pin the snapshot and recompute nothing.</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURESET_ASSEMBLE = {
+  name: {{ featureset.name|tojson }},
+  entity: {{ featureset.entity|tojson }},
+  version: {{ (chosen.version if chosen else 0)|tojson }},
+  samples: {{ rows|tojson }}
+};
+</script>
+<script src="/static/js/featureset-author-assemble.js"></script>
+{% endblock %}

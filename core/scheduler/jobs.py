@@ -300,7 +300,49 @@ def verify_evidence_chain(ctx: JobContext) -> Dict[str, Any]:
                       "because moving it past a break would bless it"}
 
 
+def anchor_evidence_chain(ctx) -> Dict[str, Any]:
+    """Write the chain head to the anchor root, outside the database.
+
+    `evidence.verify` walks the chain and compares it against itself, which is
+    exactly what a rewritten chain passes. This writes the head somewhere the
+    database cannot reach, so that a later comparison asks a question an
+    attacker holding the database alone cannot answer.
+
+    It verifies first and refuses to anchor a broken chain — writing the broken
+    state down would make every subsequent comparison agree with it.
+    """
+    if ctx.evidence is None:
+        return {"anchored": 0, "detail": "no evidence engine is wired"}
+    if getattr(ctx.evidence, "anchors", None) is None:
+        return {"anchored": 0,
+                "detail": "no anchor root is configured, so the chain is "
+                          "self-certified; set data.worm to change that"}
+    agreement = ctx.evidence.verify_against_anchors()
+    if not agreement["agrees"]:
+        logger.error("chain disagrees with %d anchor(s); refusing to anchor "
+                     "again over the top", len(agreement.get("broken", [])))
+        return {"anchored": 0, "agrees": 0, "broken": agreement.get("broken"),
+                "detail": "the chain disagrees with what was anchored before. "
+                          "Nothing further was written: the existing anchors "
+                          "are the evidence, and overwriting them would destroy "
+                          "it"}
+    written = ctx.evidence.anchor_head(actor=ctx.actor)
+    return {"anchored": written.get("written", 0), "agrees": 1,
+            "seq": written.get("seq"),
+            "detail": written.get("detail")
+                      or (f"head anchored at seq {written.get('seq')}"
+                          if written.get("written")
+                          else "already anchored at this head")}
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("evidence.anchor",
+        "writes the evidence chain head outside the database, and checks the "
+        "chain still agrees with every head written before",
+        "verification that compares the chain against itself is passed by a "
+        "chain that was rewritten; an anchor on a second medium is the only "
+        "check an attacker holding the database alone cannot satisfy",
+        anchor_evidence_chain),
     Job("evidence.verify",
         "walks the whole evidence chain and moves the verification checkpoint",
         "readiness only checks what arrived since the last full walk, so the "

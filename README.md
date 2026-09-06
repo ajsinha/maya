@@ -112,7 +112,7 @@ what the model was fitted on, which is a different event with a different contro
 | **It does not run models.** | It issues a signed, expiring, entitlement-bound **warrant**, and an execution engine acts on it. Governance is therefore never in the serving path, and a governed version move requires no consumer to redeploy. |
 | **Evidence, not assertion.** | Every governance claim is bound to the artefact it rests on, in an append-only hash-chained record. There is no separate audit log: two records of who did what are two records that can disagree, and segregation of duties is decided by reading the chain. |
 | **Refusals are the product.** | Every refusal names what was violated and what to do about it. The interesting behaviour of this platform is what it *will not* do. |
-| **Laws, not conventions.** | Twenty-one foundational laws are stated; **fifteen run in the test suite** and a failing one fails the build. The six that do not run are named, with the reason. |
+| **Laws, not conventions.** | Twenty-one foundational laws are stated; **sixteen run in the test suite** and a failing one fails the build. The five that do not run are named, with the reason. |
 | **Derived, not entered.** | The tier, the worklist, the estate summary, the documentation, the board pack: computed from the register. Nothing that can be derived is stored, because a stored derivation is one that can go stale. |
 
 ---
@@ -152,6 +152,47 @@ What is governed instead moves to where the risk actually is: the conventions, t
 valuation date, the library version, and the **domain of applicability** the model was benchmarked
 in. See [every kind of model, worked](content/tutorials/08-every-kind-of-model.md) for the same
 treatment applied to seven families, one tutorial each.
+
+---
+
+## And some models are just rules somebody wrote
+
+The class a bank has most of by count is **T8** — a rule set: eligibility criteria, exclusion lists,
+limit checks, the band assignment on the end of a scorecard. In practice it is a spreadsheet, a
+stored procedure, or a paragraph of policy transcribed into code once, and no tool says anything
+about it.
+
+MAYA always held these as `P` — versioned, digested, approved by a second person — and held them as
+an opaque JSON blob, which meant it could tell you a rule set had changed and nothing about what it
+said. A rule set now has a **structure**: ordered rules, first match wins, a required `otherwise`, a
+required `because` per rule, and conditions that are trees of `field op value` with no arithmetic.
+The restriction is the point. Four questions become decidable that are undecidable over a free
+expression:
+
+| | |
+|---|---|
+| **Totality** | `otherwise` is required, so no input falls through — by construction, not by analysis |
+| **Reachability** | a rule an earlier rule already covers can never fire, and nothing about reading the document tells you so. A rule that never fires also never produces a wrong answer, so it survives every review while somebody believes it is in force |
+| **Contradiction** | the same condition reaching two different outcomes |
+| **Conformance** | every field a rule reads is declared on the version, no ordered comparison is asked of a field that has no order, and no field is compared against a value of the wrong kind |
+
+The reachability analysis is **sound and incomplete**, and the honest statement of it is the
+promise: *no rule is shadowed by any single earlier rule.* Two earlier rules that between them cover
+a third are **not** detected — that is satisfiability over the whole set, which is a solver, and a
+solver here is a dependency whose failure modes nobody in the bank can debug.
+
+This is also the one place MAYA edits a model, and the boundary is intact rather than bent. **MAYA
+does not become the authoring tool; it becomes an editor for a parameter set it already held.**
+Publishing is the ordinary parameter-set record — the set lands `proposed`, and self-approval is
+still refused. There is deliberately no ONNX or PMML editor: those serialize a *fitted* map, and
+hand-authoring one would mint an artifact indistinguishable in the register from a trained one. A
+rule set has no training run to be indistinguishable from — authorship *is* its provenance.
+
+And the `rules` runtime, named by the grammar since the first milestone and implemented by nothing
+until now, means a rule set is finally run by the platform that governs it rather than by a stored
+procedure nobody compared it against. Every decision names the rule that made it, because a bank
+that cannot attribute a refusal cannot explain it — and under most consumer-credit regimes the
+explanation is the obligation, not the decision.
 
 ---
 
@@ -262,7 +303,8 @@ lifecycle with quorum attestation, authorisation with segregation of duties read
 chain, monitoring with delayed labels, compiled documentation and the documentation graph, the
 overlay register, supervisory regimes as institutions, machine assistance, baseline import with
 compliance debt, the content-addressed artifact store, export packs, risk appetite with the board
-pack, and a dependency-free Python SDK.
+pack, rule sets for the T8 estate with the runtime that executes them, and a dependency-free Python
+SDK.
 
 Build status, what is genuinely working, and the honest gaps are recorded in one place and kept
 current there:
@@ -271,8 +313,8 @@ current there:
 
 | | |
 |---|---|
-| Tests | **over 2,200 passing**, plus a scale suite excluded by default |
-| Foundational laws executable | **15 of 21** — the six that are not are named with the reason |
+| Tests | **over 2,300 passing**, plus a scale suite excluded by default |
+| Foundational laws executable | **16 of 21** — the five that are not are named with the reason |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
 | Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **46 tables**, no migrations |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
@@ -319,8 +361,8 @@ registered properly.
 
 | | |
 |---|---|
-| [**Help**](content/help/) | Sixteen topics in seven sections, rendered in the interface at `/help` |
-| [**Tutorials**](content/tutorials/) | Fifteen walkthroughs, rendered at `/tutorials`. Eight are the platform; **seven are one per kind of model**, each complete from registration to monitoring |
+| [**Help**](content/help/) | Seventeen topics in seven sections, rendered in the interface at `/help` |
+| [**Tutorials**](content/tutorials/) | Six walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — and one end to end. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
 | [**The whole path**](content/tutorials/07-the-whole-path.md) | One example from an empty register to a champion serving in production, including every refusal on the way |
 | [**Every kind of model**](content/tutorials/08-every-kind-of-model.md) | The map to the seven: regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application |
 
@@ -363,7 +405,7 @@ branding — so the ideas can be judged on their own.
 
 | Engineering artefact | Audience |
 |---|---|
-| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 155 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, and the five positions this platform takes. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — seven kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
+| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 110 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, and the five positions this platform takes. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
 
 *Ashutosh Sinha, Independent Researcher.*
 
@@ -380,6 +422,8 @@ maya/
 │   ├── features/                    features, views, featuresets, shapes, composition,
 │   │                                lifecycle, retrieval policy, alignment, bulk transfer
 │   ├── parameters/                  inhabitants of P: fitted, calibrated, declared
+│   ├── rules/                       the T8 parameter object with a shape: conditions, the
+│   │                                reachability analysis, the editor that mints no authority
 │   ├── execution/                   warrants, the grammar, profiles, the runtimes, the sandbox
 │   ├── artifacts/                   the content-addressed store: a file's name is its own hash
 │   ├── validation/  monitoring/     tests and findings; drift and delayed labels

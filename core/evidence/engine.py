@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import (Any, Callable, Dict, Generic, List, Optional, Sequence,
                     Set, Tuple, TypeVar)
 
+from core.evidence.anchor import AnchorError
 from core.evidence.semirings import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST,
                                      WHY, MAX_TERMS, Semiring)
 from sqlalchemy.exc import IntegrityError
@@ -61,11 +62,16 @@ BACKOFF_SECONDS = 0.01
 class EvidenceEngine:
     """Append-only, hash-chained evidence with semiring evaluation over it."""
 
-    def __init__(self, repo: EvidenceRepository, checkpoints=None):
+    def __init__(self, repo: EvidenceRepository, checkpoints=None, anchors=None):
         self.repo = repo
         # Optional. Without one, verification is always the full walk, which is
         # correct and slow; with one, readiness can ask the cheap question.
         self.checkpoints = checkpoints
+        # Optional, and the only verification an attacker holding the database
+        # cannot satisfy: heads written to a second medium, compared back. Absent
+        # one, the chain is self-certified and `verify_against_anchors` says so
+        # rather than reporting a pass.
+        self.anchors = anchors
 
     # -------------------------------------------------------------- append
     def head(self) -> Tuple[int, str]:
@@ -183,6 +189,60 @@ class EvidenceEngine:
         if self.checkpoints is None:
             return None
         return self.checkpoints.first("seq", desc=True)
+
+    def chain_hash_at(self, seq: int) -> Optional[str]:
+        """The chain hash the chain currently reports at that sequence.
+
+        Read for anchor verification (`core/evidence/anchor.py`), which asks a
+        question the chain cannot ask of itself: does it still agree with what
+        was written down elsewhere, before?
+        """
+        node = self.repo.one(seq=seq)
+        return node.get("chain_hash") if node else None
+
+    def anchor_head(self, actor: str = "system") -> Dict[str, Any]:
+        """Write the current head to the anchor root, if there is one wired.
+
+        Verifies before anchoring. Anchoring a chain that is already broken
+        would write down the broken state as though it were the truth, and
+        every later comparison would then agree with it.
+        """
+        if self.anchors is None:
+            return {"anchored": 0,
+                    "detail": "no anchor root is configured, so the chain is "
+                              "self-certified"}
+        report = self.verify_chain()
+        if not report["valid"]:
+            logger.error("refusing to anchor a chain that does not verify: %s",
+                         report.get("detail") or report)
+            raise AnchorError(
+                "chain_broken",
+                "the chain does not verify, so anchoring its head would write "
+                "the broken state down as the truth",
+                "do not anchor; this is a security incident and the last good "
+                "anchor is the evidence")
+        seq, head = self.head()
+        if seq <= 0:
+            # An empty chain, which a scheduled run on a fresh instance meets
+            # routinely. Reported rather than raised: nothing is wrong, there is
+            # simply nothing yet to anchor.
+            return {"anchored": 0, "seq": 0,
+                    "detail": "the chain is empty, so there is no head to "
+                              "anchor yet"}
+        return self.anchors.anchor(seq, head, length=report["length"], actor=actor)
+
+    def verify_against_anchors(self) -> Dict[str, Any]:
+        """Does the chain agree with the heads written outside the database?
+
+        This is the only verification here that an attacker with database access
+        alone cannot satisfy. `verify_chain` compares the chain against itself,
+        which a rewritten chain passes; this compares it against a second medium.
+        """
+        if self.anchors is None:
+            return {"anchored": 0, "agrees": 1, "checked": 0, "since_seq": None,
+                    "detail": "no anchor root is configured, so the chain is "
+                              "self-certified and nothing contradicts it"}
+        return self.anchors.verify(self.chain_hash_at)
 
     def verify_since_checkpoint(self, advance: bool = True) -> Dict[str, Any]:
         """Has anything broken since the last full verification?

@@ -88,7 +88,7 @@ Two exceptions to know before you write a client:
 
 ### The status class says who must act
 
-There are around two hundred and fifty codes, all mapped in one table so no code
+There are over three hundred codes, all mapped in one table so no code
 can mean two things. Branch on the class first; it tells you whose problem this
 is.
 
@@ -130,6 +130,9 @@ The codes a caller most often has to branch on:
 | `assembly_rejected` | 422 | A training set assembly was not point-in-time safe |
 | `boundary_violation` | 422 | Inputs outside the contract's assumptions |
 | `grammar_violation` | 422 | The warrant does not conform to the grammar |
+| `no_fibre` | 422 | The trainability class has no fibre, so nothing says what evidence it needs or what may be monitored on it. Not a 404: the class is a real value and the caller named it correctly — what is missing is something the platform should have supplied |
+| `kind_not_answerable` | 422 | The monitor asks a question this class cannot answer — a `performance` monitor on a T0 pricer, a `calibration` monitor on a T5 generative assembly. Both used to be accepted, and both then ran forever without meaning anything, which reads on the estate screen as coverage |
+| `fibration_incomplete` | 503 | The one refusal here you should never see. The totality gate runs at start-up, so if this reaches you the instance is serving on a fibration it already knows is partial, and the honest answer is that it is not fit to answer |
 | `test_not_admissible` | 422 | This test cannot answer this monitor's question |
 | `unknown_subject` | 422 | A document was filed against something that is not a subject |
 | `unknown_metric` | 422 | A limit named something the platform does not compute |
@@ -173,7 +176,7 @@ state-changing request under a cookie must also carry the session's CSRF token:
 X-MAYA-CSRF: <the value of the page's csrf-token meta tag>
 ```
 
-That matters because there are **a hundred and four mutating endpoints**; the
+That matters because there are **a hundred and fourteen mutating endpoints**; the
 argument for a token rests on the number being large. The pages do it for you
 (`web/static/js/csrf.js` attaches it to every same-origin mutation), so this
 concerns you only if you are scripting against a signed-in session. If you are,
@@ -342,6 +345,7 @@ is not a model store of last resort.
 |---|---|---|---|
 | `GET` | `/grammar`, `/grammar/schema` | auth | The four vocabularies; the generated JSON Schema |
 | `POST` | `/grammar/validate` | auth | Check a document before you sign anything. Reports **every** problem, not the first |
+| `GET` | `/fibres`, `/fibres/{trainability_class}` | auth | The fibration (`L-15`): for each of the nine trainability classes, the evidence it needs, the lifecycle it may occupy, the monitor kinds that can answer anything about it, and the documents that compile for it — plus, in prose, what conceptual soundness rests on, what outcomes analysis *is*, and what monitoring answers. A class with no fibre is refused `no_fibre` (422) rather than returned empty, because an empty fibre is what the law forbids |
 | `POST` | `/warrants` | `warrant:issue` | Issue a standing entitlement: `urn, principal, declared_use` + `environment`, `flavour` |
 | `POST` | `/resolve?verb=` | `warrant:resolve` | Mint a signed, expiring warrant. The hot path. Resolving for another principal needs `warrant:issue` |
 | `POST` | `/fit-warrants` | `warrant:issue` | A warrant to *fit*: `urn, principal, featureset, featureset_version, window, as_of`. Enforces L-W10 |
@@ -431,6 +435,26 @@ Streamed, so peak memory is one Arrow batch rather than the whole export.
 | `POST` | `/parameter-fits` | `parameter:record` | **Run** the fit. Resolves the warrant before reading anything, reads the snapshot at its pinned Delta version, lands `proposed`. 501 where no captive engine is configured |
 | `GET` | `/parameter-sets/{id}` | `model:read` | One set with its lineage |
 | `POST` | `/parameter-sets/{id}/review` | `parameter:approve` | `accept` + `note`. Not by whoever recorded it |
+
+### Rule sets — the T8 parameter object
+
+Four verbs and one vocabulary, and the split between them is the whole design.
+`check` and `trial` are **free**: they carry no authority, record nothing, and can
+be called on every keystroke. `publish` is the ordinary `parameter:record` act
+with the ordinary consequences — so an author iterates without touching the
+register, and the moment their draft becomes a governed object is one act they
+had to choose.
+
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| `GET` | `/rulesets/vocabulary` | auth | The eleven operators, what each means, which need an ordered field, the combinators, and which dtypes have an order. Taken from the code, so a screen cannot hold a second copy that drifts |
+| `POST` | `/rulesets/check` | `model:read` | `urn, semver, document`. Validates against the version's input and output schemas. Returns the rule count, the fields read, the shadowing and contradiction reports, the English rendering and the canonical document. **Records nothing** — and it is `model:read` rather than `parameter:record` deliberately, because requiring the recording permission to *look* at whether a document is valid pushes authors to skip the step |
+| `POST` | `/rulesets/trial` | `model:read` | `urn, semver, document, rows`. Runs a draft against sample rows. Reports every outcome, per-rule fire counts, which rules fired on nothing, and how many rows fell through to `otherwise`. A row that cannot be decided is reported against that row rather than raised, so one bad sample does not hide what the other nineteen would have shown. Deliberately **not** `/execute`: there is no warrant and no entitlement, because nothing is being scored |
+| `POST` | `/rulesets` | `parameter:record` | `urn, semver, name, document, note`. **201.** `POST /parameters` reached through a door that checks the document: the set lands `proposed`, carries the shadowing and contradiction reports as diagnostics, and needs somebody other than its author |
+| `GET` | `/rulesets/{parameter_set_id}` | `model:read` | An approved rule set in English. One rendering, so the model card, the committee paper and the export pack quote the same sentences |
+
+Executing one is the ordinary `POST /execute` against a warrant whose runtime is
+`rules` and whose verb is `score`. See [Rule sets](/help/rule-sets).
 
 ### Validation
 
@@ -691,6 +715,11 @@ through assembly.
 | *'featureset' is not something a document can be about* | A subject must be pinned, so it is `featureset_version` | Name the version the document describes |
 | *the UI shows no features* | The model version has no [feature contract](/help/features-and-two-clocks#feature-contracts) bound, so it reads no governed features | `POST /api/v1/feature-contracts` |
 | *a configuration change had no effect* | A key in the tracked file is overridden by the same key in the git-ignored overlay — what the overlay is for, and what makes it confusing at 2am | Check precedence, below |
+| *compares '…' with 'high', but the field is declared 'numeric'* (`value_wrong_type`, 422) | The comparison can never be true, so the rule can never fire. Refused only where the platform is certain — a `date` may be an epoch or an ISO string, and an unrecognised dtype is somebody's extension, so neither is judged | Give a value of the right kind, or fix the field's declared type |
+| *rule '…' can never fire* (`rule_unreachable`, 422) | An earlier rule matches everything this one matches. A rule that never fires still appears in the model card and in every committee paper, and nobody reading either can tell | Reorder them, narrow the earlier rule, or delete this one |
+| *rules '…' and '…' have the same condition and different outcomes* (`rules_contradict`, 409) | First match wins, so the second can never fire — but the ordering is not the problem | Decide which outcome the policy actually means |
+| *reads '…', which this model's input schema does not declare* (`unknown_field`, 422) | A rule reading a field that does not exist is a rule that will silently never fire | Declare it on the version, or read a field it has |
+| *does not say why it exists* (`reason_required`, 422) | `because` is required per rule. A rule nobody can justify is one nobody can retire either | Name the policy, the limit or the regulation |
 
 ### /health/ready returns 503
 

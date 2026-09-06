@@ -38,14 +38,33 @@ from db.database import digest as canonical_digest
 logger = get_logger(__name__)
 
 
+def _cardinality(values: Dict[str, Any], kind: str) -> int:
+    """How big this parameter object is, in whatever unit means something for it.
+
+    Top-level keys for anything whose `P` is a record of numbers; **rules** for a
+    rule set, whose document always has three keys however large the policy is.
+    """
+    if not values:
+        return 0
+    if kind == "rule_set":
+        rules = values.get("rules")
+        return len(rules) if isinstance(rules, list) else 0
+    return len(values)
+
+
 class ParameterRegister:
     """Records, approves and resolves the parameters a model version runs with."""
 
     def __init__(self, parameters: ParameterSetRepository, registry,
-                 evidence: EvidenceEngine, warrants=None, featuresets=None):
+                 evidence: EvidenceEngine, warrants=None, featuresets=None,
+                 snapshots=None):
         self.parameters, self.registry = parameters, registry
         self.evidence, self.warrants = evidence, warrants
         self.featuresets = featuresets
+        # Optional, and its absence is why this gap existed. Without a way to
+        # resolve `snapshot_id`, this service stored it as an opaque string and
+        # could not have refused an unverified assembly if it wanted to.
+        self.snapshots = snapshots
 
     # ----------------------------------------------------------------- record
     def record(self, urn: str, semver: str, name: str, kind: str,
@@ -65,7 +84,8 @@ class ParameterRegister:
         version = self._version_of(urn, semver)
         self._refuse_if_not_fittable(version, provenance)
         self._check_warrant(provenance, warrant_id, version)
-        values, uri, cardinality = self._store(values, values_uri, provenance)
+        self._refuse_unverified_snapshot(snapshot_id, provenance)
+        values, uri, cardinality = self._store(values, values_uri, provenance, kind)
         binding = self._binding(provenance, featureset, featureset_version)
 
         row = {
@@ -106,8 +126,17 @@ class ParameterRegister:
         """T0 has no parameters to fit and T6's are not ours to see. Both may
         still hold *declared* parameters — a closed form arrives with them — so
         the refusal is of the route, not of the parameter set."""
-        kernel = version.get("kernel") or {}
-        kind = kernel.get("parameter_kind")
+        # Read from the row's own column, not from `version["kernel"]`, which
+        # does not exist — the kernel spec lives under `manifest.kernel` and the
+        # field is a top-level column. So `kind` was **always None** and neither
+        # refusal below could ever fire: fitted coefficients could be recorded
+        # against a T0 version whose parameter object is terminal, and against a
+        # T6 version whose parameters are inside somebody else's black box.
+        #
+        # The fit *warrant* path refuses both correctly (`L-W1`), so the type
+        # error was enforced on one route and not the other — the pattern this
+        # module's own docstring warns about, in the module that warns about it.
+        kind = self._parameter_kind(version)
         if provenance == FITTED and kind == "none":
             raise ParameterError(
                 "nothing_to_fit",
@@ -122,6 +151,19 @@ class ParameterRegister:
                 "this version's parameters are inside a vendor black box and "
                 "cannot be reached, so MAYA cannot take delivery of them",
                 "record what the vendor states with provenance 'declared'")
+
+    @staticmethod
+    def _parameter_kind(version: Dict[str, Any]) -> Optional[str]:
+        """How `P` is inhabited, from wherever the row keeps it.
+
+        `create` writes it as a top-level column and also inside the manifest.
+        Both are read, column first, so this keeps working if a caller hands
+        over a manifest-shaped dict rather than a row.
+        """
+        if version.get("parameter_kind"):
+            return version["parameter_kind"]
+        kernel = (version.get("manifest") or {}).get("kernel") or {}
+        return kernel.get("parameter_kind")
 
     def _check_warrant(self, provenance: str, warrant_id: Optional[str],
                        version: Dict[str, Any]) -> None:
@@ -162,12 +204,25 @@ class ParameterRegister:
 
     @staticmethod
     def _store(values: Dict[str, Any], uri: Optional[str],
-               provenance: str) -> tuple:
+               provenance: str, kind: str = "") -> tuple:
         """Small parameter objects live in the register; large ones are located.
 
         A coefficient vector is a record — a reviewer should be able to read it.
         A hundred million weights are an artifact, and putting them in a row
         would make every read of the register carry them.
+
+        ## Why `kind` is here
+
+        `cardinality` answers *how big is this parameter object*, and the
+        register shows it — "12 values" on the model page and the parameter
+        page. For a coefficient vector the top-level key count is that number.
+
+        For a **rule set** it is not. A rule-set document has three top-level
+        keys (`rules`, `otherwise`, `note`) whatever it contains, so a
+        forty-rule lending policy and a one-rule one both reported **3 values**.
+        Not a refusal and not a wrong digest — just a number displayed beside a
+        governed object that measured nothing, which is worse than showing no
+        number at all, because a reader has no way to tell.
         """
         if not values and not uri:
             raise ParameterError(
@@ -175,6 +230,7 @@ class ParameterRegister:
                 "the parameter set is empty",
                 "supply the values, or a uri if they are large enough to be an "
                 "artifact rather than a record")
+        counted = _cardinality(values, kind)
         if values and len(values) > MAX_INLINE_VALUES:
             if not uri:
                 raise ParameterError(
@@ -183,8 +239,62 @@ class ParameterRegister:
                     f"record; the register holds up to {MAX_INLINE_VALUES} inline",
                     "store them in the artifact store and supply values_uri with "
                     "their digest")
-            return {}, uri, len(values)
-        return values, uri, len(values) if values else 0
+            return {}, uri, counted
+        return values, uri, counted
+
+    def _refuse_unverified_snapshot(self, snapshot_id: Optional[str],
+                                    provenance: str) -> None:
+        """Parameters fitted on an assembly MAYA declared unverified.
+
+        `FittingService` refuses this already, and has since somebody noticed
+        that `pit_verified` was "computed, stored, displayed, and gated
+        nothing". That fix went on **one** call site — the captive engine, which
+        `docs/06` calls optional and which the architecture explicitly steers
+        away from.
+
+        This is the other one, and it is the path the platform's own refusal
+        message recommends: *"enable execution.captive, or POST the parameters
+        to /parameters under the warrant that produced them."* The warrant,
+        model and version checks all bit on that route. The leakage check did
+        not, so coefficients fitted on a snapshot MAYA had flagged as leaking
+        could be recorded, approved by a second person, bound into a warrant and
+        served — with the flag sitting `False` on the snapshot the whole time.
+
+        A control fixed at one call site and not the others is the sixth of the
+        ways a control reports success while doing nothing, and it is the one
+        that recurs most, because the fix looks complete from where it was made.
+        """
+        if not snapshot_id or provenance != FITTED:
+            return
+        if self.snapshots is None:
+            # Not wired: no opinion rather than a wrong one, and said out loud
+            # so that a deployment missing it is visible rather than silently
+            # ungated.
+            logger.warning("parameter set names snapshot %s but no snapshot "
+                           "repository is wired, so point-in-time verification "
+                           "was not checked on this path", snapshot_id)
+            return
+        snapshot = self.snapshots.one(id=snapshot_id)
+        if snapshot is None:
+            raise ParameterError(
+                "unknown_snapshot",
+                f"no snapshot '{snapshot_id}' — these parameters name a "
+                f"training set that is not in the register",
+                "record the snapshot the fit read, or omit snapshot_id if the "
+                "fit did not read one")
+        if snapshot.get("pit_verified"):
+            return
+        report = snapshot.get("pit_report") or {}
+        leakage = report.get("leakage") or []
+        raise ParameterError(
+            "snapshot_not_pit_verified",
+            f"snapshot '{snapshot.get('name')}' did not pass point-in-time "
+            f"verification"
+            + (f"; suspected leakage in {', '.join(leakage)}" if leakage else "")
+            + (f": {report.get('detail')}" if report.get("detail") else ""),
+            "assemble it again from a featureset version whose slots cannot see "
+            "the label, or fix the leak the report names; a model fitted on "
+            "leaked data scores well and then does not")
 
     def _binding(self, provenance: str, featureset: Optional[str],
                  version: Optional[int]) -> Dict[str, Any]:
@@ -325,12 +435,12 @@ class ParameterRegister:
         """Whether this version's kernel is ready to be used, and by what route."""
         version = self._version_of(urn, semver)
         rows = self.parameters.for_version(version["id"])
-        kernel = version.get("kernel") or {}
-        terminal = (kernel.get("parameter_kind") == "none")
+        kind = self._parameter_kind(version)
+        terminal = (kind == "none")
         approved = [p for p in rows if p["state"] == APPROVED]
         return {
             "model_version": f"{urn}@{semver}",
-            "parameter_kind": kernel.get("parameter_kind"),
+            "parameter_kind": kind,
             "recorded": len(rows), "approved": len(approved),
             "awaiting_approval": sum(1 for p in rows if p["state"] == PROPOSED),
             "by_provenance": {p: sum(1 for r in rows if r["provenance"] == p)

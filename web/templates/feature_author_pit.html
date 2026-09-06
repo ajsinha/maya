@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Point in time — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE TWO CLOCKS</p>
+<h1>Ask a point-in-time question</h1>
+<div class="rule"></div>
+<p class="text-muted small">
+  Most &ldquo;model failures&rdquo; are feature failures. A model that scored
+  0.47 in development and 0.31 in production has usually not degraded; it was
+  never trained on the data it is now served, because a future value leaked into
+  a past row. The rule that prevents it is one sentence: a training row may read
+  only what was <strong>true</strong> by the moment of the decision and
+  <strong>known</strong> by then as well.
+</p>
+<p class="small mb-3">
+  <a href="/features" style="color:var(--crimson);text-decoration:none">The catalogue</a>
+  &middot; <a href="/features/new" style="color:var(--crimson);text-decoration:none">Define a feature</a>
+  &middot; <a href="/features/load" style="color:var(--crimson);text-decoration:none">Load values</a>
+</p>
+
+<div class="card mb-3">
+  <div class="card-header">The operator</div>
+  <div class="card-body">
+<pre class="mb-2" style="background:#F4F2EF;padding:.8rem;border-radius:.25rem"><code class="mono">AsOf(R, &#8467;, a) = argmax over ({{ clocks.valid_time }}, {{ clocks.ingest_time }}) of
+                { r &isin; R : r.{{ clocks.valid_time }} &le; &#8467;  &and;  r.{{ clocks.ingest_time }} &le; min(&#8467;, a) }</code></pre>
+    <p class="small mb-2">
+      <code>&#8467;</code> is the moment of the decision &mdash; the label time.
+      <code>a</code> is the moment the set was assembled. The two bounds refuse
+      different things: <code>&#8467;</code> is what could have been known when
+      the decision was made, <code>a</code> is what the platform could have
+      known when the set was built. The ingest clock is bounded by the
+      <em>smaller</em> of them, and that <code>min</code> is the
+      reproducibility law &mdash; every <code>a &ge; &#8467;</code> gives the
+      same answer, so a row assembled the day its label matured and the same row
+      re-assembled a year later are identical, however many restatements arrived
+      in between.
+    </p>
+    <table class="table maya mb-0 small">
+      <thead><tr><th>Property</th><th>What it means here</th></tr></thead>
+      <tbody>
+        <tr><td>idempotent</td><td class="text-muted">reading the result again returns it</td></tr>
+        <tr><td>commutes with projection</td>
+            <td class="text-muted">reading fewer columns cannot change which row is
+              admissible; the choice is made on the clocks alone</td></tr>
+        <tr><td>monotone in <code>a</code></td>
+            <td class="text-muted">a later assembly can only widen what is admissible;
+              nothing that was knowable stops being knowable</td></tr>
+        <tr><td>saturating at <code>&#8467;</code></td>
+            <td class="text-muted">every <code>a &ge; &#8467;</code> gives the same
+              answer &mdash; the reproducibility guarantee</td></tr>
+      </tbody>
+    </table>
+    <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
+      Each is asserted in <code>tests/test_laws.py</code> rather than argued
+      here, and the verdicts below come from the same function
+      <code>TrainingSetBuilder.latest_admissible</code> an assembly uses &mdash;
+      this page holds no second copy of the rule.
+    </p>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------------- the ask -->
+<div class="card mb-3">
+  <div class="card-header">Ask it of loaded rows</div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">
+      Reads a stored view version and says, row by row, which is admissible and
+      which clock refused the rest. Writes nothing: no snapshot, no evidence, no
+      warrant. Asking which row the rule admits is not the same act as building
+      a training set out of the answer.
+    </p>
+    <form id="asof" class="row g-2 small align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="asof-view">View</label>
+        <select class="form-select form-select-sm" id="asof-view">
+          {% for v in views %}<option value="{{ v.name }}">{{ v.name }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="asof-version">Version</label>
+        <select class="form-select form-select-sm" id="asof-version"></select></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="asof-label">Decision moment &#8467;</label>
+        <input class="form-control form-control-sm" id="asof-label" value="100"></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="asof-as-of">Assembled at <em>a</em></label>
+        <input class="form-control form-control-sm" id="asof-as-of" value="1000"></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="asof-entity">One entity (optional)</label>
+        <input class="form-control form-control-sm" id="asof-entity"></div>
+      <div class="col-md-1">
+        <button class="btn btn-sm btn-danger w-100 py-0" style="font-size:.75rem">Ask</button></div>
+    </form>
+    <div id="asof-out" class="mt-3 small"></div>
+  </div>
+</div>
+
+<!-- ----------------------------------------------------------- the assembly -->
+<div class="card mb-3">
+  <div class="card-header">Assemble a training set &mdash; the act, not the question</div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">
+      This one <strong>writes</strong>: it joins a spine to the pinned view
+      versions under the rule above, verifies the result by independently
+      recomputing a sample, and records a snapshot with the verification report
+      attached. Turn either bound off and the assembly is <em>refused</em> before
+      a single row is read &mdash; that refusal is a proof, not a warning.
+    </p>
+    {% if not may_assemble %}
+    <div class="state-note mb-3">
+      You may read feature values but not assemble a training set. The form
+      still submits, and the API refuses in full.
+    </div>
+    {% endif %}
+    <form id="assemble" class="small">
+      <div class="row g-2 align-items-end mb-2">
+        <div class="col-md-3">
+          <label class="form-label mb-1" for="as-name">A name for the snapshot</label>
+          <input class="form-control form-control-sm" id="as-name" value="trial-set"></div>
+        <div class="col-md-2">
+          <label class="form-label mb-1" for="as-view">View</label>
+          <select class="form-select form-select-sm" id="as-view">
+            {% for v in views %}<option value="{{ v.name }}">{{ v.name }}</option>{% endfor %}
+          </select></div>
+        <div class="col-md-2">
+          <label class="form-label mb-1" for="as-version">Version</label>
+          <select class="form-select form-select-sm" id="as-version"></select></div>
+        <div class="col-md-2">
+          <label class="form-label mb-1" for="as-as-of">Assembled at <em>a</em></label>
+          <input class="form-control form-control-sm" id="as-as-of" value="1000"></div>
+        <div class="col-md-3 d-flex gap-3 pb-1">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="as-valid" checked>
+            <label class="form-check-label" for="as-valid">bound valid time</label></div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="as-txn" checked>
+            <label class="form-check-label" for="as-txn">bound transaction time</label></div></div>
+      </div>
+      <label class="form-label mb-1" for="as-spine">The spine &mdash; one JSON object per line</label>
+      <textarea id="as-spine" class="form-control form-control-sm mono mb-2" rows="4"
+placeholder='{"{{ clocks.entity }}": "C1", "label_ts": 100, "label": 0}
+{"{{ clocks.entity }}": "C2", "label_ts": 100, "label": 1}'></textarea>
+      <button class="btn btn-sm btn-danger py-0 px-3" style="font-size:.75rem">Assemble</button>
+    </form>
+    <div id="assemble-out" class="mt-3 small"></div>
+  </div>
+</div>
+
+<!-- ---------------------------------------------------------- the fill rules -->
+<div class="card mb-3">
+  <div class="card-header">Gaps, and the five ways to fill one</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">
+      Features arrive on their own clocks: a balance monthly, a rating annually,
+      a price daily and never at weekends. Putting them on one axis leaves gaps,
+      and how a gap is filled is a decision with consequences.
+    </p>
+    <table class="table maya mb-2 small">
+      <thead><tr><th>Rule</th><th>What it does</th><th>Safe for training</th></tr></thead>
+      <tbody>
+        {% for r in alignment.rules %}
+        <tr><td><code>{{ r.rule }}</code></td>
+            <td class="text-muted">{{ r.means }}</td>
+            <td>{% if r.point_in_time_safe %}<span class="evidence-ok">yes</span>
+                {% else %}<span class="evidence-bad">reaches ahead</span>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="small text-muted mb-3">{{ alignment.why_not_refused }}</p>
+    <p class="small text-muted mb-3"><strong>The carry limit.</strong> {{ alignment.limit }}</p>
+
+    <p class="small fw-bold mb-2" style="color:var(--crimson)">Try a rule on some rows</p>
+    <p class="small text-muted mb-2">
+      Nothing stored is aligned and nothing is written. Watch the
+      <code>{{ clocks.ingest_time }}</code> stamp on the filled rows: a value
+      answered by a later observation carries that observation&rsquo;s ingest
+      time, so the point-in-time read above excludes it without anybody
+      remembering a flag.
+    </p>
+    <form id="align" class="row g-2 small align-items-end mb-2">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="al-rule">Fill rule</label>
+        <select class="form-select form-select-sm" id="al-rule">
+          {% for r in alignment.rules %}<option value="{{ r.rule }}">{{ r.rule }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="al-axis">Axis</label>
+        <input class="form-control form-control-sm" id="al-axis"
+               value="{{ alignment.default_axis }}"></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="al-grid">Grid</label>
+        <select class="form-select form-select-sm" id="al-grid">
+          {% for g in alignment.grids %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="al-step">Step &mdash; regular grids</label>
+        <input class="form-control form-control-sm" id="al-step" placeholder="10"></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="al-limit">Carry limit</label>
+        <input class="form-control form-control-sm" id="al-limit" placeholder="none"></div>
+      <div class="col-md-1">
+        <button class="btn btn-sm btn-outline-secondary w-100 py-0"
+                style="font-size:.75rem">Align</button></div>
+    </form>
+    <textarea id="al-rows" class="form-control form-control-sm mono mb-2" rows="5"
+placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 100, "dscr": 1.2}
+{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 130, "{{ clocks.ingest_time }}": 130, "dscr": 1.6}'></textarea>
+    <div id="align-out" class="small"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURE_AUTHOR = {
+  page: "point-in-time",
+  clocks: {{ clocks|tojson }},
+  views: {{ views|tojson }}
+};
+</script>
+<script src="/static/js/feature-author.js"></script>
+{% endblock %}

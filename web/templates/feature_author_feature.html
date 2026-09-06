@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+{% block title %}{{ feature.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">A FEATURE</p>
+<h1>{{ feature.name }}
+  <span class="text-muted" style="font-size:1rem">{{ feature.entity }}</span></h1>
+<div class="rule"></div>
+<p class="small mb-2">
+  <span class="chip">{{ feature.dtype }}</span>
+  <span class="chip">{{ feature.dimensionality.kind }}</span>
+  <span class="chip">{{ feature.certification }}</span>
+  <span class="chip">definition v{{ feature.definition_version }}</span>
+  {% if feature.sealed %}<span class="chip evidence-ok">sealed</span>{% endif %}
+  {% if feature.lifetime.ephemeral %}<span class="chip evidence-bad">ephemeral</span>{% endif %}
+  {% if derived %}<span class="chip">derived &middot; {{ derived.evaluator }}</span>{% endif %}
+</p>
+<p class="text-muted small">{{ feature.description }}</p>
+<p class="small mb-3">
+  <a href="/features" style="color:var(--crimson);text-decoration:none">The catalogue</a>
+  &middot; <a href="/features/new" style="color:var(--crimson);text-decoration:none">Define another</a>
+  &middot; <a href="/features/load" style="color:var(--crimson);text-decoration:none">Load values</a>
+  &middot; <a href="/features/point-in-time" style="color:var(--crimson);text-decoration:none">Ask a point-in-time question</a>
+</p>
+
+<div class="row g-3">
+  <!-- ------------------------------------------------------ the definition -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">The definition as it stands</div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">
+          Not what the row says &mdash; what the row plus its parents plus its
+          own operations say. Working that out is MAYA&rsquo;s job, not the
+          reader&rsquo;s.
+        </p>
+        <dl class="maya-terms mb-2">
+          <div><dt style="width:9rem">Shape</dt>
+               <dd>{{ feature.dimensionality.kind }} &mdash; {{ feature.dimensionality.detail }}</dd></div>
+          {% if feature.components %}
+          <div><dt style="width:9rem">Components</dt>
+               <dd class="mono">{{ feature.components|join(', ') }}</dd></div>
+          {% endif %}
+          <div><dt style="width:9rem">Ownership</dt>
+               <dd>{{ feature.ownership.detail }}</dd></div>
+          <div><dt style="width:9rem">Business definition</dt>
+               <dd>{{ feature.business_definition or '—' }}</dd></div>
+          <div><dt style="width:9rem">Source system</dt>
+               <dd>{{ feature.source_system or '—' }}</dd></div>
+          <div><dt style="width:9rem">Sensitivity</dt>
+               <dd>{{ feature.sensitivity }}
+                 {% if feature.pii %}&middot; personal data{% endif %}
+                 {% if feature.protected_basis %}&middot; protected basis{% endif %}
+                 &middot; proxy risk {{ feature.proxy_risk }}</dd></div>
+          <div><dt style="width:9rem">Lifetime</dt>
+               <dd>{{ feature.lifetime.detail }}</dd></div>
+          {% if feature.sealed %}
+          <div><dt style="width:9rem">Sealed</dt>
+               <dd>final; it can still be composed from &mdash; that is what
+                 sealing is for</dd></div>
+          {% endif %}
+        </dl>
+        {% if feature.drift %}
+        <p class="small mb-1"><span class="evidence-bad">A parent has moved</span></p>
+        <table class="table maya mb-0 small">
+          <thead><tr><th>Parent</th><th>Composed against</th><th>Now at</th></tr></thead>
+          <tbody>
+            {% for d in feature.drift %}
+            <tr><td>{{ d.parent }}</td><td>v{{ d.composed_against }}</td>
+                <td>v{{ d.now_at }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------- the lineage -->
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">What it rests on, and what rests on it</div>
+      <div class="card-body">
+        {% if derived %}
+        <p class="small mb-1"><strong>It is computed</strong></p>
+        <pre class="mb-2" style="background:#F4F2EF;padding:.6rem;border-radius:.25rem"><code class="mono">{{ derived.expression }}</code></pre>
+        <p class="small text-muted mb-3">
+          Evaluator <code>{{ derived.evaluator }}</code>; when the arithmetic has
+          no answer it records <code>{{ derived.on_error }}</code>.
+          {% if derived.evaluator == 'external' %}
+          MAYA does not compute this one &mdash; the values are materialised like
+          any primitive, and the definition is kept so lineage and the leakage
+          check still apply.
+          {% endif %}
+        </p>
+        {% endif %}
+
+        <p class="small mb-1"><strong>Rests on</strong>
+          <span class="text-muted">the transitive closure, not just the immediate
+          inputs &mdash; a derivation of a derivation of a feature is still that
+          feature</span></p>
+        {% if rests_on %}
+        <table class="table maya mb-3 small">
+          <thead><tr><th>Feature</th><th>Entity</th><th>Produced</th>
+                     <th>Certification</th></tr></thead>
+          <tbody>
+            {% for p in rests_on %}
+            <tr><td><a href="/feature/{{ p.name }}"
+                    style="color:var(--crimson);text-decoration:none">{{ p.name }}</a></td>
+                <td>{{ p.entity }}</td>
+                <td class="text-muted">{% if p.derived %}derived{% else %}materialised{% endif %}</td>
+                <td>{{ p.certification }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="small text-muted mb-3">Nothing &mdash; its values are supplied
+          rather than computed.</p>
+        {% endif %}
+
+        <p class="small mb-1"><strong>Rested on by</strong>
+          <span class="text-muted">what would break if this were withdrawn</span></p>
+        {% if depended_on_by %}
+        <p class="small mb-2">
+          {% for d in depended_on_by %}<a href="/feature/{{ d }}"
+             style="color:var(--crimson);text-decoration:none">{{ d }}</a>{{ "" if loop.last else " &middot; " }}{% endfor %}
+        </p>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          A primitive cannot be withdrawn while something derives from it. That
+          is the retirement guard feature views already have, one hop out.
+        </p>
+        {% else %}
+        <p class="small text-muted mb-0">Nothing derives from it.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if history|length > 1 %}
+<div class="card mt-3">
+  <div class="card-header">Every definition of this name</div>
+  <table class="table maya mb-0">
+    <thead><tr><th data-sort-numeric>Version</th><th>Expression</th><th>Inputs</th>
+               <th>Evaluator</th><th>Recorded by</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for h in history %}
+      <tr><td class="small" data-sort="{{ h.definition_version }}">v{{ h.definition_version }}</td>
+          <td class="small mono" style="font-size:.72rem">{{ h.expression }}</td>
+          <td class="small">{{ h.inputs|join(', ') }}</td>
+          <td class="small">{{ h.evaluator }}</td>
+          <td class="small">{{ h.created_by }}</td>
+          <td class="small text-muted">{{ h.note }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="card-body py-2 small text-muted border-top">
+    A correction is a new version, never an edit: somebody may already have
+    trained against the old one.
+  </div>
+</div>
+{% endif %}
+
+{% if feature.composes %}
+<div class="card mt-3">
+  <div class="card-header">What it is composed from</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">
+      A left-to-right fold in which the rightmost parent wins, and this
+      feature&rsquo;s own operations are applied last of all &mdash; because a
+      thing&rsquo;s own declarations should beat anything it inherited. If a
+      parent could override a child, naming a parent would be an act of
+      surrender.
+    </p>
+    <p class="small mb-1"><strong>The ancestry, in the order it folds</strong></p>
+    <table class="table maya mb-3 small">
+      <thead><tr><th>Parent</th><th data-sort-numeric>Depth</th><th>Pinned at</th>
+                 <th>Sealed</th><th>Contributes</th></tr></thead>
+      <tbody>
+        {% for a in feature.lineage %}
+        <tr><td><a href="/feature/{{ a.name }}"
+                style="color:var(--crimson);text-decoration:none">{{ a.name }}</a></td>
+            <td data-sort="{{ a.depth }}">{{ a.depth }}</td>
+            <td>{% if a.version %}v{{ a.version }}{% else %}<span class="text-muted">as it stands</span>{% endif %}</td>
+            <td>{% if a.sealed %}<span class="evidence-ok">sealed</span>
+              {% else %}<span class="text-muted">no</span>{% endif %}</td>
+            <td class="mono" style="font-size:.72rem">{{ a.contributes|join(', ') }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="small mb-1"><strong>Where each component came from</strong>
+      <span class="text-muted">&mdash; the question about an inherited thing is
+      never &ldquo;what does it have&rdquo; but &ldquo;which of these did
+      somebody here decide&rdquo;</span></p>
+    <table class="table maya mb-0 small">
+      <thead><tr><th>Component</th><th>Decided by</th><th>Overrode</th></tr></thead>
+      <tbody>
+        {% for member, where in (feature.provenance or {}).items() %}
+        <tr><td class="mono" style="font-size:.72rem">{{ member }}</td>
+            <td>{{ where['from'] }}{% if where.version %} v{{ where.version }}{% endif %}</td>
+            <td>{% if where.overrode %}{{ where.overrode }}
+              {% else %}<span class="text-muted">nothing</span>{% endif %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ------------------------------------------------------------ certification -->
+<div class="card mt-3">
+  <div class="card-header">Certification</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <p class="small mb-2">This feature is
+          <span class="chip">{{ feature.certification }}</span></p>
+        {% if rests_on %}
+        <p class="small text-muted mb-2">
+          It is derived, so its certification was set as the <strong>meet</strong>
+          of its inputs at the moment it was defined: as certified as the
+          weakest of them and no more, because deriving from an uncertified
+          feature does not launder it. The order the meet is taken over, weakest
+          first:
+        </p>
+        {% else %}
+        <p class="small text-muted mb-2">
+          A feature lands <code>experimental</code> and is certified later, by
+          somebody who is not the person who defined it. The order a derived
+          feature&rsquo;s meet is taken over, weakest first:
+        </p>
+        {% endif %}
+        <p class="small mb-2">
+          {% for level in certification_order %}<span class="chip">{{ level }}</span>
+          {{ "" if loop.last else "&nbsp;&le;&nbsp;" }}{% endfor %}
+        </p>
+        <p class="text-muted mb-0" style="font-size:.72rem">
+          The levels a feature may be <em>set</em> to are
+          {% for l in levels %}<code>{{ l }}</code>{{ "" if loop.last else ", " }}{% endfor %},
+          which is a different list from the one the meet ranks over. A level
+          outside the ranking sits at the bottom of it.
+        </p>
+      </div>
+      <div class="col-lg-6">
+        <form id="certify" class="row g-2 small align-items-end">
+          <div class="col-md-6">
+            <label class="form-label mb-1" for="cert-level">Certify as</label>
+            <select class="form-select form-select-sm" id="cert-level">
+              {% for l in levels %}<option value="{{ l }}">{{ l }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-6">
+            <button class="btn btn-sm btn-danger w-100 py-0"
+                    style="font-size:.75rem">Record the level</button></div>
+        </form>
+        {% if not may_certify %}
+        <div class="text-muted mt-2" style="font-size:.72rem">
+          Certifying sits in the second line. The button still submits, and the
+          API refuses in full with the permission it wanted &mdash; a page that
+          hid it would teach nobody why.
+        </div>
+        {% endif %}
+        <div id="certify-out" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------ where values are -->
+<div class="card mt-3">
+  <div class="card-header">Where its values are, and on which clocks</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>View</th><th>Version</th><th data-sort-numeric>Rows</th>
+               <th>Valid time</th><th>Ingest time</th><th data-sort-numeric>Null rate</th>
+               <th data-sort-numeric>Distinct</th><th>Restated</th><th>Retirable</th></tr></thead>
+    <tbody>
+      {% for c in carried_by %}
+      <tr><td class="small"><a href="/feature-views/{{ c.view }}"
+              style="color:var(--crimson);text-decoration:none">{{ c.view }}</a></td>
+          <td class="small">v{{ c.version }}</td>
+          <td class="small" data-sort="{{ c.row_count }}">{{ "{:,}".format(c.row_count) }}</td>
+          <td class="small mono" style="font-size:.72rem">{{ c.valid_time_column }}</td>
+          <td class="small mono" style="font-size:.72rem">{{ c.ingest_time_column }}</td>
+          <td class="small" data-sort="{{ c.null_rate if c.null_rate is not none else -1 }}">
+            {% if c.null_rate is not none %}{{ c.null_rate }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="small" data-sort="{{ c.distinct if c.distinct is not none else -1 }}">
+            {% if c.distinct is not none %}{{ c.distinct }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="small">{% if c.restated %}<span class="evidence-bad">restated</span>
+            {% else %}<span class="evidence-ok">unchanged</span>{% endif %}</td>
+          <td class="small">{% if c.retirable %}<span class="text-muted">yes</span>
+            {% else %}<span class="evidence-bad">pinned by {{ c.pinned_by|length }}</span>{% endif %}</td></tr>
+      {% else %}
+      <tr><td colspan="9" class="text-muted small">
+        No view version carries this feature yet. It is declared and it has no
+        values &mdash; a legitimate state, and the one every feature starts in.
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="card-body py-2 small text-muted border-top">
+    The null rate and the distinct count are what the platform measured
+    <em>as it wrote the version</em>, not a recomputation. A version a contract
+    still pins cannot be retired; the refusal names the contracts.
+  </div>
+</div>
+
+<!-- ------------------------------------------------------- retrieval policy -->
+<div class="card mt-3">
+  <div class="card-header">What happens to its values on the way out</div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">{{ feature.policy.precedence }}</p>
+    <table class="table maya mb-0 small">
+      <thead><tr><th>Section</th><th>Column</th><th>Treatment</th><th>Decided by</th></tr></thead>
+      <tbody>
+        {% set decided = feature.policy.decided_by or {} %}
+        {% for section, columns in (feature.policy.policy or {}).items() %}
+          {% for column, treatment in columns.items() %}
+          <tr><td><code>{{ section }}</code></td>
+              <td class="mono" style="font-size:.72rem">{{ column }}</td>
+              <td class="small">{{ treatment }}</td>
+              <td class="small text-muted">{{ decided.get(section, {}).get(column, '—') }}</td></tr>
+          {% endfor %}
+        {% else %}
+        <tr><td colspan="4" class="text-muted small">
+          Nothing declared: values come out as they went in, and every caller
+          decides for itself &mdash; which is the state this policy exists to
+          replace.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- -------------------------------------------------------------- the acts -->
+<div class="card mt-3 mb-3">
+  <div class="card-header">Acts on this feature</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-lg-4">
+        <p class="small fw-bold mb-1" style="color:var(--crimson)">Seal it</p>
+        <p class="text-muted small mb-2">
+          Declares it final. It can still be composed from &mdash; that is what
+          sealing is <em>for</em>. An amendment afterwards is refused, and only
+          an administrator can break a seal.
+        </p>
+        <form id="seal" class="row g-2 small align-items-end">
+          <div class="col-8"><input class="form-control form-control-sm" id="seal-note"
+                   placeholder="note"></div>
+          <div class="col-4"><button class="btn btn-sm btn-outline-danger w-100 py-0"
+                   style="font-size:.75rem">Seal</button></div>
+        </form>
+        <div id="seal-out" class="mt-2 small"></div>
+      </div>
+      <div class="col-lg-4">
+        <p class="small fw-bold mb-1" style="color:var(--crimson)">Hand it on</p>
+        <p class="text-muted small mb-2">
+          The owner changes; the creator does not. Who made it is history and
+          history does not move.
+        </p>
+        <form id="transfer" class="row g-2 small align-items-end">
+          <div class="col-6"><input class="form-control form-control-sm" id="transfer-to"
+                   placeholder="person/j.okafor"></div>
+          <div class="col-6"><input class="form-control form-control-sm" id="transfer-why"
+                   placeholder="why"></div>
+          <div class="col-12"><button class="btn btn-sm btn-outline-danger py-0 px-3"
+                   style="font-size:.75rem">Transfer</button></div>
+        </form>
+        <div id="transfer-out" class="mt-2 small"></div>
+      </div>
+      <div class="col-lg-4">
+        <p class="small fw-bold mb-1" style="color:var(--crimson)">Withdraw it</p>
+        <p class="text-muted small mb-2">
+          Only an <em>ephemeral</em> feature is destroyed. A durable one that
+          something composed from cannot simply stop existing, and the refusal
+          says so. The rows go; the record of the destruction does not.
+        </p>
+        <button class="btn btn-sm btn-outline-danger py-0 px-3" id="destroy"
+                style="font-size:.75rem">Destroy</button>
+        <div id="destroy-out" class="mt-2 small"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.MAYA_FEATURE_AUTHOR = {
+  page: "feature",
+  name: {{ feature.name|tojson }},
+  clocks: {{ clocks|tojson }}
+};
+</script>
+<script src="/static/js/feature-author.js"></script>
+{% endblock %}

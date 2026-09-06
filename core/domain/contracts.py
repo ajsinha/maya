@@ -70,9 +70,56 @@ class Contract:
         return {b.key: b for b in self.guarantees}
 
     def check_inputs(self, values: Dict[str, Any]) -> List[str]:
-        """Evaluate ``input |= A``. Returns the assumption keys that fail."""
+        """Evaluate ``input |= A``. Returns the assumption keys that fail.
+
+        Values are looked up **one level down as well as at the top**, because
+        that is where several runtimes put them. The estimator reads
+        `inputs["features"]`, so an assumption on `turnover` found no
+        `turnover` key at the top level, and the clause below — which skips a
+        key that is not present — passed it. A signed operating boundary was
+        therefore unenforced for every runtime that nests its inputs, silently,
+        with `boundary_ok: true` on the response.
+
+        An absent key still passes, and that is deliberate: an assumption
+        constrains a value that was supplied, and a caller who supplies nothing
+        has not violated a band. `unchecked_inputs` reports which assumptions
+        never found a value, so "the boundary held" and "the boundary did not
+        apply" are answerable separately rather than looking identical.
+        """
+        seen = self._flatten(values)
         return [b.key for b in self.assumptions
-                if b.key in values and not b.contains(values[b.key])]
+                if b.key in seen and not b.contains(seen[b.key])]
+
+    def unchecked_inputs(self, values: Dict[str, Any]) -> List[str]:
+        """Assumption keys no supplied value reached.
+
+        Not a violation. But a contract whose assumptions all went unchecked is
+        a contract that did nothing, and the difference between that and one
+        that held is invisible from `boundary_ok` alone.
+        """
+        seen = self._flatten(values)
+        return [b.key for b in self.assumptions if b.key not in seen]
+
+    @staticmethod
+    def _flatten(values: Dict[str, Any]) -> Dict[str, Any]:
+        """Top-level keys, plus one level of nesting.
+
+        One level and no more: a deep walk would start matching an assumption
+        against a value that happens to share a name several objects down, and a
+        boundary that fires on the wrong field is worse than one that does not
+        fire at all.
+
+        Top level wins a collision, because that is where the caller addressed
+        it.
+        """
+        flat: Dict[str, Any] = {}
+        for key, value in (values or {}).items():
+            if isinstance(value, dict):
+                for inner, held in value.items():
+                    flat.setdefault(inner, held)
+        flat.update({k: v for k, v in (values or {}).items()
+                     if not isinstance(v, dict)})
+        return flat
 
     def refines(self, other: "Contract") -> "RefinementResult":
         """C' <= C iff A subset A' and (A and G') subset G. Law L-7."""

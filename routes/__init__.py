@@ -28,6 +28,11 @@ from routes.document_routes import DocumentRoutes
 from routes.export_routes import ExportRoutes
 from routes.reporting_routes import ReportingRoutes
 from routes.grammar_routes import GrammarRoutes
+from routes.rule_routes import RuleRoutes
+from routes.ui_feature_routes import FeatureAuthoringRoutes
+from routes.ui_model_routes import ModelAlgebraRoutes
+from routes.ui_featureset_routes import FeaturesetAuthoringRoutes
+from routes.ui_warrant_routes import WarrantAuthoringRoutes
 from routes.lifecycle_routes import LifecycleRoutes
 from routes.model_routes import ModelRoutes
 from routes.monitoring_routes import MonitoringRoutes
@@ -43,6 +48,9 @@ from routes.validation_routes import ValidationRoutes
 # carry dots and slashes), so the module with the longer, more specific paths
 # must register first or it will never be reached.
 ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
+              RuleRoutes,
+              FeatureAuthoringRoutes, FeaturesetAuthoringRoutes,
+              WarrantAuthoringRoutes, ModelAlgebraRoutes,
               ModelRoutes, LifecycleRoutes,
               WarrantRoutes, FeatureRoutes, ValidationRoutes, FindingWorkflowRoutes,
               MonitoringRoutes,
@@ -58,4 +66,7 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
            "ModelRoutes", "PublicRoutes", "UIRoutes", "ValidationRoutes",
            "FindingWorkflowRoutes", "PrincipalRoutes",
-           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "ExportRoutes", "ReportingRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "ProfileRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "current_user", "login_required"]
+           "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "ExportRoutes", "ReportingRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "ProfileRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "RuleRoutes", "FeatureAuthoringRoutes",
+           "FeaturesetAuthoringRoutes", "WarrantAuthoringRoutes",
+           "ModelAlgebraRoutes",
+           "current_user", "login_required"]

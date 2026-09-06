@@ -75,6 +75,15 @@ returning `None`, because the caller who asked has a decision to make, and a
 | Is this child a refinement of its parent? | **not askable** | `A ⊑ B` |
 | What must a featureset provide to serve both? | **not askable** | their meet |
 | What do two versions agree on? | **not askable** | their join |
+| Does a rule read a field the model has? | **there was nothing to ask it of** | the same containment, over a rule set's read-set (`core/rules/conditions.py::conforms`) |
+
+The last row is the same question in a different shape rather than the same call:
+`conforms` asks the version's declared `input_schema` directly, because a
+condition tree's read-set is a set of names and a dtype apiece rather than a
+schema object. What it inherits is the *order* — a rule reading `dti` on a model
+whose input schema has no `dti` is a rule that will silently never fire, which is
+the worst of the three outcomes available, and it is refused for the same reason
+a featureset that cannot fill a slot is.
 
 `L-20` in [00 §12](00-mathematical-foundations.md), asserted over generated
 schemas in `tests/test_laws.py::TestL20SchemasFormALattice`: partial order, meet
@@ -386,10 +395,11 @@ recorded in one place is a gap somebody has to go looking for.
 | **`L-11`** lens laws | needs a `put`; the compiler regenerates whole documents |
 | **`L-13`** evidence gluing | no consistency radius is computed anywhere |
 | **`L-14`** interaction premium | §6 gives it something to quantify over; the aggregate `ρ` and composite warrants are not built |
-| **`L-15`** fibration completeness | needs a plugin loader that refuses to boot on a partial fibre; model classes are strings |
+| ~~**`L-15`**~~ | **now executable** — `core/fibres/`, gated at start-up, indexed by the derived trainability class rather than the declared `model_class` |
 | **`L-17`** contract–serving agreement | needs an online store. Half exists: `serving_namespaces` computes what serving *must* read |
 | Featureset morphisms (`Δ/Σ/Π`) | §9; vocabulary borrowed, machinery not built |
 | The two diagrams | §7 |
+| Full coverage checking for rule sets | the shipped analysis decides whether a **single** earlier rule shadows a later one, never a union of them. Decidable, and a solver; see [02](02-model-taxonomy.md#t8-the-fibre-that-was-least-served) |
 
 ---
 
@@ -407,6 +417,10 @@ test rather than asserted by a document:
   are four homomorphisms out of one polynomial.* (`L-9`)
 - *Two models compose only if their schemas do, so the dependency graph is typed
   and a composite's schema is derived rather than declared.* (`L-21`)
+- *For one class of model — the class a bank has most of — no rule is shadowed by
+  any single earlier rule, no input falls through, no two rules with the same
+  condition disagree, and every field a rule reads is one the version declares.*
+  (`core/rules/`, and the incompleteness is stated in the same breath)
 - *Every document about this model, every fit that produced its parameters, and
   every note about the featureset versions it was fitted from: one page, following
   the pins, with the gaps named.*

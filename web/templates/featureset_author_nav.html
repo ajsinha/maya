@@ -1,0 +1,25 @@
+{# The authoring flow, in the order it is walked. Rendered on every screen
+   because the whole complaint was that these acts existed only as HTTP calls:
+   a page nobody can navigate to is the same problem one step further on. #}
+<p class="small mb-3">
+  <a href="/featuresets" style="color:var(--crimson);text-decoration:none">All featuresets</a>
+  &middot;
+  <a href="/featuresets/author" style="color:var(--crimson);text-decoration:none">Compose</a>
+  &middot;
+  <a href="/featuresets/lattice" style="color:var(--crimson);text-decoration:none">Schema lattice</a>
+  {% if featureset %}
+    <span class="text-muted">&nbsp;&mdash;&nbsp;{{ featureset.name }}:&nbsp;</span>
+    <a href="/featureset/{{ featureset.name }}" style="color:var(--crimson);text-decoration:none">read</a>
+    &middot;
+    <a href="/featureset/{{ featureset.name }}/bind" style="color:var(--crimson);text-decoration:none">fill the slots</a>
+    &middot;
+    <a href="/featureset/{{ featureset.name }}/assemble" style="color:var(--crimson);text-decoration:none">assemble</a>
+    &middot;
+    <a href="/featureset/{{ featureset.name }}/refusals" style="color:var(--crimson);text-decoration:none">refusals</a>
+    {% if featureset.versions or latest or versions %}
+      &middot;
+      <a href="/featureset/{{ featureset.name }}/plan/{{ (latest.version if latest else versions[-1].version) }}"
+         style="color:var(--crimson);text-decoration:none">plan</a>
+    {% endif %}
+  {% endif %}
+</p>

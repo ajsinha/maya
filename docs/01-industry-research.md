@@ -492,8 +492,8 @@ Everything in §6.1 is a product argument. This one is a technical position, and
 | **Composition type-checks.** An `input_to` edge holds only if what the source produces can stand in for what the target reads; a composite's schema is *derived* rather than declared | `L-21`, `core/registry/composition.py`, `tests/test_laws.py::TestL21FeedsIsCompositionRatherThanADrawing` |
 | Composition of definitions is a **monoid**, and independent edits **commute**, so the order two people happened to edit a shared featureset in carries no meaning | `L-19`, `L-20`, `tests/test_composition.py` |
 
-Full treatment in [17 — The Algebra](17-feature-and-model-algebra.md). Fifteen of the twenty-one
-foundational laws are executable and a failing one fails the build; the six that are not are named with
+Full treatment in [17 — The Algebra](17-feature-and-model-algebra.md). Sixteen of the twenty-one
+foundational laws are executable and a failing one fails the build; the five that are not are named with
 the reason in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces).
 
 ### 6.3 What MAYA has since built, against this survey
@@ -527,8 +527,8 @@ lost.
 - **Parameters are computed for two families and recorded for the rest.** `ols` and `garch11` in the
   captive engine; everything else is fitted wherever you run models and refused unless a warrant MAYA
   issued authorised the run.
-- **Five runtimes of the eighteen** are implemented in the captive engine. Each of the rest is refused
-  by name.
+- **Six runtimes of the eighteen** are implemented in the captive engine — callables, ONNX, a PMML
+  subset, QuantLib, the estimator and `rules`. Each of the rest is refused by name.
 - **No artifact signing, no build provenance, no upload scanning** — §4.
 - **Scale is designed for and not demonstrated.** The scale suite asserts complexity rather than
   wall-clock, deliberately; it has not been run against a real estate.

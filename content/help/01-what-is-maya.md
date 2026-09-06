@@ -106,6 +106,14 @@ only way to run.
 and approval routes are configuration. The platform enforces what you declared;
 it does not tell you what to declare.
 
+**It does not author models — with one stated exception.** No ONNX editor, no
+PMML editor, and there will not be one: those formats serialize a *fitted* map,
+and hand-authoring one would put an artifact in the register that had never been
+trained or validated and was indistinguishable from one that had. The exception
+is a **rule set**, whose provenance *is* its authorship — so MAYA edits a
+parameter object it already held, and publishing is the ordinary parameter-set
+record with the ordinary second person. See [Rule sets](/help/rule-sets).
+
 **It is not legal or regulatory advice.** It implements controls that map onto
 published supervisory expectations. The three supervisory encodings that ship are
 illustrative, not complete. Whether your implementation satisfies your supervisor
@@ -119,6 +127,7 @@ is a judgement your second line and your regulator make.
 | `/model/{name}` | One model as its type, its versions, aliases, findings and evidence |
 | `/models/new` | Register a model and upload its first version |
 | `/features` · `/featuresets` | Definitions, view versions, pins and what has been restated |
+| `/rules/{model}/{semver}` | The rule set of one T8 version: the rules in order, what they say in English, and what the checks found |
 | `/dossier/{name}` | Every document about a model, its versions, its parameter sets and the featureset versions they were fitted from — with the gaps named |
 | `/board-pack` | Risk appetite against the estate, for a committee |
 | `/policies` | What is in force on each gate |
@@ -134,6 +143,7 @@ is a judgement your second line and your regulator make.
 | Know who may act, and how a record comes into force | [Approval, attestation and segregation of duties](/help/approval-and-attestation) |
 | Build training data that is not quietly wrong | [Features and the two clocks](/help/features-and-two-clocks) |
 | Name a set of features and store what a fit produced | [Featuresets and fitted parameters](/help/featuresets-and-parameters) |
+| Author, check and run the rules a policy is made of | [Rule sets](/help/rule-sets) |
 | Run a model, or write an engine that does | [Warrants and execution](/help/warrants) |
 | Record independent challenge and what it found | [Validation and findings](/help/validation) |
 | Watch a live model, and control the adjustments on top of it | [Monitoring and post-model adjustments](/help/monitoring) |
@@ -146,6 +156,6 @@ is a judgement your second line and your regulator make.
 
 Worked walkthroughs with real calls are in the [tutorials](/tutorials/end-to-end).
 Eight cover the platform; [seven are one per kind of
-model](/tutorials/every-kind-of-model), each complete from registration to
+model](/tutorials/defining-a-model), each complete from registration to
 monitoring, so a pricing library and a neural network can be seen getting the
 same treatment.

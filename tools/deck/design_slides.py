@@ -20,6 +20,7 @@ import system rather than a reader.
 """
 # -*- coding: utf-8 -*-
 import os
+import pathlib
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -47,7 +48,14 @@ def build(out_path):
     return len(namespace["prs"].slides._sldIdLst)
 
 
+# The deck is a document, so it belongs beside the documents. Defaulting to the
+# working directory put a second copy in the project root every time anybody
+# built it from there, and two copies of a 155-slide deck differ the moment one
+# of them is rebuilt — with nothing to say which is current.
+DEFAULT_OUT = (pathlib.Path(__file__).resolve().parents[2]
+               / "docs" / "MAYA-Model-and-Feature-Management.pptx")
+
 if __name__ == "__main__":
-    target = (sys.argv[1] if len(sys.argv) > 1
-              else "MAYA-Model-and-Feature-Management.pptx")
-    print("slides:", build(target))
+    target = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUT
+    target.parent.mkdir(parents=True, exist_ok=True)
+    print("slides:", build(str(target)), "->", target)

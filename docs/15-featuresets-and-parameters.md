@@ -221,6 +221,16 @@ complementary refusals `nothing_to_fit` and `parameters_not_reachable` for
 somebody trying to **record** a fitted set against a terminal or opaque parameter
 object.
 
+It is also the row with the platform's one **authoring** surface, and the reason
+is stated in the word `declared` itself: for a T8 rule set, authorship *is* the
+provenance, so there is no fitting act for an editor to counterfeit. `core/rules/`
+therefore edits a parameter object the register already held rather than minting
+one — the set still lands `proposed`, the digest is still over the content, and
+`self_approval` is still refused. The same argument forbids the obvious next
+step: an ONNX or PMML editor would let MAYA mint an artifact that never had a
+training run and is indistinguishable in the register from one that did. See
+[02](02-model-taxonomy.md#t8-the-fibre-that-was-least-served).
+
 ### 4.2 Accepted only against a warrant MAYA issued
 
 `warrant_required` (none given) · `unknown_warrant` (not ours) ·
@@ -243,6 +253,14 @@ and the register holds the digest and the cardinality: a hundred million weights
 are an *artifact*, and inlining them would make every read of the register carry
 them. Where the artifact is held by MAYA it goes to the content-addressed store
 and the warrant says `held_by_maya`.
+
+One kind of value is read rather than only held. A T8 rule set is checked before
+it is stored — every field it reads is declared on the version, no rule is
+shadowed by any single earlier one, no two rules with the same condition disagree,
+and an `otherwise` exists — and the digest is taken over the **parsed canonical
+form**, so two documents differing only in key order are one parameter set while
+two differing in rule *order* are two, because with first-match evaluation the
+order is the meaning.
 
 ### 4.4 Resolution refuses to guess
 
@@ -358,6 +376,7 @@ scan.
 |---|---|
 | **No feature engineering** | the expression language is small on purpose; anything richer is `external`, and says so |
 | **No fitting** | MAYA issues the warrant and takes delivery. The estimation happens in an execution engine — the boundary drawn everywhere else |
+| **No artifact authoring** | a rule set can be written here because authorship is its provenance; a fitted map cannot, because hand-authoring one would put an artifact in the register that is indistinguishable from a trained one and never was |
 | **No feature selection** | no automatic selection, no importance ranking, no suggestion engine. The register records what you chose, pins it so it cannot move underneath you, and refuses the combinations that are type errors |
 | **No online serving tier** | the Delta namespace *is* the serving contract; reading it at request latency is the engine's problem. `L-17` is not executable until that exists, and the table says so |
 

@@ -171,6 +171,32 @@ class TestGrammarApi:
         assert s["$schema"].startswith("https://json-schema.org/")
         assert "subject" in s["properties"] and "signature" in s["properties"]
 
+    def test_the_fibration_is_published(self, client, people):
+        """`L-15` in the open. Everybody who has to *supply* evidence should be
+        able to read what their class requires without asking somebody."""
+        r = client.get("/api/v1/fibres", auth=people["d.raman"]).json()
+        assert r["law"] == "L-15" and r["total"] is True
+        assert r["base"] == [f"T{n}" for n in range(9)]
+        assert len(r["fibres"]) == 9
+        assert all(f["evidence"] and f["lifecycle"] and f["metrics"]
+                   and f["templates"] for f in r["fibres"])
+
+    def test_one_fibre_says_what_it_is_for(self, client, people):
+        f = client.get("/api/v1/fibres/T6", auth=people["d.raman"]).json()
+        assert f["label"] == "Vendor black box"
+        assert "vendor_documentation" in f["evidence"]
+        assert "model_development_document" not in f["evidence"]
+        assert "your own outcomes" in f["outcomes_analysis_is"]
+
+    def test_a_class_with_no_fibre_is_refused_rather_than_returned_empty(
+            self, client, people):
+        """An empty fibre is what the law forbids; returning one here would be
+        the platform reporting its own violation as data."""
+        r = client.get("/api/v1/fibres/T42", auth=people["d.raman"])
+        assert r.status_code == 422
+        assert r.json()["error"] == "no_fibre"
+        assert r.json()["remediation"]
+
     def test_a_document_can_be_checked_before_it_is_acted_on(self, client, people):
         r = client.post("/api/v1/grammar/validate", auth=people["d.raman"],
                         json={"maya_warrant": "1.0"}).json()

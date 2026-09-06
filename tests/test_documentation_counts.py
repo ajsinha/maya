@@ -29,7 +29,7 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
-WORDS = {21: "twenty-one", 104: "a hundred and four",
+WORDS = {21: "twenty-one", 114: "a hundred and fourteen",
          1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
          7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
          12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
@@ -150,9 +150,20 @@ def test_every_stated_count_matches_the_code(subject):
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
+        # Line by line, which is a real blind spot: a claim wrapped across two
+        # lines — "a hundred and four\nmutating endpoints" — is invisible here,
+        # and three of them survived a count change that way. Left line-based
+        # because matching across a join would need the whole file normalised,
+        # and a check that reports positions nobody can find is worse than one
+        # with a stated gap. Grep for the bare number when a count changes.
         for line_number, line in enumerate(text.splitlines(), 1):
             for pattern in CLAIMS[subject]:
-                for token in re.findall(pattern, line):
+                # Case-insensitive. `docs/14 §17` opened with "A hundred and
+                # four mutating endpoints" while §17.2 of the same file said a
+                # hundred and fourteen, and this check missed the first because
+                # the sentence began with a capital. A count guard that only
+                # sees lower-case sentences guards the middles of sentences.
+                for token in re.findall(pattern, line, re.I):
                     claimed = _as_number(token)
                     if claimed is not None and claimed != actual:
                         wrong.append(

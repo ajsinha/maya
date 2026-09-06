@@ -1,50 +1,57 @@
 # ============================================================ CH 11
-divider("11", "What a Featureset Is",
-        "A schema, versions that fill it, and one fold that does both.",
-        ["Schema and constituents",
-         "The composition monoid",
-         "Rolling forward",
-         "Retrieval policy"])
+_state["chapter"] = "11 · What a featureset is"
 
 # ----------------------------------------------------- schema vs constituents
 sl, y = content("A featureset declares a schema; a version fills it",
                 "Composing a featureset")
+# The columns are LABELLED, and the label is the whole example: a slot is not
+# a kind of feature, it is a name a feature is bound into, at a pinned view
+# version. The version pin is the property the right-hand table argues for, so
+# it has to be visible here rather than asserted next to an example without it.
 h = code(sl, ML, y, CW * 0.56, [
  "featureset: inflation",
- "schema:  gb_index: numeric",
- "         us_index: numeric",
- "         daily_index: numeric",
+ "schema:  gb_index   us_index   daily_index      all numeric",
  "",
- "@v1   gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192DAILY_INFL",
- "@v2   gb_index\u2192UKRPI  us_index\u2192USCPI  daily\u2192EUHICP",
+ "       slot          \u2192  feature         @ view_version",
+ "@v1    gb_index      \u2192  UKRPI           @ 2025-02",
+ "       us_index      \u2192  USCPI           @ 2025-02",
+ "       daily_index   \u2192  RPI_DAILY_MKT   @ 2025-02",
+ "@v2    gb_index      \u2192  UKRPI           @ 2025-06",
+ "       us_index      \u2192  USCPI           @ 2025-06",
+ "       daily_index   \u2192  RPI_DAILY_DMO   @ 2025-06",
 ], fs=9.5)
-tf = txt(sl, ML, y + h + 0.28, CW * 0.56, 1.8)
-para(tf, "@v2 draws on a different feature entirely, and a model defined over "
-         "inflation does not change: it reads daily_index, and always did.",
-     size=11.5, color=INK, first=True, space_after=9, line=1.25)
-para(tf, "A version that CANNOT fill the schema is refused. It is not a version "
-         "of this featureset \u2014 it is a different one, or it is a model "
-         "change, and the register decides which so nobody has to remember.",
+tf = txt(sl, ML, y + h + 0.26, CW * 0.56, 2.2)
+runs(tf, [("Like for like. ", CRIMSON, True),
+          ("@v2 binds daily_index to a different daily RPI reference \u2014 the "
+           "same signal at the same frequency for the same entity, published by "
+           "somebody else. A model defined over inflation does not change: it "
+           "reads daily_index, and always did.", INK, False)],
+     size=11, first=True, space_after=9, line=1.25)
+para(tf, "A version that cannot fill the schema is refused: it is a different "
+         "featureset, or it is a model change, and the register decides which. "
+         "Rolling forward mints a version re-resolved to the newest view "
+         "versions, with a diff naming every slot that moved.",
      size=11, color=SLATE, space_after=0, line=1.25)
 
 x = ML + CW * 0.60
 tf = txt(sl, x, y, CW * 0.40, 0.32)
-para(tf, "Every binding pins exactly", size=12.5, color=CRIMSON, bold=True,
+para(tf, "Every binding \u2014 what fills a slot, and from where "
+         "\u2014 pins exactly", size=12.5, color=CRIMSON, bold=True,
      font=SERIF, first=True, space_after=0)
 data = [["", ""],
         ["feature", "which signal fills the slot"],
         ["view", "which view supplies its values"],
         ["view_version", "which version of that view"],
         ["delta_version", "which write to that path"],
-        ["namespace", "the resolved Delta location"]]
+        ["namespace", "the resolved location in storage"]]
 th = table(sl, data, x, y + 0.40, CW * 0.40, col_w=[1.5, 3.4], header=False,
            row_h=0.29, fs=9.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, x, y + 0.40 + th + 0.18, CW * 0.40, 1.30,
+note(sl, x, y + 0.40 + th + 0.18, CW * 0.40, 1.34,
      "A path is mutable. ",
-     "A set that named views without pinning them would resolve to different "
-     "bytes next month with its digest unchanged \u2014 which is adversarial "
-     "finding C-2, ",
-     "one level out from the view.")
+     "A set naming views without pinning them would resolve to different "
+     "bytes next month, with its digest \u2014 the hash that names its "
+     "contents \u2014 unchanged: ",
+     "a stable name over moving contents.")
 
 # --------------------------------------------- worked example: a feature
 sl, y = content("Inheriting a feature: a curve with a tenor added",
@@ -95,11 +102,26 @@ note(sl, ML, y + h1 + 0.28, CW, 0.92,
      "where each came from \u2014 3m says it overrode usd_curve. ",
      "The row stores what this feature declares; resolving it is MAYA\u2019s job.")
 
-tf = txt(sl, ML, y + h1 + 1.32, CW, 0.44)
-runs(tf, [("The parent is sealed, and that is the point. ", CRIMSON, True),
-          ("A sealed feature takes no amendment and can still be composed from, "
-           "so a parent that cannot move is a parent worth building on \u2014 "
-           "and the change lives in the child, where a reviewer sees it.",
+DY = y + h1 + 1.36
+rect(sl, ML, DY, CW, 1.10, fill=PARCH)
+rect(sl, ML, DY, 0.05, 1.10, fill=CRIMSON)
+tf = txt(sl, ML + 0.26, DY + 0.13, CW - 0.5, 0.88)
+para(tf, "And if a parent is amended anyway?", size=11.5, color=CRIMSON,
+     bold=True, font=SERIF, first=True, space_after=5)
+runs(tf, [("The child says so. ", INK, True),
+          ("A composition records the parent\u2019s definition version at the "
+           "moment it resolved, so a parent that has moved since shows up as "
+           "drift on every child that reads it \u2014 ", INK, False),
+          ("composed against v1, now at v3.", CRIMSON, True),
+          ("  Not a failed read: a child whose parent has moved is something to "
+           "be told about, not something that should stop working.",
+           SLATE, False)],
+     size=9.8, space_after=0, line=1.22)
+
+tf = txt(sl, ML, DY + 1.24, CW, 0.34)
+runs(tf, [("A sealed parent cannot drift ", CRIMSON, True),
+          ("\u2014 the amendment that would move it is refused, so sealing "
+           "turns a promise about stability into a property of the object.",
            SLATE, False)],
      size=10, first=True, space_after=0, line=1.22)
 
@@ -144,104 +166,30 @@ para(tf, "Both parents declare turnover. sme_core is named second, so its "
          "3-year average is what the set holds \u2014 and the resolved set "
          "SAYS SO, slot by slot.",
      size=10, color=INK, space_after=10, line=1.24)
-para(tf, "That is the only rule there is. If a parent could beat a child, "
-         "naming a parent would be an act of surrender; if the order did not "
-         "matter, \u2018combine these two\u2019 would be ambiguous whenever "
-         "they disagreed.",
-     size=10, color=SLATE, space_after=10, line=1.24)
+para(tf, "If a parent could beat a child, naming a parent would be an act of "
+         "surrender; if order did not matter, \u2018combine these two\u2019 "
+         "would be ambiguous whenever they disagreed.",
+     size=10, color=SLATE, space_after=8, line=1.24)
 runs(tf, [("A child inherits the parents\u2019 retrieval policy the same way",
            CRIMSON, True),
           (" \u2014 one fold, applied to slots, to components and to policy.",
            SLATE, False)],
+     size=10, space_after=8, line=1.24)
+# The resolved schema is what a fit is checked against. Saying it plainly is
+# only possible since `FeatureSets.schema` stopped reading the set's own row:
+# a set that inherits every slot reported an EMPTY schema and so satisfied no
+# kernel at all, which made the ordinary case the one that could not be fitted.
+runs(tf, [("A composed set satisfies a kernel exactly as a declared one does",
+           CRIMSON, True),
+          (" \u2014 the schema L-W10 checks is the RESOLVED one, the same slots "
+           "the data fills. Inheriting every slot is the ordinary case, not an "
+           "exotic one.", SLATE, False)],
+     size=10, space_after=8, line=1.24)
+runs(tf, [("Two compositions are refused outright:", CRIMSON, True),
+          (" a cycle, which has no fixed point to resolve to; and an ephemeral "
+           "parent, which resolves today and dangles tomorrow.", SLATE, False)],
      size=10, space_after=0, line=1.24)
 
-
-# ------------------------------------------ modifying something with children
-sl, y = content("Modifying something other things are built on",
-                "Composing a featureset")
-
-BW4 = (CW - 3 * 0.22) / 4
-for i, (num, title, body) in enumerate([
-    ("1", "Amend it",
-     "Changes the definition and advances its version. Allowed while the "
-     "feature is open, and every child records which version it composed "
-     "against."),
-    ("2", "Seal it",
-     "No amendment, no further versions, no change of owner \u2014 and still "
-     "composable. A parent that cannot move is a parent worth building on."),
-    ("3", "Compose a child",
-     "The way to change a sealed thing. The change lives where a reviewer sees "
-     "it, beside the parent it departs from."),
-    ("4", "Roll forward",
-     "For a featureset: mint a version re-resolved to the newest view "
-     "versions, with a diff naming every slot that moved."),
-]):
-    xx = ML + i * (BW4 + 0.22)
-    card(sl, xx, y, BW4, 2.15, num, title, body)
-
-DY = y + 2.38
-rect(sl, ML, DY, CW, 1.02, fill=PARCH)
-rect(sl, ML, DY, 0.05, 1.02, fill=CRIMSON)
-tf = txt(sl, ML + 0.26, DY + 0.13, CW - 0.5, 0.80)
-para(tf, "And if a parent is amended anyway?", size=11.5, color=CRIMSON,
-     bold=True, font=SERIF, first=True, space_after=5)
-runs(tf, [("The child says so. ", INK, True),
-          ("A composition records the parent\u2019s definition version at the "
-           "moment it resolved, so a parent that has moved since shows up as "
-           "drift on every child that reads it \u2014 ",
-           INK, False),
-          ("composed against v1, now at v3.", CRIMSON, True),
-          ("  Not a failed read: a child whose parent has moved is something to "
-           "be told about, not something that should stop working. But it is "
-           "never silent, because a stable name over moving contents is the "
-           "failure this platform was built around.", SLATE, False)],
-     size=9.8, space_after=0, line=1.22)
-
-tf = txt(sl, ML, DY + 1.20, CW, 0.40)
-runs(tf, [("Which is why sealing and composing are the same idea from two "
-           "sides. ", CRIMSON, True),
-          ("A sealed parent cannot drift, because the amendment that would "
-           "move it is refused \u2014 so sealing turns a promise about "
-           "stability into a property of the object.", SLATE, False)],
-     size=10, first=True, space_after=0, line=1.22)
-
-
-# ------------------------------------------------------------ the monoid
-sl, y = content("Composition: one fold, two objects", "Composing a featureset")
-h = code(sl, ML, y, CW * 0.54, [
- "compose([a, b, c])  =  merge(merge(a, b), c)",
- "                       then the object's OWN operations",
- "",
- "merge is associative;  {} is its identity",
- "  \u21d2 composition is a MONOID",
- "  \u21d2 'a combination of features is a feature'",
- "     is a statement, not an aspiration",
-], fs=9.5)
-tf = txt(sl, ML, y + h + 0.26, CW * 0.54, 1.5)
-para(tf, "Left to right, the rightmost wins, and an object\u2019s own "
-         "operations are applied last \u2014 because if a parent could "
-         "override a child, naming a parent would be an act of surrender.",
-     size=11, color=INK, first=True, space_after=8, line=1.25)
-para(tf, "Inheriting from one parent and combining several are the same "
-         "operation at different arities, so there is one mechanism and "
-         "inheritance is the one-parent case.",
-     size=11, color=SLATE, space_after=0, line=1.25)
-
-x = ML + CW * 0.58
-tf = txt(sl, x, y, CW * 0.42, 0.32)
-para(tf, "Every operation is total", size=12.5, color=CRIMSON, bold=True,
-     font=SERIF, first=True, space_after=0)
-data = [["Refused", "Because"],
-        ["drop of something absent",
-         "a drop that quietly does nothing leaves a child differing from what "
-         "its author wrote"],
-        ["add of something present",
-         "say override \u2014 the two read differently to a reviewer and should"],
-        ["override of something absent", "say add"],
-        ["a cycle", "there is no fixed point to resolve to"],
-        ["an ephemeral parent", "it resolves today and dangles tomorrow"]]
-table(sl, data, x, y + 0.40, CW * 0.42, col_w=[2.0, 3.5], row_h=0.29, fs=9,
-      hfs=9, bold_col0=True, first_col_color=CRIMSON)
 
 # ------------------------------------------------------------- retrieval
 sl, y = content("What MAYA does to values on the way out",
@@ -276,40 +224,3 @@ note(sl, ML, y + 3.42, CW, 0.92,
      "fold, merged column by column, so a parent that fills three columns and a "
      "child that normalises one ",
      "end up doing both.")
-
-# --------------------------------------------------------------- alignment
-sl, y = content("Aligning onto an axis, and the leakage that cannot hide",
-                "Composing a featureset")
-data = [["Rule", "Fills from", "Safe for training"],
-        ["flat_forward", "the last observation", "yes"],
-        ["flat_backward", "the next observation", "no"],
-        ["linear", "both neighbours", "no"],
-        ["nearest", "whichever is closer", "no"]]
-h = table(sl, data, ML, y, CW * 0.50, col_w=[1.6, 2.9, 2.2], row_h=0.30,
-          fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-tf = txt(sl, ML, y + h + 0.26, CW * 0.50, 1.8)
-para(tf, "The last three reach into the future. They are right for drawing a "
-         "curve or for an explicitly retrospective backtest, and wrong for "
-         "training.",
-     size=11, color=INK, first=True, space_after=8, line=1.25)
-para(tf, "They are not refused. They are stamped honestly.",
-     size=11.5, color=CRIMSON, bold=True, space_after=0, line=1.25)
-
-x = ML + CW * 0.54
-h2 = code(sl, x, y, CW * 0.46, [
- "grid  t=0   100.0   ingest_ts 0.0",
- "grid  t=1   400.0   ingest_ts 3.0   \u2190 filled from t=3",
- "grid  t=2   400.0   ingest_ts 3.0",
- "grid  t=3   400.0   ingest_ts 3.0",
- "",
- "# a point-in-time read at as_of = 1",
- "# excludes rows 2 and 3 by the ORDINARY rule",
-], fs=9)
-tf = txt(sl, x, y + h2 + 0.26, CW * 0.46, 1.6)
-para(tf, "A value derived from a later observation inherits that "
-         "observation\u2019s ingest clock, because that is genuinely when it "
-         "became knowable.",
-     size=11, color=INK, first=True, space_after=8, line=1.25)
-para(tf, "The leakage is not caught by a check. It is made arithmetically "
-         "impossible to hide, by the bitemporal machinery already here.",
-     size=11, color=SLATE, space_after=0, line=1.25)

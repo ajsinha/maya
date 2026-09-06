@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Risk tier — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">RISK ASSESSMENT &middot; L-4 AND L-5</p>
+<h1>{{ model.name }} — materiality &times; complexity, and what falls out</h1>
+<div class="rule"></div>
+{% set here = 'risk' %}
+{% include "model_algebra_nav.html" %}
+
+<p class="text-muted small" style="max-width:52rem">Two orders, never collapsed
+into one score. Materiality <em>joins</em> a quantitative exposure band with a
+qualitative purpose class; complexity is a <em>meet</em> over the declared
+components, one of which is the trainability class. <code>tau</code> is monotone
+in both arguments, and the controls a tier requires are its Galois adjoint
+&mdash; so &ldquo;what must I do at this tier&rdquo; and &ldquo;what tier can
+these controls defend&rdquo; are one definition.</p>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Assess</div>
+      <div class="card-body">
+        <form id="assess-form" class="row g-2 small align-items-end">
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">exposure</label>
+            <input class="form-control form-control-sm" name="exposure" value="0"></div>
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">purpose class</label>
+            <select class="form-select form-select-sm" name="purpose_class">
+              {% for p in purposes %}<option value="{{ p.purpose }}">{{ p.purpose }} — rank {{ p.rank }}</option>{% endfor %}
+            </select></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">feature count</label>
+            <input class="form-control form-control-sm" name="feature_count" value="0"></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">alternative data</label>
+            <select class="form-select form-select-sm" name="uses_alternative_data">
+              <option value="0">0 — no</option><option value="1">1 — yes</option>
+            </select></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">interpretable</label>
+            <select class="form-select form-select-sm" name="interpretable">
+              <option value="1">1 — yes</option><option value="0">0 — no</option>
+            </select></div>
+          <div class="col-12"><button class="btn btn-sm btn-danger py-0 px-3"
+            style="font-size:.75rem">Assess and record the tier</button></div>
+        </form>
+        <div id="assess-result" class="small mt-3"></div>
+        {% if not may_assess %}
+          <div class="state-note mt-2">Assessing needs <code>risk:assess</code>.
+          The API is what refuses.</div>
+        {% endif %}
+      </div></div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">The class it will read</div>
+      <div class="card-body small">
+        {% if latest %}
+          <p class="mb-1">The assessment reads the <strong>latest version's</strong>
+          trainability class, which is <span class="mono fw-bold">{{ latest.trainability_class }}</span>
+          from {{ latest.semver }}.</p>
+          <p class="text-muted mb-0">Not the version an alias points at, and not
+          an average over the model's history: the newest row wins. A version
+          created after this assessment does not re-tier the model &mdash;
+          assessing again is an act somebody has to perform.</p>
+        {% else %}
+          <p class="mb-1"><span class="evidence-bad">This model has no versions.</span></p>
+          <p class="text-muted mb-0">The assessment will read <span class="mono">T0</span>
+          &mdash; the class of a model with no parameters at all &mdash; because
+          that is the default when there is no version to read. Tiering before a
+          version exists therefore tiers an empty model, and the complexity half
+          of the answer means nothing until one is created. Create a version
+          first on the <a href="/model-algebra/version/{{ name }}">version screen</a>.</p>
+        {% endif %}
+        <div class="mt-2">Recorded tier:
+          {% if model.tier %}<span class="tier tier-{{ model.tier }}">TIER {{ model.tier }}</span>
+          {% else %}<span class="tier tier-none">NOT ASSESSED</span>{% endif %}</div>
+      </div></div>
+  </div>
+</div>
+
+<div class="card mt-3"><div class="card-header">tau &mdash; the map itself, evaluated at every point</div>
+  <div class="card-body">
+    <table class="table table-sm maya mb-2">
+      <thead><tr><th>Materiality \ complexity</th>
+        {% for c in complexity %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for m in materiality %}
+        {% set row = loop.index0 %}
+        <tr><td class="fw-semibold">{{ m }}</td>
+          {% for c in complexity %}
+            {% set t = grid[row][loop.index0] %}
+            <td data-sort="{{ t }}"><span class="tier tier-{{ t }}">TIER {{ t }}</span></td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="small text-muted mb-0">Monotone in both arguments, and materiality
+    dominates: a critical-exposure model is never below Tier 2 however simple it
+    is. This grid is the engine's own <code>tau</code> evaluated at every point
+    rather than a table somebody typed &mdash; a picture of the map that
+    disagreed with the map would be worse than no picture.</p>
+  </div></div>
+
+<div class="card mt-3"><div class="card-header">What each tier requires</div>
+  <div class="card-body">
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Tier</th><th>Controls</th></tr></thead>
+      <tbody>
+      {% for tier, names in controls.items() %}
+        <tr><td><span class="tier tier-{{ tier }}">TIER {{ tier }}</span></td>
+          <td>{% for c in names %}<span class="chip">{{ c }}</span> {% endfor %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/model-algebra.js"></script>
+<script src="/static/js/model-algebra-risk.js"></script>
+<script>window.mayaAlgebraRisk({name: "{{ name }}"});</script>
+{% endblock %}
