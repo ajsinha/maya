@@ -105,7 +105,11 @@ class AdminRoutes(Routes):
                     satisfaction = regimes.check(key)
                 except Exception as exc:                     # pragma: no cover
                     logger.warning("regime %s could not be checked: %s", key, exc)
-                    satisfaction = {"consistent": None, "detail": str(exc)}
+                    # Same key the real answer uses. A failure shape with keys of
+                    # its own is how a template comes to read one of them and
+                    # silently render the other case.
+                    satisfaction = {"holds": False, "detail": str(exc),
+                                    "failures": [], "untranslated_terms": []}
                 rows.append({
                     "key": key, "title": r["title"], "authority": r["authority"],
                     "active": key in active,

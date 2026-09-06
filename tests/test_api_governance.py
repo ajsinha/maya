@@ -124,18 +124,22 @@ class TestFindingsApi:
         assert r.json()["error"] == "blocked"
         assert r.json()["remediation"]
 
-    def test_closing_the_finding_restores_service(self, registered, people):
-        fid = registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
+    def test_closing_the_finding_restores_service(self, in_service, people):
+        """`in_service`, because resolving now also requires that somebody
+        approved the model record — this test is about the finding, and a
+        refusal for the other reason would make it pass or fail for the wrong
+        one."""
+        fid = in_service.post("/api/v1/findings", auth=people["s.iqbal"], json={
             "urn": URN, "severity": "Critical", "title": "Leakage",
             "owner": "person/j.okafor"}).json()["id"]
-        closed = registered.post(
+        closed = in_service.post(
             f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
             json={"evidence": {"pr": "1420"}})
         assert closed.status_code == 200, closed.text
-        r = registered.post("/api/v1/resolve", json={
+        r = in_service.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
-        assert r.status_code == 200
+        assert r.status_code == 200, r.text
 
     def test_the_owner_cannot_verify_their_own_closure_over_the_api(
             self, registered, people):

@@ -38,11 +38,19 @@ class SchedulerRoutes(Routes):
                         getattr(self.ctx.get("scheduler_loop"), "running", False))}
 
         @self.app.post(f"{api}/scheduler/run", tags=["scheduler"])
-        def run(request: Request, body: RunIn):
-            """Run some or all jobs. Idempotent: safe to call as often as you like."""
+        def run(request: Request, body: Optional[RunIn] = None):
+            """Run some or all jobs. Idempotent: safe to call as often as you like.
+
+            The body is **optional**, and that is load-bearing rather than
+            convenient. The recommended deployment is cron calling this endpoint,
+            the documentation says exactly that, and a body-less POST returned
+            422 — so a cron entry written from the documentation failed, mailed
+            its error to a mailbox nobody reads, and the entire governance batch
+            never ran while every other signal stayed green.
+            """
             who = self.authorise(request, "scheduler:run")
-            return self.guard(lambda: scheduler.run(body.jobs or None,
-                                                    actor=self.actor(who)))
+            jobs = (body.jobs if body else None) or None
+            return self.guard(lambda: scheduler.run(jobs, actor=self.actor(who)))
 
         @self.app.get(f"{api}/scheduler/history", tags=["scheduler"])
         def history(request: Request, limit: int = 50):

@@ -682,3 +682,233 @@ class TestCertificationIsAMeetAndStaysOne:
         plan = derivation.featureset_plan("nj_home_core", 1)
         ratio = [s for s in plan["slots"] if s["slot"] == "lot_to_living_ratio"]
         assert ratio and ratio[0]["certification"] == "deprecated"
+
+
+class TestTheAssemblerHonoursTheBindings:
+    """The frame must be built from the columns the featureset names.
+
+    A model developer published a featureset version pinning one slot to a view
+    of constant values, fitted it, and got coefficients byte-identical to the
+    unpinned fit. Swapping two regressor bindings produced the same numbers a
+    third time. The bindings — published, digested and signed into the fit
+    warrant — were reduced to a set of `(view, version)` pairs one call before
+    they were used, and the assembler then name-joined every column of every
+    view with last-write-wins.
+    """
+
+    @pytest.fixture
+    def rival(self, nj):
+        """A second view carrying a column of the SAME NAME, different values.
+
+        This is the whole test. Two views supplying `school_rating`: the real
+        one, and one where every house scores 1.0.
+        """
+        nj.create_view("nj_alt_ratings", ENTITY, "person/j.okafor", ["school_rating"])
+        nj.materialise("nj_alt_ratings",
+                       [{"entity_id": f"P{i}", "event_ts": SALE, "ingest_ts": SALE,
+                         "school_rating": 1.0} for i in range(6)],
+                       ["school_rating"])
+        return nj
+
+    def test_a_slot_pinned_to_one_view_reads_that_view(self, rival):
+        """`school_rating` is bound to the rival view, so it must be 1.0.
+
+        Under the old join it was whichever view was processed last — which was
+        stable, invisible, and wrong.
+        """
+        # `bedrooms` drags `nj_characteristics` into the plan as well, so BOTH
+        # views supply a `school_rating` column and the collision is live. That
+        # is the reviewer's case: with only one view in the plan the old
+        # name-join happened to pick the right value, and the test would pass
+        # against the bug.
+        slots = {"school_rating": "numeric", "bedrooms": "integer",
+                 "sale_price": "numeric"}
+        rival.define_featureset("pinned", ENTITY, "person/j.okafor", slots,
+                                label_slot="sale_price")
+        rival.publish_featureset("pinned", {
+            "school_rating": {"feature": "school_rating", "view": "nj_alt_ratings",
+                              "view_version": 1},
+            "bedrooms": {"feature": "bedrooms", "view": "nj_characteristics",
+                         "view_version": 1},
+            "sale_price": "sale_price"})
+        snapshot = rival.build_from_featureset(
+            "pinned", 1, [{"entity_id": "P3", "label_ts": SALE + 1}], SALE + 10)
+        rows = rival.assembly.delta.read(snapshot["delta_table"],
+                                         snapshot["delta_version"])
+        assert rows.to_dict("records")[0]["school_rating"] == 1.0
+
+    def test_the_same_set_bound_to_the_other_view_reads_the_other_view(self, rival):
+        """The counterpart, and the one that makes the first mean something.
+
+        Two featureset versions differing ONLY in a binding must produce
+        different frames. They produced identical ones.
+        """
+        slots = {"school_rating": "numeric", "bedrooms": "integer",
+                 "sale_price": "numeric"}
+        rival.define_featureset("either", ENTITY, "person/j.okafor", slots,
+                                label_slot="sale_price")
+        rival.publish_featureset("either", {
+            "school_rating": {"feature": "school_rating",
+                              "view": "nj_characteristics", "view_version": 1},
+            # Present so the rival view is in the plan too, exactly as above.
+            "bedrooms": {"feature": "bedrooms", "view": "nj_characteristics",
+                         "view_version": 1},
+            "sale_price": "sale_price"})
+        snapshot = rival.build_from_featureset(
+            "either", 1, [{"entity_id": "P3", "label_ts": SALE + 1}], SALE + 10)
+        rows = rival.assembly.delta.read(snapshot["delta_table"],
+                                         snapshot["delta_version"])
+        # P3's real rating is 7.0 + 3 * 0.1, and emphatically not the rival's 1.0.
+        assert rows.to_dict("records")[0]["school_rating"] == pytest.approx(7.3)
+
+    def test_a_slot_may_be_named_differently_from_the_feature_filling_it(self, nj):
+        """Slot and feature are different words for a reason.
+
+        A set composed from parents routinely names a slot for the role it plays
+        rather than for the feature that happens to fill it. The assembler
+        copied the FEATURE's name into the frame, so such a set produced a frame
+        whose columns were not the slots it declared.
+        """
+        nj.define_featureset("renamed", ENTITY, "person/j.okafor",
+                             {"size": "numeric", "sale_price": "numeric"},
+                             label_slot="sale_price")
+        nj.publish_featureset("renamed", {
+            "size": {"feature": "log_living_area", "view": "nj_characteristics",
+                     "view_version": 1},
+            "sale_price": "sale_price"})
+        snapshot = nj.build_from_featureset(
+            "renamed", 1, [{"entity_id": "P1", "label_ts": SALE + 1}], SALE + 10)
+        row = nj.assembly.delta.read(snapshot["delta_table"],
+                                     snapshot["delta_version"]).to_dict("records")[0]
+        assert "size" in row and row["size"] is not None
+        assert "log_living_area" not in row
+
+    def test_only_the_bound_columns_arrive(self, core, nj):
+        """A view holding ten features contributes the ones bound to a slot.
+
+        Everything else it carries is somebody else's data, and a training frame
+        that quietly includes it is a leakage surface nobody declared.
+        """
+        snapshot = nj.build_from_featureset(
+            "nj_home_core", 1, [{"entity_id": "P0", "label_ts": SALE + 1}], SALE + 10)
+        row = nj.assembly.delta.read(snapshot["delta_table"],
+                                     snapshot["delta_version"]).to_dict("records")[0]
+        arrived = set(row) - {"entity_id", "label_ts", "event_ts", "ingest_ts"}
+        assert arrived == set(CORE_SLOTS), arrived
+        # `living_area_sqft` is in the view and is bound to no slot.
+        assert "living_area_sqft" not in row
+
+
+class TestTheVerifierCanActuallyFail:
+    """`pit_verified` has to be capable of being false.
+
+    A developer bound the LABEL slot of one entity's featureset to a feature in
+    an unrelated view and got 60 rows, `passed: true`, `violations: []` and
+    "60 of 60 rows independently recomputed" — because the verifier walked the
+    same view list the same way and made the same mistake.
+    """
+
+    def test_the_recomputation_resolves_each_column_from_its_own_binding(self, nj):
+        """The structural property, asserted directly.
+
+        `_join` groups columns by source and reads each view once; `_recompute`
+        reads one view per column. If both grouped, a mis-grouping would be
+        reproduced rather than caught.
+        """
+        import inspect
+
+        from core.features.assembly import TrainingSetBuilder
+        source = inspect.getsource(TrainingSetBuilder._recompute)
+        assert "for column in columns" in source
+        assert "by_source" not in source, (
+            "the verifier groups by source like the join does, so a grouping "
+            "mistake would be reproduced rather than caught")
+
+    def test_it_reports_a_mismatch_when_the_frame_disagrees_with_the_bindings(
+            self, core, nj):
+        """Corrupt one assembled value; the verifier must notice.
+
+        Done by recomputing against a frame somebody has tampered with, which is
+        the only way to exercise the comparison without reintroducing the bug it
+        exists to catch.
+        """
+        from core.features.assembly import Column
+        from core.features.pit import verify_sampled
+
+        plan = nj.sets.plan("nj_home_core", 1)
+        columns = [Column(b["slot"], b["feature"], b["view"], b["view_version"])
+                   for b in plan["slots"]]
+        spine = [{"entity_id": "P0", "label_ts": SALE + 1}]
+        rows = nj.assembly._join(spine, columns, SALE + 10)
+        honest = verify_sampled(
+            rows, lambda r: nj.assembly._recompute(r, columns, SALE + 10))
+        assert honest.passed
+
+        rows[0]["bedrooms"] = 999
+        tampered = verify_sampled(
+            rows, lambda r: nj.assembly._recompute(r, columns, SALE + 10))
+        assert not tampered.passed, "the verifier accepted a value nothing produced"
+
+
+class TestTwoSourcesForOneColumnIsRefused:
+    def test_it_is_refused_rather_than_resolved_by_iteration_order(self, nj):
+        """A frame whose contents depend on which view was read last is not
+        reproducible, which is the one property this module exists to give."""
+        from core.features import AssemblyRejected
+        from core.features.assembly import Column
+
+        columns = [Column("school_rating", "school_rating", "nj_characteristics", 1),
+                   Column("school_rating", "school_rating", "nj_transactions", 1)]
+        with pytest.raises(AssemblyRejected, match="same column"):
+            nj.assembly._refuse_ambiguous(columns)
+
+
+class TestTheSnapshotDigestIdentifiesTheData:
+    """The value a fit warrant pins to say *this model was trained on this data*.
+
+    It was a hash of the snapshot's name, its `as_of` and its row count. A
+    developer reproduced the digest published in the shipped tutorial on
+    completely different data, then produced a second, different 60-row set and
+    got the same digest a third time. Reproducibility, replay and the training
+    record all rest on this value, and it identified nothing.
+    """
+
+    def test_different_data_digests_differently(self, nj):
+        from core.features.assembly import TrainingSetBuilder
+        one = [{"entity_id": "P1", "x": 1.0}, {"entity_id": "P2", "x": 2.0}]
+        two = [{"entity_id": "P1", "x": 1.0}, {"entity_id": "P2", "x": 9.9}]
+        assert (TrainingSetBuilder.content_digest(one)
+                != TrainingSetBuilder.content_digest(two))
+
+    def test_the_same_facts_in_a_different_order_digest_alike(self, nj):
+        """Or a replay that legitimately reorders would report tampering."""
+        from core.features.assembly import TrainingSetBuilder
+        rows = [{"entity_id": "P1", "x": 1.0}, {"entity_id": "P2", "x": 2.0}]
+        assert (TrainingSetBuilder.content_digest(rows)
+                == TrainingSetBuilder.content_digest(list(reversed(rows))))
+
+    def test_row_count_and_name_alone_no_longer_decide_it(self, core, nj):
+        """Two assemblies of the same name and shape, over different spines.
+
+        Same snapshot name, same `as_of`, same row count — and different rows.
+        Under the old digest these were indistinguishable.
+        """
+        first = nj.build_from_featureset(
+            "nj_home_core", 1, [{"entity_id": "P0", "label_ts": SALE + 1}],
+            SALE + 10, snapshot_name="same-name")
+        second = nj.build_from_featureset(
+            "nj_home_core", 1, [{"entity_id": "P3", "label_ts": SALE + 1}],
+            SALE + 10, snapshot_name="same-name")
+        assert first["row_count"] == second["row_count"] == 1
+        assert first["as_of"] == second["as_of"]
+        assert first["digest"] != second["digest"]
+
+    def test_reassembling_the_same_thing_reproduces_the_digest(self, core, nj):
+        """The property the digest exists to have, and the reason it cannot
+        simply be made unique per call."""
+        spine = [{"entity_id": "P0", "label_ts": SALE + 1}]
+        again = [{"entity_id": "P0", "label_ts": SALE + 1}]
+        assert (nj.build_from_featureset("nj_home_core", 1, spine, SALE + 10,
+                                         snapshot_name="repeat")["digest"]
+                == nj.build_from_featureset("nj_home_core", 1, again, SALE + 10,
+                                            snapshot_name="repeat")["digest"])

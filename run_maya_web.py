@@ -613,6 +613,29 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                              cfg.get_float("scheduler.loop.interval_seconds", 3600.0))
         loop.start()
         ctx["scheduler_loop"] = loop
+    else:
+        # Said out loud, at the same volume as the secret warnings, because the
+        # failure it precedes is the quietest one this platform has.
+        #
+        # Expiry, staleness, cohort maturity, outstanding signatures and missing
+        # evidence are all DERIVED when somebody asks. The batch is what turns a
+        # derived condition into a recorded consequence — an attestation lapses,
+        # a monitor is marked silent, a finding goes overdue, the chain head is
+        # anchored. An instance whose batch never runs therefore looks exactly
+        # like an estate with nothing outstanding, and it looks that way to
+        # every screen, every health probe and every digest.
+        #
+        # Cron is a supported answer and for more than one replica it is the
+        # right one. Nobody wiring it up is the failure.
+        logger.warning(
+            "the in-process scheduler loop is DISABLED, so nothing in this "
+            "instance will run the governance batch. Attestation lapses, silent "
+            "monitors, overdue findings and evidence anchoring are all recorded "
+            "by that batch — an instance where it never runs is "
+            "indistinguishable from an estate with nothing outstanding. Either "
+            "set scheduler.loop.enabled, or point cron at "
+            "'POST %s/scheduler/run' and check /admin/scheduler afterwards to "
+            "confirm it arrived.", cfg.get("api.prefix", "/api/v1"))
 
     for routes in ALL_ROUTES:
         routes(app, ctx, templates)

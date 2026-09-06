@@ -23,7 +23,7 @@ activated rather than being activated and quietly abstaining.</p>
     <div class="stat" style="color:var(--crimson)">{{ regimes|selectattr("active")|list|length }}</div>
     <div class="stat-l">in force</div></div></div></div>
   <div class="col-12 col-md-4"><div class="card h-100"><div class="card-body py-3">
-    {% set broken = regimes|rejectattr("satisfaction.consistent")|list %}
+    {% set broken = regimes|rejectattr("satisfaction.holds")|list %}
     <div class="stat {{ 'evidence-bad' if broken }}">{{ broken|length }}</div>
     <div class="stat-l">whose encoding does not hold</div></div></div></div>
 </div>
@@ -57,17 +57,21 @@ activated rather than being activated and quietly abstaining.</p>
           >{{ t }}</span>{% endfor %}</p>
         <div class="section-label">Does truth survive translation?</div>
         <p class="small mb-0">
-          {% if r.satisfaction.consistent %}
+          {% if r.satisfaction.holds %}
             <span class="evidence-ok">Yes.</span>
           {% else %}
             <span class="evidence-bad">No.</span>
           {% endif %}
           <span class="text-muted">{{ r.satisfaction.detail or "" }}</span>
         </p>
-        {% if r.satisfaction.missing %}
-          <p class="small evidence-bad mb-0">MAYA cannot answer:
-            {{ r.satisfaction.missing|join(", ") }}</p>
+        {% if r.satisfaction.untranslated_terms %}
+          <p class="small text-muted mb-0">Terms this regime names that no
+            translation reaches:
+            {{ r.satisfaction.untranslated_terms|join(", ") }}</p>
         {% endif %}
+        {% for f in r.satisfaction.failures or [] %}
+          <p class="small evidence-bad mb-0">{{ f.sentence }} &mdash; {{ f.reason }}</p>
+        {% endfor %}
         <div class="mono text-muted mt-2" style="font-size:.72rem">
           {{ r.key }}</div>
       </div>

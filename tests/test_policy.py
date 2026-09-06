@@ -238,3 +238,68 @@ class TestPolicyTightensAndDoesNotLoosen:
         with pytest.raises(PolicyError) as exc:
             policies.decide("model:bless", {})
         assert exc.value.code == "unknown_gate"
+
+
+class TestNoGateCouldSeeTheRecordItself:
+    """Every gate spoke about the version. None spoke about the model.
+
+    A model risk manager walked a Tier 2, regulatory-capital model from
+    registration to a signed execution credential in four calls, without the
+    record ever being submitted or approved — no validation, no parameters, no
+    monitor, no accepted document. The descriptor printed
+    `"model_status": "draft"` and was signed anyway.
+
+    The four built-in gates read `version_status`, `to_status`,
+    `blocking_findings`, `refinement_holds`, `variance_ok`, `attested`,
+    `amending`. Every one of those is a fact about a version or about
+    attestation. Nothing asked the question a supervisor asks first: has anybody
+    approved this model at all?
+    """
+
+    def test_the_record_s_own_state_is_in_the_vocabulary(self):
+        from core.policy import vocabulary
+        assert "record_status" in vocabulary("warrant:resolve")
+        assert "record_status" in vocabulary("alias:move")
+
+    def test_the_built_in_resolve_rule_consults_it(self):
+        from core.policy import BUILT_IN
+        from core.policy.language import Rule
+        from core.policy.facts import vocabulary
+        rule, _reason = BUILT_IN["warrant:resolve"]
+        assert "record_status" in Rule(rule, vocabulary("warrant:resolve")).facts_read()
+
+    def test_a_draft_record_is_refused(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        verdict = register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "draft"})
+        assert not verdict["allowed"]
+        assert "draft" in verdict["reason"]
+
+    def test_a_retired_record_is_refused(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert not register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "retired"})["allowed"]
+
+    def test_an_approved_record_with_an_approved_version_resolves(self, db, evidence):
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "approved"})["allowed"]
+
+    def test_a_baselined_record_still_resolves(self, db, evidence):
+        """Deliberate. A baselined record is an estate imported from a legacy
+        inventory, governed going forward and carrying its debt explicitly.
+        Refusing it would mean a bank cannot bring what it already runs under
+        governance without first re-approving all of it, which is the opposite
+        of what importing is for."""
+        from core.policy import PolicyRegister
+        register = PolicyRegister(_policy_repo(db), evidence)
+        assert register.decide("warrant:resolve", {
+            "version_status": "approved", "record_status": "baselined"})["allowed"]
+
+
+def _policy_repo(db):
+    from db import PolicyRuleRepository
+    return PolicyRuleRepository(db)

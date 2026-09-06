@@ -780,12 +780,29 @@ The general shape: one rule, three expressions of it, and no test that they agre
 constant is the repair; the deeper repair would be for the verifier to consume the published string rather
 than re-implement it.
 
+That was the *clock* half. The **column** half of the same method was worse, and an outside review found
+it: `_recompute` walked the same list of views the assembler walked, in the same order, and did the same
+`update(payload(...))`. It therefore agreed with the assembler **by construction** — a binding the
+assembler ignored was a binding the verifier could not notice, and `pit_verified: true` was incapable of
+being false about it.
+
+Independence now rests on two differences rather than one, and both are load-bearing:
+
+| | `_join` | `_recompute` |
+|---|---|---|
+| **Point-in-time choice** | bulk-reads a view, chooses the admissible record in Python | asks `DeltaStore.as_of` for the frame directly |
+| **Resolution order** | groups columns by source, one read per **view** | resolves each column alone, one read per **column** |
+
+The second row is the new one. Grouping is right for cost and is exactly the step that can go wrong — a
+mis-grouped source, or two columns of one view landing in the wrong slots — so the verifier deliberately
+does not group. A control whose failure mode is shared with the thing it controls is not a control.
+
 ### 12.2 Three layers of verification, and what each actually proves
 
 | Layer | Mechanism | What it proves |
 |---|---|---|
 | **1 · Static** | `pit.static_check` refuses an assembly missing either temporal bound; `TrainingSetBuilder` raises `AssemblyRejected` | A refusal, not a sample. The honest scope: it reads two flags off the request rather than analysing a query, and the bound is structurally guaranteed because the assembler builds the join itself — so what it refuses is a caller opting *out* |
-| **2 · Stratified sample** | `verify_sampled`, 200 rows by default, strata over label period, entity and **label value**, recomputed through `DeltaStore.as_of` rather than through the join path | Detection of systematic violation, never absence. Strata include the label value because a leak confined to a rare high-value segment is where uniform sampling fails and where the damage is greatest. The recomputation takes a *different route* to the same answer, which is why agreement means something |
+| **2 · Stratified sample** | `verify_sampled`, 200 rows by default, strata over label period, entity and **label value**, recomputed through `DeltaStore.as_of` rather than through the join path, and **column by column rather than view by view** | Detection of systematic violation, never absence. Strata include the label value because a leak confined to a rare high-value segment is where uniform sampling fails and where the damage is greatest. The recomputation takes a *different route* to the same answer in two independent senses — a different point-in-time read and a different resolution order — which is why agreement means something. Sharing either with the assembler would let a bug hide behind itself, and sharing the second one did |
 | **3 · Screens** | `detect_leakage` — a purity screen for repeating columns and a perfect-separation screen for continuous ones | A signal, not a proof, and labelled as one |
 
 A failed verification raises a Critical finding and the snapshot records `pit_verified = 0`.

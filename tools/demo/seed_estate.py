@@ -188,6 +188,23 @@ def build(client) -> None:
         else:
             _fail(f"  open {key}", opened)
 
+    print("the record itself, through the register")
+    # Not the same act as approving a version, and until a review walked the
+    # path by hand nothing here did it: a model whose own record sat in `draft`
+    # resolved a warrant exactly like one that had been through the whole
+    # register. Done AFTER the versions exist, because an approved record is
+    # frozen and a new version is a change to the model.
+    for key in ("credit.pd.smallbiz", "credit.ecl.stage2", "market.var.equity",
+                "aml.screening.rules"):
+        _ok(f"  submit {key}",
+            client.post(f"/api/v1/models/{key}/submit", auth=who["j.okafor"],
+                        json={"note": "ready for second-line review"}))
+        _ok(f"  approve {key}",
+            client.post(f"/api/v1/models/{key}/approve", auth=who["s.iqbal"],
+                        json={"note": "reviewed and approved"}))
+    # `ops.summariser.llm` is deliberately left in draft, so the estate shows
+    # both states and the screens have something to distinguish.
+
     print("aliases")
     for key in ("credit.pd.smallbiz", "credit.ecl.stage2", "market.var.equity",
                 "aml.screening.rules", "ops.summariser.llm"):
