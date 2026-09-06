@@ -2,6 +2,8 @@
 MAYA — evidence engine tests.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
+import json
+
 import pytest
 
 from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Derivation,
@@ -10,6 +12,30 @@ from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Deriv
 CLAIM = {"authorised": Derivation("authorised",
                                   (("tests", "report", "committee"),
                                    ("tests", "report", "delegated")))}
+
+
+def tamper(db, seq: int, **columns) -> None:
+    """Change an evidence row behind the application's back.
+
+    Raw SQL on purpose. `EvidenceRepository` refuses `set` and `remove` — it is
+    append-only — so a test that tampered through it was really testing that the
+    repository would let it, which is no longer true and was never the threat.
+
+    The threat is somebody with the database, and this is what that looks like:
+    an UPDATE the application never issued and cannot prevent. Every test below
+    that verifies tamper *evidence* has to get there this way, or it is checking
+    the wrong door.
+    """
+    sets = ", ".join(f"{c} = :{c}" for c in columns)
+    values = {c: (json.dumps(v) if isinstance(v, (dict, list)) else v)
+              for c, v in columns.items()}
+    db.execute(f"UPDATE evidence_node SET {sets} WHERE seq = :seq",
+               {**values, "seq": seq})
+
+
+def erase(db, seq: int) -> None:
+    """Delete an evidence row behind the application's back. See `tamper`."""
+    db.execute("DELETE FROM evidence_node WHERE seq = :seq", {"seq": seq})
 
 
 class TestAppendChain:
@@ -34,7 +60,7 @@ class TestAppendChain:
     def test_deleting_a_node_breaks_the_chain(self, evidence, repos):
         for _ in range(5):
             evidence.append("k", "version", "v1", {"n": _})
-        repos["evidence"].remove(seq=3)
+        erase(repos["evidence"].db, 3)
         result = evidence.verify_chain()
         assert result["valid"] is False and result["broken_at"] == 4
 
@@ -48,7 +74,7 @@ class TestAppendChain:
         """
         for n in range(3):
             evidence.append("k", "version", "v1", {"n": n})
-        repos["evidence"].set({"payload": {"n": "altered"}}, seq=2)
+        tamper(repos["evidence"].db, 2, payload={"n": "altered"})
         result = evidence.verify_chain()
         assert result["valid"] is False
         assert result["reason"].startswith("content_hash mismatch")
@@ -59,14 +85,14 @@ class TestAppendChain:
         payload: moving a node to another model would otherwise be invisible."""
         for n in range(3):
             evidence.append("k", "version", "v1", {"n": n})
-        repos["evidence"].set({"subject_id": "v2"}, seq=2)
+        tamper(repos["evidence"].db, 2, **{"subject_id": "v2"})
         assert evidence.verify_chain()["valid"] is False
 
     def test_altering_the_stored_hash_breaks_it_as_well(self, evidence, repos):
         """The other direction: the links no longer agree with the node."""
         for n in range(3):
             evidence.append("k", "version", "v1", {"n": n})
-        repos["evidence"].set({"content_hash": "sha256:" + "f" * 64}, seq=2)
+        tamper(repos["evidence"].db, 2, **{"content_hash": "sha256:" + "f" * 64})
         result = evidence.verify_chain()
         assert result["valid"] is False
 
@@ -193,7 +219,7 @@ class TestTheChainCoversWhoDidIt:
         evidence.append("version_created", "version", "v1", {"semver": "1.0.0"},
                         actor="d.raman")
         assert evidence.verify_chain()["valid"] is True
-        EvidenceRepository(db).set({"recorded_by": "somebody.else"}, seq=1)
+        tamper(db, 1, **{"recorded_by": "somebody.else"})
         report = evidence.verify_chain()
         assert report["valid"] is False
         assert "content_hash" in report["reason"]
@@ -204,7 +230,7 @@ class TestTheChainCoversWhoDidIt:
         from db import EvidenceRepository
         evidence.append("test_result_recorded", "version", "v1", {"gini": 0.5},
                         actor="a.mehta", trust=0.5)
-        EvidenceRepository(db).set({"trust": 1.0}, seq=1)
+        tamper(db, 1, **{"trust": 1.0})
         assert evidence.verify_chain()["valid"] is False
 
     def test_the_duties_check_cannot_be_cleared_by_an_update(self, evidence,
@@ -213,7 +239,7 @@ class TestTheChainCoversWhoDidIt:
         from db import EvidenceRepository
         evidence.append("version_created", "version", "v1", {}, actor="d.raman")
         assert segregation.conflict("d.raman", "version:approve", "v1") is not None
-        EvidenceRepository(db).set({"recorded_by": "someone.harmless"}, seq=1)
+        tamper(db, 1, **{"recorded_by": "someone.harmless"})
         # The conflict is gone -- and now the chain says so out loud.
         assert segregation.conflict("d.raman", "version:approve", "v1") is None
         assert evidence.verify_chain()["valid"] is False
@@ -262,7 +288,7 @@ class TestReadinessAsksTheCheapQuestion:
         checkpointed.verify_since_checkpoint()
         node = checkpointed.append("risk_assessed", "model", "m0", {"tier": 3},
                                    actor="p")
-        EvidenceRepository(db).set({"payload": {"tier": 1}}, seq=node["seq"])
+        tamper(db, node["seq"], payload={"tier": 1})
         assert checkpointed.verify_since_checkpoint()["valid"] is False
 
     def test_a_broken_chain_does_not_advance_the_checkpoint(self, checkpointed, db):
@@ -274,7 +300,7 @@ class TestReadinessAsksTheCheapQuestion:
         before = checkpointed.checkpoint()["seq"]
         node = checkpointed.append("risk_assessed", "model", "m", {"tier": 3},
                                    actor="p")
-        EvidenceRepository(db).set({"payload": {"tier": 1}}, seq=node["seq"])
+        tamper(db, node["seq"], payload={"tier": 1})
         checkpointed.verify_since_checkpoint()
         assert checkpointed.checkpoint()["seq"] == before
 
@@ -286,7 +312,7 @@ class TestReadinessAsksTheCheapQuestion:
         for i in range(4):
             checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
         checkpointed.verify_since_checkpoint()
-        EvidenceRepository(db).set({"payload": {"tampered": True}}, seq=1)
+        tamper(db, 1, payload={"tampered": 1})
         assert checkpointed.verify_since_checkpoint()["valid"] is True, \
             "the cheap check starts after the checkpoint, by construction"
         assert checkpointed.verify_chain()["valid"] is False, \
@@ -300,3 +326,51 @@ class TestReadinessAsksTheCheapQuestion:
         checkpointed.verify_since_checkpoint()
         checkpointed.append("tier_assigned", "model", "m0", {}, actor="p")
         assert checkpointed.verify_since_checkpoint()["checked"] == 1
+
+
+class TestTheChainRefusesToBeEdited:
+    """The schema comment above `evidence_node` reads *"Append-only and
+    hash-chained. The application role gets INSERT and SELECT."* That role does
+    not exist — there are no grants, no triggers and no `CHECK` constraints in
+    either dialect — and `EvidenceRepository` inherited a generic `set()` and
+    `remove()` from `Repository`. Append-only was a property of nobody having
+    called them.
+    """
+
+    def test_updating_the_chain_is_refused(self, repos):
+        from db.repositories import AppendOnlyViolation
+        with pytest.raises(AppendOnlyViolation, match="append-only"):
+            repos["evidence"].set({"trust": 0.1}, seq=1)
+
+    def test_deleting_from_the_chain_is_refused(self, repos):
+        from db.repositories import AppendOnlyViolation
+        with pytest.raises(AppendOnlyViolation, match="append-only"):
+            repos["evidence"].remove(seq=1)
+
+    def test_the_refusal_says_what_to_do_instead(self, repos):
+        """Deletion is the wrong repair even where it looks like the right one:
+        a node recorded in error is corrected by appending the correction, so
+        the record carries the mistake *and* the correction."""
+        from db.repositories import AppendOnlyViolation
+        with pytest.raises(AppendOnlyViolation) as exc:
+            repos["evidence"].remove(seq=1)
+        assert "correcting entry" in exc.value.remediation
+        assert exc.value.code == "append_only"
+
+    def test_it_does_not_claim_to_make_the_table_immutable(self, repos, evidence):
+        """The honest limit. Anything holding the connection can still issue an
+        UPDATE — which is exactly how every tamper test in this file works — so
+        what this removes is the *accident*, not the capability. A deployment
+        wanting the guarantee enforced needs a role with INSERT and SELECT and
+        nothing else.
+        """
+        evidence.append("model_registered", "model", "m1", {"a": 1})
+        tamper(repos["evidence"].db, 1, trust=0.1)
+        assert repos["evidence"].one(seq=1)["trust"] == 0.1
+        assert not evidence.verify_chain()["valid"], (
+            "the chain did not notice an edit made around the repository")
+
+    def test_appending_still_works(self, evidence):
+        """A refusal that refuses everything is not a control."""
+        node = evidence.append("model_registered", "model", "m2", {"a": 2})
+        assert node["seq"] >= 1

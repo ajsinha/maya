@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, Dict, List, Optional, Sequence
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.engine import Engine
 
@@ -66,6 +66,12 @@ class DeltaPaths:
 class Database:
     """Owns the engine and applies the schema for the configured dialect."""
 
+    #: How long a SQLite connection waits for a lock before giving up. Thirty
+    #: seconds rather than the driver's five: every write here is short, so a
+    #: wait this long means real contention, and the right answer to real
+    #: contention is to queue rather than to lose the write.
+    BUSY_TIMEOUT_MS = 30_000
+
     def __init__(self, url: str = "sqlite:///data/sqlite/maya.db", echo: bool = False):
         self.url = url
         options: Dict[str, Any] = {}
@@ -87,7 +93,39 @@ class Database:
                        "connect_args": {"check_same_thread": False}}
         self.engine: Engine = create_engine(url, echo=echo, future=True, **options)
         self.dialect = self.engine.dialect.name
+        if self.dialect == "sqlite":
+            self._tune_sqlite(":memory:" not in url)
         self.apply_schema()
+
+    def _tune_sqlite(self, on_disk: bool) -> None:
+        """Two pragmas, set on every connection, for the same reason.
+
+        SQLite's default journal makes a writer block every reader for the
+        duration of its transaction, and Python's driver gives up after five
+        seconds with `database is locked`. Under a scheduler pass, several web
+        requests and a monitoring sweep at once, that is not a hypothetical: the
+        evidence chain is read-then-write and it is the busiest table here.
+
+        `WAL` lets readers proceed while a write is in flight, which removes
+        most of the contention rather than waiting it out. `busy_timeout` waits
+        out the rest — a lock held for a moment is normal, and failing the
+        request instead of waiting turns a millisecond of contention into a
+        governance act that did not happen.
+
+        WAL is a property of the file and does not apply in memory, so it is
+        set only on disk. The timeout is per connection either way.
+        """
+        timeout_ms = self.BUSY_TIMEOUT_MS
+
+        @event.listens_for(self.engine, "connect")
+        def _pragmas(connection, _record):        # pragma: no cover - driver hook
+            cursor = connection.cursor()
+            try:
+                if on_disk:
+                    cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.execute(f"PRAGMA busy_timeout={timeout_ms}")
+            finally:
+                cursor.close()
 
     def schema_file(self) -> Path:
         """PostgreSQL and SQLite have hand-written schemas; no migrations exist."""

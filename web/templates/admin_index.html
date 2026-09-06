@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Administration — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">THE PLATFORM, NOT THE MODELS</p>
+<h1>Administration</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">Everything on this page is
+about the machinery rather than about any model in it: who may act, which
+rulebook is being applied, what runs unattended, and whether the record of it
+all is still intact. Each screen shows you what a permission of yours lets you
+see; the ones you do not hold are not listed, because a menu that offers what
+it then refuses teaches people to ignore refusals.</p>
+
+<div class="row g-3">
+  {% for href, title, gloss, perm in [
+      ("/admin/principals", "People and roles",
+       "Every principal, the roles they hold, the permissions those add up to, and the pairs of duties nobody may hold together.",
+       "principal:read"),
+      ("/policies", "Policy gates",
+       "The four gates a model passes through, what each currently demands, and who tightened it. Authoring and publishing are separate acts.",
+       "policy:read"),
+      ("/admin/regimes", "Regulatory regimes",
+       "Which rulebook is in force, what each obligation says, and whether MAYA's encoding of it survives translation into that regime's own vocabulary.",
+       "regime:read"),
+      ("/admin/scheduler", "Scheduled jobs",
+       "The unattended batch: what runs, what each is for, when it last ran and whether it succeeded — including whether the scheduler itself is alive.",
+       "scheduler:read"),
+      ("/admin/evidence", "Evidence integrity",
+       "The hash chain, and separately whether it still agrees with the heads written to WORM storage outside the database. Only the second is worth anything against somebody holding the database.",
+       "evidence:read"),
+      ("/admin/runtimes", "Runtimes and fibres",
+       "What the warrant grammar will admit, and what each trainability class is required to carry. A class the platform cannot describe is one it silently skips.",
+       "model:read")] %}
+    {% if perm in held %}
+    <div class="col-12 col-md-6">
+      <a class="card topic-card" href="{{ href }}"><div class="card-body">
+        <div class="t">{{ title }}</div>
+        <div class="s">{{ gloss }}</div>
+        <div class="chip mt-2 d-inline-block mono">{{ perm }}</div>
+      </div></a>
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

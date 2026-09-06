@@ -177,10 +177,25 @@ class VersionService:
                "contract": contract_spec or {}, "artifact_digest": artifact_digest,
                "artifact_uri": artifact_uri, "artifact_size": artifact_size,
                "status": "draft", "created_at": time.time(), "created_by": actor}
-        self.versions.add(row)
-        self.evidence.append("version_created", "version", row["id"],
-                             {"semver": semver, "digest": row["manifest_digest"],
-                              "trainability_class": row["trainability_class"]}, actor=actor)
+        # Both writes together, or neither.
+        #
+        # These were two separate commits, and the gap between them is not
+        # theoretical: `version_created` is the node segregation of duties is
+        # decided from. A crash after the row and before the node leaves a
+        # version that exists with no record of who created it — and the rule
+        # "the person who created a version may not approve it" then has nothing
+        # to read, so it permits everything. The control does not fail closed;
+        # it fails silent.
+        #
+        # `db.transaction()` is re-entrant, and its docstring names this exact
+        # use: a service wraps a whole governance act without knowing what its
+        # collaborators do.
+        with self.versions.db.transaction():
+            self.versions.add(row)
+            self.evidence.append(
+                "version_created", "version", row["id"],
+                {"semver": semver, "digest": row["manifest_digest"],
+                 "trainability_class": row["trainability_class"]}, actor=actor)
         return row
 
     def _held(self, digest: Optional[str]) -> Optional[Dict[str, Any]]:

@@ -54,11 +54,20 @@ class PublicRoutes(Routes):
             },
         }
 
+        # The OTHER area, so each index points at its sibling. The bar carries
+        # Help and not Tutorials, which would otherwise leave six walkthroughs
+        # reachable only by typing the URL — the same way eight screens were
+        # unreachable until somebody went looking for them.
+        SIBLING = {"help": "tutorials", "tutorials": "help"}
+
         def area_context(area: str) -> dict:
             meta = AREAS[area]
+            other = AREAS[SIBLING[area]]
             return {"area": area, "area_kicker": meta["kicker"],
                     "area_heading": meta["heading"], "area_title": meta["title"],
-                    "area_path": meta["path"], "area_blurb": meta["blurb"]}
+                    "area_path": meta["path"], "area_blurb": meta["blurb"],
+                    "sibling_title": other["title"], "sibling_path": other["path"],
+                    "sibling_blurb": other["blurb"]}
 
         def index(request: Request, area: str):
             return self.page(request, "help.html", sections=content.sections(area),

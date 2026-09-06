@@ -21,8 +21,8 @@ data = [["Position", "What it means", "What it costs"],
         ["Laws, not conventions",
          "twenty-one foundational laws stated, of which sixteen are executable "
          "and run in the ordinary test suite",
-         "five do not run; and there is no pipeline in this repository, so the "
-         "suite enforces as much as whoever runs it"],
+         "five do not run; the rest run on every push and a failing one fails "
+         "the build"],
         ["Derived, not entered",
          "risk tier, worklist, estate summary, documentation, board pack: "
          "computed from the register",

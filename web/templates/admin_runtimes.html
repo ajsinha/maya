@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Runtimes and fibres — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT MAY EXECUTE, AND WHAT IS DEMANDED OF IT</p>
+<h1>Runtimes and fibres</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">One question asked twice.
+The <strong>grammar</strong> is what a warrant may say: the verbs, the runtimes
+that may host a kernel, where inputs may be bound from and where outputs may be
+written. The <strong>fibration</strong> is what each trainability class must
+carry once it is admitted — its evidence, its lifecycle, its metrics. A class
+with a missing facet is one the platform would answer questions about by
+omitting them, so the gaps are listed first and start-up refuses on them.</p>
+
+{% if gaps %}
+<div class="card mb-3" style="border-color:var(--crimson)">
+  <div class="card-header" style="background:#FBEEF0">Gaps in the fibration</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Class</th><th>What is missing</th></tr></thead>
+    <tbody>{% for k, why in gaps.items() %}
+      <tr><td class="mono">{{ k }}</td><td class="evidence-bad">{{ why|join(", ") }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header">The fibration — {{ fibres|length }} classes, all total</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Class</th><th>Evidence</th><th>Lifecycle</th><th>Metrics</th>
+               <th>Monitoring answers</th></tr></thead>
+    <tbody>
+      {% for f in fibres %}
+      <tr>
+        <td><span class="mono fw-semibold">{{ f.trainability_class }}</span>
+          <div class="text-muted" style="font-size:.72rem">{{ f.label }}</div></td>
+        <td class="small">{{ f.evidence|join(", ") }}</td>
+        <td class="small">{{ f.lifecycle|join(" → ") }}</td>
+        <td class="small">{{ f.metrics|join(", ") }}</td>
+        <td class="small text-muted">{{ f.answers }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">What a warrant may ask for</div>
+      <dl class="maya-terms">
+        {% for o in grammar.operations %}
+          <div><dt class="mono" style="flex:0 0 6rem">{{ o.verb }}</dt>
+               <dd>{{ o.means }}</dd></div>
+        {% endfor %}
+      </dl>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">What may host a kernel</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Runtime</th><th>Entry point named by</th></tr></thead>
+        <tbody>
+          {% for r in grammar.runtimes %}
+          <tr><td class="mono">{{ r.runtime }}</td>
+              <td class="small mono text-muted">{{ r.entry_keys|join(", ") }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-0">
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Where inputs may be bound from, and outputs written</div>
+      <div class="card-body py-3 small">
+        <div class="section-label mt-0">Bindings</div>
+        {% for b in grammar.bindings %}<span class="chip me-1 mono">{{ b }}</span>{% endfor %}
+        <div class="section-label">Sinks</div>
+        {% for s in grammar.sinks %}<span class="chip me-1 mono">{{ s }}</span>{% endfor %}
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Which verbs each class admits</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Class</th><th>Admissible verbs</th></tr></thead>
+        <tbody>
+          {% for k, verbs in grammar.admissibility.by_trainability_class.items() %}
+          <tr><td class="mono">{{ k }}</td>
+              <td class="small">{{ verbs|join(", ") or "—" }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="card-body py-2 small text-muted">
+        Nothing to fit, so no fit is admitted:
+        {% for k in grammar.admissibility.non_fittable_classes %}<span class="mono me-1">{{ k }}</span>{% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted small mt-3">The warrant JSON Schema is generated from this
+same vocabulary rather than kept beside it —
+<span class="mono">GET /api/v1/grammar/schema</span> — so a client validating
+against it is validating against what the platform will actually admit.</p>
+{% endblock %}

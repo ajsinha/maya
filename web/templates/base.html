@@ -129,38 +129,172 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
               letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
 .open-badge{background:#B8873D;color:#fff;font-size:.7rem;font-weight:700;
             letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
+
+/* ---- the navigation ---------------------------------------------------
+   Four items: Manage, Admin, Help, About. The bar carried eleven links and a
+   sign-out, which is a list rather than a menu — a reader looking for the
+   schema lattice had to read every one of them. The two dropdowns group by
+   the question being asked: Manage is about the models, Admin is about the
+   platform that holds them. */
+.navbar .nav-link{font-size:.86rem;}
+.navbar .dropdown-toggle{font-weight:600;}
+.navbar .dropdown-menu{border:0;border-radius:4px;box-shadow:0 8px 28px rgba(0,0,0,.18);
+                       padding:.35rem 0;margin-top:.4rem;font-size:.86rem;}
+.navbar .dropdown-header{font-family:Georgia,serif;color:var(--crimson);font-weight:700;
+                         font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;
+                         padding:.5rem .9rem .3rem;}
+.navbar .dropdown-item{padding:.34rem .9rem;white-space:normal;line-height:1.3;}
+.navbar .dropdown-item .d{display:block;color:var(--muted);font-size:.74rem;
+                          line-height:1.35;margin-top:.05rem;}
+.navbar .dropdown-item:hover{background:var(--parch);}
+.navbar .dropdown-item:hover .d{color:var(--slate);}
+.navbar .dropdown-item:focus-visible{outline:2px solid var(--crimson);outline-offset:-2px;}
+.maya-menu{min-width:20rem;}
+/* The three columns are the three things the platform holds. On a narrow
+   screen the row stacks, and the headers are what keeps them apart. */
+.maya-mega{min-width:min(46rem, calc(100vw - 2rem));}
+.maya-mega .maya-col{padding:.15rem 0 .5rem;}
+@media (min-width:992px){
+  .maya-mega .maya-col + .maya-col{border-left:1px solid var(--rule);}
+  .navbar .dropdown-menu{max-height:calc(100vh - 5rem);overflow-y:auto;}
+}
+@media (max-width:991.98px){
+  /* Collapsed, the menu is part of the bar rather than floating over it. */
+  .navbar .dropdown-menu{box-shadow:none;background:rgba(255,255,255,.96);margin:0 0 .4rem;}
+  .maya-mega .maya-col + .maya-col{border-top:1px solid var(--rule);}
+}
+/* The claim the platform makes, under every page. Set apart from the
+   copyright line rather than run into it: a sentence that is an argument
+   reads as boilerplate the moment it sits in a row of boilerplate. */
+footer .principle{font-family:Georgia,"Times New Roman",serif;font-style:italic;
+                  font-size:.92rem;color:var(--slate);margin:0 0 .7rem;
+                  padding-bottom:.7rem;border-bottom:1px solid var(--rule);
+                  max-width:44rem;}
 </style>
 {% block head %}{% endblock %}
 </head>
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark mb-4">
   <div class="container">
-    <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+    <a class="navbar-brand d-flex align-items-center gap-2"
+       href="{{ '/dashboard' if user else '/' }}">
       <img src="/static/img/maya-mark-64.png" alt="" width="26" height="26">MAYA
     </a>
-    <span class="slogan d-none d-md-inline">{{ slogan }}</span>
-    <div class="ms-auto d-flex align-items-center gap-2">
-      <a class="nav-link d-inline text-white-50 small" href="/about">About</a>
-      <a class="nav-link d-inline text-white-50 small" href="/tutorials">Tutorials</a>
-      <a class="nav-link d-inline text-white-50 small" href="/help">Help</a>
+    <span class="slogan d-none d-xl-inline">{{ slogan }}</span>
+    <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse"
+            data-bs-target="#maya-nav" aria-controls="maya-nav"
+            aria-expanded="false" aria-label="Menu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="maya-nav">
+    <ul class="navbar-nav ms-auto align-items-lg-center">
       {% if user %}
-        <a class="nav-link d-inline text-white-50 small" href="/dashboard">Dashboard</a>
-        <a class="nav-link d-inline text-white-50 small" href="/features">Features</a>
-        <a class="nav-link d-inline text-white-50 small" href="/featuresets">Featuresets</a>
-        <a class="nav-link d-inline text-white-50 small" href="/telemetry">Telemetry</a>
-        <a class="nav-link d-inline text-white-50 small" href="/policies">Policy</a>
-        <a class="nav-link d-inline text-white-50 small" href="/board-pack">Board pack</a>
-        <a class="nav-link d-inline text-white-50 small" href="/notifications">Notifications</a>
-        <a class="nav-link d-inline text-white-50 small" href="/models/new">New model</a>
-        <a class="btn btn-sm btn-outline-light" href="/logout">Sign out</a>
-      {% else %}
-        <a class="btn btn-sm btn-light" style="color:var(--crimson)" href="/login">Sign in</a>
+      {# ---- Manage: the three things this platform holds -----------------
+         Models, features, featuresets. Every working screen is one of those
+         three, so the menu is those three and nothing else. What is NOT here
+         is as deliberate: eleven links across the bar meant the reader had to
+         read all eleven to find one. #}
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-white" href="#" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false" id="nav-manage">Manage</a>
+        <div class="dropdown-menu dropdown-menu-end maya-mega p-0" aria-labelledby="nav-manage">
+          <div class="row g-0">
+
+            <div class="col-12 col-lg-4 maya-col">
+              <h6 class="dropdown-header">Models</h6>
+              <a class="dropdown-item" href="/dashboard">
+                The estate<span class="d">every model, and what is owed on it</span></a>
+              <a class="dropdown-item" href="/models/new">
+                Register a model<span class="d">a new model, or a version of one</span></a>
+              <a class="dropdown-item" href="/model-algebra">
+                Model algebra<span class="d">versions, refinement, lifecycle, quorum, tier</span></a>
+              <a class="dropdown-item" href="/model-algebra/composition">
+                Composition<span class="d">one model reading another, type-checked</span></a>
+              <a class="dropdown-item" href="/warrants">
+                Warrants<span class="d">what a run is permitted to do</span></a>
+              <a class="dropdown-item" href="/packages">
+                Model packages<span class="d">everything about a model, in one download</span></a>
+              <a class="dropdown-item" href="/telemetry">
+                Telemetry<span class="d">what the live models are sending</span></a>
+              <a class="dropdown-item" href="/board-pack">
+                Board pack<span class="d">the estate, cut for a committee</span></a>
+            </div>
+
+            <div class="col-12 col-lg-4 maya-col">
+              <h6 class="dropdown-header">Features</h6>
+              <a class="dropdown-item" href="/features">
+                All features<span class="d">the catalogue and its certification</span></a>
+              <a class="dropdown-item" href="/features/new">
+                Define a feature<span class="d">base, derived, aggregate or external</span></a>
+              <a class="dropdown-item" href="/features/load">
+                Load data<span class="d">bitemporal rows, with their ingest time</span></a>
+              <a class="dropdown-item" href="/features/point-in-time">
+                Point-in-time<span class="d">what was knowable, as of a date</span></a>
+            </div>
+
+            <div class="col-12 col-lg-4 maya-col">
+              <h6 class="dropdown-header">Featuresets</h6>
+              <a class="dropdown-item" href="/featuresets">
+                All featuresets<span class="d">every set, and what fills its slots</span></a>
+              <a class="dropdown-item" href="/featuresets/author">
+                Compose a featureset<span class="d">declare slots, bind, publish</span></a>
+              <a class="dropdown-item" href="/featuresets/lattice">
+                Schema lattice<span class="d">whether one schema stands in for another</span></a>
+            </div>
+
+          </div>
+        </div>
+      </li>
+
+      {# ---- Admin: the platform rather than the models -------------------
+         Each entry is shown only to a principal who holds the permission the
+         screen needs. A menu that lists what it then refuses teaches people to
+         ignore refusals. #}
+      {% set admin_items = [
+        ("/admin/principals", "People and roles", "who may act, and the duties they may not combine", "principal:read"),
+        ("/policies",         "Policy gates",     "the four gates, and who tightened them", "policy:read"),
+        ("/admin/regimes",    "Regulatory regimes","which rulebook is in force, and what it demands", "regime:read"),
+        ("/admin/scheduler",  "Scheduled jobs",   "the batch: what runs, when, and what it last did", "scheduler:read"),
+        ("/admin/evidence",   "Evidence integrity","the hash chain, and the anchors written to WORM", "evidence:read"),
+        ("/admin/runtimes",   "Runtimes and fibres","what may execute, and the facets each class carries", "model:read"),
+        ("/notifications",    "Notifications",    "which channels work, and what has reached anybody", "model:read")
+      ] %}
+      {% set visible_admin = admin_items | selectattr(3, "in", may) | list %}
+      {% if visible_admin %}
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle text-white" href="#" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false" id="nav-admin">Admin</a>
+        <div class="dropdown-menu dropdown-menu-end maya-menu" aria-labelledby="nav-admin">
+          <h6 class="dropdown-header">The platform</h6>
+          {% for href, label, gloss, _perm in visible_admin %}
+            <a class="dropdown-item" href="{{ href }}">{{ label }}<span class="d">{{ gloss }}</span></a>
+          {% endfor %}
+        </div>
+      </li>
       {% endif %}
+      {% endif %}
+
+      <li class="nav-item"><a class="nav-link text-white-50" href="/help">Help</a></li>
+      <li class="nav-item"><a class="nav-link text-white-50" href="/about">About</a></li>
+
+      {% if user %}
+        <li class="nav-item ms-lg-2">
+          <a class="nav-link text-white-50" href="/notifications" title="Notifications">
+            <i class="bi bi-bell"></i><span class="d-lg-none ms-1">Notifications</span></a>
+        </li>
+        <li class="nav-item ms-lg-2">
+          <a class="btn btn-sm btn-outline-light" href="/logout">Sign out</a></li>
+      {% else %}
+        <li class="nav-item ms-lg-2">
+          <a class="btn btn-sm btn-light" style="color:var(--crimson)" href="/login">Sign in</a></li>
+      {% endif %}
+    </ul>
     </div>
   </div>
 </nav>
 <main class="container">{% block content %}{% endblock %}</main>
 <footer><div class="container">
+  <p class="principle">{{ principle }}</p>
   {{ app_name }} {{ version }} — {{ tagline }}. <strong>{{ slogan }}</strong><br>
   Copyright © 2026 Ashutosh Sinha &lt;ajsinha@gmail.com&gt;. All rights reserved.
   Proprietary and confidential. Not legal, regulatory or financial advice.

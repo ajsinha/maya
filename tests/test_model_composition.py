@@ -340,6 +340,109 @@ class TestAnEdgeCarriesSomeInputsAndNotAllOfThem:
             "lgd", "ead", "discount_rate"}
         assert [f["name"] for f in composite["output_schema"]] == ["ecl"]
 
+    def test_a_pair_that_states_no_contract_says_so_rather_than_nothing(
+            self, typed, ecl_stack):
+        pd, ecl = ecl_stack
+        typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        contract = typed.composite_schema(pd, ecl)["contract"]
+        assert contract["stated"] == 0
+        assert "promises nothing" in contract["detail"]
+
+
+class TestTheCompositeContract:
+    """The same question one level up from the schema.
+
+    The schema says what the pair needs. The contract says under what
+    conditions the pair still promises anything — and which of the target's
+    operating boundaries the source's own guarantee settles, so nobody outside
+    has to.
+    """
+
+    @pytest.fixture
+    def typed(self, db, registry, evidence):
+        from core.registry.composition import ModelComposition
+        from db import ModelEdgeRepository, VersionRepository
+        return ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                                evidence, VersionRepository(db))
+
+    def _pair(self, registry, upstream_guarantee, downstream_assumption):
+        def model(name, inputs, outputs, contract):
+            urn = f"maya://model/{name}"
+            registry.register(urn, name, "credit", "retail", "person/o",
+                              "LE-US-01", "p")
+            # The contract is its own argument, not a key in the kernel spec:
+            # the kernel is what the model IS, the contract is what it promises.
+            registry.create_version(urn, "1.0.0", {
+                "parameter_kind": "estimated_coefficients",
+                "fit_procedure": "estimate",
+                "input_schema": [{"name": n, "dtype": "numeric"} for n in inputs],
+                "output_schema": [{"name": n, "dtype": "numeric"} for n in outputs]},
+                contract)
+            return urn
+
+        pd = model("credit.pd", ["dscr"], ["pd_12m"],
+                   {"assumptions": [{"key": "dscr", "minimum": 0, "maximum": 20}],
+                    "guarantees": [upstream_guarantee]})
+        ecl = model("credit.ecl", ["pd_12m", "lgd"], ["ecl"],
+                    {"assumptions": [downstream_assumption,
+                                     {"key": "lgd", "minimum": 0, "maximum": 1}],
+                     "guarantees": [{"key": "ecl", "minimum": 0}]})
+        return pd, ecl
+
+    def test_the_edge_discharges_a_boundary_the_source_guarantees(
+            self, typed, registry):
+        """The whole point of composing rather than conjoining.
+
+        The ECL stack assumes a PD in [0,1]; the PD model guarantees exactly
+        that. Nobody outside the pair has to supply it, and the composite's
+        assumptions say so.
+        """
+        pd, ecl = self._pair(registry,
+                             {"key": "pd_12m", "minimum": 0, "maximum": 1},
+                             {"key": "pd_12m", "minimum": 0, "maximum": 1})
+        typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        contract = typed.composite_schema(pd, ecl)["contract"]
+        assert contract["holds"] == 1
+        assert contract["discharged_by_the_edge"] == ["pd_12m"]
+        assert contract["spoken_to_but_not_settled"] == []
+        assert {c["key"] for c in contract["assumptions"]} == {"dscr", "lgd"}
+
+    def test_a_source_that_speaks_to_the_boundary_without_settling_it(
+            self, typed, registry):
+        """The finding this exists for.
+
+        The PD model guarantees a score in [0,2]; the ECL stack assumes [0,1].
+        The boundary looks covered by the wiring and is not, and the assumption
+        stays with the caller instead of quietly disappearing.
+        """
+        pd, ecl = self._pair(registry,
+                             {"key": "pd_12m", "minimum": 0, "maximum": 2},
+                             {"key": "pd_12m", "minimum": 0, "maximum": 1})
+        typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        contract = typed.composite_schema(pd, ecl)["contract"]
+        assert contract["spoken_to_but_not_settled"] == ["pd_12m"]
+        assert contract["discharged_by_the_edge"] == []
+        assert "pd_12m" in {c["key"] for c in contract["assumptions"]}
+
+    def test_contracts_that_cannot_both_hold_are_reported_not_raised(
+            self, typed, registry):
+        """`composite_schema` answers a question about an edge that exists.
+
+        A reader looking at a clash needs to see it, not receive a 409 where the
+        schema analysis should have been.
+        """
+        # Both versions promise something about `ecl`, and the two promises
+        # exclude each other: at most -1 against the stack's own at least 0.
+        pd, ecl = self._pair(registry,
+                             {"key": "ecl", "maximum": -1},
+                             {"key": "pd_12m", "minimum": 0, "maximum": 1})
+        typed.relate(pd, ecl, "input_to", "PD feeds the ECL stack")
+        answer = typed.composite_schema(pd, ecl)
+        assert answer["contract"]["holds"] == 0
+        assert answer["contract"]["error"] == "no_guarantee_meet"
+        # The schema half is unaffected and still answers.
+        assert answer["supplied_by_the_edge"] == ["pd_12m"]
+
 
 class TestAnUncheckedEdgeSaysSo:
     """An `input_to` edge whose either end has no version is recorded with the

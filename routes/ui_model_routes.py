@@ -486,11 +486,17 @@ class ModelAlgebraRoutes(Routes):
 
         @self.app.get(f"{self.api}/model-algebra/composite", tags=["models"])
         def composite(request: Request, from_urn: str, to_urn: str):
-            """The type of `to ∘ from`: the source's inputs, the target's outputs.
+            """The type of `to ∘ from`, and the contract of it.
 
             Derived rather than declared, which is the whole reason to type the
             edge — a composite whose schema somebody wrote down is a composite
             that can disagree with its parts.
+
+            The schema says what the pair needs. The `contract` says under what
+            conditions the pair still promises anything, and reports which of
+            the target's operating boundaries the source's own guarantee
+            settles — along with the ones it speaks to and does not settle,
+            which look covered by the wiring and are not.
             """
             source = self.guard(lambda: registry.require(from_urn))
             target = self.guard(lambda: registry.require(to_urn))

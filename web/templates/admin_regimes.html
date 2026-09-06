@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Regulatory regimes — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHICH RULEBOOK IS BEING APPLIED</p>
+<h1>Regulatory regimes</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">A regime is a supervisor's
+rulebook written down as obligations over a vocabulary of its own. MAYA holds
+its state in <em>its</em> words, so applying a regime means translating — and a
+translation that loses a term cannot be trusted to have preserved the
+obligation. Each regime therefore reports whether its encoding is
+<strong>consistent</strong>: whether everything the obligations mention is
+something MAYA can actually answer. An inconsistent regime refuses to be
+activated rather than being activated and quietly abstaining.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ regimes|length }}</div>
+    <div class="stat-l">regimes encoded</div></div></div></div>
+  <div class="col-6 col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ regimes|selectattr("active")|list|length }}</div>
+    <div class="stat-l">in force</div></div></div></div>
+  <div class="col-12 col-md-4"><div class="card h-100"><div class="card-body py-3">
+    {% set broken = regimes|rejectattr("satisfaction.consistent")|list %}
+    <div class="stat {{ 'evidence-bad' if broken }}">{{ broken|length }}</div>
+    <div class="stat-l">whose encoding does not hold</div></div></div></div>
+</div>
+
+{% for r in regimes %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>{{ r.title }}
+      <span class="text-muted fw-normal" style="font-size:.8rem">— {{ r.authority }}</span></span>
+    <span>
+      {% if r.active %}<span class="frozen-badge">IN FORCE</span>
+      {% else %}<span class="chip">not activated</span>{% endif %}
+    </span>
+  </div>
+  <div class="card-body py-3">
+    <div class="row g-3">
+      <div class="col-12 col-lg-8">
+        <div class="section-label mt-0">What it obliges</div>
+        <dl class="maya-terms">
+          {% for o in r.obligations %}
+            <div><dt class="mono" style="flex:0 0 6rem">{{ o.key }}</dt>
+                 <dd>{{ o.text }}
+                   {% if o.citation %}<div class="text-muted" style="font-size:.72rem">
+                     {{ o.citation }}</div>{% endif %}</dd></div>
+          {% endfor %}
+        </dl>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="section-label mt-0">Its vocabulary</div>
+        <p class="small">{% for t in r.vocabulary %}<span class="chip me-1 mb-1 d-inline-block mono"
+          >{{ t }}</span>{% endfor %}</p>
+        <div class="section-label">Does truth survive translation?</div>
+        <p class="small mb-0">
+          {% if r.satisfaction.consistent %}
+            <span class="evidence-ok">Yes.</span>
+          {% else %}
+            <span class="evidence-bad">No.</span>
+          {% endif %}
+          <span class="text-muted">{{ r.satisfaction.detail or "" }}</span>
+        </p>
+        {% if r.satisfaction.missing %}
+          <p class="small evidence-bad mb-0">MAYA cannot answer:
+            {{ r.satisfaction.missing|join(", ") }}</p>
+        {% endif %}
+        <div class="mono text-muted mt-2" style="font-size:.72rem">
+          {{ r.key }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<p class="text-muted small">
+{% if may_activate %}Activating a regime is a governed act:
+<span class="mono">POST /api/v1/regimes/{key}/activate</span>. It is refused if
+the encoding above is not consistent.
+{% else %}Turning a regime on needs <span class="mono">regime:activate</span>,
+which you do not hold.{% endif %}
+A regime's verdict on one model is at
+<span class="mono">GET /api/v1/regimes/determinations?urn=…</span> — every active
+regime answers separately, and the answers are deliberately not merged.</p>
+{% endblock %}

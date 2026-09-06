@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Scheduled jobs — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT RUNS UNATTENDED</p>
+<h1>Scheduled jobs</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">A scheduler nobody notices
+has stopped is the same failure as a monitor nobody notices has stopped, one
+level up — so the first thing here is the health of the scheduler itself. Every
+run is recorded on the evidence chain, successful or not, because "the batch
+did not run" is a governance fact and not an operational one.</p>
+
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div>
+        <div class="stat {{ 'evidence-bad' if health.failing or not health.ever_run }}">
+          {{ health.ever_run }}<span class="text-muted">/{{ health.jobs }}</span></div>
+        <div class="stat-l">jobs have ever run</div>
+      </div>
+      <div>
+        <div class="stat">{{ health.hours_since if health.hours_since is not none else "—" }}</div>
+        <div class="stat-l">hours since the last run</div>
+      </div>
+      <div class="flex-grow-1">
+        <div class="state-note mb-0">{{ health.detail }}</div>
+      </div>
+    </div>
+    {% if health.never_run %}
+      <p class="small evidence-bad mt-2 mb-0">Never run:
+        {% for k in health.never_run %}<span class="mono me-1">{{ k }}</span>{% endfor %}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The jobs</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Job</th><th>What it does</th><th>Why</th><th>Last run</th><th>Outcome</th></tr></thead>
+    <tbody>
+      {% for j in catalogue %}
+      <tr>
+        <td class="mono">{{ j.job }}</td>
+        <td class="small">{{ j.what }}</td>
+        <td class="small text-muted">{{ j.why }}</td>
+        <td class="small">
+          {% if j.last_run %}
+            {{ ((now - j.last_run.ran_at) / 3600)|round(1) }} h ago
+          {% else %}<span class="evidence-bad">never</span>{% endif %}</td>
+        <td class="small">
+          {% if not j.last_run %}—
+          {% elif j.last_run.ok %}<span class="evidence-ok">succeeded</span>
+            <div class="text-muted" style="font-size:.72rem">{{ j.last_run.outcome }}</div>
+          {% else %}<span class="evidence-bad">failed</span>
+            <div class="text-muted" style="font-size:.72rem">{{ j.last_run.error }}</div>
+          {% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The last {{ history|length }} runs, newest first</div>
+  {% if history %}
+  <table class="table maya mb-0">
+    <thead><tr><th>Job</th><th>When</th><th>Outcome</th></tr></thead>
+    <tbody>
+      {% for r in history %}
+      <tr><td class="mono">{{ r.job }}</td>
+          <td class="small">{{ ((now - r.ran_at) / 3600)|round(1) }} h ago</td>
+          <td class="small">{% if r.ok %}<span class="evidence-ok">ok</span>
+            {{ r.outcome }}{% else %}<span class="evidence-bad">{{ r.error }}</span>{% endif %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="card-body py-3 small text-muted">Nothing has run yet.</div>
+  {% endif %}
+</div>
+
+<p class="text-muted small">
+{% if may_run %}Running the batch by hand is
+<span class="mono">POST /api/v1/scheduler/run</span>, optionally with the keys of
+the jobs to run. It records the same evidence a scheduled run does, so a
+hand-run is not invisible.
+{% else %}Running a job needs <span class="mono">scheduler:run</span>, which you
+do not hold.{% endif %}</p>
+{% endblock %}
