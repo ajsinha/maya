@@ -577,3 +577,82 @@ class TestAnUndeclaredInputSchemaIsNotAnEmptyOne:
         with pytest.raises(RuleError, match="does not declare"):
             Condition.parse({"field": "dscr", "op": "gt", "value": 1.0}) \
                      .conforms({}, path="rule 'r1'")
+
+
+class TestAContractThatPinsNothing:
+    """`contract_of` and `bounds_of` read every key with `.get`.
+
+    So every spelling mistake produced a VALID, EMPTY contract — digested into
+    the manifest, carried into the fit warrant, and used to gate alias
+    promotion. A version whose contract says `dscr` is constrained to [0, 20]
+    and whose stored contract constrains nothing reads as governed and is not:
+    L-7 refinement between two empty contracts holds, and a boundary check with
+    no bounds never fires.
+    """
+
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate",
+              "input_schema": [{"name": "dscr", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd", "dtype": "numeric"}]}
+
+    @staticmethod
+    def _model(registry, name):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o",
+                          "LE-US-01", "contract validation")
+        return urn
+
+    def _create(self, registry, name, contract):
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        urn = self._model(registry, name)
+        with pytest.raises(RegistryError) as refusal:
+            registry.create_version(urn, "1.0.0", dict(self.KERNEL), contract)
+        return str(refusal.value)
+
+    def test_a_misspelled_bound_is_refused_rather_than_silently_unbounded(
+            self, registry):
+        detail = self._create(registry, "c.minmax", {
+            "assumptions": [{"key": "dscr", "min": 0, "max": 20}]})
+        assert "min" in detail and "minimum" in detail
+        assert "UNBOUNDED" in detail, "say what the mistake actually costs"
+
+    def test_a_misspelled_section_is_refused_rather_than_dropped(self, registry):
+        detail = self._create(registry, "c.section", {
+            "assumption": [{"key": "dscr", "minimum": 0, "maximum": 20}]})
+        assert "assumption" in detail and "assumptions" in detail
+
+    def test_an_inverted_band_is_refused(self, registry):
+        detail = self._create(registry, "c.inverted", {
+            "assumptions": [{"key": "dscr", "minimum": 20, "maximum": 0}]})
+        assert "admits nothing" in detail
+
+    def test_a_clause_with_no_key_is_a_refusal_not_a_keyerror(self, registry):
+        """It used to be a raw `KeyError` out of `bounds_of` — a 500, and a
+        stack trace where a message naming the clause belongs."""
+        detail = self._create(registry, "c.nokey", {
+            "guarantees": [{"minimum": 0.42}]})
+        assert "guarantees[0]" in detail and "no 'key'" in detail
+
+    def test_an_unknown_boundary_policy_is_refused(self, registry):
+        detail = self._create(registry, "c.policy", {
+            "assumptions": [{"key": "dscr", "minimum": 0}],
+            "on_boundary_violation": "ignore"})
+        assert "ignore" in detail and "reject" in detail
+
+    def test_a_well_formed_contract_is_still_accepted(self, registry):
+        """The refusals must be about malformation, not about contracts."""
+        urn = self._model(registry, "c.good")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0, "maximum": 20}],
+            "guarantees": [{"key": "gini", "minimum": 0.42}],
+            "on_boundary_violation": "reject"})
+        assert version["contract"]["assumptions"][0]["maximum"] == 20
+
+    def test_an_absent_contract_is_still_allowed(self, registry):
+        """A version may genuinely make no promise; that is different from one
+        that appears to make a promise and does not."""
+        urn = self._model(registry, "c.none")
+        assert registry.create_version(urn, "1.0.0", dict(self.KERNEL))
