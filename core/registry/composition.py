@@ -424,7 +424,12 @@ class ModelComposition:
         return {"kind": edge["kind"], "means": KIND_MEANING.get(edge["kind"], ""),
                 "urn": other.get("urn"), "name": other.get("name"),
                 "tier": other.get("tier"), "status": other.get("status"),
-                "note": edge.get("note", ""), "propagates": edge["kind"] in PROPAGATING}
+                "note": edge.get("note", ""), "propagates": edge["kind"] in PROPAGATING,
+                # An edge admitted BECAUSE the check passed is a different
+                # object from one admitted because there was nothing to check,
+                # and L-14 reads this: an unverified wire is an interaction
+                # nobody has confirmed is safe.
+                "type_checked": bool(edge.get("type_checked"))}
 
     def blast_radius(self, urn: str) -> Dict[str, Any]:
         """Every model a change here reaches, and how far away each one is.

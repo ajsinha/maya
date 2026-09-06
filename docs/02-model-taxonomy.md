@@ -214,7 +214,7 @@ it is decidable here and it is a solver, and a solver inside a governance platfo
 whose failure modes nobody in the bank can debug.
 
 So the promise is exactly this and is stated in these words on the rule-set page itself: **no rule is
-shadowed by any single earlier rule.** Not *no rule is unreachable*. A check that claims more than it
+shadowed by the earlier rules, singly or together.** A check that claims more than it
 delivers is the thing this analysis exists to find.
 
 Where the condition's normal form grows past 256 disjunctions the analysis says it **did not run**

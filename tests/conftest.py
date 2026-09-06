@@ -665,3 +665,101 @@ def in_service(registered, people):
     from tests.api_helpers import approve_record
     approve_record(registered, people)
     return registered
+
+
+# --------------------------------------------------------------------- L-17
+@pytest.fixture
+def serving_version(registry, full_features):
+    """A model version with a feature contract bound to it.
+
+    `L-17` compares what an engine says it served against what a version's
+    contract pins, so the law needs a version that pins something.
+    """
+    urn = "maya://model/credit.serving.probe"
+    registry.register(urn, "Serving probe", "credit", "retail", "person/o",
+                      "LE-US-01", "checking contract-serving agreement")
+    for name in ("dscr", "ltv"):
+        full_features.define(name, "facility", "numeric", f"the {name}",
+                             "person/d.raman")
+    full_features.create_view("sb_serving", "facility", "person/d.raman",
+                              ["dscr", "ltv"])
+    full_features.materialise(
+        "sb_serving",
+        [{"entity_id": "F1", "event_ts": 1.0, "ingest_ts": 1.0,
+          "dscr": 1.4, "ltv": 0.6}],
+        ["dscr", "ltv"])
+    version = registry.create_version(urn, "1.0.0", {
+        "parameter_kind": "estimated_coefficients", "fit_procedure": "estimate",
+        "input_schema": [{"name": "dscr", "dtype": "numeric"},
+                         {"name": "ltv", "dtype": "numeric"}],
+        "output_schema": [{"name": "pd", "dtype": "numeric"}]})
+    full_features.bind_contract(version["id"],
+                                [{"view": "sb_serving", "version": 1}],
+                                actor="person/d.raman")
+    return {**version, "urn": urn}
+
+
+@pytest.fixture
+def serving(db, registry, full_features, evidence, serving_version):
+    """The register, and the namespaces the contract pins."""
+    from core.features.serving import ServingRegister
+    from db import ServingAttestationRepository
+
+    register = ServingRegister(ServingAttestationRepository(db),
+                               full_features.contracts, registry, evidence)
+    pinned = full_features.contracts.serving_namespaces(serving_version["id"])
+    return register, serving_version["urn"], "1.0.0", pinned
+
+
+# --------------------------------------------------------------------- L-14
+def _tiered(registry, tiering, name, exposure, reads=(), writes=()):
+    """A registered, versioned, tiered model — through the same calls the API
+    makes, so the tier is derived rather than written in."""
+    urn = f"maya://model/{name}"
+    registry.register(urn, name, "credit", "retail", "person/o", "LE-US-01", "p")
+    registry.create_version(urn, "1.0.0", {
+        "parameter_kind": "estimated_coefficients", "fit_procedure": "estimate",
+        "input_schema": [{"name": n, "dtype": "numeric"} for n in reads],
+        "output_schema": [{"name": n, "dtype": "numeric"} for n in writes]})
+    assessment = tiering.assess({"exposure": exposure,
+                                 "purpose_class": "regulatory_capital",
+                                 "trainability_class": "T2"})
+    registry.set_tier(registry.catalogue.require(urn)["id"], assessment.tier)
+    return urn
+
+
+@pytest.fixture
+def composition(db, registry, evidence):
+    """The typed edge register, wired the way the application wires it."""
+    from core.registry.composition import ModelComposition
+    from db import ModelEdgeRepository, VersionRepository
+    return ModelComposition(ModelEdgeRepository(db), registry.catalogue,
+                            evidence, VersionRepository(db))
+
+
+@pytest.fixture
+def aggregate_pair(registry, composition, tiering):
+    """Two tiered models wired together, with nothing in common."""
+    from core.risk import AggregateRisk
+    source = _tiered(registry, tiering, "agg.pd", 2e9, ["dscr"], ["pd"])
+    target = _tiered(registry, tiering, "agg.ecl", 6e8, ["pd", "lgd"], ["ecl"])
+    composition.relate(source, target, "input_to", "the PD term")
+    return AggregateRisk(registry.catalogue, composition), source, target
+
+
+@pytest.fixture
+def aggregate_shared(registry, composition, tiering):
+    """Two models wired together that also share an upstream.
+
+    The obstruction SR 26-2 names by name: a fault in the common input is not
+    two independent faults, so the pair is riskier than the join of its parts.
+    """
+    from core.risk import AggregateRisk
+    common = _tiered(registry, tiering, "agg.macro", 1e9, ["gdp"], ["macro_factor"])
+    source = _tiered(registry, tiering, "agg.pd2", 2e9, ["macro_factor"], ["pd"])
+    target = _tiered(registry, tiering, "agg.ecl2", 6e8,
+                     ["macro_factor", "pd"], ["ecl"])
+    composition.relate(common, source, "input_to", "macro into the PD")
+    composition.relate(common, target, "input_to", "macro into the stack")
+    composition.relate(source, target, "input_to", "the PD term")
+    return AggregateRisk(registry.catalogue, composition), source, target

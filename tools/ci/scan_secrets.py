@@ -68,6 +68,10 @@ ALLOWED = {
     # in the docstring that tells somebody how to start it. It grants access to
     # a database created and dropped by the test run.
     "tests/test_postgres_dialect.py",
+    # The scanner's own tests, which must contain one example per pattern or
+    # they are testing nothing. Excusing the test rather than weakening a
+    # pattern is the right way round: the patterns are the product here.
+    "tests/test_secret_scanner.py",
 }
 
 SKIP_DIRS = {".git", ".venv", "__pycache__", "node_modules", "web/static/vendor",

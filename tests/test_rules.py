@@ -748,3 +748,87 @@ class TestTheRegisterShowsHowBigAPolicyIs:
                                 {"a": 1.0, "b": 2.0, "c": 3.0},
                                 provenance="declared")
         assert row["cardinality"] == 3
+
+
+class TestTheUnionOfEarlierRulesIsNowChecked:
+    """The stated limit, removed — and removed without a solver.
+
+    The promise was written narrowly on purpose: *no rule is shadowed by any
+    single earlier rule*. Two earlier rules that between them cover a third —
+    `ltv > 0.8` and `ltv <= 0.8` covering everything after them — were not
+    detected, and `domains.py` said why: full coverage is satisfiability over
+    the theory, "decidable here but a solver, and a solver inside a governance
+    platform is a dependency whose failure modes nobody in the bank can debug".
+
+    The premise was right and the conclusion did not follow. A conjunction in
+    this analysis is already a **box** — one interval-with-exclusions per field
+    — and a condition is a finite union of boxes. "Is this box covered by those
+    boxes" is geometry, answered exactly by subtraction. No solver, no
+    dependency, and an exact answer rather than a conservative one.
+    """
+
+    @staticmethod
+    def _at(field, op, value):
+        from core.rules.conditions import Condition
+        return Condition.parse({"field": field, "op": op, "value": value})
+
+    def test_the_example_the_documentation_named(self):
+        from core.rules.domains import covers, union_covers
+        above = self._at("ltv", "gt", 0.8)
+        below = self._at("ltv", "le", 0.8)
+        anything = self._at("ltv", "ge", -1e9)
+
+        assert not covers(above, anything), "one rule alone should not cover it"
+        assert union_covers([above, below], anything), (
+            "`ltv > 0.8` and `ltv <= 0.8` between them cover everything, and "
+            "this is the case the old promise excluded by name")
+
+    def test_a_real_gap_stays_a_gap(self):
+        """Soundness is the property that matters most here: a check that cries
+        wolf is a check somebody turns off, and the real ones go with it."""
+        from core.rules.domains import union_covers
+        assert not union_covers(
+            [self._at("ltv", "gt", 0.8), self._at("ltv", "lt", 0.5)],
+            self._at("ltv", "ge", -1e9)), "0.5 to 0.8 is uncovered"
+
+    def test_one_rule_alone_is_not_enough(self):
+        from core.rules.domains import union_covers
+        assert not union_covers([self._at("ltv", "gt", 0.8)],
+                                self._at("ltv", "ge", -1e9))
+
+    def test_it_covers_a_subset(self):
+        from core.rules.domains import union_covers
+        assert union_covers(
+            [self._at("ltv", "gt", 0.8), self._at("ltv", "le", 0.8)],
+            self._at("ltv", "between", [0.1, 0.9]))
+
+    def test_a_set_of_rules_covered_only_jointly_is_reported(self):
+        """End to end, through the rule set rather than the geometry."""
+        from core.rules import RuleSet
+        from core.rules.common import RuleError
+
+        with pytest.raises(RuleError) as exc:
+            RuleSet.parse({
+                "rules": [
+                    {"id": "high", "when": {"field": "ltv", "op": "gt", "value": 0.8},
+                     "then": {"action": "refer"}, "because": "high LTV"},
+                    {"id": "rest", "when": {"field": "ltv", "op": "le", "value": 0.8},
+                     "then": {"action": "accept"}, "because": "everything else"},
+                    {"id": "never", "when": {"field": "ltv", "op": "ge", "value": 0.0},
+                     "then": {"action": "review"}, "because": "cannot ever fire"},
+                ],
+                "otherwise": {"action": "refer"}}).validate(
+                    {"ltv": "numeric"}, {"action": "string"})
+        assert exc.value.code in ("rule_unreachable", "rule_never_fires")
+        assert "never" in exc.value.detail
+
+    def test_undecided_is_not_reported_as_no_problem_found(self):
+        """The budget exists so the check terminates. Reaching it must report
+        that the answer is unknown, not that there is nothing to report —
+        which is the defect the whole module is written against."""
+        import inspect
+
+        from core.rules import ruleset
+        source = inspect.getsource(ruleset.RuleSet._shadowed)
+        assert "Undecided" in source and "undecided" in source
+        assert "self.undecided.append" in source

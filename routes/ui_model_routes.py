@@ -507,6 +507,22 @@ class ModelAlgebraRoutes(Routes):
                 "detail": _substitution_detail(proof, other_urn == body.urn),
             }
 
+        @self.app.get(f"{self.api}/aggregate-risk", tags=["models"])
+        def aggregate_risk(request: Request, from_urn: str, to_urn: str):
+            """`L-14` for one composable pair: is the composite at least as
+            risky as the join of its parts, and what makes it riskier?
+
+            No single number comes back. The board pack refuses to produce one
+            and this is not the side door — the interaction term is a set of
+            named obstructions, each read from something the register holds.
+            """
+            source = self.guard(lambda: registry.require(from_urn))
+            target = self.guard(lambda: registry.require(to_urn))
+            self.authorise(request, "model:read", model=source)
+            self.authorise(request, "model:read", model=target)
+            return self.guard(
+                lambda: self.ctx["aggregate"].holds(from_urn, to_urn))
+
         @self.app.get(f"{self.api}/model-algebra/composite", tags=["models"])
         def composite(request: Request, from_urn: str, to_urn: str):
             """The type of `to ∘ from`, and the contract of it.

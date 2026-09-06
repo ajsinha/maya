@@ -26,8 +26,8 @@ the build. Where it does not, §12 says so by name, because an unexecuted law is
 design, and a document that lets the two look alike has stopped being a foundation and become a
 brochure.
 
-**Sixteen of the twenty-one foundational laws are executable** today. The five that are not are
-`L-6`, `L-11`, `L-13`, `L-14` and `L-17`, each named in §12 with the reason. That list is
+**Eighteen of the twenty-one foundational laws are executable** today. The four that are not are
+`L-6`, `L-11` and `L-13`, each named in §12 with the reason. That list is
 itself asserted in `tests/test_laws.py`, which reads this document's table and fails if the two
 disagree — so the count above cannot quietly drift from the code.
 
@@ -434,11 +434,26 @@ into a computable quantity, and it is also the reason the board pack **refuses t
 model-risk score**: an aggregate that composed strictly would be a number that is wrong in a known
 direction.
 
-**`L-14` is not built.** There is no aggregate `ρ` and no interaction premium. What exists is the
-*obstruction*, made computable: `shared_dependencies` reports what two models have in common, and a
-fault in a shared input is not two independent faults. And since `L-21`, a composite has a derived
-schema, which is the object `L-14` would have to quantify over. Naming what is missing is more
-useful here than a plausible formula nobody checks.
+**`L-14` is built**, and the shape of it is the argument. `core/risk/aggregate.py` computes `ρ` as
+the risk **tier** and the interaction term as a set of **named obstructions** — never a magnitude.
+That is not a limitation working around a missing model; it is the honest form of the answer. A
+premium with a coefficient in it is a number somebody has to defend, and no coefficient here could
+be. What can be defended is that a particular interaction is *present*, and that the composite is at
+least as risky as its parts.
+
+Six obstructions, each read from something the register already holds: a shared upstream
+(`shared_dependencies`, which was always the computable part of this), an `input_to` edge admitted
+without a type check, a boundary the source speaks to and does not settle (§4.1's composite
+contract), two contracts that cannot both hold, a tier inversion, and an untiered component. The
+composite escalates one step per *kind* of interaction rather than per instance: three shared
+dependencies are more interaction than one, but a four-point scale cannot honestly express "three
+times", and what it can express is *this pair interacts in two distinct ways*.
+
+One choice in the lattice is load-bearing and reads backwards until it is said out loud. **An
+unassessed component is the top, not the bottom.** The join of *tier 4* and *not assessed* is *not
+assessed*, because a pair is only as well understood as its least understood half — and treating
+`None` as least risky would make the aggregate of an untiered estate look excellent, which is the
+failure this whole platform is written against.
 
 ### 5.3 Composing *definitions* is a monoid
 
@@ -948,10 +963,10 @@ this section exists to prevent.
 | **L-11** | *Lens laws.* GetPut, PutGet and PutPut hold for every document template. | §7.3 | **Not built.** Fifteen lenses, all `get`. The compiler regenerates whole documents, so there is no `put` and no round trip to test |
 | **L-12** | *Schema variance.* A replacement version is contravariant in inputs and covariant in outputs. | §3.2 | **Executable and enforcing.** `core/domain/schemas.py::substitutable`, now routed through `core/domain/lattice.py::refines`, at alias moves and — as `L-W10` — at warrant issuance; `tests/test_domain.py` |
 | **L-13** | *Evidence gluing.* Overlapping evidence sections have consistency radius ≤ declared tolerance. | §6.5 | **Not built.** No gluing computation exists anywhere; no consistency radius is computed |
-| **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | **Not built.** There is no aggregate `ρ` and no interaction premium. `L-21` now gives a composite a derived schema to quantify over, and `shared_dependencies` computes the obstruction; the functor itself is design |
+| **L-14** | *Lax monoidality of risk.* `ρ(g∘f) ⊒ ρ(g) ⊔ ρ(f)` for all composable pairs. | §5.2 | **Executable and enforcing.** `core/risk/aggregate.py`; `tests/test_laws.py::TestL14AggregateRiskIsLaxMonoidal`. `ρ` is the **risk tier** and deliberately not a score — the board pack refuses to produce a single number and this is not the side door it comes in through. The interaction term is a set of **named obstructions** rather than a magnitude, each read from something the register holds: a shared upstream, an edge admitted without a type check, a boundary the wire does not settle, contracts that cannot both hold, a tier inversion, an untiered component. The composite escalates one step per *kind* of interaction, floored at tier 1. An unassessed component is the **top** of the lattice, not the bottom: a model nobody has tiered is not a safe model |
 | **L-15** | *Fibration completeness.* Every class has a total evidence schema, lifecycle, metric set and template set; no fibre is empty. | §8 | **Executable and enforcing.** `core/fibres/registry.py::verify` runs at start-up and refuses to serve on a partial fibration; `register` refuses a partial fibre, so the registry cannot hold one between restarts; `tests/test_laws.py::TestL15NoFibreIsEmpty`. The base is the **trainability class**, not the free-text `model_class` — see §8 for why that distinction is the whole of the closure. The fibre is not inert: a `performance` monitor on a T0 pricer and a `calibration` monitor on a T5 assembly are now refused `kind_not_answerable` |
 | **L-16** | *No obligation contradiction.* The obligation set is deontically consistent: no `O φ ∧ F φ`. | §9.4 | **Executable and enforcing**, over the sentences whose shape is declared. `core/regimes/sentences.py::deontic_conflicts` finds every term both obliged and forbidden, activation refuses it as `obligation_contradiction`, and `undecidable()` **names** the sentences the check cannot read rather than assuming them consistent. A conditional obligation is not counted against an unconditional prohibition: they may never both apply |
-| **L-17** | *Contract–serving agreement.* For every active warrant, the online feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | **Not built — there is no online store.** `core/features/contracts.py::serving_namespaces` computes what serving *must* read, which is the half of the comparison that can exist without one. The other half arrives with the store |
+| **L-17** | *Contract–serving agreement.* For every active warrant, the feature namespace served equals the namespace pinned by its contract. | [11 · C-2](11-adversarial-review.md) | **Executable and enforcing.** It was recorded as blocked on an online store, and it was blocked on the wrong thing: a store sits on the serving path at request latency, and [10 §7](10-roadmap.md) says MAYA will not own that. The engine already knows what it read, so it **declares** it — `core/features/serving.py::ServingRegister` compares against `serving_namespaces`, names the three ways they can disagree, and records the answer whether or not it agrees. `tests/test_laws.py::TestL17ContractServingAgreement`. An attestation proves *disagreement* rather than agreement, and disagreement is what is worth catching: it is training–serving skew. **Never attested** is reported as its own state — silence is not agreement |
 | **L-18** | *No personal data in evidence nodes.* A node flagged `contains_personal_data` carries no payload. | §6.4 | **Executable and enforcing**, in the append path rather than in DDL: `core/evidence/engine.py` stores an empty payload for such a node *and hashes what it stored*, so the node verifies against itself; `tests/test_evidence.py`. This row said "only an erasable pointer", and there is no pointer — no `payload_uri`, no per-subject key, no shred path. The payload is **discarded**, which is stronger than the law requires and weaker than the sentence implied |
 | **L-19** | *Composition is a monoid.* Merge-with-rightmost-wins over definitions is associative, with the empty composition as identity. | §5.3 | **Executable.** Both properties asserted in `tests/test_composition.py`; strengthened by `tests/test_laws.py::TestTheEditOperationsCommuteWhenIndependent`, so the order two people happened to edit in carries no meaning |
 | **L-20** | *Schemas are a lattice.* `A ⊑ B` ("A can stand in for B") is a partial order; meet and join exist on every finite fragment; the empty schema is top. | §3 | **Executable and enforcing.** `core/domain/lattice.py`; `tests/test_laws.py::TestL20SchemasFormALattice`. Written because **four** places asked one question and four implementations of one order disagree eventually, in the direction of permitting more. `L-12`, `L-W10` and `L-21` now go through it. Meet is **partial**, informatively so: two schemas whose shared slot has two types have no meet, which is the honest answer to *can one featureset serve both models* |

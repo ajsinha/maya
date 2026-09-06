@@ -404,6 +404,13 @@ class FindingRepository(Repository):
         return [self._decode(r) for r in self.db.query(sql, keys)]
 
 
+class ServingAttestationRepository(Repository):
+    """What an engine said it served. Append-only in practice: a disagreement
+    is recorded rather than corrected."""
+    TABLE, ORDER = "serving_attestation", "attested_at"
+    JSON = ("served", "pinned", "divergence")
+
+
 class FindingActionRepository(Repository):
     """What happened to a finding between raising it and closing it.
 
