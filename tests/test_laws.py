@@ -109,7 +109,7 @@ class TestL1LifecycleIsAFreeCategory:
         """The property that makes the graph a *free* category: there are no
         composites beyond those the generators give."""
         declared = {(source, t.target) for t in TRANSITIONS for source in t.sources}
-        for name, t in BY_NAME.items():
+        for _name, t in BY_NAME.items():
             for source in t.sources:
                 assert (source, t.target) in declared
 
@@ -138,7 +138,7 @@ class TestL2AVersionDigestNeverMoves:
             "urn": urn, "name": "SB PD", "model_class": "credit.pd.scorecard",
             "domain": "credit", "owner": "person/j.okafor",
             "legal_entity": "LE-1", "purpose": "p"})
-        created = client.post(f"/api/v1/models/credit.pd.smallbiz/versions",
+        created = client.post("/api/v1/models/credit.pd.smallbiz/versions",
                               auth=dev, json={
                                   "semver": "1.0.0",
                                   "kernel": {"parameter_kind": "none",
@@ -266,14 +266,20 @@ class TestL9TheProvenancePolynomialIsUniversal:
                        "why": {frozenset([leaf])}}
                 for leaf in leaves}
 
+            # `values` bound as a default, like `name` and `semiring` below.
+            # A closure over a loop variable reads whatever it holds when the
+            # closure RUNS, and in a property test that is the last iteration's
+            # values for every case — so a failure in any round but the last
+            # would be evaluated against the wrong data and could pass.
             polynomial = evidence.evaluate(
                 claim, derivations, POLYNOMIAL,
-                lambda k: poly_variable(k) if k in values else POLYNOMIAL.zero).value
+                lambda k, values=values: (poly_variable(k) if k in values
+                                          else POLYNOMIAL.zero)).value
 
             for semiring, name in ((BOOLEAN, "boolean"), (COUNTING, "counting"),
                                    (TRUST, "trust"), (COST, "cost"),
                                    (WHY, "why")):
-                def valuation(k, name=name, semiring=semiring):
+                def valuation(k, name=name, semiring=semiring, values=values):
                     return values[k][name] if k in values else semiring.zero
 
                 direct = evidence.evaluate(claim, derivations, semiring,
@@ -364,7 +370,6 @@ class TestL16NoRegimeObligesAndForbidsTheSameThing:
         """The law enforces rather than reports: a regime that contradicts
         itself makes every determination unsatisfiable."""
         from core.regimes.common import RegimeError
-        from core.regimes.engine import RegimeEngine
         ctx = client.app.state.ctx
         engine = ctx["regimes"]
         key = sorted(engine.library)[0]
@@ -884,7 +889,7 @@ class TestL10TheAsOfOperator:
         for _ in range(200):
             rows, label = self._rows(rng), rng.randint(20, 100)
             previous = None
-            for as_of in sorted(rng.sample(range(0, 140), 5)):
+            for as_of in sorted(rng.sample(range(140), 5)):
                 chosen = self._read(rows, label, as_of)
                 if chosen is None:
                     assert previous is None, (
@@ -957,7 +962,7 @@ class TestL10TheAsOfOperator:
         for _ in range(300):
             rows, label = self._rows(rng), rng.randint(20, 100)
             as_of = rng.randint(0, 140)
-            admitted = [r for r in rows if eval(predicate, {"min": min}, {  # noqa: S307
+            admitted = [r for r in rows if eval(predicate, {"min": min}, {
                 "event_ts": r[VALID_TIME], "ingest_ts": r[INGEST_TIME],
                 "label_ts": label, "as_of": as_of})]
             chosen = self._read(rows, label, as_of)

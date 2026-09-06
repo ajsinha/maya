@@ -48,7 +48,7 @@ _ID_CHARS = set("abcdefghijklmnopqrstuvwxyz0123456789_")
 class Rule:
     """One rule. Immutable once built."""
 
-    __slots__ = ("id", "when", "then", "because")
+    __slots__ = ("because", "id", "then", "when")
 
     def __init__(self, rule_id: str, when: Condition, then: Dict[str, Any],
                  because: str):

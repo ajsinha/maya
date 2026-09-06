@@ -11,5 +11,14 @@ from core.rules.domains import covers, satisfiable
 from core.rules.editor import RuleSetEditor
 from core.rules.ruleset import Rule, RuleSet
 
-__all__ = ["Condition", "OPERATORS", "OPERATOR_MEANING", "Rule", "RuleError",
-           "RuleSet", "RuleSetEditor", "covers", "satisfiable"]
+__all__ = [
+           "OPERATORS",
+           "OPERATOR_MEANING",
+           "Condition",
+           "Rule",
+           "RuleError",
+           "RuleSet",
+           "RuleSetEditor",
+           "covers",
+           "satisfiable",
+]

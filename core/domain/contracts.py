@@ -11,8 +11,7 @@ turns substitution from a judgement call into a proof obligation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.domain.schemas import explain
@@ -180,7 +179,7 @@ class Contract:
         it.
         """
         flat: Dict[str, Any] = {}
-        for key, value in (values or {}).items():
+        for _key, value in (values or {}).items():
             if isinstance(value, dict):
                 for inner, held in value.items():
                     flat.setdefault(inner, held)

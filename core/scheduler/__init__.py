@@ -14,4 +14,4 @@ from core.scheduler.jobs import JOBS, Job, JobContext
 from core.scheduler.loop import SchedulerLoop
 from core.scheduler.runner import Scheduler, SchedulerError
 
-__all__ = ["Scheduler", "SchedulerLoop", "SchedulerError", "JOBS", "Job", "JobContext"]
+__all__ = ["JOBS", "Job", "JobContext", "Scheduler", "SchedulerError", "SchedulerLoop"]

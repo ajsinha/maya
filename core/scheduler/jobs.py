@@ -22,9 +22,8 @@ be, and the first duplicate run will be at three in the morning.
 """
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List
 
 from core.log import get_logger
 

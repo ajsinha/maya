@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.authz.common import AuthzError, same_person
 from core.execution.urn import model_urn, parse_urn

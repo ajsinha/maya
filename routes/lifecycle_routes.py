@@ -11,10 +11,10 @@ Everyone else retires a model, which withdraws it from use and keeps the record.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.lifecycle import describe
 from routes.base import Body, Routes

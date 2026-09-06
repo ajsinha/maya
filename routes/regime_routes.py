@@ -10,7 +10,6 @@ said so" has never been an answer.
 """
 from __future__ import annotations
 
-from typing import Any, Dict
 
 from fastapi import Request
 

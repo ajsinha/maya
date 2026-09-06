@@ -8,10 +8,9 @@ registry are the floor — and it cannot be published until its own cases pass.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from fastapi import Request
-from pydantic import BaseModel
 
 from core.policy import GATES, describe_facts, vocabulary
 from core.policy.language import describe as describe_language

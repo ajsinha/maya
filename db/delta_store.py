@@ -20,7 +20,7 @@ axis for free, which is why Delta rather than a plain table is the substrate.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 from deltalake import DeltaTable, write_deltalake

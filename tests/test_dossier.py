@@ -32,7 +32,7 @@ from __future__ import annotations
 import pytest
 
 from core.docs.subjects import (FEATURESET_VERSION, MODEL, MODEL_VERSION,
-                                PARAMETER_SET, SUBJECTS, known)
+                                PARAMETER_SET, known)
 
 URN = "maya://model/credit.pd.smallbiz"
 

@@ -330,5 +330,5 @@ class TestCompositionAtDepthAndBreadth:
             cat.define(f"f{i:04d}", "book_id", "numeric", "x", "person/o")
         cat.define("wide", "book_id", "numeric", "x", "person/o",
                    composes=[{"name": f"f{i:04d}"} for i in range(20)])
-        elapsed, resolved = timed(lambda: cat.resolved("wide"))
+        elapsed, _resolved = timed(lambda: cat.resolved("wide"))
         assert elapsed < 3.0

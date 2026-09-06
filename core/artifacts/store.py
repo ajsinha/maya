@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import shutil
 import time
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, Iterator, Optional

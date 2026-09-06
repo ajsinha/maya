@@ -639,7 +639,7 @@ class TestTheEditorPages:
         import re
         r = signed_in.get(f"/rules/{self.SLUG}/1.0.0")
         external = [u for u in re.findall(r'(?:src|href)="([^"]+)"', r.text)
-                    if u.startswith("http") or u.startswith("//")]
+                    if u.startswith(("http", "//"))]
         assert not external, external
 
     def test_a_recorded_set_reads_back_on_its_own_page(self, signed_in):

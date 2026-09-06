@@ -1484,12 +1484,22 @@ rot, and each exists because the rule it holds had already been broken once:
 | `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
 | `test_laws` | the foundational laws, run as tests, with the five that do not run named |
 
-**None of this is a gate.** There is no continuous integration in this repository — no pipeline
-configuration, no import-linter contract, no type checker or linter in `requirements.txt`, no coverage
-threshold. `pytest.ini` is nine lines and its only directive excludes the scale suite. The suite is real and
-it is run by a person, which is a different thing from a build that fails, and
-[11 §4.8](11-adversarial-review.md#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) is where
-that is argued.
+**This is now a gate.** It was not: for most of the build there was no pipeline, no linter, no type
+checker and no coverage threshold, and the suite was real but run by a person — which is a different
+thing from a build that fails.
+[11 §4.8](11-adversarial-review.md#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) is
+where that was argued, and it was right. `.github/workflows/ci.yml` now runs seven jobs: hygiene
+(linter, types, dependency advisories, secrets, SBOM, spec lock), discipline, laws, deck geometry, the
+suite in four shards, a combined coverage floor, and PostgreSQL.
+
+Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
+the 186 modules that pass and carries 62 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 248 modules in one
+release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
+**chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
+`Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
+hundred files. `pyproject.toml` says why each rule is in or out, and the security set found a real
+defect on its first run.
 
 ---
 
@@ -1512,7 +1522,7 @@ already taken, and a reader planning against this system deserves the list rathe
 | **WORM anchoring and an RFC-3161 timestamp** on the daily chain head | C-4 disposition 2, and the largest open weakness in the platform. Verification compares the chain against itself |
 | **Asymmetric warrant signing** | HMAC-SHA256 ships. RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and the gap is key management. Verifying a warrant currently requires holding the key that could mint one |
 | **A plugin loader and a fibre registry** | `L-15` cannot be checked, so *no fibre is empty* is an intention. A model class is a string; adding a family is a convention rather than a validated extension |
-| **Continuous integration** | Every gate described in [12 §7](12-implementation-plan.md) — import contracts, spec diff, coverage, SAST, SBOM, migration rehearsal — names a tool that is not a dependency or a file that does not exist |
+| **Continuous integration** | Seven of the nine gates in [12 §7](12-implementation-plan.md) now run. What remains is DAST, a generated client and an accessibility run; migration rehearsal is not applicable, because there are no migrations |
 
 ## 27. Capabilities designed and not built
 

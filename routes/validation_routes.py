@@ -9,10 +9,10 @@ record-keeping one.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.authz.common import same_person
 from routes.base import Body, Routes

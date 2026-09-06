@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from core.execution.errors import WarrantError
 from core.execution.runtimes.base import Invocation, resolve_path, verify_artifact
@@ -55,7 +55,7 @@ class PmmlRuntime:
 
     def available(self) -> Optional[str]:
         try:
-            from lxml import etree  # noqa: F401
+            from lxml import etree
         except ImportError as exc:
             swallowed(logger, exc, "the pmml runtime is not usable here",
                       detail="warrants naming it will be refused with the reason",

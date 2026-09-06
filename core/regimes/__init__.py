@@ -18,6 +18,19 @@ from core.regimes.sentences import Sentence, forbids, implies, requires
 from core.regimes.signature import CORE, CORE_TERMS, Interpretation, Signature
 from core.regimes.translation import Translation, satisfaction_condition
 
-__all__ = ["RegimeEngine", "RegimeError", "REGIMES", "Signature", "Interpretation",
-           "Sentence", "Translation", "satisfaction_condition", "CORE",
-           "CORE_TERMS", "PROBE_STATES", "requires", "forbids", "implies"]
+__all__ = [
+           "CORE",
+           "CORE_TERMS",
+           "PROBE_STATES",
+           "REGIMES",
+           "Interpretation",
+           "RegimeEngine",
+           "RegimeError",
+           "Sentence",
+           "Signature",
+           "Translation",
+           "forbids",
+           "implies",
+           "requires",
+           "satisfaction_condition",
+]

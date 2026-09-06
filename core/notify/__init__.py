@@ -12,5 +12,14 @@ from core.notify.channels import EmailChannel, LogChannel, WebhookChannel, build
 from core.notify.common import (CHANNELS, CHANNEL_MEANING, STATES, NotifyError)
 from core.notify.service import NotificationService
 
-__all__ = ["NotificationService", "NotifyError", "CHANNELS", "CHANNEL_MEANING",
-           "STATES", "LogChannel", "WebhookChannel", "EmailChannel", "build"]
+__all__ = [
+           "CHANNELS",
+           "CHANNEL_MEANING",
+           "STATES",
+           "EmailChannel",
+           "LogChannel",
+           "NotificationService",
+           "NotifyError",
+           "WebhookChannel",
+           "build",
+]

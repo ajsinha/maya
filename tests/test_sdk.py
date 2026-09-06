@@ -32,11 +32,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "sdk" / "python"))
 
-from maya_sdk import (Blocked, Maya, NotAuthenticated, NotFound, NotPermitted,  # noqa: E402
+from maya_sdk import (Blocked, Maya, NotAuthenticated, NotFound, NotPermitted,
                       Refused, Unreachable)
-from maya_sdk.artifacts import digest_of  # noqa: E402
-from maya_sdk.models import short  # noqa: E402
-from maya_sdk.transport import IDEMPOTENT  # noqa: E402
+from maya_sdk.artifacts import digest_of
+from maya_sdk.models import short
+from maya_sdk.transport import IDEMPOTENT
 
 URN = "maya://model/credit.pd.smallbiz"
 

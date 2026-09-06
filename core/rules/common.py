@@ -54,7 +54,7 @@ Four checks, run before a rule set can be saved:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, FrozenSet, Tuple
+from typing import Dict, FrozenSet, Tuple
 
 
 class RuleError(RuntimeError):

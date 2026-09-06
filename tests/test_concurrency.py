@@ -120,11 +120,10 @@ class TestTransactionsAreReEntrant:
         assert db.query_one("SELECT username FROM principal WHERE id='n1'")
 
     def test_a_failed_transaction_rolls_the_whole_thing_back(self, db):
-        with pytest.raises(RuntimeError):
-            with db.transaction():
-                db.execute("INSERT INTO principal (id, username, display_name, "
-                           "created_at) VALUES ('r1','rolled','R',1.0)")
-                raise RuntimeError("something went wrong half way through")
+        with pytest.raises(RuntimeError), db.transaction():
+            db.execute("INSERT INTO principal (id, username, display_name, "
+                       "created_at) VALUES ('r1','rolled','R',1.0)")
+            raise RuntimeError("something went wrong half way through")
         assert db.query_one("SELECT username FROM principal WHERE id='r1'") is None
 
     def test_a_read_inside_a_transaction_sees_its_own_writes(self, db):

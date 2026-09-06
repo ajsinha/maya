@@ -10,11 +10,10 @@ import json
 import re
 import secrets
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional, Sequence, Set
+from typing import Any, Dict, List, Optional, Set
 
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.pool import StaticPool

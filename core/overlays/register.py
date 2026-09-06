@@ -26,7 +26,7 @@ stopped being a temporary adjustment and become an unversioned model change.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 from core.authz.common import same_person
 from core.evidence import EvidenceEngine

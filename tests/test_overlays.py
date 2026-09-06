@@ -14,7 +14,6 @@ import time
 import pytest
 
 from core.overlays import OverlayError, analysis
-from tests.conftest import URN
 
 DAY = 86400.0
 NOW = 1_800_000_000.0
@@ -165,7 +164,7 @@ class TestPersistenceEscalates:
 
     def test_the_finding_is_raised_once_not_every_renewal(self, overlays, findings,
                                                           a_model, active):
-        for i, period in enumerate(["2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"]):
+        for _i, period in enumerate(["2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"]):
             overlays.measure(active["id"], period, 1_000.0, 1_100.0)
             overlays.renew(active["id"], "s.iqbal", period=period)
         assert len(findings.open_for(a_model["id"])) == 1

@@ -12,11 +12,11 @@ than a special case.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
-from core.domain.schemas import Field, Schema
+from core.domain.schemas import Schema
 
 class ParameterKind(str, Enum):
     NONE = "none"                       # P = I, the terminal object: nothing to fit

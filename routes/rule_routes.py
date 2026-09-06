@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.rules.common import OPERATOR_MEANING, OPERATORS, ORDERED_DTYPES, ORDERED_ONLY
 from routes.base import Body, Routes

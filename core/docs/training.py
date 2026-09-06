@@ -170,7 +170,7 @@ class TrainingRecordCompiler:
             return None
         try:
             return self.featuresets.sets.version_by_id(version_id)
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not resolve featureset version %s: %s",
                            version_id, exc)
             return None

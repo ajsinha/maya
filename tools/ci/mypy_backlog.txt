@@ -1,0 +1,75 @@
+# MAYA — the modules that do not type-check yet.
+#
+# 62 of 248. `tools/ci/typecheck.py` gates on everything NOT in this list, so a
+# module that is clean today stays clean and the backlog can only shrink.
+#
+# The dominant cause is one pattern, and it is a real (if benign) lie rather
+# than a mypy quirk: `Repository.one()` returns `Optional[Dict[str, Any]]`, and
+# a caller that has just written the row annotates `-> Dict[str, Any]` because
+# it knows the row exists. The honest repair is a `require`-shaped accessor
+# that raises, which is a change to a hundred call sites and belongs in its own
+# release rather than smuggled into a linting pass.
+#
+# Do not add to this file to make a build pass. Removing a line is the work.
+core/assist/capabilities.py
+core/assist/generations.py
+core/assist/oracles.py
+core/assist/providers/mock.py
+core/assist/providers/remote.py
+core/attachments/register.py
+core/authz/oidc.py
+core/authz/principals.py
+core/authz/roles.py
+core/authz/segregation.py
+core/baseline/debt.py
+core/baseline/importer.py
+core/docs/compiler.py
+core/evidence/engine.py
+core/execution/profiles.py
+core/execution/runtimes/estimator.py
+core/execution/runtimes/onnx.py
+core/execution/runtimes/pmml.py
+core/execution/runtimes/registry.py
+core/execution/sandbox.py
+core/execution/warrants.py
+core/export/pack.py
+core/features/catalogue.py
+core/features/derived.py
+core/features/preparation.py
+core/features/registry.py
+core/features/sets.py
+core/features/transfer.py
+core/features/views.py
+core/lifecycle/amendments.py
+core/lifecycle/approval.py
+core/lifecycle/attestation.py
+core/lifecycle/service.py
+core/monitoring/breaches.py
+core/monitoring/definitions.py
+core/monitoring/labels.py
+core/monitoring/service.py
+core/notify/channels.py
+core/notify/service.py
+core/overlays/register.py
+core/parameters/register.py
+core/policy/engine.py
+core/regimes/sentences.py
+core/registry/aliases.py
+core/registry/catalogue.py
+core/registry/composition.py
+core/registry/versions.py
+core/reporting/appetite.py
+core/rules/conditions.py
+core/rules/domains.py
+core/scheduler/runner.py
+core/validation/findings.py
+core/validation/service.py
+core/validation/workflow.py
+db/delta_store.py
+db/repositories.py
+routes/base.py
+routes/ui_warrant_routes.py
+routes/warrant_routes.py
+run_maya_web.py
+sdk/python/maya_sdk/documents.py
+sdk/python/maya_sdk/errors.py

@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.domain.schemas import Field, Schema
 from core.evidence import EvidenceEngine
-from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
+from core.features.common import INGEST_TIME, VALID_TIME, FeatureError
 from core.features.composition import Resolver
 from core.features.lifecycle import Lifecycle
 from core.features import policy

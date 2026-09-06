@@ -12,10 +12,10 @@ answer carries the derivation rather than the result.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.execution.profiles import (AUTHORITY_KEYS, DEFAULTABLE,
                                      SELECTABLE_FACTS, facts_for)

@@ -39,7 +39,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "sdk" / "python"))
 
-from maya_sdk import Maya, NotFound, NotPermitted, Refused  # noqa: E402
+from maya_sdk import Maya, NotFound, NotPermitted, Refused
 
 URN = "maya://model/credit.pd.smallbiz"
 NAME = "credit.pd.smallbiz"

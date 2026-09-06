@@ -17,6 +17,18 @@ from core.monitoring.definitions import MonitorRegistry
 from core.monitoring.labels import OutcomeWindow, labelled
 from core.monitoring.service import MonitoringService
 
-__all__ = ["MonitoringService", "MonitorRegistry", "BreachRegister", "OutcomeWindow",
-           "MonitorError", "KINDS", "ADMISSIBLE_TESTS", "LABEL_DEPENDENT",
-           "INPUT_DRIFT", "SCORE_DRIFT", "PERFORMANCE", "CALIBRATION", "labelled"]
+__all__ = [
+                                    "ADMISSIBLE_TESTS",
+                                    "CALIBRATION",
+                                    "INPUT_DRIFT",
+                                    "KINDS",
+                                    "LABEL_DEPENDENT",
+                                    "PERFORMANCE",
+                                    "SCORE_DRIFT",
+                                    "BreachRegister",
+                                    "MonitorError",
+                                    "MonitorRegistry",
+                                    "MonitoringService",
+                                    "OutcomeWindow",
+                                    "labelled",
+]

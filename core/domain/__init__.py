@@ -13,8 +13,23 @@ from core.domain.identity import EquivalenceResult, Probe, pi_equivalent
 from core.domain.schemas import (Field, Schema, VarianceResult, explain,
                                  substitutable)
 
-__all__ = ["FitProcedure", "OutputKind", "ParameterKind", "ParameterObject",
-           "ParametricKernel", "Bound", "Composition", "Contract",
-           "ContractError", "RefinementResult",
-           "EquivalenceResult", "Probe", "pi_equivalent", "Field", "Schema",
-           "VarianceResult", "substitutable", "explain"]
+__all__ = [
+                                 "Bound",
+                                 "Composition",
+                                 "Contract",
+                                 "ContractError",
+                                 "EquivalenceResult",
+                                 "Field",
+                                 "FitProcedure",
+                                 "OutputKind",
+                                 "ParameterKind",
+                                 "ParameterObject",
+                                 "ParametricKernel",
+                                 "Probe",
+                                 "RefinementResult",
+                                 "Schema",
+                                 "VarianceResult",
+                                 "explain",
+                                 "pi_equivalent",
+                                 "substitutable",
+]

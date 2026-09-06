@@ -41,7 +41,7 @@ def open_pack(body: bytes) -> zipfile.ZipFile:
 
 @pytest.fixture
 def pack(client, registered):
-    r = client.post(f"/api/v1/export-packs/credit.pd.smallbiz")
+    r = client.post("/api/v1/export-packs/credit.pd.smallbiz")
     assert r.status_code == 200, r.text
     return r
 

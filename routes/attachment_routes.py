@@ -13,7 +13,6 @@ from typing import Optional
 
 from fastapi import File, Form, Request, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel
 
 from core.attachments import KIND_MEANING, KINDS
 from routes.base import Body, Routes

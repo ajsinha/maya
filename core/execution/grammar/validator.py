@@ -17,7 +17,7 @@ worst possible interface for a document with ten sections.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.execution.grammar import rules
 from core.execution.grammar.rules import Problem

@@ -170,7 +170,7 @@ def test_every_stated_count_matches_the_code(subject):
                             f"{path.relative_to(ROOT)}:{line_number} claims "
                             f"{claimed} {subject}, code has {actual}")
     assert not wrong, (
-        f"these documents state a count that the code contradicts:\n    "
+        "these documents state a count that the code contradicts:\n    "
         + "\n    ".join(wrong)
         + "\nRecount from the code; do not adjust the code to the prose.")
 

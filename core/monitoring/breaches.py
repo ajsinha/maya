@@ -22,10 +22,9 @@ raised as one.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.evidence import EvidenceEngine
-from core.monitoring.common import MonitorError
 from core.validation import SEVERITIES, FindingRegister, severity_rank
 from db import BreachRepository
 

@@ -19,7 +19,6 @@ code-block overflow on the design deck survived the first audit.
 """
 import sys, os
 from pptx import Presentation
-from pptx.util import Emu
 
 EMU = 914400.0
 SW, SH = 13.333, 7.5
@@ -201,7 +200,7 @@ def enclosing(sh, L, T, W, H, boxes):
         if oW < 0.2 or oH < 0.2:            # accent bars and rules, not cards
             continue
         if not (oL - 0.02 <= L and oT - 0.02 <= T
-                and L + W <= oL + oW + 0.02 and T <= oT + oH + 0.02):
+                and oL + oW + 0.02 >= L + W and oT + oH + 0.02 >= T):
             continue
         if best is None or oW * oH < best[3] * best[4]:
             best = (o, oL, oT, oW, oH)
@@ -280,7 +279,7 @@ def main():
             # its own card went unreported.
             host = enclosing(sh, L, T, W, H, boxes)
             if host is not None:
-                hostL, hostT, hostW, hostH = host[1:]
+                _hostL, hostT, _hostW, hostH = host[1:]
                 # The same 0.06" tolerance every other check here uses: the
                 # estimator simulates wrapping rather than measuring it, and a
                 # check tighter than its own error reports noise.
@@ -305,7 +304,7 @@ def main():
             # one: text printed over text is the defect a reader actually sees,
             # and a bare textbox below is just as ruined as a card.
             if need > H + 0.06:
-                for o, oL, oT, oW, oH in boxes:
+                for o, oL, oT, oW, _oH in boxes:
                     if o is sh:
                         continue
                     carries = (o.has_text_frame and o.text_frame.text.strip())

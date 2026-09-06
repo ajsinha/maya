@@ -9,10 +9,8 @@ with the number of signatures decided by the tier rather than by the requester.
 """
 from __future__ import annotations
 
-from typing import Optional
 
 from fastapi import Request
-from pydantic import BaseModel
 
 from routes.base import Body, Routes
 

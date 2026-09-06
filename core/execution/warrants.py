@@ -138,7 +138,7 @@ class WarrantService:
             # the one that already parses it.
             return self.parameters.resolve(
                 model_urn(parse_urn(urn)[0]), version["semver"])
-        except Exception as exc:                  # noqa: BLE001 -- re-raised below
+        except Exception as exc:
             # `self.parameters` is an injected port, so the concrete
             # `ParameterError` is not imported here — that would make execution
             # depend on the register it is deliberately held apart from. The

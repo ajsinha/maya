@@ -2,7 +2,6 @@
 MAYA — configuration tests.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
-import os
 import sys
 
 import pytest

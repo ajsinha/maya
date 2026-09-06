@@ -16,7 +16,7 @@ import pytest
 from core.features import FeatureError
 from core.features import shapes
 from core.features.alignment import align
-from core.features.composition import fold, merge, apply
+from core.features.composition import fold, merge
 from core.features.normalisation import normalise
 from core.features.policy import combine, explain
 from core.features.preparation import prepare, survey
@@ -79,7 +79,7 @@ class TestAFeatureNeedNotBeANumber:
             shapes.check_rows(rows, "curve", (8,))
 
     def test_a_ragged_value_is_not_a_tensor(self):
-        ok, why = shapes.conforms([[1, 2], [3]], (2, 2))
+        ok, _why = shapes.conforms([[1, 2], [3]], (2, 2))
         assert not ok
 
 
@@ -200,8 +200,8 @@ class TestSealing:
     def test_a_sealed_feature_can_still_be_composed_from(self, cat, curve):
         """Which is the point: a parent that cannot move is worth building on."""
         cat.seal("usd_curve", "person/s.iqbal")
-        child = cat.define("child", "book_id", "numeric", "x", "person/o",
-                           composes=[{"name": "usd_curve"}])
+        cat.define("child", "book_id", "numeric", "x", "person/o",
+                   composes=[{"name": "usd_curve"}])
         assert len(cat.resolved("child")["components"]) == 8
 
     def test_sealing_twice_is_refused(self, cat, curve):

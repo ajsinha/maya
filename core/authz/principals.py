@@ -24,7 +24,7 @@ import time
 from typing import Any, Dict, List, Optional, Sequence
 
 from core.authz.common import AuthzError
-from core.authz.roles import ROLES, conflicts, permissions_for
+from core.authz.roles import conflicts, permissions_for
 from core.evidence import EvidenceEngine
 from core.log import get_logger
 from db import PrincipalRepository

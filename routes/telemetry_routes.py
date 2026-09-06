@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import Request
-from pydantic import BaseModel
 
 from core.telemetry import STREAM_MEANING
 from routes.base import Body, Routes

@@ -93,6 +93,11 @@ STATUS: Dict[str, int] = {
     # know about rather than a silent success; a short password is the caller's
     # to fix.
     "already_active": 409, "password_too_short": 422,
+    # What the platform will fetch. 502 rather than 4xx: the caller did nothing
+    # wrong — an identity provider named an address MAYA refuses to open, and
+    # that is a fault in something upstream of this request.
+    "outbound_scheme_refused": 502, "outbound_not_encrypted": 502,
+    "outbound_host_missing": 502, "outbound_url_missing": 502,
     "unknown_permission": 422,
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,

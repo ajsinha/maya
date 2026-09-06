@@ -11,10 +11,10 @@ can inspect is one people work around.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.authz import DESCRIPTIONS, INCOMPATIBLE_ROLES, ROLES
 from routes.base import Body, Routes

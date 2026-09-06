@@ -42,7 +42,7 @@ second account of the model's documentation, able to disagree with the first.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.docs.subjects import (FEATURESET_VERSION, FEATURE, MODEL,
                                 MODEL_VERSION, PARAMETER_SET, VALIDATION)
@@ -219,7 +219,7 @@ class Dossier:
                      ("id", "kind", "title", "filename", "digest", "state",
                       "reviewed_by", "attached_by", "attached_at")}
                     for row in self.attachments.about(subject_type, subject_id)]
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read attachments for %s %s: %s",
                            subject_type, subject_id, exc)
             return []
@@ -229,7 +229,7 @@ class Dossier:
             return []
         try:
             rows = self.documents.about(subject_type, subject_id)
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read documents for %s %s: %s",
                            subject_type, subject_id, exc)
             return []
@@ -243,7 +243,7 @@ class Dossier:
             return []
         try:
             return self.parameters.for_version(version["id"])
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read parameter sets for %s: %s",
                            version.get("semver"), exc)
             return []
@@ -254,7 +254,7 @@ class Dossier:
             return []
         try:
             episodes = self.validation.for_model(model["urn"])
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read validations for %s: %s",
                            model.get("urn"), exc)
             return []
@@ -266,7 +266,7 @@ class Dossier:
             return []
         try:
             version = self.featuresets.version(name, number)
-        except Exception as exc:                              # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read featureset %s@%s: %s", name, number, exc)
             return []
         return sorted((version or {}).get("bindings") or {})

@@ -7,13 +7,11 @@ that matter most are in TestSegregation: the rule that the person who built a
 version may not approve it is checked against the evidence chain, so it holds
 however the roles are arranged — including for an administrator.
 """
-import time
 
 import pytest
 
-from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService, ROLES,
-                        Scope, SegregationPolicy, conflicts, permissions_for)
-from tests.conftest import URN
+from core.authz import (AuthzError, ROLES,
+                        Scope, conflicts, permissions_for)
 
 
 # ==================================================================== roles
@@ -291,8 +289,8 @@ class TestPolicy:
         assert "model_developer" in exc.value.detail, "name the roles they hold"
 
     def test_scope_is_checked_after_permission(self, authz, principals):
-        scoped = principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw",
-                                   legal_entities=["LE-UK-02"])
+        principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw",
+                          legal_entities=["LE-UK-02"])
         row = principals.get("uk.mrm")
         with pytest.raises(AuthzError) as exc:
             authz.authorise(row, "version:approve",

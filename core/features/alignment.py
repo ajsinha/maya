@@ -55,7 +55,7 @@ have known when the set was built.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
 from core.features.preparation import is_missing

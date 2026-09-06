@@ -16,5 +16,11 @@ from core.baseline.common import DEFAULT_EXPIRY_MONTHS, BaselineError
 from core.baseline.debt import DebtRegister
 from core.baseline.importer import BASELINED, BaselineImporter
 
-__all__ = ["BaselineImporter", "DebtRegister", "BaselineError", "gaps",
-           "BASELINED", "DEFAULT_EXPIRY_MONTHS"]
+__all__ = [
+           "BASELINED",
+           "DEFAULT_EXPIRY_MONTHS",
+           "BaselineError",
+           "BaselineImporter",
+           "DebtRegister",
+           "gaps",
+]

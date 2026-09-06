@@ -17,7 +17,6 @@ from fastapi.responses import StreamingResponse
 
 from typing import Any, Dict, List
 
-from pydantic import BaseModel
 
 from core.features.alignment import align
 from core.features.preparation import prepare

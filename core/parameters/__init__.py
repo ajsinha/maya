@@ -15,5 +15,14 @@ from core.parameters.common import (CALIBRATED, DECLARED, FITTED,
 from core.parameters.fitting import FittingService
 from core.parameters.register import ParameterRegister
 
-__all__ = ["ParameterRegister", "FittingService", "ParameterError", "PROVENANCE",
-           "PROVENANCE_MEANING", "STATES", "FITTED", "CALIBRATED", "DECLARED"]
+__all__ = [
+                                    "CALIBRATED",
+                                    "DECLARED",
+                                    "FITTED",
+                                    "PROVENANCE",
+                                    "PROVENANCE_MEANING",
+                                    "STATES",
+                                    "FittingService",
+                                    "ParameterError",
+                                    "ParameterRegister",
+]

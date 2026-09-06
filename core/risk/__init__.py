@@ -8,5 +8,11 @@ Risk classification: the lattices and the monotone map onto tiers.
 from core.risk.lattices import COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION
 from core.risk.tiering import Assessment, TieringEngine
 
-__all__ = ["Assessment", "TieringEngine", "MATERIALITY", "COMPLEXITY", "CONTROLS",
-           "RULESET_VERSION"]
+__all__ = [
+           "COMPLEXITY",
+           "CONTROLS",
+           "MATERIALITY",
+           "RULESET_VERSION",
+           "Assessment",
+           "TieringEngine",
+]
