@@ -323,6 +323,35 @@ something its predecessor constrained is accepting more, which is exactly what r
 **An absent guarantee is a promise withdrawn**, and fails. The asymmetry is the whole content of the
 relation.
 
+The same asymmetry decides the three operations, and it is what keeps them from collapsing into one
+another. Both are written over two partial operations on a single `Bound`: **meet**, the strongest
+band admitting what both admit, and **join**, the weakest band admitting what either does.
+
+- **Composition `⊗`** wires two components together, so its guarantees **meet** — both promises are
+  made — and its assumptions are what the *caller* must still supply. A downstream assumption that
+  the upstream's guarantee **implies** is discharged inside the pair and asked of nobody outside. An
+  upstream that speaks to the key without implying it discharges nothing, and MAYA reports that key
+  separately: it is the case where somebody wired two models together believing the boundary was
+  covered.
+- **Conjunction `∧`** puts two viewpoints on *one* component. Its guarantees also meet, but its
+  assumptions **join**, which reads backwards until it is said out loud: a contract promises nothing
+  outside its assumptions, so a model holding both is entitled to the union of the regions they
+  cover, and an assumption only one viewpoint makes constrains nothing — the other promised its
+  guarantee without it. Intersecting here would narrow where a model may be used every time somebody
+  added a viewpoint, which is the opposite of what adding one means.
+- **Quotient `/`** discharges a target guarantee only where what we already have **implies** it.
+  A partner that speaks to the key without meeting it discharges nothing and the residual carries
+  the requirement in full — a challenger promising `gini ≥ 0.2` does not satisfy a target of
+  `gini ≥ 0.4`, and an empty residual reads as *nothing more is needed*. The residual may **rely**
+  on what the partner guarantees, so those become its assumptions alongside the target's own.
+
+Both operations are **partial**, and where they do not exist MAYA refuses rather than approximating.
+Two bands with a gap between them have no join: `[0,1] ∪ [5,6]` is not a band, and `[0,6]` is not it
+— widening to span the gap would claim a contract holds at 3, where neither of the contracts it came
+from says anything at all. Two guarantees that exclude each other have no meet, and a combination
+that quietly kept one of them would promise less than one side committed to. This is the same
+decision, for the same reason, as `NoMeet` in the schema lattice of `L-20`.
+
 ### 4.2 Galois connections and sound summaries
 
 A **model card is an abstraction of a model**, and abstract interpretation says exactly what makes

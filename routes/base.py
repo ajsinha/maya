@@ -110,6 +110,13 @@ STATUS: Dict[str, int] = {
     "anchor_disagreement": 409, "anchor_unreadable": 409, "chain_broken": 409,
     "nothing_to_anchor": 409, "worm_overwrite_refused": 409,
     "worm_unreadable": 409, "worm_bad_name": 422,
+    # The contract algebra. All 409: nothing is wrong with the request, and
+    # sending it again differently will not help. Two contracts genuinely
+    # cannot be combined — a band with a gap in it has no join, and two
+    # guarantees that exclude each other have no meet — and the answer is to
+    # reconcile the contracts, not to reword the call.
+    "no_assumption_join": 409, "no_assumption_meet": 409,
+    "no_guarantee_meet": 409,
     # A parameter set naming a training set the register does not hold.
     "unknown_snapshot": 422,
     # the fibration (L-15)
@@ -505,13 +512,46 @@ class Routes:
         c = self.ctx["config"]
         return {"app_name": c.get("app.name", "MAYA"), "tagline": c.get("app.tagline", ""),
                 "slogan": c.get("app.slogan", ""), "version": c.get("app.version", ""),
+                "principle": c.get(
+                    "app.principle",
+                    "A model is a representation of the world. "
+                    "Governance is knowing the difference."),
                 "user": current_user(request) if request is not None else None,
                 # Every page carries it, because every page can mutate. Minted
                 # on first render rather than at sign-in, so a session that
                 # predates the control still gets one instead of silently
                 # skipping it.
                 "csrf_token": (csrf.token_for(request.session)
-                               if request is not None else "")}
+                               if request is not None else ""),
+                # What this principal may do, for the navigation. The menu is
+                # built from it rather than from a list of links held in the
+                # template, so a menu never offers a screen that answers 403 —
+                # and, more importantly, adding a permission to a role changes
+                # what the menu shows without anybody editing the menu.
+                "may": self._nav_permissions(request)}
+
+    def _nav_permissions(self, request: Optional[Request]) -> frozenset:
+        """The signed-in principal's permissions, or nothing.
+
+        Swallows its own failures on purpose: this feeds decoration, and a
+        navigation bar must not be the reason a page fails to render. A
+        principal who is suspended between sign-in and this call simply sees
+        the signed-out menu.
+        """
+        if request is None:
+            return frozenset()
+        try:
+            username = current_user(request)
+            if username is None:
+                return frozenset()
+            who = self.ctx["principals"].get(username)
+            if not who or who.get("status") != "active":
+                return frozenset()
+            return frozenset(self.ctx["authz"].permissions(who))
+        except Exception:                                   # pragma: no cover
+            logger.warning("could not resolve navigation permissions",
+                           exc_info=True)
+            return frozenset()
 
     def page_principal(self, request: Request):
         """The signed-in principal for a PAGE, resolved from the session.

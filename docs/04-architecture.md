@@ -193,7 +193,8 @@ core/
 │   │                    trainability_class as a DERIVED property, so T0–T8 is computed
 │   ├── schemas.py       the schema and its variance rule (L-12)
 │   ├── lattice.py       ONE partial order: A ⊑ B, "A can stand in for B" (L-20)
-│   ├── contracts.py     assume–guarantee: refines, compose, conjoin, quotient (L-7)
+│   ├── contracts.py     assume–guarantee: refines, compose, conjoin, quotient (L-7),
+│   │                    over Bound.meet and Bound.join, both partial
 │   ├── identity.py      probe-relative equivalence (Yoneda), version semantics
 │   └── paging.py        keyset paging, so a listing cannot be a full scan
 ├── registry/        models, immutable versions, governed aliases
@@ -518,7 +519,7 @@ discovers the difference by looking for a service that is not there.
 |---|---|---|
 | API | FastAPI, Pydantic, Uvicorn behind Gunicorn | as stated, one process |
 | Front end | Bootstrap 5.3, jQuery 3.7, server-rendered Jinja2 | as stated, **vendored** — no CDN, no external call. See [08](08-ui-ux.md). The rule-set editor (`web/static/js/ruleset-editor.js`, ~300 lines) is the only page holding a document in the browser; it introduces no framework, no build step and no new asset host. It **decides nothing** — every question about whether a rule set is valid is answered by `POST /rulesets/check` and the screen renders the answer, so the publish button is enabled by the server's verdict and never by anything computed in the browser. That is the SDK's rule (§9, *Clients*) applied to a page: a client that re-implemented a governance check would be a second implementation, and it disagrees with the first eventually, in the direction of permitting more. The operator list is rendered into the page from `core/rules/common.py` rather than written into the script, because a screen holding its own vocabulary is a second vocabulary |
-| Database | PostgreSQL 16 | PostgreSQL **or** SQLite, by URL alone. **No ORM, no migration tool.** Two hand-written schemas, forty-six tables. `ltree`, `pgvector`, RLS and partitioning are **not used**; the shipped DDL has no foreign keys, no `CHECK` and no triggers, and referential integrity lives in the repositories ([05](05-data-model.md)) |
+| Database | PostgreSQL 16 | PostgreSQL **or** SQLite, by URL alone. **No ORM, no migration tool.** Two hand-written schemas, forty-six tables. `ltree`, `pgvector`, RLS and partitioning are **not used**; the shipped DDL has no foreign keys, no `CHECK` and no triggers, and referential integrity lives in the repositories ([05](05-data-model.md)). On SQLite the engine sets `journal_mode=WAL` and a 30-second `busy_timeout` on every connection: the default journal makes a writer block every reader, and the driver's own five-second give-up turns a moment of contention into a governance act that did not happen |
 | Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process. **No Spark**; the PIT join is Python over Delta files |
 | Object store | S3/ADLS/GCS with Object Lock for WORM | a content-addressed store on the local filesystem, digest as key, re-hashed on every read |
 | Cache / queue | Redis 7 | **not used.** Warrant TTL and jitter are computed in process |

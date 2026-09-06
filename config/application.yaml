@@ -16,6 +16,11 @@ app:
   name: MAYA
   tagline: Model & AI Lifecycle Assurance
   slogan: Evidence, not assertion.
+  # The claim the whole platform makes, carried in the footer of every page.
+  # Held here rather than typed into a template, because it is already quoted
+  # in About, on the closing slide of the deck and on examiner covers, and a
+  # sentence kept in four places is a sentence that ends up saying four things.
+  principle: A model is a representation of the world. Governance is knowing the difference.
   version: "0.1.0"
   author:
     name: Ashutosh Sinha

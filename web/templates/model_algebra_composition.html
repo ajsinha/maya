@@ -99,9 +99,15 @@
         <button class="btn btn-sm btn-outline-danger w-100 py-0" style="font-size:.75rem">Compute</button></div>
     </form>
     <div id="composite-result" class="small mt-2 text-muted">A composed network's
-      input schema is <strong>derived</strong>: the source's inputs, the target's
-      outputs. A composite whose schema somebody wrote down is a composite that
-      can disagree with its parts.</div>
+      input schema is <strong>derived</strong>: the source's inputs, plus
+      everything the target reads that this edge does not carry. A composite
+      whose schema somebody wrote down is a composite that can disagree with its
+      parts.
+      <div class="mt-1">The <strong>contract</strong> is computed the same way and
+      answers the harder question: under what conditions does the pair still
+      promise anything? A boundary the target assumes and the source's guarantee
+      <em>implies</em> is settled inside the pair. One the source speaks to and
+      does not imply only looks settled, and is reported separately.</div></div>
   </div></div>
 
 <div class="row g-3 mt-0">

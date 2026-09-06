@@ -90,7 +90,7 @@ data = [["Claimed elsewhere", "Here"],
         ["SLOs and error budgets", "Every performance figure in the requirements is a TARGET. No load test has been run and no p99 has been measured under concurrency"],
         ["Golden signals, dashboards", "No Prometheus, no OpenTelemetry, no metrics endpoint. The three health probes are the whole observability surface"],
         ["Runbooks", "There are none. Of the ten the design lists, three name a subsystem or a topology that does not exist — outbox lag, cache stampede, regional failover"],
-        ["A build that fails", "There is no CI: no pipeline, no import-linter, no type checker, no linter, no coverage gate. The suite is real and a person runs it"]]
+        ["A build that fails", "CI runs the suite in four shards, the seven discipline walkers, the laws and both SQL dialects, on every push and pull request. Still absent: a type checker, a linter, a coverage gate and any security scanning"]]
 th2 = table(sl, data, x, y + 0.36, CW * 0.48, col_w=[1.6, 4.4], row_h=0.30,
             fs=9, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
 cy = y + 0.36 + max(th, th2) + 0.24

@@ -11,8 +11,10 @@ audience: Engineers, Operators, Model owners
 # The API, refusals and configuration
 
 The interface is a client, not a privileged path: everything a page does is
-available here. Interactive documentation is at **`/docs`**; the OpenAPI
-document is at `/api/v1/openapi.json`.
+available here. Interactive documentation is at **[`/docs`](/docs)** — the
+generated Swagger UI, where every endpoint below can be called against this
+instance — with [ReDoc](/redoc) as a reading view of the same specification, and
+the OpenAPI document itself at `/api/v1/openapi.json`.
 
 Three things are worth knowing before the endpoint tables, because they are
 where a first client goes wrong.
