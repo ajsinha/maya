@@ -79,7 +79,7 @@ class EstimatorRuntime:
 
     def available(self) -> Optional[str]:
         try:
-            import numpy  # noqa: F401
+            import numpy
         except ImportError as exc:
             swallowed(logger, exc, "checked whether the estimator can run",
                       detail="numpy is absent, so the runtime reports itself "
@@ -399,7 +399,7 @@ class EstimatorRuntime:
             "family": GARCH11,
             "values": {"omega": omega, "alpha": alpha, "beta": beta},
             "diagnostics": {
-                "n": int(len(e)), "series": series,
+                "n": len(e), "series": series,
                 "log_likelihood": self._finite(-negative_log_likelihood(theta)),
                 "iterations": iterations, "converged": True,
                 "persistence": self._finite(persistence),

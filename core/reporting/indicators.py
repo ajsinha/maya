@@ -27,7 +27,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from core.log import get_logger
-from core.reporting.common import BY_KEY, METRICS
+from core.reporting.common import METRICS
 
 logger = get_logger(__name__)
 
@@ -62,7 +62,7 @@ class IndicatorSet:
             fn: Callable = getattr(self, f"_{metric.key}")
             try:
                 value = fn(models, moment)
-            except Exception as exc:                          # noqa: BLE001
+            except Exception as exc:
                 # Never swallowed. One indicator that cannot be computed must
                 # not take the pack down, and must not be reported as clean.
                 logger.warning("indicator %s could not be computed: %s",
@@ -175,7 +175,4 @@ def within_scope(model: Dict[str, Any], scope: Dict[str, Any]) -> bool:
     has to reason about is a scope that will be read two ways in the room where
     it matters.
     """
-    for dimension, wanted in (scope or {}).items():
-        if model.get(dimension) != wanted:
-            return False
-    return True
+    return all(model.get(dimension) == wanted for dimension, wanted in (scope or {}).items())

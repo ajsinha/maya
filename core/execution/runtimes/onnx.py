@@ -40,7 +40,7 @@ class OnnxRuntime:
 
     def available(self) -> Optional[str]:
         try:
-            import onnxruntime  # noqa: F401
+            import onnxruntime
         except ImportError as exc:
             swallowed(logger, exc, "the onnx runtime is not usable here",
                       detail="warrants naming it will be refused with the reason",

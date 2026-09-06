@@ -48,9 +48,10 @@ import urllib.request
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.authz.common import AuthzError
-from core.authz.jws import b64url_decode, jwks, verify
+from core.authz.jws import jwks, verify
 from core.authz.roles import conflicts
 from core.log import get_logger, swallowed
+from core.outbound import permit
 
 logger = get_logger(__name__)
 
@@ -452,7 +453,7 @@ def _guarded(fetch):
     def call(url: str, form: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         try:
             return fetch(url, form) if form is not None else fetch(url)
-        except Exception as exc:                      # noqa: BLE001 — translated
+        except Exception as exc:
             if isinstance(exc, AuthzError):
                 # Already ours, and already logged where it was raised. Tested
                 # here rather than in its own clause so there is one handler and
@@ -472,6 +473,11 @@ def _guarded(fetch):
 
 def _http(url: str, form: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """A JSON GET, or a form POST. The standard library, as everywhere here."""
+    # `token_endpoint` and `jwks_uri` are read out of the issuer's own discovery
+    # document and then fetched, so half the URLs reaching here are supplied by
+    # somebody outside this process. Nothing checked the scheme, and urlopen
+    # handles `file:` as readily as `https:`.
+    permit(url, what="an identity provider endpoint")
     data = urllib.parse.urlencode(form).encode() if form else None
     request = urllib.request.Request(
         url, data=data,
@@ -479,7 +485,8 @@ def _http(url: str, form: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         {"Accept": "application/json",
          "Content-Type": "application/x-www-form-urlencoded"})
     try:
-        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
+        with urllib.request.urlopen(request,
+                                    timeout=TIMEOUT_SECONDS) as response:
             return json.loads(response.read().decode())
     except (urllib.error.URLError, OSError, ValueError) as exc:
         # Re-raised for _guarded to translate: one refusal, one remediation,

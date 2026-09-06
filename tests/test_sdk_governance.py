@@ -39,8 +39,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "sdk" / "python"))
 
-from maya_sdk import Blocked, Maya, NotFound, NotPermitted, Refused  # noqa: E402
-from maya_sdk import governance  # noqa: E402
+from maya_sdk import Blocked, Maya, NotFound, NotPermitted, Refused
+from maya_sdk import governance
 
 URN = "maya://model/credit.pd.smallbiz"
 NAME = "credit.pd.smallbiz"
@@ -719,7 +719,7 @@ class TestTheFindingsRegister:
         assert second_line.ageing(urn=URN)["by_severity"]
 
     def test_the_owner_accepts_it_and_names_the_date(self, register):
-        second_line, finding, people, as_person = register
+        _second_line, finding, people, as_person = register
         owner_side = governance.Findings(as_person(people["d.raman"]))
         acknowledged = owner_side.acknowledge(finding["id"], days=10,
                                               plan="restate the benchmark")

@@ -24,7 +24,7 @@ granted in haste is indistinguishable from no control at all.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 
 @dataclass(frozen=True)
@@ -46,9 +46,7 @@ class Scope:
         """Whether this scope reaches a model."""
         if self.legal_entities and model.get("legal_entity") not in self.legal_entities:
             return False
-        if self.domains and model.get("domain") not in self.domains:
-            return False
-        return True
+        return not (self.domains and model.get("domain") not in self.domains)
 
     def refusal(self, model: Dict[str, Any]) -> str:
         """Why it did not reach — naming the dimension that excluded it."""

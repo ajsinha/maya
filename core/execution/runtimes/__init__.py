@@ -29,7 +29,16 @@ from core.execution.runtimes.quantlib import QuantLibRuntime
 from core.execution.runtimes.registry import RuntimeRegistry
 from core.execution.runtimes.rules import RulesRuntime
 
-__all__ = ["RuntimeRegistry", "Runtime", "Invocation", "CallableRuntime",
-           "OnnxRuntime", "PmmlRuntime", "QuantLibRuntime", "EstimatorRuntime",
+__all__ = [
+           "CallableRuntime",
+           "EstimatorRuntime",
+           "Invocation",
+           "OnnxRuntime",
+           "PmmlRuntime",
+           "QuantLibRuntime",
            "RulesRuntime",
-           "digest_of", "verify_artifact"]
+           "Runtime",
+           "RuntimeRegistry",
+           "digest_of",
+           "verify_artifact",
+]

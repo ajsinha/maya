@@ -6,8 +6,7 @@ import json
 
 import pytest
 
-from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Derivation,
-                           EvidenceEngine)
+from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Derivation)
 
 CLAIM = {"authorised": Derivation("authorised",
                                   (("tests", "report", "committee"),
@@ -85,14 +84,14 @@ class TestAppendChain:
         payload: moving a node to another model would otherwise be invisible."""
         for n in range(3):
             evidence.append("k", "version", "v1", {"n": n})
-        tamper(repos["evidence"].db, 2, **{"subject_id": "v2"})
+        tamper(repos["evidence"].db, 2, subject_id="v2")
         assert evidence.verify_chain()["valid"] is False
 
     def test_altering_the_stored_hash_breaks_it_as_well(self, evidence, repos):
         """The other direction: the links no longer agree with the node."""
         for n in range(3):
             evidence.append("k", "version", "v1", {"n": n})
-        tamper(repos["evidence"].db, 2, **{"content_hash": "sha256:" + "f" * 64})
+        tamper(repos["evidence"].db, 2, content_hash="sha256:" + "f" * 64)
         result = evidence.verify_chain()
         assert result["valid"] is False
 
@@ -215,11 +214,10 @@ class TestTheChainCoversWhoDidIt:
     happened to hash."""
 
     def test_reassigning_authorship_breaks_the_chain(self, evidence, db):
-        from db import EvidenceRepository
         evidence.append("version_created", "version", "v1", {"semver": "1.0.0"},
                         actor="d.raman")
         assert evidence.verify_chain()["valid"] is True
-        tamper(db, 1, **{"recorded_by": "somebody.else"})
+        tamper(db, 1, recorded_by="somebody.else")
         report = evidence.verify_chain()
         assert report["valid"] is False
         assert "content_hash" in report["reason"]
@@ -227,19 +225,17 @@ class TestTheChainCoversWhoDidIt:
     def test_reweighting_trust_breaks_the_chain(self, evidence, db):
         """Trust weights the TRUST semiring, so a silently re-weighted node is a
         conclusion nobody can check."""
-        from db import EvidenceRepository
         evidence.append("test_result_recorded", "version", "v1", {"gini": 0.5},
                         actor="a.mehta", trust=0.5)
-        tamper(db, 1, **{"trust": 1.0})
+        tamper(db, 1, trust=1.0)
         assert evidence.verify_chain()["valid"] is False
 
     def test_the_duties_check_cannot_be_cleared_by_an_update(self, evidence,
                                                              segregation, db):
         """The end-to-end statement, which is the one that matters."""
-        from db import EvidenceRepository
         evidence.append("version_created", "version", "v1", {}, actor="d.raman")
         assert segregation.conflict("d.raman", "version:approve", "v1") is not None
-        tamper(db, 1, **{"recorded_by": "someone.harmless"})
+        tamper(db, 1, recorded_by="someone.harmless")
         # The conflict is gone -- and now the chain says so out loud.
         assert segregation.conflict("d.raman", "version:approve", "v1") is None
         assert evidence.verify_chain()["valid"] is False
@@ -282,7 +278,6 @@ class TestReadinessAsksTheCheapQuestion:
         assert report["checked"] == 1, "one node arrived; one node is checked"
 
     def test_a_break_after_the_checkpoint_is_still_caught(self, checkpointed, db):
-        from db import EvidenceRepository
         for i in range(3):
             checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
         checkpointed.verify_since_checkpoint()
@@ -294,7 +289,6 @@ class TestReadinessAsksTheCheapQuestion:
     def test_a_broken_chain_does_not_advance_the_checkpoint(self, checkpointed, db):
         """Otherwise the mark moves past the damage and every subsequent cheap
         check starts after it and reports health."""
-        from db import EvidenceRepository
         checkpointed.append("model_registered", "model", "m", {}, actor="p")
         checkpointed.verify_since_checkpoint()
         before = checkpointed.checkpoint()["seq"]
@@ -308,7 +302,6 @@ class TestReadinessAsksTheCheapQuestion:
             self, checkpointed, db):
         """The cheap question trusts the checkpoint. Only this one answers
         whether the whole chain is intact, which is why it runs on a schedule."""
-        from db import EvidenceRepository
         for i in range(4):
             checkpointed.append("model_registered", "model", f"m{i}", {}, actor="p")
         checkpointed.verify_since_checkpoint()

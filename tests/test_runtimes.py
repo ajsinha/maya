@@ -10,9 +10,6 @@ TestDigestVerification is the one that matters most. A warrant that names a
 digest and an engine that does not check it is a chain of custody with its last
 link missing, and it is the only link that touches what actually executes.
 """
-import hashlib
-import json
-import pathlib
 
 import pytest
 
@@ -260,8 +257,6 @@ class TestOnnx:
                         reason="onnxruntime is not installed")
     def test_a_graph_scores(self, tmp_path):
         """A real ONNX graph, built here so the test does not need a fixture file."""
-        import numpy as np
-        import onnx
         from onnx import TensorProto, helper
 
         node = helper.make_node("MatMul", ["features", "weights"], ["score"])
@@ -289,7 +284,6 @@ class TestOnnx:
     @pytest.mark.skipif(OnnxRuntime().available() is not None,
                         reason="onnxruntime is not installed")
     def test_an_input_the_graph_does_not_have_is_refused(self, tmp_path):
-        import onnx
         from onnx import TensorProto, helper
         node = helper.make_node("Identity", ["features"], ["score"])
         graph = helper.make_graph(

@@ -22,7 +22,6 @@ reader with its remediation attached.
 from __future__ import annotations
 
 import io
-import json
 import pathlib
 import re
 import zipfile

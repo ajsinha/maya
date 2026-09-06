@@ -47,7 +47,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.attachments import KIND_MEANING as DOCUMENT_MEANING, KINDS as DOCUMENT_KINDS
 from core.docs.subjects import describe as describe_subjects

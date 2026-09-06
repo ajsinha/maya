@@ -54,7 +54,7 @@ the slot named.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from core.domain.schemas import Field, Schema
 

@@ -30,7 +30,6 @@ defect.
 from __future__ import annotations
 
 import pathlib
-import re
 import subprocess
 
 import pytest
@@ -94,7 +93,6 @@ def test_nothing_opts_out_of_being_a_real_table():
 def test_definition_lists_are_used_where_they_belong():
     """The positive half: the conversion happened rather than the markup simply
     being deleted."""
-    import pathlib as _p
     templates = list(TEMPLATES.glob("*.html"))
     with_terms = [f.name for f in templates
                   if "maya-terms" in f.read_text(encoding="utf-8")]

@@ -11,8 +11,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from fastapi.testclient import TestClient
 
-from core.config import PropertiesConfigurator  # noqa: E402
-from tests.api_helpers import quorum_approve  # noqa: E402
+from core.config import PropertiesConfigurator
+from tests.api_helpers import quorum_approve
 
 
 @pytest.fixture(autouse=True)
@@ -509,7 +509,6 @@ def full_features(db, delta, evidence):
 def parameters(db, registry, evidence, warrants, full_features):
     from core.parameters import ParameterRegister
     from db import ParameterSetRepository
-    from db import SnapshotRepository
     return ParameterRegister(ParameterSetRepository(db), registry, evidence,
                              warrants, full_features.sets)
 

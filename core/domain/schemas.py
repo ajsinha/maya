@@ -9,8 +9,7 @@ outputs.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 def explain(failures: Dict[str, Any], ok: str) -> str:

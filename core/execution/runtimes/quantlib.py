@@ -32,7 +32,7 @@ to end against something real, and an honest refusal for the rest.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from core.execution.errors import WarrantError
 from core.execution.runtimes.base import Invocation
@@ -70,7 +70,7 @@ class QuantLibRuntime:
 
     def available(self) -> Optional[str]:
         try:
-            import QuantLib  # noqa: F401
+            import QuantLib
         except ImportError as exc:
             swallowed(logger, exc, "the quantlib runtime is not usable here",
                       detail="warrants naming it will be refused with the reason",

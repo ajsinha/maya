@@ -10,9 +10,8 @@ reported alongside every claim and stored with it.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
 # ----------------------------------------------------------- probe equivalence
 @dataclass(frozen=True)

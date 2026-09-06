@@ -44,7 +44,7 @@ from core.fibres import FibreRegistry
 from core.rules import RuleSetEditor
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
-from core.execution import WarrantError, WarrantService
+from core.execution import WarrantService
 from core.artifacts import ArtifactStore
 from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,

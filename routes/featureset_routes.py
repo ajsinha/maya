@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING

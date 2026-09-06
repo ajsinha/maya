@@ -300,14 +300,14 @@ class TestAnchoringUnderConcurrentWrites:
                 try:
                     evidence.append("model_registered", "model", f"m{n}-{i}",
                                     {"i": i})
-                except Exception as exc:                     # noqa: BLE001
+                except Exception as exc:
                     failures.append(("append", type(exc).__name__, str(exc)))
 
         def anchor_repeatedly():
             while not stop.is_set():
                 try:
                     evidence.anchor_head()
-                except Exception as exc:                     # noqa: BLE001
+                except Exception as exc:
                     failures.append(("anchor", type(exc).__name__, str(exc)))
 
         writers = [threading.Thread(target=write, args=(n,)) for n in range(4)]

@@ -72,7 +72,7 @@ class Domain:
     that matters.
     """
 
-    __slots__ = ("lo", "lo_open", "hi", "hi_open", "allowed", "excluded", "null")
+    __slots__ = ("allowed", "excluded", "hi", "hi_open", "lo", "lo_open", "null")
 
     def __init__(self) -> None:
         self.lo: Optional[Any] = None
@@ -182,9 +182,7 @@ class Domain:
                 if other._excluded_by_bounds(value):
                     continue
                 return False
-        if not self._bounds_contain(other):
-            return False
-        return True
+        return self._bounds_contain(other)
 
     def _excluded_by_bounds(self, value: Any) -> bool:
         if self.lo is None and self.hi is None:
@@ -343,10 +341,7 @@ def covers(earlier: Condition, later: Condition) -> bool:
 def _conj_covers(outer: Dict[str, Domain], inner: Dict[str, Domain]) -> bool:
     """Every field the outer conjunction constrains must be at least as loose."""
     unconstrained = Domain()
-    for field, domain in outer.items():
-        if not domain.contains(inner.get(field, unconstrained)):
-            return False
-    return True
+    return all(domain.contains(inner.get(field, unconstrained)) for field, domain in outer.items())
 
 
 # Two values of different types reaching a comparison means a rule set mixes

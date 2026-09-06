@@ -1,0 +1,3544 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/about": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin/evidence": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin/principals": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin/regimes": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin/runtimes": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/admin/scheduler": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/artifact-formats": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/artifact-usage": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/artifacts": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:digest",
+          "query:format!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/artifacts/{digest}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:digest!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/artifacts/{digest}/verify": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:digest!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/capabilities": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "autonomy",
+          "base_model!",
+          "capability_key!",
+          "description!",
+          "oracle_key",
+          "owner!",
+          "prompt_digest!",
+          "review_sample",
+          "tier!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/drafts": {
+      "post": {
+        "body": [
+          "capability_key!",
+          "instruction",
+          "oracle_payload",
+          "subject_id!",
+          "subject_type!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/generations": {
+      "post": {
+        "body": [
+          "capability_key!",
+          "claims",
+          "known_evidence",
+          "oracle_payload",
+          "output",
+          "subject_id!",
+          "subject_type!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/generations/{generation_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:generation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/generations/{generation_id}/attest": {
+      "post": {
+        "body": [
+          "accept",
+          "final_text",
+          "note"
+        ],
+        "parameters": [
+          "path:generation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/providers": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/assist/reviewers/{reviewer}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reviewer!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assist/tiers": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/attachment-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/attachments": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:history",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "file!",
+          "kind!",
+          "model_level",
+          "note",
+          "semver",
+          "subject_id",
+          "subject_type",
+          "supersedes",
+          "title!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/attachments/{attachment_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:attachment_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/attachments/{attachment_id}/content": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:attachment_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/attachments/{attachment_id}/review": {
+      "post": {
+        "body": [
+          "accept!",
+          "note"
+        ],
+        "parameters": [
+          "path:attachment_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/baseline": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/baseline/debt": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/baseline/debt/{debt_id}/plan": {
+      "post": {
+        "body": [
+          "plan!"
+        ],
+        "parameters": [
+          "path:debt_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/baseline/gaps": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/baseline/imports": {
+      "post": {
+        "body": [
+          "models",
+          "note",
+          "source!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/baseline/reconcile": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/blast-radius": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/board-packs": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "note",
+          "period",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/board-packs/preview": {
+      "post": {
+        "body": [
+          "note",
+          "period",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/board-packs/{pack_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:pack_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/derived-features": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "description",
+          "dtype",
+          "evaluator",
+          "expression!",
+          "inputs",
+          "name!",
+          "note",
+          "on_error"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/derived-features/{name}/lineage": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/document-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/document-subjects": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:kind!",
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:document_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/markdown": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:document_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/dossiers/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/engine": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/evidence/chain": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/execute": {
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment",
+          "inputs",
+          "principal!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/export-packs": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/export-packs/{name}": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:attachments",
+          "query:documents"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/export-packs/{name}/manifest": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:attachments",
+          "query:documents"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/expression-language": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/feature-contracts": {
+      "post": {
+        "body": [
+          "items!",
+          "model_version_id!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-contracts/{model_version_id}/namespaces": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:model_version_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "description",
+          "entity!",
+          "features!",
+          "name!",
+          "owner!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/data": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/materialise": {
+      "post": {
+        "body": [
+          "rows!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/versions": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/versions/{version}/as-of": {
+      "post": {
+        "body": [
+          "as_of!",
+          "entity_id",
+          "label_ts!",
+          "limit"
+        ],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/versions/{version}/data": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!",
+          "query:columns",
+          "query:format",
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/versions/{version}/retirable": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:entity"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "business_definition",
+          "components",
+          "composes",
+          "defaults",
+          "description!",
+          "dtype!",
+          "entity!",
+          "ephemeral",
+          "name!",
+          "operations",
+          "owner!",
+          "pii",
+          "protected_basis",
+          "proxy_risk",
+          "sensitivity",
+          "shape",
+          "source_system",
+          "ttl_days"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/alignment-trial": {
+      "post": {
+        "body": [
+          "axis",
+          "carry_limit",
+          "columns",
+          "grid",
+          "points",
+          "rows",
+          "rule",
+          "start",
+          "step",
+          "stop"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/check": {
+      "post": {
+        "body": [
+          "business_definition",
+          "components",
+          "composes",
+          "defaults",
+          "description",
+          "dtype",
+          "entity",
+          "ephemeral",
+          "evaluator",
+          "expression",
+          "inputs",
+          "kind",
+          "name",
+          "on_error",
+          "operations",
+          "owner",
+          "pii",
+          "protected_basis",
+          "proxy_risk",
+          "sensitivity",
+          "shape",
+          "source_system",
+          "ttl_days"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/trial": {
+      "post": {
+        "body": [
+          "expression!",
+          "on_error",
+          "rows"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/amend": {
+      "post": {
+        "body": [
+          "fields!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/break-seal": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/certify": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:level"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/resolved": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/seal": {
+      "post": {
+        "body": [
+          "note"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/features/{name}/transfer": {
+      "post": {
+        "body": [
+          "reason",
+          "to!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "composes",
+          "defaults",
+          "description",
+          "entity!",
+          "ephemeral",
+          "grain",
+          "label_slot",
+          "name!",
+          "operations",
+          "outcome_window_days",
+          "slots",
+          "ttl_days"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/preview": {
+      "post": {
+        "body": [
+          "composes",
+          "defaults",
+          "operations",
+          "slots"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/policy": {
+      "put": {
+        "body": [
+          "defaults!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/resolved": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/roll-forward": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/seal": {
+      "post": {
+        "body": [
+          "note"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/training-sets": {
+      "post": {
+        "body": [
+          "as_of!",
+          "name",
+          "spine!",
+          "version!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/transfer": {
+      "post": {
+        "body": [
+          "reason",
+          "to!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions": {
+      "post": {
+        "body": [
+          "bindings!",
+          "label",
+          "note"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions/{version}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions/{version}/data": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!",
+          "query:as_of",
+          "query:format",
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions/{version}/parts": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions/{version}/prepared": {
+      "post": {
+        "body": [
+          "align",
+          "as_of",
+          "fill",
+          "limit",
+          "normalise"
+        ],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/versions/{version}/restatements": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/fibres": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/fibres/{trainability_class}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:trainability_class!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/finding-acts": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/findings": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "affected_component",
+          "blocking",
+          "category",
+          "description",
+          "owner!",
+          "severity!",
+          "source",
+          "title!",
+          "urn!",
+          "validation_id"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/ageing": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/escalated": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/acknowledge": {
+      "post": {
+        "body": [
+          "committed_at",
+          "days",
+          "plan"
+        ],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/assign": {
+      "post": {
+        "body": [
+          "reason!",
+          "to!"
+        ],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/close": {
+      "post": {
+        "body": [
+          "evidence!",
+          "verified_by"
+        ],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/escalation": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/extend": {
+      "post": {
+        "body": [
+          "days",
+          "due_at",
+          "reason!"
+        ],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/findings/{finding_id}/plan": {
+      "post": {
+        "body": [
+          "plan!"
+        ],
+        "parameters": [
+          "path:finding_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/fit-warrants": {
+      "post": {
+        "body": [
+          "as_of!",
+          "declared_use",
+          "environment",
+          "featureset!",
+          "featureset_version!",
+          "principal!",
+          "urn!",
+          "window!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/grammar": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/grammar/schema": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/grammar/validate": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/lifecycle": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/model-algebra/composite": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:from_urn!",
+          "query:to_urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-algebra/kernel": {
+      "post": {
+        "body": [
+          "adaptive",
+          "deterministic",
+          "fit_procedure",
+          "input_schema",
+          "output_kind",
+          "output_schema",
+          "parameter_kind"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-algebra/substitution": {
+      "post": {
+        "body": [
+          "incumbent!",
+          "replacement!",
+          "replacement_urn",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-relations": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "from_urn!",
+          "kind!",
+          "note",
+          "to_urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-relations/remove": {
+      "post": {
+        "body": [
+          "from_urn!",
+          "kind!",
+          "reason!",
+          "to_urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:domain",
+          "query:limit",
+          "query:offset",
+          "query:q",
+          "query:tier"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "description",
+          "domain!",
+          "legal_entity!",
+          "model_class!",
+          "name!",
+          "origin",
+          "owner!",
+          "purpose!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:reason"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "patch": {
+        "body": [
+          "fields"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/aliases": {
+      "put": {
+        "body": [
+          "alias",
+          "environment",
+          "justification",
+          "semver!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/amend": {
+      "post": {
+        "body": [
+          "reason!",
+          "scope"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/approve": {
+      "post": {
+        "body": [
+          "note"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/assess": {
+      "post": {
+        "body": [
+          "exposure",
+          "feature_count",
+          "interpretable",
+          "purpose_class",
+          "uses_alternative_data"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/attest": {
+      "post": {
+        "body": [
+          "decision",
+          "role!",
+          "statement"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/relations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/retire": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/return": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/submit": {
+      "post": {
+        "body": [
+          "note"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/versions": {
+      "post": {
+        "body": [
+          "artifact_digest",
+          "artifact_uri",
+          "contract",
+          "kernel",
+          "semver!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/versions/{semver}/approve": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:semver!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitor-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/monitors": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "breach_severity",
+          "cadence_days",
+          "escalate_after",
+          "kind!",
+          "label_delay_days",
+          "name!",
+          "owner!",
+          "reference",
+          "slice",
+          "test_key!",
+          "threshold!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/evaluate": {
+      "post": {
+        "body": [
+          "now",
+          "reference",
+          "rows"
+        ],
+        "parameters": [
+          "path:monitor_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/evaluate-from-telemetry": {
+      "post": {
+        "body": [
+          "reference_from",
+          "reference_to",
+          "since",
+          "until"
+        ],
+        "parameters": [
+          "path:monitor_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/observations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:monitor_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/status": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:monitor_id!",
+          "query:status!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/notifications/history": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:limit",
+          "query:principal"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/notifications/preview": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/notifications/run": {
+      "post": {
+        "body": [
+          "channel",
+          "dry_run"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/open-findings": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/overlay-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/overlays": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "basis",
+          "days",
+          "direction",
+          "kind!",
+          "name!",
+          "owner!",
+          "rationale!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlays/{overlay_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:overlay_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlays/{overlay_id}/approve": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:overlay_id!",
+          "query:days"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlays/{overlay_id}/close": {
+      "post": {
+        "body": [
+          "reason!",
+          "status"
+        ],
+        "parameters": [
+          "path:overlay_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlays/{overlay_id}/measure": {
+      "post": {
+        "body": [
+          "adjusted_value!",
+          "base_value!",
+          "period!"
+        ],
+        "parameters": [
+          "path:overlay_id!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlays/{overlay_id}/renew": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:overlay_id!",
+          "query:days",
+          "query:period"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parameter-fits": {
+      "post": {
+        "body": [
+          "declared_use",
+          "environment",
+          "kind",
+          "name",
+          "note",
+          "principal!",
+          "snapshot_id!",
+          "urn!",
+          "window!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parameter-provenance": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/parameter-sets/{parameter_set_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parameter-sets/{parameter_set_id}/review": {
+      "post": {
+        "body": [
+          "accept!",
+          "note"
+        ],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parameters": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "as_of",
+          "diagnostics",
+          "featureset",
+          "featureset_version",
+          "kind!",
+          "name!",
+          "note",
+          "provenance",
+          "semver!",
+          "snapshot_id",
+          "urn!",
+          "values",
+          "values_uri",
+          "warrant_id",
+          "window"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "cases!",
+          "gate!",
+          "note",
+          "reason!",
+          "rule!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies/facts/{gate}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:gate!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies/history/{gate}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:gate!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies/try": {
+      "post": {
+        "body": [
+          "facts",
+          "gate!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies/{policy_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:policy_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/policies/{policy_id}/publish": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:policy_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/principals": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "allow_conflicts",
+          "display_name!",
+          "domains",
+          "email",
+          "kind",
+          "legal_entities",
+          "password",
+          "roles!",
+          "username!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/principals/{username}/password": {
+      "post": {
+        "body": [
+          "password!"
+        ],
+        "parameters": [
+          "path:username!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/principals/{username}/reinstate": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:username!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/principals/{username}/roles": {
+      "put": {
+        "body": [
+          "allow_conflicts",
+          "roles!"
+        ],
+        "parameters": [
+          "path:username!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/principals/{username}/suspend": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:username!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regimes": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/regimes/determinations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regimes/{key}/activate": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regimes/{key}/satisfaction": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/resolve": {
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment",
+          "principal!",
+          "urn!"
+        ],
+        "parameters": [
+          "query:verb"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retrieval": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/risk-appetite": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "amber",
+          "limit!",
+          "metric!",
+          "owner",
+          "rationale!",
+          "review_at",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/risk-appetite/history/{metric}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:metric!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/risk-appetite/metrics": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/risk-appetite/retire": {
+      "post": {
+        "body": [
+          "metric!",
+          "reason",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/roles": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/rulesets": {
+      "post": {
+        "body": [
+          "document!",
+          "name!",
+          "note",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/rulesets/check": {
+      "post": {
+        "body": [
+          "document!",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/rulesets/trial": {
+      "post": {
+        "body": [
+          "document!",
+          "rows",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/rulesets/vocabulary": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/rulesets/{parameter_set_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/scheduler": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/scheduler/history": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/scheduler/run": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/shared-dependencies": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/sso": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/sso/preview": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/telemetry": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "rows!",
+          "sample_rate",
+          "semver!",
+          "source",
+          "stream",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/telemetry-streams": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/telemetry/cohort": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:known_by",
+          "query:semver!",
+          "query:since",
+          "query:until",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/tests": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/training-records/{parameter_set_id}": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/training-records/{parameter_set_id}/preview": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/training-sets": {
+      "post": {
+        "body": [
+          "as_of!",
+          "name!",
+          "spine!",
+          "transaction_time_bound",
+          "valid_time_bound",
+          "views!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/transfer": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/validations": {
+      "post": {
+        "body": [
+          "due_at",
+          "kind",
+          "plan",
+          "scope",
+          "semver!",
+          "snapshot_id",
+          "urn!",
+          "validators!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}/conclude": {
+      "post": {
+        "body": [
+          "conditions",
+          "outcome!"
+        ],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}/replay": {
+      "post": {
+        "body": [
+          "data"
+        ],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}/replay-from-storage": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}/replayable": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validations/{validation_id}/results": {
+      "post": {
+        "body": [
+          "left!",
+          "parameters",
+          "right!",
+          "slice",
+          "test_key!",
+          "threshold"
+        ],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/version-approval-quorum": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/version-approvals": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "semver!",
+          "statement",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/version-approvals/{approval_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:approval_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/version-approvals/{approval_id}/sign": {
+      "post": {
+        "body": [
+          "decision",
+          "role!",
+          "statement"
+        ],
+        "parameters": [
+          "path:approval_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/version-approvals/{approval_id}/withdraw": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:approval_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/warrant-profile-vocabulary": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/warrant-profiles": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "defaults",
+          "name!",
+          "note",
+          "when"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/warrant-profiles/preview": {
+      "post": {
+        "body": [
+          "environment",
+          "request",
+          "semver",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/warrant-profiles/{name}/retire": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/warrants": {
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment",
+          "flavour",
+          "principal!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/warrants/revoke": {
+      "post": {
+        "body": [
+          "reason!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/auth/callback": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:code",
+          "query:error",
+          "query:error_description",
+          "query:state"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/auth/login": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:next"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/board-pack": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/dashboard": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/document/{document_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:document_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/dossier/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/feature-views/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/feature/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/features": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/features/load": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/features/new": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/features/point-in-time": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/featureset/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/featureset/{name}/assemble": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:version"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/featureset/{name}/bind": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/featureset/{name}/plan/{version}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:version!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/featureset/{name}/refusals": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/featuresets": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/featuresets/author": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/featuresets/lattice": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:left",
+          "query:right"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/findings": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/help": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/help/{slug}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:slug!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/login": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:next"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "next",
+          "password!",
+          "username!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/logout": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/model-algebra": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/model-algebra/composition": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/documents/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/lifecycle/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/quorum/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/refinement/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/risk/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model-algebra/version/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/models/new": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/notifications": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/packages": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/packages/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:attachments",
+          "query:documents"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/packages/{name}/preview": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:attachments",
+          "query:documents"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/parameters/{semver}/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:semver!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/policies": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/rules/{name}/{semver}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:semver!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/rulesets/{parameter_set_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/telemetry": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/telemetry/{semver}/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "path:semver!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/tutorials": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/tutorials/{slug}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:slug!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/warrants": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:environment",
+          "query:model"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    }
+  }
+}

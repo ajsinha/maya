@@ -10,8 +10,6 @@ from pptx.util import Inches as In, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.oxml.ns import qn
-import copy
 
 # ---------------------------------------------------------------- palette
 CRIMSON   = RGBColor(0xA5, 0x1C, 0x30)   # Harvard Crimson

@@ -16,7 +16,6 @@ import time
 import pytest
 
 from core.baseline import BASELINED, BaselineError, gaps
-from tests.conftest import URN
 
 DAY = 86400.0
 

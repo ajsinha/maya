@@ -387,13 +387,13 @@ driver.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy --strict`) | **Not built** — no linter or type checker in `requirements.txt` |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 186 modules that check cleanly and carries the other 62 in `mypy_backlog.txt`. Not `--strict`: adopting it across 248 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
-| 4 | Coverage thresholds met | **Not built** — coverage is collected, no threshold is enforced |
-| 5 | Spec-diff gate | **Not built** — there is no `openapi.lock.json`, so nothing detects API drift |
+| 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |
+| 5 | Spec-diff gate | **Runs** — `openapi.lock.json` records the API's *shape* (paths, methods, parameter and body field names, requiredness) and `tools/ci/spec_lock.py` compares. Deliberately not the whole OpenAPI document: locking descriptions would make a reworded docstring an interface change, and the gate would be noise inside a week |
 | 6 | Fibre totality (`L-15`) | **Runs** — in the laws job, and again at every application start-up |
-| 7 | Security: SAST, SCA, secret scan, SBOM | **Not built**, and the largest remaining gap in this list |
+| 7 | Security: SAST, SCA, secret scan, SBOM | **Runs** — bandit's rules through `ruff`'s `S` set (which found a server-side request forgery on its first run), `pip-audit` against `requirements.txt`, `tools/ci/scan_secrets.py`, and a CycloneDX SBOM uploaded per build. No DAST |
 | 8 | Migration up/down rehearsed | **Not applicable** — there are no migrations; the DDL is re-applied |
 | 9 | Client matches the spec; accessibility | **Not built** — no generated client, no axe run |
 

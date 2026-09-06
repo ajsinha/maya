@@ -12,8 +12,8 @@ tier" and "what tier can these controls defend" are one definition.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
 
 from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
                                 _OPAQUE_CLASSES)

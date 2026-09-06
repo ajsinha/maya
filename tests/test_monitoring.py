@@ -8,7 +8,6 @@ publishing it beside honest numbers is how a dashboard quietly stops being
 trustworthy. And TestTheLoop, because a breach that does not become a refusal is
 a dashboard, and dashboards change nothing.
 """
-import time
 
 import pytest
 

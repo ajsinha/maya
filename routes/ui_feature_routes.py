@@ -42,7 +42,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.features import alignment, shapes
 from core.features import policy as retrieval_policy
@@ -416,8 +416,8 @@ def _trial_expression(body: ExpressionTrialIn) -> Dict[str, Any]:
         "on_error": body.on_error, "rows": out,
         "nulls": nulls, "refused": refused,
         "detail": (f"{len(out)} rows, {nulls} with no answer"
-                   + (f"; on_error is refuse, so a materialisation would stop "
-                      f"at the first of them" if nulls and
+                   + ("; on_error is refuse, so a materialisation would stop "
+                      "at the first of them" if nulls and
                       body.on_error == "refuse" else "")),
         "clock_rule": "ingest_ts(Z) = max(ingest_ts of the inputs). Supply "
                       "'<input>__ingest_ts' on a row to see the inherited clock "

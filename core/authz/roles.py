@@ -162,7 +162,7 @@ INCOMPATIBLE_ROLES = (
 
 def validate_definitions() -> None:
     """Every permission named in every role must be a real one."""
-    for role, permissions in ROLES.items():
+    for _role, permissions in ROLES.items():
         for p in permissions:
             require_known(p)
 

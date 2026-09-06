@@ -21,7 +21,7 @@ missed its validation must never contribute to the same number.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 from core.log import get_logger
 

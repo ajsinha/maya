@@ -28,7 +28,7 @@ from typing import Any, Dict, List, Optional
 from core.evidence import EvidenceEngine
 from core.authz.common import same_person
 from core.log import get_logger
-from core.parameters.common import (APPROVED, CALIBRATED, DECLARED, FITTED,
+from core.parameters.common import (APPROVED, FITTED,
                                     MAX_INLINE_VALUES, NEEDS_WARRANT, PROPOSED,
                                     PROVENANCE, REJECTED, SUPERSEDED,
                                     ParameterError)

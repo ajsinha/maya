@@ -14,13 +14,12 @@ from __future__ import annotations
 import logging
 import random
 import time
-from dataclasses import dataclass, field
-from typing import (Any, Callable, Dict, Generic, List, Optional, Sequence,
-                    Set, Tuple, TypeVar)
+from dataclasses import dataclass
+from typing import (Any, Callable, Dict, List, Optional, Sequence,
+                    Set, Tuple)
 
 from core.evidence.anchor import AnchorError
-from core.evidence.semirings import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST,
-                                     WHY, MAX_TERMS, Semiring)
+from core.evidence.semirings import (WHY, MAX_TERMS, Semiring)
 from sqlalchemy.exc import IntegrityError
 
 from core.log import get_logger, swallowed

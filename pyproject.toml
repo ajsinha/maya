@@ -1,0 +1,163 @@
+# MAYA — tool configuration.
+# Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+#
+# There is no build here. This file exists so the linter, the type checker and
+# the coverage floor are configured in one place that CI and a developer both
+# read, rather than as flags in a workflow file nobody runs locally.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["web/static/vendor", ".venv"]
+
+[tool.ruff.lint]
+# Chosen, not inherited.
+#
+# A linter reporting three thousand findings is a linter nobody acts on, and the
+# default rule set here reports mostly one thing: that the codebase writes
+# `Dict[str, Any]` rather than `dict[str, Any]`. That is a house style applied
+# consistently across four hundred files; rewriting it would be the largest diff
+# in the repository's history and would change no behaviour.
+#
+# What is selected instead is the set that finds DEFECTS.
+select = [
+    "F",      # pyflakes: undefined names, unused imports, f-strings that are not
+    "E9",     # syntax and IO errors only; E1-E7 is whitespace, and black is not used here
+    "B",      # bugbear: mutable defaults, loop-variable capture, except-without-raise
+    "S",      # bandit: subprocess, eval, hardcoded credentials, weak hashes
+    "ISC",    # implicit string concatenation, which hides a missing comma in a list
+    "PIE",    # unnecessary constructs that usually mean something was half-edited
+    "RUF",    # ruff's own: mutable class defaults, unused noqa, unsorted __all__
+    "PERF",   # loops that should be comprehensions, dict iteration mistakes
+    "TRY",    # exception antipatterns — this codebase has opinions about refusals
+    "SIM",    # simplifications, where they genuinely simplify
+]
+ignore = [
+    # The codebase raises inside `try` deliberately, to attach a refusal code to
+    # a caught error. That is the whole shape of `guard` and `swallowed`.
+    "TRY003",  # long messages outside the exception class — the messages ARE the product
+    "TRY300",  # `return` in `else` — reads worse here than the early return
+    "TRY400",  # logger.error over logger.exception, decided per call site
+    "S101",    # assert: used in tests, which is what assert is for
+    "S311",    # random: used for sampling and demo data, never for secrets
+    "S608",    # SQL built by string: reviewed, parameterised, and audited by test_schema_discipline
+    "SIM108",  # ternary instead of if/else — often less readable at this line length
+    "SIM105",  # contextlib.suppress: `swallowed()` logs, which suppress cannot
+    "B008",    # function call in a default: FastAPI's Depends/File/Form idiom
+    # A rule that fires 195 times on correct code trains people to ignore the
+    # linter. Every one of these is a long message deliberately wrapped across
+    # lines inside a list — read them and they are prose, not a missing comma.
+    "ISC001", "ISC002", "ISC003", "ISC004",
+    # The prose is the product: em dashes, ⊗, ≤, π and Sanskrit appear in
+    # docstrings, refusal messages and the mathematics on purpose.
+    "RUF001", "RUF002", "RUF003",
+    # `zip(strict=)` would be right in new code; adding it to seventeen existing
+    # call sites without checking each one's intent is the kind of change that
+    # looks like tidying and is not.
+    "B905",
+    # Readability preferences rather than defects, and this codebase has made
+    # the opposite call consistently. A loop written out because the body needs
+    # a comment is not a comprehension waiting to happen, and `if a: if b:` is
+    # often two conditions that mean different things.
+    "PERF401", "PERF102", "PERF203",
+    "RUF005",              # `[*xs, y]` over `xs + [y]`
+    "SIM102", "SIM114", "SIM118",
+    # The subprocess calls are in `tools/`, run by a developer against a path
+    # they control, and none takes input from a request. `shell=False` is
+    # already the default and is what these use.
+    "S603", "S607",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# The deck is executed with a prepared namespace, so every drawing helper is
+# "undefined" to a static reader. That is the design — `tools/deck/slides.py`
+# builds the namespace — and it is why these files are not modules.
+"tools/deck/design/*.py" = ["F821", "F405", "F403"]
+"tools/deck/slides.py" = ["F821"]
+# Tests name fixtures as arguments and shadow them freely; that is pytest.
+"tests/*.py" = [
+    "F811", "B011", "PERF203",
+    # A list or dict at class level in a test is a fixture's worth of data
+    # shared by every test in the class, which is what it is for.
+    "RUF012",
+    # `/tmp` in a test is a path the test owns.
+    "S108",
+    # A `pytest.raises(match=...)` whose pattern reads as prose is deliberate;
+    # the message IS what the test is asserting about.
+    "RUF043",
+]
+# Pydantic gives every instance its own copy of a mutable field default, so
+# `list` and `dict` defaults on a request body are correct here and RUF012
+# cannot tell. Every one of these is a `Body` subclass.
+"routes/*.py" = ["RUF012"]
+# The deck is a namespace executed into, by design: `slides.py` builds the
+# namespace and `design_slides.py` runs each chapter in it. `exec` is the
+# mechanism, documented in tools/deck/GUIDE.md, and the alternative is four
+# hundred imports of drawing helpers.
+"tools/deck/*.py" = ["S102", "S108", "S110", "SIM115"]
+# The test credentials are the test credentials. A scanner flagging
+# `password="dev-pw"` in a fixture is describing the fixture.
+"tests/api_helpers.py" = ["S105", "S106", "S107"]
+"tests/test_authz.py" = ["S105", "S106", "S107"]
+"tests/test_api_pages.py" = ["S105", "S106", "S107"]
+"tests/test_sso.py" = ["SIM201"]
+"tests/test_logging_context.py" = ["TRY301"]
+"tests/test_laws.py" = ["S307"]
+# The two restricted evaluators. Each compiles an AST it has already walked
+# against an allowlist of node types, with no builtins and a fixed environment
+# — `ast.literal_eval` cannot evaluate an expression, which is the whole job.
+# Both are documented at length where they live, and both have their own test
+# module proving what they refuse.
+"core/features/expressions.py" = ["S307"]
+"core/policy/language.py" = ["S307"]
+# `permit()` decides the scheme immediately above each of these; see
+# core/outbound.py and tests/test_outbound.py.
+"core/authz/oidc.py" = ["S310"]
+"core/notify/channels.py" = ["S310"]
+# The SDK is given its base URL by whoever constructs it, and `verify_tls=False`
+# is an argument somebody passes deliberately — documented as the thing you use
+# against a corporate proxy with an internal CA, and nowhere else.
+"sdk/python/maya_sdk/transport.py" = ["S310", "S323"]
+# Binding 0.0.0.0 is the configured default for a containerised deployment, and
+# `server.host` is the setting that changes it.
+"run_maya_web.py" = ["S104"]
+# `available()` imports the library to find out whether it is installed and
+# reports a sentence when it is not. `find_spec` would answer a narrower
+# question — present on the path, rather than importable — and these runtimes
+# have optional native dependencies that fail at import rather than at lookup.
+"core/execution/runtimes/*.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["core", "db", "routes", "sdk/python/maya_sdk", "run_maya_web.py"]
+ignore_missing_imports = true
+# Deliberately not strict. A codebase this size adopting `--strict` in one step
+# produces thousands of findings and a blanket ignore, which is worse than no
+# type checking because it looks like type checking. These four catch real
+# mistakes and nothing else.
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+warn_unreachable = true
+[[tool.mypy.overrides]]
+module = ["deltalake.*", "onnxruntime.*", "QuantLib.*", "pptx.*", "lxml.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["core", "db", "routes", "sdk/python/maya_sdk"]
+omit = ["*/__pycache__/*", "*/tests/*"]
+
+[tool.coverage.report]
+# A floor, not a target. The suite sits at 93%, so this is set just under it:
+# 80 would have caught nothing, which is the failure mode of a floor chosen
+# before the number is known. It catches a release that DELETES tests rather
+# than one that adds a line, and raising it to chase a number is how a codebase
+# acquires tests that assert nothing.
+fail_under = 90
+show_missing = false
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

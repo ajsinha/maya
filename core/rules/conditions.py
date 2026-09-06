@@ -38,7 +38,7 @@ logger = get_logger(__name__)
 class Condition:
     """One node of the tree. Immutable once built."""
 
-    __slots__ = ("kind", "field", "op", "value", "children")
+    __slots__ = ("children", "field", "kind", "op", "value")
 
     def __init__(self, kind: str, field: Optional[str] = None,
                  op: Optional[str] = None, value: Any = None,

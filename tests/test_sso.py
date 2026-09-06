@@ -388,8 +388,8 @@ class TestTheClaimsAreRecorded:
             {"sub": "u-77", "iss": ISSUER, "preferred_username": "a.mehta",
              "groups": ["maya-validators", "unrelated"]})
         provider.sign_in(identity, principals, evidence)
-        node = [e for e in repos["evidence"].many()
-                if e["kind"] == "principal_signed_in_via_sso"][0]
+        node = next(e for e in repos["evidence"].many()
+                if e["kind"] == "principal_signed_in_via_sso")
         assert node["payload"]["subject"] == "u-77"
         assert node["payload"]["mapped_from"] == {"maya-validators": ["validator"]}
         assert node["payload"]["groups"] == ["maya-validators", "unrelated"]

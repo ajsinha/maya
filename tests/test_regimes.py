@@ -15,7 +15,7 @@ catching a real error in the SR 26-2 encoding shipped here.
 import pytest
 
 from core.regimes import (CORE, REGIMES, Interpretation, RegimeEngine, RegimeError,
-                          Sentence, Signature, Translation, implies, requires,
+                          Sentence, Signature, Translation, requires,
                           satisfaction_condition)
 
 GOVERNED = {
@@ -232,7 +232,7 @@ class TestCoreProjection:
     def test_an_empty_state_projects_to_nothing_present(self, regimes):
         state = regimes.core_state({})
         assert not any(v for k, v in state.items()
-                       if k.startswith("has_") or k.startswith("is_"))
+                       if k.startswith(("has_", "is_")))
 
     def test_every_projected_term_is_in_the_core_vocabulary(self, regimes):
         for term in regimes.core_state({}):
@@ -272,8 +272,8 @@ class TestAnObligationMayNotBeSatisfiedByADefault:
                     continue
                 try:
                     answer = read({})
-                except Exception:                        # a term that needs a
-                    continue                             # value is fine here
+                except Exception:  # noqa: S112 — a term that needs a value to
+                    continue       # answer at all is exactly what is fine here
                 # A vacuous truth is fine: "no adjustment was made, so no
                 # adjustment needs justifying" is a real answer about an empty
                 # state. What is not fine is a CONTROL reported as present.

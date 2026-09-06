@@ -22,7 +22,7 @@ of rows rather than millions.
 from __future__ import annotations
 
 import zipfile
-from typing import Any, Iterable, List, Sequence
+from typing import Any, List, Sequence
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">

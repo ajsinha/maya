@@ -107,7 +107,7 @@ class WorkList:
         """A subsystem that is absent or refusing must not blank the whole list."""
         try:
             return list(source(model, urn, moment))
-        except Exception as exc:                       # noqa: BLE001 — reported
+        except Exception as exc:
             logger.warning("worklist skipped %s for %s: %s",
                            getattr(source, "__name__", "?"), urn, exc)
             return []

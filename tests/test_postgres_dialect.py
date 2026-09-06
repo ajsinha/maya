@@ -28,7 +28,6 @@ did not run is the failure mode this file exists to end. It should run in CI.
 from __future__ import annotations
 
 import os
-import time
 import uuid
 
 import pytest

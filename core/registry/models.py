@@ -21,7 +21,6 @@ from core.evidence import EvidenceEngine
 from core.ports import BlockingSource, LifecycleGate
 from core.registry.aliases import AliasService
 from core.registry.catalogue import ModelCatalogue
-from core.registry.common import RegistryError
 from core.registry.versions import VersionService
 from db import (AliasHistoryRepository, AliasRepository, ModelRepository,
                 VersionRepository)

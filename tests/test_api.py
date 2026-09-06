@@ -10,7 +10,6 @@ The application, the four principals and a registered model come from
 here runs against the real app over HTTP, because an interface tested through a
 shortcut is an interface nobody has tested.
 """
-import json
 
 from fastapi.testclient import TestClient
 
