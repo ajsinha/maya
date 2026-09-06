@@ -204,15 +204,20 @@ class FeatureRegistry:
         # was fitted on whichever view supplied a column of that name last.
         columns = [Column(b["slot"], b["feature"], b["view"], b["view_version"])
                    for b in plan["slots"]]
+        label_slot = None
         if plan["label"]:
             label = plan["label"]
             columns.append(Column(label["slot"], label["feature"],
                                   label["view"], label["view_version"]))
+            # The screen needs the slot the label OCCUPIES in the frame, not the
+            # word "label". Without it `detect_leakage` looked for a column that
+            # a featureset-assembled snapshot never has.
+            label_slot = label["slot"]
         views = [{"view": v, "version": n}
                  for v, n in sorted({c.source for c in columns})]
         snapshot = self.assembly.build(
             snapshot_name or f"{name}-v{version}",
-            spine, views, as_of, columns=columns,
+            spine, views, as_of, columns=columns, label_slot=label_slot,
             actor=actor, featureset=name, featureset_version=version)
         return {**snapshot, "featureset": name, "featureset_version": version,
                 "featureset_digest": plan["digest"]}

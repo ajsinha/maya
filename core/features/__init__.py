@@ -18,7 +18,8 @@ from core.features.contracts import ContractBinder
 from core.features.derived import DerivedFeatures
 from core.features.expressions import Expression
 from core.features.pit import (AssemblyRejected, AssemblyRequest, PitReport,
-                              detect_leakage, static_check, verify_sampled)
+                              detect_leakage, screen_leakage, static_check,
+                              verify_sampled)
 from core.features.registry import FeatureRegistry
 from core.features.sets import PIT_RULE, FeaturesetRegistry
 from core.features.transfer import FORMATS, FeatureTransfer
@@ -43,7 +44,7 @@ __all__ = [
                               "PitReport",
                               "TrainingSetBuilder",
                               "ViewManager",
-                              "detect_leakage",
+                              "detect_leakage", "screen_leakage",
                               "static_check",
                               "verify_sampled",
 ]

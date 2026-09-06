@@ -912,3 +912,98 @@ class TestTheSnapshotDigestIdentifiesTheData:
                                          snapshot_name="repeat")["digest"]
                 == nj.build_from_featureset("nj_home_core", 1, again, SALE + 10,
                                             snapshot_name="repeat")["digest"])
+
+
+class TestTheLeakageScreenRunsOnTheFeaturesetPath:
+    """`detect_leakage(rows)` looks for a column named `label`.
+
+    A featureset-assembled frame does not have one: the label sits under
+    whatever slot the author named it — `defaulted` here, `charged_off` in
+    somebody else's set. So the screen returned `[]` on its first line, every
+    time, on the path the platform recommends. Every snapshot came back with no
+    suspected leakage, which reads exactly like a clean one.
+    """
+
+    @pytest.fixture
+    def credit(self, full_features):
+        """Ten borrowers, a binary label, and one column that IS the label.
+
+        `recovered` is `1 - defaulted`: the label wearing a different hat, which
+        is what a leak looks like in practice. `region` is unrelated and must
+        not be flagged, or the screen would be noise rather than a control.
+        """
+        f = full_features
+        for name, dtype in (("recovered", "integer"), ("region", "categorical"),
+                            ("defaulted", "integer")):
+            f.define(name, "borrower_id", dtype, name, "person/j.okafor")
+        rows = [{"entity_id": f"B{i}", "event_ts": SALE, "ingest_ts": SALE,
+                 "recovered": 1 - (i % 2), "region": ["N", "S", "E"][i % 3]}
+                for i in range(10)]
+        f.create_view("credit_features", "borrower_id", "person/j.okafor",
+                      ["recovered", "region"])
+        f.materialise("credit_features", rows, ["recovered", "region"])
+        f.create_view("credit_labels", "borrower_id", "person/j.okafor",
+                      ["defaulted"])
+        f.materialise("credit_labels",
+                      [{"entity_id": f"B{i}", "event_ts": SALE, "ingest_ts": SALE,
+                        "defaulted": i % 2} for i in range(10)], ["defaulted"])
+        return f
+
+    @staticmethod
+    def _spine(n=10):
+        return [{"entity_id": f"B{i}", "label_ts": SALE + 1} for i in range(n)]
+
+    @staticmethod
+    def _publish(f, name):
+        f.define_featureset(name, "borrower_id", "person/j.okafor",
+                            {"recovered": "integer", "region": "categorical",
+                             "defaulted": "integer"},
+                            label_slot="defaulted")
+        f.publish_featureset(name, {
+            "recovered": {"feature": "recovered", "view": "credit_features",
+                          "view_version": 1},
+            "region": {"feature": "region", "view": "credit_features",
+                       "view_version": 1},
+            "defaulted": {"feature": "defaulted", "view": "credit_labels",
+                          "view_version": 1}})
+
+    def test_the_label_under_its_own_slot_name_is_screened(self, credit):
+        self._publish(credit, "leaky")
+        snapshot = credit.build_from_featureset("leaky", 1, self._spine(),
+                                                SALE + 10)
+        report = snapshot["pit_report"]
+        assert report["leakage_screened"], "the screen must have run"
+        assert report["label_column"] == "defaulted"
+        assert "recovered" in report["leakage"], \
+            "a column that is the label under another name is the whole point"
+        assert "region" not in report["leakage"], \
+            "and an unrelated column must not be flagged, or this is noise"
+        assert not snapshot["pit_verified"], \
+            "a leaking snapshot must not be point-in-time verified"
+
+    def test_a_frame_with_no_label_says_the_screen_did_not_run(self, credit):
+        """Silence and a clean bill of health must not look the same.
+
+        A views-only assembly has no declared label, so there is nothing to
+        screen against — and reporting an empty list of suspects would claim a
+        check that never happened.
+        """
+        snapshot = credit.build_training_set(
+            "no-label", self._spine(),
+            [{"view": "credit_features", "version": 1}], SALE + 10)
+        report = snapshot["pit_report"]
+        assert not report["leakage_screened"]
+        assert report["leakage"] == []
+        assert "no 'label' column" in report["detail"]
+
+    def test_a_continuous_label_is_reported_as_unscreened(self, nj):
+        """The subtler silence. The only screen for a continuous column is a
+        threshold split, and that means nothing unless the label is binary — so
+        a regression training set was coming back clean having been compared
+        against nothing."""
+        from core.features.pit import screen_leakage
+        rows = [{"x": float(i), "sale_price": 600000.0 + i * 15000}
+                for i in range(10)]
+        suspects, why_not = screen_leakage(rows, "sale_price")
+        assert suspects == []
+        assert why_not and "continuous" in why_not
