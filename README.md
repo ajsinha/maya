@@ -331,6 +331,21 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 Then <http://localhost:5006> — sign in as `admin` / `admin123`, and change that before anybody else
 can reach it.
 
+**With something in it.** An empty register is a poor way to judge a register, so there is a script
+that builds a demonstration estate — five models across five trainability classes, a typed
+`input_to` edge, features in a materialised view of bitemporal rows, a published featureset,
+warrants, documents, telemetry and an open finding. Everything goes through the HTTP API as a client
+would; nothing is inserted, because an estate assembled by writing rows would show screens in states
+the platform cannot actually reach.
+
+```bash
+.venv/bin/python tools/demo/seed_estate.py --data ./data/demo
+.venv/bin/python run_maya_web.py --config ./data/demo/application.yaml
+```
+
+The server takes `--config`, then `MAYA_CONFIG`, then the file in the repository. A second instance
+should never require editing a tracked file.
+
 Or from Python, with no dependencies at all:
 
 ```python
