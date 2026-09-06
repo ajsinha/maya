@@ -313,6 +313,27 @@ Read as: *given* inputs within the assumptions, the model *guarantees* the state
 properties. Outside the assumptions the guarantee is void — a far more honest
 statement than a model that silently extrapolates.
 
+**An assumption must be about a field the kernel declares it reads.** The
+contract and the schemas used to be two independent declarations that nothing
+compared, so `{"key": "dscr_typo", ...}` beside an `input_schema` naming `dscr`
+was stored, digested and carried into the warrant — and at execution the engine
+finds no value for it, skips the clause and writes a log line. The model then
+runs unconstrained on `dscr` while its contract appears to bound it. Guarantees
+are deliberately *not* bound this way: `gini` is a property of the model rather
+than a column it returns, and there is no closed vocabulary of those to check
+against.
+
+**Every key is checked, and a misspelling is refused rather than dropped.** The
+contract's readers all use `.get`, so a clause spelled `{"key": "dscr", "min":
+0, "max": 20}` used to survive as a clause with *no bounds at all* — a contract
+that reads as constraining `dscr` and constrains nothing, digested into the
+manifest and used to gate alias promotion. `assumption` for `assumptions` lost
+the whole section the same way. So `assumptions`, `guarantees` and
+`on_boundary_violation` are the only keys a contract may carry; `key`,
+`minimum`, `maximum` and `allowed` the only ones a clause may; a clause needs a
+`key`; and a `minimum` above its `maximum` is refused, because a band that
+admits nothing is not a constraint anybody meant to write.
+
 `on_boundary_violation` is `reject`, `flag` or `clamp`, defaulting to `reject`.
 It travels in the warrant with the rest of the contract, so an engine can check
 the boundary **before** touching the artifact and refuse rather than produce a
@@ -374,7 +395,22 @@ security incident.*
 
 Registering a version whose digest the store already holds rewrites
 `artifact_uri` to `maya://artifact/{digest}` and fills the format from the store,
-because **the store is the authority on its own contents**.
+because **the store is the authority on its own contents**. If the version's
+kernel names a *different* `artifact_format` from the one the artifact is stored
+under, that is refused rather than believed. The format is not a label: it
+decides which runtime loads the bytes, and two of the formats — `torchscript`
+and `tar` — execute code on load. A version declaring `onnx` over a TorchScript
+archive routes code out of the sandbox that exists to contain it.
+
+**The upload itself is sniffed.** `POST /artifacts` reads the first 512 bytes
+and refuses `artifact_format_mismatch` when they definitively say something
+else: a ZIP header uploaded as `onnx`, a gzip stream as `safetensors`, a file
+that opens `GGUF` as `json`. Only a *positive contradiction* refuses. ONNX is
+protobuf and protobuf has no magic number, so an ONNX graph is unplaceable and
+is stored on your word — recognising it by its usual first byte was tried and
+refused a correct TorchScript upload within a minute, which is the failure mode
+this avoids. `pfa` and `json` are both JSON documents and are never reported as
+contradicting each other.
 
 Why the digest matters even when MAYA does not hold the bytes:
 

@@ -10,6 +10,7 @@ from typing import Any, Dict, Optional
 from fastapi import HTTPException, Request
 from pydantic import Field
 
+from core.execution.urn import urn_of
 from core.domain import paging
 from routes.base import Body, Routes
 from core.registry.versions import latest_version
@@ -84,7 +85,9 @@ class ModelRoutes(Routes):
         reg, ev = self.ctx["registry"], self.ctx["evidence"]
         composition = self.ctx["composition"]
         tiering, risk_repo = self.ctx["tiering"], self.ctx["risk_repo"]
-        urn = lambda name: f"maya://model/{name}"
+        # Accepts a bare name or the full urn MAYA prints everywhere; see
+        # `core.execution.urn.urn_of` for why the second was a 404.
+        urn = urn_of
 
         @self.app.get(f"{self.api}/models", tags=["models"])
         def list_models(request: Request, domain: Optional[str] = None,

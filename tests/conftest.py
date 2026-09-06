@@ -468,8 +468,8 @@ def estate(registry, findings, monitoring, overlays, debts, baseline, lifecycle,
 
 # --------------------------------------------------------------------- scheduler
 @pytest.fixture
-def scheduler(db, evidence, registry, lifecycle, findings, monitoring, overlays,
-              debts, compiler, finding_workflow):
+def scheduler(db, repos, evidence, registry, lifecycle, findings, monitoring,
+              overlays, debts, compiler, finding_workflow):
     from core.scheduler import JobContext, Scheduler
     from db import ScheduledRunRepository
     return Scheduler(
@@ -477,7 +477,7 @@ def scheduler(db, evidence, registry, lifecycle, findings, monitoring, overlays,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
                    findings=findings, monitoring=monitoring, overlays=overlays,
                    debts=debts, documents=compiler,
-                   finding_workflow=finding_workflow))
+                   finding_workflow=finding_workflow, risk=repos["risk"]))
 
 
 @pytest.fixture

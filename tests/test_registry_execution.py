@@ -513,3 +513,215 @@ class TestTheRevocationEpochSurvivesARestart:
         fresh = restarted.issue(URN, "prod", "svc/origination",
                                 "origination_decision")
         assert fresh["epoch"] == 1
+
+
+class TestAnUndeclaredInputSchemaIsNotAnEmptyOne:
+    """`input_schema` defaults to `[]`, and `[]` means "reads nothing".
+
+    Every input-side control then passes vacuously while reporting success:
+    L-W10 resolves to "does this featureset provide the empty set", which any
+    featureset does, and L-12's contravariance is checked over no fields at all.
+    So the version that skipped the cheapest declaration a developer makes was
+    the version exempt from the checks — and each of them said it had passed.
+    """
+
+    def test_a_fit_warrant_refuses_a_version_that_declares_no_inputs(
+            self, repos, registry, evidence, full_features):
+        import pytest
+
+        from core.execution import WarrantService
+        from core.execution.warrants import WarrantError
+
+        warrants = WarrantService(repos["warrants"], registry, evidence,
+                                  jitter_pct=0, featuresets=full_features)
+        urn = "maya://model/credit.undeclared"
+        registry.register(urn, "Undeclared", "credit", "retail", "person/o",
+                          "LE-US-01", "reads nothing, apparently")
+        registry.create_version(urn, "1.0.0", {
+            "parameter_kind": "estimated_coefficients",
+            "fit_procedure": "estimate",
+            "output_schema": [{"name": "pd", "dtype": "numeric"}]})
+        version = registry.versions(urn)[-1]
+        with pytest.raises(WarrantError) as refusal:
+            warrants._check_schema(version, "anything", 1)
+        assert refusal.value.code == "input_schema_not_declared"
+        assert "any featureset" in str(refusal.value)
+
+    def test_the_variance_proof_refuses_to_be_discharged_over_nothing(self):
+        from core.registry.aliases import AliasService
+
+        blank = {"input_schema": [], "output_schema": [], "contract": {}}
+        proof = AliasService.obligations(dict(blank), dict(blank))
+        assert not proof["variance"]["ok"], \
+            "L-12 held between two versions that declare nothing"
+        assert "no input schema" in proof["variance"]["reason"]
+
+    def test_two_declared_versions_are_still_compared_normally(self):
+        """So the refusal is about silence, not about the check itself."""
+        from core.registry.aliases import AliasService
+
+        schema = [{"name": "dscr", "dtype": "numeric"}]
+        out = [{"name": "pd", "dtype": "numeric"}]
+        same = {"input_schema": schema, "output_schema": out, "contract": {}}
+        assert AliasService.obligations(dict(same), dict(same))["variance"]["ok"]
+
+    def test_the_rule_validator_already_failed_closed(self):
+        """Recorded because it is the one that got this right: an empty input
+        schema refuses every rule that reads a field, rather than accepting
+        them all. Worth a test so a later 'simplification' cannot invert it."""
+        import pytest
+
+        from core.rules.conditions import Condition
+        from core.rules.common import RuleError
+
+        with pytest.raises(RuleError, match="does not declare"):
+            Condition.parse({"field": "dscr", "op": "gt", "value": 1.0}) \
+                     .conforms({}, path="rule 'r1'")
+
+
+class TestAContractThatPinsNothing:
+    """`contract_of` and `bounds_of` read every key with `.get`.
+
+    So every spelling mistake produced a VALID, EMPTY contract — digested into
+    the manifest, carried into the fit warrant, and used to gate alias
+    promotion. A version whose contract says `dscr` is constrained to [0, 20]
+    and whose stored contract constrains nothing reads as governed and is not:
+    L-7 refinement between two empty contracts holds, and a boundary check with
+    no bounds never fires.
+    """
+
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate",
+              "input_schema": [{"name": "dscr", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd", "dtype": "numeric"}]}
+
+    @staticmethod
+    def _model(registry, name):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o",
+                          "LE-US-01", "contract validation")
+        return urn
+
+    def _create(self, registry, name, contract):
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        urn = self._model(registry, name)
+        with pytest.raises(RegistryError) as refusal:
+            registry.create_version(urn, "1.0.0", dict(self.KERNEL), contract)
+        return str(refusal.value)
+
+    def test_a_misspelled_bound_is_refused_rather_than_silently_unbounded(
+            self, registry):
+        detail = self._create(registry, "c.minmax", {
+            "assumptions": [{"key": "dscr", "min": 0, "max": 20}]})
+        assert "min" in detail and "minimum" in detail
+        assert "UNBOUNDED" in detail, "say what the mistake actually costs"
+
+    def test_a_misspelled_section_is_refused_rather_than_dropped(self, registry):
+        detail = self._create(registry, "c.section", {
+            "assumption": [{"key": "dscr", "minimum": 0, "maximum": 20}]})
+        assert "assumption" in detail and "assumptions" in detail
+
+    def test_an_inverted_band_is_refused(self, registry):
+        detail = self._create(registry, "c.inverted", {
+            "assumptions": [{"key": "dscr", "minimum": 20, "maximum": 0}]})
+        assert "admits nothing" in detail
+
+    def test_a_clause_with_no_key_is_a_refusal_not_a_keyerror(self, registry):
+        """It used to be a raw `KeyError` out of `bounds_of` — a 500, and a
+        stack trace where a message naming the clause belongs."""
+        detail = self._create(registry, "c.nokey", {
+            "guarantees": [{"minimum": 0.42}]})
+        assert "guarantees[0]" in detail and "no 'key'" in detail
+
+    def test_an_unknown_boundary_policy_is_refused(self, registry):
+        detail = self._create(registry, "c.policy", {
+            "assumptions": [{"key": "dscr", "minimum": 0}],
+            "on_boundary_violation": "ignore"})
+        assert "ignore" in detail and "reject" in detail
+
+    def test_a_well_formed_contract_is_still_accepted(self, registry):
+        """The refusals must be about malformation, not about contracts."""
+        urn = self._model(registry, "c.good")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0, "maximum": 20}],
+            "guarantees": [{"key": "gini", "minimum": 0.42}],
+            "on_boundary_violation": "reject"})
+        assert version["contract"]["assumptions"][0]["maximum"] == 20
+
+    def test_an_absent_contract_is_still_allowed(self, registry):
+        """A version may genuinely make no promise; that is different from one
+        that appears to make a promise and does not."""
+        urn = self._model(registry, "c.none")
+        assert registry.create_version(urn, "1.0.0", dict(self.KERNEL))
+
+
+class TestAnAssumptionMustBeAboutSomethingTheKernelReads:
+    """The contract and the schemas were two declarations nobody compared.
+
+    `{"key": "dscr_typo", "minimum": 0}` beside an `input_schema` naming `dscr`
+    was stored, digested into the manifest and carried into the warrant. At
+    execution the engine finds no value for it, skips the clause and writes an
+    INFO line — so the model runs unconstrained on `dscr` while its contract
+    appears to bound it, and the only trace is a log nobody reads.
+
+    `ExecutionEngine` already had `unchecked_inputs` for this exact shape, which
+    is the tell: the runtime was built to notice a condition that should never
+    have been declarable.
+    """
+
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate",
+              "input_schema": [{"name": "dscr", "dtype": "numeric"},
+                               {"name": "ltv", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]}
+
+    @staticmethod
+    def _model(registry, name):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o",
+                          "LE-US-01", "assumption binding")
+        return urn
+
+    def test_an_assumption_about_an_undeclared_field_is_refused(self, registry):
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        urn = self._model(registry, "bind.typo")
+        with pytest.raises(RegistryError) as refusal:
+            registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+                "assumptions": [{"key": "dscr_typo", "minimum": 0,
+                                 "maximum": 20}]})
+        detail = str(refusal.value)
+        assert "dscr_typo" in detail
+        assert "dscr, ltv" in detail, "say what it could have meant"
+
+    def test_an_assumption_about_a_declared_field_is_accepted(self, registry):
+        urn = self._model(registry, "bind.good")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0, "maximum": 20},
+                            {"key": "ltv", "minimum": 0, "maximum": 2}]})
+        assert len(version["contract"]["assumptions"]) == 2
+
+    def test_a_guarantee_may_name_something_that_is_not_an_output(self, registry):
+        """`gini` is a property of the model, not a column it returns, and there
+        is no closed vocabulary of those — refusing here would mean inventing
+        one, so guarantees are deliberately not bound."""
+        urn = self._model(registry, "bind.metric")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0}],
+            "guarantees": [{"key": "gini", "minimum": 0.42}]})
+        assert version["contract"]["guarantees"][0]["key"] == "gini"
+
+    def test_a_version_with_no_input_schema_is_left_to_the_other_check(
+            self, registry):
+        """Two refusals for one silence would name the wrong problem. An absent
+        schema is refused where it does damage — at the fit warrant and the
+        alias move — not a second time here."""
+        urn = self._model(registry, "bind.noschema")
+        kernel = {k: v for k, v in self.KERNEL.items() if k != "input_schema"}
+        assert registry.create_version(urn, "1.0.0", kernel, {
+            "assumptions": [{"key": "anything", "minimum": 0}]})

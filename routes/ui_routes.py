@@ -15,6 +15,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 
 from core.execution.urn import model_urn as urn
+from core.execution.urn import urn_of
 from core.notify import CHANNEL_MEANING
 from core.parameters import PROVENANCE_MEANING
 from core.policy import GATES, describe_facts
@@ -65,7 +66,7 @@ class UIRoutes(Routes):
         def model_detail(request: Request, name: str):
             if (r := login_required(request)) is not None:
                 return r
-            registry, urn = self.ctx["registry"], f"maya://model/{name}"
+            registry, urn = self.ctx["registry"], urn_of(name)
             m = registry.get(urn)
             if not m:
                 return self.page(request, "not_found.html", http_status=404, name=name)
@@ -241,7 +242,7 @@ class UIRoutes(Routes):
             from core.rules.common import ORDERED_DTYPES
 
             reg = self.ctx["registry"]
-            urn = f"maya://model/{name}"
+            urn = urn_of(name)
             model = reg.get(urn)
             version = reg.version(urn, semver) if model else None
             if model is None or version is None:
@@ -585,7 +586,7 @@ class UIRoutes(Routes):
         rendered an empty shell for a version that does not exist would look
         like a version with nothing recorded against it.
         """
-        registry, urn = self.ctx["registry"], f"maya://model/{name}"
+        registry, urn = self.ctx["registry"], urn_of(name)
         model = registry.get(urn)
         if model is None:
             return None, None
