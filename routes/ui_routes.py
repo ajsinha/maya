@@ -117,7 +117,9 @@ class UIRoutes(Routes):
         @self.app.get("/features", response_class=HTMLResponse, tags=["ui"])
         def features_page(request: Request):
             """The catalogue: what is defined, what is derived, what is served."""
-            if (r := login_required(request)) is not None:
+            # `feature:read`, which an operator does not hold. The page used to
+            # render in full for them and then answer 403 to every panel on it.
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             # Resolved one at a time, and a refusal is shown rather than
@@ -170,7 +172,7 @@ class UIRoutes(Routes):
         @self.app.get("/feature-views/{name}", response_class=HTMLResponse,
                       tags=["ui"])
         def feature_view_page(request: Request, name: str):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             view = f.views.views.one(name=name)
@@ -188,7 +190,7 @@ class UIRoutes(Routes):
         # ---------------------------------------------------- featuresets
         @self.app.get("/featuresets", response_class=HTMLResponse, tags=["ui"])
         def featuresets_page(request: Request):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             rows = []
@@ -207,7 +209,7 @@ class UIRoutes(Routes):
         @self.app.get("/featureset/{name}", response_class=HTMLResponse,
                       tags=["ui"])
         def featureset_page(request: Request, name: str):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             if not f.sets.get(name):
@@ -289,7 +291,10 @@ class UIRoutes(Routes):
             by somebody who is not deploying code, and that person is not going
             to write the JSON by hand.
             """
-            if (r := login_required(request)) is not None:
+            # `policy:read`, which neither a model developer nor an owner
+            # holds. They were shown the four gates and every control on the
+            # page refused them.
+            if (r := self.page_gate(request, "policy:read")) is not None:
                 return r
             from core.execution.profiles import SELECTABLE_FACTS
             who, policies = self.principal(request), self.ctx["policies"]
@@ -363,6 +368,7 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             who = self.principal(request)
+            may_read_all = self.ctx["authz"].permits(who, "principal:read")
             notifications = self.ctx["notifications"]
             return self.page(
                 request, "notifications.html",
@@ -373,7 +379,15 @@ class UIRoutes(Routes):
                 # run would send, so the preview is the message rather than a
                 # rehearsal of it.
                 preview=notifications.digest_for(who),
-                deliveries=notifications.history(None, 100), now=time.time(),
+                # The estate's deliveries, or only your own. `GET
+                # /notifications/history` requires `principal:read`, and this
+                # page called `history(None, ...)` — everybody's — for anybody
+                # signed in. It was not a control offered and then refused; it
+                # was the screen SERVING what the endpoint withholds, so a model
+                # developer could read who had been told what across the estate.
+                deliveries=notifications.history(
+                    None if may_read_all else who.get("username"), 100),
+                sees_everyone=int(may_read_all), now=time.time(),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
 
         # ------------------------------------------------------- telemetry

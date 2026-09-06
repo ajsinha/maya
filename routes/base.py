@@ -659,6 +659,21 @@ class Routes:
                       level=logging.INFO)
             return False
 
+    def page_gate(self, request: Request, permission: str):
+        """Signed in, and holding the permission this screen's API needs.
+
+        Returns a response to return, or None to carry on. The permission is the
+        SAME one the endpoints behind the page ask for, never a page-only rule:
+        two authorisation rules for one screen is exactly how a screen ends up
+        rendering in full and then answering 403 to everything it does.
+        """
+        if (redirect := login_required(request)) is not None:
+            return redirect
+        who = self.page_principal(request)
+        if who is None or not self.ctx["authz"].permits(who, permission):
+            return self.refused_page(request, permission)
+        return None
+
     def refused_page(self, request: Request, what: str):
         """A page-shaped refusal, matching the API's 403 rather than pretending
         the thing does not exist."""
