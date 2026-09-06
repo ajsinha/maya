@@ -590,3 +590,35 @@ class TestNothingIsFetchedFromTheInternet:
         script = SCRIPT.read_text(encoding="utf-8")
         for chunk in script.split("<table")[1:]:
             assert "<thead" in chunk[:200], "a table built in JS needs a header too"
+
+
+class TestTheCheckAnswersTheQuestionItClaimsTo:
+    """"Would `define` accept this?" — so it must take what `define` takes.
+
+    `DefinitionCheckIn` was missing `owner` and six governance attributes that
+    `FeatureIn` carries. While unknown fields were silently dropped this was
+    invisible: a caller building one draft and posting it to both endpoints got
+    a cheerful 200 from a check that had discarded half of it, then a different
+    answer from the real call.
+    """
+
+    def test_every_field_define_takes_the_check_takes(self):
+        from routes.feature_routes import FeatureIn
+        from routes.ui_feature_routes import DefinitionCheckIn
+
+        defines = set(FeatureIn.model_fields)
+        checks = set(DefinitionCheckIn.model_fields)
+        missing = sorted(defines - checks)
+        assert not missing, (
+            f"the check refuses fields `define` accepts, so it is answering a "
+            f"different question: {missing}")
+
+    def test_a_full_draft_passes_both(self, browser):
+        draft = {"name": "arrears_ratio", "entity": "borrower", "dtype": "numeric",
+                 "description": "arrears over limit", "owner": "person/d.raman",
+                 "business_definition": "days past due divided by the limit",
+                 "source_system": "collections", "sensitivity": "confidential",
+                 "pii": False, "protected_basis": False, "proxy_risk": "low"}
+        assert browser.post("/api/v1/features/check",
+                            json={"kind": "primitive", **draft}).status_code == 200
+        assert browser.post("/api/v1/features", json=draft).status_code == 201

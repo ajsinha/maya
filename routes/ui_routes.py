@@ -26,6 +26,11 @@ from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
+# Worst first, and stated once. A list of findings sorted by when they were
+# raised buries the Critical one under three Observations.
+_SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3,
+                   "Observation": 4}
+
 
 def _rule_vocabulary() -> dict:
     """The operator list, from the code. A screen holding its own copy is a
@@ -283,6 +288,40 @@ class UIRoutes(Routes):
                 language=describe_language(),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
 
+        # -------------------------------------------------------- findings
+        @self.app.get("/findings", response_class=HTMLResponse, tags=["ui"])
+        def findings_page(request: Request):
+            """Every open finding across the estate, worst first.
+
+            This screen did not exist, and neither did the query behind it. A
+            model risk manager whose worklist read "nothing is outstanding for
+            you" had an unacknowledged finding, six unmonitored models and a
+            Tier 1 model with no validation in the same estate — and no route in
+            the product could list them.
+            """
+            if (r := login_required(request)) is not None:
+                return r
+            who = self.page_principal(request)
+            if who is None or not self.ctx["authz"].permits(who, "finding:read"):
+                return self.refused_page(request, "finding:read")
+            visible = self.ctx["authz"].visible(who, self.ctx["registry"].list())
+            by_id = {m["id"]: m for m in visible}
+            findings = self.ctx["findings"].open_across(list(by_id))
+            now = time.time()
+            rows = sorted(
+                ({**f, "model": by_id[f["model_id"]],
+                  "overdue": bool(f.get("due_at") and f["due_at"] < now)}
+                 for f in findings),
+                key=lambda f: (_SEVERITY_ORDER.get(f["severity"], 9),
+                               f.get("due_at") or float("inf")))
+            return self.page(
+                request, "findings.html", findings=rows, now=now,
+                models=len({f["model_id"] for f in findings}),
+                estate=len(visible),
+                overdue=sum(1 for f in rows if f["overdue"]),
+                blocking=sum(1 for f in rows if f.get("blocking")),
+                permissions=self.ctx["authz"].explain(who)["permissions"])
+
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
         def notifications_page(request: Request):
@@ -429,6 +468,15 @@ class UIRoutes(Routes):
                 # refuses. A page holding its own copy of a closed vocabulary is
                 # a second vocabulary.
                 attachment_kinds=list(ATTACHMENT_KINDS),
+                # Whether the signed-in person may actually do either of these.
+                # Both forms rendered in full for a model developer, who holds
+                # neither, and the refusal that followed said "ask an
+                # administrator for a role that carries this permission" when
+                # the right answer is "ask the model owner". A form offered to
+                # somebody who cannot submit it is a form that teaches them the
+                # product is broken.
+                may_register=self.may_view(request, "model:register"),
+                may_version=self.may_view(request, "version:create"),
                 output_kinds=[k.value for k in OutputKind],
                 runtimes=sorted(RUNTIME_ENTRY),
                 runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},

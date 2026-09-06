@@ -14,10 +14,10 @@ from typing import List, Optional
 from fastapi import Request
 from pydantic import BaseModel, Field
 
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class RunIn(BaseModel):
+class RunIn(Body):
     jobs: List[str] = Field(
         default_factory=list,
         description="which jobs to run; empty runs all of them")

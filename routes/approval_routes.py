@@ -14,16 +14,16 @@ from typing import Optional
 from fastapi import Request
 from pydantic import BaseModel
 
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class OpenApprovalIn(BaseModel):
+class OpenApprovalIn(Body):
     urn: str
     semver: str
     statement: str = ""
 
 
-class SignIn(BaseModel):
+class SignIn(Body):
     role: str
     decision: str = "approve"
     statement: str = ""

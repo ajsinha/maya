@@ -48,11 +48,25 @@ class Sentence:
 
     def evaluate(self, interp: Interpretation) -> Dict[str, Any]:
         satisfied = bool(self.holds(interp))
+        read = {t: interp.get(t) for t in self.uses}
+        # WHY it is not satisfied, which is two different answers.
+        #
+        # A term MAYA holds and that is false is a finding about the model. A
+        # term MAYA does not hold at all is a finding about the platform's
+        # coverage, and reporting them alike sends somebody to fix the wrong
+        # thing. This matters more here than anywhere: four obligations in one
+        # regime used to be satisfied for every model by a Python default, and
+        # nothing on the answer distinguished a fact from a fabrication.
+        unknown = sorted(t for t, v in read.items() if v is None)
         return {"sentence": self.key, "text": self.text, "satisfied": satisfied,
-                "citation": self.citation,
-                "read": {t: interp.get(t) for t in self.uses},
-                "detail": (f"satisfied" if satisfied
-                           else f"not satisfied: {self.text}")}
+                "citation": self.citation, "read": read,
+                "not_recorded": unknown,
+                "detail": ("satisfied" if satisfied
+                           else f"not satisfied: {self.text}"
+                                + (f" — and MAYA holds no value for "
+                                   f"{', '.join(unknown)}, so this is a gap in "
+                                   f"what has been recorded rather than a "
+                                   f"judgement about the model" if unknown else ""))}
 
 
 def requires(key: str, text: str, *terms: str, citation: str = "") -> Callable:

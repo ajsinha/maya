@@ -159,7 +159,7 @@ class TestConditionsBecomeConsequences:
         registry.catalogue.models.set({"tier": 2}, id=model["id"])
         registry.create_version("maya://model/legacy.s", "1.0.0",
                                 {"parameter_kind": "none"},
-                                artifact_digest="sha256:x")
+                                artifact_digest="sha256:" + "8" * 64)
         report = scheduler.run(["debt.reconcile"])["results"][0]["outcome"]
         assert report["closed"] > 0
         assert debts.status(model["id"])["debt_open"] < before

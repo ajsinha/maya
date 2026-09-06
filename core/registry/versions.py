@@ -19,6 +19,7 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional
 
+from core.artifacts import is_content_address
 from core.domain import (FitProcedure, OutputKind, ParameterKind, ParameterObject,
                          ParametricKernel)
 from core.evidence import EvidenceEngine
@@ -136,6 +137,36 @@ class VersionService:
                 f"'estimate', 'train', 'configure', 'elicit' or 'author' — or "
                 f"declare parameter_kind 'none' if there really are none")
 
+    #: Everything a kernel spec may say. Read off the code that consumes one:
+    #: `kernel_of` and the schemas here, and the realisation keys the execution
+    #: grammar reads from it.
+    KERNEL_KEYS = frozenset({
+        "parameter_kind", "fit_procedure", "output_kind", "adaptive",
+        "deterministic", "input_schema", "output_schema",
+        "artifact_format", "runtime", "entry", "environment", "seed",
+        "descriptor_only",
+    })
+
+    @classmethod
+    def _refuse_unknown_kernel_keys(cls, kernel_spec: Dict[str, Any]) -> None:
+        """A key nobody reads is a key the caller believes is doing something.
+
+        `kernel` is a free-form dict, so a developer who put `artifact_digest`
+        inside it — beside `runtime`, `entry` and the schemas, which is exactly
+        where it looks like it belongs — got a 201 and a `descriptor_only`
+        version with no artifact bound to it. Nothing was wrong with the
+        request, nothing was said, and the version was not the version they
+        thought they had made.
+        """
+        unknown = sorted(set(kernel_spec) - cls.KERNEL_KEYS)
+        if unknown:
+            raise RegistryError(
+                f"the kernel declares {', '.join(unknown)}, which nothing reads. "
+                f"A kernel says what the model IS: {', '.join(sorted(cls.KERNEL_KEYS))}. "
+                f"`artifact_digest` and `artifact_uri` are arguments of their "
+                f"own rather than kernel keys, because the bytes are not part "
+                f"of the kernel's type")
+
     def create(self, urn: str, semver: str, kernel_spec: Dict[str, Any],
                contract_spec: Optional[Dict[str, Any]] = None,
                artifact_digest: Optional[str] = None,
@@ -149,6 +180,26 @@ class VersionService:
         if self.versions.one(model_id=m["id"], semver=semver):
             raise RegistryError(
                 f"version {semver} already exists for {urn}; versions are immutable")
+
+        self._refuse_unknown_kernel_keys(kernel_spec)
+
+        # A digest is a content address or it is not recorded.
+        #
+        # This accepted whatever string arrived. `sha256:not-a-digest-at-all`
+        # went onto a version with a 201, and the screen above it says "a
+        # location with no digest cannot be checked" — which was true, and so
+        # was the case it did not mention. The store refuses a malformed address
+        # when it goes looking for the bytes, so the only versions where this
+        # was never noticed are exactly the ones whose artifact lives in
+        # somebody else's engine: the T6 vendor models, where the digest is the
+        # entire control.
+        if artifact_digest and not is_content_address(artifact_digest):
+            raise RegistryError(
+                f"'{artifact_digest}' is not a content address; a digest looks "
+                f"like 'sha256:' followed by 64 hexadecimal characters. Leave "
+                f"it out if the bytes are not yet digested — a version with no "
+                f"digest is honest, and one carrying a digest nothing can "
+                f"resolve is not")
 
         artifact_size = None
         held = self._held(artifact_digest)

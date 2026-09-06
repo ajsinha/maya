@@ -215,9 +215,14 @@ published until they pass.</p>
     <div id="draft-result" class="small mt-2"></div>
   </div></div>
   <div class="card-body py-2 small text-muted border-top">
-    Drafting and publishing are separate duties, and the register enforces it: a
-    validator writes a rule and a model risk manager puts it in force. A rule
-    authored and enacted by one person is a rule nobody reviewed.
+    Drafting and publishing are separate duties, and the register enforces it:
+    a validator writes a rule and a model risk manager puts it in force. A rule
+    authored and enacted by one person is a rule nobody reviewed. The refusal is
+    <code>policy:publish</code> in the segregation table &mdash; whoever recorded
+    the <code>policy_drafted</code> node against a policy may not publish that
+    policy, whatever permissions they hold. It is the same rule as
+    <code>version:sign</code>, and for a while it was the same omission: the
+    sentence was here and the check was not.
     {% if permissions %}
       You hold
       {% if 'policy:author' in permissions and 'policy:publish' in permissions %}

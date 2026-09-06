@@ -187,6 +187,14 @@ class WarrantAuthoringRoutes(Routes):
             return self.page(
                 request, "warrant_author.html", models=visible, model=chosen,
                 versions=versions, environment=environment,
+                # Whether this person may actually issue one. The page rendered
+                # the whole form for a model developer, who holds neither
+                # `warrant:issue` nor `warrant:revoke`, and the refusal then
+                # pointed at an administrator when the answer is the model
+                # owner. Naming the right person is most of what a remediation
+                # is for.
+                may_issue=self.may_view(request, "warrant:issue", chosen),
+                may_revoke=self.may_view(request, "warrant:revoke", chosen),
                 grants=warrants.grants_for(chosen["urn"]) if chosen else [],
                 # Every verb, with what it means. Which verbs a class can
                 # meaningfully be asked for is the grammar's answer, not this

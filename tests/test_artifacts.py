@@ -202,3 +202,110 @@ class TestTheWarrantSaysWhatTheArtifactIs:
         assert out["artifact"]["held_by_maya"] is False
         assert "fetch" not in out["artifact"], (
             "MAYA does not hold it, so offering a fetch path would be a lie")
+
+
+class TestADigestIsAContentAddressOrItIsNotRecorded:
+    """`/models/new` says a location with no digest cannot be checked.
+
+    True — and so was the case it did not mention. The register accepted
+    whatever string arrived: `sha256:not-a-digest-at-all` went onto a version
+    with a 201. The store refuses a malformed address when it goes looking for
+    the bytes, so the versions where this was never noticed are exactly the ones
+    whose artifact lives in somebody else's engine — the opaque vendor models,
+    where the digest is the entire control and `L-W12` rests on it.
+    """
+
+    @pytest.fixture
+    def probe(self, client):
+        """A model to hang versions off, over the API as a caller would."""
+        client.post("/api/v1/models", json={
+            "urn": "maya://model/probe.digest", "name": "Probe",
+            "model_class": "probe", "domain": "credit",
+            "owner": "person/admin", "legal_entity": "LE-1", "purpose": "x"})
+        return client
+
+    def _version(self, client, semver, kernel, **kw):
+        return client.post("/api/v1/models/probe.digest/versions", json={
+            "semver": semver, "kernel": kernel, **kw})
+
+    def test_a_malformed_digest_is_refused(self, probe):
+        r = self._version(probe, "9.0.0",
+                          {"parameter_kind": "opaque", "fit_procedure": "none"},
+                          artifact_digest="sha256:not-a-digest-at-all")
+        assert r.status_code == 409, r.text
+        assert "content address" in r.text
+
+    def test_a_short_digest_is_refused(self, probe):
+        r = self._version(probe, "9.0.1",
+                          {"parameter_kind": "opaque", "fit_procedure": "none"},
+                          artifact_digest="sha256:9f2c")
+        assert r.status_code == 409 and "content address" in r.text
+
+    def test_no_digest_at_all_is_accepted(self, probe):
+        """A version with no digest is honest. One carrying a digest nothing can
+        resolve is not, which is the distinction the refusal draws."""
+        r = self._version(probe, "9.0.2",
+                          {"parameter_kind": "none", "fit_procedure": "none"})
+        assert r.status_code == 201 and r.json()["artifact_digest"] is None
+
+    def test_a_real_content_address_is_accepted(self, probe):
+        r = self._version(probe, "9.0.3",
+                          {"parameter_kind": "opaque", "fit_procedure": "none"},
+                          artifact_digest="sha256:" + "e" * 64)
+        assert r.status_code == 201
+        assert r.json()["artifact_digest"] == "sha256:" + "e" * 64
+
+    def test_the_check_is_the_store_s_own(self):
+        """One definition of a content address, in one place — or the register
+        and the store disagree about what they are both holding."""
+        from core.artifacts import is_content_address
+        assert is_content_address("sha256:" + "f" * 64)
+        assert not is_content_address("sha256:" + "g" * 64)   # not hexadecimal
+        assert not is_content_address("md5:" + "a" * 64)
+        assert not is_content_address(None)
+
+
+class TestAKernelKeyNobodyReadsIsRefused:
+    """`kernel` was a free-form dict, so a key put in the wrong place vanished.
+
+    A developer who wrote `artifact_digest` inside `kernel` — beside `runtime`,
+    `entry` and the schemas, which is exactly where it looks like it belongs —
+    got a 201 and a `descriptor_only` version with no artifact bound to it.
+    Nothing was wrong with the request and nothing was said.
+    """
+
+    @pytest.fixture
+    def probe(self, client):
+        client.post("/api/v1/models", json={
+            "urn": "maya://model/probe.kernel", "name": "Probe",
+            "model_class": "probe", "domain": "credit",
+            "owner": "person/admin", "legal_entity": "LE-1", "purpose": "x"})
+        return client
+
+    def _version(self, client, semver, kernel):
+        return client.post("/api/v1/models/probe.kernel/versions",
+                           json={"semver": semver, "kernel": kernel})
+
+    def test_a_misplaced_artifact_digest_is_refused_and_says_where_it_goes(
+            self, probe):
+        r = self._version(probe, "9.1.0", {
+            "parameter_kind": "opaque", "fit_procedure": "none",
+            "artifact_digest": "sha256:" + "a" * 64})
+        assert r.status_code == 409 and "artifact_digest" in r.text
+
+    def test_a_typo_is_refused(self, probe):
+        r = self._version(probe, "9.1.1",
+                          {"parameter_knid": "opaque", "fit_procedure": "none"})
+        assert r.status_code == 409 and "parameter_knid" in r.text
+
+    def test_every_key_the_code_reads_is_admitted(self, probe):
+        """The whole vocabulary, so the refusal cannot become a wall."""
+        r = self._version(probe, "9.1.2", {
+            "parameter_kind": "learned_weights", "fit_procedure": "train",
+            "output_kind": "point_estimate", "adaptive": False,
+            "deterministic": True, "input_schema": [], "output_schema": [],
+            "artifact_format": "onnx", "runtime": "onnxruntime",
+            "entry": {"graph": "model.onnx"}, "environment": {},
+            "seed": 11, "descriptor_only": False})
+        assert r.status_code == 201, r.text
+        assert r.json()["semver"] == "9.1.2"

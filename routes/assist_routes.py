@@ -17,10 +17,10 @@ from pydantic import BaseModel, Field
 
 from core.assist import TIER_MEANING, oracles
 from core.assist import providers as assist_providers
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class CapabilityIn(BaseModel):
+class CapabilityIn(Body):
     capability_key: str
     description: str
     tier: str
@@ -32,7 +32,7 @@ class CapabilityIn(BaseModel):
     review_sample: float = 0.1
 
 
-class DraftIn(BaseModel):
+class DraftIn(Body):
     capability_key: str
     subject_type: str
     subject_id: str
@@ -40,7 +40,7 @@ class DraftIn(BaseModel):
     oracle_payload: Optional[dict] = None
 
 
-class GenerateIn(BaseModel):
+class GenerateIn(Body):
     capability_key: str
     subject_type: str
     subject_id: str
@@ -52,7 +52,7 @@ class GenerateIn(BaseModel):
     output: Dict[str, Any] = Field(default_factory=dict)
 
 
-class AttestIn(BaseModel):
+class AttestIn(Body):
     accept: bool = True
     final_text: str = ""
     note: str = ""

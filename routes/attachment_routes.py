@@ -16,10 +16,10 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from core.attachments import KIND_MEANING, KINDS
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class ReviewIn(BaseModel):
+class ReviewIn(Body):
     accept: bool
     note: str = ""
 

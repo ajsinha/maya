@@ -148,10 +148,21 @@ class Versions:
                                json={"urn": urn, "semver": semver})
 
     def sign_quorum(self, approval_id: str, *, role: str,
-                    note: str = "") -> Dict[str, Any]:
-        """Sign for one role. The same person may not sign twice under two hats."""
+                    statement: str = "") -> Dict[str, Any]:
+        """Sign for one role. The same person may not sign twice under two hats.
+
+        The rationale is `statement`, which is what the endpoint reads. This sent
+        `note`, and the endpoint dropped it — the signature recorded, the reason
+        for it vanished, and both sides reported success. A quorum signature with
+        no reasoning is most of what a quorum is for.
+
+        The keyword is renamed rather than aliased. Accepting `note` and quietly
+        mapping it would keep working for the one caller who wrote it and stay
+        wrong for everyone reading the signature afterwards; a TypeError is the
+        loud version of the same news.
+        """
         return self._maya.call("POST", f"/version-approvals/{approval_id}/sign",
-                               json={"role": role, "note": note})
+                               json={"role": role, "statement": statement})
 
     def promote(self, urn: str, *, semver: str, environment: str = "prod",
                 alias: str = "champion", justification: str = "") -> Dict[str, Any]:

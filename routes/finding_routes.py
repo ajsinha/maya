@@ -22,15 +22,15 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.validation import ACT_MEANING, ACTS
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class AssignIn(BaseModel):
+class AssignIn(Body):
     to: str = Field(description="who is taking the finding on")
     reason: str = Field(description="why ownership is moving")
 
 
-class AcknowledgeIn(BaseModel):
+class AcknowledgeIn(Body):
     committed_at: Optional[float] = Field(
         default=None, description="the date you will close it by; defaults to the "
                                   "finding's own remediation date")
@@ -40,11 +40,11 @@ class AcknowledgeIn(BaseModel):
                                               "a plan is already recorded")
 
 
-class PlanIn(BaseModel):
+class PlanIn(Body):
     plan: str
 
 
-class ExtendIn(BaseModel):
+class ExtendIn(Body):
     reason: str
     days: Optional[float] = None
     due_at: Optional[float] = None

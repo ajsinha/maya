@@ -178,7 +178,7 @@ state-changing request under a cookie must also carry the session's CSRF token:
 X-MAYA-CSRF: <the value of the page's csrf-token meta tag>
 ```
 
-That matters because there are **a hundred and fourteen mutating endpoints**; the
+That matters because there are **a hundred and sixteen mutating endpoints**; the
 argument for a token rests on the number being large. The pages do it for you
 (`web/static/js/csrf.js` attaches it to every same-origin mutation), so this
 concerns you only if you are scripting against a signed-in session. If you are,

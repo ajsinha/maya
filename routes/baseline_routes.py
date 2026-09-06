@@ -16,16 +16,16 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.baseline import gaps
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class ImportIn(BaseModel):
+class ImportIn(Body):
     source: str
     models: List[Dict[str, Any]] = Field(default_factory=list)
     note: str = ""
 
 
-class PlanIn(BaseModel):
+class PlanIn(Body):
     plan: str
 
 

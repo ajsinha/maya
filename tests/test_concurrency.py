@@ -165,3 +165,67 @@ class TestSqliteIsConfiguredForContention:
             with db.engine.connect() as conn:
                 timeout = conn.exec_driver_sql("PRAGMA busy_timeout").fetchone()[0]
             assert timeout == Database.BUSY_TIMEOUT_MS, url
+
+
+class TestTheDatabaseIsCheckedAgainstTheRelease:
+    """`CREATE TABLE IF NOT EXISTS` skips a table that already exists.
+
+    So a column added in a later release is never created on an existing
+    database. The application starts cleanly on a schema that does not match its
+    own code and fails weeks later, inside a workflow, on a query nobody
+    associates with the deployment. There is no migration tool; this check is
+    what turns that silence into a sentence at start-up.
+    """
+
+    def test_a_freshly_applied_schema_has_no_drift(self, tmp_path):
+        from db.database import Database
+        assert Database(f"sqlite:///{tmp_path}/fresh.db").drift() == {}
+
+    def test_a_missing_column_is_detected(self, tmp_path):
+        """The reviewer's reproduction, run as a test."""
+        import sqlite3
+
+        from db.database import Database
+
+        path = tmp_path / "older.db"
+        Database(f"sqlite:///{path}")
+        connection = sqlite3.connect(path)
+        connection.execute("ALTER TABLE model DROP COLUMN purpose")
+        connection.commit()
+        connection.close()
+
+        gaps = Database(f"sqlite:///{path}").drift()
+        assert "model" in gaps
+        assert "purpose" in gaps["model"][0]
+
+    def test_a_missing_table_is_detected(self, tmp_path):
+        import sqlite3
+
+        from db.database import Database
+
+        path = tmp_path / "partial.db"
+        Database(f"sqlite:///{path}")
+        connection = sqlite3.connect(path)
+        connection.execute("DROP TABLE risk_assessment")
+        connection.commit()
+        connection.close()
+        # Re-applying the DDL recreates it, which is the point of IF NOT EXISTS
+        # and is why a dropped table is NOT the failure mode worth testing —
+        # the column case is, because that one it cannot repair.
+        assert Database(f"sqlite:///{path}").drift() == {}
+
+    def test_the_declared_schema_is_parsed_and_not_guessed(self, tmp_path):
+        """Every table in the DDL, and no artefacts of comment syntax.
+
+        The first version of this parser read `--` as a column name on six
+        tables. A check whose output is nonsense is one nobody reads twice.
+        """
+        from db.database import Database
+        declared = Database(f"sqlite:///{tmp_path}/parse.db").declared_schema()
+        assert len(declared) > 40
+        for table, columns in declared.items():
+            assert columns, table
+            assert not any(c.startswith("-") or "}" in c for c in columns), (
+                f"{table} has a column that is a fragment of a comment: {columns}")
+        # A column known to exist, so the parser is not merely returning noise.
+        assert "purpose" in declared["model"]

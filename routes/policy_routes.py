@@ -15,10 +15,10 @@ from pydantic import BaseModel
 
 from core.policy import GATES, describe_facts, vocabulary
 from core.policy.language import describe as describe_language
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class DraftIn(BaseModel):
+class DraftIn(Body):
     gate: str
     rule: str
     reason: str
@@ -26,7 +26,7 @@ class DraftIn(BaseModel):
     note: str = ""
 
 
-class TryIn(BaseModel):
+class TryIn(Body):
     gate: str
     facts: Dict[str, Any] = {}
 
@@ -81,7 +81,12 @@ class PolicyRoutes(Routes):
             against the incoming rule, so a change that loosens a gate is
             something somebody decided rather than something somebody discovered.
             """
-            who = self.authorise(request, "policy:publish")
+            # The policy id is the SUBJECT, so the duties check can find the
+            # `policy_drafted` node this person may have recorded against it.
+            # Without it the check looks for evidence under an empty subject,
+            # finds none, and permits everything — which is how the screen came
+            # to claim an enforcement that never ran.
+            who = self.authorise(request, "policy:publish", subject_id=policy_id)
             return self.guard(lambda: policies.publish(policy_id,
                                                        self.actor(who)))
 
