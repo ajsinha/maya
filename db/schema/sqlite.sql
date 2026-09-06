@@ -463,7 +463,20 @@ CREATE TABLE IF NOT EXISTS version_approval_signature (
     decision             TEXT NOT NULL DEFAULT 'approve',
     statement            TEXT NOT NULL DEFAULT '',
     signed_at            REAL NOT NULL,
-    UNIQUE (version_approval_id, role)
+    UNIQUE (version_approval_id, role),
+    -- A quorum is a number of PEOPLE, not a number of hats.
+    --
+    -- `sign` enforced that with a read-then-write and nothing behind it, so two
+    -- requests from one dual-hatted principal raced each other: 1 trial in 25
+    -- put both signatures of a Tier 1 quorum on one person, and the approval
+    -- record and the evidence chain both say a quorum approved it. Nothing
+    -- anywhere said the two signatures were the same person.
+    --
+    -- The constraint is the fix. A transaction alone is not enough on a
+    -- read-committed store, and `model_risk_manager` is a superset of
+    -- `validator`, so holding both is a supported configuration and exactly the
+    -- one this check exists to neutralise.
+    UNIQUE (version_approval_id, principal)
 );
 
 CREATE TABLE IF NOT EXISTS derived_feature (
