@@ -15,10 +15,10 @@ from fastapi import Request
 from pydantic import BaseModel
 
 from core.telemetry import STREAM_MEANING
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class IngestIn(BaseModel):
+class IngestIn(Body):
     urn: str
     semver: str
     stream: str = "scores"
@@ -27,7 +27,7 @@ class IngestIn(BaseModel):
     source: str = "unknown"
 
 
-class EvaluateIn(BaseModel):
+class EvaluateIn(Body):
     since: Optional[float] = None
     until: Optional[float] = None
     reference_from: Optional[float] = None

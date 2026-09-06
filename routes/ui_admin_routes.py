@@ -105,7 +105,11 @@ class AdminRoutes(Routes):
                     satisfaction = regimes.check(key)
                 except Exception as exc:                     # pragma: no cover
                     logger.warning("regime %s could not be checked: %s", key, exc)
-                    satisfaction = {"consistent": None, "detail": str(exc)}
+                    # Same key the real answer uses. A failure shape with keys of
+                    # its own is how a template comes to read one of them and
+                    # silently render the other case.
+                    satisfaction = {"holds": False, "detail": str(exc),
+                                    "failures": [], "untranslated_terms": []}
                 rows.append({
                     "key": key, "title": r["title"], "authority": r["authority"],
                     "active": key in active,
@@ -155,6 +159,13 @@ class AdminRoutes(Routes):
             seq, head = evidence.head()
             return self.page(
                 request, "admin_evidence.html",
+                # Not evidence, but the same question one layer down: is the
+                # store still the shape the code expects? The schema is applied
+                # with CREATE TABLE IF NOT EXISTS, so an existing table is
+                # skipped and a new column is never added — an instance can
+                # therefore run for weeks on a schema that does not match its
+                # own release and fail inside a workflow.
+                drift=self.ctx["db"].drift(),
                 chain=evidence.verify_chain(),
                 anchors=evidence.verify_against_anchors(),
                 checkpoint=evidence.checkpoint(),

@@ -89,6 +89,23 @@ RULES: Tuple[Incompatibility, ...] = (
         "the person who raised a finding may not close it",
         "closure must be attested by someone other than the raiser",
         payload_key="finding_id"),
+    # Drafting a gate and putting it in force are separate PERMISSIONS, and
+    # `/policies` said in plain words that "the register enforces it". It did
+    # not. `publish()` never compared `published_by` to the row's author and
+    # `policy:publish` was not in this table, so a model risk manager holding
+    # both authored a rule and enacted it alone — the page then rendered
+    # "s.iqbal / put in force by s.iqbal" underneath the sentence claiming that
+    # could not happen.
+    #
+    # This is the same shape as `version:sign` above: an act absent from this
+    # table while a screen asserts it is covered. A gate that can be changed
+    # without a release is a gate that can be weakened without one, and the
+    # second pair of eyes is the whole of what stops that.
+    Incompatibility(
+        "policy:publish", ("policy_drafted",),
+        "the person who drafted a policy may not put it in force",
+        "a gate authored and enacted by one person is a gate nobody reviewed; "
+        "route the publication to someone who did not write the rule"),
     Incompatibility(
         "finding:extend", ("finding_acknowledged",),
         "the person who accepted a finding may not move the date they accepted",

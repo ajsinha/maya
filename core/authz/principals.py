@@ -31,6 +31,9 @@ from db import PrincipalRepository
 
 logger = get_logger(__name__)
 
+#: The floor for a credential that can act on the register.
+MIN_PASSWORD = 12
+
 ITERATIONS = 200_000
 ALGORITHM = "sha256"
 # How long a successful Basic verification is trusted without re-deriving.
@@ -167,6 +170,59 @@ class PrincipalService:
         self.forget(username)
         self.evidence.append("principal_suspended", "principal", row["id"],
                              {"username": username}, actor=actor)
+        return self.public(self.principals.one(id=row["id"]))
+
+    def reinstate(self, username: str, actor: str = "system") -> Dict[str, Any]:
+        """Undo a suspension.
+
+        Administration here was one-way: create, set roles, suspend. Suspending
+        somebody by mistake — or suspending them for a fortnight's leave, which
+        is the ordinary case — could not be undone through the product at all,
+        so the only route back was an UPDATE against the database, which is
+        exactly the thing this platform exists to make unnecessary.
+
+        Recorded like every other governed act, so the pair reads as what it
+        was: suspended on Tuesday, reinstated on Thursday, by whom.
+        """
+        row = self.require(username)
+        if row["status"] == "active":
+            raise AuthzError("already_active",
+                             f"{username} is not suspended",
+                             "no action is needed")
+        self.principals.set({"status": "active"}, id=row["id"])
+        self.evidence.append("principal_reinstated", "principal", row["id"],
+                             {"username": username, "from": row["status"]},
+                             actor=actor)
+        logger.info("reinstated %s", username)
+        return self.public(self.principals.one(id=row["id"]))
+
+    def set_password(self, username: str, password: str,
+                     actor: str = "system") -> Dict[str, Any]:
+        """Set a principal's password, with a fresh salt.
+
+        There was no way to do this. A forgotten password meant a new account,
+        which loses the identity every prior act was recorded against — and an
+        evidence chain whose actors are `j.okafor` and `j.okafor.2` is one
+        nobody can read.
+
+        The password is never logged and never lands on the chain; the *fact*
+        that it was reset does, because an administrator who can silently take
+        over an account is an administrator nobody can audit.
+        """
+        row = self.require(username)
+        if not password or len(password) < MIN_PASSWORD:
+            raise AuthzError(
+                "password_too_short",
+                f"a password is at least {MIN_PASSWORD} characters",
+                "choose a longer one; this is the credential for a principal "
+                "that can act on the register")
+        salt = secrets.token_hex(16)
+        self.principals.set({"password_hash": self.hash_password(password, salt),
+                             "password_salt": salt}, id=row["id"])
+        self.forget(username)
+        self.evidence.append("principal_password_set", "principal", row["id"],
+                             {"username": username, "by": actor}, actor=actor)
+        logger.info("password set for %s by %s", username, actor)
         return self.public(self.principals.one(id=row["id"]))
 
     # ----------------------------------------------------------------- query

@@ -15,10 +15,10 @@ from fastapi import HTTPException, Request
 from pydantic import BaseModel, Field
 
 from core.authz.common import same_person
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class OpenValidationIn(BaseModel):
+class OpenValidationIn(Body):
     urn: str
     semver: str
     validators: List[str]
@@ -29,7 +29,7 @@ class OpenValidationIn(BaseModel):
     due_at: Optional[float] = None
 
 
-class RecordTestIn(BaseModel):
+class RecordTestIn(Body):
     test_key: str
     left: List[float]
     right: List[float]
@@ -38,12 +38,12 @@ class RecordTestIn(BaseModel):
     slice: Dict[str, Any] = Field(default_factory=dict)
 
 
-class ConcludeIn(BaseModel):
+class ConcludeIn(Body):
     outcome: str
     conditions: List[str] = Field(default_factory=list)
 
 
-class FindingIn(BaseModel):
+class FindingIn(Body):
     urn: str
     severity: str
     title: str
@@ -56,7 +56,7 @@ class FindingIn(BaseModel):
     blocking: Optional[bool] = None
 
 
-class CloseFindingIn(BaseModel):
+class CloseFindingIn(Body):
     # Optional, and never trusted. The verifier is the authenticated caller; a
     # value here is accepted only to be checked against them, so a caller that
     # names somebody else is told plainly rather than silently ignored.
@@ -64,7 +64,7 @@ class CloseFindingIn(BaseModel):
     evidence: Dict[str, Any]
 
 
-class ReplayIn(BaseModel):
+class ReplayIn(Body):
     data: Dict[str, List[List[float]]] = Field(
         default_factory=dict,
         description="test_key -> [left, right]; omit a key to report it as skipped")
@@ -168,6 +168,32 @@ class ValidationRoutes(Routes):
                 model["id"], body.severity, body.title, body.owner, body.description,
                 body.category, body.source, None, body.validation_id,
                 body.affected_component, body.blocking, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/open-findings", tags=["findings"])
+        def open_findings(request: Request):
+            """Every open finding across the estate, scoped to the caller.
+
+            A separate path rather than making `urn` optional on the one below,
+            because the two answer different questions and a required parameter
+            that becomes optional is how a caller ends up asking for one model
+            and receiving all of them.
+
+            This did not exist. `open_for` takes a single model and the endpoint
+            below demands a `urn`, so an estate-wide list of what is outstanding
+            could not be produced by any route in the product.
+            """
+            who = self.authorise(request, "finding:read")
+            visible = self.ctx["authz"].visible(who, registry.list())
+            by_id = {m["id"]: m for m in visible}
+            rows = register.open_across(list(by_id))
+            return {"open": len(rows),
+                    "models": len({r["model_id"] for r in rows}),
+                    "findings": [
+                        {**r,
+                         "urn": by_id[r["model_id"]]["urn"],
+                         "model_name": by_id[r["model_id"]]["name"],
+                         "tier": by_id[r["model_id"]]["tier"]}
+                        for r in rows]}
 
         @self.app.get(f"{api}/findings", tags=["findings"])
         def model_findings(request: Request, urn: str):

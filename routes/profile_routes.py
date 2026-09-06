@@ -20,18 +20,18 @@ from pydantic import BaseModel, Field
 from core.execution.profiles import (AUTHORITY_KEYS, DEFAULTABLE,
                                      SELECTABLE_FACTS, facts_for)
 from core.execution.urn import model_urn as urn
-from routes.base import Routes
+from routes.base import Body, Routes
 from core.registry.versions import latest_version
 
 
-class ProfileIn(BaseModel):
+class ProfileIn(Body):
     name: str
     when: Dict[str, Any] = Field(default_factory=dict)
     defaults: Dict[str, Any] = Field(default_factory=dict)
     note: str = ""
 
 
-class PreviewIn(BaseModel):
+class PreviewIn(Body):
     urn: str
     semver: Optional[str] = None
     environment: str = "prod"

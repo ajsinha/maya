@@ -124,18 +124,22 @@ class TestFindingsApi:
         assert r.json()["error"] == "blocked"
         assert r.json()["remediation"]
 
-    def test_closing_the_finding_restores_service(self, registered, people):
-        fid = registered.post("/api/v1/findings", auth=people["s.iqbal"], json={
+    def test_closing_the_finding_restores_service(self, in_service, people):
+        """`in_service`, because resolving now also requires that somebody
+        approved the model record — this test is about the finding, and a
+        refusal for the other reason would make it pass or fail for the wrong
+        one."""
+        fid = in_service.post("/api/v1/findings", auth=people["s.iqbal"], json={
             "urn": URN, "severity": "Critical", "title": "Leakage",
             "owner": "person/j.okafor"}).json()["id"]
-        closed = registered.post(
+        closed = in_service.post(
             f"/api/v1/findings/{fid}/close", auth=people["a.mehta"],
             json={"evidence": {"pr": "1420"}})
         assert closed.status_code == 200, closed.text
-        r = registered.post("/api/v1/resolve", json={
+        r = in_service.post("/api/v1/resolve", json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination", "declared_use": "origination_decision"})
-        assert r.status_code == 200
+        assert r.status_code == 200, r.text
 
     def test_the_owner_cannot_verify_their_own_closure_over_the_api(
             self, registered, people):
@@ -521,9 +525,18 @@ class TestVersionApprovalIsAQuorum:
     thing that actually runs — was approved by one. This closes that."""
 
     def _version(self, client, people, semver="4.0.0"):
-        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
-                    json={"semver": semver, "kernel": KERNEL,
-                          "contract": CONTRACT, "artifact_digest": "sha256:e"})
+        """A real content address, because a digest is now validated.
+
+        This sent `sha256:e`, which the register accepted and nothing could ever
+        resolve. The helper swallowed the response, so when the digest started
+        being checked the version simply did not exist and five tests failed on
+        a 404 about something else entirely.
+        """
+        created = client.post(
+            f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+            json={"semver": semver, "kernel": KERNEL, "contract": CONTRACT,
+                  "artifact_digest": "sha256:" + "e" * 64})
+        assert created.status_code == 201, created.text
         return semver
 
     def test_the_quorum_table_is_published(self, registered):
@@ -734,7 +747,7 @@ class TestBaselineApi:
 
         client.post(f"/api/v1/models/{name}/versions", auth=dev, json={
             "semver": "1.0.0", "kernel": KERNEL, "contract": CONTRACT,
-            "artifact_digest": "sha256:abc"})
+            "artifact_digest": "sha256:" + "a" * 64})
         r = client.post("/api/v1/baseline/reconcile", auth=mrm, params={"urn": urn})
         assert r.status_code == 200 and r.json()["closed"]
         after = client.get("/api/v1/baseline/debt", auth=mrm,

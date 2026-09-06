@@ -126,6 +126,10 @@ class ViewManager:
         return {"namespace": self._path(view, version),
                 "delta_version": row["delta_version"],
                 "row_count": row["row_count"],
+                # Which columns this version actually carries. The assembler
+                # needs it to select a named feature out of a view rather than
+                # copying every column the view happens to hold.
+                "features": list(row["features"] or []),
                 "materialised_at": row["materialised_at"]}
 
     def restated(self, view_name: str, version: int) -> Dict[str, Any]:

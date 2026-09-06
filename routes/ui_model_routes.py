@@ -60,7 +60,8 @@ from core.registry.aliases import AliasService
 from core.registry.common import RegistryError
 from core.registry.versions import VersionService
 from core.risk import COMPLEXITY, CONTROLS, MATERIALITY
-from routes.base import Routes, login_required
+from core.registry.versions import latest_version
+from routes.base import Body, Routes, login_required
 
 logger = get_logger(__name__)
 
@@ -77,7 +78,7 @@ UNCHECKED = (
 )
 
 
-class KernelIn(BaseModel):
+class KernelIn(Body):
     """A draft kernel. Nothing here is recorded."""
     parameter_kind: str = "none"
     fit_procedure: str = "none"
@@ -88,7 +89,7 @@ class KernelIn(BaseModel):
     output_schema: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class SubstitutionIn(BaseModel):
+class SubstitutionIn(Body):
     """Two versions, and the question of whether the second may replace the first."""
     urn: str
     incumbent: str
@@ -408,6 +409,24 @@ class ModelAlgebraRoutes(Routes):
                                       f"The risk assessment for {name}")) is not None:
                 return refusal
             tiering, versions = self.ctx["tiering"], registry.versions(model["urn"])
+            # The recorded assessment, and the facts it was reached on.
+            #
+            # The tier was shown as a number with no derivation anywhere, while
+            # the form beneath it shipped a zero exposure and the lowest-ranked
+            # purpose already selected — so submitting it as rendered assessed
+            # the model at minimum risk, returned 200, and said nothing. Both
+            # halves of that are fixed here: the derivation is rendered, and
+            # the form starts from what was last recorded rather than from the
+            # least conservative answer available.
+            assessments = self.ctx["risk_repo"].many(model_id=model["id"])
+            assessment = assessments[-1] if assessments else None
+            facts = (assessment or {}).get("facts") or {}
+            # Does the recorded assessment still describe this model? It was
+            # reached before the versions existed for every model in a seeded
+            # estate, so its complexity term spoke about a class the register
+            # has since superseded.
+            recorded_class = facts.get("trainability_class")
+            declared = latest_version(versions).get("trainability_class") if versions else None
             return self.page(
                 request, "model_algebra_risk.html", model=model, name=name,
                 versions=versions, latest=versions[-1] if versions else None,
@@ -415,6 +434,10 @@ class ModelAlgebraRoutes(Routes):
                 grid=[[tiering.tau(m, c) for c in COMPLEXITY] for m in MATERIALITY],
                 controls={tier: list(names) for tier, names in CONTROLS.items()},
                 purposes=self._purpose_classes(),
+                assessment=assessment, facts=facts,
+                assessed_before_any_version=bool(assessment and not recorded_class
+                                                 and declared),
+                declared_class=declared, recorded_class=recorded_class,
                 may_assess=self.may_view(request, "risk:assess", model))
 
         # --------------------------------------------------------- documents

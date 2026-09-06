@@ -64,7 +64,7 @@ every engine and script — which is how a security control ends up switched off
 
 | Property | Detail | Where it runs |
 |---|---|---|
-| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **114 mutating endpoints**, and a control 107 places have to remember will be missing from the 108th | Code (`core/authz/csrf.py`) |
+| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **116 mutating endpoints**, and a control 107 places have to remember will be missing from the 108th | Code (`core/authz/csrf.py`) |
 | Exemptions | **Exact paths, never prefixes.** A prefix exemption grows silently as routes are added beneath it — asserted in `tests/test_web_security.py` | Code |
 | Token lifetime | **Per session, not per form.** A single-use token breaks the back button, breaks two tabs, and breaks every page that posts more than once. A control people route around is worse than one they never had, because it also reports success | Code |
 | Minting | Lazily, on first render — so a session predating the control gets a token instead of silently skipping the check. There is no upgrade step whose absence disables it | Code |
@@ -197,7 +197,7 @@ cost:
 
 - **`version:sign` and `version:approve` are separate.** A validator holds the first and never the
   second: signing a quorum is not the same act as approving alone.
-- **`policy:author` and `policy:publish` are separate**, and sit with different roles (§5).
+- **`policy:author` and `policy:publish` are separate**, and sit with different roles (§5) — and separate *permissions* is not the control. Somebody holding both authored a gate and enacted it alone until `policy:publish` joined the segregation table above, which is what makes the separation a fact about the act rather than a fact about the role matrix.
 - **`monitor:observe` and `monitor:evaluate` are separate.** The `service` principal that runs the
   model hands over the scores and stops there. An engine that could both produce a population and
   rule on it would be the only witness to its own model's behaviour.
@@ -246,6 +246,8 @@ to keep in step, and tampering to clear a conflict breaks the chain.
 | `validation:conclude` | `version_created` against this version | effective challenge requires a validator independent of the build |
 | `finding:close` | `finding_raised` **for this finding** | closure must be attested by somebody other than the raiser |
 | `finding:extend` | `finding_acknowledged` **for this finding** | an extension is where somebody independent asks whether the date was ever realistic |
+| `version:sign` | `version_created` against this version | a quorum is people independent of the build, and only `version:approve` was here — so the rule held where one signature sufficed and lapsed exactly where two were required, which is the opposite of the intended gradient |
+| `policy:publish` | `policy_drafted` against this policy | a gate authored and enacted by one person is a gate nobody reviewed. `/policies` said in plain words that the register enforced this while `publish()` never compared the publisher to the author and the act was absent from this table — the same omission as `version:sign`, found the same way |
 
 The last two rows carry a lesson worth keeping. A rule may name the **payload field** carrying the
 identity it is about, because an evidence node's *subject* is not always the thing an act concerns: a
@@ -461,6 +463,43 @@ node and the six lines preceding it join on the request id, or they do not join 
 | **Append-only at the database role level** | A target. The shipped schema has no role separation, and the comment in `db/schema/sqlite.sql` saying the application role gets `INSERT` and `SELECT` describes an intention |
 | **Retention is unbounded** | Ten-year retention, monthly partitioning and partition-level WORM are targets. Nothing expires today and nothing is partitioned |
 | **Justification is required** | For overrides, exceptions, break-glass, alias moves, revocations, decommissioning and tier overrides — enforced where each act lives |
+
+### 4.6 Backing it up, and the one ordering that matters
+
+Two stores hold the record and they must be backed up **together**, in this
+order, because they are deliberately not the same medium:
+
+1. **The database** — `data/sqlite/maya.db`, or the PostgreSQL cluster. The
+   chain itself lives here.
+2. **The anchors** — `data/worm/` by default, wherever `WORMWriter` is pointed.
+   Heads copied out of the database so that a rewritten chain can be caught.
+
+The hazard is asymmetric and it is worth stating plainly, because an operator
+meeting it for the first time will be meeting it during a restore:
+
+> **Restore a database older than its anchors and the instance is permanently,
+> correctly, unclearably in disagreement with itself.** The anchors record a
+> head at sequence *n*; the restored chain has fewer nodes than that, or
+> different ones. `verify_against_anchors` reports a disagreement and will keep
+> reporting it, because a write-once store is write-once — there is no operation
+> that removes an anchor, and adding one would defeat the control.
+
+This is the anchoring working exactly as designed. It is what makes the check
+worth anything against somebody holding the database, and it is the reason the
+two must be snapshotted as a pair rather than on separate schedules.
+
+| Situation | What happens | What to do |
+|---|---|---|
+| Both restored from the same moment | Chain and anchors agree | Nothing |
+| Database restored **older** than the anchors | Permanent, unclearable disagreement on `/admin/evidence` | Restore the anchor root from the same moment; if it is genuinely lost, the honest answer is a **new** anchor root and a recorded note that verification before that date rests on the chain alone |
+| Anchors restored older than the database | Fewer anchors to check against; the ones present still hold | Nothing, but the gap is real and should be recorded |
+| Anchor root lost entirely | `verify_against_anchors` reports the chain as self-certified | Start a new root. Do not attempt to reconstruct one from the database — an anchor derived from the thing it checks proves nothing |
+
+The artifact store (`data/artifacts/`), attachments and the Delta root carry
+content addressed by digest and referenced from the database, so a database
+restored ahead of them will name bytes that are not there. They belong in the
+same snapshot for the same reason, though the failure is loud rather than
+permanent.
 
 ---
 

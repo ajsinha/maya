@@ -20,22 +20,39 @@ these controls defend&rdquo; are one definition.</p>
   <div class="col-lg-6">
     <div class="card h-100"><div class="card-header">Assess</div>
       <div class="card-body">
+        {# No value is pre-filled with the least conservative answer.
+           Every input here shipped with one — exposure 0, the lowest-ranked
+           purpose selected, feature count 0 — so submitting the form exactly as
+           rendered assessed the model at minimum risk, returned 200 and said
+           nothing about it. A reviewer took a Tier 3 model to Tier 4 that way
+           without typing anything. Where an assessment exists the fields start
+           from what it recorded; where none does they start empty and are
+           required, so a tier is always something somebody entered. #}
         <form id="assess-form" class="row g-2 small align-items-end">
           <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">exposure</label>
-            <input class="form-control form-control-sm" name="exposure" value="0"></div>
+            <input class="form-control form-control-sm" name="exposure" required
+                   inputmode="decimal" placeholder="e.g. 2400000000"
+                   value="{{ facts.exposure if facts.exposure is defined else '' }}"></div>
           <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">purpose class</label>
-            <select class="form-select form-select-sm" name="purpose_class">
-              {% for p in purposes %}<option value="{{ p.purpose }}">{{ p.purpose }} — rank {{ p.rank }}</option>{% endfor %}
+            <select class="form-select form-select-sm" name="purpose_class" required>
+              <option value="" {{ 'selected' if not facts.purpose_class }}>choose…</option>
+              {% for p in purposes %}<option value="{{ p.purpose }}"
+                {{ 'selected' if facts.purpose_class == p.purpose }}
+                >{{ p.purpose }} — rank {{ p.rank }}</option>{% endfor %}
             </select></div>
           <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">feature count</label>
-            <input class="form-control form-control-sm" name="feature_count" value="0"></div>
+            <input class="form-control form-control-sm" name="feature_count" required
+                   inputmode="numeric" placeholder="e.g. 24"
+                   value="{{ facts.feature_count if facts.feature_count is defined else '' }}"></div>
           <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">alternative data</label>
             <select class="form-select form-select-sm" name="uses_alternative_data">
-              <option value="0">0 — no</option><option value="1">1 — yes</option>
+              <option value="0" {{ 'selected' if not facts.uses_alternative_data }}>0 — no</option>
+              <option value="1" {{ 'selected' if facts.uses_alternative_data }}>1 — yes</option>
             </select></div>
           <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">interpretable</label>
             <select class="form-select form-select-sm" name="interpretable">
-              <option value="1">1 — yes</option><option value="0">0 — no</option>
+              <option value="1" {{ 'selected' if facts.interpretable is not defined or facts.interpretable }}>1 — yes</option>
+              <option value="0" {{ 'selected' if facts.interpretable is defined and not facts.interpretable }}>0 — no</option>
             </select></div>
           <div class="col-12"><button class="btn btn-sm btn-danger py-0 px-3"
             style="font-size:.75rem">Assess and record the tier</button></div>
@@ -71,6 +88,49 @@ these controls defend&rdquo; are one definition.</p>
         <div class="mt-2">Recorded tier:
           {% if model.tier %}<span class="tier tier-{{ model.tier }}">TIER {{ model.tier }}</span>
           {% else %}<span class="tier tier-none">NOT ASSESSED</span>{% endif %}</div>
+
+        {# The derivation, on the screen. The tier was a number with nothing
+           behind it: `core/risk/tiering.py` records the rationale and the facts
+           it was reached on, and no page opened them. A tier a model risk
+           manager cannot open is a tier they cannot defend. #}
+        {% if assessment %}
+          <div class="state-note mt-2 mb-0">{{ assessment.rationale }}</div>
+          <table class="table table-sm maya mt-2 mb-0">
+            <thead><tr><th>What it was assessed on</th><th>Value</th></tr></thead>
+            <tbody>
+              {% for key, value in facts.items()|sort %}
+                <tr><td class="mono" style="font-size:.76rem">{{ key }}</td>
+                    <td style="font-size:.78rem">{{ value }}</td></tr>
+              {% endfor %}
+              <tr><td class="mono" style="font-size:.76rem">ruleset_version</td>
+                  <td style="font-size:.78rem">{{ assessment.ruleset_version }}</td></tr>
+            </tbody>
+          </table>
+          {% if assessed_before_any_version %}
+            <div class="state-note mt-2 mb-0" style="border-left-color:#B8873D">
+              <strong>This assessment predates the model's versions.</strong>
+              Its complexity term was reached with no version to read, so it
+              describes a model with no parameters — while the latest version
+              declares <span class="mono">{{ declared_class }}</span>. The
+              recorded tier is what is in force; it was not derived from what
+              the model now is. Re-assess to make the two agree.
+            </div>
+          {% elif recorded_class and declared_class and recorded_class != declared_class %}
+            <div class="state-note mt-2 mb-0" style="border-left-color:#B8873D">
+              <strong>The assessment and the register disagree.</strong> This
+              tier was reached on class <span class="mono">{{ recorded_class }}</span>;
+              the latest version declares <span class="mono">{{ declared_class }}</span>.
+            </div>
+          {% endif %}
+          {% if assessment.required_controls %}
+            <div class="mt-2" style="font-size:.78rem">Controls this tier requires:
+              {% for c in assessment.required_controls %}<span class="chip me-1">{{ c }}</span>{% endfor %}</div>
+          {% endif %}
+        {% elif model.tier %}
+          <div class="state-note mt-2 mb-0">A tier is recorded and no assessment
+          stands behind it, which should not be possible &mdash; the tier is set
+          by assessing. Re-assess so the number has a derivation.</div>
+        {% endif %}
       </div></div>
   </div>
 </div>

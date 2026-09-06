@@ -42,6 +42,7 @@ FACTS: Dict[str, Dict[str, str]] = {
         "tier": "the model's risk tier",
         "environment": "which environment the alias lives in",
         "alias": "which alias is being moved",
+        "record_status": "the model record's own lifecycle state",
         "to_status": "the status of the version being pointed at",
         "blocking_findings": "how many open findings block this model",
         "refinement_holds": "whether the new contract refines the incumbent's",
@@ -62,6 +63,13 @@ FACTS: Dict[str, Dict[str, str]] = {
         "declared_use": "what the caller says it is for",
         "blocking_findings": "how many open findings block this model",
         "attested": "whether the model record is currently attested",
+        # The RECORD's state, as against the version's. Every gate here spoke
+        # only about the version, so a model whose own record had never been
+        # submitted — never approved, never attested, nothing asserted about it
+        # by anybody — passed all four and was handed a signed descriptor.
+        "record_status": "the model record's own lifecycle state: draft, "
+                         "baselined, submitted, approved, attested, amending, "
+                         "retired",
         "version_status": "the status of the version that would run",
         "has_approved_parameters": "whether an approved parameter set exists",
         "principal": "who is asking",
@@ -98,6 +106,7 @@ _DEFAULTS: Dict[str, Any] = {
     "environment": "", "alias": "", "to_status": "draft",
     "refinement_holds": False, "variance_ok": False, "attested": False,
     "lifecycle_state": "draft", "amending": False,
+    "record_status": "draft",
     "declared_use": "", "version_status": "draft",
     "has_approved_parameters": False, "principal": "",
 }
@@ -124,7 +133,11 @@ BUILT_IN: Dict[str, Tuple[str, str]] = {
         "an attested record is immutable; the way to change one is to open an "
         "amendment, which will have to be attested again"),
     "warrant:resolve": (
-        "blocking_findings == 0 and version_status == 'approved'",
-        "a warrant resolves only against an approved version, and never over a "
-        "blocking finding"),
+        "version_status == 'approved' "
+        "and record_status not in ('draft', 'retired')",
+        "a warrant resolves only against an approved version of a model whose "
+        "own record has been put through the register — a record still in "
+        "'draft' has been asserted by nobody, and a 'retired' one has been "
+        "withdrawn. Open blocking findings are refused separately and earlier, "
+        "at `_check_not_blocked`, which is the control that actually reads them"),
 }

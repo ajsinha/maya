@@ -56,6 +56,15 @@ just finished a fit uses the same two endpoints.</p>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Register</button>
         </form>
         <div id="model-result" class="small mt-2"></div>
+        {% if not may_register %}
+          <div class="state-note mt-2">Registering a model needs
+          <code>model:register</code>, which your account does not hold. That is
+          not an oversight: bringing a model onto the register is the
+          <strong>owner's</strong> act, because it is the owner who is
+          accountable for it afterwards. Ask the model owner, not an
+          administrator &mdash; a role that carries this is a change to who is
+          accountable, not a permissions fix.</div>
+        {% endif %}
         <div class="text-muted mt-3" style="font-size:.72rem">
           Assess the risk tier next. The tier decides how many signatures a
           version's approval needs, so a version cannot be approved before the
@@ -143,6 +152,13 @@ just finished a fit uses the same two endpoints.</p>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Upload version</button>
         </form>
         <div id="version-result" class="small mt-2"></div>
+        {% if not may_version %}
+          <div class="state-note mt-2">Creating a version needs
+          <code>version:create</code>, which your account does not hold. Ask the
+          model's <strong>developer</strong> or its owner &mdash; this is the
+          first line's act, and whoever creates a version is thereafter barred
+          from approving it, which is the point of keeping the two apart.</div>
+        {% endif %}
         <div class="text-muted mt-3" style="font-size:.72rem">
           A digest with no location cannot be fetched; a location with no digest
           cannot be checked. Supply neither and the version is

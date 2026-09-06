@@ -175,12 +175,16 @@ dev.features.create_view(
     features=["turnover", "tenure_years", "annual_spend"],
     description="Small-business turnover, tenure and realised spend")
 
-dev.features.load("sb_spend", "sb_spend_2025h1.csv")
+dev.features.load("sb_spend", "examples/data/sb_spend_2025h1.csv")
 ```
 
 The file must carry both clocks. `event_ts` is when the fact was true;
 `ingest_ts` is when we learned it. A file with one clock is refused here rather
 than accepted and regretted later.
+
+The file is in the repository — `examples/data/sb_spend_2025h1.csv` — so this
+page is a script you can run rather than a shape to reproduce. Its first lines
+and its last:
 
 ```
 entity_id,event_ts,ingest_ts,turnover,tenure_years,annual_spend
@@ -328,12 +332,25 @@ restatement and after the one after that.
 ## 5. Approving the kernel
 
 Here is the part of the order that surprises people. **The version is approved
-before it is fitted.** MAYA will not issue a fit warrant against a draft:
+before it is fitted.** MAYA will not resolve a warrant against a draft:
 
 ```
 restricted: version 1.0.0 is 'draft'
   → an approved version is required in this environment
 ```
+
+Two refusals guard this, and at *this* point in the walkthrough you will meet
+the first rather than the second, because the alias does not exist yet:
+
+```
+not_found: nothing bound for maya://model/credit.spend.smallbiz#champion in prod
+  → point the alias at an approved version
+```
+
+They are ordered that way deliberately. *Nothing is bound* is a question about
+the environment; *the version is a draft* is a question about the version, and
+answering the second before the first would describe a version nobody had asked
+to run.
 
 That is not an accident of sequencing. Approving a version approves a *shape* —
 these regressors, these types, this operating boundary — and a shape can be
@@ -493,21 +510,21 @@ already happened.
 ```json
 { "id": "01a0737d25f8f2068f109a62cb6d",
   "name": "ols_2026_01", "kind": "coefficients", "provenance": "fitted",
-  "values_inline": {"intercept": 1220.3600769425334,
-                    "turnover": 30.955652521929828,
-                    "tenure_years": 637.8822627460695},
+  "values_inline": {"intercept": 1203.1628787878885,
+                    "turnover": 30.774999999999924,
+                    "tenure_years": 648.8243006993016},
   "diagnostics": {
     "n": 60, "k": 3, "degrees_of_freedom": 57,
-    "r_squared": 0.9874224438421813,
-    "adjusted_r_squared": 0.9869811260822577,
-    "residual_std_error": 371.08166707197296,
-    "standard_errors": {"intercept": 159.19646513424715,
-                        "turnover": 0.5539678117645171,
-                        "tenure_years": 18.82318542201181},
-    "t_statistics": {"intercept": 7.665748582504194,
-                     "turnover": 55.87987580601268,
-                     "tenure_years": 33.888114495229416},
-    "condition_number": 810.68234318788,
+    "r_squared": 0.9984335855081763,
+    "adjusted_r_squared": 0.9983786235961825,
+    "residual_std_error": 154.73059116354145,
+    "standard_errors": {"intercept": 62.61876657150656,
+                        "turnover": 0.2354150975455509,
+                        "tenure_years": 5.905099507110243},
+    "t_statistics": {"intercept": 19.21409418714683,
+                     "turnover": 130.72653504750355,
+                     "tenure_years": 109.87525272318645},
+    "condition_number": 764.002966344353,
     "family": "ols", "rows": 60, "snapshot": "sb_spend_2026_01",
     "delta_version": 0, "pit_verified": true},
   "snapshot_id": "01a0737d2531521f8980a271f891",
@@ -623,10 +640,12 @@ The warrant names the exact point of `P` it is to run at, by id and by digest.
 That is the whole difference between "the model" and "the model, running on
 these numbers".
 
-Address it by alias — `#champion`. Address it by `@1.0.0` and you get
-`registry_refused: no model registered with urn
-maya://model/credit.spend.smallbiz@1.0.0`; the version qualifier is not
-stripped on this path. Aliases are what consumers should be holding anyway.
+Address it by alias — `#champion` — or by `@1.0.0`, which pins one version and
+resolves. Both work; they say different things. An alias is a promise that
+whatever it points at has been through the register, and it moves when a
+challenger wins; a version qualifier is a consumer refusing to be moved. Hold
+the alias unless you have a reason to be pinned, because a pinned consumer is
+one nobody can promote without finding them first.
 
 ```python
 owner.warrants.execute(
@@ -648,17 +667,24 @@ owner.warrants.execute(
 against the coefficients above if you like; it is the arithmetic and nothing
 else.
 
-> **One thing here does not work, and this tutorial is not going to pretend
-> otherwise.** The operating boundary travels in the warrant, and the captive
-> engine checks it against the top level of `inputs`. The estimator runtime
-> reads its record from `inputs["features"]`. So a `turnover` of 9000 — far
-> outside the declared maximum of 2000 — comes back `"boundary_ok": true` with
-> a prediction of £283,648. Put the same key at the top level and the engine
-> refuses correctly with `boundary_violation`. The contract is recorded, signed
-> and published; it is the captive engine's check against a nested input that
-> misses. Reported as a defect. If you run models in your own engine, read the
-> boundary out of `constraints.operating_boundary` and apply it yourself —
-> which the warrant contract expects of you regardless.
+Try it outside the boundary. A `turnover` of 9000, against a declared maximum
+of 2000, is refused whether you nest it under `features` or put it at the top
+level:
+
+```
+boundary_violation: inputs outside the operating boundary: turnover
+```
+
+That used to be true of the top-level form only. The estimator reads its record
+from `inputs["features"]`, and the check looked at the top level alone — so a
+signed operating boundary was unenforced for every runtime that nests its
+inputs, silently, with `"boundary_ok": true` on the response. It reads one level
+down as well now.
+
+> If you run models in your own engine, read the boundary out of
+> `constraints.operating_boundary` and apply it yourself. The warrant contract
+> expects that of you regardless of what the captive engine does, and a boundary
+> enforced only by the engine MAYA happens to ship is not a boundary.
 
 *In the UI: `/warrants` shows the grants; `/telemetry/1.0.0/credit.spend.smallbiz`
 shows what actually ran.*

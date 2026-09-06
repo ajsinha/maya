@@ -104,7 +104,7 @@ curl -u d.raman:dev-pw -X POST \
     "assumptions": [{"key": "dscr", "minimum": -5, "maximum": 20}],
     "guarantees": [{"key": "gini", "minimum": 0.42}]
   },
-  "artifact_digest": "sha256:9f2c1a"
+  "artifact_digest": "sha256:431e6dc969271581d46cbddfb2dc9b0cf9d72d6bacc4b1c72f4e07fe95575143"
 }'
 ```
 

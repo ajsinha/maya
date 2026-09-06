@@ -48,6 +48,27 @@ MAX_BYTES = 8 * 1024 * 1024 * 1024
 CHUNK = 4 * 1024 * 1024
 
 
+def is_content_address(digest: str) -> bool:
+    """Whether this is a well-formed `sha256:` content address.
+
+    One definition, in one place. The store already refused a malformed address
+    when it went looking for the bytes; the REGISTER accepted whatever string a
+    caller sent, so `sha256:not-a-digest-at-all` was recorded against a version
+    and nothing said otherwise until somebody tried to fetch it — which for a
+    version whose artifact lives in somebody else's engine is never.
+
+    That matters for `L-W12` in particular: parameters that live inside an
+    artifact need that artifact digested, and for an opaque vendor model the
+    digest is the entire control. A digest nothing validates discharges the law
+    on paper.
+    """
+    if not digest or not isinstance(digest, str):
+        return False
+    if not digest.startswith("sha256:") or len(digest) != 71:
+        return False
+    return all(c in "0123456789abcdef" for c in digest.split(":", 1)[1])
+
+
 class ArtifactError(RuntimeError):
     """An artifact operation was refused. The message always says why."""
 

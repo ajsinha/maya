@@ -153,7 +153,7 @@ class TestDigestVerification:
         """A warrant is a document from elsewhere; a path inside it is not trusted."""
         runtime = PmmlRuntime(artifacts)
         call = Invocation(
-            warrant_for("pmml", "file://../../etc/passwd", "sha256:x", ["dscr"]),
+            warrant_for("pmml", "file://../../etc/passwd", "sha256:" + "8" * 64, ["dscr"]),
             {"dscr": 1.0})
         with pytest.raises(WarrantError) as exc:
             runtime.invoke(call)
@@ -162,7 +162,7 @@ class TestDigestVerification:
     def test_a_missing_artifact_is_refused_clearly(self, artifacts):
         runtime = PmmlRuntime(artifacts)
         call = Invocation(
-            warrant_for("pmml", "file://absent.pmml", "sha256:x", ["dscr"]),
+            warrant_for("pmml", "file://absent.pmml", "sha256:" + "8" * 64, ["dscr"]),
             {"dscr": 1.0})
         with pytest.raises(WarrantError, match="no artifact at"):
             runtime.invoke(call)
@@ -360,7 +360,7 @@ class TestThroughTheWholeChain:
         kernel_spec["entry"] = {"document": "absent.pmml", "model_name": "X",
                                 "pmml_version": "4.4"}
         registry.create_version(URN, "5.0.0", kernel_spec, contract_spec,
-                                artifact_digest="sha256:whatever")
+                                artifact_digest="sha256:" + "7" * 64)
         registry.approve_version(URN, "5.0.0")
         registry.move_alias(URN, "prod", "champion", "5.0.0")
         warrants = WarrantService(repos["warrants"], registry, evidence, jitter_pct=0)

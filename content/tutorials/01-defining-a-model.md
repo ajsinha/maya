@@ -107,7 +107,7 @@ dev = Maya("http://localhost:5006", "d.raman", "dev-pw")
 dev.versions.create(
     "maya://model/credit.pd.smallbiz",
     semver="1.0.0",
-    artifact_digest="sha256:9f2c",
+    artifact_digest="sha256:431e6dc969271581d46cbddfb2dc9b0cf9d72d6bacc4b1c72f4e07fe95575143",
     kernel={"parameter_kind": "estimated_coefficients",
             "fit_procedure": "estimate",
             "output_kind": "point_estimate",
@@ -127,7 +127,7 @@ curl -u d.raman:dev-pw -X POST \
   localhost:5006/api/v1/models/credit.pd.smallbiz/versions \
   -H 'Content-Type: application/json' \
   -d '{"semver": "1.0.0",
-       "artifact_digest": "sha256:9f2c",
+       "artifact_digest": "sha256:431e6dc969271581d46cbddfb2dc9b0cf9d72d6bacc4b1c72f4e07fe95575143",
        "kernel": {"parameter_kind": "estimated_coefficients",
                   "fit_procedure": "estimate",
                   "output_kind": "point_estimate",

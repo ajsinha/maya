@@ -11,10 +11,10 @@ from pydantic import BaseModel
 
 from fastapi import Request
 
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class FeatureIn(BaseModel):
+class FeatureIn(Body):
     name: str
     entity: str
     dtype: str
@@ -38,7 +38,7 @@ class FeatureIn(BaseModel):
     ttl_days: Optional[float] = None
 
 
-class ViewIn(BaseModel):
+class ViewIn(Body):
     name: str
     entity: str
     owner: str
@@ -46,16 +46,16 @@ class ViewIn(BaseModel):
     description: str = ""
 
 
-class MaterialiseIn(BaseModel):
+class MaterialiseIn(Body):
     rows: List[Dict[str, Any]]
 
 
-class ContractIn(BaseModel):
+class ContractIn(Body):
     model_version_id: str
     items: List[Dict[str, Any]]
 
 
-class TrainingSetIn(BaseModel):
+class TrainingSetIn(Body):
     name: str
     spine: List[Dict[str, Any]]
     views: List[Dict[str, Any]]

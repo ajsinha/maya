@@ -30,7 +30,7 @@ import zipfile
 import pytest
 from fastapi.testclient import TestClient
 
-from tests.api_helpers import login as _login, quorum_approve as _quorum_approve
+from tests.api_helpers import approve_record, login as _login, quorum_approve as _quorum_approve
 from tests.conftest import CONTRACT, KERNEL, NAME, URN
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -262,9 +262,18 @@ class TestTheWholeRoundTrip:
     @pytest.fixture
     def ready(self, registered, people):
         """Set up over HTTP Basic, BEFORE signing in: a client with no session
-        carries no ambient authority and therefore needs no token."""
+        carries no ambient authority and therefore needs no token.
+
+        The record is put through the register at the END of this fixture, not
+        the start: this loop resolves a warrant, and resolving now requires that
+        somebody approved the model record and not only a version of it — but an
+        approved record is frozen, so every version this fixture creates has to
+        exist before that happens.
+        """
         self._fittable(registered, people)
         self._featureset(registered, people)
+        # AFTER the version work, because an approved record is frozen.
+        approve_record(registered, people)
         _login(registered)
         return registered
 
