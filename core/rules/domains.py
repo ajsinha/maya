@@ -246,7 +246,9 @@ def disjuncts(condition: Condition, negated: bool = False) -> List[List[Conditio
     if kind == NOT:
         return disjuncts(condition.children[0], not negated)
     if kind == "atom":
-        return [[_flip(condition) if negated else condition]]
+        if not negated:
+            return [[condition]]
+        return _negated_atom(condition)
 
     # De Morgan: negating an 'all' gives an 'any' of negations, and vice versa.
     effective = kind if not negated else (ANY if kind == ALL else ALL)
@@ -275,6 +277,33 @@ def _guard(size: int) -> None:
 _FLIP = {"eq": "ne", "ne": "eq", "lt": "ge", "ge": "lt", "le": "gt", "gt": "le",
          "in": "not_in", "not_in": "in", "is_null": "not_null",
          "not_null": "is_null"}
+
+
+def _negated_atom(atom: Condition) -> List[List[Condition]]:
+    """The negation of one atom, in disjunctive normal form.
+
+    Not simply the flipped operator, because the evaluator is three-valued about
+    an absent field and this analysis has to agree with it. `_atom_holds`
+    returns False for every comparison when the field is missing, and `NOT` is
+    `not holds(...)` — so `not (country eq "GB")` is TRUE on a row with no
+    country at all, while the flipped atom `country ne "GB"` is False there.
+
+    Flipping alone therefore built a region SMALLER than the rule's, and small
+    in the direction that matters: `covers` and `union_covers` both reported a
+    later rule as shadowed when it fires on exactly the rows the earlier one
+    misses. In a screening rule set that is the rule for records arriving with
+    no country — the ones most worth stopping — declared dead and deleted.
+
+    So the negation is `flip(atom) OR field is_null`, which is what the
+    evaluator computes. `is_null` and `not_null` are already exact about
+    nullness and flip cleanly; `between` still has no atom-sized negation and
+    stays opaque.
+    """
+    flipped = _flip(atom)
+    if atom.op in ("is_null", "not_null") or flipped.op == "__opaque__":
+        return [[flipped]]
+    return [[flipped],
+            [Condition("atom", field=atom.field, op="is_null", value=None)]]
 
 
 def _flip(atom: Condition) -> Condition:
