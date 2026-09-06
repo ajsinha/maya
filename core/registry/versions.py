@@ -261,6 +261,49 @@ class VersionService:
             raise RegistryError(f"{where} ('{clause['key']}') has a "
                                 f"non-list 'allowed'")
 
+    @staticmethod
+    def _refuse_unbound_assumptions(kernel_spec: Dict[str, Any],
+                                    contract_spec: Optional[Dict[str, Any]]
+                                    ) -> None:
+        """An assumption about a field the kernel never reads.
+
+        The contract and the schemas were two independent declarations that
+        nobody compared, so `{"key": "dscr_typo", "minimum": 0}` beside an
+        `input_schema` naming `dscr` was stored, digested and carried into the
+        warrant. At execution the engine finds no value for `dscr_typo`, skips
+        the clause and writes an INFO line — so the model runs unconstrained on
+        `dscr` while its contract appears to bound it, and the only trace is a
+        log nobody is reading.
+
+        `unchecked_inputs` already exists in the engine for exactly this shape,
+        which is the tell: the runtime was built to notice a condition that
+        should never have been declarable.
+
+        Assumptions only. A GUARANTEE legitimately names something that is not
+        an output field — `gini` is a property of the model, not a column it
+        returns — and there is no closed vocabulary of those to check against,
+        so refusing there would mean inventing one.
+        """
+        clauses = (contract_spec or {}).get("assumptions") or []
+        declared = {f.get("name") for f in (kernel_spec.get("input_schema") or [])
+                    if isinstance(f, dict)}
+        if not clauses or not declared:
+            # No assumptions, or no schema to bind them to. The second is its
+            # own problem and `_check_schema` refuses it where it does damage.
+            return
+        unbound = sorted({c["key"] for c in clauses
+                          if isinstance(c, dict) and c.get("key")
+                          and c["key"] not in declared})
+        if unbound:
+            raise RegistryError(
+                f"the contract assumes something about "
+                f"{', '.join(unbound)}, which this kernel's input_schema does "
+                f"not declare. An assumption about a field the model never "
+                f"reads cannot be checked: the engine finds no value, skips the "
+                f"clause and logs it, so the model runs unconstrained while its "
+                f"contract appears to bound it. Declared inputs are "
+                f"{', '.join(sorted(declared))}")
+
     #: Everything a kernel spec may say. Read off the code that consumes one:
     #: `kernel_of` and the schemas here, and the realisation keys the execution
     #: grammar reads from it.
@@ -357,6 +400,7 @@ class VersionService:
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         self._refuse_unexplained_parameters(kernel)
         self._refuse_malformed_contract(contract_spec)
+        self._refuse_unbound_assumptions(kernel_spec, contract_spec)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
                     "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,

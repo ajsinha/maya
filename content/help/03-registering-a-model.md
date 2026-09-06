@@ -313,6 +313,16 @@ Read as: *given* inputs within the assumptions, the model *guarantees* the state
 properties. Outside the assumptions the guarantee is void — a far more honest
 statement than a model that silently extrapolates.
 
+**An assumption must be about a field the kernel declares it reads.** The
+contract and the schemas used to be two independent declarations that nothing
+compared, so `{"key": "dscr_typo", ...}` beside an `input_schema` naming `dscr`
+was stored, digested and carried into the warrant — and at execution the engine
+finds no value for it, skips the clause and writes a log line. The model then
+runs unconstrained on `dscr` while its contract appears to bound it. Guarantees
+are deliberately *not* bound this way: `gini` is a property of the model rather
+than a column it returns, and there is no closed vocabulary of those to check
+against.
+
 **Every key is checked, and a misspelling is refused rather than dropped.** The
 contract's readers all use `.get`, so a clause spelled `{"key": "dscr", "min":
 0, "max": 20}` used to survive as a clause with *no bounds at all* — a contract

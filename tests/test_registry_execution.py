@@ -656,3 +656,72 @@ class TestAContractThatPinsNothing:
         that appears to make a promise and does not."""
         urn = self._model(registry, "c.none")
         assert registry.create_version(urn, "1.0.0", dict(self.KERNEL))
+
+
+class TestAnAssumptionMustBeAboutSomethingTheKernelReads:
+    """The contract and the schemas were two declarations nobody compared.
+
+    `{"key": "dscr_typo", "minimum": 0}` beside an `input_schema` naming `dscr`
+    was stored, digested into the manifest and carried into the warrant. At
+    execution the engine finds no value for it, skips the clause and writes an
+    INFO line — so the model runs unconstrained on `dscr` while its contract
+    appears to bound it, and the only trace is a log nobody reads.
+
+    `ExecutionEngine` already had `unchecked_inputs` for this exact shape, which
+    is the tell: the runtime was built to notice a condition that should never
+    have been declarable.
+    """
+
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate",
+              "input_schema": [{"name": "dscr", "dtype": "numeric"},
+                               {"name": "ltv", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]}
+
+    @staticmethod
+    def _model(registry, name):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o",
+                          "LE-US-01", "assumption binding")
+        return urn
+
+    def test_an_assumption_about_an_undeclared_field_is_refused(self, registry):
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        urn = self._model(registry, "bind.typo")
+        with pytest.raises(RegistryError) as refusal:
+            registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+                "assumptions": [{"key": "dscr_typo", "minimum": 0,
+                                 "maximum": 20}]})
+        detail = str(refusal.value)
+        assert "dscr_typo" in detail
+        assert "dscr, ltv" in detail, "say what it could have meant"
+
+    def test_an_assumption_about_a_declared_field_is_accepted(self, registry):
+        urn = self._model(registry, "bind.good")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0, "maximum": 20},
+                            {"key": "ltv", "minimum": 0, "maximum": 2}]})
+        assert len(version["contract"]["assumptions"]) == 2
+
+    def test_a_guarantee_may_name_something_that_is_not_an_output(self, registry):
+        """`gini` is a property of the model, not a column it returns, and there
+        is no closed vocabulary of those — refusing here would mean inventing
+        one, so guarantees are deliberately not bound."""
+        urn = self._model(registry, "bind.metric")
+        version = registry.create_version(urn, "1.0.0", dict(self.KERNEL), {
+            "assumptions": [{"key": "dscr", "minimum": 0}],
+            "guarantees": [{"key": "gini", "minimum": 0.42}]})
+        assert version["contract"]["guarantees"][0]["key"] == "gini"
+
+    def test_a_version_with_no_input_schema_is_left_to_the_other_check(
+            self, registry):
+        """Two refusals for one silence would name the wrong problem. An absent
+        schema is refused where it does damage — at the fit warrant and the
+        alias move — not a second time here."""
+        urn = self._model(registry, "bind.noschema")
+        kernel = {k: v for k, v in self.KERNEL.items() if k != "input_schema"}
+        assert registry.create_version(urn, "1.0.0", kernel, {
+            "assumptions": [{"key": "anything", "minimum": 0}]})
