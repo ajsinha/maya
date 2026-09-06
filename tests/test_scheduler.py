@@ -277,3 +277,80 @@ class TestTheLastRunIsTheLatestOne:
         self._runs(scheduler, [{"job": key, "ran_at": t, "ok": 1, "outcome": {}, "ran_by": "test"}
                                for t in (1000.0, 2000.0, 3000.0)])
         assert [r["ran_at"] for r in scheduler.history(2)] == [3000.0, 2000.0]
+
+
+class TestPeriodicReviewIsActuallyRead:
+    """`next_review_due` was computed, stored on every assessment, and read by
+    nothing at all — not a job, not a screen, not an endpoint.
+
+    The tier's review cadence is the whole reason `TieringEngine` carries a
+    review map: twelve months at Tier 1, thirty-six at Tier 4. It was a column
+    nobody selected, so an estate could pass every other control while its Tier
+    1 models went four years unreviewed. Periodic review is the obligation
+    SR 11-7 is most explicit about.
+    """
+
+    URN = "maya://model/review.subject"
+
+    @staticmethod
+    def _assess(scheduler, registry, tiering, repos, due_in_days):
+        import time
+
+        registry.register(
+            TestPeriodicReviewIsActuallyRead.URN, "Review subject", "credit",
+            "retail", "person/j.okafor", "LE-US-01", "periodic review")
+        model = registry.require(TestPeriodicReviewIsActuallyRead.URN)
+        assessment = tiering.assess({
+            "exposure": 2e9, "purpose_class": "regulatory_capital",
+            "trainability_class": "T2", "feature_count": 12,
+            "uses_alternative_data": False, "interpretable": True})
+        row = tiering.persist(repos["risk"], model["id"], assessment)
+        repos["risk"].set({"next_review_due": time.time()
+                           + due_in_days * 86400}, id=row["id"])
+        return model
+
+    def test_a_model_past_its_review_date_raises_a_finding(
+            self, scheduler, registry, tiering, repos, findings):
+        import time
+
+        model = self._assess(scheduler, registry, tiering, repos, -40)
+        outcome = scheduler.run(["review.overdue"], now=time.time())
+        result = outcome["results"][0]
+        assert result["ok"], result
+        assert result["outcome"]["count"] == 1, result
+        raised = findings.open_for(model["id"])
+        assert any(f["title"] == "Periodic review is overdue" for f in raised)
+        overdue = next(f for f in raised
+                       if f["title"] == "Periodic review is overdue")
+        assert "40 days ago" in overdue["description"]
+        assert overdue["severity"] == "High", "Tier 2 or above is High"
+
+    def test_a_model_within_its_window_raises_nothing(
+            self, scheduler, registry, tiering, repos):
+        import time
+
+        self._assess(scheduler, registry, tiering, repos, 200)
+        assert scheduler.run(["review.overdue"], now=time.time()
+                             )["results"][0]["outcome"]["count"] == 0
+
+    def test_it_does_not_raise_the_same_finding_twice(
+            self, scheduler, registry, tiering, repos):
+        import time
+
+        self._assess(scheduler, registry, tiering, repos, -40)
+        moment = time.time()
+        scheduler.run(["review.overdue"], now=moment)
+        again = scheduler.run(["review.overdue"], now=moment)
+        assert again["results"][0]["outcome"]["count"] == 0, \
+            "a batch that runs hourly must not raise a finding hourly"
+
+    def test_a_model_that_was_never_assessed_is_not_flagged_here(
+            self, scheduler, registry):
+        """A model with no assessment has a different problem, and a different
+        control says so — this one is about a review date that has passed."""
+        import time
+
+        registry.register("maya://model/review.unassessed", "Unassessed",
+                          "credit", "retail", "person/o", "LE-US-01", "none")
+        assert scheduler.run(["review.overdue"], now=time.time()
+                             )["results"][0]["outcome"]["count"] == 0

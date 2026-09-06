@@ -61,6 +61,7 @@ class JobContext:
     notifications: Any = None
     finding_workflow: Any = None
     evidence: Any = None
+    risk: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -94,6 +95,60 @@ def attestation_lapsed(ctx: JobContext) -> Dict[str, Any]:
                          "model from use; a model in force on a lapsed attestation "
                          "is in force on nobody's current signature."),
             category="attestation", source="self_identified", actor=ctx.actor)
+        raised.append(model["urn"])
+    return {"raised": raised, "count": len(raised)}
+
+
+# ---------------------------------------------------------------------------
+# Periodic review
+# ---------------------------------------------------------------------------
+def review_overdue(ctx: JobContext) -> Dict[str, Any]:
+    """A model past the review date its own tier set.
+
+    `TieringEngine.persist` computes `next_review_due` from the tier — twelve
+    months at Tier 1, thirty-six at Tier 4 — writes it to every assessment, and
+    until now NOTHING read it. Not a job, not a screen, not an endpoint. The
+    cadence that is the whole reason the engine carries a review map was a
+    column nobody selected.
+
+    That is the quietest kind of gap: periodic review is the obligation SR 11-7
+    is most explicit about, MAYA knew exactly when each one fell due, and an
+    estate could pass every other control while its Tier 1 models went four
+    years unreviewed.
+
+    Raised against the LATEST assessment only. An older one being overdue says
+    nothing — reassessing is what discharges the obligation, and the newest row
+    is the one that carries the current date.
+    """
+    if not (ctx.risk and ctx.findings):
+        return {"skipped": "risk register or findings not available"}
+    raised = []
+    for model in ctx.models():
+        assessments = ctx.risk.many(model_id=model["id"])
+        if not assessments:
+            continue
+        latest = max(assessments, key=lambda a: a.get("assessed_at") or 0)
+        due = latest.get("next_review_due")
+        if not due or ctx.now < due:
+            continue
+        title = "Periodic review is overdue"
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        overdue_days = int((ctx.now - due) / 86400)
+        ctx.findings.raise_finding(
+            model["id"],
+            "High" if (latest.get("tier") or 4) <= 2 else "Medium",
+            title, model["owner"] or "unassigned",
+            description=(
+                f"This model's risk assessment set a review date "
+                f"{overdue_days} days ago and no reassessment has happened "
+                f"since. Tier {latest.get('tier')} carries a review cadence, "
+                f"and a tier is a claim about how closely something is watched; "
+                f"a model past its review date is running on an assessment "
+                f"nobody has confirmed still describes it. Reassess it, or "
+                f"retire it."),
+            category="periodic_review", source="self_identified",
+            actor=ctx.actor)
         raised.append(model["urn"])
     return {"raised": raised, "count": len(raised)}
 
@@ -358,6 +413,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "a model in force on a lapsed attestation is in force on nobody's "
         "current signature",
         attestation_lapsed),
+    Job("review.overdue",
+        "raises a finding for a model past the review date its tier set",
+        "`next_review_due` was computed from the tier, written to every "
+        "assessment, and read by nothing at all — so the cadence that is the "
+        "whole reason the engine carries a review map was a column nobody "
+        "selected",
+        review_overdue),
     Job("monitoring.stalled",
         "raises a finding for a monitor far past its cadence",
         "a monitor that is not running looks exactly like a monitor that is "

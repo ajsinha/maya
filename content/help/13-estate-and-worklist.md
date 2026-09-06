@@ -4,7 +4,7 @@ slug: estate-and-worklist
 section: Assurance
 order: 130
 icon: list-check
-summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, nine idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
+summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, ten idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
 audience: Everyone, Model risk, Programme, Operators
 ---
 
@@ -279,20 +279,21 @@ the platform *already* computes and turns them into things that are
 **recorded** — a finding, a state change, an evidence entry. After this, a
 lapsed attestation raises a finding, and a finding can block.
 
-### The nine jobs
+### The ten jobs
 
 | Job | Records |
 |---|---|
 | `evidence.verify` | walks the whole evidence chain and moves the verification checkpoint |
 | `notify.outstanding` | tells each person what is outstanding for them |
 | `attestation.lapsed` | a High finding for a model in force on an attestation past its validity |
+| `review.overdue` | a finding for a model past the review date its own tier set |
 | `monitoring.stalled` | a Medium finding for a monitor far past its cadence |
 | `overlays.expire` | closes overlays whose approved window has elapsed |
 | `debt.reconcile` | closes baseline debt whose evidence arrived; expires what is overdue |
 | `findings.overdue` | a High finding that an agreed remediation window was missed |
 | `findings.unacknowledged` | a finding whose owner never accepted it |
 
-Four are worth explaining.
+Five are worth explaining.
 
 **`evidence.verify`** exists because `/health/ready` verifies only what has
 arrived since the last full walk — a readiness probe that re-hashed the whole
@@ -300,6 +301,14 @@ chain would get slower as the register grew, which is the wrong direction for a
 probe. So the full walk has to be something that *happens* rather than something
 somebody remembers. When it finds a break, **the checkpoint is not advanced**:
 moving it past a break would bless the break.
+
+**`review.overdue`** exists because the cadence was being computed and never
+read. `TieringEngine` writes `next_review_due` onto every assessment — twelve
+months at Tier 1, thirty-six at Tier 4 — and until this job existed, *nothing*
+selected that column: no job, no screen, no endpoint. An estate could pass every
+other control here while its Tier 1 models went four years unreviewed. It reads
+the **latest** assessment only, because reassessing is what discharges the
+obligation and an older row being overdue says nothing.
 
 **`monitoring.stalled`** exists because *a monitor that is not running looks
 exactly like a monitor that is passing*. The platform cannot evaluate one for

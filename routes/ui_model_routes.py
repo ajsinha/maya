@@ -442,7 +442,7 @@ class ModelAlgebraRoutes(Routes):
                 grid=[[tiering.tau(m, c) for c in COMPLEXITY] for m in MATERIALITY],
                 controls={tier: list(names) for tier, names in CONTROLS.items()},
                 purposes=self._purpose_classes(),
-                assessment=assessment, facts=facts,
+                assessment=assessment, facts=facts, now=time.time(),
                 assessed_before_any_version=bool(assessment and not recorded_class
                                                  and declared),
                 declared_class=declared, recorded_class=recorded_class,
