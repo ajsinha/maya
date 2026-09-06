@@ -95,11 +95,21 @@ class EvidenceEngine:
         # fail closed -- it meant "you cannot approve what you created" had
         # nothing to read, and the developer could approve their own version.
         #
-        # Atomic now, and retried on contention: the sequence is the only thing
-        # two writers contend for, so re-reading the head is always sufficient.
+        # Atomic AND serialised now. Atomic alone was not enough: a deferred
+        # transaction reads the head without holding the write lock, so two
+        # writers still read the same one and the loser died on the UNIQUE. The
+        # retry below covered that until a loaded machine made four writers
+        # exhaust all twelve attempts, and an append was lost after all —
+        # exactly the outcome the retry existed to prevent, reached more slowly.
+        #
+        # `serialise="evidence_seq"` takes the write lock at BEGIN, before the
+        # read, so the second writer waits and then reads a head that is current.
+        # The retry stays for the case the lock does not cover: another PROCESS
+        # against the same file, where SQLite's lock is held by a connection this
+        # one cannot see.
         for attempt in range(APPEND_ATTEMPTS):
             try:
-                with self.repo.db.transaction():
+                with self.repo.db.transaction(serialise="evidence_seq"):
                     return self._append(kind, subject_type, subject_id, payload,
                                         parents, personal_data=personal_data,
                                         trust=trust, actor=actor)

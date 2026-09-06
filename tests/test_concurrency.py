@@ -309,3 +309,60 @@ class TestAQuorumIsANumberOfPeople:
         assert source.count("already_signed_personally") >= 2, (
             "the constraint's refusal must carry the same code as the read's")
         assert "db.transaction()" in source
+
+
+class TestTheSequenceIsTakenUnderTheWriteLock:
+    """The retry was covering a race rather than removing one.
+
+    A plain transaction on SQLite is *deferred*: the `SELECT MAX(seq)` takes no
+    write lock, so two writers read the same head and the second INSERT dies on
+    the UNIQUE. Twelve jittered retries hid it until a loaded machine — the test
+    suite running one file per core — made four writers exhaust all twelve, and
+    an append was lost. That is the outcome the retry existed to prevent,
+    reached more slowly: a missing `version_created` node means the segregation
+    check has nothing to read, and the developer approves their own version.
+    """
+
+    @staticmethod
+    def _engine(tmp_path):
+        from core.evidence import EvidenceEngine
+        from db import Database, EvidenceCheckpointRepository, EvidenceRepository
+        db = Database(f"sqlite:///{tmp_path}/seq.db", False)
+        return db, EvidenceEngine(EvidenceRepository(db),
+                                  EvidenceCheckpointRepository(db))
+
+    def test_no_append_is_lost_with_the_retry_budget_removed(self, tmp_path,
+                                                             monkeypatch):
+        """One attempt only. If the lock does not hold the sequence, this fails.
+
+        Leaving the twelve retries in place would let a passing run mean either
+        "the lock works" or "the retry papered over it", and a test that cannot
+        distinguish those two proves nothing about the change it guards.
+        """
+        import threading
+
+        import core.evidence.engine as engine_module
+
+        monkeypatch.setattr(engine_module, "APPEND_ATTEMPTS", 1)
+        db, evidence = self._engine(tmp_path)
+        failures, per_thread = [], 40
+
+        def write(n):
+            for i in range(per_thread):
+                try:
+                    evidence.append("model_registered", "model", f"m{n}-{i}", {})
+                except Exception as exc:                     # pragma: no cover
+                    failures.append(f"{type(exc).__name__}: {exc}")
+
+        threads = [threading.Thread(target=write, args=(n,)) for n in range(6)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not failures, failures[:3]
+        rows = db.query("SELECT seq FROM evidence_node ORDER BY seq")
+        assert len(rows) == 6 * per_thread, "an append was lost"
+        assert [r["seq"] for r in rows] == list(range(1, 6 * per_thread + 1)), \
+            "the sequence must be dense: a gap is a node that never landed"
+        assert evidence.verify_chain()["valid"]

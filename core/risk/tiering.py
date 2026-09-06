@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Tuple
+from typing import Any, ClassVar, Dict, Iterable, List, Tuple
 
 from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
                                 _OPAQUE_CLASSES)
@@ -125,9 +125,9 @@ class TieringEngine:
 
     #: The reading of an undeclared complexity fact that assumes the worst.
     #: `feature_count` is 51 because the band it has to cross is "> 50".
-    CONSERVATIVE: Dict[str, Any] = {"feature_count": 51,
-                                    "uses_alternative_data": True,
-                                    "interpretable": False}
+    CONSERVATIVE: ClassVar[Dict[str, Any]] = {"feature_count": 51,
+                                              "uses_alternative_data": True,
+                                              "interpretable": False}
 
     def load_bearing(self, facts: Dict[str, Any],
                      declared: Iterable[str]) -> List[str]:
