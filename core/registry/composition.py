@@ -46,10 +46,25 @@ from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 from core.evidence import EvidenceEngine
 from core.log import get_logger
+from core.domain.contracts import Bound, ContractError
 from core.domain.lattice import refines
 from core.domain.schemas import Field, Schema
 from core.registry.common import RegistryError
+from core.registry.specs import contract_of
 from core.registry.versions import latest_version
+
+
+def _clause(bound: Bound) -> Dict[str, Any]:
+    """One bound, as the same shape a version states it in — so what the
+    composite reports and what somebody would write down are one shape."""
+    clause: Dict[str, Any] = {"key": bound.key}
+    if bound.minimum is not None:
+        clause["minimum"] = bound.minimum
+    if bound.maximum is not None:
+        clause["maximum"] = bound.maximum
+    if bound.allowed:
+        clause["allowed"] = list(bound.allowed)
+    return clause
 
 logger = get_logger(__name__)
 
@@ -323,7 +338,50 @@ class ModelComposition:
                 "still_supplied_by_the_caller": [f.get("name") for f in still_needed],
                 "detail": "the source's inputs, plus everything the target reads "
                           "that this edge does not carry — those are what "
-                          "somebody must still provide for the pair to run"}
+                          "somebody must still provide for the pair to run",
+                # The same question one level up. The schema says what the pair
+                # needs; the contract says under what conditions the pair still
+                # promises anything, and which of the target's operating
+                # boundaries the source's own guarantee already settles.
+                "contract": self._composite_contract(producing, consuming)}
+
+    @staticmethod
+    def _composite_contract(producing: Dict[str, Any],
+                           consuming: Dict[str, Any]) -> Dict[str, Any]:
+        """`C_source ⊗ C_target` — reported, not enforced.
+
+        Reported here rather than refused, because this method answers a
+        question about an edge that already exists and a reader looking at a
+        clash needs to see it rather than receive a 409 where the schema
+        analysis should have been. Whether a clash should block `relate` is a
+        separate decision about a governed act, and it is not made here.
+
+        `spoken_to_but_not_settled` is the row worth reading: the source's
+        guarantee touches a boundary the target assumes and does not imply it,
+        which is a pair somebody wired together believing the boundary was
+        covered.
+        """
+        upstream = contract_of(producing.get("contract") or {})
+        downstream = contract_of(consuming.get("contract") or {})
+        if not (upstream.assumptions or upstream.guarantees
+                or downstream.assumptions or downstream.guarantees):
+            return {"stated": 0,
+                    "detail": "neither version states a contract, so the pair "
+                              "promises nothing and constrains nothing"}
+        try:
+            composed = upstream.composed_with(downstream)
+        except ContractError as exc:
+            logger.warning("composite contract does not exist: %s", exc.detail)
+            return {"stated": 1, "holds": 0, **exc.as_problem()}
+        return {
+            "stated": 1, "holds": 1,
+            "assumptions": [_clause(b) for b in composed.contract.assumptions],
+            "guarantees": [_clause(b) for b in composed.contract.guarantees],
+            "discharged_by_the_edge": list(composed.discharged),
+            "spoken_to_but_not_settled": list(composed.unmet),
+            "detail": ("the boundary the CALLER must still meet: the target's "
+                       "assumptions, less the ones the source's guarantee "
+                       "implies")}
 
     def unrelate(self, from_urn: str, to_urn: str, kind: str,
                  reason: str, actor: str = "system") -> Dict[str, Any]:

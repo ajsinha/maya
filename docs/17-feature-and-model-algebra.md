@@ -207,9 +207,39 @@ refines( output_schema(source), input_schema(target) )
 | `challenger_of`, `benchmark_for` | not type-checked: they record how somebody *thinks* about a model, and there is no wire |
 | `calibrated_by` | propagates but does not compose — a calibration solves parameters rather than handing an output to an input |
 
-`composite_schema(A, B)` derives the type of `B ∘ A`: the source's inputs, the
-target's outputs. **Derived, not declared** — a composite whose schema somebody
-wrote down is a composite that can disagree with its parts.
+`composite_schema(A, B)` derives the type of `B ∘ A`: the source's inputs, plus
+everything the target reads that this edge does not carry, against the target's
+outputs. **Derived, not declared** — a composite whose schema somebody wrote
+down is a composite that can disagree with its parts.
+
+### 6.1 The composite contract
+
+The schema says what the pair **needs**. The contract says under what conditions
+the pair still **promises** anything, and it is the harder question. It is
+computed by the same call and returned beside the schema.
+
+Composition is not concatenation. The composite's guarantees are both promises
+together, and its assumptions are what the **caller** must still meet — which is
+the target's assumptions *less the ones the source's own guarantee implies*. An
+ECL stack assuming a PD in `[0,1]`, wired to a PD model guaranteeing exactly
+that, does not ask anybody outside the pair for it. That discharge is the whole
+difference between `⊗` and `∧`, and it is the same sentence the schema half
+already answers under `still_supplied_by_the_caller`.
+
+Three outcomes, and the middle one is why this exists.
+
+| | |
+|---|---|
+| the source **implies** the assumption | discharged: reported in `discharged_by_the_edge`, and absent from what the caller must meet |
+| the source **speaks to** the key and does not imply it | reported in `spoken_to_but_not_settled`, and the assumption **stays with the caller**. A PD guaranteed on `[0,2]` does not satisfy a stack assuming `[0,1]`, and the wiring makes it look as though it does |
+| the source says nothing about the key | the assumption stays with the caller, unremarkably |
+
+Where two contracts genuinely cannot be combined — two guarantees excluding each
+other — the composite reports the clash rather than raising. This method answers
+a question about an edge that already exists, and a reader looking at a clash
+needs to see it, not receive a refusal where the analysis should have been.
+Whether such a clash should block `relate` is a separate decision about a
+governed act, and it has not been made.
 
 `L-21`, asserted in `tests/test_laws.py::TestL21FeedsIsCompositionRatherThanADrawing`.
 

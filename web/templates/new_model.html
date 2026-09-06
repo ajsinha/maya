@@ -32,6 +32,27 @@ just finished a fit uses the same two endpoints.</p>
             <div class="col-12"><input class="form-control form-control-sm" name="purpose"
                    placeholder="what it is for" required></div>
           </div>
+          <div class="mt-3 pt-2" style="border-top:1px solid rgba(0,0,0,.08)">
+            <label class="form-label small mb-1">A document, filed with it (optional)</label>
+            <div class="row g-2">
+              <div class="col-12"><input type="file" class="form-control form-control-sm"
+                     name="document"></div>
+              <div class="col-7"><input class="form-control form-control-sm" name="doc_title"
+                     placeholder="title"></div>
+              <div class="col-5"><select class="form-select form-select-sm" name="doc_kind">
+                {% for k in attachment_kinds %}<option value="{{ k }}">{{ k.replace('_', ' ') }}</option>{% endfor %}
+              </select></div>
+            </div>
+            <div class="text-muted mt-1" style="font-size:.72rem">
+              Filed against the <strong>model</strong> rather than a version,
+              because there is no version yet &mdash; a methodology note or a
+              vendor contract is about the model whatever it goes on to run.
+              Everything else attaches on the
+              <a href="/model-algebra" style="color:var(--crimson)">documents</a>
+              screen, where a subject can be a version, a parameter set or a
+              featureset version.
+            </div>
+          </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Register</button>
         </form>
         <div id="model-result" class="small mt-2"></div>
@@ -160,9 +181,41 @@ function fail(where) {
 }
 $("#new-model").on("submit", function (e) {
   e.preventDefault();
+  var form = new FormData(this);
+  var file = form.get("document");
+  var docKind = form.get("doc_kind"), docTitle = form.get("doc_title");
+  // The document fields are not part of the model's own body.
+  ["document", "doc_kind", "doc_title"].forEach(function (k) { form.delete(k); });
+  var fields = Object.fromEntries(form);
+
   $.ajax({url: "/api/v1/models", method: "POST", contentType: "application/json",
-          data: JSON.stringify(Object.fromEntries(new FormData(this)))})
-    .done(function () { location.reload(); }).fail(fail("#model-result"));
+          data: JSON.stringify(fields)})
+    .done(function () {
+      if (!file || !file.size) { location.reload(); return; }
+      // Attached AFTER the model exists, and against the model rather than a
+      // version, because there is no version yet. A failure here must not read
+      // as the registration failing — the model is registered either way, and
+      // saying otherwise would send somebody to register it a second time.
+      var attach = new FormData();
+      attach.append("file", file);
+      attach.append("urn", fields.urn);
+      attach.append("kind", docKind || "other");
+      attach.append("title", docTitle || file.name);
+      attach.append("model_level", "true");
+      $.ajax({url: "/api/v1/attachments", method: "POST", data: attach,
+              processData: false, contentType: false})
+        .done(function () { location.reload(); })
+        .fail(function (x) {
+          var e = x.responseJSON || {};
+          $("#model-result").html(
+            '<span class="evidence-ok">The model is registered.</span> ' +
+            '<span class="evidence-bad">The document was not filed &mdash; ' +
+            (e.detail || x.statusText) + '</span>' +
+            '<div class="text-muted">File it from the model page; nothing about ' +
+            'the registration needs repeating.</div>');
+        });
+    })
+    .fail(fail("#model-result"));
 });
 // --- putting the serialised model into MAYA -------------------------------
 // The digest is computed HERE and sent with the upload, so the platform checks

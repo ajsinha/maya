@@ -413,6 +413,7 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             from core.artifacts import EXECUTES_ON_LOAD, FORMAT_MEANING, FORMATS
+            from core.attachments import KINDS as ATTACHMENT_KINDS
             from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
             from core.execution.grammar import RUNTIME_ENTRY
             who = self.page_principal(request)
@@ -424,6 +425,10 @@ class UIRoutes(Routes):
                 models=self.ctx["authz"].visible(who, self.ctx["registry"].list()),
                 parameter_kinds=[k.value for k in ParameterKind],
                 fit_procedures=[p.value for p in FitProcedure],
+                # From the code, so the form cannot offer a kind the register
+                # refuses. A page holding its own copy of a closed vocabulary is
+                # a second vocabulary.
+                attachment_kinds=list(ATTACHMENT_KINDS),
                 output_kinds=[k.value for k in OutputKind],
                 runtimes=sorted(RUNTIME_ENTRY),
                 runtime_entry={k: list(v) for k, v in RUNTIME_ENTRY.items()},

@@ -10,7 +10,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from core.domain import (Bound, Contract, Field, FitProcedure, OutputKind, ParameterKind,
+from core.domain import (Bound, Contract, ContractError, Field, FitProcedure,
+                         OutputKind, ParameterKind,
                          ParameterObject, ParametricKernel, Probe, Schema, pi_equivalent,
                          substitutable)
 
@@ -210,27 +211,171 @@ class TestContractBoundaryChecks:
         assert c.check_inputs({"region": "GB"}) == ["region"]
 
 
-class TestContractAlgebra:
-    def test_composition_carries_both_sets(self):
-        a = Contract(assumptions=(Bound("x", 0, 1),), guarantees=(Bound("p", minimum=0.5),))
-        b = Contract(assumptions=(Bound("y", 0, 1),), guarantees=(Bound("q", minimum=0.5),))
-        composed = a.compose(b)
-        assert {bd.key for bd in composed.assumptions} == {"x", "y"}
-        assert {bd.key for bd in composed.guarantees} == {"p", "q"}
+class TestBoundLattice:
+    """`meet` and `join`, and the cases where neither exists.
 
-    def test_conjunction_merges_viewpoints(self):
+    Both are partial, and both must say so rather than approximating. Widening
+    two disjoint bands to the interval that spans them is the single failure
+    this file exists to prevent: it claims a contract holds in the gap, where
+    neither of the contracts it came from says anything at all.
+    """
+
+    def test_meet_is_the_overlap(self):
+        assert Bound("x", 0, 1).meet(Bound("x", 0.5, 2)) == Bound("x", 0.5, 1)
+
+    def test_meet_of_disjoint_bands_does_not_exist(self):
+        assert Bound("x", 0, 1).meet(Bound("x", 5, 6)) is None
+
+    def test_join_is_the_union_where_the_union_is_a_band(self):
+        assert Bound("x", 0, 1).join(Bound("x", 0.5, 2)) == Bound("x", 0, 2)
+
+    def test_join_of_disjoint_bands_does_not_exist(self):
+        """`[0,1] ∪ [5,6]` is not a band, and `[0,6]` is not it."""
+        assert Bound("x", 0, 1).join(Bound("x", 5, 6)) is None
+
+    def test_an_absent_endpoint_means_unbounded_and_cuts_both_ways(self):
+        """For a meet the other endpoint stands; for a join it swallows it.
+
+        Getting this backwards is silent, and it inverts the operation.
+        """
+        assert Bound("g", minimum=0.4).meet(Bound("g", minimum=0.6)).minimum == 0.6
+        assert Bound("g", minimum=0.4).join(Bound("g", minimum=0.6)).minimum == 0.4
+        assert Bound("g", 0, 1).join(Bound("g", minimum=0)).maximum is None
+
+    def test_categories_meet_by_intersection_and_join_by_union(self):
+        us_ca, ca_gb = Bound("r", allowed=("US", "CA")), Bound("r", allowed=("CA", "GB"))
+        assert us_ca.meet(ca_gb).allowed == ("CA",)
+        assert set(us_ca.join(ca_gb).allowed) == {"US", "CA", "GB"}
+
+    def test_a_category_and_a_band_have_neither(self):
+        """Not a disagreement about width. A disagreement about kind."""
+        assert Bound("r", allowed=("US",)).meet(Bound("r", minimum=1)) is None
+        assert Bound("r", allowed=("US",)).join(Bound("r", minimum=1)) is None
+
+
+class TestContractAlgebra:
+    """Three operations that answer three questions.
+
+    They were one line of code each, and it was the same line: concatenate both
+    tuples. `⊗`, `∧` and `/` returned identical contracts for identical inputs,
+    which made the algebra decorative — and worse than decorative in `/`, which
+    discharged a requirement whenever the partner merely mentioned the key.
+    """
+
+    def test_composition_discharges_what_the_upstream_guarantees(self):
+        """The whole difference between `⊗` and `∧`.
+
+        Downstream assumes a score in [0,1]; upstream guarantees exactly that.
+        Nobody outside the pair has to supply it.
+        """
+        upstream = Contract(assumptions=(Bound("turnover", 0, 1e9),),
+                            guarantees=(Bound("score", 0, 1),))
+        downstream = Contract(assumptions=(Bound("score", 0, 1),
+                                           Bound("region", allowed=("US",))),
+                              guarantees=(Bound("pd", 0, 1),))
+        result = upstream.composed_with(downstream)
+        assert result.discharged == ("score",)
+        assert [b.key for b in result.contract.assumptions] == ["turnover", "region"]
+        assert {b.key for b in result.contract.guarantees} == {"score", "pd"}
+
+    def test_an_upstream_that_speaks_to_a_key_without_settling_it_is_reported(self):
+        """The finding somebody wiring two models together needs.
+
+        Upstream promises a score in [0,5]; downstream assumes [0,1]. The
+        boundary looks covered and is not, and the assumption stays on the
+        caller rather than quietly disappearing.
+        """
+        upstream = Contract(guarantees=(Bound("score", 0, 5),))
+        downstream = Contract(assumptions=(Bound("score", 0, 1),))
+        result = upstream.composed_with(downstream)
+        assert result.unmet == ("score",) and result.discharged == ()
+        assert [b.key for b in result.contract.assumptions] == ["score"]
+
+    def test_composition_refuses_guarantees_that_cannot_both_hold(self):
+        a = Contract(guarantees=(Bound("latency_ms", maximum=50),))
+        b = Contract(guarantees=(Bound("latency_ms", minimum=200),))
+        with pytest.raises(ContractError) as exc:
+            a.compose(b)
+        assert exc.value.code == "no_guarantee_meet"
+
+    def test_conjunction_takes_the_stronger_guarantee(self):
         perf = Contract(guarantees=(Bound("gini", minimum=0.4),))
-        fair = Contract(guarantees=(Bound("air", minimum=0.8),))
-        assert {b.key for b in perf.conjoin(fair).guarantees} == {"gini", "air"}
+        fair = Contract(guarantees=(Bound("gini", minimum=0.6), Bound("air", minimum=0.8)))
+        joined = perf.conjoin(fair)
+        assert {b.key: b.minimum for b in joined.guarantees} == {"gini": 0.6, "air": 0.8}
+
+    def test_conjunction_widens_the_assumptions_rather_than_narrowing_them(self):
+        """A contract promises nothing outside its assumptions, so holding two
+        entitles the model to the union of the regions they cover. Intersecting
+        here would narrow where a model may be used every time somebody added a
+        viewpoint, which is the opposite of what adding one means."""
+        perf = Contract(assumptions=(Bound("x", 0, 10),))
+        fair = Contract(assumptions=(Bound("x", 5, 20),))
+        assert perf.conjoin(fair).assumptions == (Bound("x", 0, 20),)
+
+    def test_an_assumption_only_one_viewpoint_makes_constrains_nothing(self):
+        perf = Contract(assumptions=(Bound("x", 0, 10), Bound("y", 0, 1)))
+        fair = Contract(assumptions=(Bound("x", 5, 20),))
+        assert [b.key for b in perf.conjoin(fair).assumptions] == ["x"]
+
+    def test_conjunction_refuses_viewpoints_with_a_gap_between_them(self):
+        perf = Contract(assumptions=(Bound("x", 0, 1),))
+        fair = Contract(assumptions=(Bound("x", 5, 6),))
+        with pytest.raises(ContractError) as exc:
+            perf.conjoin(fair)
+        assert exc.value.code == "no_assumption_join"
 
     def test_quotient_yields_the_missing_specification(self):
         target = Contract(guarantees=(Bound("gini", minimum=0.4), Bound("air", minimum=0.8)))
         have = Contract(guarantees=(Bound("gini", minimum=0.4),))
         assert {b.key for b in target.quotient(have).guarantees} == {"air"}
 
+    def test_a_partner_that_promises_too_little_discharges_nothing(self):
+        """The defect this rewrite exists for.
+
+        A challenger promising `gini ≥ 0.2` used to satisfy a target of
+        `gini ≥ 0.4`, because the old implementation asked only whether the key
+        appeared. The residual came back empty, and an empty residual reads as
+        *nothing more is needed*.
+        """
+        target = Contract(guarantees=(Bound("gini", minimum=0.4),))
+        weak = Contract(guarantees=(Bound("gini", minimum=0.2),))
+        residual = target.quotient(weak)
+        assert [b.key for b in residual.guarantees] == ["gini"]
+        assert residual.guarantees[0].minimum == 0.4
+
+    def test_the_residual_may_rely_on_what_the_partner_guarantees(self):
+        target = Contract(assumptions=(Bound("x", 0, 10),),
+                          guarantees=(Bound("air", minimum=0.8),))
+        have = Contract(guarantees=(Bound("score", 0, 1),))
+        assert {b.key for b in target.quotient(have).assumptions} == {"x", "score"}
+
     def test_quotient_of_everything_is_empty(self):
         c = Contract(guarantees=(Bound("gini", minimum=0.4),))
         assert c.quotient(c).guarantees == ()
+
+    def test_the_three_operations_are_not_the_same_operation(self):
+        """They were. Byte for byte, all three concatenated both tuples.
+
+        Held as a test rather than as a note, because the way this regresses is
+        somebody simplifying three implementations that look similar back into
+        one.
+        """
+        a = Contract(assumptions=(Bound("x", 0, 10),), guarantees=(Bound("s", 0, 1),))
+        b = Contract(assumptions=(Bound("x", 5, 20), Bound("s", 0, 1)),
+                     guarantees=(Bound("p", 0, 1),))
+        results = {"compose": a.compose(b), "conjoin": a.conjoin(b),
+                   "quotient": a.quotient(b)}
+        shapes = {name: (tuple(sorted(c.assumptions, key=lambda bd: bd.key)),
+                         tuple(sorted(c.guarantees, key=lambda bd: bd.key)))
+                  for name, c in results.items()}
+        assert len(set(shapes.values())) == 3, shapes
+        # And the difference is not only in which keys survive. Composition
+        # MEETS the shared assumption because both must hold of one wired
+        # system; conjunction JOINS it because two viewpoints on one model
+        # cover the union of what each covers.
+        assert a.compose(b).assumptions == (Bound("x", 5, 10),)
+        assert a.conjoin(b).assumptions == (Bound("x", 0, 20),)
 
 
 # ============================================================ probe equivalence
