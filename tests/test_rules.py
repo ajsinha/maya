@@ -832,3 +832,90 @@ class TestTheUnionOfEarlierRulesIsNowChecked:
         source = inspect.getsource(ruleset.RuleSet._shadowed)
         assert "Undecided" in source and "undecided" in source
         assert "self.undecided.append" in source
+
+
+class TestTheAnalysisAgreesWithTheEvaluator:
+    """The domain analysis and `Condition.holds` must describe the same rule.
+
+    They did not, on one point: `_atom_holds` returns False for every comparison
+    when the field is absent, and `NOT` is `not holds(...)`, so
+    `not (country eq "GB")` is TRUE on a row with no country. The DNF flipped
+    that to the atom `country ne "GB"`, which is FALSE there — a region smaller
+    than the rule's, and small in the direction that makes `covers` over-claim.
+
+    A rule reported as shadowed is a rule an author deletes. In a screening set
+    the rule this hid is the one for records arriving with no country.
+    """
+
+    def test_a_negated_equality_still_fires_where_the_field_is_absent(self):
+        from core.rules.conditions import Condition
+        from core.rules.domains import covers, union_covers
+
+        later = Condition.parse(
+            {"not": {"field": "country", "op": "eq", "value": "GB"}})
+        earlier = Condition.parse(
+            {"all": [{"field": "country", "op": "not_null"},
+                     {"field": "country", "op": "ne", "value": "GB"}]})
+        absent = {"amount": 100}
+        assert later.holds(absent) and not earlier.holds(absent)
+        assert not covers(earlier, later), \
+            "the later rule fires on rows the earlier one misses"
+        assert not union_covers([earlier], later)
+
+    def test_the_null_branch_is_covered_when_it_really_is(self):
+        """And it must still say yes when the earlier rules do reach the nulls,
+        or the fix would be a check that never concludes anything."""
+        from core.rules.conditions import Condition
+        from core.rules.domains import union_covers
+
+        later = Condition.parse(
+            {"not": {"field": "country", "op": "eq", "value": "GB"}})
+        earlier = [Condition.parse({"field": "country", "op": "is_null"}),
+                   Condition.parse({"all": [{"field": "country", "op": "not_null"},
+                                            {"field": "country", "op": "ne",
+                                             "value": "GB"}]})]
+        assert union_covers(earlier, later)
+
+    def test_no_row_contradicts_the_analysis(self):
+        """Exhaustive over a small world: every condition, every row.
+
+        If `covers(a, b)` is True then no row may fire `b` without firing `a`.
+        That is the whole soundness claim, checked rather than argued — the
+        defect above survived a suite that only ever asked the analysis about
+        rows where the field was present.
+        """
+        import itertools
+
+        from core.rules.conditions import Condition
+        from core.rules.domains import covers
+
+        atoms = [
+            {"field": "c", "op": "eq", "value": "GB"},
+            {"field": "c", "op": "ne", "value": "GB"},
+            {"field": "c", "op": "in", "value": ["GB", "US"]},
+            {"field": "c", "op": "is_null"},
+            {"field": "c", "op": "not_null"},
+            {"field": "n", "op": "gt", "value": 5},
+            {"field": "n", "op": "le", "value": 5},
+        ]
+        shapes = ([Condition.parse(a) for a in atoms]
+                  + [Condition.parse({"not": a}) for a in atoms]
+                  + [Condition.parse({"all": [a, b]})
+                     for a, b in itertools.combinations(atoms, 2)]
+                  + [Condition.parse({"any": [a, b]})
+                     for a, b in itertools.combinations(atoms, 2)])
+        # Rows including the two absences, which is where it went wrong.
+        rows = [{}, {"c": None}, {"n": None}, {"c": "GB"}, {"c": "US"},
+                {"c": "DE"}, {"n": 1}, {"n": 9}, {"c": "GB", "n": 1},
+                {"c": "DE", "n": 9}, {"c": None, "n": 9}]
+
+        broken = []
+        for earlier in shapes:
+            for later in shapes:
+                if not covers(earlier, later):
+                    continue
+                for row in rows:
+                    if later.holds(row) and not earlier.holds(row):
+                        broken.append((earlier.describe(), later.describe(), row))
+        assert not broken, (
+            f"{len(broken)} unsound coverage claims, first three: {broken[:3]}")
