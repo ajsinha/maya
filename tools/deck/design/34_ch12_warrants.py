@@ -1,10 +1,5 @@
 # ============================================================ CH 12
-divider("12", "Warrants, and What Comes Back",
-        "A featureset version and a model version meet; a parameter set returns.",
-        ["The fit warrant",
-         "The parameter object",
-         "The scoring warrant",
-         "Three routes to P"])
+_state["chapter"] = "12 · Warrants, and what comes back"
 
 # ---------------------------------------------------------- the fit warrant
 sl, y = content("The fit warrant", "Warrants, and what comes back")

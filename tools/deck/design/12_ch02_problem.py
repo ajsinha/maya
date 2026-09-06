@@ -1,11 +1,10 @@
 # ============================================================ CH 2
-divider("2", "One Estate, Many Kinds of Model",
-        "Why “is it AI?” separates nothing useful, and what it costs to keep "
-        "asking it.",
-        ["What is actually in the estate", "The question that sorts it wrongly",
-         "The question that sorts it correctly", "Asserted, not evidenced"])
+_state["chapter"] = "2 · One Estate, Many Kinds of Model"
 
 # --------------------------------------------------------- what is there
+# The "is it AI?" slide that used to sit between this one and the next has been
+# folded into the note below. It made one point in two text columns and a
+# hundred and eighty words, and the point is a caption on this table.
 sl, y = content("A bank's estate is not one kind of thing",
                 "The problem · what is actually there")
 data = [["What it is", "How P is inhabited", "Trained?", "Roughly how many"],
@@ -13,70 +12,54 @@ data = [["What it is", "How P is inhabited", "Trained?", "Roughly how many"],
         ["A term-structure model, solved each morning", "a solver, against quotes", "no", "tens"],
         ["A scorecard on eight thousand rows", "a statistical estimator", "yes", "hundreds"],
         ["A network with twenty million weights", "a training run", "yes", "tens"],
+        ["A fraud model refitted nightly on its own outcomes",
+         "a training run that never stops", "yes, continuously", "a handful"],
         ["A language model somebody else hosts", "a configuration", "no", "growing"],
         ["A vendor black box under licence", "inside their binary", "unknowable", "dozens"],
         ["An expert-weighted scoring sheet", "a room full of people", "no", "dozens"],
         ["Four thousand spreadsheets", "cells", "no", "thousands"]]
 th = table(sl, data, ML, y, CW, col_w=[4.5, 3.2, 1.5, 2.434],
            row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.28, CW, 0.95,
-     "One process is expected to cover all of it. ",
-     "Most tooling covers the third and fourth rows well and leaves the rest to "
-     "a spreadsheet — which is the spreadsheet the programme was bought to "
-     "replace.")
-
-# ---------------------------------------------------- the wrong question
-sl, y = content("“Is it AI?” puts these in different buckets",
-                "The problem · the question that sorts wrongly")
-x1, x2 = ML, ML + CW * 0.52
-tf = txt(sl, x1, y, CW * 0.46, 2.6)
-para(tf, "Different buckets", size=13, color=CRIMSON, bold=True, font=SERIF,
-     first=True, space_after=10)
-para(tf, "Black–Scholes  ·  a linear regression", size=13, color=INK,
-     font=MONO, space_after=8)
-para(tf, "One is “not AI” and one is “traditional statistics”, and the "
-         "validation checklist differs — although both have a closed form, both "
-         "have an operating boundary, and only one of them has parameters at "
-         "all.",
-     size=11, color=SLATE, space_after=0, line=1.28)
-
-tf = txt(sl, x2, y, CW * 0.46, 2.6)
-para(tf, "The same bucket", size=13, color=CRIMSON, bold=True, font=SERIF,
-     first=True, space_after=10)
-para(tf, "a linear regression  ·  a large language model", size=13, color=INK,
-     font=MONO, space_after=8)
-para(tf, "Both are “models”, or on a bad day both are “AI”. One is fitted from "
-         "eight thousand labelled rows you own; the other is configured around "
-         "weights somebody else replaces on a Tuesday without telling you.",
-     size=11, color=SLATE, space_after=0, line=1.28)
-
-note(sl, ML, y + 2.85, CW, 1.55,
-     "Everything downstream inherits the confusion. ",
-     "A validation checklist with fields that make no sense for half the "
-     "estate, so people write “N/A” and then stop reading the fields at all. "
-     "And controls that are ceremony for some models and absent for others — "
-     "the worse of the two, because it looks like coverage.")
+note(sl, ML, y + th + 0.28, CW, 1.45,
+     "“Is it AI?” cuts across this list rather than along it. ",
+     "Black–Scholes and a linear regression land in different buckets, though "
+     "both have a closed form and only one of them has parameters at all; a "
+     "linear regression and a language model land in the same one, though one "
+     "is fitted from eight thousand rows you own and the other is configured "
+     "around weights somebody else replaces on a Tuesday. One process is then "
+     "expected to cover all of it, and a checklist with fields that make no "
+     "sense for half the estate is one people answer “N/A” to until they stop "
+     "reading the fields at all.")
 
 # ---------------------------------------------------- the right question
 sl, y = content("“How is P inhabited?” sorts it correctly",
                 "The problem · the question that works")
+# Nine rows for nine classes. T4 was absent for four milestones — the slide the
+# whole thesis rests on was missing the class that separates a model trained
+# once from a model that is still training, which is the distinction the
+# monitoring and re-approval rules key on.
 data = [["How P is inhabited", "Example", "Class", "Can it be fitted?"],
         ["it isn't — nothing to fill", "Black–Scholes", "T0", "asking is a TYPE ERROR"],
         ["a solver, against market quotes", "Hull–White", "T1", "yes — daily"],
         ["a statistical estimator", "a PD scorecard", "T2", "yes"],
         ["a training run", "a fraud network", "T3", "yes"],
+        ["a training run that continues after release", "an adaptive fraud model",
+         "T4", "yes — and it never stops"],
         ["a configuration around someone else's model", "a triage assistant", "T5", "configured"],
         ["inside a vendor's binary", "an AML score", "T6", "not reachable"],
         ["a room full of people", "an expert scorecard", "T7", "elicited"],
         ["rules somebody wrote down", "an underwriting policy", "T8", "authored"]]
 th = table(sl, data, ML, y, CW, col_w=[4.3, 2.7, 1.1, 3.534],
            row_h=0.30, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.26, CW, 1.05,
+note(sl, ML, y + th + 0.26, CW, 1.25,
      "The class is DERIVED from that answer and never declared. ",
-     "It falls out of two facts about the kernel, so asking a closed-form "
-     "pricer for its training set is a type error rather than an empty field, "
-     "and a rule set is not a second-class citizen squeezed into a schema "
-     "designed for gradient descent.")
+     "Two facts about the kernel go in — the kind of P and the procedure that "
+     "inhabits it — and the order of the derivation is the whole of it: opaque "
+     "is T6 before anything else is asked, a terminal P is T0, and train with "
+     "adaptive set is T4 rather than T3. So asking a closed-form pricer for its "
+     "training set is a type error rather than an empty field, and a rule set "
+     "is not a second-class citizen squeezed into a schema designed for "
+     "gradient descent.")
 
 # ------------------------------------------------- asserted not evidenced
 sl, y = content("The deeper failure: governance is asserted, not evidenced",

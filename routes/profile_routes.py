@@ -21,6 +21,7 @@ from core.execution.profiles import (AUTHORITY_KEYS, DEFAULTABLE,
                                      SELECTABLE_FACTS, facts_for)
 from core.execution.urn import model_urn as urn
 from routes.base import Routes
+from core.registry.versions import latest_version
 
 
 class ProfileIn(BaseModel):
@@ -97,4 +98,4 @@ class ProfileRoutes(Routes):
 
     def _latest(self, model: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         versions = self.ctx["registry"].versions(model["urn"])
-        return versions[-1] if versions else None
+        return latest_version(versions)

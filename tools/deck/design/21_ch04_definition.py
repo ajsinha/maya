@@ -1,8 +1,5 @@
 # ============================================================ CH 4
-divider("4", "The Definition",
-        "f : P ⊗ X → D(Y). One line, and everything else derived from it.",
-        ["The five words", "Why a distribution", "Trainability, derived",
-         "What it dissolves"])
+_state["chapter"] = "4 · The Definition"
 
 # ------------------------------------------------------------ the equation
 sl, y = content("A model is a parametric kernel", "Foundations · the definition")
@@ -51,18 +48,17 @@ for lead, rest in [
          size=10.5, space_after=8)
 
 x = ML + CW * 0.58
-note(sl, x, y, CW * 0.42, 2.0,
+note(sl, x, y, CW * 0.42, 1.80,
      "Making D(Y) part of the definition forces the question early. ",
      "A version declares its output kind — point estimate, probability, "
      "distribution, interval, ranking, text — and the warrant carries it, so an "
      "engine reporting the mean of a distribution has done something the record "
      "can name.")
-note(sl, x, y + 2.20, CW * 0.42, 2.1,
+note(sl, x, y + 2.00, CW * 0.42, 1.60,
      "It is also where determinism lives. ",
-     "“Deterministic” is a CLAIM, checked before a warrant is signed: "
-     "asserted with no pinned seed, from a runtime that executes code MAYA "
-     "cannot read, it is refused rather than believed (L-W5 — the warrant laws "
-     "refuse a claim nothing can check).")
+     "“Deterministic” is a CLAIM, checked before a warrant is signed. Asserted "
+     "with no pinned seed, from a runtime MAYA cannot read, it is refused "
+     "rather than believed — L-W5.")
 
 # ---------------------------------------------------- trainability derived
 sl, y = content("The class falls out; nobody declares it",
@@ -89,9 +85,8 @@ para(tf, "“Is this model trained?” invites the answer requiring least work �
          "and the answer is then a field somebody typed, which every control "
          "keys on.",
      size=11, color=INK, space_after=8, line=1.26)
-para(tf, "The class is a fact about the artefact rather than an opinion "
-         "about it: two facts go in, so it cannot be wrong without one of them "
-         "being wrong — and both are facts a reviewer can check.",
+para(tf, "The class is a fact about the artefact rather than an opinion about "
+         "it: two facts go in, and both are facts a reviewer can check.",
      size=11, color=INK, space_after=8, line=1.26)
 para(tf, "It is also what makes a refusal a type error rather than a policy: "
          "asking a T0 for its training set is incoherent, not disallowed.",
@@ -100,21 +95,19 @@ para(tf, "It is also what makes a refusal a type error rather than a policy: "
 # ------------------------------------------------------- what it dissolves
 sl, y = content("Four problems that stop existing", "Foundations · consequences")
 outs = [("“Which models need validating?”",
-         "Every model. What DIFFERS is the evidence each can produce, and the "
-         "class says which — so a T0 gets benchmarked against an independent "
-         "implementation and a T3 gets replayed."),
+         "Every model. What DIFFERS is the evidence each can produce: a T0 is "
+         "benchmarked against an independent implementation, a T3 is replayed."),
         ("“Is a spreadsheet a model?”",
          "If it maps inputs to outputs under parameters, yes. rule_set × "
-         "author ⟹ T8, and it is governed like anything else rather than "
-         "living in a separate register nobody reads."),
+         "author ⟹ T8, governed like anything else rather than kept in a "
+         "register nobody reads."),
         ("“How do we validate an LLM?”",
          "P is a configuration: base model, prompt, corpus version, tools, "
-         "guardrails. Each is versioned and pinned, so “what changed” has an "
-         "answer that is not “the vendor did something”."),
+         "guardrails. Each is versioned and pinned, so “what changed” is not "
+         "answered with “the vendor did something”."),
         ("“What is a model change?”",
          "A change to f is a new version. A change to P is a new parameter "
-         "set. A change to X is a model change too, and L-W10 is where that is "
-         "enforced rather than remembered.")]
+         "set. A change to X is a model change too — L-W10.")]
 cw2 = (CW - 0.30) / 2
 for i, (t, d) in enumerate(outs):
     card(sl, ML + (i % 2) * (cw2 + 0.30), y + (i // 2) * 2.35, cw2, 2.15,

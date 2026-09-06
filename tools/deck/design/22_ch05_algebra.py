@@ -1,31 +1,44 @@
 # ============================================================ CH 5
-divider("5", "The Algebra",
-        "One order for five questions, one fold for two levels, and the laws "
-        "that make both checkable.",
-        ["Four implementations of one relation", "Schemas as a lattice",
-         "The fold, and what it buys", "Independent edits commute"])
+_state["chapter"] = "5 · The Algebra"
 
-# ------------------------------------------------- the problem it solves
-sl, y = content("Four places asked one question, four different ways",
-                "The algebra · why")
-data = [["Where", "What it asked", "How it answered"],
-        ["An alias move", "is the replacement version substitutable?",
-         "substitutable() in core/domain/schemas.py"],
-        ["A fit warrant", "does the featureset provide what the kernel reads?",
-         "a hand-written loop over the fields"],
-        ["An operating contract", "does the new boundary a version is valid "
-         "in refine the old one?",
-         "refines() in core/domain/contracts.py"],
-        ["A dependency edge", "does the source's output arrive where the target reads?",
-         "IT DID NOT ASK"]]
-th = table(sl, data, ML, y, CW, col_w=[2.6, 4.6, 4.434],
-           row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.30, CW, 1.15,
-     "Four implementations of one relation disagree eventually. ",
-     "And the direction is predictable: toward PERMITTING MORE, because that "
-     "is the direction in which nobody files a bug. The fourth row is the "
-     "worst — a dependency graph whose edges were never checked. So the "
-     "relation is written once, and everything now asks it.")
+# ------------------------------------------- the problem, and what it bought
+# Two slides, merged. One listed the four places that asked the question and
+# the four ways they answered it; the next listed the five questions the single
+# relation now answers. They are the same list read forwards and backwards, and
+# the "new" column is the only part of either that a reader had to be told
+# twice.
+sl, y = content("Four implementations of one relation, and what replaced them",
+                "The algebra · why, and what it unified")
+data = [["The question somebody was asking", "How it used to be answered",
+         "Now"],
+        ["Is the replacement version substitutable?  (L-12)",
+         "substitutable(), in core/domain/schemas.py", "refines()"],
+        ["Does the featureset provide what the kernel reads?  (L-W10)",
+         "a hand-written loop over the fields", "the same refines()"],
+        ["Does the new operating boundary refine the old one?",
+         "refines(), in core/domain/contracts.py", "the same refines()"],
+        ["Does the source's output arrive where the target reads?  (L-21)",
+         "IT DID NOT ASK", "A ⊑ B"],
+        ["Is this child a refinement of its parent?",
+         "could not be asked at all", "A ⊑ B     new"],
+        ["What must a featureset provide to serve both models?",
+         "could not be asked at all", "their meet     new"],
+        ["What do two versions agree on?",
+         "could not be asked at all", "their join     new"]]
+th = table(sl, data, ML, y, CW, col_w=[5.0, 3.6, 3.034],
+           row_h=0.34, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + th + 0.30, CW, 1.80,
+     "Four implementations of one relation disagree eventually, and the "
+     "direction is predictable: toward PERMITTING MORE, because that is the "
+     "direction in which nobody files a bug. ",
+     "The fourth row was the worst — a dependency graph whose edges were never "
+     "checked. L-20 states the structure the one relation has, and the test "
+     "asserts it over generated schemas: the order — a preorder, and a partial "
+     "order on canonical form — meet below both, join above "
+     "both, idempotence, commutativity, associativity, absorption, and the link "
+     "A ⊑ B ⟺ A ⊓ B = A that makes it a lattice ORDER rather than an order and "
+     "two unrelated operations. The three marked new are questions a "
+     "practitioner asks out loud in a meeting and nothing could answer.")
 
 # ------------------------------------------------------------- the order
 sl, y = content("A ⊑ B — “A can stand in for B”", "The algebra · the order")
@@ -35,6 +48,10 @@ h = code(sl, ML, y, CW * 0.54, [
     "",
     "# a slot is one named field of a schema",
     "# extra fields in A are fine — they are simply not read",
+    "",
+    "# reflexive and transitive. A ⊑ B and B ⊑ A gives the same fields",
+    "# as a SET, so it is a preorder — and a partial order on the",
+    "# name-sorted canonical form every constructor here produces",
 ], fs=10.5, title="core/domain/lattice.py")
 
 note(sl, ML, y + h + 0.28, CW * 0.54, 1.35,
@@ -45,8 +62,8 @@ note(sl, ML, y + h + 0.28, CW * 0.54, 1.35,
 
 x = ML + CW * 0.58
 tf = txt(sl, x, y, CW * 0.42, 0.4)
-para(tf, "It is a lattice", size=13, color=CRIMSON, bold=True, font=SERIF,
-     first=True, space_after=10)
+para(tf, "Join always; meet when it can", size=13, color=CRIMSON, bold=True,
+     font=SERIF, first=True, space_after=10)
 rows = [("meet  A ⊓ B",
          "the UNION of the fields, widened to accept both — what a featureset "
          "must provide to serve two models at once"),
@@ -63,33 +80,12 @@ for name, meaning in rows:
     para(tf, meaning, size=9.5, color=SLATE, space_after=0, line=1.2)
     yy += 1.00
 
-note(sl, x, yy + 0.05, CW * 0.42, 1.35,
-     "Meet is PARTIAL, informatively. ",
-     "Two schemas whose shared field carries two different types have no "
-     "meet. The honest answer to “can one featureset serve both these models” "
+note(sl, x, yy + 0.05, CW * 0.42, 1.55,
+     "So it is a join-semilattice with PARTIAL meets, ",
+     "rather than a lattice outright — and the partiality is informative. Two "
+     "schemas whose shared field carries two different types have no meet at "
+     "all. The honest answer to “can one featureset serve both these models” "
      "is then no, with the field named.")
-
-# ---------------------------------------------------------- what it unified
-sl, y = content("One relation, five questions", "The algebra · what it unified")
-data = [["Question", "Answered by", ""],
-        ["Does this featureset provide what the kernel reads?  (L-W10)",
-         "refines(resolved, kernel_inputs)", ""],
-        ["Is the replacement version substitutable?  (L-12)",
-         "the same refines()", ""],
-        ["Is this child a refinement of its parent?", "A ⊑ B", "new"],
-        ["What must a featureset provide to serve both models?", "their meet",
-         "new"],
-        ["What do two versions agree on?", "their join", "new"]]
-th = table(sl, data, ML, y, CW, col_w=[5.4, 5.0, 1.234],
-           row_h=0.34, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.30, CW, 1.30,
-     "L-20 states the structure, and the test asserts it over generated "
-     "schemas. ",
-     "Partial order, meet below both, join above both, idempotence, "
-     "commutativity, associativity, absorption — and the link A ⊑ B ⟺ A ⊓ B = A "
-     "that makes it a lattice ORDER rather than an order and two unrelated "
-     "operations. The three marked new could not be asked at all before, and "
-     "all three are questions a practitioner asks out loud in a meeting.")
 
 # -------------------------------------------------------------- the fold
 sl, y = content("One fold, at two levels", "The algebra · composition")

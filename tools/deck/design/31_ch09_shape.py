@@ -1,10 +1,5 @@
 # ============================================================ CH 9
-divider("9", "The Shape of the Whole Thing",
-        "What each object is, how they meet, and where the pins are that stop "
-        "any of them moving underneath the others.",
-        ["What each object is for",
-         "The process, end to end",
-         "Where the pins are"])
+_state["chapter"] = "9 · The shape of the whole thing"
 
 # --------------------------------------------------- what each object is for
 # The inventory comes BEFORE the diagram. A picture whose labels have not been

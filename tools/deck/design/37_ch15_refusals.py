@@ -1,9 +1,5 @@
 # ============================================================ CH 15
-divider("15", "What MAYA Refuses, and Why",
-        "The refusals are the product. Everything else is bookkeeping.",
-        ["The refusals that matter",
-         "What it deliberately will not do",
-         "Where the boundary is"])
+_state["chapter"] = "15 · What MAYA refuses, and why"
 
 # ------------------------------------------------------------ the refusals
 sl, y = content("The refusals that matter", "What MAYA refuses, and why")

@@ -1,10 +1,5 @@
 # ============================================================ CH 25
-divider("25", "A Worked Example",
-        "Real data, real fits: the S&P 500 and the US unemployment rate.",
-        ["The data, and its two clocks",
-         "The gap that is really there",
-         "Two models over one X",
-         "Extending it, and what that forces"])
+_state["chapter"] = "25 · A Worked Example"
 
 # ------------------------------------------------------------- the raw data
 sl, y = content("Two real series, on two different clocks",
@@ -277,32 +272,3 @@ note(sl, ML, y + 3.22, CW, 0.86,
      "The generator reads those same two files when it draws these slides, so "
      "the figures and the data ",
      "cannot drift apart.")
-
-
-# ------------------------------------------- end of the engineering part
-sl = blank()
-rect(sl, 0, 0, SW, SH, fill=CRIMSON)
-rect(sl, 0, 0, 0.20, SH, fill=CRIMSON_D)
-rect(sl, ML + 0.4, 1.10, 1.7, 0.035, fill=RGBColor(0xE8, 0xB8, 0xC0))
-tf = txt(sl, ML + 0.4, 1.40, CW * 0.80, 2.6)
-para(tf, "One idea, applied everywhere", size=34, color=WHITE, font=SERIF,
-     first=True, space_after=14)
-para(tf, "A pin is to a version, never to a name. A clock records when something "
-         "became knowable, not when it was written down. A refusal says what to "
-         "do instead. And what the platform will not do is written down beside "
-         "what it will.",
-     size=15, color=RGBColor(0xF4, 0xDF, 0xE3), italic=True, space_after=0,
-     line=1.32)
-tf = txt(sl, ML + 0.4, 4.22, CW * 0.74, 2.10)
-para(tf, "Ashutosh Sinha", size=18, color=WHITE, bold=True, first=True,
-     space_after=4)
-para(tf, "Independent Researcher   \u00b7   ajsinha@gmail.com", size=12,
-     color=RGBColor(0xF2, 0xD8, 0xDC), space_after=14)
-para(tf, "Featuresets and parameters: docs/15-featuresets-and-parameters.md   "
-         "\u00b7   Composition and retrieval: docs/16-features-composed-and-shaped.md   "
-         "\u00b7   Feature platform: docs/07-feature-platform.md",
-     size=10.5, color=RGBColor(0xE8, 0xC4, 0xCA), line=1.3)
-para(tf, "\u00a9 2026 Ashutosh Sinha. All rights reserved. Proprietary and "
-         "confidential \u2014 see LICENSE and NOTICE. Not legal, regulatory or "
-         "financial advice.",
-     size=8.5, color=RGBColor(0xD8, 0xA0, 0xAC), space_before=10, line=1.25)

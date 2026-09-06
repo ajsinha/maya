@@ -1,18 +1,17 @@
 # ============================================================ CH 1
-divider("1", "The Name, and What It Is For",
-        "māyā is appearance: the representation that stands in for reality and "
-        "is so easily mistaken for it.",
-        ["What the word means", "The mark, and the oldest model there is",
-         "What that commits the platform to"])
+# The chapter divider is gone. It was 27-47 words of "IN THIS CHAPTER" bullets
+# restating the titles of the four slides immediately after it, and the part
+# divider already lists the chapters. What the divider actually carried was the
+# footer's chapter name, so that is set here directly.
+_state["chapter"] = "1 · The Name, and What It Is For"
 
 # ------------------------------------------------------------ the word
 sl, y = content("māyā — appearance, not illusion", "Philosophy · the name")
 tf = txt(sl, ML, y, CW * 0.54, 3.4)
 para(tf, "माया", size=44, color=CRIMSON, font=SERIF, first=True, space_after=12)
 para(tf, "In Indian philosophy, māyā is the representation that stands in for "
-         "reality. The usual translation — “illusion” — is too strong.",
-     size=13, color=INK, space_after=10, line=1.3)
-para(tf, "Māyā is not falsehood. It is a RENDERING of the world: useful, often "
+         "reality. The usual translation — “illusion” — is too strong. Māyā is "
+         "not falsehood: it is a RENDERING of the world, useful, often "
          "necessary, and dangerous only when you forget that it is a rendering.",
      size=13, color=INK, space_after=10, line=1.3)
 para(tf, "Which is what a model is — and the supervisory guidance says so in "
@@ -64,27 +63,15 @@ data = [["What the estate assumes", "What the figure says"],
 th = table(sl, data, x, y + 1.60, CW * 0.44, col_w=[2.6, 2.74],
            row_h=0.34, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 
-# ------------------------------------------------------ what it commits to
-sl, y = content("What naming it that commits the platform to",
-                "Philosophy · consequences")
-outs = [("The gap is measured, not denied",
-         "Every model carries an operating boundary — the domain it was "
-         "validated in — and a warrant for a run outside it is refused rather "
-         "than answered."),
-        ("Representation is versioned",
-         "A rendering gets replaced. Immutable versions, plus a governed alias "
-         "— a name such as #champion pointing at whichever version is approved "
-         "today — let the rendering change without the thing it renders "
-         "appearing to."),
-        ("Nobody is asked to believe",
-         "Every claim is bound to the artefact it rests on. A governance "
-         "system that asks for trust has reproduced the problem it was built "
-         "to solve."),
-        ("And it applies to MAYA itself",
-         "The platform is also a representation — of an estate. Its own "
-         "documentation is compiled from the register rather than written, so "
-         "the map of the maps cannot drift either.")]
-cw2 = (CW - 0.30) / 2
-for i, (t, d) in enumerate(outs):
-    card(sl, ML + (i % 2) * (cw2 + 0.30), y + (i // 2) * 2.35, cw2, 2.15,
-         f"0{i+1}", t, d)
+# The four-card slide that used to follow is gone. Two of its cards — the gap
+# is measured, and nobody is asked to believe — are the first and second of the
+# five positions in chapter 3, stated twice. The two that were not restated
+# there are kept, here, in the space the table left.
+note(sl, x, y + 1.60 + th + 0.28, CW * 0.44, 1.75,
+     "What naming it that commits the platform to. ",
+     "A rendering gets replaced, so versions are immutable and a governed "
+     "alias — #champion, pointing at whichever version is approved today — "
+     "carries the name instead. And it applies to MAYA itself: the platform is "
+     "a representation of an estate, so its own documentation is compiled from "
+     "the register rather than written, and the map of the maps cannot drift "
+     "either.")

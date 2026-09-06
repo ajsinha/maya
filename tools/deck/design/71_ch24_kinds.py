@@ -1,10 +1,5 @@
 # ============================================================ CH 24
-divider("24", "Every Kind of Model",
-        "Eight shapes, one definition — and how each is saved, managed and served.",
-        ["The matrix, on one page",
-         "Regression, GARCH, closed-form",
-         "Calibration and simulation",
-         "Networks, LLMs and rule sets"])
+_state["chapter"] = "24 · Every Kind of Model"
 
 # ---------------------------------------------------------------------------
 # The chapter's own helper. Every model slide answers the same three questions
@@ -118,55 +113,6 @@ note(sl, ML, y + th + 0.30, CW, 1.05,
      "does not let the two be told apart, and pretending it does would let a "
      "graph change arrive labelled as a recalibration.")
 
-# ---------------------------------------------------------------- regression
-model_slide(
-    "Linear regression - the ordinary case", "Every kind of model",
-    [["", "What it is", "Where it lands"],
-     ["P", "an intercept and two slopes", "the parameter register, as values"],
-     ["Filled by", "ordinary least squares", "MAYA's own estimator runtime"],
-     ["Kind / procedure", "estimated_coefficients / estimate", "class T2, derived"],
-     ["Runtime", "estimator, family ols", "entry names target and regressors"]],
-    ("Values, digested",
-     "The coefficients are rows. The digest is re-derived from the values at "
-     "resolve time, never compared against a stored copy of itself."),
-    ("Reviewed one by one",
-     "Each parameter set is approved by somebody who did not record it. The "
-     "condition number is read before the R-squared."),
-    ("Warrant names the set",
-     "The descriptor carries the parameter set id and digest; an artifact "
-     "binding would be a false statement, since there is no artifact."),
-    lead="Read the condition number first. ",
-    rest="In the thousands, the coefficients are a solution to this sample "
-         "rather than a property of the world. MAYA does not decide whether a "
-         "fit is any good -- it puts the number in front of somebody who can, "
-         "and records that they looked.")
-
-# --------------------------------------------------------------------- GARCH
-model_slide(
-    "GARCH and ARIMA - an iterative fit, and state at scoring time",
-    "Every kind of model",
-    [["", "What it is", "Where it lands"],
-     ["P", "omega, alpha, beta", "the parameter register, as values"],
-     ["Filled by", "maximum likelihood, iteratively", "estimator, family garch11"],
-     ["Kind / procedure", "estimated_coefficients / estimate", "class T2, derived"],
-     ["The catch", "it can fail while looking like it succeeded",
-      "an unconverged fit is refused, not flagged"]],
-    ("Values, plus convergence",
-     "Iterations, log-likelihood and persistence are part of the result. A "
-     "result that does not carry them is not reviewable."),
-    ("Constrained during the fit",
-     "alpha + beta < 1 is enforced while solving. Without it there is no "
-     "unconditional variance and the forecast explodes."),
-    ("State is supplied, not invented",
-     "Scoring needs the last shock and last variance. The answer says which "
-     "state it used and which it returns."),
-    lead="ARMA, ARIMA and EGARCH sit in exactly this slot. ",
-    rest="Same kind, same procedure, order (p, d, q) in the kernel entry. "
-         "MAYA's captive engine implements ols and garch11 only -- fit the "
-         "rest in your own engine and deliver the parameters back under the "
-         "warrant. None of the governance changes, which is the point of "
-         "separating the estimator from the register.")
-
 # --------------------------------------------------------- closed-form pricer
 model_slide(
     "A closed-form pricer - where P is empty", "Every kind of model",
@@ -190,57 +136,53 @@ model_slide(
          "so the monitor watches the inputs, and a breach is a finding against "
          "the USE rather than against the mathematics.")
 
-# ---------------------------------------------------------------- Hull-White
-model_slide(
-    "A calibrated term-structure model - daily, by exception",
-    "Every kind of model",
-    [["", "What it is", "Where it lands"],
-     ["P", "mean reversion, a term structure of sigma",
-      "the parameter register, one set per day"],
-     ["Filled by", "a solver, against the swaption grid",
-      "the bank's engine, under a fit warrant"],
-     ["Kind / procedure", "calibration_set / calibrate", "class T1, derived"],
-     ["Cadence", "every morning", "250 parameter sets, one approved kernel"]],
-    ("A set per business day",
-     "provenance = calibrated: the numbers reproduce a market rather than "
-     "summarise a history, and every downstream reader branches on that."),
-    ("Approved by envelope",
-     "A published, versioned, case-tested policy accepts what fits and holds "
-     "what does not. A gate with no refusing case is refused at publication."),
-    ("Residuals, not accuracy",
-     "There is no label to wait for. A climbing RMSE means the one-factor "
-     "form is running out of grid -- a model finding, not a bad day."),
-    lead="Nobody approves 250 calibrations a year. ",
-    rest="Somebody approves the envelope once and looks at the eleven days it "
-         "was breached. That is what 'recording new parameters is not a new "
-         "model version' buys operationally -- and why calibrated is its own "
-         "class rather than a kind of training.")
-
-# --------------------------------------------------------------- Monte Carlo
-model_slide(
-    "A Monte Carlo engine - the seed is a parameter", "Every kind of model",
-    [["", "What it is", "Where it lands"],
-     ["P", "parameters, seed, path count, scheme, antithetic flag",
-      "the parameter register, as values"],
-     ["Filled by", "calibration plus deliberate configuration",
-      "the bank's engine, under a fit warrant"],
-     ["Kind / procedure", "calibration_set / calibrate", "class T1, derived"],
-     ["Claim checked", "deterministic = true",
-      "L-W5: refused if no seed is bound"]],
-    ("Configuration is in P",
-     "Paths, seed, scheme and antithetic each change the answer. If they are "
-     "not in P they are not in the digest, the warrant or the replay."),
-    ("Standard error is reviewed",
-     "A Monte Carlo answer is an estimate with an interval. The convergence "
-     "study attaches to the parameter set as evidence with an author."),
-    ("The verb is simulate",
-     "Drawing from the output distribution is a different operation from "
-     "scoring. A warrant for score will not simulate."),
-    lead="Reseeding per request passes every single-trade test. ",
-    rest="A single valuation averages over paths either way; what moves is the "
-         "correlation BETWEEN valuations in a netting set. So determinism is "
-         "tested on the aggregate, because a suite whose every case has length "
-         "one cannot see it.")
+# ------------------------------------------------- where P is a record
+sl, y = content("Where P is a record — an estimate, a calibration, and a seed",
+                "Every kind of model")
+data = [["Model", "P is", "Filled by", "Kind · class", "What review reads first"],
+        ["Linear regression", "an intercept and two slopes",
+         "ordinary least squares, in MAYA's estimator",
+         "estimated_coefficients · T2",
+         "the condition number, before the R-squared"],
+        ["GARCH / ARIMA", "omega, alpha, beta",
+         "maximum likelihood; an unconverged fit is refused",
+         "estimated_coefficients · T2",
+         "convergence, and alpha + beta < 1, enforced while solving"],
+        ["Hull-White", "mean reversion, a term structure of sigma",
+         "a solver against the swaption grid, one set a morning",
+         "calibration_set · T1",
+         "the residuals - there is no label to wait for"],
+        ["Monte Carlo XVA", "parameters, seed, paths, scheme, antithetic",
+         "calibration plus deliberate configuration",
+         "calibration_set · T1",
+         "the standard error, and any determinism claim"]]
+th = table(sl, data, ML, y, CW, col_w=[1.7, 2.4, 3.2, 2.1, 2.6],
+           row_h=0.24, fs=8.5, hfs=9, bold_col0=True, first_col_color=CRIMSON)
+cy = y + th + 0.22
+cw2 = (CW - 0.28 * 2) / 3
+for kick, head, body in [
+        ("SAVES", "Values, digested",
+         "Rows in the parameter register. The digest is re-derived from the "
+         "values at resolve time, never compared against a stored copy of itself."),
+        ("MANAGES", "One review, or one envelope",
+         "Where sets are rare, each is approved by somebody who did not record "
+         "it. Where there are 250 a year, a versioned, case-tested envelope "
+         "accepts what fits and holds what does not - and a gate with no "
+         "refusing case is refused at publication."),
+        ("SERVES", "The warrant names the set",
+         "The descriptor carries the parameter set id and digest. An artifact "
+         "binding would be a false statement, since there is no artifact.")]:
+    i = ["SAVES", "MANAGES", "SERVES"].index(kick)
+    card(sl, ML + i * (cw2 + 0.28), cy, cw2, 1.62, kick, head, body,
+         title_size=12, body_size=9)
+aside(sl, ML, cy + 1.76, CW,
+      "An estimate and a calibration differ in what the numbers are for, not in the mathematics. ",
+      "An estimate summarises a history; a calibration reproduces a market, and "
+      "provenance says which - so calibrated is its own class rather than a kind "
+      "of training, and nobody approves 250 calibrations a year. The captive "
+      "engine implements ols and garch11 only: fit the rest in your own engine, "
+      "deliver the parameters back under the warrant, and none of the governance "
+      "changes.")
 
 # ------------------------------------------------------------ neural network
 model_slide(
@@ -321,26 +263,3 @@ model_slide(
          "nothing. The analysis is deliberately sound and incomplete: it calls "
          "a rule unreachable only when a SINGLE earlier rule covers it, because "
          "a check that cries wolf is a check somebody turns off.")
-
-# ------------------------------------------------------------- what it proves
-sl, y = content("What did not have to change", "Every kind of model")
-outs = [("One definition, eight kinds of model",
-         "f : P (x) X -> D(Y) took a closed-form pricer, a daily calibration, "
-         "a 20-million-weight network, a prompt assembly and a hand-written "
-         "rule set without a special case in the register. A taxonomy that "
-         "needs a new branch per model family is a list."),
-        ("The class is derived, not declared",
-         "Nobody self-reported 'is this trained?'. The class falls out of how "
-         "P is inhabited, which is a fact about the artifact rather than an "
-         "opinion about it."),
-        ("The unit of change follows the medium",
-         "Values refit into a new parameter set; an artifact refits into a new "
-         "version. That is a consequence of the medium, not a policy choice."),
-        ("Warrants and evidence did not fork",
-         "One grammar, four vocabularies: simulate and generate were verbs it "
-         "already had, and rule_set a value in one of them. One append-only "
-         "chain records a calibration, a training run and a drafted paragraph, "
-         "so a single query answers what happened to this model.")]
-cw2 = (CW - 0.30 * 3) / 4
-for i, (t, d) in enumerate(outs):
-    card(sl, ML + i * (cw2 + 0.30), y + 0.10, cw2, 3.00, f"0{i+1}", t, d)

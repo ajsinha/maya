@@ -1,12 +1,8 @@
 # ============================================================ CH 3
-divider("3", "Five Positions, and Their Cost",
-        "Each one is a choice with a price. The price is stated here rather "
-        "than discovered later.",
-        ["It does not run models", "Evidence, not assertion",
-         "Refusals are the product", "Laws, not conventions",
-         "Derived, not entered"])
+_state["chapter"] = "3 · Five Positions, and Their Cost"
 
-sl, y = content("Five positions", "Philosophy · the stance")
+sl, y = content("Five positions, and what each one costs",
+                "Philosophy · the stance")
 data = [["Position", "What it means", "What it costs"],
         ["It does not run models",
          "MAYA issues a signed, expiring, entitlement-bound warrant and an "
@@ -23,9 +19,10 @@ data = [["Position", "What it means", "What it costs"],
          "a platform that refuses is a platform people route around unless the "
          "compliant path is also the fast one"],
         ["Laws, not conventions",
-         "twenty-one foundational laws stated; sixteen run, and a failing one "
-         "fails the build",
-         "five do not run, and a law stated but not executed prevented nothing"],
+         "twenty-one foundational laws stated, of which sixteen are executable "
+         "and run in the ordinary test suite",
+         "five do not run; and there is no pipeline in this repository, so the "
+         "suite enforces as much as whoever runs it"],
         ["Derived, not entered",
          "risk tier, worklist, estate summary, documentation, board pack: "
          "computed from the register",
@@ -33,14 +30,17 @@ data = [["Position", "What it means", "What it costs"],
          "black box of its own"]]
 th = table(sl, data, ML, y, CW, col_w=[2.7, 4.5, 4.434],
            row_h=0.42, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.26, CW, 0.90,
+note(sl, ML, y + th + 0.26, CW, 1.15,
      "A position with no stated cost is marketing. ",
      "Each of these is a trade, and the right-hand column is the half that "
-     "usually goes unwritten.")
+     "usually goes unwritten. Two of the five are worked out on their own "
+     "slide next — the first, because it decides the whole architecture, and "
+     "the third, because it is the one people find strange. The other three "
+     "are argued where they bite, in chapters 7, 8 and 19.")
 
 # ------------------------------------------ it does not run models, in detail
 sl, y = content("Why governance must not be in the serving path",
-                "Philosophy · position one")
+                "Philosophy · the serving path")
 steps(sl, ML, y, CW, [
     ("01", "A consumer holds a name", "maya://model/credit.pd.smallbiz#champion "
                                       "— an alias, never a version, never a path"),
@@ -54,17 +54,17 @@ steps(sl, ML, y, CW, [
      "which is the correct failure mode: governance must not be the bank's "
      "single point of failure"),
 ], h=1.75)
-note(sl, ML, y + 2.05, CW, 1.55,
+note(sl, ML, y + 2.05, CW, 1.20,
      "Nobody redeploys to promote a version, because no consumer ever held "
      "one. ",
      "Revocation bites when the current warrant expires — sixty seconds for a "
-     "Tier 1 model. And an open blocking finding stops the name from resolving "
-     "at all, so a validation finding stops the model rather than generating an "
-     "email that somebody files.")
+     "Tier 1 model. And an open blocking finding stops the name resolving at "
+     "all, so a validation finding stops the model rather than generating an "
+     "email somebody files.")
 
 # ----------------------------------------------- refusals are the product
 sl, y = content("What a refusal has to contain to be worth having",
-                "Philosophy · position three")
+                "Philosophy · refusals")
 h = code(sl, ML, y, CW * 0.56, [
     '{"error":       "nothing_to_fit",',
     ' "detail":      "markets.pricing.vanilla 1.0.0 is T0: it has no',
@@ -88,8 +88,7 @@ for lead, rest in [
          space_after=8)
 para(tf, "Notice what it does not say: “no”. It names the fact that made the "
          "request meaningless, and points at the version rather than the "
-         "request — because if the model does have parameters, the version is "
-         "where the error is.",
+         "request — because that is where the error is.",
      size=10.5, color=INK, space_after=0, line=1.26)
 
 note(sl, ML, y + h + 0.30, CW * 0.56, 1.15,

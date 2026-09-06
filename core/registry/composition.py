@@ -49,6 +49,7 @@ from core.log import get_logger
 from core.domain.lattice import refines
 from core.domain.schemas import Field, Schema
 from core.registry.common import RegistryError
+from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -282,8 +283,7 @@ class ModelComposition:
         return {f.name for f in produced.fields} & {f.name for f in read.fields}
 
     def _latest(self, model_id: str) -> Optional[Dict[str, Any]]:
-        rows = self.versions.many(model_id=model_id)
-        return rows[-1] if rows else None
+        return latest_version(self.versions.many(model_id=model_id))
 
     def composite_schema(self, from_urn: str, to_urn: str) -> Dict[str, Any]:
         """The type of `to ∘ from`: what the pair still needs, and what it emits.
