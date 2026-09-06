@@ -151,6 +151,17 @@ DESCRIPTIONS: Dict[str, str] = {
 INCOMPATIBLE_ROLES = (
     ("model_developer", "model_risk_manager",
      "a developer who can also approve versions is a first line approving its own work"),
+    # The pair the list was missing, and the plainest one in SR 11-7: effective
+    # challenge means somebody other than the builder runs it. `validator` is
+    # described in this very file as "Second line ... Never builds", and nothing
+    # enforced it — a developer could hold it, open the validation of the version
+    # they wrote, record its results and conclude it.
+    ("model_developer", "validator",
+     "effective challenge is not effective when the builder runs it: a developer "
+     "holding validator concludes the challenge of their own version"),
+    ("model_owner", "validator",
+     "an owner who can also conclude their model's validation is signing off "
+     "their own challenge"),
     ("model_owner", "model_risk_manager",
      "an owner who can also approve and tier their own models defeats second-line challenge"),
     ("model_developer", "auditor",

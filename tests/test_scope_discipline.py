@@ -91,11 +91,18 @@ class TestTheScopeActuallyBites:
             self, registered, client, people):
         from tests.conftest import NAME, KERNEL, CONTRACT, URN
 
+        # Two principals, not one holding both roles: `model_developer`/`owner`
+        # and `validator` are an incompatible pair, so a single UK person
+        # carrying the whole list is refused before any scope is reached.
         registered.post("/api/v1/principals", json={
-            "username": "uk.person", "display_name": "UK",
-            "roles": ["validator", "model_owner"],
+            "username": "uk.validator", "display_name": "UK val",
+            "roles": ["validator"],
             "password": "pw", "legal_entities": ["LE-UK-02"]})
-        uk = ("uk.person", "pw")
+        registered.post("/api/v1/principals", json={
+            "username": "uk.owner", "display_name": "UK owner",
+            "roles": ["model_owner"],
+            "password": "pw", "legal_entities": ["LE-UK-02"]})
+        uk_validator, uk = ("uk.validator", "pw"), ("uk.owner", "pw")
 
         # A signature on a quorum. `registered` already approved 3.2.1, so open
         # the quorum on a fresh version — the record is still in draft, which is
@@ -109,7 +116,7 @@ class TestTheScopeActuallyBites:
         assert opened.status_code == 201, opened.text
         signed = registered.post(
             f"/api/v1/version-approvals/{opened.json()['id']}/sign",
-            auth=uk, json={"role": "validator"})
+            auth=uk_validator, json={"role": "validator"})
         assert signed.status_code == 403, signed.text
         assert signed.json()["error"] == "out_of_scope", \
             "half a Tier 2 quorum signed from outside the entity"
