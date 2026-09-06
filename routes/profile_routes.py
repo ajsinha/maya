@@ -12,10 +12,10 @@ answer carries the derivation rather than the result.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.execution.profiles import (AUTHORITY_KEYS, DEFAULTABLE,
                                      SELECTABLE_FACTS, facts_for)
@@ -67,14 +67,24 @@ class ProfileRoutes(Routes):
 
         @self.app.post(f"{api}/warrant-profiles", status_code=201, tags=["warrants"])
         def create(request: Request, body: ProfileIn):
-            who = self.authorise(request, "warrant:issue")
+            # A profile is not about one model: it sets warrant defaults for
+            # every model its `when` clause matches, across every entity. So it
+            # is checked against the whole estate, which a partially scoped
+            # principal does not reach.
+            who = self.authorise(
+                request, "warrant:issue",
+                estate_wide="a warrant profile sets defaults for every model "
+                            "it matches, in every legal entity and domain")
             return self.guard(lambda: profiles.create(
                 body.name, body.when, body.defaults, body.note,
                 actor=self.actor(who)))
 
         @self.app.post(f"{api}/warrant-profiles/{{name}}/retire", tags=["warrants"])
         def retire(request: Request, name: str):
-            who = self.authorise(request, "warrant:issue")
+            who = self.authorise(
+                request, "warrant:issue",
+                estate_wide="retiring a profile withdraws defaults from every "
+                            "model it matched, in every legal entity")
             return self.guard(lambda: profiles.retire(name, actor=self.actor(who)))
 
         @self.app.post(f"{api}/warrant-profiles/preview", tags=["warrants"])

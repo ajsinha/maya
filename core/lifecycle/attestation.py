@@ -26,7 +26,6 @@ from __future__ import annotations
 import time
 from typing import Any, Dict, List, Optional, Sequence
 
-from core.authz import permissions_for
 from core.evidence import EvidenceEngine
 from core.lifecycle.common import (DAY, DECISIONS, DEFAULT_REQUIRED_ROLES,
                                    DEFAULT_VALIDITY_DAYS, LifecycleError)

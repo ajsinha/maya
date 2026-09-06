@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.authz.common import AuthzError, same_person
 from core.execution.urn import model_urn, parse_urn
@@ -21,6 +21,17 @@ from routes.base import Body, Routes
 
 def strip_qualifier(urn: str) -> str:
     """The bare model urn, with any @semver or #alias removed."""
+    return model_urn(parse_urn(urn)[0])
+
+
+def _model_urn(urn: str) -> str:
+    """The model a warrant urn names, with any alias or pinned version dropped.
+
+    `maya://model/x#champion` and `maya://model/x@3.2.1` are the same model for
+    the purpose of legal-entity scope, and a hand-rolled `split("#")` gets the
+    second one wrong — which is how the scope check first landed here refusing
+    a model that plainly exists.
+    """
     return model_urn(parse_urn(urn)[0])
 
 
@@ -95,7 +106,8 @@ class WarrantRoutes(Routes):
             change, not a data change, and this is where that is enforced rather
             than remembered.
             """
-            self.authorise(request, "warrant:issue")
+            self.authorise(request, "warrant:issue",
+                           model=self.guard(lambda: registry.require(_model_urn(body.urn))))
             return self.guard(lambda: warrants.resolve_fit(
                 body.urn, body.environment, body.principal, body.declared_use,
                 body.featureset, body.featureset_version, body.window,
@@ -117,7 +129,11 @@ class WarrantRoutes(Routes):
 
         @self.app.post(f"{self.api}/warrants", status_code=201, tags=["warrants"])
         def issue(request: Request, body: IssueIn):
-            who = self.authorise(request, "warrant:issue")
+            # The urn names the model, and issuing production authority over
+            # a model in another legal entity was the sharpest of the unscoped
+            # routes: it granted execution rights, not just a record.
+            who = self.authorise(request, "warrant:issue",
+                                 model=self.guard(lambda: registry.require(_model_urn(body.urn))))
             return self.guard(lambda: warrants.issue(
                 body.urn, body.environment, body.principal, body.declared_use,
                 body.flavour, actor=self.actor(who)))
@@ -146,7 +162,8 @@ class WarrantRoutes(Routes):
 
         @self.app.post(f"{self.api}/warrants/revoke", tags=["warrants"])
         def revoke(request: Request, body: RevokeIn):
-            who = self.authorise(request, "warrant:revoke")
+            who = self.authorise(request, "warrant:revoke",
+                                 model=self.guard(lambda: registry.require(_model_urn(body.urn))))
             n = self.guard(lambda: warrants.revoke_model(body.urn, body.reason,
                                                          actor=self.actor(who)))
             return {"revoked": n, "urn": body.urn, "reason": body.reason,

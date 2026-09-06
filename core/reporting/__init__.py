@@ -13,7 +13,19 @@ from core.reporting.common import (AMBER, BREACH, BY_KEY, METRICS, NO_APPETITE,
 from core.reporting.indicators import IndicatorSet, within_scope
 from core.reporting.pack import NO_COMPOSITE, BoardPackBuilder
 
-__all__ = ["AppetiteRegister", "BoardPackBuilder", "IndicatorSet",
-           "ReportingError", "METRICS", "BY_KEY", "SCOPES", "STATUS_MEANING",
-           "WITHIN", "AMBER", "BREACH", "NO_APPETITE", "NO_COMPOSITE",
-           "within_scope"]
+__all__ = [
+                                   "AMBER",
+                                   "BREACH",
+                                   "BY_KEY",
+                                   "METRICS",
+                                   "NO_APPETITE",
+                                   "NO_COMPOSITE",
+                                   "SCOPES",
+                                   "STATUS_MEANING",
+                                   "WITHIN",
+                                   "AppetiteRegister",
+                                   "BoardPackBuilder",
+                                   "IndicatorSet",
+                                   "ReportingError",
+                                   "within_scope",
+]

@@ -7,13 +7,11 @@ that matter most are in TestSegregation: the rule that the person who built a
 version may not approve it is checked against the evidence chain, so it holds
 however the roles are arranged — including for an administrator.
 """
-import time
 
 import pytest
 
-from core.authz import (AuthorizationPolicy, AuthzError, PrincipalService, ROLES,
-                        Scope, SegregationPolicy, conflicts, permissions_for)
-from tests.conftest import URN
+from core.authz import (AuthzError, ROLES,
+                        Scope, conflicts, permissions_for)
 
 
 # ==================================================================== roles
@@ -291,8 +289,8 @@ class TestPolicy:
         assert "model_developer" in exc.value.detail, "name the roles they hold"
 
     def test_scope_is_checked_after_permission(self, authz, principals):
-        scoped = principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw",
-                                   legal_entities=["LE-UK-02"])
+        principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw",
+                          legal_entities=["LE-UK-02"])
         row = principals.get("uk.mrm")
         with pytest.raises(AuthzError) as exc:
             authz.authorise(row, "version:approve",
@@ -383,3 +381,45 @@ class TestTheWarrantSigningKeyIsNotPublished:
                        actor="person/j.okafor")
         doc = warrants.resolve(URN, "prod", "svc/x", "origination_decision")
         assert self.SECRET not in json.dumps(doc)
+
+
+class TestTheValidatorPairs:
+    """`validator` is described as second line that never builds. Nothing
+    enforced it until these pairs were added."""
+
+    def test_a_developer_cannot_also_validate(self):
+        from core.authz.roles import conflicts
+        found = conflicts(["model_developer", "validator"])
+        assert found, "the builder must not run their own effective challenge"
+        assert "own version" in found[0]
+
+    def test_an_owner_cannot_also_validate(self):
+        from core.authz.roles import conflicts
+        assert conflicts(["model_owner", "validator"])
+
+    def test_a_validator_alone_is_fine(self):
+        from core.authz.roles import conflicts
+        assert conflicts(["validator"]) == []
+        assert conflicts(["validator", "model_risk_manager"]) == [], \
+            "second line with authority is still second line"
+
+    def test_the_documented_list_is_the_enforced_list(self):
+        """The help page prints the pairs. A page that lists four while the code
+        refuses six is the failure mode this whole review keeps finding: a
+        control that is real and a document that describes a different one."""
+        import pathlib
+        import re
+        from core.authz.roles import INCOMPATIBLE_ROLES
+
+        page = (pathlib.Path(__file__).resolve().parents[1]
+                / "content" / "help" / "05-approval-and-attestation.md").read_text()
+        block = re.search(r"```\n((?:\w+\s+\+\s+\w+.*\n)+)```", page)
+        assert block, "the page must still print the pairs as a block"
+        documented = {
+            tuple(sorted(line.split("+", 1)[0].strip().split()
+                         + [line.split("+", 1)[1].split()[0]]))
+            for line in block.group(1).strip().splitlines()}
+        enforced = {tuple(sorted((a, b))) for a, b, _ in INCOMPATIBLE_ROLES}
+        assert documented == enforced, (
+            f"documented but not enforced: {documented - enforced}; "
+            f"enforced but not documented: {enforced - documented}")

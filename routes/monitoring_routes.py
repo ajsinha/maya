@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.monitoring import ADMISSIBLE_TESTS, KINDS
 from routes.base import Body, Routes
@@ -75,7 +75,9 @@ class MonitoringRoutes(Routes):
         @self.app.post(f"{api}/monitors/{{monitor_id}}/evaluate", tags=["monitoring"])
         def evaluate(request: Request, monitor_id: str, body: EvaluateIn):
             """Compute one observation. Refused over an immature cohort."""
-            who = self.authorise(request, "monitor:evaluate")
+            who = self.authorise(
+                request, "monitor:evaluate",
+                model=self.model_behind(monitors.get(monitor_id)))
             return self.guard(lambda: monitoring.evaluate(
                 monitor_id, body.rows, body.reference, body.now, self.actor(who)))
 
@@ -88,6 +90,8 @@ class MonitoringRoutes(Routes):
 
         @self.app.post(f"{api}/monitors/{{monitor_id}}/status", tags=["monitoring"])
         def set_status(request: Request, monitor_id: str, status: str):
-            who = self.authorise(request, "monitor:define")
+            who = self.authorise(
+                request, "monitor:define",
+                model=self.model_behind(monitors.get(monitor_id)))
             return self.guard(lambda: monitors.set_status(monitor_id, status,
                                                           self.actor(who)))

@@ -24,8 +24,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core.assist import oracles
-from core.assist.common import (AUTONOMY, DEFAULT_REVIEW_SAMPLE, TIER_A, TIER_B,
-                                TIER_MEANING, TIERS, AssistError)
+from core.assist.common import (AUTONOMY, DEFAULT_REVIEW_SAMPLE, TIER_A, TIER_MEANING, TIERS, AssistError)
 from core.evidence import EvidenceEngine
 from core.log import get_logger
 from db import CapabilityRepository

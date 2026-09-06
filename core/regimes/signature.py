@@ -23,7 +23,7 @@ The translation is the interesting part, and it is checked. See translation.py.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, FrozenSet, Iterable, Mapping
+from typing import Any, FrozenSet, Iterable, Mapping
 
 
 @dataclass(frozen=True)

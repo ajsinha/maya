@@ -230,15 +230,22 @@ Roles **compose**: a principal holds a set and gets the union. That is how a
 small firm gives one person two hats visibly, rather than inventing a hybrid role
 that hides the fact.
 
-Four pairs are refused, because holding both defeats the control they exist to
+Six pairs are refused, because holding both defeats the control they exist to
 enforce:
 
 ```
 model_developer + model_risk_manager   a first line approving its own work
 model_owner     + model_risk_manager   an owner approving and tiering their own models
+model_developer + validator            the builder running their own effective challenge
+model_owner     + validator            an owner signing off their own challenge
 model_developer + auditor              the third line must not build what it audits
 model_owner     + auditor              the third line must not own what it audits
 ```
+
+The two `validator` pairs were added after a review pointed out that this page
+described the role as "second line, never builds" while nothing stopped a
+developer from holding it — and a developer who does can open the validation of
+the version they wrote, record its results and conclude it.
 
 Granting one anyway needs `allow_conflicts: true` on the create or role change,
 so the exception is deliberate rather than accidental — **409

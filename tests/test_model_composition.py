@@ -298,7 +298,7 @@ class TestAnEdgeCarriesSomeInputsAndNotAllOfThem:
                                                         registry, ecl_stack):
         """The refusal has to keep meaning something. An edge carrying no field
         the target reads is the wire to nowhere it is named for."""
-        pd, ecl = ecl_stack
+        _pd, ecl = ecl_stack
         urn = "maya://model/unrelated.thing"
         registry.register(urn, "unrelated", "credit", "retail", "person/o",
                           "LE-US-01", "p")

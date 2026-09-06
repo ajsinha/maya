@@ -14,5 +14,12 @@ from core.attachments.common import (KIND_MEANING, KINDS, STATES, TEXT_MEDIA,
 from core.attachments.register import AttachmentRegister
 from core.attachments.store import DocumentStore
 
-__all__ = ["AttachmentRegister", "DocumentStore", "AttachmentError", "KINDS",
-           "KIND_MEANING", "STATES", "TEXT_MEDIA"]
+__all__ = [
+                                     "KINDS",
+                                     "KIND_MEANING",
+                                     "STATES",
+                                     "TEXT_MEDIA",
+                                     "AttachmentError",
+                                     "AttachmentRegister",
+                                     "DocumentStore",
+]

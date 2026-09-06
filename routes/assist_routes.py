@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.assist import TIER_MEANING, oracles
 from core.assist import providers as assist_providers
@@ -92,7 +92,9 @@ class AssistRoutes(Routes):
                        tags=["assistance"])
         def generate(request: Request, body: GenerateIn):
             """Record a generation, gated. Ungrounded claims never reach the output."""
-            who = self.authorise(request, "assist:generate")
+            who = self.authorise(
+                request, "assist:generate",
+                model=self.model_of_subject(body.subject_type, body.subject_id))
             return self.guard(lambda: generations.record(
                 body.capability_key, body.subject_type, body.subject_id,
                 body.claims, body.known_evidence, body.oracle_payload,
@@ -118,7 +120,9 @@ class AssistRoutes(Routes):
             through the same gate a hand-delivered generation does, and lands
             drafted -- never evidence -- until a person attests it.
             """
-            who = self.authorise(request, "assist:generate")
+            who = self.authorise(
+                request, "assist:generate",
+                model=self.model_of_subject(body.subject_type, body.subject_id))
             drafting = self.ctx.get("drafting")
             if drafting is None:
                 raise HTTPException(501, {
@@ -141,7 +145,11 @@ class AssistRoutes(Routes):
                        tags=["assistance"])
         def attest(request: Request, generation_id: str, body: AttestIn):
             """A person takes responsibility for it. Never the requester."""
-            who = self.authorise(request, "assist:attest")
+            generation = self.guard(lambda: generations.require(generation_id))
+            who = self.authorise(
+                request, "assist:attest",
+                model=self.model_of_subject(generation["subject_type"],
+                                            generation["subject_id"]))
             return self.guard(lambda: generations.attest(
                 generation_id, self.actor(who), body.final_text, body.accept,
                 body.note))

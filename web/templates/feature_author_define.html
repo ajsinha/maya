@@ -51,8 +51,7 @@
             <div class="col-md-6">
               <label class="form-label mb-1" for="p-dtype">Type</label>
               <select class="form-select form-select-sm" id="p-dtype" name="dtype">
-                <option>numeric</option><option>integer</option>
-                <option>categorical</option><option>string</option>
+                {% for d in dtypes %}<option>{{ d }}</option>{% endfor %}
               </select>
               <div class="form-text" style="font-size:.7rem">
                 MAYA records the type; it does not constrain the vocabulary.</div></div>
@@ -257,8 +256,7 @@ placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op"
             <div class="col-md-6">
               <label class="form-label mb-1" for="c-dtype">Type</label>
               <select class="form-select form-select-sm" id="c-dtype" name="dtype">
-                <option>numeric</option><option>integer</option>
-                <option>categorical</option><option>string</option>
+                {% for d in dtypes %}<option>{{ d }}</option>{% endfor %}
               </select></div>
           </div>
           <div id="composed-verdict" class="mt-3 small"></div>

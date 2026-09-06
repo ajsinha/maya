@@ -30,16 +30,28 @@ null state. Emptiness and containment are then arithmetic.
 cries wolf, because a check that produces false alarms is a check somebody turns
 off, and then the real ones go with it.
 
-*Incomplete*: it reports a rule unreachable when a **single** earlier rule
-covers it. Two earlier rules that between them cover a third — `ltv > 0.8` and
-`ltv <= 0.8` covering everything — are not detected. Full coverage checking is
-satisfiability over the theory, which is decidable here but is a solver, and a
-solver inside a governance platform is a dependency whose failure modes nobody
-in the bank can debug.
+*Complete, now, over the union.* `covers` compares one earlier rule and is what
+names a culprit. `union_covers` at the foot of this module answers the harder
+question — do the earlier rules **together** cover a later one — which was for a
+long time a stated limit: *no rule is shadowed by any single earlier rule*, with
+`ltv > 0.8` and `ltv <= 0.8` covering everything after them as the named example
+that went undetected.
 
-So the promise is exact: *"no rule is shadowed by any single earlier rule"*, and
-`docs/02` says that rather than "no rule is unreachable". A check that claims
-more than it delivers is the thing this whole analysis exists to find.
+The reason given for stopping there was that full coverage is satisfiability
+over the theory, "decidable here but a solver, and a solver inside a governance
+platform is a dependency whose failure modes nobody in the bank can debug". The
+premise was right and the conclusion did not follow. A conjunction here is
+already a **box** — one `Domain` per field, an interval with an excluded set and
+a null state — and a condition is a finite union of boxes. *Is this box covered
+by those boxes* is geometry, not satisfiability, and subtraction answers it
+exactly. No solver, no dependency, and an exact answer rather than a
+conservative one.
+
+What stays bounded is the cost. Subtraction fragments, and a rule set can be
+built whose fragments multiply; `MAX_FRAGMENTS` caps it and reaching the cap
+raises `Undecided`. That is reported as *not checked* and never folded into
+"no problems found" — a coverage check that claims a guarantee it abandoned is
+the thing this whole analysis exists to find.
 """
 from __future__ import annotations
 
@@ -72,7 +84,7 @@ class Domain:
     that matters.
     """
 
-    __slots__ = ("lo", "lo_open", "hi", "hi_open", "allowed", "excluded", "null")
+    __slots__ = ("allowed", "excluded", "hi", "hi_open", "lo", "lo_open", "null")
 
     def __init__(self) -> None:
         self.lo: Optional[Any] = None
@@ -182,9 +194,7 @@ class Domain:
                 if other._excluded_by_bounds(value):
                     continue
                 return False
-        if not self._bounds_contain(other):
-            return False
-        return True
+        return self._bounds_contain(other)
 
     def _excluded_by_bounds(self, value: Any) -> bool:
         if self.lo is None and self.hi is None:
@@ -343,10 +353,7 @@ def covers(earlier: Condition, later: Condition) -> bool:
 def _conj_covers(outer: Dict[str, Domain], inner: Dict[str, Domain]) -> bool:
     """Every field the outer conjunction constrains must be at least as loose."""
     unconstrained = Domain()
-    for field, domain in outer.items():
-        if not domain.contains(inner.get(field, unconstrained)):
-            return False
-    return True
+    return all(domain.contains(inner.get(field, unconstrained)) for field, domain in outer.items())
 
 
 # Two values of different types reaching a comparison means a rule set mixes
@@ -378,3 +385,188 @@ def _gt(a: Any, b: Any) -> bool:
                          f"draws no conclusion from this pair",
                   level=logging.DEBUG)
         return False
+
+
+# ===========================================================================
+# Union coverage — the completeness the analysis above deliberately lacked
+# ===========================================================================
+#
+# `covers` compares ONE earlier rule against a later one. Two earlier rules that
+# between them cover a third — `ltv > 0.8` and `ltv <= 0.8` covering everything
+# after them — were not detected, and the promise was written narrowly to say so:
+# *no rule is shadowed by any single earlier rule*.
+#
+# The stated reason for stopping there was that full coverage is satisfiability
+# over the theory, "decidable here but a solver, and a solver inside a governance
+# platform is a dependency whose failure modes nobody in the bank can debug".
+#
+# The first half was right and the conclusion did not follow. A conjunction here
+# is already a **box** — one `Domain` per field, each an interval with an
+# excluded set and a null state — and a condition is a finite union of boxes. Is
+# one box covered by a union of boxes is a geometry question, not a satisfiability
+# one, and it is answered exactly by subtraction: remove each earlier box from
+# the later one and see whether anything is left.
+#
+# So there is no solver, no new dependency, and the answer is exact rather than
+# conservative. What remains bounded is the *cost*: subtraction fragments, and a
+# rule set can be built whose fragments multiply. `MAX_FRAGMENTS` caps it, and
+# reaching the cap reports **undecided** rather than "no problems found" — the
+# distinction this whole module exists to keep.
+
+
+#: A box may split once per constrained field per subtraction, so fragments can
+#: multiply. Past this the honest answer is that the analysis did not finish.
+MAX_FRAGMENTS = 4096
+
+
+class Undecided(Exception):
+    """The union check ran out of budget. Not a verdict, and never reported as
+    one: a coverage check that says "no problems found" when it gave up is the
+    defect the rest of this module is written against."""
+
+
+def _complement_along(domain: "Domain", field: str,
+                      box: Dict[str, "Domain"]) -> List[Dict[str, "Domain"]]:
+    """The parts of `box` that lie OUTSIDE `domain` on `field`.
+
+    Up to four pieces, and each is a real constraint rather than an
+    approximation: below the low bound, above the high bound, at a value the
+    domain excludes, and — where the domain fixes nullness — the opposite null
+    state.
+    """
+    pieces: List[Dict[str, "Domain"]] = []
+    here = box.get(field) or Domain()
+
+    if domain.lo is not None:
+        piece = _narrowed(box, field, hi=domain.lo,
+                          hi_open=not domain.lo_open)
+        if piece is not None:
+            pieces.append(piece)
+    if domain.hi is not None:
+        piece = _narrowed(box, field, lo=domain.hi,
+                          lo_open=not domain.hi_open)
+        if piece is not None:
+            pieces.append(piece)
+    if domain.allowed is not None:
+        # Outside a permitted set is "excludes every member of it".
+        piece = _narrowed(box, field, excluded=set(domain.allowed))
+        if piece is not None:
+            pieces.append(piece)
+    for value in sorted(domain.excluded, key=repr):
+        if here._admits(value):
+            piece = _narrowed(box, field, allowed={value})
+            if piece is not None:
+                pieces.append(piece)
+    if domain.null is not None:
+        piece = _narrowed(box, field, null=not domain.null)
+        if piece is not None:
+            pieces.append(piece)
+    return pieces
+
+
+def _narrowed(box: Dict[str, "Domain"], field: str, **limits: Any
+              ) -> Optional[Dict[str, "Domain"]]:
+    """`box`, with one field narrowed. `None` when the result is empty."""
+    fresh: Dict[str, Domain] = {f: _copy(d) for f, d in box.items()}
+    domain = fresh.setdefault(field, Domain())
+
+    if "lo" in limits:
+        if domain.lo is None or _lt(domain.lo, limits["lo"]):
+            domain.lo, domain.lo_open = limits["lo"], limits.get("lo_open", False)
+        elif domain.lo == limits["lo"]:
+            domain.lo_open = domain.lo_open or limits.get("lo_open", False)
+    if "hi" in limits:
+        if domain.hi is None or _gt(domain.hi, limits["hi"]):
+            domain.hi, domain.hi_open = limits["hi"], limits.get("hi_open", False)
+        elif domain.hi == limits["hi"]:
+            domain.hi_open = domain.hi_open or limits.get("hi_open", False)
+    if "excluded" in limits:
+        domain.excluded = set(domain.excluded) | set(limits["excluded"])
+    if "allowed" in limits:
+        domain.allowed = (set(limits["allowed"]) if domain.allowed is None
+                          else set(domain.allowed) & set(limits["allowed"]))
+    if "null" in limits:
+        if domain.null is not None and domain.null != limits["null"]:
+            return None
+        domain.null = limits["null"]
+
+    return None if any(d.is_empty() for d in fresh.values()) else fresh
+
+
+def _copy(domain: "Domain") -> "Domain":
+    fresh = Domain()
+    fresh.lo, fresh.lo_open = domain.lo, domain.lo_open
+    fresh.hi, fresh.hi_open = domain.hi, domain.hi_open
+    fresh.allowed = None if domain.allowed is None else set(domain.allowed)
+    fresh.excluded = set(domain.excluded)
+    fresh.null = domain.null
+    return fresh
+
+
+def _subtract(box: Dict[str, "Domain"],
+              cutter: Dict[str, "Domain"]) -> List[Dict[str, "Domain"]]:
+    """`box` minus `cutter`, as a list of boxes.
+
+    If the cutter covers the box, nothing comes back. If they do not meet, the
+    box comes back whole. Otherwise the box is split along every field the
+    cutter constrains — which is what makes this exact rather than conservative.
+    """
+    if _conj_covers(cutter, box):
+        return []
+    remaining: List[Dict[str, Domain]] = []
+    for field, domain in cutter.items():
+        remaining.extend(_complement_along(domain, field, box))
+    if not remaining:
+        # The cutter constrains nothing, so it covers everything.
+        return []
+    return remaining
+
+
+def union_covers(earlier: List["Condition"], later: "Condition") -> bool:
+    """Do the earlier conditions, TOGETHER, fire on everything `later` fires on?
+
+    The completeness `covers` does not have. Exact, by subtraction over boxes,
+    with no solver: a conjunction is a box, a condition is a finite union of
+    them, and coverage is what is left after removing each earlier box.
+
+    Raises `Undecided` rather than answering when the fragments outrun the
+    budget. A coverage check that reports "not shadowed" because it gave up is
+    worse than one that does not run.
+    """
+    try:
+        inner = disjuncts(later)
+        outer: List[Dict[str, Domain]] = []
+        for condition in earlier:
+            for conjunction in disjuncts(condition):
+                built = domains(conjunction)
+                if built is None:
+                    return False              # cannot analyse: stay sound
+                outer.append(built)
+    except Unanalysable as exc:
+        logger.info("union coverage not decided: %s", exc)
+        return False
+
+    if not outer:
+        return False
+
+    for conjunction in inner:
+        built = domains(conjunction)
+        if built is None:
+            return False
+        if any(d.is_empty() for d in built.values()):
+            continue                          # this branch fires on nothing
+        remaining = [built]
+        for cutter in outer:
+            nxt: List[Dict[str, Domain]] = []
+            for piece in remaining:
+                nxt.extend(_subtract(piece, cutter))
+                if len(nxt) > MAX_FRAGMENTS:
+                    raise Undecided(
+                        f"the union check exceeded {MAX_FRAGMENTS} fragments; "
+                        f"the answer is unknown rather than negative")
+            remaining = nxt
+            if not remaining:
+                break
+        if remaining:
+            return False                      # something is left uncovered
+    return True

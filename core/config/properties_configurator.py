@@ -25,7 +25,6 @@ import os
 import re
 import sys
 import threading
-import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -195,9 +194,11 @@ class PropertiesConfigurator:
                 if changed:
                     logger.info("configuration change detected, reloading")
                     self.reload()
-            except Exception as exc:            # the thread must survive, but not silently
-                logger.exception("configuration reload failed, keeping the previous values: %s",
-                                 exc)
+            except Exception:            # the thread must survive, but not silently
+                # `.exception` already carries the traceback; repeating the
+                # exception in the message prints it twice.
+                logger.exception("configuration reload failed, keeping the "
+                                 "previous values")
 
     def stop(self) -> None:
         self._stop.set()

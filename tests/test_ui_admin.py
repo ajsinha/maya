@@ -428,7 +428,9 @@ class TestADraftRecordCannotReachProduction:
             "domain": "credit", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "12-month PD at origination"})
         client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
-                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital",
+                          "feature_count": 12, "uses_alternative_data": False,
+                          "interpretable": True})
         client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                     json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
                           "artifact_digest": "sha256:" + "a" * 64})
@@ -627,10 +629,22 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
         assert "owner" in body.lower()
         assert "ask an administrator" not in body.lower()
 
-    def test_an_owner_is_not_told_anything_they_do_not_need(self, client, people):
+    def test_an_owner_is_not_told_they_cannot_register(self, client, people):
+        """The note they do not need is the one about the act they CAN perform.
+
+        This used to assert the page carried no withheld-permission note at all,
+        which was wrong as soon as the page grew a second card. An owner
+        registers models and does not create versions — that is the segregation,
+        not a gap — so the version card telling them to ask the developer is the
+        page working. What would be noise is telling an owner they cannot
+        register.
+        """
         _login(client, "j.okafor", "owner-pw")
         body = client.get("/models/new").text
-        assert "which your account does not hold" not in body
+        assert "<code>model:register</code>, which your account does not hold" \
+            not in body
+        assert "<code>version:create</code>, which your account does not hold" \
+            in body, "and say who to ask for the half that is not theirs"
 
     def test_a_developer_is_told_who_to_ask_for_a_warrant(self, client, people):
         _login(client, "d.raman", "dev-pw")
@@ -644,3 +658,103 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
         body = client.get("/warrants").text
         assert "still reads" in body
         assert body.count("<form") >= 1
+
+
+class TestTheMinorFindingsFromTheReview:
+    """The nineteen the reviewers ranked below serious, and why each mattered."""
+
+    def test_a_page_may_not_shadow_a_brand_key(self, client, people):
+        """Three pages passed `version=` meaning the MODEL version and shadowed
+        the application's, so the footer — which renders `{{ version }}` —
+        printed the whole version record, kernel and artifact digest included,
+        as its text. Nothing raised, because shadowing is what a merged dict
+        does. The second instance of this shape is what makes it a check."""
+        from routes.base import Routes
+
+        class Probe(Routes):
+            def register(self):
+                pass
+
+        with pytest.raises(RuntimeError, match="version"):
+            Probe(client.app, client.app.state.ctx, None).page(
+                _FakeRequest(), "x.html", version={"semver": "1.0.0"})
+
+    def test_the_upload_control_takes_what_every_example_uploads(self, client,
+                                                                 people, registered):
+        """The control offered four suffixes and the API reads six — including
+        CSV, which is what both tutorials and the SDK's own `load` use. The
+        screen refused the file the documentation tells you to bring."""
+        from core.features.transfer import accept_attribute
+        assert ".csv" in accept_attribute()
+        _login(client)
+        for path in ("/features/load",):
+            body = client.get(path).text
+            assert ".csv" in body, path
+
+    def test_both_feature_forms_offer_the_same_types(self, client, people):
+        """`/features` offered `boolean` and `/features/new` did not, so whether
+        a feature could be one depended on which screen you opened. The register
+        constrains neither — which makes them suggestions, and a suggestion is
+        still a vocabulary."""
+        _login(client)
+        from core.features.common import SUGGESTED_DTYPES
+        for path in ("/features", "/features/new"):
+            body = client.get(path).text
+            for dtype in SUGGESTED_DTYPES:
+                assert f">{dtype}<" in body, f"{path} does not offer {dtype}"
+
+    def test_both_version_forms_can_express_a_full_kernel(self, client, people,
+                                                          registered):
+        """One had the derived-class preview and no way to say what runs; the
+        other could say what runs and showed no class. So the screen tutorial 01
+        sends you to could not create a version that executes."""
+        from tests.conftest import NAME
+        _login(client)
+        for path in ("/models/new", f"/model-algebra/version/{NAME}"):
+            body = client.get(path).text
+            for field in ("runtime", "entry", "adaptive", "deterministic"):
+                assert f'name="{field}"' in body, f"{path} cannot set {field}"
+
+    def test_an_unknown_enum_names_the_field_and_the_vocabulary(self, client,
+                                                                people, registered):
+        """`ParameterKind('not_a_kind')` raised a bare ValueError, which reached
+        the caller as a 500 with an empty body. A typo in a closed vocabulary is
+        the most ordinary mistake here and it was the one refusal that said
+        nothing."""
+        from tests.conftest import NAME
+        r = client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                        json={"semver": "7.7.7",
+                              "kernel": {"parameter_kind": "not_a_kind",
+                                         "fit_procedure": "none"}})
+        assert r.status_code == 409, r.text
+        detail = r.json()["detail"]
+        assert "parameter_kind" in detail and "estimated_coefficients" in detail
+
+    @pytest.mark.parametrize("header,expected", [
+        ("content-security-policy", "frame-ancestors 'none'"),
+        ("x-frame-options", "DENY"),
+        ("x-content-type-options", "nosniff"),
+        ("referrer-policy", "same-origin"),
+    ])
+    def test_every_response_carries_the_security_headers(self, client, header,
+                                                         expected):
+        """There were none. The interface is entirely self-hosted, which makes a
+        strict policy cheap to state and expensive to omit: an injected
+        `<script src>` had nothing stopping it, on pages that render model
+        names, findings and document titles people supplied."""
+        assert expected in client.get("/").headers.get(header, "")
+
+    def test_the_policy_forbids_calling_out(self, client):
+        """A governance platform that can be made to fetch from somewhere else
+        is one somebody can exfiltrate through."""
+        policy = client.get("/").headers["content-security-policy"]
+        assert "connect-src 'self'" in policy
+        assert "default-src 'self'" in policy
+
+
+class _FakeRequest:
+    """Enough of a request for `brand()` — it reads a session and a cookie."""
+    session: dict = {}
+    cookies: dict = {}
+    headers: dict = {}
+    url = None

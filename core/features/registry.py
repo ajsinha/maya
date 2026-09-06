@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.evidence import EvidenceEngine
 from core.features.assembly import Column, TrainingSetBuilder
 from core.features.catalogue import FeatureCatalogue
-from core.features.common import ENTITY, INGEST_TIME, VALID_TIME, FeatureError
+from core.features.common import FeatureError
 from core.features.contracts import ContractBinder
 from core.features.derived import DerivedFeatures
 from core.features.sets import FeaturesetRegistry

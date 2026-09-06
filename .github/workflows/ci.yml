@@ -40,6 +40,76 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
+  # ------------------------------------------------------------------ hygiene
+  #
+  # First, because it is the cheapest signal and because until this release
+  # there was none: the discipline job below is named "the rules that hold the
+  # codebase to its own claims" and ran no linter, no type checker, no coverage
+  # floor and nothing that looks at dependencies.
+  #
+  # Every tool here is configured in `pyproject.toml` rather than in flags, so a
+  # developer runs exactly what CI runs.
+  hygiene:
+    name: Hygiene — linter, types, dependencies, secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # The rule set is chosen rather than inherited, and pyproject.toml says
+      # why each exclusion is there. Turning it on found a server-side request
+      # forgery: `token_endpoint` and `jwks_uri` are read out of an identity
+      # provider's discovery document and fetched, and nothing checked the
+      # scheme — so an issuer naming `file:///etc/shadow` had it opened.
+      - name: Lint
+        run: ruff check .
+
+      # Gated on the 186 modules that check cleanly, with the other 62 carried
+      # in tools/ci/mypy_backlog.txt. `mypy || true` would be a step that always
+      # passes, which is the defect this codebase is named for; adopting
+      # --strict across 248 modules in one release produces a blanket ignore,
+      # which is the same thing wearing a hat. A clean module that regresses
+      # fails here; the backlog can only shrink.
+      - name: Types
+        run: python tools/ci/typecheck.py
+
+      # A dependency with a known advisory, and a key committed by accident.
+      # Neither is a review anybody reliably performs by eye.
+      #
+      # `-r requirements.txt` rather than the whole environment: the first run
+      # of this reported seven advisories, every one of them against `pip`
+      # itself, which is a build tool and not something MAYA ships. A security
+      # gate whose first output is about the toolchain is a gate people learn
+      # to skim.
+      - name: Dependencies with known advisories
+        run: pip-audit --strict --desc -r requirements.txt
+
+      - name: Secrets
+        run: python tools/ci/scan_secrets.py
+
+      # The interface is a contract with every engine and client a bank writes
+      # against it, and no test here notices a renamed route or a body that
+      # gains a required key — the suite calls the API the way the code
+      # currently spells it. The lock is not a wall: `--update` accepts a
+      # change, so the diff appears in the review that made it.
+      - name: The published API has not drifted
+        run: python tools/ci/spec_lock.py
+
+      # What is actually in the image, in a format a bank's own tooling reads.
+      - name: Software bill of materials
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py environment --output-format json --outfile sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
   # ---------------------------------------------------------------- the gates
   discipline:
     name: Discipline — the rules that hold the codebase to its own claims
@@ -121,6 +191,11 @@ jobs:
       # Sharded by file so a shard is reproducible from its number alone: the
       # same files run in the same shard on every commit, which makes a flake
       # attributable. Splitting by test id would reshuffle on every addition.
+      #
+      # Inside a shard, `pytest.ini` fans the files across the runner's cores.
+      # The two splits compose: the shard decides WHICH files, xdist decides
+      # which core runs each. Coverage still lands in one `.coverage*` per
+      # shard — pytest-cov combines the workers before writing it.
       - name: Run this shard
         run: |
           mapfile -t files < <(ls tests/test_*.py | sort)
@@ -130,7 +205,40 @@ jobs:
           slice=("${files[@]:$start:$per}")
           if [ ${#slice[@]} -eq 0 ]; then echo "no files in this shard"; exit 0; fi
           printf 'running %d of %d files\n' "${#slice[@]}" "$total"
-          pytest "${slice[@]}" -q
+          pytest "${slice[@]}" -q --cov --cov-report= --cov-context=test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.shard }}
+          path: .coverage*
+          include-hidden-files: true
+
+  # --------------------------------------------------------- the coverage floor
+  #
+  # A floor, not a target, and combined across the shards because no single one
+  # of them exercises the platform. Set just under where the suite sits, so it
+  # catches a release that DELETES tests rather than one that adds a line —
+  # raising it to chase a number is how a codebase acquires tests that assert
+  # nothing, which this repository already has an opinion about.
+  coverage:
+    name: Coverage floor
+    runs-on: ubuntu-latest
+    needs: suite
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - name: Combine and check
+        run: |
+          coverage combine
+          coverage report
 
   # ------------------------------------------------------- the second dialect
   postgres:

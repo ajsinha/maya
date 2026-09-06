@@ -23,9 +23,9 @@ which is the argument for signatures.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Dict, Tuple
 
-from core.regimes.sentences import Sentence, forbids, implies, requires
+from core.regimes.sentences import Sentence, implies
 from core.regimes.signature import Signature
 from core.regimes.translation import Translation
 

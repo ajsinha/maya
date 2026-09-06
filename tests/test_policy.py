@@ -110,19 +110,19 @@ class TestAPolicyCarriesItsOwnTests:
 # ===================================================== nothing changes by default
 class TestAnInstanceThatPublishesNothing:
     def test_runs_the_built_in_rule(self, policies):
-        verdict = policies.decide("model:mutate", {"attested": True})
+        verdict = policies.decide("model:mutate", {"attested": True}, strict=False)
         assert not verdict["allowed"]
         assert verdict["policy_source"] == "built-in"
         assert verdict["policy_version"] == 0
 
     def test_the_built_in_rules_are_the_behaviour_already_shipped(self, policies):
-        assert policies.decide("model:mutate", {"attested": False})["allowed"]
+        assert policies.decide("model:mutate", {"attested": False}, strict=False)["allowed"]
         assert policies.decide("alias:move", {
             "to_status": "approved", "blocking_findings": 0,
-            "refinement_holds": True, "variance_ok": True})["allowed"]
+            "refinement_holds": True, "variance_ok": True}, strict=False)["allowed"]
         assert not policies.decide("alias:move", {
             "to_status": "approved", "blocking_findings": 1,
-            "refinement_holds": True, "variance_ok": True})["allowed"]
+            "refinement_holds": True, "variance_ok": True}, strict=False)["allowed"]
 
     def test_every_gate_is_described_with_the_facts_it_publishes(self, policies):
         described = {g["gate"]: g for g in policies.describe()}
@@ -141,7 +141,7 @@ class TestWeakeningIsAllowedAndNeverQuiet:
     def test_a_published_policy_takes_over_from_the_built_in(self, policies):
         self._publish(policies, "not attested or amending",
                       "the built-in rule, published", MUTATE_CASES)
-        verdict = policies.decide("model:mutate", {"attested": True})
+        verdict = policies.decide("model:mutate", {"attested": True}, strict=False)
         assert verdict["policy_source"] == "published"
         assert verdict["policy_version"] == 1
 
@@ -204,15 +204,36 @@ class TestPolicyTightensAndDoesNotLoosen:
     def test_the_verdict_names_the_version_that_reached_it(self, policies):
         """'Why was this refused in March' is a question about a rule that may
         since have changed."""
-        verdict = policies.decide("model:mutate", {"attested": True})
+        verdict = policies.decide("model:mutate", {"attested": True}, strict=False)
         assert "built-in policy v0" in verdict["detail"]
         assert verdict["facts_read"] == {"attested": True, "amending": False}
 
     def test_a_gate_raises_the_caller_s_own_error(self, policies):
+        """The live path, so every fact the rule reads must be supplied.
+
+        `model:mutate`'s built-in rule is `not attested or amending`, and
+        omitting `amending` here would once have defaulted it. It cannot now: a
+        gate wired without a fact it judges on stops working visibly rather than
+        passing everything.
+        """
         from core.registry import RegistryError
         gate = PolicyGate(policies, RegistryError)
         with pytest.raises(RegistryError, match="refused by policy"):
-            gate.check("model:mutate", {"attested": True}, "a model")
+            gate.check("model:mutate", {"attested": True, "amending": False},
+                       "a model")
+
+    def test_the_live_path_refuses_a_fact_the_rule_reads_and_nobody_supplied(
+            self, policies):
+        """The structural repair. Fourteen of thirty-six advertised facts were
+        never supplied by any call site, and three of them default to the
+        PERMISSIVE value — so a published gate reading `blocking_findings` was
+        in force, advertised, and had never been able to fire."""
+        from core.policy import PolicyError
+        with pytest.raises(PolicyError) as exc:
+            policies.decide("model:mutate", {"attested": True})
+        assert exc.value.code == "fact_not_supplied"
+        assert "amending" in exc.value.detail
+        assert "wiring" in exc.value.remediation
 
     def test_it_says_what_it_can_and_cannot_do(self, policies):
         from core.registry import RegistryError
@@ -357,3 +378,103 @@ class TestAGateNobodyReviewedIsRefused:
             f"/api/v1/policies/{drafted.json()['id']}/publish",
             auth=people["s.iqbal"])
         assert published.status_code in (200, 201), published.text
+
+
+class TestAGateIsJudgedOnFactsAndNotOnDefaults:
+    """A published, in-force gate had no effect.
+
+    `complete()` filled in every fact a gate declares, so by the time a rule
+    ran nothing was ever missing and `fact_not_supplied` could never fire.
+    Fourteen of thirty-six advertised facts were never passed by any call site,
+    and three — `blocking_findings`, `open_findings`, `actor_roles` — default to
+    the PERMISSIVE value.
+
+    The built-in `version:approve` rule is
+    `blocking_findings == 0 and tier is not None`, published at
+    `/api/v1/policies` as in force with the reason *"a version is not approved
+    over an open blocking finding"*. Half of it had never been able to fire.
+    """
+
+    def test_a_version_is_not_approved_over_an_open_blocking_finding(
+            self, client, people, registered):
+        """The reviewer's demonstration, as a test."""
+        from tests.conftest import NAME, URN
+
+        raised = client.post("/api/v1/findings", auth=people["a.mehta"], json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor", "blocking": True})
+        assert raised.status_code in (200, 201), raised.text
+
+        refused = client.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve",
+                              auth=people["s.iqbal"])
+        assert refused.status_code == 409, refused.text
+        assert "blocking finding" in refused.json()["detail"]
+
+    def test_closing_it_lets_the_approval_through(self, client, people, registered):
+        """The control is the finding, not the gate being permanently shut."""
+        from tests.conftest import NAME, URN
+
+        finding = client.post("/api/v1/findings", auth=people["a.mehta"], json={
+            "urn": URN, "severity": "Critical", "title": "Leakage",
+            "owner": "person/j.okafor", "blocking": True}).json()["id"]
+        client.post(f"/api/v1/findings/{finding}/close", auth=people["s.iqbal"],
+                    json={"evidence": {"pr": "1"}})
+        assert client.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve",
+                           auth=people["s.iqbal"]).status_code in (200, 409)
+
+    def test_every_gate_supplies_what_its_built_in_rule_reads(self, registered,
+                                                              people):
+        """The systematic version, so the next gate cannot be wired short.
+
+        Behavioural rather than a source grep: it takes the facts the LIVE
+        wiring produces and checks they cover what each built-in rule reads.
+        A rule reading a fact nobody supplies is refused by `decide()` now, so
+        this is the check that says which one before a caller meets it.
+        """
+        from core.policy import BUILT_IN
+        from core.policy.facts import vocabulary
+        from core.policy.language import Rule
+
+        ctx = registered.app.state.ctx
+        registry, facts = ctx["registry"], ctx["registry"].version_service.facts
+        assert facts is not None, "the register was wired with no fact provider"
+
+        from tests.conftest import URN
+        model = registry.require(URN)
+        version = registry.versions(URN)[-1]
+
+        produced = {
+            "version:approve": {
+                "tier", "status", "has_artifact_digest", "has_contract",
+                *facts.version_approve(model, version)},
+            "alias:move": {
+                "tier", "environment", "alias", "to_status", "refinement_holds",
+                "variance_ok", "attested", *facts.alias_move(model)},
+            "model:mutate": {
+                "tier", "lifecycle_state", "attested", "amending",
+                *facts.model_mutate(model)},
+            "warrant:resolve": {
+                "tier", "environment", "declared_use", "principal", "attested",
+                "record_status", "version_status",
+                *facts.warrant_resolve(model, version)},
+        }
+        for gate, supplied in produced.items():
+            rule, _reason = BUILT_IN[gate]
+            reads = set(Rule(rule, vocabulary(gate)).facts_read())
+            missing = sorted(reads - supplied)
+            assert not missing, (
+                f"the {gate} gate's built-in rule reads {missing} and the "
+                f"wiring supplies none of it — so the default decides")
+
+    def test_a_finding_register_that_is_down_fails_closed(self):
+        """A subsystem that is unreachable must not read as "there are none",
+        which is exactly how the defaulted value behaved."""
+        from core.policy.wiring import GateFacts
+
+        class Broken:
+            def open_for(self, _model_id):
+                raise RuntimeError("the finding register is unreachable")
+
+        facts = GateFacts(findings=Broken())._findings("m1")
+        assert facts["blocking_findings"] == 1
+        assert facts["open_findings"] == ["unknown"]

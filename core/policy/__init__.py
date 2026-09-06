@@ -16,6 +16,18 @@ from core.policy.engine import PolicyGate, PolicyRegister
 from core.policy.facts import BUILT_IN, describe as describe_facts, vocabulary
 from core.policy.language import Rule
 
-__all__ = ["PolicyRegister", "PolicyGate", "PolicyError", "Rule", "GATES", "GATE_MEANING",
-           "DECISIONS", "STATES", "ALLOW", "REFUSE", "BUILT_IN",
-           "vocabulary", "describe_facts"]
+__all__ = [
+                                "ALLOW",
+                                "BUILT_IN",
+                                "DECISIONS",
+                                "GATES",
+                                "GATE_MEANING",
+                                "REFUSE",
+                                "STATES",
+                                "PolicyError",
+                                "PolicyGate",
+                                "PolicyRegister",
+                                "Rule",
+                                "describe_facts",
+                                "vocabulary",
+]

@@ -12,7 +12,6 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from fastapi import Request
-from pydantic import BaseModel
 
 from core.telemetry import STREAM_MEANING
 from routes.base import Body, Routes
@@ -92,7 +91,9 @@ class TelemetryRoutes(Routes):
             # monitor; it happens to read telemetry to do it, and authorising it
             # against the delivery permission would let whoever supplies the
             # rows also rule on them.
-            who = self.authorise(request, "monitor:evaluate")
+            who = self.authorise(
+                request, "monitor:evaluate",
+                model=self.model_behind(monitoring.registry.get(monitor_id)))
             return self.guard(lambda: monitoring.evaluate_from_telemetry(
                 monitor_id, body.since, body.until, body.reference_from,
                 body.reference_to, actor=self.actor(who)))

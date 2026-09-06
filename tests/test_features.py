@@ -11,7 +11,7 @@ Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 import pytest
 
 from core.features import AssemblyRejected, FeatureError, detect_leakage, static_check
-from core.features.pit import AssemblyRequest, verify_sampled
+from core.features.pit import AssemblyRequest
 
 
 class TestFeatureDefinition:

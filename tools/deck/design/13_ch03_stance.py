@@ -19,9 +19,9 @@ data = [["Position", "What it means", "What it costs"],
          "a platform that refuses is a platform people route around unless the "
          "compliant path is also the fast one"],
         ["Laws, not conventions",
-         "twenty-one foundational laws stated, of which sixteen are executable "
+         "twenty-one foundational laws stated, of which eighteen are executable "
          "and run in the ordinary test suite",
-         "five do not run; the rest run on every push and a failing one fails "
+         "three do not run; the rest run on every push and a failing one fails "
          "the build"],
         ["Derived, not entered",
          "risk tier, worklist, estate summary, documentation, board pack: "

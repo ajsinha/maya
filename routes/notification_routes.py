@@ -11,7 +11,6 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import Request
-from pydantic import BaseModel
 
 from core.notify import CHANNEL_MEANING
 from routes.base import Body, Routes

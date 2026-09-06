@@ -23,9 +23,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 from core.log import get_logger, swallowed
+import itertools
 
 logger = get_logger(__name__)
 
@@ -181,7 +182,7 @@ def _separates_perfectly(values: List[Any], labels: List[Any]) -> bool:
     ordered = [lab for _, lab in pairs]
     # Exactly one change of label along the sorted column: everything below the
     # threshold is one class and everything above it is the other.
-    changes = sum(1 for a, b in zip(ordered, ordered[1:]) if a != b)
+    changes = sum(1 for a, b in itertools.pairwise(ordered) if a != b)
     return changes == 1
 
 

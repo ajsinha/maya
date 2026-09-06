@@ -86,7 +86,7 @@ class Scheduler:
             outcome = job.run(context) or {}
         except Exception as exc:                       # one job must not stop four
             error = f"{type(exc).__name__}: {exc}"
-            logger.exception("scheduled job %s failed: %s", job.key, exc)
+            logger.exception("scheduled job %s failed", job.key)
 
         row = {"job": job.key, "outcome": outcome, "ok": error is None,
                "error": error,

@@ -19,8 +19,10 @@ from core.notify import CHANNEL_MEANING
 from core.parameters import PROVENANCE_MEANING
 from core.policy import GATES, describe_facts
 from core.policy.language import describe as describe_language
+from core.features.common import SUGGESTED_DTYPES
+from core.features.transfer import accept_attribute
 from core.telemetry import STREAM_MEANING
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from routes.base import Routes, login_required
 from core.registry.versions import latest_version
 
@@ -115,11 +117,36 @@ class UIRoutes(Routes):
         @self.app.get("/features", response_class=HTMLResponse, tags=["ui"])
         def features_page(request: Request):
             """The catalogue: what is defined, what is derived, what is served."""
-            if (r := login_required(request)) is not None:
+            # `feature:read`, which an operator does not hold. The page used to
+            # render in full for them and then answer 403 to every panel on it.
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
-            catalogue = [f.catalogue.resolved(row["name"])
-                         for row in f.list_features()]
+            # Resolved one at a time, and a refusal is shown rather than
+            # thrown.
+            #
+            # This was an unguarded comprehension, so ONE feature the resolver
+            # refuses — a composition whose parent has moved, say — took the
+            # whole catalogue down with a 500 and twenty-one bytes of plain
+            # text. Every feature in the estate became unreadable because of a
+            # fault in one of them, which is the opposite of what a catalogue is
+            # for; and the refusal that caused it was correct.
+            #
+            # `/dossier` already answers this shape per node. A row that cannot
+            # be resolved is listed WITH its reason, because a catalogue that
+            # silently omits what it could not read is a catalogue nobody can
+            # tell is incomplete.
+            catalogue, unresolved = [], []
+            for row in f.list_features():
+                try:
+                    catalogue.append(f.catalogue.resolved(row["name"]))
+                except Exception as exc:
+                    swallowed(logger, exc, f"resolved feature '{row['name']}'",
+                              detail="listed with the refusal instead, so the "
+                                     "catalogue degrades by one row rather than "
+                                     "entirely")
+                    catalogue.append({**row, "unresolved": str(exc)})
+                    unresolved.append(row["name"])
             derived = {d["name"]: d for d in f.derived.list()} if f.derived else {}
             views = []
             for view in f.views.views.many():
@@ -127,7 +154,11 @@ class UIRoutes(Routes):
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
             return self.page(
-                request, "features.html", features=catalogue, derived=derived,
+                request, "features.html", unresolved=unresolved,
+                # From the code. Two forms carried their own list and they
+                # disagreed about `boolean`, so whether a feature could be one
+                # depended on which screen you opened.
+                dtypes=list(SUGGESTED_DTYPES), features=catalogue, derived=derived,
                 views=views,
                 language=__import__("core.features.expressions",
                                     fromlist=["describe"]).describe(),
@@ -141,7 +172,7 @@ class UIRoutes(Routes):
         @self.app.get("/feature-views/{name}", response_class=HTMLResponse,
                       tags=["ui"])
         def feature_view_page(request: Request, name: str):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             view = f.views.views.one(name=name)
@@ -149,13 +180,17 @@ class UIRoutes(Routes):
                 return self.page(request, "not_found.html", http_status=404, name=name)
             versions = f.views.versions_of(name)
             return self.page(request, "feature_view.html", view=view,
+                             # From the code. The control offered four suffixes
+                             # and the API reads six — including CSV, which is
+                             # what every worked example in the product uploads.
+                             upload_accepts=accept_attribute(),
                              versions=[{**v, **f.views.restated(name, v["version"])}
                                        for v in versions])
 
         # ---------------------------------------------------- featuresets
         @self.app.get("/featuresets", response_class=HTMLResponse, tags=["ui"])
         def featuresets_page(request: Request):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             rows = []
@@ -174,7 +209,7 @@ class UIRoutes(Routes):
         @self.app.get("/featureset/{name}", response_class=HTMLResponse,
                       tags=["ui"])
         def featureset_page(request: Request, name: str):
-            if (r := login_required(request)) is not None:
+            if (r := self.page_gate(request, "feature:read")) is not None:
                 return r
             f = self.ctx["features"]
             if not f.sets.get(name):
@@ -222,7 +257,7 @@ class UIRoutes(Routes):
                        "ordered": f.get("dtype", "numeric") in ORDERED_DTYPES}
                       for f in (version.get("input_schema") or [])]
             return self.page(
-                request, "ruleset_editor.html", model=model, version=version,
+                request, "ruleset_editor.html", model=model, model_version=version,
                 inputs=inputs, outputs=version.get("output_schema") or [],
                 existing=existing,
                 document=(latest or {}).get("values_inline") or
@@ -256,7 +291,10 @@ class UIRoutes(Routes):
             by somebody who is not deploying code, and that person is not going
             to write the JSON by hand.
             """
-            if (r := login_required(request)) is not None:
+            # `policy:read`, which neither a model developer nor an owner
+            # holds. They were shown the four gates and every control on the
+            # page refused them.
+            if (r := self.page_gate(request, "policy:read")) is not None:
                 return r
             from core.execution.profiles import SELECTABLE_FACTS
             who, policies = self.principal(request), self.ctx["policies"]
@@ -330,6 +368,7 @@ class UIRoutes(Routes):
             if (r := login_required(request)) is not None:
                 return r
             who = self.principal(request)
+            may_read_all = self.ctx["authz"].permits(who, "principal:read")
             notifications = self.ctx["notifications"]
             return self.page(
                 request, "notifications.html",
@@ -340,7 +379,15 @@ class UIRoutes(Routes):
                 # run would send, so the preview is the message rather than a
                 # rehearsal of it.
                 preview=notifications.digest_for(who),
-                deliveries=notifications.history(None, 100), now=time.time(),
+                # The estate's deliveries, or only your own. `GET
+                # /notifications/history` requires `principal:read`, and this
+                # page called `history(None, ...)` — everybody's — for anybody
+                # signed in. It was not a control offered and then refused; it
+                # was the screen SERVING what the endpoint withholds, so a model
+                # developer could read who had been told what across the estate.
+                deliveries=notifications.history(
+                    None if may_read_all else who.get("username"), 100),
+                sees_everyone=int(may_read_all), now=time.time(),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
 
         # ------------------------------------------------------- telemetry
@@ -352,7 +399,22 @@ class UIRoutes(Routes):
                 return r
             who = self.principal(request)
             models = self.ctx["authz"].visible(who, self.ctx["registry"].list())
+            # Which version each alias points at, so the table can mark the one
+            # in force. The screen's whole argument is that *the silence is the
+            # finding*, and it could not tell a reader that the silent version
+            # was the one serving production.
+            in_force: Dict[str, list] = {}
+            for m in models:
+                for environment in ("prod", "uat", "dev"):
+                    for name in ("champion", "challenger"):
+                        pinned = self.ctx["registry"].resolve_alias(
+                            m["urn"], environment, name)
+                        if pinned and pinned.get("semver"):
+                            in_force.setdefault(
+                                f"{m['urn']}@{pinned['semver']}", []
+                            ).append(f"{environment}/{name}")
             return self.page(request, "telemetry.html",
+                             in_force=in_force,
                              estate=self.ctx["telemetry"].estate(models),
                              streams=STREAM_MEANING)
 
@@ -374,7 +436,7 @@ class UIRoutes(Routes):
             telemetry, urn = self.ctx["telemetry"], model["urn"]
             cohort = telemetry.cohort(urn, semver)
             return self.page(
-                request, "telemetry_version.html", model=model, version=version,
+                request, "telemetry_version.html", model=model, model_version=version,
                 summary=telemetry.status(urn, semver), streams=STREAM_MEANING,
                 rows=len(cohort), shown=cohort[:200], now=time.time(),
                 labelled=sum(1 for row in cohort if "label" in row))
@@ -397,7 +459,7 @@ class UIRoutes(Routes):
             parameters, urn = self.ctx["parameters"], model["urn"]
             sets = parameters.for_version(urn, semver)
             return self.page(
-                request, "parameters.html", model=model, version=version,
+                request, "parameters.html", model=model, model_version=version,
                 readiness=parameters.status(urn, semver), parameter_sets=sets,
                 provenance=PROVENANCE_MEANING,
                 # A fitted set names the featureset version it was fitted from;

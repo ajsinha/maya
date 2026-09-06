@@ -8,7 +8,6 @@ against — could only be started by editing a tracked file. Whoever did that wa
 one `git commit -a` away from shipping it.
 """
 
-import os
 import sys
 
 import pytest

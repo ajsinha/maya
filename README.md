@@ -316,7 +316,7 @@ current there:
 | Tests | **over 2,300 passing**, plus a scale suite excluded by default |
 | Foundational laws executable | **16 of 21** — the five that are not are named with the reason |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **46 tables**, no migrations |
+| Database | SQLite by default, PostgreSQL by URL alone. Two hand-written schemas, **47 tables**, no migrations |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
 
 ---
@@ -420,7 +420,7 @@ branding — so the ideas can be judged on their own.
 
 | Engineering artefact | Audience |
 |---|---|
-| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 110 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, and the five positions this platform takes. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
+| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 113 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
 
 *Ashutosh Sinha, Independent Researcher.*
 
@@ -457,7 +457,7 @@ maya/
 │   ├── estate/                      the worklist and the summary, derived not assigned
 │   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
 ├── db/                              the only package that knows about storage
-│   └── schema/                      two hand-written schemas, 46 tables, no migrations
+│   └── schema/                      two hand-written schemas, 47 tables, no migrations
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies

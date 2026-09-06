@@ -152,7 +152,7 @@ class Rule:
         try:
             result = eval(compile(self.tree, "<rule>", "eval"),
                           {"__builtins__": {}}, environment)
-        except Exception as exc:                       # noqa: BLE001 — reported
+        except Exception as exc:
             swallowed(logger, exc, "evaluated a policy rule",
                       "reported as a refusal to publish rather than a verdict",
                       logging.WARNING)

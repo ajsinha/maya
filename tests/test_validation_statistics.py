@@ -8,7 +8,6 @@ not against values copied from a run of the code they are testing.
 """
 import math
 
-import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 

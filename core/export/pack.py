@@ -196,7 +196,7 @@ class ExportPacker:
             # own production changed the record would also differ from the last
             # one for no reason but that somebody had asked for it.
             document = self.compiler.render(kind, urn)
-        except Exception as exc:                             # noqa: BLE001
+        except Exception as exc:
             # Never swallowed. A document that would not compile is exactly the
             # thing a supervisor should see recorded, and a pack that dropped it
             # silently would read as though the document did not apply.
@@ -225,7 +225,7 @@ class ExportPacker:
             index.append(entry)
             try:
                 body = self.attachments.content(row["id"])
-            except Exception as exc:                         # noqa: BLE001
+            except Exception as exc:
                 logger.warning("attachment %s could not be read: %s",
                                row.get("id"), exc)
                 gaps.append({"what": f"attachments/{row.get('filename')}",
@@ -253,7 +253,7 @@ class ExportPacker:
             return
         try:
             graph = self.dossier.of(urn)
-        except Exception as exc:                             # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not build the dossier for %s: %s", urn, exc)
             gaps.append({"what": "documentation/dossier.json",
                          "why": f"the documentation graph could not be built: {exc}"})
@@ -312,7 +312,7 @@ class ExportPacker:
         try:
             seq, node_hash = self.evidence.head()
             return seq, node_hash
-        except Exception as exc:                             # noqa: BLE001
+        except Exception as exc:
             logger.warning("could not read the evidence head: %s", exc)
             return None, None
 

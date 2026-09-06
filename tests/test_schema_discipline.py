@@ -147,3 +147,53 @@ def test_the_data_plane_is_addressed_by_pointer():
                          ("dataset_snapshot", "delta_table"),
                          ("telemetry_batch", "delta_table")):
         assert needs in tables[table], f"{table} must name its Delta location"
+
+
+def test_postgres_never_uses_real_where_sqlite_does():
+    """`REAL` in PostgreSQL is float4, and an epoch second does not fit in it.
+
+    `postgres.sql` says at the top that the ONE substitution it makes is
+    `DOUBLE PRECISION` where SQLite uses `REAL`. A `serving_attestation`
+    column shipped as `REAL` anyway, and float4 carries about six significant
+    decimal digits against the ten an epoch timestamp needs — so `attested_at`
+    quantised to roughly 33 seconds, on the evidence trail whose entire purpose
+    is saying what was served and when.
+
+    The dialect comparison could not see it: it checks that the two files agree
+    on which tables and columns exist, and both files said `REAL`. Agreement is
+    not correctness when the agreed value is wrong for one of them.
+    """
+    postgres = (ROOT / "db" / "schema" / "postgres.sql").read_text()
+    offending = [line.strip() for line in postgres.splitlines()
+                 if re.search(r"\bREAL\b", line)
+                 and not line.lstrip().startswith("--")]
+    assert not offending, (
+        "these PostgreSQL columns are REAL (float4, ~6 significant digits) "
+        "where the file's own header says DOUBLE PRECISION:\n    "
+        + "\n    ".join(offending))
+
+
+def test_every_timestamp_column_survives_an_epoch_second():
+    """The property behind the rule, asserted rather than assumed.
+
+    Stated as a property so a future column called `..._at` cannot be added as
+    something too narrow to hold the value it is named for.
+    """
+    import numpy
+
+    moment = 1788710367.229
+    assert float(numpy.float32(moment)) != moment, (
+        "float4 is assumed too narrow for an epoch second; if that has stopped "
+        "being true this test is asserting nothing")
+    assert float(numpy.float64(moment)) == moment
+
+    for dialect, kind in (("sqlite", "REAL"), ("postgres", "DOUBLE PRECISION")):
+        sql = (ROOT / "db" / "schema" / f"{dialect}.sql").read_text()
+        for line in sql.splitlines():
+            match = re.match(
+                r"\s+(\w*(?:_at|_ts|_due))\s+(DOUBLE PRECISION|REAL|TEXT|INTEGER)\b",
+                line)
+            if match and match.group(2) not in ("TEXT", "INTEGER"):
+                assert match.group(2) == kind, (
+                    f"{dialect}.sql: {match.group(1)} is {match.group(2)}, "
+                    f"and a timestamp column here must be {kind}")

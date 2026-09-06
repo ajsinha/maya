@@ -23,7 +23,7 @@ route around. But its next material change goes through the full path.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Sequence
 
 from core.baseline.common import BaselineError
 from core.baseline.debt import DebtRegister
@@ -35,7 +35,7 @@ from db import ImportRepository
 logger = get_logger(__name__)
 
 # The lifecycle owns this state; naming it here would let the two drift.
-from core.lifecycle import BASELINED  # noqa: E402
+from core.lifecycle import BASELINED
 
 
 class BaselineImporter:

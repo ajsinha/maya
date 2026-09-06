@@ -12,8 +12,8 @@ tier" and "what tier can these controls defend" are one definition.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, ClassVar, Dict, Iterable, List, Tuple
 
 from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
                                 _OPAQUE_CLASSES)
@@ -122,6 +122,36 @@ class TieringEngine:
         return Assessment(tier=tier, materiality=m, complexity=c,
                           required_controls=self.required_controls(tier),
                           rationale=rationale, facts=dict(facts))
+
+    #: The reading of an undeclared complexity fact that assumes the worst.
+    #: `feature_count` is 51 because the band it has to cross is "> 50".
+    CONSERVATIVE: ClassVar[Dict[str, Any]] = {"feature_count": 51,
+                                              "uses_alternative_data": True,
+                                              "interpretable": False}
+
+    def load_bearing(self, facts: Dict[str, Any],
+                     declared: Iterable[str]) -> List[str]:
+        """Undeclared facts that would change the tier if read the other way.
+
+        Three of the five complexity facts have a benign default, so a caller
+        who sends only exposure and purpose — which the SDK did — silently
+        declared "no alternative data, interpretable, under fifty features".
+        Nobody said that; the schema did, and the recorded rationale then read
+        it back as if somebody had.
+
+        Refusing every omission would fail assessments where the omission
+        cannot matter. So this asks the only question worth asking: read the
+        undeclared facts at their worst, and does the tier move? If it does,
+        the omission is load-bearing and the caller has to say. If it does
+        not, the model is that tier either way.
+        """
+        missing = [f for f in self.CONSERVATIVE if f not in set(declared)]
+        if not missing:
+            return []
+        worst = {**facts, **{f: self.CONSERVATIVE[f] for f in missing}}
+        if self.assess(worst).tier == self.assess(facts).tier:
+            return []
+        return missing
 
     def persist(self, repo: RiskRepository, model_id: str, a: Assessment) -> Dict[str, Any]:
         months = self._review.get(a.tier, 24)

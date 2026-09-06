@@ -18,7 +18,20 @@ from core.execution.grammar.vocabulary import (BINDINGS, RUNTIME_ENTRY, RUNTIMES
                                                SECTIONS, SINKS, VERB_MEANING, VERBS,
                                                WARRANT_VERSION)
 
-__all__ = ["GrammarValidator", "GrammarReport", "validate", "Problem",
-           "admissible_verbs", "json_schema", "vocabulary", "WARRANT_VERSION",
-           "VERBS", "VERB_MEANING", "RUNTIMES", "RUNTIME_ENTRY", "BINDINGS",
-           "SINKS", "SECTIONS"]
+__all__ = [
+                                               "BINDINGS",
+                                               "RUNTIMES",
+                                               "RUNTIME_ENTRY",
+                                               "SECTIONS",
+                                               "SINKS",
+                                               "VERBS",
+                                               "VERB_MEANING",
+                                               "WARRANT_VERSION",
+                                               "GrammarReport",
+                                               "GrammarValidator",
+                                               "Problem",
+                                               "admissible_verbs",
+                                               "json_schema",
+                                               "validate",
+                                               "vocabulary",
+]

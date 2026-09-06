@@ -142,7 +142,7 @@ covers it. Two earlier rules that between them cover a third — `ltv > 0.8` and
 
 So the promise is exactly this, and it is worth reading twice:
 
-> **No rule is shadowed by any single earlier rule.**
+> **No rule is shadowed by the earlier rules — singly, or together.**
 
 Not *no rule is unreachable*. Full coverage checking is satisfiability over the
 whole set: decidable here, and a solver — and a solver inside a governance

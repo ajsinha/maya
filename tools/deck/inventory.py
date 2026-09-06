@@ -26,7 +26,6 @@ Run:  .venv/bin/python tools/deck/inventory.py [path.pptx]
 from __future__ import annotations
 
 import collections
-import difflib
 import pathlib
 import re
 import sys

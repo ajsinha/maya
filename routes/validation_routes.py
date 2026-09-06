@@ -9,10 +9,10 @@ record-keeping one.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.authz.common import same_person
 from routes.base import Body, Routes
@@ -107,7 +107,9 @@ class ValidationRoutes(Routes):
         @self.app.post(f"{api}/validations/{{validation_id}}/results",
                        status_code=201, tags=["validation"])
         def record_result(request: Request, validation_id: str, body: RecordTestIn):
-            who = self.authorise(request, "validation:record")
+            who = self.authorise(
+                request, "validation:record",
+                model=self.model_behind(service.get(validation_id)))
             return self.guard(lambda: service.record(
                 validation_id, body.test_key, body.left, body.right,
                 body.threshold, body.parameters, body.slice, actor=self.actor(who)))
@@ -119,6 +121,7 @@ class ValidationRoutes(Routes):
             # recorded who created it, and that person may not conclude its
             # challenge however their roles are arranged.
             who = self.authorise(request, "validation:conclude",
+                                 model=self.model_behind(episode),
                                  subject_id=episode["model_version_id"])
             return self.guard(lambda: service.conclude(
                 validation_id, body.outcome, body.conditions, actor=self.actor(who)))
@@ -215,6 +218,7 @@ class ValidationRoutes(Routes):
             # The evidence lives on the model, which is where a reader looks
             # for it; `about` narrows it to this finding.
             who = self.authorise(request, "finding:close",
+                                 model=self.model_of(finding["model_id"]),
                                  subject_id=finding["model_id"], about=finding_id)
             # The verifier is WHO IS ASKING. It used to be a request field, so
             # the owner of a blocking finding could close their own by naming

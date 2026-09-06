@@ -1,0 +1,9 @@
+# MAYA — development and CI only.
+#
+# Kept apart from requirements.txt on purpose: none of this ships, and a
+# governance platform's runtime dependency list is something a bank reads. A
+# linter in it would be a line they have to ask about.
+ruff>=0.16
+mypy>=1.11
+pip-audit>=2.7
+cyclonedx-bom>=4.0

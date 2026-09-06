@@ -148,7 +148,7 @@ def _invoke_in_child(conn, warrant: Dict[str, Any], inputs: Dict[str, Any],
         conn.send(("limit", "the artifact exhausted the memory it was allowed"))
         swallowed(_log, exc, "ran the artifact",
                   "it exhausted the memory the warrant allowed", "warning")
-    except BaseException as exc:                    # noqa: BLE001 — reported home
+    except BaseException as exc:
         conn.send(("failed", f"{type(exc).__name__}: {exc}"))
         swallowed(_log, exc, "ran the artifact",
                   "the failure is reported to the parent process", "error")

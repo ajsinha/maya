@@ -12,7 +12,7 @@ import copy
 import pytest
 
 from core.execution import CaptiveEngine
-from core.execution import WarrantError, WarrantService, parse_urn
+from core.execution import WarrantError, parse_urn
 from core.registry import RegistryError
 
 

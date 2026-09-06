@@ -57,7 +57,7 @@ an obligation is refused, pointing at the two places that can hold one.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from core.evidence import EvidenceEngine
 from core.log import get_logger

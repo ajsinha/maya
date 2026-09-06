@@ -20,7 +20,7 @@ against anyway.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Dict, List, Tuple
 
 FACTS: Dict[str, Dict[str, str]] = {
     "version:approve": {

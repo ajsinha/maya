@@ -43,7 +43,7 @@ Three things follow that are worth naming:
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from core.evidence import EvidenceEngine
 from core.log import get_logger

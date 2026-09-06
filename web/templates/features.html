@@ -45,8 +45,7 @@ pinned by the view version that wrote them.</p>
             <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
             <div class="col-6">
               <select class="form-select form-select-sm" name="dtype">
-                <option>numeric</option><option>integer</option>
-                <option>categorical</option><option>boolean</option><option>string</option>
+                {% for d in dtypes %}<option>{{ d }}</option>{% endfor %}
               </select></div>
             <div class="col-6"><input class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
             <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
@@ -126,11 +125,30 @@ pinned by the view version that wrote them.</p>
 
 <!-- ------------------------------------------------------------ catalogue -->
 <div class="card mb-3"><div class="card-header">The catalogue</div>
+  {% if unresolved %}
+  <div class="state-note mb-2" style="border-left-color:#B8873D">
+    {{ unresolved|length }} feature(s) could not be resolved and are listed below
+    with the reason: <span class="mono">{{ unresolved|join(", ") }}</span>.</div>
+  {% endif %}
   <table class="table maya mb-0">
     <thead><tr><th>Feature</th><th>Shape</th><th>How it is produced</th>
                <th>Ownership</th><th>State</th><th></th></tr></thead>
     <tbody>
     {% for f in features %}
+      {% if f.unresolved %}
+      {# Listed WITH its reason rather than dropped, and short rather than
+         blank. One feature the resolver refuses used to take the whole
+         catalogue down with a 500 and twenty-one bytes of plain text — every
+         feature in the estate unreadable because of a fault in one of them.
+         Omitting the row would be worse: nobody could tell the catalogue was
+         incomplete. Blank cells would be worse again: they would assert
+         "materialised, not sealed" about a row nothing could read. #}
+      <tr><td class="small">{{ f.name }}
+            <div class="text-muted">{{ f.description }}</div></td>
+          <td class="small evidence-bad" colspan="5">could not be resolved
+            <div class="text-muted" style="font-size:.74rem">{{ f.unresolved }}</div>
+          </td></tr>
+      {% else %}
       <tr><td class="small">{{ f.name }}
             <div class="text-muted">{{ f.description }}</div></td>
           <td class="small">{{ f.dimensionality.kind }}
@@ -161,6 +179,7 @@ pinned by the view version that wrote them.</p>
               <a href="#" class="seal-feature" data-name="{{ f.name }}"
                  style="color:var(--crimson);text-decoration:none">seal</a>
             {% endif %}</td></tr>
+      {% endif %}
     {% else %}
       <tr><td colspan="6" class="text-muted small">
         Nothing defined yet. A feature is declared before it has values, because

@@ -138,7 +138,7 @@ class Maya:
         """
         try:
             return response.json()
-        except Exception:                                  # noqa: BLE001
+        except Exception:
             return getattr(response, "text", "") or ""
 
     # -------------------------------------------------------------- helpers

@@ -18,5 +18,15 @@ from core.registry.models import ModelRegistry
 from core.registry.specs import contract_of, schema_of
 from core.registry.versions import VersionService
 
-__all__ = ["ModelRegistry", "ModelComposition", "KINDS", "KIND_MEANING", "RegistryError", "ModelCatalogue", "VersionService",
-           "AliasService", "schema_of", "contract_of"]
+__all__ = [
+                                       "KINDS",
+                                       "KIND_MEANING",
+                                       "AliasService",
+                                       "ModelCatalogue",
+                                       "ModelComposition",
+                                       "ModelRegistry",
+                                       "RegistryError",
+                                       "VersionService",
+                                       "contract_of",
+                                       "schema_of",
+]

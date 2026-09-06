@@ -12,5 +12,13 @@ from core.telemetry.collector import TelemetryCollector
 from core.telemetry.common import (LABEL, OUTCOMES, SCORE, SCORES, STREAMS,
                                    STREAM_MEANING, TelemetryError)
 
-__all__ = ["TelemetryCollector", "TelemetryError", "STREAMS", "STREAM_MEANING",
-           "SCORES", "OUTCOMES", "SCORE", "LABEL"]
+__all__ = [
+                                   "LABEL",
+                                   "OUTCOMES",
+                                   "SCORE",
+                                   "SCORES",
+                                   "STREAMS",
+                                   "STREAM_MEANING",
+                                   "TelemetryCollector",
+                                   "TelemetryError",
+]
