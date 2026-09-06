@@ -30,7 +30,6 @@ from core.evidence import EvidenceEngine
 from core.log import get_logger
 from core.scheduler.jobs import JOBS, JobContext
 from db import ScheduledRunRepository
-from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
@@ -106,11 +105,29 @@ class Scheduler:
                 for j in sorted(self.jobs.values(), key=lambda j: j.key)]
 
     def last(self, key: str) -> Optional[Dict[str, Any]]:
+        """The most recent run of one job.
+
+        This called `latest_version(rows)`, which orders by `semver` — a field a
+        scheduled run does not have. Every row keyed to `(-1,)` with a
+        `created_at` of nothing, `max` returned the FIRST of the equals, and the
+        repository orders by `ran_at` ascending: so `last()` returned the OLDEST
+        run of every job, permanently.
+
+        Nothing raised. `/admin/scheduler` showed the first time the batch ever
+        ran as its last run, `health()` computed "hours since" from that, and a
+        job that failed once on the day it was installed was reported as failing
+        forever while every run since had succeeded. The screen that exists to
+        say whether the governance batch is alive was answering with the day it
+        was born.
+        """
         rows = self.runs.many(job=key)
-        return latest_version(rows)
+        return max(rows, key=lambda r: r.get("ran_at") or 0) if rows else None
 
     def history(self, limit: int = 50) -> List[Dict[str, Any]]:
-        return self.runs.many()[-limit:]
+        """The most recent runs, newest first — the order somebody reads them in
+        when they are asking what just happened."""
+        return sorted(self.runs.many(), key=lambda r: r.get("ran_at") or 0,
+                      reverse=True)[:limit]
 
     def health(self, now: Optional[float] = None) -> Dict[str, Any]:
         """Is the scheduler itself running?
