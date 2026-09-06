@@ -309,3 +309,117 @@ class TestAKernelKeyNobodyReadsIsRefused:
             "seed": 11, "descriptor_only": False})
         assert r.status_code == 201, r.text
         assert r.json()["semver"] == "9.1.2"
+
+
+class TestTheFormatIsCheckedAgainstTheBytes:
+    """The format was a claim from beginning to end.
+
+    The uploader named it on `POST /artifacts`, the version's kernel named it
+    again, and nothing ever opened the file. It is not a label: it decides which
+    runtime loads the artifact, and `EXECUTES_ON_LOAD` exists because two of
+    these formats run somebody's code on open. An artifact declared `onnx` and
+    actually a TorchScript archive is a request to run code outside the sandbox
+    that isolates it, granted on the uploader's word.
+    """
+
+    ZIP = b"PK\x03\x04" + b"\x00" * 64          # a TorchScript archive is a ZIP
+    GZIP = b"\x1f\x8b\x08\x00" + b"\x00" * 64
+    GGUF = b"GGUF" + b"\x00" * 64
+
+    @staticmethod
+    def _put(store, payload, fmt):
+        import io
+        return store.put(io.BytesIO(payload), fmt)
+
+    def test_a_zip_uploaded_as_onnx_is_refused(self, store):
+        import pytest
+
+        from core.artifacts import ArtifactError
+
+        with pytest.raises(ArtifactError) as refusal:
+            self._put(store, self.ZIP, "onnx")
+        assert refusal.value.code == "artifact_format_mismatch"
+        assert "torchscript" in str(refusal.value), "name what it actually is"
+
+    def test_the_same_bytes_stored_as_what_they_are_go_in(self, store):
+        assert self._put(store, self.ZIP, "torchscript")["format"] == "torchscript"
+
+    def test_a_tarball_uploaded_as_safetensors_is_refused(self, store):
+        import pytest
+
+        from core.artifacts import ArtifactError
+
+        with pytest.raises(ArtifactError):
+            self._put(store, self.GZIP, "safetensors")
+
+    def test_gguf_says_its_own_name(self, store):
+        import pytest
+
+        from core.artifacts import ArtifactError
+
+        with pytest.raises(ArtifactError):
+            self._put(store, self.GGUF, "json")
+
+    def test_bytes_the_sniffer_cannot_place_are_stored_as_declared(self, store):
+        """The whole design constraint. ONNX is protobuf and protobuf has no
+        magic number, so an ONNX graph is unplaceable — and a sniffer that
+        guessed from its first byte refused a correct TorchScript upload within
+        a minute of being written. Only a positive contradiction refuses."""
+        assert self._put(store, b"\x08\x07\x12\x04arbitrary", "onnx")["format"] \
+            == "onnx"
+
+    def test_pfa_and_json_are_not_reported_as_contradicting(self):
+        """Both are JSON documents. Telling them apart by their keys would be
+        inventing certainty, so they are treated as indistinguishable."""
+        from core.artifacts.sniff import contradicts, looks_like
+
+        assert looks_like(b'{"input": {}}') == "json"
+        assert not contradicts("pfa", "json")
+        assert contradicts("pfa", "gguf")
+
+
+class TestAVersionMayNotRenameTheArtifactsFormat:
+    """The store filled the format in when the kernel was silent and BELIEVED
+    the kernel when it was not, so the two could disagree about the same bytes
+    and the version's word won. `builder.py` picks the runtime from the kernel's
+    declaration, so a version declaring `onnx` over an artifact stored as
+    `torchscript` routed code out of the sandbox that exists to contain it.
+    """
+
+    def test_a_disagreement_with_the_store_is_refused(self, registry, store):
+        import io
+
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        registry.attach_artifacts(store)
+        stored = store.put(io.BytesIO(b"PK\x03\x04" + b"\x00" * 64),
+                           "torchscript")
+        urn = "maya://model/fmt.disagree"
+        registry.register(urn, "Disagree", "credit", "retail", "person/o",
+                          "LE-US-01", "format disagreement")
+        with pytest.raises(RegistryError, match="artifact_format"):
+            registry.create_version(urn, "1.0.0", {
+                "parameter_kind": "opaque", "fit_procedure": "train",
+                "artifact_format": "onnx",
+                "input_schema": [{"name": "x", "dtype": "numeric"}],
+                "output_schema": [{"name": "y", "dtype": "numeric"}]},
+                artifact_digest=stored["digest"])
+
+    def test_agreeing_with_the_store_is_fine(self, registry, store):
+        import io
+
+        registry.attach_artifacts(store)
+        stored = store.put(io.BytesIO(b"PK\x03\x04" + b"\x00" * 64),
+                           "torchscript")
+        urn = "maya://model/fmt.agree"
+        registry.register(urn, "Agree", "credit", "retail", "person/o",
+                          "LE-US-01", "format agreement")
+        version = registry.create_version(urn, "1.0.0", {
+            "parameter_kind": "opaque", "fit_procedure": "train",
+            "artifact_format": "torchscript",
+            "input_schema": [{"name": "x", "dtype": "numeric"}],
+            "output_schema": [{"name": "y", "dtype": "numeric"}]},
+            artifact_digest=stored["digest"])
+        assert version["manifest"]["kernel"]["artifact_format"] == "torchscript"
