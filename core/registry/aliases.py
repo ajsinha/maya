@@ -48,6 +48,8 @@ class AliasService:
         # A policy gate, consulted after the proofs above and only
         # ever to refuse. Policy tightens; these proofs are the floor.
         self.policy = None
+        # Set at wiring time; see core/policy/wiring.py.
+        self.facts = None
 
     # ------------------------------------------------------------------ proof
     @staticmethod
@@ -86,7 +88,8 @@ class AliasService:
                 "to_status": new["status"],
                 "refinement_holds": bool(proof["refinement"]["holds"]),
                 "variance_ok": bool(proof["variance"]["ok"]),
-                "attested": m.get("status") == "attested"},
+                "attested": m.get("status") == "attested",
+                **(self.facts.alias_move(m) if self.facts else {})},
                 f"{urn} {environment}/{name}")
 
         now = time.time()

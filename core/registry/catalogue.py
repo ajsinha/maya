@@ -35,6 +35,8 @@ class ModelCatalogue:
         self.models, self.evidence = models, evidence
         self.gate = gate
         self.policy = None
+        # Set at wiring time; see core/policy/wiring.py.
+        self.facts = None
 
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
@@ -82,7 +84,8 @@ class ModelCatalogue:
                 "tier": model.get("tier"),
                 "lifecycle_state": model.get("status"),
                 "attested": model.get("status") == "attested",
-                "amending": model.get("status") == "amending"}, urn)
+                "amending": model.get("status") == "amending",
+                **(self.facts.model_mutate(model) if self.facts else {})}, urn)
         unknown = set(fields) - set(self.EDITABLE)
         if unknown:
             raise RegistryError(

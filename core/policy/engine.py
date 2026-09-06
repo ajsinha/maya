@@ -245,7 +245,8 @@ class PolicyRegister:
             self._compiled[gate] = cached
         return cached[1], {**published, "source": "published"}
 
-    def decide(self, gate: str, facts: Dict[str, Any]) -> Dict[str, Any]:
+    def decide(self, gate: str, facts: Dict[str, Any],
+               strict: bool = True) -> Dict[str, Any]:
         """The verdict, and which policy version reached it.
 
         The version is part of the answer. 'Why was this refused in March' is a
@@ -254,6 +255,35 @@ class PolicyRegister:
         if gate not in GATES:
             raise PolicyError("unknown_gate", f"'{gate}' is not a gate", "")
         rule, provenance = self.rule_for(gate)
+
+        # A fact the RULE reads must be supplied. Anything else may default.
+        #
+        # `complete()` filled in every fact the gate declares, so by the time
+        # the rule ran nothing was ever missing and `Rule.evaluate`'s
+        # `fact_not_supplied` refusal could never fire. Fourteen of the
+        # thirty-six advertised facts were never passed by any call site, and
+        # three of them — `blocking_findings`, `open_findings`, `actor_roles` —
+        # default to the PERMISSIVE value. The built-in `version:approve` rule
+        # is `blocking_findings == 0 and tier is not None`, published as in
+        # force with the reason "a version is not approved over an open blocking
+        # finding", and that half of it had never been able to fire.
+        #
+        # Refusing here is loud in the right direction: a gate wired without a
+        # fact it judges on stops working visibly rather than passing everything.
+        # `strict=False` is the EXPLORATION path — `/policies/try`, where
+        # somebody is asking what a rule would decide about facts they typed.
+        # Defaulting there is what they expect; defaulting on the live path is
+        # the defect.
+        missing = sorted(set(rule.facts_read()) - set(facts)) if strict else []
+        if missing:
+            raise PolicyError(
+                "fact_not_supplied",
+                f"the '{gate}' policy reads {', '.join(missing)} and the call "
+                f"site did not supply it",
+                "this is a defect in the gate's wiring rather than in the rule: "
+                "a fact the rule judges on cannot be defaulted, because the "
+                "default would decide the answer")
+
         supplied = complete(gate, facts)
         allowed = rule.evaluate(supplied)
         return {

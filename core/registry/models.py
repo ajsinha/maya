@@ -56,12 +56,22 @@ class ModelRegistry:
         """
         self.version_service.artifacts = store
 
-    def attach_policy(self, gate) -> None:
-        """Wire a policy gate. It adds conditions; it never removes them."""
+    def attach_policy(self, gate, facts=None) -> None:
+        """Wire a policy gate. It adds conditions; it never removes them.
+
+        `facts` answers the governance questions the register does not hold —
+        open findings, validations, documents. Without it a gate is judged on
+        the four facts this service can see and the rest take their defaults,
+        three of which are permissive; `decide()` refuses that now, so a gate
+        wired without its facts fails loudly rather than passing everything.
+        """
         self.policy = gate
         self.version_service.policy = gate
         self.alias_service.policy = gate
         self.catalogue.policy = gate
+        self.version_service.facts = facts
+        self.alias_service.facts = facts
+        self.catalogue.facts = facts
 
     def attach_quorum(self, check) -> None:
         """Wire the version-approval quorum after construction.
