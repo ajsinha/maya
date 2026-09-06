@@ -1171,7 +1171,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Nine idempotent jobs
+### 16.3 Ten idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 

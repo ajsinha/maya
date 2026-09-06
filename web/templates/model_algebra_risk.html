@@ -122,6 +122,26 @@ these controls defend&rdquo; are one definition.</p>
               the latest version declares <span class="mono">{{ declared_class }}</span>.
             </div>
           {% endif %}
+          {# When the next review falls due. `next_review_due` was computed from
+             the tier, written to every assessment, and read by nothing at all
+             — not a job, not a screen, not an endpoint. The cadence that is the
+             whole reason the engine carries a review map was a column nobody
+             selected, so a Tier 1 model could go four years unreviewed with
+             every other control green. #}
+          {% if assessment.next_review_due %}
+            {% set days = ((assessment.next_review_due - now) / 86400)|round|int %}
+            <div class="mt-2" style="font-size:.78rem">Next review
+              {% if days < 0 %}
+                <span class="evidence-bad">was due {{ -days }} days ago</span>
+                &mdash; the <code>review.overdue</code> batch raises a finding
+                for this, and reassessing is what discharges it.
+              {% elif days < 60 %}
+                due in <strong>{{ days }}</strong> days
+              {% else %}
+                due in {{ days }} days
+              {% endif %}
+            </div>
+          {% endif %}
           {% if assessment.required_controls %}
             <div class="mt-2" style="font-size:.78rem">Controls this tier requires:
               {% for c in assessment.required_controls %}<span class="chip me-1">{{ c }}</span>{% endfor %}</div>

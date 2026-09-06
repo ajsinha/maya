@@ -433,7 +433,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    debts=debts, documents=documents,
                    notifications=notifications,
                    finding_workflow=finding_workflow,
-                   evidence=evidence))
+                   evidence=evidence, risk=RiskRepository(db)))
 
     # L-17: what an engine says it served, against what the contract pins.
     # MAYA does not read the online store — it does not own one, deliberately —
