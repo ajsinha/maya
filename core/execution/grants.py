@@ -22,9 +22,12 @@ from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.execution.errors import WarrantError
+from core.log import get_logger
 from core.execution.urn import DEFAULT_ALIAS, model_urn, parse_urn
 from core.registry import ModelRegistry
 from db import WarrantRepository
+
+logger = get_logger(__name__)
 
 DEFAULT_TTL = {1: 60, 2: 300, 3: 3600, 4: 3600}
 DEFAULT_GRACE = {1: 0, 2: 0, 3: 900, 4: 900}
@@ -40,7 +43,32 @@ class WarrantGrants:
         self.repo, self.registry, self.evidence = repo, registry, evidence
         self.ttl = ttl_by_tier or dict(DEFAULT_TTL)
         self.grace = grace_by_tier or dict(DEFAULT_GRACE)
-        self.epoch = 0
+        # Seeded from what is stored, not from zero.
+        #
+        # The epoch is bumped by every revocation and stamped onto each grant,
+        # so a descriptor carrying a stale epoch is one issued before somebody
+        # withdrew authority. It lived only in this process and started at 0, so
+        # a restart walked it back: revoke three times, restart, and the next
+        # grant is issued at epoch 0 — indistinguishable from a grant predating
+        # every one of those revocations. **A restart silently undid the effect
+        # of revoking**, which is the one act that most needs to survive one.
+        #
+        # The column has been on `warrant` the whole time. Nothing read it back.
+        self.epoch = self._highest_epoch()
+
+    def _highest_epoch(self) -> int:
+        """The furthest any grant has been stamped with, or zero if none have.
+
+        Read once at construction rather than on every issue: the epoch only
+        advances, and re-reading it per grant would make issuance depend on a
+        query whose answer this object already owns.
+        """
+        row = self.repo.db.query_one(
+            "SELECT MAX(epoch) AS highest FROM warrant")
+        highest = (row or {}).get("highest")
+        if highest:
+            logger.info("revocation epoch resumed at %d from the register", highest)
+        return int(highest or 0)
 
     def issue(self, urn: str, environment: str, principal: str, declared_use: str,
               flavour: str = "descriptor_only", actor: str = "system") -> Dict[str, Any]:

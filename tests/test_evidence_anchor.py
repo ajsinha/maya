@@ -118,7 +118,11 @@ class TestTheEngineRefusesToAnchorABrokenChain:
         evidence.anchors = ChainAnchor(tmp_path / "worm")
         evidence.append("model_registered", "model", "m1", {"a": 1})
         node = evidence.repo.first("seq", desc=True)
-        evidence.repo.set({"content_hash": "sha256:" + "0" * 64}, id=node["id"])
+        # Raw SQL: the repository is append-only and refuses. That refusal is
+        # the point — an attacker has the database, not a Python method.
+        evidence.repo.db.execute(
+            "UPDATE evidence_node SET content_hash = :h WHERE id = :i",
+            {"h": "sha256:" + "0" * 64, "i": node["id"]})
         with pytest.raises(AnchorError, match="write the broken state down"):
             evidence.anchor_head()
         assert not list((tmp_path / "worm").glob("*.anchor")) \
@@ -148,8 +152,11 @@ class TestTheEngineRefusesToAnchorABrokenChain:
         # Rewrite the anchored node and re-link everything after it, exactly as
         # somebody with database access would.
         target = evidence.repo.one(seq=anchored["seq"])
-        evidence.repo.set({"payload": {"n": 999},
-                           "chain_hash": "sha256:" + "e" * 64}, id=target["id"])
+        evidence.repo.db.execute(
+            "UPDATE evidence_node SET payload = :p, chain_hash = :c "
+            "WHERE id = :i",
+            {"p": json.dumps({"n": 999}), "c": "sha256:" + "e" * 64,
+             "i": target["id"]})
 
         assert evidence.verify_against_anchors()["agrees"] == 0, (
             "the anchor did not catch a rewritten node, which is the only "

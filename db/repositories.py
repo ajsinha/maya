@@ -140,7 +140,61 @@ class EvidenceCheckpointRepository(Repository):
     TABLE, ORDER = "evidence_checkpoint", "seq"
 
 
-class EvidenceRepository(Repository):
+class AppendOnly(Repository):
+    """A table nothing updates and nothing deletes from.
+
+    `Repository` hands every subclass a generic `set()` and `remove()`, and the
+    evidence chain inherited both. The schema comment above `evidence_node`
+    reads *"Append-only and hash-chained. The application role gets INSERT and
+    SELECT"* — and that role does not exist. There are no triggers, no grants
+    and no `CHECK` constraints in either dialect, so append-only was a property
+    of nobody having called the method.
+
+    Refusing here does not make the table immutable — anything holding the
+    database connection can still issue an `UPDATE`, and a deployment that wants
+    the guarantee enforced rather than conventional needs a role with `INSERT`
+    and `SELECT` and nothing else. What it does is remove the *accident*: no
+    service can quietly acquire the ability by inheriting it, and a future
+    caller reaching for `remove()` on the chain gets a sentence explaining why
+    the answer is no rather than a silent success.
+
+    Deletion would also be the wrong repair even where it looks like the right
+    one: a node recorded in error is corrected by appending the correction, so
+    that the mistake and its correction are both in the record. A chain you can
+    tidy is a chain whose contents are whatever somebody last decided they
+    should have been.
+    """
+
+    def set(self, values: Dict[str, Any], **filters) -> int:
+        raise AppendOnlyViolation(
+            f"{self.TABLE} is append-only: an UPDATE would change a row that "
+            f"something downstream has already hashed, cited or acted on",
+            "append a correcting entry instead — the record should carry the "
+            "mistake and its correction, not the tidied result")
+
+    def remove(self, **filters) -> int:
+        raise AppendOnlyViolation(
+            f"{self.TABLE} is append-only: a DELETE would remove evidence that "
+            f"somebody may already have been shown",
+            "append a correcting entry instead; if this is a data-protection "
+            "erasure, the payload of a node flagged `contains_personal_data` "
+            "was never stored in the first place")
+
+
+class AppendOnlyViolation(RuntimeError):
+    """An update or delete against a table that only takes inserts."""
+
+    def __init__(self, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.code = "append_only"
+        self.detail, self.remediation = detail, remediation
+
+    def as_problem(self) -> Dict[str, str]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}
+
+
+class EvidenceRepository(AppendOnly):
     TABLE, JSON, ORDER = "evidence_node", ("payload", "parents"), "seq"
 
     def since(self, seq: int) -> List[Dict[str, Any]]:

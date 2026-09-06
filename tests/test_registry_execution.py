@@ -467,3 +467,49 @@ class TestTheOperatingBoundaryReachesNestedInputs:
         deep = {"a": {"b": {"turnover": 9000}}}
         assert contract.check_inputs(deep) == []
         assert contract.unchecked_inputs(deep) == ["turnover"]
+
+
+class TestTheRevocationEpochSurvivesARestart:
+    """The epoch is bumped by every revocation and stamped onto each grant, so a
+    descriptor carrying a stale one was issued before somebody withdrew
+    authority.
+
+    It lived only in the process and started at zero. Revoke three times,
+    restart, and the next grant is stamped epoch 0 — indistinguishable from a
+    grant predating every one of those revocations. **A restart silently undid
+    the effect of revoking**, which is the one act that most needs to survive
+    one. The column has been on `warrant` the whole time; nothing read it back.
+    """
+
+    def test_a_fresh_service_resumes_where_the_register_left_off(
+            self, repos, registry, evidence, a_model, approved_version):
+        from core.execution.grants import WarrantGrants
+
+        grants = WarrantGrants(repos["warrants"], registry, evidence)
+        grants.issue(URN, "prod", "svc/origination", "origination_decision")
+        for _ in range(3):
+            grants.revoke_model(URN, "kill switch")
+        assert grants.epoch == 3
+
+        # A restart: a new object over the same database.
+        restarted = WarrantGrants(repos["warrants"], registry, evidence)
+        assert restarted.epoch == 3, (
+            "the epoch reset, so a grant issued after the restart would look "
+            "older than three revocations that have already happened")
+
+    def test_it_starts_at_zero_when_nothing_has_been_revoked(
+            self, repos, registry, evidence):
+        from core.execution.grants import WarrantGrants
+        assert WarrantGrants(repos["warrants"], registry, evidence).epoch == 0
+
+    def test_a_grant_issued_after_a_restart_carries_the_resumed_epoch(
+            self, repos, registry, evidence, a_model, approved_version):
+        from core.execution.grants import WarrantGrants
+        grants = WarrantGrants(repos["warrants"], registry, evidence)
+        grants.issue(URN, "prod", "svc/origination", "origination_decision")
+        grants.revoke_model(URN, "kill switch")
+
+        restarted = WarrantGrants(repos["warrants"], registry, evidence)
+        fresh = restarted.issue(URN, "prod", "svc/origination",
+                                "origination_decision")
+        assert fresh["epoch"] == 1
