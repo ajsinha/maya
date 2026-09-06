@@ -79,12 +79,13 @@ class WorkList:
 
     def __init__(self, registry, lifecycle=None, findings=None, monitoring=None,
                  overlays=None, documents=None, debts=None, validation=None,
-                 finding_workflow=None):
+                 finding_workflow=None, composition=None):
         self.registry, self.lifecycle = registry, lifecycle
         self.findings, self.monitoring = findings, monitoring
         self.overlays, self.documents = overlays, documents
         self.debts, self.validation = debts, validation
         self.finding_workflow = finding_workflow
+        self.composition = composition
 
     # ------------------------------------------------------------------ build
     def for_model(self, model: Dict[str, Any],
@@ -93,7 +94,7 @@ class WorkList:
         urn = model["urn"]
         items: List[Item] = []
         for source in (self._attestation, self._approval, self._findings,
-                       self._acknowledgements,
+                       self._acknowledgements, self._upstream_moved,
                        self._monitors, self._overlays, self._debt, self._documents):
             items.extend(self._safely(source, model, urn, moment))
         # Stamped centrally rather than in each source: a row that does not say
@@ -113,6 +114,53 @@ class WorkList:
             return []
 
     # ------------------------------------------------------------- the sources
+    def _upstream_moved(self, model, urn, now) -> List[Item]:
+        """A model this one reads has been promoted since.
+
+        The gap a model risk manager found by doing it: they moved a PD model's
+        production champion to a version with a different guarantee, and on the
+        ECL stack that reads it — tier 1, regulatory capital — nothing appeared.
+        No finding, no worklist row, no notification, no change to its page.
+
+        `blast_radius` answered the question correctly the whole time, and that
+        was the shape of the problem: **the blast radius is a pull and a change
+        process needs a push.** An `input_to` edge is type-checked when the edge
+        is drawn, not when a version moves beneath it, so the one moment the
+        downstream owner needs to hear about is the one nothing spoke at.
+
+        Derived rather than recorded, like everything else here: the alias
+        history and the edges are already held, so this is a question asked at
+        read time rather than a second table to keep in step.
+        """
+        if not self.composition or not self.registry:
+            return []
+        items: List[Item] = []
+        for edge in self.composition.edges_of(urn)["upstream"]:
+            if not edge.get("propagates") or not edge.get("urn"):
+                continue
+            moves = [m for m in self.registry.alias_history(edge["urn"])
+                     if m.get("environment") == "prod"]
+            if not moves:
+                continue
+            latest = moves[-1]
+            # The row records version IDs, so the semver is looked up rather
+            # than assumed present — a worklist line reading "moved to None" is
+            # a line somebody ignores.
+            moved_to = self.registry.version_by_id(latest["to_version_id"]) or {}
+            items.append(Item(
+                kind="upstream_moved", urn=urn,
+                title=f"{edge.get('name') or edge['urn']} moved beneath this model",
+                detail=(f"its prod alias now points at "
+                        f"{moved_to.get('semver') or 'a different version'}. "
+                        f"This model reads its output, and the edge was "
+                        f"type-checked when it was drawn rather than when the "
+                        f"version moved — so nothing has verified that what it "
+                        f"now produces still stands in for what this reads"),
+                permission="model:read", urgency="open",
+                due_at=latest.get("moved_at"),
+                href=f"/model-algebra/composition?urn={urn}"))
+        return items
+
     def _attestation(self, model, urn, now) -> List[Item]:
         """Outstanding signatures. The gap this whole module exists to close."""
         if not self.lifecycle:

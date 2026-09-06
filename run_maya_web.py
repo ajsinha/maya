@@ -98,6 +98,41 @@ from db import (ServingAttestationRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
 from routes import ALL_ROUTES
+
+#: Sent on every response.
+#:
+#: There were none. The interface is entirely self-hosted — every asset is
+#: vendored so it renders air-gapped — which makes a strict policy cheap to
+#: state and expensive to omit: an injected `<script src>` had nothing stopping
+#: it, on pages that render model names, findings and document titles supplied
+#: by people.
+#:
+#: `'unsafe-inline'` is here for scripts and styles and it is not an oversight.
+#: Several pages carry inline handlers and `<style>` blocks, and a policy that
+#: broke them would be turned off within a week — which is worse than a policy
+#: that blocks the external-origin case and says so. Removing it means moving
+#: the inline blocks out first, which is its own change.
+SECURITY_HEADERS: Dict[str, str] = {
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        # Nothing here calls out. A governance platform that can be made to
+        # fetch from somewhere else is one somebody can exfiltrate through.
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"),
+    # Belt and braces with frame-ancestors, for the proxies that strip CSP.
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    # A URL here carries a model URN and sometimes a semver. Neither belongs in
+    # somebody else's referrer log.
+    "Referrer-Policy": "same-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+}
 from routes.base import authz_problem
 
 ROOT = Path(__file__).resolve().parent
@@ -342,7 +377,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Both are derived from the services above rather than from tables of their
     # own: a task table or a summary table would be a second source of truth.
     worklist = WorkList(registry, lifecycle, findings, monitoring, overlays,
-                        documents, debts, validation, finding_workflow)
+                        documents, debts, validation, finding_workflow,
+                        # So a version moving beneath a model reaches the person
+                        # who reads it. The blast radius answered this correctly
+                        # all along and nobody was told: a pull where a change
+                        # process needs a push.
+                        composition=composition)
     # Delivery, not a queue: the work is derived, and this makes it arrive
     # somewhere rather than waiting to be looked at.
     # None unless an issuer is configured: local credentials only is the
@@ -576,6 +616,8 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
             raise
         elapsed = (time.perf_counter() - started) * 1000.0
         response.headers[log.REQUEST_HEADER] = request_id
+        for header, value in SECURITY_HEADERS.items():
+            response.headers.setdefault(header, value)
         # One line per request, at the level its outcome deserves: a refusal is
         # a governance decision worth seeing at INFO, a fault is not routine.
         logger.log(

@@ -19,6 +19,8 @@ from core.notify import CHANNEL_MEANING
 from core.parameters import PROVENANCE_MEANING
 from core.policy import GATES, describe_facts
 from core.policy.language import describe as describe_language
+from core.features.common import SUGGESTED_DTYPES
+from core.features.transfer import accept_attribute
 from core.telemetry import STREAM_MEANING
 from core.log import get_logger
 from routes.base import Routes, login_required
@@ -127,7 +129,11 @@ class UIRoutes(Routes):
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
             return self.page(
-                request, "features.html", features=catalogue, derived=derived,
+                request, "features.html",
+                # From the code. Two forms carried their own list and they
+                # disagreed about `boolean`, so whether a feature could be one
+                # depended on which screen you opened.
+                dtypes=list(SUGGESTED_DTYPES), features=catalogue, derived=derived,
                 views=views,
                 language=__import__("core.features.expressions",
                                     fromlist=["describe"]).describe(),
@@ -149,6 +155,10 @@ class UIRoutes(Routes):
                 return self.page(request, "not_found.html", http_status=404, name=name)
             versions = f.views.versions_of(name)
             return self.page(request, "feature_view.html", view=view,
+                             # From the code. The control offered four suffixes
+                             # and the API reads six — including CSV, which is
+                             # what every worked example in the product uploads.
+                             upload_accepts=accept_attribute(),
                              versions=[{**v, **f.views.restated(name, v["version"])}
                                        for v in versions])
 
@@ -222,7 +232,7 @@ class UIRoutes(Routes):
                        "ordered": f.get("dtype", "numeric") in ORDERED_DTYPES}
                       for f in (version.get("input_schema") or [])]
             return self.page(
-                request, "ruleset_editor.html", model=model, version=version,
+                request, "ruleset_editor.html", model=model, model_version=version,
                 inputs=inputs, outputs=version.get("output_schema") or [],
                 existing=existing,
                 document=(latest or {}).get("values_inline") or
@@ -352,7 +362,22 @@ class UIRoutes(Routes):
                 return r
             who = self.principal(request)
             models = self.ctx["authz"].visible(who, self.ctx["registry"].list())
+            # Which version each alias points at, so the table can mark the one
+            # in force. The screen's whole argument is that *the silence is the
+            # finding*, and it could not tell a reader that the silent version
+            # was the one serving production.
+            in_force: Dict[str, list] = {}
+            for m in models:
+                for environment in ("prod", "uat", "dev"):
+                    for name in ("champion", "challenger"):
+                        pinned = self.ctx["registry"].resolve_alias(
+                            m["urn"], environment, name)
+                        if pinned and pinned.get("semver"):
+                            in_force.setdefault(
+                                f"{m['urn']}@{pinned['semver']}", []
+                            ).append(f"{environment}/{name}")
             return self.page(request, "telemetry.html",
+                             in_force=in_force,
                              estate=self.ctx["telemetry"].estate(models),
                              streams=STREAM_MEANING)
 
@@ -374,7 +399,7 @@ class UIRoutes(Routes):
             telemetry, urn = self.ctx["telemetry"], model["urn"]
             cohort = telemetry.cohort(urn, semver)
             return self.page(
-                request, "telemetry_version.html", model=model, version=version,
+                request, "telemetry_version.html", model=model, model_version=version,
                 summary=telemetry.status(urn, semver), streams=STREAM_MEANING,
                 rows=len(cohort), shown=cohort[:200], now=time.time(),
                 labelled=sum(1 for row in cohort if "label" in row))
@@ -397,7 +422,7 @@ class UIRoutes(Routes):
             parameters, urn = self.ctx["parameters"], model["urn"]
             sets = parameters.for_version(urn, semver)
             return self.page(
-                request, "parameters.html", model=model, version=version,
+                request, "parameters.html", model=model, model_version=version,
                 readiness=parameters.status(urn, semver), parameter_sets=sets,
                 provenance=PROVENANCE_MEANING,
                 # A fitted set names the featureset version it was fitted from;

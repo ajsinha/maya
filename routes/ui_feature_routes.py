@@ -56,6 +56,8 @@ from core.features.expressions import Expression, describe as describe_language
 from core.features.preparation import describe as describe_preparation
 from core.features.transfer import FORMAT_MEANING, MEDIA_TYPE, UPLOAD_FORMATS
 from core.log import get_logger, swallowed
+from core.features.common import SUGGESTED_DTYPES
+from core.features.transfer import accept_attribute
 from routes.base import Body, Routes, login_required
 
 logger = get_logger(__name__)
@@ -563,6 +565,7 @@ class FeatureAuthoringRoutes(Routes):
             catalogue = features.list_features()
             return self.page(
                 request, "feature_author_define.html",
+                dtypes=list(SUGGESTED_DTYPES),
                 catalogue=catalogue,
                 derived=features.derived.list() if features.derived else [],
                 entities=sorted({f["entity"] for f in catalogue}),
@@ -594,6 +597,8 @@ class FeatureAuthoringRoutes(Routes):
                 return self.refused_page(request, "Feature values")
             return self.page(
                 request, "feature_author_load.html",
+                # The same list the view page offers, from the same place.
+                upload_accepts=accept_attribute(),
                 catalogue=features.list_features(),
                 views=self._views(features),
                 uploads=_upload_formats(),

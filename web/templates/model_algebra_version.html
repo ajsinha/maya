@@ -47,6 +47,19 @@ changes &mdash; this page derives nothing itself.</p>
                 <option value="0">0 — samples</option>
               </select></div>
 
+            {# What actually runs. This form had the class preview and no way
+               to say what executes, so the screen tutorial 01 sends you to
+               could not create a runnable version. #}
+            <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">runtime &mdash; what hosts the kernel</label>
+              <select class="form-select form-select-sm" name="runtime" id="alg-runtime">
+                <option value="">descriptor_only &mdash; MAYA holds the governance, not the artifact</option>
+                {% for r in runtimes %}<option>{{ r }}</option>{% endfor %}
+              </select></div>
+            <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">entry &mdash; where in it</label>
+              <input class="form-control form-control-sm mono" name="entry" id="alg-entry"
+                     placeholder="choose a runtime and this will show its shape"></div>
+            <div class="col-12 text-muted" id="alg-entry-shape" style="font-size:.72rem"></div>
+
             <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">input schema &mdash; X</label>
               <textarea class="form-control form-control-sm mono" name="input_schema" rows="2"
                 placeholder='[{"name": "dscr", "dtype": "float", "minimum": -5, "maximum": 20}]'></textarea></div>
@@ -160,6 +173,35 @@ changes &mdash; this page derives nothing itself.</p>
   </div></div>
 {% endblock %}
 {% block scripts %}
+<script>
+// The entry keys each runtime requires, from the grammar. Identical to the one
+// on /models/new because it is the same question, and a second copy would be a
+// second answer.
+var ALG_RUNTIME_ENTRY = {{ runtime_entry|tojson }};
+function algEntryShape() {
+  var runtime = document.getElementById("alg-runtime").value;
+  var keys = ALG_RUNTIME_ENTRY[runtime];
+  var input = document.getElementById("alg-entry");
+  var note = document.getElementById("alg-entry-shape");
+  if (!runtime) {
+    input.placeholder = "entry — not needed for descriptor_only";
+    input.disabled = true; input.value = "";
+    note.textContent = "A descriptor-only version records governance and no " +
+      "artifact, so there is nothing to enter.";
+    return;
+  }
+  input.disabled = false;
+  if (!keys || !keys.length) { input.placeholder = "entry, as JSON"; note.textContent = ""; return; }
+  var example = {};
+  keys.forEach(function (k) { example[k] = "…"; });
+  input.placeholder = "entry, e.g. " + JSON.stringify(example);
+  note.innerHTML = "<strong>" + runtime + "</strong> needs " +
+    keys.map(function (k) { return "<code>" + k + "</code>"; }).join(", ") +
+    " — a shape it does not have is only discovered when something tries to run it.";
+}
+document.getElementById("alg-runtime").addEventListener("change", algEntryShape);
+algEntryShape();
+</script>
 <script src="/static/js/model-algebra.js"></script>
 <script src="/static/js/model-algebra-version.js"></script>
 <script>window.mayaAlgebraVersion({name: "{{ name }}"});</script>

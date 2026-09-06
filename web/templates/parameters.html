@@ -1,14 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Parameters — {{ model.name }} v{{ version.semver }} — {{ app_name }}{% endblock %}
+{% block title %}Parameters — {{ model.name }} v{{ model_version.semver }} — {{ app_name }}{% endblock %}
 {% block content %}
 <div class="accent"></div>
 <p class="kicker mt-2 mb-1">INHABITANTS OF P</p>
-<h1>{{ model.name }} <span class="text-muted">v{{ version.semver }}</span></h1>
+<h1>{{ model.name }} <span class="text-muted">v{{ model_version.semver }}</span></h1>
 <div class="rule"></div>
 <p class="text-muted small">
   <a href="/model/{{ model.urn.replace('maya://model/','') }}"
      style="color:var(--crimson);text-decoration:none">{{ model.urn }}</a>
-  &middot; version {{ version.status }}
+  &middot; version {{ model_version.status }}
   &middot; parameter object <code>{{ readiness.parameter_kind }}</code></p>
 <p class="text-muted small">A model is <code>f : P &times; X &rarr; D(Y)</code>.
 Fitting does not change <code>f</code> &mdash; it picks a point in

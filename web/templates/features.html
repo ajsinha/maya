@@ -45,8 +45,7 @@ pinned by the view version that wrote them.</p>
             <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
             <div class="col-6">
               <select class="form-select form-select-sm" name="dtype">
-                <option>numeric</option><option>integer</option>
-                <option>categorical</option><option>boolean</option><option>string</option>
+                {% for d in dtypes %}<option>{{ d }}</option>{% endfor %}
               </select></div>
             <div class="col-6"><input class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
             <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>

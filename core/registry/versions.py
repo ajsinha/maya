@@ -16,6 +16,8 @@ the artifact instead of an opinion about it.
 """
 from __future__ import annotations
 
+import logging
+
 import time
 from typing import Any, Dict, List, Optional
 
@@ -29,9 +31,30 @@ from core.registry.common import RegistryError
 from core.registry.specs import schema_of
 from db import VersionRepository
 from db.database import digest as canonical_digest
-from core.log import get_logger
+from core.log import get_logger, swallowed
 
 logger = get_logger(__name__)
+
+
+def _one_of(enum, value: Any, field: str):
+    """Convert to an enum member, or refuse naming the field and the choices.
+
+    Every vocabulary here is small and closed, so the useful refusal is the one
+    that lists it. `ValueError: 'not_a_kind' is not a valid ParameterKind` names
+    the Python class rather than the field somebody typed into.
+    """
+    try:
+        return enum(value)
+    except ValueError as exc:
+        allowed = ", ".join(m.value for m in enum)
+        swallowed(logger, exc, f"converted '{value}' to a {field}",
+                  detail="translated into a refusal that names the field and "
+                         "the vocabulary; the bare ValueError reached the "
+                         "caller as a 500 with an empty body",
+                  level=logging.INFO)
+        raise RegistryError(
+            f"'{value}' is not a {field}; expected one of {allowed}",
+        ) from exc
 
 
 def semver_key(semver: str):
@@ -91,14 +114,25 @@ class VersionService:
 
     @staticmethod
     def kernel_of(spec: Dict[str, Any], artifact_digest: Optional[str]) -> ParametricKernel:
+        """The kernel a spec describes, or a refusal naming the word.
+
+        `ParameterKind("not_a_kind")` raises a bare `ValueError`, which reached
+        the caller as a 500 with an empty body — no code, no remediation, and
+        nothing saying which of the three enum fields was wrong. A typo in a
+        vocabulary is the most ordinary mistake there is here, and it was the
+        one refusal in the register that told you nothing.
+        """
         return ParametricKernel(
-            parameters=ParameterObject(ParameterKind(spec.get("parameter_kind", "none")),
-                                       artifact_digest),
+            parameters=ParameterObject(
+                _one_of(ParameterKind, spec.get("parameter_kind", "none"),
+                        "parameter_kind"), artifact_digest),
             input_schema=schema_of(spec.get("input_schema", [])),
             output_schema=schema_of(spec.get("output_schema", [])),
-            output_kind=OutputKind(spec.get("output_kind", "point_estimate")),
+            output_kind=_one_of(OutputKind, spec.get("output_kind", "point_estimate"),
+                                "output_kind"),
             deterministic=bool(spec.get("deterministic", True)),
-            fit=FitProcedure(spec.get("fit_procedure", "none")),
+            fit=_one_of(FitProcedure, spec.get("fit_procedure", "none"),
+                        "fit_procedure"),
             adaptive=bool(spec.get("adaptive", False)))
 
     @staticmethod
