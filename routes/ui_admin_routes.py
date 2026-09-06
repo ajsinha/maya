@@ -137,7 +137,9 @@ class AdminRoutes(Routes):
                 request, "admin_scheduler.html",
                 catalogue=scheduler.catalogue(),
                 health=scheduler.health(),
-                history=list(reversed(scheduler.history(50))),
+                # `history` returns newest first now, so the call site no
+                # longer reverses an ascending list to get the order it wanted.
+                history=scheduler.history(50),
                 now=time.time(),
                 may_run=self.ctx["authz"].permits(who, "scheduler:run"))
 

@@ -235,3 +235,45 @@ class TestTheSchedulerReportsOnItself:
                       {"broken": Job("broken", "fails", "point", explode)})
         s.run()
         assert s.health()["failing"] == ["broken"]
+
+
+class TestTheLastRunIsTheLatestOne:
+    """`last()` returned the OLDEST run of every job.
+
+    It called `latest_version(rows)`, which orders by `semver` — a field a
+    scheduled run does not have. Every row keyed the same, `max` returned the
+    first of the equals, and the repository orders ascending. Nothing raised:
+    `/admin/scheduler` showed the first time the batch ever ran as its last run,
+    and a job that failed once on the day it was installed was reported failing
+    forever while every run since had succeeded.
+    """
+
+    @staticmethod
+    def _runs(scheduler, rows):
+        for row in rows:
+            scheduler.runs.add(row)
+
+    def test_last_returns_the_newest_run(self, scheduler):
+        key = sorted(scheduler.jobs)[0]
+        self._runs(scheduler, [
+            {"job": key, "ran_at": 1000.0, "ok": 0, "outcome": {"note": "first"}, "ran_by": "test"},
+            {"job": key, "ran_at": 3000.0, "ok": 1, "outcome": {"note": "newest"}, "ran_by": "test"},
+            {"job": key, "ran_at": 2000.0, "ok": 1, "outcome": {"note": "middle"}, "ran_by": "test"}])
+        assert scheduler.last(key)["ran_at"] == 3000.0
+
+    def test_a_job_that_failed_once_long_ago_is_not_failing_now(self, scheduler):
+        key = sorted(scheduler.jobs)[0]
+        self._runs(scheduler, [
+            {"job": key, "ran_at": 1000.0, "ok": 0, "outcome": {}, "ran_by": "test"},
+            {"job": key, "ran_at": 9000.0, "ok": 1, "outcome": {}, "ran_by": "test"}])
+        health = scheduler.health(now=9100.0)
+        assert health["failing"] == [], \
+            "the first run failed; every run since succeeded"
+        assert health["last_run_at"] == 9000.0
+        assert health["hours_since"] < 1
+
+    def test_history_reads_newest_first(self, scheduler):
+        key = sorted(scheduler.jobs)[0]
+        self._runs(scheduler, [{"job": key, "ran_at": t, "ok": 1, "outcome": {}, "ran_by": "test"}
+                               for t in (1000.0, 2000.0, 3000.0)])
+        assert [r["ran_at"] for r in scheduler.history(2)] == [3000.0, 2000.0]
