@@ -37,6 +37,27 @@ def model_urn(name: str) -> str:
     return f"{PREFIX}{name}"
 
 
+def urn_of(name: str) -> str:
+    """The model urn for a path segment, whether it is a name or a urn already.
+
+    MAYA prints the full urn everywhere — in warrant descriptors, evidence
+    nodes, compiled documents, `GET /models` — and its own API would not accept
+    one. `f"maya://model/{name}"` around a name that was already a urn produced
+    `maya://model/maya:/model/credit.pd.smallbiz`, a 404 naming an identifier
+    nobody wrote. So the identifier the platform hands out was not the
+    identifier it answers to, and the only way to find that out was to try it.
+
+    The `maya:/` spelling is here because it is what actually arrives: a URL
+    path collapses the double slash before any handler sees it, so a caller who
+    pastes the urn correctly is not the one who mangled it.
+    """
+    text = (name or "").strip()
+    for prefix in (PREFIX, PREFIX.replace("//", "/")):
+        if text.startswith(prefix):
+            return PREFIX + text[len(prefix):]
+    return PREFIX + text
+
+
 def parse_urn(urn: str) -> Tuple[str, Optional[str], Optional[str]]:
     """``maya://model/<name>[@<semver>][#<alias>]`` -> (name, semver, alias)."""
     if not urn.startswith(PREFIX):
