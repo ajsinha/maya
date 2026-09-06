@@ -140,6 +140,21 @@ ever populated, the instance should not have started.
 
 ---
 
+## Backing it up
+
+Two stores, one snapshot. The database holds the evidence chain; `data/worm/`
+holds the heads anchored out of it. They must be backed up **together**.
+
+Restore a database older than its anchors and `/admin/evidence` will report a
+disagreement permanently — a write-once store has no operation that removes an
+anchor, and giving it one would defeat the whole control. That is the anchoring
+working, not a fault, and it is the reason the pair is a pair. The full table of
+cases is in [09 §4.6](../docs/09-security-compliance.md).
+
+If the anchor root is genuinely lost, do not reconstruct one from the database.
+An anchor derived from the thing it checks proves nothing. Start a new root and
+record that verification before that date rests on the chain alone.
+
 ## What is not here
 
 Administration in MAYA is currently *reading* the platform's configuration.

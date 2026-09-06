@@ -14,10 +14,10 @@ from fastapi import Request
 from pydantic import BaseModel
 
 from core.notify import CHANNEL_MEANING
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class NotifyIn(BaseModel):
+class NotifyIn(Body):
     channel: Optional[str] = None
     dry_run: bool = False
 

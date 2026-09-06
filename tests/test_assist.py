@@ -78,7 +78,7 @@ class TestAdvisoryIsNotRegistrable:
     def test_tier_c_is_refused(self, capabilities):
         with pytest.raises(AssistError) as exc:
             capabilities.register("hunch", "summarises things", "C",
-                                  "claude-opus-5", "sha256:x", "person/o")
+                                  "claude-opus-5", "sha256:" + "8" * 64, "person/o")
         assert exc.value.code == "advisory_not_registrable"
         assert "chat window" in exc.value.detail
         assert "Tier A" in exc.value.remediation and "Tier B" in exc.value.remediation
@@ -88,14 +88,14 @@ class TestAdvisoryIsNotRegistrable:
         that precedes every AI incident."""
         with pytest.raises(AssistError) as exc:
             capabilities.register("x", "does things", TIER_A, "claude-opus-5",
-                                  "sha256:x", "person/o")
+                                  "sha256:" + "8" * 64, "person/o")
         assert exc.value.code == "oracle_required"
         assert "name the check" in exc.value.detail
 
     def test_an_unknown_oracle_is_refused_with_the_real_ones(self, capabilities):
         with pytest.raises(AssistError) as exc:
             capabilities.register("x", "does things", TIER_A, "claude-opus-5",
-                                  "sha256:x", "person/o", oracle_key="vibes.check")
+                                  "sha256:" + "8" * 64, "person/o", oracle_key="vibes.check")
         assert "warrant.conforms" in exc.value.remediation
 
     def test_tier_b_needs_no_oracle(self, tier_b):

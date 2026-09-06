@@ -864,3 +864,143 @@ class TestTheSdkDecidesNothing:
         governance decision while their code reads as though it succeeded."""
         with pytest.raises(Refused):
             attested["dev"].versions.create(URN, semver="2.0.0", kernel=KERNEL)
+
+
+class TestEverySubjectIsReachableFromTheClient:
+    """Ten of seventeen subjects were written and never attached.
+
+    `FeatureViews` — the point-in-time query — `FeaturesetAlgebra`,
+    `FeatureContracts`, `Findings`, `Monitors`, `Validations`,
+    `VersionApprovals`, `Relations`, `FeatureCatalogue` and `TrainingSets` all
+    worked if you constructed them by hand. Nothing on `Maya` named them, the
+    shipped documentation routed around the gap three inconsistent ways, and a
+    tutorial fell back to raw `client.call()` for methods the SDK already had —
+    which reads to a new joiner as "the SDK cannot do this" rather than "nobody
+    wired it up".
+    """
+
+    #: Every subject class the package defines, and the attribute it is reached
+    #: by. Held as data so a class added without an attribute fails here rather
+    #: than being discovered by somebody who needed it.
+    EXPECTED = {
+        "models": "Models", "versions": "Versions", "features": "Features",
+        "featuresets": "Featuresets", "warrants": "Warrants",
+        "artifacts": "Artifacts", "parameters": "Parameters",
+        "attachments": "Attachments", "documents": "Documents",
+        "packages": "Packages", "rules": "Rules", "lifecycle": "Lifecycle",
+        "fibres": "Fibres", "approvals": "VersionApprovals",
+        "relations": "Relations", "catalogue": "FeatureCatalogue",
+        "views": "FeatureViews", "contracts": "FeatureContracts",
+        "training_sets": "TrainingSets",
+        "featureset_algebra": "FeaturesetAlgebra",
+        "validations": "Validations", "findings": "Findings",
+        "monitors": "Monitors",
+    }
+
+    def test_every_expected_subject_is_attached(self, maya):
+        missing = sorted(a for a in self.EXPECTED if not hasattr(maya, a))
+        assert not missing, f"written and not reachable from Maya: {missing}"
+
+    def test_each_one_is_the_class_it_claims_to_be(self, maya):
+        for attribute, classname in self.EXPECTED.items():
+            assert type(getattr(maya, attribute)).__name__ == classname, attribute
+
+    def test_no_subject_class_is_left_unattached(self, maya):
+        """The direction that catches the next one.
+
+        Asserting the known list is attached passes forever once it is. This
+        walks the package instead, so a subject added tomorrow and not wired up
+        fails here.
+        """
+        import inspect
+
+        from maya_sdk import artifacts, documents, features, governance, models
+        from maya_sdk import parameters, warrants
+
+        attached = {type(v).__name__ for v in vars(maya).values()}
+        unattached = []
+        for module in (models, features, warrants, artifacts, parameters,
+                       documents, governance):
+            for name, obj in vars(module).items():
+                if not inspect.isclass(obj) or obj.__module__ != module.__name__:
+                    continue
+                # A subject takes the client as its first argument.
+                parameters_of = list(inspect.signature(obj).parameters)
+                if parameters_of[:1] == ["client"] and name not in attached:
+                    unattached.append(f"{module.__name__}.{name}")
+        assert not unattached, (
+            f"these subjects exist and nothing on Maya reaches them: "
+            f"{sorted(unattached)}")
+
+    def test_a_reachable_subject_actually_works(self, maya, registered):
+        """Attachment is not the claim; working is.
+
+        One call per newly-attached subject that has a read, so this fails if a
+        subject is wired to the wrong module or its client contract has drifted.
+        """
+        assert maya.findings.acts()
+        assert maya.relations.kinds()
+        assert maya.catalogue.list()
+
+
+class TestAFieldTheServerDoesNotKnowIsRefused:
+    """Pydantic drops an undeclared field silently. That is how a rationale
+    disappeared.
+
+    The SDK sent `note` to an endpoint reading `statement`. The signature
+    recorded and the reasoning vanished, with a 200 on both sides. Request
+    bodies now forbid extras, so the mismatch is a 422 naming the field at the
+    first call rather than a gap discovered at the first audit.
+    """
+
+    def test_an_unknown_field_is_a_422_naming_it(self, client, people):
+        r = client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": "maya://model/typo.probe", "name": "Typo probe",
+            "model_class": "credit.pd", "domain": "credit",
+            "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+            "purpose": "checking the refusal",
+            "purpoze": "the typo"})
+        assert r.status_code == 422, r.text
+        assert "purpoze" in r.text
+
+    def test_the_signature_rationale_survives_the_round_trip(self, client, people):
+        """The specific loss, asserted end to end.
+
+        Built here rather than on `registered`, which has already taken 3.2.1
+        through its quorum — a second approval on the same version is refused,
+        correctly, and would make this test pass or fail for the wrong reason.
+        """
+        from tests.conftest import CONTRACT, KERNEL, NAME, URN
+
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+        client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                    json={"semver": "3.2.1", "kernel": KERNEL,
+                          "contract": CONTRACT, "artifact_digest": "sha256:" + "a" * 64})
+        opened = client.post("/api/v1/version-approvals", auth=people["s.iqbal"],
+                             json={"urn": URN, "semver": "3.2.1"})
+        assert opened.status_code == 201, opened.text
+        approval = opened.json()["id"]
+        said = "independent recode agreed to four decimal places"
+        signed = client.post(f"/api/v1/version-approvals/{approval}/sign",
+                             auth=people["a.mehta"],
+                             json={"role": "validator", "statement": said})
+        assert signed.status_code == 200, signed.text
+        progress = client.get(f"/api/v1/version-approvals/{approval}",
+                              auth=people["s.iqbal"]).text
+        assert said in progress, "the signature recorded and the reasoning did not"
+
+    def test_the_sdk_sends_the_field_the_endpoint_reads(self):
+        """Held against the source, because the failure was silent on the wire:
+        a wrong name is dropped rather than refused, so a passing round trip
+        proved nothing about which key was sent."""
+        import inspect
+
+        from maya_sdk.models import Versions
+        source = inspect.getsource(Versions.sign_quorum)
+        assert '"statement": statement' in source
+        assert '"note"' not in source

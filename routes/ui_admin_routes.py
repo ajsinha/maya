@@ -159,6 +159,13 @@ class AdminRoutes(Routes):
             seq, head = evidence.head()
             return self.page(
                 request, "admin_evidence.html",
+                # Not evidence, but the same question one layer down: is the
+                # store still the shape the code expects? The schema is applied
+                # with CREATE TABLE IF NOT EXISTS, so an existing table is
+                # skipped and a new column is never added — an instance can
+                # therefore run for weeks on a schema that does not match its
+                # own release and fail inside a workflow.
+                drift=self.ctx["db"].drift(),
                 chain=evidence.verify_chain(),
                 anchors=evidence.verify_against_anchors(),
                 checkpoint=evidence.checkpoint(),

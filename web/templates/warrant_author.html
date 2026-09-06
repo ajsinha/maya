@@ -650,4 +650,13 @@ verbatim, with the remediation it supplied.</p>
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/warrant-author.js"></script>
+
+{% if not may_issue %}
+<div class="state-note mt-3">Issuing a grant needs <code>warrant:issue</code>,
+which your account does not hold. Ask the <strong>model owner</strong> &mdash;
+a warrant is the owner saying what this model may be used for and by whom, so
+it is theirs to give rather than an administrator's to configure. Everything
+above still reads: the grammar, the laws and what a descriptor would carry are
+the same whoever is looking.</div>
+{% endif %}
 {% endblock %}

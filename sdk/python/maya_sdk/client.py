@@ -77,6 +77,25 @@ class Maya:
         self.rules = governance.Rules(self)
         self.lifecycle = governance.Lifecycle(self)
         self.fibres = governance.Fibres(self)
+        # The rest of `governance`, which was written and then not attached.
+        #
+        # Ten of seventeen subjects were reachable only by constructing them by
+        # hand — including the point-in-time query, the featureset algebra,
+        # findings, monitors and validations. They worked; nothing named them.
+        # The shipped documentation routed around the gap three inconsistent
+        # ways, and a tutorial fell back to raw `client.call()` for methods the
+        # SDK already had, which reads to a new joiner as *the SDK cannot do
+        # this* rather than *nobody wired it up*.
+        self.approvals = governance.VersionApprovals(self)
+        self.relations = governance.Relations(self)
+        self.catalogue = governance.FeatureCatalogue(self)
+        self.views = governance.FeatureViews(self)
+        self.contracts = governance.FeatureContracts(self)
+        self.training_sets = governance.TrainingSets(self)
+        self.featureset_algebra = governance.FeaturesetAlgebra(self)
+        self.validations = governance.Validations(self)
+        self.findings = governance.Findings(self)
+        self.monitors = governance.Monitors(self)
 
     # ------------------------------------------------------------- the wire
     def call(self, method: str, path: str, *, json: Any = None,

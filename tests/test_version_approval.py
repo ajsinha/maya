@@ -21,7 +21,7 @@ VAL = person("a.mehta", "validator")
 @pytest.fixture
 def unapproved(registry, a_model, kernel_spec, contract_spec):
     registry.create_version(URN, "3.2.1", kernel_spec, contract_spec,
-                            artifact_digest="sha256:abc")
+                            artifact_digest="sha256:" + "a" * 64)
     return registry.version(URN, "3.2.1")
 
 

@@ -47,7 +47,10 @@ effective challenge, whatever the org chart says.</p>
           {% endif %}</td>
         <td><span class="chip">{{ p.kind }}</span></td>
         <td>{% if p.status == "active" %}<span class="evidence-ok">active</span>
-            {% else %}<span class="evidence-bad">{{ p.status }}</span>{% endif %}</td>
+            {% else %}<span class="evidence-bad">{{ p.status }}</span>
+              {% if may_manage %}<div style="font-size:.7rem" class="text-muted">
+                reinstatable</div>{% endif %}
+            {% endif %}</td>
         <td>{% for r in p.roles or [] %}<span class="chip me-1">{{ r }}</span>{% endfor %}</td>
         <td class="small text-muted">
           {% if p.legal_entities %}entities: {{ p.legal_entities|join(", ") }}<br>{% endif %}
@@ -108,11 +111,18 @@ effective challenge, whatever the org chart says.</p>
 </div>
 
 <p class="text-muted small mt-3">
-{% if may_manage %}Creating a principal, changing roles and suspending an
-account are governed acts recorded on the evidence chain:
+{% if may_manage %}Every change here is a governed act recorded on the evidence
+chain:
 <span class="mono">POST /api/v1/principals</span>,
-<span class="mono">PUT /api/v1/principals/{username}/roles</span> and
-<span class="mono">POST /api/v1/principals/{username}/suspend</span>.
+<span class="mono">PUT /api/v1/principals/{username}/roles</span>,
+<span class="mono">POST /api/v1/principals/{username}/suspend</span>,
+<span class="mono">POST /api/v1/principals/{username}/reinstate</span> and
+<span class="mono">POST /api/v1/principals/{username}/password</span>.
+Administration used to stop at <em>suspend</em>, which made a suspension for a
+fortnight's leave a one-way door and a forgotten password a reason to create a
+second account &mdash; and an evidence chain naming two people who are one
+person is a chain nobody can read. The password itself is never logged and
+never reaches the chain; the fact that somebody set it does.
 {% else %}Changing any of this needs <span class="mono">principal:manage</span>,
 which you do not hold.{% endif %}</p>
 {% endblock %}

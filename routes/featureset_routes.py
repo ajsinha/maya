@@ -16,11 +16,11 @@ from pydantic import BaseModel, Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
-from routes.base import Routes
+from routes.base import Body, Routes
 from routes.warrant_routes import strip_qualifier
 
 
-class FeatureIn(BaseModel):
+class FeatureIn(Body):
     name: str
     entity: str
     dtype: str = "numeric"
@@ -34,28 +34,28 @@ class FeatureIn(BaseModel):
     ttl_days: Optional[float] = None
 
 
-class AmendIn(BaseModel):
+class AmendIn(Body):
     fields: Dict[str, Any]
 
 
-class SealIn(BaseModel):
+class SealIn(Body):
     note: str = ""
 
 
-class BreakSealIn(BaseModel):
+class BreakSealIn(Body):
     reason: str
 
 
-class TransferIn(BaseModel):
+class TransferIn(Body):
     to: str
     reason: str = ""
 
 
-class PolicyIn(BaseModel):
+class PolicyIn(Body):
     defaults: Dict[str, Any]
 
 
-class DerivedIn(BaseModel):
+class DerivedIn(Body):
     name: str
     expression: str
     dtype: str = "numeric"
@@ -70,7 +70,7 @@ class DerivedIn(BaseModel):
     inputs: List[str] = Field(default_factory=list)
 
 
-class FeaturesetPreviewIn(BaseModel):
+class FeaturesetPreviewIn(Body):
     """The composition half of a definition, with nothing that identifies it.
 
     A preview needs no name, entity or owner, and asking for them would make
@@ -82,7 +82,7 @@ class FeaturesetPreviewIn(BaseModel):
     defaults: Optional[Dict[str, Any]] = None
 
 
-class FeaturesetIn(BaseModel):
+class FeaturesetIn(Body):
     name: str
     entity: str
     slots: Dict[str, Any] = {}
@@ -97,13 +97,13 @@ class FeaturesetIn(BaseModel):
     description: str = ""
 
 
-class VersionIn(BaseModel):
+class VersionIn(Body):
     bindings: Dict[str, Any]
     label: Optional[Dict[str, Any]] = None
     note: str = ""
 
 
-class FitIn(BaseModel):
+class FitIn(Body):
     urn: str
     snapshot_id: str
     environment: str = "lab"
@@ -115,14 +115,14 @@ class FitIn(BaseModel):
     note: str = ""
 
 
-class AssembleIn(BaseModel):
+class AssembleIn(Body):
     version: int
     spine: list
     as_of: float
     name: Optional[str] = None
 
 
-class ParametersIn(BaseModel):
+class ParametersIn(Body):
     urn: str
     semver: str
     name: str
@@ -140,7 +140,7 @@ class ParametersIn(BaseModel):
     note: str = ""
 
 
-class ReviewIn(BaseModel):
+class ReviewIn(Body):
     accept: bool
     note: str = ""
 

@@ -17,29 +17,29 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.lifecycle import describe
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class NoteIn(BaseModel):
+class NoteIn(Body):
     note: str = ""
 
 
-class ReasonIn(BaseModel):
+class ReasonIn(Body):
     reason: str
 
 
-class AmendIn(BaseModel):
+class AmendIn(Body):
     reason: str
     scope: List[str] = Field(default_factory=list)
 
 
-class SignIn(BaseModel):
+class SignIn(Body):
     role: str
     decision: str = "attest"
     statement: str = ""
 
 
-class UpdateIn(BaseModel):
+class UpdateIn(Body):
     fields: Dict[str, Any] = Field(default_factory=dict)
 
 

@@ -23,7 +23,7 @@ which is the argument for signatures.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Tuple
 
 from core.regimes.sentences import Sentence, forbids, implies, requires
 from core.regimes.signature import Signature
@@ -144,13 +144,44 @@ EU_AI_ACT_TRANSLATION = Translation(EU_AI_ACT, {
         s.get("affects_natural_persons", s.get("domain") in ("credit", "employment"))),
     "affects_natural_persons": lambda s: s.get("domain") in ("credit", "employment",
                                                              "financial_crime"),
-    "human_oversight": lambda s: bool(s.get("human_in_the_loop", True)),
+    # `, True` used to close these two, and `human_in_the_loop` is not something
+    # MAYA holds — so four of five obligations in this regime were satisfied for
+    # every model in the estate by a Python default. A regime determination that
+    # reads a default is a determination about the default, and it is worse than
+    # no determination because it is indistinguishable from one.
+    #
+    # An obligation MAYA cannot evidence is now not satisfied, which is the
+    # conservative direction and the only honest one: the platform has not been
+    # told there is human oversight, so it must not report that there is.
+    "human_oversight": lambda s: bool(s.get("human_in_the_loop")),
     "technical_documentation": lambda s: bool(s.get("has_documentation")),
+    # `has_warrants` is a proxy and is labelled as one below. A warrant records
+    # that a run was AUTHORISED; the Act asks that runs be logged, which is a
+    # different claim about a different system.
     "logging_enabled": lambda s: bool(s.get("has_warrants")),
     "accuracy_declared": lambda s: bool(s.get("has_operating_contract")),
     "generative_system": lambda s: bool(s.get("is_generative")),
-    "transparency_to_user": lambda s: bool(s.get("human_in_the_loop", True)),
+    "transparency_to_user": lambda s: bool(s.get("human_in_the_loop")),
 })
+
+
+#: Terms that are true by virtue of being in this register at all.
+#:
+#: A regime's vocabulary mixes two kinds of term, and only one of them may be
+#: answered without consulting the model. `is_model` and `is_ai_system` say what
+#: kind of thing MAYA holds — everything in the register is a model, and the
+#: definition is what brings it into the regime's scope in the first place.
+#: `human_oversight`, `technical_documentation` and the rest are claims about a
+#: model's controls, and one of those answered without evidence is a fabrication.
+#:
+#: Declared here rather than left to a reader to infer, because the distinction
+#: is exactly what went wrong: four obligations were satisfied for every model
+#: by `s.get(term, True)`, and nothing said which terms were entitled to that.
+DEFINITIONAL_TERMS: Dict[str, Tuple[str, ...]] = {
+    "eu-ai-act": ("is_ai_system",),
+    "sr-26-2": ("applies_quantitative_theory",),
+    "ss1-23": ("is_model",),
+}
 
 
 REGIMES: Dict[str, Dict[str, Any]] = {

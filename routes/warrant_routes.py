@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 from core.authz.common import AuthzError, same_person
 from core.execution.urn import model_urn, parse_urn
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
 def strip_qualifier(urn: str) -> str:
@@ -24,7 +24,7 @@ def strip_qualifier(urn: str) -> str:
     return model_urn(parse_urn(urn)[0])
 
 
-class FitIn(BaseModel):
+class FitIn(Body):
     urn: str
     environment: str = "lab"
     principal: str
@@ -35,7 +35,7 @@ class FitIn(BaseModel):
     as_of: float
 
 
-class IssueIn(BaseModel):
+class IssueIn(Body):
     urn: str
     principal: str
     declared_use: str
@@ -43,7 +43,7 @@ class IssueIn(BaseModel):
     flavour: str = "descriptor_only"
 
 
-class ResolveIn(BaseModel):
+class ResolveIn(Body):
     urn: str
     principal: str
     declared_use: str
@@ -54,7 +54,7 @@ class ExecuteIn(ResolveIn):
     inputs: Dict[str, Any] = Field(default_factory=dict)
 
 
-class RevokeIn(BaseModel):
+class RevokeIn(Body):
     urn: str
     reason: str
 

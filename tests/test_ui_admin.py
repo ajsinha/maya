@@ -431,7 +431,7 @@ class TestADraftRecordCannotReachProduction:
                     json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
         client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                     json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
-                          "artifact_digest": "sha256:abc"})
+                          "artifact_digest": "sha256:" + "a" * 64})
         quorum_approve(client, people)
         client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                    json={"environment": "prod", "alias": "champion",
@@ -480,3 +480,167 @@ class TestADraftRecordCannotReachProduction:
         # The descriptor prints the record's state; it used to print "draft"
         # and sign it anyway.
         assert "draft" not in r.text
+
+
+class TestTheEstateWideFindingsQuestion:
+    """"What is outstanding anywhere?" had no answer in the product.
+
+    `open_for` takes one model and `GET /api/v1/findings` demanded a `urn`, so a
+    second line could not list what was open across the register by any route —
+    while a worklist could still report "nothing is outstanding for you" over an
+    unacknowledged finding.
+    """
+
+    def _raise_one(self, client, people, severity="High", blocking=False):
+        from tests.conftest import URN
+        r = client.post("/api/v1/findings", auth=people["a.mehta"], json={
+            "urn": URN, "severity": severity, "title": f"A {severity} thing",
+            "owner": "person/j.okafor", "blocking": blocking,
+            "description": "raised by the review"})
+        assert r.status_code in (200, 201), r.text
+        return r.json()
+
+    def test_the_endpoint_answers_without_naming_a_model(self, registered, people):
+        self._raise_one(registered, people)
+        r = registered.get("/api/v1/open-findings", auth=people["s.iqbal"])
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["open"] == 1 and body["models"] == 1
+        # Each row names the model, so the list is readable on its own.
+        assert body["findings"][0]["urn"] and body["findings"][0]["model_name"]
+
+    def test_the_screen_renders_them_worst_first(self, registered, people):
+        self._raise_one(registered, people, "Observation")
+        self._raise_one(registered, people, "Critical")
+        _login(registered, "s.iqbal", "mrm-pw")
+        body = registered.get("/findings").text
+        assert body.index("Critical") < body.index("Observation"), (
+            "a list sorted by when things were raised buries the Critical one")
+
+    def test_it_is_scoped_to_what_the_caller_may_see(self, registered, people):
+        """Not a way around the visibility rules: the model ids come from what
+        this principal is already permitted to list."""
+        self._raise_one(registered, people)
+        r = registered.get("/api/v1/open-findings", auth=people["d.raman"])
+        assert r.status_code == 200
+        seen = {f["urn"] for f in r.json()["findings"]}
+        listed = {m["urn"] for m in
+                  registered.get("/api/v1/models", auth=people["d.raman"]).json()["models"]}
+        assert seen <= listed
+
+    def test_an_empty_answer_says_what_it_is_an_answer_about(self, registered, people):
+        """"Nothing open" is a claim about a scope, and the page says whose."""
+        _login(registered, "s.iqbal", "mrm-pw")
+        body = registered.get("/findings").text
+        assert "not about the estate" in body or "your scope" in body
+
+    def test_a_stranger_is_redirected_and_a_developer_may_read(self, registered, people):
+        assert registered.get("/findings", follow_redirects=False).status_code in (
+            302, 303, 307)
+        _login(registered, "d.raman", "dev-pw")
+        assert registered.get("/findings").status_code == 200
+
+
+class TestAccountAdministrationIsNotOneWay:
+    """Create, set roles, suspend — and nothing else.
+
+    A suspension made in error, or for a fortnight's leave, could only be undone
+    with an UPDATE against the database, which is the thing this platform exists
+    to make unnecessary. A forgotten password meant a new account, and an
+    evidence chain whose actors are `j.okafor` and `j.okafor.2` is one nobody
+    can read.
+    """
+
+    def test_a_suspended_principal_can_be_reinstated(self, client, people):
+        admin = ("admin", "admin123")
+        assert client.post("/api/v1/principals/d.raman/suspend",
+                           auth=admin).status_code == 200
+        # Suspended means suspended: the credential stops working.
+        assert client.get("/api/v1/me", auth=people["d.raman"]).status_code == 401
+
+        back = client.post("/api/v1/principals/d.raman/reinstate", auth=admin)
+        assert back.status_code == 200, back.text
+        assert back.json()["status"] == "active"
+        assert client.get("/api/v1/me", auth=people["d.raman"]).status_code == 200
+
+    def test_reinstating_an_active_principal_is_refused_rather_than_ignored(
+            self, client, people):
+        r = client.post("/api/v1/principals/d.raman/reinstate",
+                        auth=("admin", "admin123"))
+        assert r.status_code == 409 and r.json()["error"] == "already_active"
+
+    def test_both_acts_are_on_the_evidence_chain(self, client, people):
+        """A suspension and its reversal read as a pair, with who did each."""
+        admin = ("admin", "admin123")
+        client.post("/api/v1/principals/d.raman/suspend", auth=admin)
+        client.post("/api/v1/principals/d.raman/reinstate", auth=admin)
+        # Read from the service rather than an endpoint, because the chain is
+        # published as a verification rather than as a feed.
+        chain = client.app.state.ctx["evidence"].repo.many()
+        kinds = [n["kind"] for n in chain]
+        assert "principal_suspended" in kinds and "principal_reinstated" in kinds
+
+    def test_a_password_can_be_set_without_making_a_second_account(
+            self, client, people):
+        admin = ("admin", "admin123")
+        r = client.post("/api/v1/principals/d.raman/password", auth=admin,
+                        json={"password": "a-much-longer-secret"})
+        assert r.status_code == 200, r.text
+        assert client.get("/api/v1/me", auth=("d.raman", "dev-pw")).status_code == 401
+        assert client.get("/api/v1/me",
+                          auth=("d.raman", "a-much-longer-secret")).status_code == 200
+
+    def test_a_short_password_is_refused(self, client, people):
+        r = client.post("/api/v1/principals/d.raman/password",
+                        auth=("admin", "admin123"), json={"password": "short"})
+        assert r.status_code == 422 and r.json()["error"] == "password_too_short"
+
+    def test_the_password_itself_never_reaches_the_evidence_chain(self, client, people):
+        """The FACT is recorded; the secret is not."""
+        admin = ("admin", "admin123")
+        client.post("/api/v1/principals/d.raman/password", auth=admin,
+                    json={"password": "a-much-longer-secret"})
+        import json
+
+        nodes = client.app.state.ctx["evidence"].repo.many()
+        assert any(n["kind"] == "principal_password_set" for n in nodes)
+        assert "a-much-longer-secret" not in json.dumps(nodes, default=str)
+
+
+class TestAFormOffersOnlyWhatTheCallerMayDo:
+    """A form rendered to somebody who cannot submit it teaches them the product
+    is broken.
+
+    `/models/new` and `/warrants` rendered in full for a model developer, who
+    holds neither `model:register` nor `warrant:issue` — and the refusal that
+    followed said "ask an administrator for a role that carries this
+    permission", when the right answer is "ask the model owner". Naming the
+    wrong person is worse than naming none: it sends somebody to the one team
+    that cannot help, and a permission granted to fix it is a change to who is
+    accountable rather than a configuration change.
+    """
+
+    def test_a_developer_is_told_who_to_ask_to_register(self, client, people):
+        _login(client, "d.raman", "dev-pw")
+        body = client.get("/models/new").text
+        assert "model:register" in body
+        assert "owner" in body.lower()
+        assert "ask an administrator" not in body.lower()
+
+    def test_an_owner_is_not_told_anything_they_do_not_need(self, client, people):
+        _login(client, "j.okafor", "owner-pw")
+        body = client.get("/models/new").text
+        assert "which your account does not hold" not in body
+
+    def test_a_developer_is_told_who_to_ask_for_a_warrant(self, client, people):
+        _login(client, "d.raman", "dev-pw")
+        body = client.get("/warrants").text
+        assert "warrant:issue" in body and "model owner" in body
+
+    def test_the_page_still_reads_for_somebody_who_may_not_act(self, client, people):
+        """The refusal hides the control, not the explanation. Everything a
+        developer needs in order to ask for the right warrant is still there."""
+        _login(client, "d.raman", "dev-pw")
+        body = client.get("/warrants").text
+        assert "still reads" in body
+        assert body.count("<form") >= 1

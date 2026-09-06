@@ -18,7 +18,7 @@ cheapest way to clear a blocking finding is otherwise to mark it closed.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from core.evidence import EvidenceEngine
 from core.validation.common import (BLOCKING_BY_DEFAULT, DAY, REMEDIATION_DAYS, SEVERITIES,
@@ -122,6 +122,16 @@ class FindingRegister:
 
     def open_for(self, model_id: str) -> List[Dict[str, Any]]:
         return self.findings.open_for(model_id)
+
+    def open_across(self, model_ids: Sequence[str]) -> List[Dict[str, Any]]:
+        """Every open finding across the models the caller may see.
+
+        The estate-wide question. There was no route to it: `open_for` takes one
+        model and the API demanded a `urn`, so "what is outstanding across the
+        register" could not be answered by the product at all — which is a
+        strange gap in a platform whose worklist tells somebody they are clear.
+        """
+        return self.findings.open_across(model_ids)
 
     def blocking_for(self, model_id: str) -> List[Dict[str, Any]]:
         """The BlockingSource port. Open findings that block."""

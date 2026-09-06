@@ -20,6 +20,7 @@ The result is a data directory and a SQLite database that can be copied.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import random
 import sys
 import time
@@ -143,7 +144,13 @@ def build(client) -> None:
             client.post(f"/api/v1/models/{spec['key']}/versions", auth=who["d.raman"],
                         json={"semver": "1.0.0", "kernel": spec["kernel"],
                               "contract": spec["contract"],
-                              "artifact_digest": f"sha256:{spec['key']:x<64}"[:71]}),
+                              # A real content address, derived from the key so it is
+                        # stable across seeds. A digest is now validated on the
+                        # way in, which is the point: the padded string this
+                        # used to send was accepted with a 201 and could never
+                        # be resolved.
+                        "artifact_digest": "sha256:" + hashlib.sha256(
+                            spec["key"].encode()).hexdigest()}),
             (201, 409))
 
     # A second version of the PD model, so refinement and alias history have
@@ -156,7 +163,8 @@ def build(client) -> None:
         client.post("/api/v1/models/credit.pd.smallbiz/versions", auth=who["d.raman"],
                     json={"semver": "1.1.0", "kernel": catalogue[0]["kernel"],
                           "contract": stronger,
-                          "artifact_digest": "sha256:" + "b" * 64}), (201, 409))
+                          "artifact_digest": "sha256:" + hashlib.sha256(
+                              b"credit.pd.smallbiz@1.1.0").hexdigest()}), (201, 409))
 
     print("the typed edge: PD feeds the ECL stack")
     _ok("  input_to", client.post("/api/v1/model-relations", auth=who["j.okafor"],

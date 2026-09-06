@@ -525,9 +525,18 @@ class TestVersionApprovalIsAQuorum:
     thing that actually runs — was approved by one. This closes that."""
 
     def _version(self, client, people, semver="4.0.0"):
-        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
-                    json={"semver": semver, "kernel": KERNEL,
-                          "contract": CONTRACT, "artifact_digest": "sha256:e"})
+        """A real content address, because a digest is now validated.
+
+        This sent `sha256:e`, which the register accepted and nothing could ever
+        resolve. The helper swallowed the response, so when the digest started
+        being checked the version simply did not exist and five tests failed on
+        a 404 about something else entirely.
+        """
+        created = client.post(
+            f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+            json={"semver": semver, "kernel": KERNEL, "contract": CONTRACT,
+                  "artifact_digest": "sha256:" + "e" * 64})
+        assert created.status_code == 201, created.text
         return semver
 
     def test_the_quorum_table_is_published(self, registered):
@@ -738,7 +747,7 @@ class TestBaselineApi:
 
         client.post(f"/api/v1/models/{name}/versions", auth=dev, json={
             "semver": "1.0.0", "kernel": KERNEL, "contract": CONTRACT,
-            "artifact_digest": "sha256:abc"})
+            "artifact_digest": "sha256:" + "a" * 64})
         r = client.post("/api/v1/baseline/reconcile", auth=mrm, params={"urn": urn})
         assert r.status_code == 200 and r.json()["closed"]
         after = client.get("/api/v1/baseline/debt", auth=mrm,

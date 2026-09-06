@@ -17,10 +17,10 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.authz import DESCRIPTIONS, INCOMPATIBLE_ROLES, ROLES
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class PrincipalIn(BaseModel):
+class PrincipalIn(Body):
     username: str
     display_name: str
     roles: List[str]
@@ -32,7 +32,11 @@ class PrincipalIn(BaseModel):
     allow_conflicts: bool = False
 
 
-class RolesIn(BaseModel):
+class PasswordIn(Body):
+    password: str
+
+
+class RolesIn(Body):
     roles: List[str]
     allow_conflicts: bool = False
 
@@ -85,3 +89,30 @@ class PrincipalRoutes(Routes):
         def suspend(request: Request, username: str):
             who = self.authorise(request, "principal:manage")
             return self.guard(lambda: people.suspend(username, actor=self.actor(who)))
+
+        # Administration was one-way — create, set roles, suspend — so a
+        # suspension made in error, or for a fortnight's leave, could only be
+        # undone with an UPDATE against the database, and a forgotten password
+        # meant a new account and an evidence chain naming two people who are
+        # one person.
+        @self.app.post(f"{api}/principals/{{username}}/reinstate",
+                       tags=["authorisation"])
+        def reinstate(request: Request, username: str):
+            """Return a suspended principal to service. Recorded, like the
+            suspension it undoes."""
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: people.reinstate(username,
+                                                       actor=self.actor(who)))
+
+        @self.app.post(f"{api}/principals/{{username}}/password",
+                       tags=["authorisation"])
+        def set_password(request: Request, username: str, body: PasswordIn):
+            """Set a principal's password.
+
+            The password is never logged and never lands on the evidence chain.
+            The fact that an administrator set it does, because somebody who can
+            silently take over an account is somebody nobody can audit.
+            """
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: people.set_password(
+                username, body.password, actor=self.actor(who)))

@@ -159,7 +159,7 @@ def a_model(registry):
 
 @pytest.fixture
 def approved_version(registry, a_model, kernel_spec, contract_spec):
-    registry.create_version(URN, "3.2.1", kernel_spec, contract_spec, artifact_digest="sha256:abc")
+    registry.create_version(URN, "3.2.1", kernel_spec, contract_spec, artifact_digest="sha256:" + "a" * 64)
     return registry.approve_version(URN, "3.2.1")
 
 
@@ -318,7 +318,7 @@ def mrm():
 def ready_model(registry, lifecycle, a_model, kernel_spec, contract_spec):
     """A registered, versioned, tiered model sitting in draft."""
     registry.create_version(URN, "1.0.0", kernel_spec, contract_spec,
-                            artifact_digest="sha256:abc", actor="d.raman")
+                            artifact_digest="sha256:" + "a" * 64, actor="d.raman")
     return registry.get(URN)
 
 
@@ -638,7 +638,7 @@ def registered(client, people):
                 json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
     client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                 json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
-                      "artifact_digest": "sha256:abc"})
+                      "artifact_digest": "sha256:" + "a" * 64})
     quorum_approve(client, people)
     client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})

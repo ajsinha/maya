@@ -14,10 +14,10 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.overlays import KIND_MEANING, KINDS
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class OverlayIn(BaseModel):
+class OverlayIn(Body):
     urn: str
     name: str
     kind: str
@@ -28,13 +28,13 @@ class OverlayIn(BaseModel):
     days: Optional[int] = None
 
 
-class MeasureIn(BaseModel):
+class MeasureIn(Body):
     period: str
     base_value: float
     adjusted_value: float
 
 
-class CloseIn(BaseModel):
+class CloseIn(Body):
     status: str = "withdrawn"
     reason: str
 

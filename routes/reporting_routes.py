@@ -17,10 +17,10 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.reporting import NO_COMPOSITE, STATUS_MEANING
-from routes.base import Routes
+from routes.base import Body, Routes
 
 
-class AppetiteIn(BaseModel):
+class AppetiteIn(Body):
     metric: str
     limit: float
     rationale: str
@@ -30,13 +30,13 @@ class AppetiteIn(BaseModel):
     review_at: Optional[float] = None
 
 
-class RetireIn(BaseModel):
+class RetireIn(Body):
     metric: str
     scope: Dict[str, Any] = Field(default_factory=dict)
     reason: str = ""
 
 
-class PackIn(BaseModel):
+class PackIn(Body):
     period: str = ""
     scope: Dict[str, Any] = Field(default_factory=dict)
     note: str = ""

@@ -219,7 +219,7 @@ class TestCoreProjection:
         state = regimes.core_state({
             "model": {"owner": "o", "purpose": "p", "tier": 2, "domain": "credit"},
             "versions": [{"trainability_class": "T3", "parameter_kind": "learned_weights",
-                          "artifact_digest": "sha256:x", "contract": {"a": 1}}],
+                          "artifact_digest": "sha256:" + "8" * 64, "contract": {"a": 1}}],
             "validations": [{"independence": {"independent": True}}],
             "monitoring": {"monitors": 2}, "documents": [{"id": "d"}],
             "lifecycle": {"attested_at": 1.0}, "warrants": [{"id": "w"}],
@@ -237,3 +237,74 @@ class TestCoreProjection:
     def test_every_projected_term_is_in_the_core_vocabulary(self, regimes):
         for term in regimes.core_state({}):
             assert CORE.contains(term), f"{term} is outside the core signature"
+
+
+class TestAnObligationMayNotBeSatisfiedByADefault:
+    """Four of five EU AI Act obligations were met by `s.get(term, True)`.
+
+    `human_in_the_loop` is not something MAYA holds, and two obligations read it
+    with a default of `True`; a third proxied logging onto `has_warrants` and a
+    fourth proxied accuracy onto `has_operating_contract`. So every model in the
+    estate satisfied them, always, whatever was true — and a determination that
+    reads a default is a determination about the default. It is worse than no
+    determination, because it is indistinguishable from one.
+    """
+
+    def test_human_oversight_is_not_assumed(self):
+        from core.regimes.library import EU_AI_ACT_TRANSLATION
+        mapping = EU_AI_ACT_TRANSLATION.mapping
+        assert mapping["human_oversight"]({}) is False
+        assert mapping["transparency_to_user"]({}) is False
+        assert mapping["human_oversight"]({"human_in_the_loop": True}) is True
+
+    def test_no_translation_supplies_a_truthy_default(self):
+        """The direction that catches the next one.
+
+        Every term is evaluated against an empty state: anything that comes back
+        true has invented it, because an empty state records nothing.
+        """
+        from core.regimes.library import DEFINITIONAL_TERMS, REGIMES
+        invented = []
+        for key, regime in REGIMES.items():
+            allowed = DEFINITIONAL_TERMS.get(key, ())
+            for term, read in regime["translation"].mapping.items():
+                if term in allowed:
+                    continue
+                try:
+                    answer = read({})
+                except Exception:                        # a term that needs a
+                    continue                             # value is fine here
+                # A vacuous truth is fine: "no adjustment was made, so no
+                # adjustment needs justifying" is a real answer about an empty
+                # state. What is not fine is a CONTROL reported as present.
+                if answer is True and not term.startswith(("adjustment_", "post_")):
+                    invented.append(f"{key}.{term}")
+        assert not invented, (
+            f"these controls are reported as present on a model MAYA knows "
+            f"nothing about: {invented}")
+
+    def test_an_unrecorded_term_is_reported_as_unrecorded(self):
+        """"Not satisfied" and "not recorded" send somebody to fix different
+        things: one is a finding about the model, the other about coverage."""
+        from core.regimes.library import EU_AI_ACT, EU_AI_ACT_SENTENCES
+        from core.regimes.signature import Interpretation
+
+        oversight = next(s for s in EU_AI_ACT_SENTENCES
+                         if "human_oversight" in s.uses)
+        # The antecedent must bite, or the implication holds vacuously and the
+        # test would pass on a model the obligation does not reach.
+        answer = oversight.evaluate(Interpretation(
+            EU_AI_ACT, {"high_risk_use": True, "human_oversight": None}))
+        assert not answer["satisfied"]
+        assert "human_oversight" in answer["not_recorded"]
+        assert "gap in what has been recorded" in answer["detail"]
+
+    def test_a_recorded_false_is_not_reported_as_unrecorded(self):
+        from core.regimes.library import EU_AI_ACT, EU_AI_ACT_SENTENCES
+        from core.regimes.signature import Interpretation
+
+        oversight = next(s for s in EU_AI_ACT_SENTENCES
+                         if "human_oversight" in s.uses)
+        answer = oversight.evaluate(Interpretation(
+            EU_AI_ACT, {"high_risk_use": True, "human_oversight": False}))
+        assert not answer["satisfied"] and answer["not_recorded"] == []

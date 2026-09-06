@@ -303,3 +303,57 @@ class TestNoGateCouldSeeTheRecordItself:
 def _policy_repo(db):
     from db import PolicyRuleRepository
     return PolicyRuleRepository(db)
+
+
+class TestAGateNobodyReviewedIsRefused:
+    """`/policies` said the register enforces this. It did not.
+
+    The page reads, in these words: "Drafting and publishing are separate
+    duties, and the register enforces it: a validator writes a rule and a model
+    risk manager puts it in force." `publish()` never compared `published_by` to
+    the row's author and `policy:publish` was not in the segregation table, so a
+    reviewer holding both permissions authored a gate and enacted it alone — and
+    the page then rendered "s.iqbal / put in force by s.iqbal" directly beneath
+    that sentence.
+    """
+
+    def test_the_act_is_in_the_segregation_table(self):
+        from core.authz.segregation import BY_ACT
+        assert "policy:publish" in BY_ACT
+        assert "policy_drafted" in BY_ACT["policy:publish"].conflicting_kinds
+
+    def test_the_drafter_may_not_publish_their_own_rule(self, client, people):
+        drafted = client.post("/api/v1/policies", auth=people["s.iqbal"], json={
+            "gate": "warrant:resolve",
+            "rule": "version_status == 'approved'",
+            "reason": "a warrant resolves only against an approved version",
+            "cases": [
+                {"name": "approved runs", "facts": {"version_status": "approved"},
+                 "expect": "allow"},
+                {"name": "draft does not", "facts": {"version_status": "draft"},
+                 "expect": "refuse"}]})
+        assert drafted.status_code in (200, 201), drafted.text
+        policy_id = drafted.json()["id"]
+
+        alone = client.post(f"/api/v1/policies/{policy_id}/publish",
+                            auth=people["s.iqbal"])
+        assert alone.status_code == 403, alone.text
+        assert alone.json()["error"] == "segregation_of_duties"
+        assert "drafted" in alone.json()["detail"]
+
+    def test_somebody_else_holding_the_permission_may(self, client, people):
+        """The control is independence, not scarcity: the act stays possible."""
+        drafted = client.post("/api/v1/policies", auth=people["a.mehta"], json={
+            "gate": "warrant:resolve",
+            "rule": "version_status == 'approved'",
+            "reason": "a warrant resolves only against an approved version",
+            "cases": [
+                {"name": "approved runs", "facts": {"version_status": "approved"},
+                 "expect": "allow"},
+                {"name": "draft does not", "facts": {"version_status": "draft"},
+                 "expect": "refuse"}]})
+        assert drafted.status_code in (200, 201), drafted.text
+        published = client.post(
+            f"/api/v1/policies/{drafted.json()['id']}/publish",
+            auth=people["s.iqbal"])
+        assert published.status_code in (200, 201), published.text

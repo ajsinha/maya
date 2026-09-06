@@ -11,11 +11,11 @@ from fastapi import Request
 from pydantic import BaseModel, Field
 
 from core.domain import paging
-from routes.base import Routes
+from routes.base import Body, Routes
 from core.registry.versions import latest_version
 
 
-class RelateIn(BaseModel):
+class RelateIn(Body):
     """One model's standing to another. `from` is a Python keyword, so the
     field is `from_urn` and the shape says so rather than being clever."""
     from_urn: str
@@ -24,14 +24,14 @@ class RelateIn(BaseModel):
     note: str = ""
 
 
-class UnrelateIn(BaseModel):
+class UnrelateIn(Body):
     from_urn: str
     to_urn: str
     kind: str
     reason: str
 
 
-class ModelIn(BaseModel):
+class ModelIn(Body):
     urn: str
     name: str
     model_class: str
@@ -43,7 +43,7 @@ class ModelIn(BaseModel):
     origin: str = "internal"
 
 
-class VersionIn(BaseModel):
+class VersionIn(Body):
     semver: str
     kernel: Dict[str, Any] = Field(default_factory=dict)
     contract: Dict[str, Any] = Field(default_factory=dict)
@@ -51,14 +51,14 @@ class VersionIn(BaseModel):
     artifact_uri: Optional[str] = None
 
 
-class AliasIn(BaseModel):
+class AliasIn(Body):
     semver: str
     environment: str = "prod"
     alias: str = "champion"
     justification: str = ""
 
 
-class AssessIn(BaseModel):
+class AssessIn(Body):
     exposure: float = 0.0
     purpose_class: str = "commercial"
     feature_count: int = 0
