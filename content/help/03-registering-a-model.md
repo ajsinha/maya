@@ -318,10 +318,25 @@ It travels in the warrant with the rest of the contract, so an engine can check
 the boundary **before** touching the artifact and refuse rather than produce a
 number nobody should rely on.
 
-Contracts compose. When an alias moves, the replacement's contract must
-**refine** the incumbent's — assume no more, guarantee no less. That is law
-**L-7**, discharged alongside L-12 on every move, and the move's response carries
-both proofs and their reasons.
+When an alias moves, the replacement's contract must **refine** the incumbent's
+— assume no more, guarantee no less. That is law **L-7**, discharged alongside
+L-12 on every move, and the move's response carries both proofs and their
+reasons.
+
+Contracts also **compose**, and composing is not the same as adding two lists
+together. Wire a PD model into an ECL stack and the pair's guarantees are both
+promises together; its assumptions are what the *caller* must still meet — the
+stack's own assumptions, less the ones the PD model's guarantee already implies.
+A stack assuming a PD in `[0,1]` fed by a model guaranteeing exactly that does
+not ask anybody outside the pair for it.
+
+The case worth knowing about is the one in between. A PD model guaranteeing
+`[0,2]` into a stack assuming `[0,1]` *looks* covered by the wiring and is not:
+the assumption stays with the caller, and MAYA reports that key separately on the
+composition screen rather than letting it disappear into a discharged list. The
+same rule governs the quotient — *given what we have, what must the challenger
+deliver?* — where a partner promising `gini ≥ 0.2` discharges nothing at all
+against a target of `gini ≥ 0.4`.
 
 ## Artifacts
 

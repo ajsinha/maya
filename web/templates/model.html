@@ -12,6 +12,23 @@
 <div class="mono text-muted">{{ model.urn }}</div>
 <div class="rule"></div>
 
+{% set slug = model.urn.replace('maya://model/','') %}
+{# The seven operations, on THIS model. The record and the algebra were two
+   places you reached from the bar rather than from each other, so somebody
+   reading a model had to go back to an index and re-enter its name to see
+   whether one version refines another. #}
+<div class="d-flex flex-wrap align-items-center gap-1 mb-3" style="font-size:.78rem">
+  <span class="text-muted">This model:</span>
+  <a class="chip text-decoration-none" href="/model-algebra/version/{{ slug }}">Versions &amp; class</a>
+  <a class="chip text-decoration-none" href="/model-algebra/refinement/{{ slug }}">Refinement &amp; aliases</a>
+  <a class="chip text-decoration-none" href="/model-algebra/lifecycle/{{ slug }}">Lifecycle</a>
+  <a class="chip text-decoration-none" href="/model-algebra/quorum/{{ slug }}">Approval quorum</a>
+  <a class="chip text-decoration-none" href="/model-algebra/risk/{{ slug }}">Risk tier</a>
+  <a class="chip text-decoration-none" href="/model-algebra/documents/{{ slug }}">Documents</a>
+  <a class="chip text-decoration-none" href="/model-algebra/composition?urn={{ model.urn }}">Composition</a>
+  <a class="chip text-decoration-none" href="/packages/{{ slug }}">Package</a>
+</div>
+
 {% if kernel_type %}
 <!-- ------------------------------------------------------- the model as a type -->
 <!--
@@ -79,7 +96,6 @@
         <thead><tr><th>Version</th><th>Class</th><th>Fit</th><th>Status</th><th>Digest</th>
                    <th></th></tr></thead>
         <tbody>
-        {% set slug = model.urn.replace('maya://model/','') %}
         {% for v in versions %}
           <tr><td class="mono">{{ v.semver }}</td>
               <td><span class="chip">{{ v.trainability_class }}</span></td>

@@ -226,9 +226,15 @@ class Contract:
 
     def check_inputs(self, values) -> List[str]: ...
     def refines(self, other) -> RefinementResult: ...   # L-7
-    def compose(self, downstream) -> "Contract": ...
-    def conjoin(self, other) -> "Contract": ...
+    def compose(self, downstream) -> "Contract": ...     # guarantees meet; the upstream
+    def composed_with(self, downstream) -> Composition:  #   discharges what it implies
+    def conjoin(self, other) -> "Contract": ...          # guarantees meet, assumptions JOIN
     def quotient(self, have) -> "Contract": ...          # turns a gap into a specification
+
+# and the two partial operations the three are written in terms of
+class Bound:
+    def meet(self, other) -> Optional["Bound"]: ...      # None where nothing satisfies both
+    def join(self, other) -> Optional["Bound"]: ...      # None where the union is not a band
 ```
 
 A `Bound` is a key with an optional minimum, an optional maximum and an optional allowed set, marked as an

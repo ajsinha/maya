@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}People and roles — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHO MAY ACT</p>
+<h1>People and roles</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">A permission system nobody
+can inspect is one people work around. Roles are sets of permissions and a
+person may hold more than one, so the column that matters is the
+<strong>effective</strong> one — what the union actually permits. Some pairs of
+roles are refused outright: a validator who may also approve is not performing
+effective challenge, whatever the org chart says.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ people|length }}</div>
+    <div class="stat-l">principals</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ people|selectattr("status", "equalto", "active")|list|length }}</div>
+    <div class="stat-l">active</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    {% set clashing = people|selectattr("conflicts")|list %}
+    <div class="stat {{ 'evidence-bad' if clashing }}">{{ clashing|length }}</div>
+    <div class="stat-l">holding incompatible roles</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ roles|length }}</div>
+    <div class="stat-l">roles defined</div></div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every principal</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Username</th><th>Name</th><th>Kind</th><th>Status</th>
+               <th>Roles</th><th>Scope</th><th>Permissions</th></tr></thead>
+    <tbody>
+      {% for p in people %}
+      <tr>
+        <td class="mono">{{ p.username }}</td>
+        <td>{{ p.display_name }}
+          {% if p.conflicts %}
+            {% for c in p.conflicts %}
+              <div class="evidence-bad" style="font-size:.72rem">
+                {{ c.roles|join(" + ") }} — {{ c.reason }}</div>
+            {% endfor %}
+          {% endif %}</td>
+        <td><span class="chip">{{ p.kind }}</span></td>
+        <td>{% if p.status == "active" %}<span class="evidence-ok">active</span>
+            {% else %}<span class="evidence-bad">{{ p.status }}</span>{% endif %}</td>
+        <td>{% for r in p.roles or [] %}<span class="chip me-1">{{ r }}</span>{% endfor %}</td>
+        <td class="small text-muted">
+          {% if p.legal_entities %}entities: {{ p.legal_entities|join(", ") }}<br>{% endif %}
+          {% if p.domains %}domains: {{ p.domains|join(", ") }}{% endif %}
+          {% if not p.legal_entities and not p.domains %}the whole estate{% endif %}</td>
+        <td class="small">{{ p.effective|length }}
+          <span class="text-muted" style="font-size:.72rem">effective</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The role catalogue</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Role</th><th>What it is for</th><th>Held by</th><th>Permissions</th></tr></thead>
+    <tbody>
+      {% for r in roles %}
+      <tr>
+        <td class="mono">{{ r.name }}</td>
+        <td class="small">{{ r.description }}</td>
+        <td>{{ r.held_by }}</td>
+        <td class="small text-muted" style="max-width:28rem">{{ r.permissions|length }} —
+          {{ r.permissions|join(", ") }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">Roles nobody may hold together</div>
+      <dl class="maya-terms">
+        {% for c in incompatible %}
+          <div><dt>{{ c.roles|join(" + ") }}</dt><dd>{{ c.reason }}</dd></div>
+        {% endfor %}
+      </dl>
+    </div>
+  </div>
+  <div class="col-12 col-lg-7">
+    <div class="card h-100">
+      <div class="card-header">Segregation: acts refused to whoever did the earlier one</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Act</th><th>Refused to</th><th>Why</th></tr></thead>
+        <tbody>
+          {% for r in segregation %}
+          <tr><td class="mono">{{ r.act }}</td>
+              <td class="small">{{ r.conflicts_with|join(", ") }}</td>
+              <td class="small text-muted">{{ r.reason }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted small mt-3">
+{% if may_manage %}Creating a principal, changing roles and suspending an
+account are governed acts recorded on the evidence chain:
+<span class="mono">POST /api/v1/principals</span>,
+<span class="mono">PUT /api/v1/principals/{username}/roles</span> and
+<span class="mono">POST /api/v1/principals/{username}/suspend</span>.
+{% else %}Changing any of this needs <span class="mono">principal:manage</span>,
+which you do not hold.{% endif %}</p>
+{% endblock %}

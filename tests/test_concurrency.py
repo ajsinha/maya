@@ -134,3 +134,34 @@ class TestTransactionsAreReEntrant:
             db.execute("INSERT INTO principal (id, username, display_name, "
                        "created_at) VALUES ('s1','sees','S',1.0)")
             assert db.query_one("SELECT username FROM principal WHERE id='s1'")
+
+
+class TestSqliteIsConfiguredForContention:
+    """The pragmas, asserted, because their absence is invisible until load.
+
+    A suite run alongside three other pytest processes produced
+    `database is locked` from the evidence chain — not a race, a five-second
+    driver timeout under contention. Nothing was wrong with the code; the
+    database was configured to give up.
+    """
+
+    def test_an_on_disk_database_uses_a_write_ahead_log(self, tmp_path):
+        """Readers must not block behind a writer.
+
+        The default journal makes every read wait for the write in flight, and
+        this platform reads the evidence chain on nearly every request.
+        """
+        from db.database import Database
+        db = Database(f"sqlite:///{tmp_path}/wal.db")
+        with db.engine.connect() as conn:
+            assert conn.exec_driver_sql("PRAGMA journal_mode").fetchone()[0] == "wal"
+
+    def test_every_connection_waits_rather_than_failing(self, tmp_path):
+        """A lock held for a moment is normal. Failing instead of waiting turns
+        a millisecond of contention into a governance act that did not happen."""
+        from db.database import Database
+        for url in (f"sqlite:///{tmp_path}/timeout.db", "sqlite:///:memory:"):
+            db = Database(url)
+            with db.engine.connect() as conn:
+                timeout = conn.exec_driver_sql("PRAGMA busy_timeout").fetchone()[0]
+            assert timeout == Database.BUSY_TIMEOUT_MS, url

@@ -41,6 +41,7 @@ from routes.principal_routes import PrincipalRoutes
 from routes.regime_routes import RegimeRoutes
 from routes.scheduler_routes import SchedulerRoutes
 from routes.public_routes import PublicRoutes
+from routes.ui_admin_routes import AdminRoutes
 from routes.ui_routes import UIRoutes
 from routes.validation_routes import ValidationRoutes
 
@@ -61,6 +62,7 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               OverlayRoutes, ArtifactRoutes, AssistRoutes, ProfileRoutes,
               BaselineRoutes,
               RegimeRoutes, SchedulerRoutes,
+              AdminRoutes,
               UIRoutes)
 
 __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "WarrantRoutes",
@@ -68,5 +70,5 @@ __all__ = ["Routes", "API", "ALL_ROUTES", "AuthRoutes", "FeatureRoutes", "Warran
            "FindingWorkflowRoutes", "PrincipalRoutes",
            "LifecycleRoutes", "MonitoringRoutes", "GrammarRoutes", "DocumentRoutes", "ExportRoutes", "ReportingRoutes", "OverlayRoutes", "AssistRoutes", "AttachmentRoutes", "FeaturesetRoutes", "ApprovalRoutes", "TelemetryRoutes", "TransferRoutes", "NotificationRoutes", "SsoRoutes", "PolicyRoutes", "ProfileRoutes", "BaselineRoutes", "RegimeRoutes", "SchedulerRoutes", "RuleRoutes", "FeatureAuthoringRoutes",
            "FeaturesetAuthoringRoutes", "WarrantAuthoringRoutes",
-           "ModelAlgebraRoutes",
+           "ModelAlgebraRoutes", "AdminRoutes",
            "current_user", "login_required"]

@@ -73,7 +73,7 @@ than a 404 that pretends otherwise.
 
 ## 2. Every page there is
 
-Twenty-four routes render a page. Seven are reachable without a session; seventeen are not.
+Fifty-two routes render a page. Seven are reachable without a session; forty-five are not.
 
 ### 2.1 Public
 
@@ -81,7 +81,7 @@ Twenty-four routes render a page. Seven are reachable without a session; sevente
 |---|---|---|
 | `/` | `landing.html` | The argument, and a live count of registered models |
 | `/about` | `about.html` | What this is and what it is not |
-| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 17 help topics, markdown on disk rendered at request time |
+| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 18 help topics, markdown on disk rendered at request time |
 | `/tutorials`, `/tutorials/{slug}` | same two templates | Six walkthroughs, the same renderer, one dictionary entry apart |
 | `/login` | `login.html` | The only page that establishes a session |
 
@@ -89,34 +89,95 @@ Help and tutorials are **files under `content/`, not templates**. They are versi
 the same pull request as the behaviour they describe, and cannot ship in a release that changed
 without them.
 
-### 2.2 Behind a session
+### 2.2 Behind a session — the models
 
 | Route | Template | What it answers | Refuses when |
 |---|---|---|---|
 | `/dashboard` | `dashboard.html` | The register, the estate summary, my worklist, the chain's standing | — (the list is scope-filtered) |
 | `/model/{name}` | `model.html` | Everything about one model — §3 | `model:read` out of scope |
-| `/features` | `features.html` | The catalogue: defined, derived, served; the expression language; retrieval, alignment and composition, each described by the module that implements it | — |
-| `/feature-views/{name}` | `feature_view.html` | One view, its versions, and each version restated | 404 |
-| `/featuresets` | `featuresets.html` | Every set, its versions, the latest | — |
-| `/featureset/{name}` | `featureset.html` | One set: the resolved definition, the assembly plan per version, the restatements | 404 |
+| `/models/new` | `new_model.html` | Register a model, upload a version, and file a document against either | — (the model list is scope-filtered) |
+| `/model-algebra` | `model_algebra_index.html` | The seven operations, and what each one is | — |
+| `/model-algebra/version/{name}` | `model_algebra_version.html` | The versions of one model, and the trainability class **derived** from each | `model:read` |
+| `/model-algebra/refinement/{name}` | `model_algebra_refinement.html` | Whether one version refines another, and where the aliases point | `model:read` |
+| `/model-algebra/lifecycle/{name}` | `model_algebra_lifecycle.html` | The states this model has been in, and what moved it | `model:read` |
+| `/model-algebra/quorum/{name}` | `model_algebra_quorum.html` | Who has signed an approval, who still must, and who may not | `model:read` |
+| `/model-algebra/risk/{name}` | `model_algebra_risk.html` | The tier, the inputs that produced it, and when it is next owed a review | `model:read` |
+| `/model-algebra/documents/{name}` | `model_algebra_documents.html` | Every document filed against the model, its versions, its parameter sets or its featureset versions | `document:read` |
+| `/model-algebra/composition` | `model_algebra_composition.html` | One model reading another, with the input schema type-checked against the output | `model:read` |
+| `/warrants` | `warrant_author.html` | What a run would be permitted to do, composed against the grammar before it is issued | `warrant:read` |
+| `/packages`, `/packages/{name}`, `/packages/{name}/preview` | `packages.html`, `package.html` | Everything about a model gathered into one download, and what it will contain before it is cut | `document:read` |
 | `/parameters/{semver}/{name}` | `parameters.html` | What one version may run on, and what stands behind each set | `model:read` |
-| `/telemetry` | `telemetry.html` | Every version's telemetry, the ones that stopped sending first | — |
-| `/telemetry/{semver}/{name}` | `telemetry_version.html` | One version's cohort, and how much of it is labelled | `monitor:read` |
-| `/policies` | `policies.html` | The four gates in force, their fact vocabularies, the drafts, and the drift each publication caused | — |
-| `/notifications` | `notifications.html` | Which channels work, what has been delivered, and what *you* would be sent | — |
-| `/board-pack` | `board_pack.html` | What a committee would be shown — §4 | `report:read` |
-| `/dossier/{name}` | `dossier.html` | Everything documented about a model, following the pins — §5 | `document:read` |
-| `/models/new` | `new_model.html` | Register a model, or upload a version of one | — (the model list is scope-filtered) |
-| `/document/{id}` | `document.html` | One compiled document, its anchors, its staleness and its citations | `document:read` on the subject model |
 | `/rules/{name}/{semver}` | `ruleset_editor.html` | The rule set of one **T8** version: the rules in order, the `otherwise`, the document itself, what it says in English, and a trial against sample rows. One page per *version*, not per model, because a rule set is checked against a particular version's `input_schema` and picking one silently is how a rule set comes to be validated against something other than what it runs on | 404 where the version is not registered; `model:read` out of scope |
 | `/rulesets/{parameter_set_id}` | `ruleset.html` | A recorded rule set read back in English, with what the checks found when it was recorded — and a paragraph stating exactly what *none shadowed* means, because the promise is narrow and a narrow promise read as a wide one is worse than none | 404 where the set is not a rule set; `model:read` |
+| `/telemetry` | `telemetry.html` | Every version's telemetry, the ones that stopped sending first | — |
+| `/telemetry/{semver}/{name}` | `telemetry_version.html` | One version's cohort, and how much of it is labelled | `monitor:read` |
+| `/board-pack` | `board_pack.html` | What a committee would be shown — §4 | `report:read` |
+| `/dossier/{name}` | `dossier.html` | Everything documented about a model, following the pins — §5 | `document:read` |
+| `/document/{id}` | `document.html` | One compiled document, its anchors, its staleness and its citations | `document:read` on the subject model |
 
-Two routing details are load-bearing. The model segment is a greedy `:path` converter because a URN
-carries dots and slashes, so **the version comes before the model** on `/telemetry/{semver}/{name}`
-and `/parameters/{semver}/{name}` — a greedy segment in front of a semver would swallow it. And the
-render helper's HTTP-code keyword is spelled `http_status`, not `status`, because `status` is the
-most natural name a page has for a model's status, a finding's status or a version's status: a caller
-passing one got a silently empty template variable and a response code taken from a domain word.
+### 2.3 Behind a session — the features and the sets
+
+| Route | Template | What it answers | Refuses when |
+|---|---|---|---|
+| `/features` | `features.html` | The catalogue: defined, derived, served; the expression language; retrieval, alignment and composition, each described by the module that implements it | — |
+| `/features/new` | `feature_author_define.html` | Define a feature — base, derived, aggregate or external | `feature:define` |
+| `/features/load` | `feature_author_load.html` | Load rows, with the ingest time recorded separately from the event time | `feature:materialise` |
+| `/features/point-in-time` | `feature_author_pit.html` | What was knowable as of a date, under the rule the platform actually applies | `feature:read` |
+| `/feature/{name}` | `feature_author_feature.html` | One feature, its lineage, its certification and what it is used by | `feature:read` |
+| `/feature-views/{name}` | `feature_view.html` | One view, its versions, and each version restated | 404 |
+| `/featuresets` | `featuresets.html` | Every set, its versions, the latest | — |
+| `/featuresets/author` | `featureset_author_define.html` | Compose a set: declare the slots, then publish | `featureset:define` |
+| `/featuresets/lattice` | `featureset_author_lattice.html` | Whether one schema stands in for another — the join, and where there is no meet | `feature:read` |
+| `/featureset/{name}` | `featureset.html` | One set: the resolved definition, the assembly plan per version, the restatements | 404 |
+| `/featureset/{name}/bind` | `featureset_author_bind.html` | Fill each slot with a feature that satisfies its type | `featureset:define` |
+| `/featureset/{name}/assemble` | `featureset_author_assemble.html` | Assemble a training frame, point-in-time correct or refused | `feature:assemble` |
+| `/featureset/{name}/plan/{version}` | `featureset_author_plan.html` | The plan one published version would execute, slot by slot | `feature:read` |
+| `/featureset/{name}/refusals` | `featureset_author_refusals.html` | Every assembly this set has refused, and why | `feature:read` |
+
+### 2.4 Behind a session — the platform
+
+These six are about the machinery rather than about any model in it. Each was an API with no screen
+until this release, which meant the people who own those decisions could not see them without a
+developer beside them. All six are read-only: they show the state and name the endpoint that changes
+it, so the acts stay where their evidence and their segregation checks already live.
+
+| Route | Template | What it answers | Refuses when |
+|---|---|---|---|
+| `/admin` | `admin_index.html` | What administering this platform consists of — listing only what you hold a permission for | — |
+| `/admin/principals` | `admin_principals.html` | Every principal, the roles they hold, the **effective** permissions those add up to, the role catalogue, and the pairs of duties nobody may hold together | `principal:read` |
+| `/policies` | `policies.html` | The four gates in force, their fact vocabularies, the drafts, and the drift each publication caused | `policy:read` |
+| `/admin/regimes` | `admin_regimes.html` | Which rulebook is in force, what each obligation says, and whether MAYA's encoding of it survives translation into that regime's own vocabulary | `regime:read` |
+| `/admin/scheduler` | `admin_scheduler.html` | The unattended batch: what runs, what each is for, when it last ran, whether it succeeded — and whether the scheduler itself is alive | `scheduler:read` |
+| `/admin/evidence` | `admin_evidence.html` | The hash chain against itself, and **separately** whether it still agrees with the heads written to WORM storage outside the database | `evidence:read` |
+| `/admin/runtimes` | `admin_runtimes.html` | What the warrant grammar admits, and what each trainability class is required to carry | `model:read` |
+| `/notifications` | `notifications.html` | Which channels work, what has been delivered, and what *you* would be sent | — |
+
+The evidence screen keeps its two answers apart on purpose. `verify_chain` compares the chain against
+itself, which a chain rewritten from the first node passes perfectly; the anchors are heads copied to
+a second, write-once medium, and only that comparison says anything an attacker holding the database
+cannot simply arrange. Merging them into one green tick would be the platform's own recurring defect
+— a control that reports success while answering a narrower question than the reader thinks.
+
+### 2.5 Reaching them
+
+Forty-five screens, four items in the bar: **Manage**, **Admin**, **Help**, **About**.
+
+It was eleven links and a sign-out, which is a list rather than a menu — and the failure that list
+produced was not clutter but invisibility. Eight screens built in one release were reachable only by
+typing the URL, because four separate people each noticed the gap and none of them owned the
+template that held the bar.
+
+**Manage** opens onto three columns, and the columns are the three things this platform holds:
+models, features, featuresets. Nothing else is a top-level idea here, so nothing else is a column.
+**Admin** is the platform rather than the models, and each of its entries is rendered only for a
+principal who holds the permission that screen's API asks for — the same permission, read from
+`authz`, not a page-only rule. A menu that lists screens which then answer 403 teaches people that
+refusals are noise, which is an expensive thing to teach in a system whose whole argument is that a
+refusal means something.
+
+That check is a template concern and must never be the reason a page fails to render, so the
+permission set is resolved once in `Routes.brand` and swallows its own failures: a principal
+suspended between sign-in and the render simply sees the signed-out bar.
 
 ## 3. The model page
 
@@ -213,7 +274,7 @@ and tabulated. That is the whole point of the page:
 
 ## 6. The rules the built interface actually holds
 
-Six, each with the failure it prevents.
+Seven, each with the failure it prevents.
 
 1. **No governance logic in a page.** Tier, gate verdicts, staleness, quorum, RAG standing and
    regime determinations are computed by services and rendered. A browser that could re-derive a
@@ -246,6 +307,14 @@ Six, each with the failure it prevents.
    every `method="post"` form. Same-origin only — sending the token to another host would hand over
    the thing it exists to withhold. The server side is [09 §2](09-security-compliance.md).
 
+7. **The navigation is built from permissions, not from a list.** Every entry in the Admin menu
+   names the permission its screen's API asks for, and is rendered only for a principal who holds it —
+   read from `authz` in `Routes.brand`, so there is one authorisation policy asked from two places
+   rather than two policies that drift. A menu offering a screen that then answers 403 teaches people
+   that refusals are noise, which is an expensive lesson in a system whose argument is that a refusal
+   means something. The resolution swallows its own failures: decoration must never be why a page
+   fails to render.
+
 ## 7. What the built interface does not do
 
 Named, because a reader planning around this deserves the list rather than a discovery.
@@ -257,9 +326,9 @@ Named, because a reader planning around this deserves the list rather than a dis
 | **No dependency graph screen** | Cytoscape.js is not vendored and there is no graph page. The `input_to` edges are typed and stored; nothing draws them |
 | **No validation workbench** | No replay, no challenger runner, no independent recode, no slice explorer. Validation appears on the model page as a table of episodes |
 | **No charts** | Chart.js is not vendored. Every number is rendered as a number |
-| **No discovery, examiner or admin screen** | Principals, connectors and examiner packs are API-only |
+| **No discovery or examiner screen** | Connectors and examiner packs are API-only. Administration is no longer among them — §2.4 |
 | **Accessibility is partial** | Semantic HTML and the description-list fix are real; ARIA is on one template. Full keyboard operation, visible focus and 4.5:1 contrast are stated in `NFR-USE-002` and are not tested anywhere |
-| **`/models/new` is two forms, not a wizard** | Register a model, or upload a version, side by side, plus a note on registering what already runs in an execution engine. It carries the artifact format list with **`executes_on_load` marked against each format**, so the warning is attached to the choice rather than left in a document somebody read once |
+| **`/models/new` is two forms, not a wizard** | Register a model, or upload a version, side by side, plus a note on registering what already runs in an execution engine. It carries the artifact format list with **`executes_on_load` marked against each format**, so the warning is attached to the choice rather than left in a document somebody read once. The registration form also takes a document, filed at **model** level because at that moment there is no version to file it against — and a failure to file it says so without implying the registration failed, since a conflated message is how somebody comes to register the same model twice |
 
 ---
 
@@ -304,7 +373,7 @@ Each of these was designed against a real need. None exists.
 | **Use reconciliation** | Approved use against actual use, as exceptions | An approved model used for an unapproved purpose is T3 in the threat model |
 | **Examiner portal** | Read-only, as-at-date, request packs | The export pack does this today, without a login |
 | **Campaigns** | Periodic revalidation and attestation cycles, with SLA | The scheduler runs the jobs; nothing shows the cycle |
-| **Admin** | Classes, lifecycles, policies, templates, tests, users, connectors | Principals and policies are API-only today |
+| **Admin — the remainder** | Model classes, lifecycle definitions, document templates and the test catalogue, edited rather than read | People, roles, policies, regimes, the batch, evidence integrity and the runtime grammar are **built** — §2.4. What is left is the authoring half: these screens read the platform's configuration and do not yet change it |
 | **Schema-driven metadata form** | A model class adds a fibre on the backend and its capture form appears with no front-end change — a T1 pricing model asked for calibration instruments and tolerance, a T5 asked for autonomy mode and eval set | The fibration reaching the UI. `/models/new` renders a fixed form today |
 
 ## 10. Conventions the API would have to offer
@@ -332,7 +401,7 @@ The decoupled client would depend on these. Some exist; the column says which.
 | **Name** | MAYA — Sanskrit *māyā* (माया), *appearance* / *representation* | Everywhere |
 | **Tagline** | Model & AI Lifecycle Assurance | Page footer, document headers |
 | **Slogan** | **Evidence, not assertion.** | The navbar, the footer, export-pack covers, the About page |
-| **Principle** | *A model is a representation of the world. Governance is knowing the difference.* | About, onboarding, examiner covers |
+| **Principle** | *A model is a representation of the world. Governance is knowing the difference.* | **The footer of every page**, About, onboarding, examiner covers |
 | **Mark** | A square inscribed in a circle | Navbar, favicon, export packs, decks |
 
 ![MAYA mark](../assets/logo/maya-mark-128.png)
@@ -346,6 +415,14 @@ That reading is worth knowing because it is the argument the whole platform make
 the slogan is used where the product is making that claim and not decoratively. It belongs on the
 sign-in screen, on the cover of an examiner pack, and in About. It does not belong on every page
 header, where it becomes wallpaper and stops meaning anything.
+
+The **principle** does sit under every page, in italics above the copyright line and separated from
+it by a rule. The footer is where a reader arrives having finished with the page, not where they
+arrive looking for a control, so a sentence there is read rather than skipped past — and the
+sentence is the thesis every screen above it is an instance of. It is a configuration value
+(`app.principle`) rather than a string in a template, because it is also quoted in About and on the
+deck's closing slide, and a sentence kept in three places is a sentence that comes to say three
+things.
 
 Assets are in [`assets/logo/`](../assets/logo/): `maya-mark.svg` (primary), `maya-mark-white.svg`
 (knockout for crimson), `maya-mark-mono.svg` (inherits `currentColor`), and `maya-lockup.svg` (mark,

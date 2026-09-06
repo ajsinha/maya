@@ -51,6 +51,53 @@
       });
     }
 
+
+  // The composite CONTRACT, beside the composite schema. The schema says what
+  // the pair needs; this says under what conditions the pair still promises
+  // anything, and which of the target's operating boundaries the source's own
+  // guarantee settles so that nobody outside has to.
+  function contractHtml(c) {
+    if (!c) { return ""; }
+    if (!c.stated) {
+      return '<div class="text-muted mt-2" style="font-size:.76rem">' +
+             A.escapeHtml(c.detail) + "</div>";
+    }
+    if (!c.holds) {
+      // Reported, not raised. A reader looking at a clash needs to see it
+      // rather than get a refusal where the analysis should have been.
+      return '<div class="mt-2"><span class="evidence-bad">These two contracts ' +
+             "cannot both hold.</span> " + A.escapeHtml(c.detail) +
+             '<div class="text-muted" style="font-size:.76rem">' +
+             A.escapeHtml(c.remediation || "") + "</div></div>";
+    }
+    var clause = function (b) {
+      var band = b.allowed ? b.allowed.join(", ")
+        : [b.minimum === undefined ? "" : "≥ " + b.minimum,
+           b.maximum === undefined ? "" : "≤ " + b.maximum]
+          .filter(Boolean).join(", ");
+      return '<span class="chip me-1 mb-1 d-inline-block">' +
+             A.escapeHtml(b.key) + (band ? " " + A.escapeHtml(band) : "") + "</span>";
+    };
+    var unmet = (c.spoken_to_but_not_settled || []);
+    return '<div class="mt-2"><strong>The boundary the caller must still meet</strong> ' +
+      (c.assumptions || []).map(clause).join("") + "</div>" +
+      "<div><strong>What the pair promises</strong> " +
+      (c.guarantees || []).map(clause).join("") + "</div>" +
+      ((c.discharged_by_the_edge || []).length
+        ? '<div class="mt-1" style="font-size:.78rem"><span class="evidence-ok">' +
+          "Settled by the edge:</span> " +
+          A.escapeHtml(c.discharged_by_the_edge.join(", ")) +
+          ' <span class="text-muted">— the source guarantees these, so nobody ' +
+          "outside the pair supplies them</span></div>"
+        : "") +
+      (unmet.length
+        ? '<div class="mt-1" style="font-size:.78rem"><span class="evidence-bad">' +
+          "Looks covered and is not:</span> " + A.escapeHtml(unmet.join(", ")) +
+          ' <span class="text-muted">— the source speaks to this boundary and ' +
+          "does not settle it, so it stays with the caller</span></div>"
+        : "");
+  }
+
     var composite = document.getElementById("composite-form");
     if (composite) {
       composite.addEventListener("submit", function (event) {
@@ -67,7 +114,8 @@
             "<div><strong>Output schema</strong> — the target's outputs: " +
             A.schemaHtml(out.output_schema) + "</div>" +
             '<div class="text-muted mt-1" style="font-size:.76rem">' +
-            A.escapeHtml(out.detail) + "</div>";
+            A.escapeHtml(out.detail) + "</div>" +
+            contractHtml(out.contract);
         }).fail(function (xhr) { A.refuse("#composite-result", xhr); });
       });
     }

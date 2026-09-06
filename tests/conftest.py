@@ -582,7 +582,8 @@ def client(tmp_path, monkeypatch):
     cfg_file = tmp_path / "application.yaml"
     cfg_file.write_text(f"""
 app: {{name: MAYA, version: "0.1.0", tagline: "Model & AI Lifecycle Assurance",
-       slogan: "Evidence, not assertion."}}
+       slogan: "Evidence, not assertion.",
+       principle: "A model is a representation of the world. Governance is knowing the difference."}}
 server: {{host: 0.0.0.0, port: 5006}}
 database: {{url: "sqlite:///{tmp_path}/data/sqlite/maya.db"}}
 data: {{dir: "{tmp_path}/data", artifacts: "{tmp_path}/data/artifacts",
