@@ -176,6 +176,91 @@ class VersionService:
                 f"'estimate', 'train', 'configure', 'elicit' or 'author' — or "
                 f"declare parameter_kind 'none' if there really are none")
 
+    #: Everything a contract may say, and everything one clause of it may say.
+    #: Read off `contract_of`, `bounds_of` and the execution builder, which are
+    #: the only readers.
+    CONTRACT_KEYS = frozenset({"assumptions", "guarantees",
+                               "on_boundary_violation"})
+    BOUND_KEYS = frozenset({"key", "minimum", "maximum", "allowed"})
+    BOUNDARY_POLICIES = frozenset({"reject", "flag", "clamp"})
+
+    @classmethod
+    def _refuse_malformed_contract(cls, spec: Optional[Dict[str, Any]]) -> None:
+        """A contract that pins nothing, stored as though it pinned something.
+
+        `contract_of` reads `assumptions` and `guarantees` with `.get`, and
+        `bounds_of` reads `minimum`, `maximum` and `allowed` the same way. Every
+        spelling mistake therefore produced a VALID, EMPTY contract that was
+        digested into the manifest and used to gate alias promotion:
+
+        * `min`/`max` instead of `minimum`/`maximum` — the clause survives with
+          no bounds at all, so `dscr` "constrained to [0, 20]" admits anything.
+        * `assumption` for `assumptions` — the whole section vanishes.
+        * `minimum` above `maximum` — an admissible region that is empty, which
+          no input can satisfy and which L-7 nonetheless compares.
+        * a clause with no `key` — a raw `KeyError` out of `bounds_of`, which is
+          a 500 rather than a refusal naming the clause.
+
+        The first two are the dangerous ones: L-7 refinement between two empty
+        contracts holds, and a boundary check with no bounds never fires. The
+        version reads as governed and is not.
+        """
+        spec = spec or {}
+        if not isinstance(spec, dict):
+            raise RegistryError(
+                f"the contract must be an object with 'assumptions' and "
+                f"'guarantees', not {type(spec).__name__}")
+        if unknown := sorted(set(spec) - cls.CONTRACT_KEYS):
+            raise RegistryError(
+                f"the contract names {', '.join(unknown)}, which nothing reads. "
+                f"A section MAYA does not read is a constraint that silently "
+                f"does not exist — 'assumption' for 'assumptions' produces an "
+                f"empty contract that passes every check. Known keys: "
+                f"{', '.join(sorted(cls.CONTRACT_KEYS))}")
+        policy = spec.get("on_boundary_violation", "reject")
+        if policy not in cls.BOUNDARY_POLICIES:
+            raise RegistryError(
+                f"on_boundary_violation '{policy}' is not one of "
+                f"{', '.join(sorted(cls.BOUNDARY_POLICIES))}")
+        for section in ("assumptions", "guarantees"):
+            clauses = spec.get(section) or []
+            if not isinstance(clauses, list):
+                raise RegistryError(f"'{section}' must be a list of clauses")
+            for index, clause in enumerate(clauses):
+                cls._refuse_malformed_bound(section, index, clause)
+
+    @classmethod
+    def _refuse_malformed_bound(cls, section: str, index: int,
+                                clause: Any) -> None:
+        where = f"{section}[{index}]"
+        if not isinstance(clause, dict):
+            raise RegistryError(f"{where} must be an object, not "
+                                f"{type(clause).__name__}")
+        if not clause.get("key"):
+            raise RegistryError(
+                f"{where} names no 'key', so there is nothing for it to "
+                f"constrain")
+        if unknown := sorted(set(clause) - cls.BOUND_KEYS):
+            raise RegistryError(
+                f"{where} ('{clause['key']}') names {', '.join(unknown)}, which "
+                f"nothing reads — 'min'/'max' are spelled 'minimum'/'maximum', "
+                f"and a misspelled bound leaves the clause UNBOUNDED while "
+                f"still appearing in the contract")
+        lo, hi = clause.get("minimum"), clause.get("maximum")
+        for name, value in (("minimum", lo), ("maximum", hi)):
+            if value is not None and not isinstance(value, (int, float)):
+                raise RegistryError(f"{where} ('{clause['key']}') has a "
+                                    f"non-numeric {name}: {value!r}")
+        if lo is not None and hi is not None and lo > hi:
+            raise RegistryError(
+                f"{where} ('{clause['key']}') has minimum {lo} above maximum "
+                f"{hi}, which admits nothing at all — no input can satisfy it "
+                f"and no guarantee conditioned on it can ever apply")
+        allowed = clause.get("allowed")
+        if allowed is not None and not isinstance(allowed, (list, tuple)):
+            raise RegistryError(f"{where} ('{clause['key']}') has a "
+                                f"non-list 'allowed'")
+
     #: Everything a kernel spec may say. Read off the code that consumes one:
     #: `kernel_of` and the schemas here, and the realisation keys the execution
     #: grammar reads from it.
@@ -253,6 +338,7 @@ class VersionService:
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         self._refuse_unexplained_parameters(kernel)
+        self._refuse_malformed_contract(contract_spec)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
                     "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,

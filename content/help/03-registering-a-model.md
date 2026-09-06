@@ -313,6 +313,17 @@ Read as: *given* inputs within the assumptions, the model *guarantees* the state
 properties. Outside the assumptions the guarantee is void — a far more honest
 statement than a model that silently extrapolates.
 
+**Every key is checked, and a misspelling is refused rather than dropped.** The
+contract's readers all use `.get`, so a clause spelled `{"key": "dscr", "min":
+0, "max": 20}` used to survive as a clause with *no bounds at all* — a contract
+that reads as constraining `dscr` and constrains nothing, digested into the
+manifest and used to gate alias promotion. `assumption` for `assumptions` lost
+the whole section the same way. So `assumptions`, `guarantees` and
+`on_boundary_violation` are the only keys a contract may carry; `key`,
+`minimum`, `maximum` and `allowed` the only ones a clause may; a clause needs a
+`key`; and a `minimum` above its `maximum` is refused, because a band that
+admits nothing is not a constraint anybody meant to write.
+
 `on_boundary_violation` is `reject`, `flag` or `clamp`, defaulting to `reject`.
 It travels in the warrant with the rest of the contract, so an engine can check
 the boundary **before** touching the artifact and refuse rather than produce a
