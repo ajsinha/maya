@@ -19,6 +19,53 @@ from core.authz.common import MODEL_SCOPED
 
 ROUTES = pathlib.Path(__file__).resolve().parents[1] / "routes"
 
+#: HTML page handlers that carry no permission gate. Each entry is a deliberate
+#: decision with the reason written down, not a backlog: a page here must be
+#: readable by anybody who is signed in, and its panels must be too.
+UNGATED_PAGES = {
+    "dashboard": "the landing page; every panel on it is already filtered by "
+                 "`visible()`, and a signed-in principal with no permissions "
+                 "would otherwise have nowhere to land",
+    "telemetry_page": "filtered by `visible()` per model rather than gated as a "
+                      "whole; `monitor:read` is held by every human role",
+    "notifications_page": "your own digest needs nothing; the estate's delivery "
+                          "history is gated inside the handler on "
+                          "`principal:read`, matching its endpoint",
+    "admin_index": "a directory of the admin screens and the permission each "
+                   "needs; it holds no state, and the screens themselves gate",
+    "algebra_index": "the vocabulary — relations, classes, states, quorum rules "
+                     "— read from the code that enforces them. Rules, not data",
+    "packages_index": "filtered by `visible()` rather than gated, because an "
+                      "inventory of model names is itself the sensitive part",
+}
+
+
+def test_every_html_page_is_gated_or_listed() -> None:
+    """A page handler either checks a permission or appears above with a reason.
+
+    Four screens rendered in full for principals every panel on them refused.
+    Adding a fifth should be a decision somebody writes down, not something that
+    happens by forgetting.
+    """
+    ungated = []
+    for path in sorted(ROUTES.glob("ui*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            decorators = "".join(ast.unparse(d) for d in node.decorator_list)
+            if "HTMLResponse" not in decorators:
+                continue
+            body = ast.unparse(node)
+            checked = any(k in body for k in
+                          ("page_gate(", "_gate(", "may_view(", "gate(request",
+                           "permits("))
+            if not checked and node.name not in UNGATED_PAGES:
+                ungated.append(f"{path.name}:{node.name}")
+    assert ungated == [], (
+        "these page handlers check no permission and are not listed in "
+        f"UNGATED_PAGES with a reason: {', '.join(ungated)}")
+
 
 def _unscoped_checks() -> List[Tuple[str, int, str]]:
     """Every `authorise(..., "<model-scoped>")` call with no `model=`."""
