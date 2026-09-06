@@ -192,7 +192,7 @@ Each exists because the rule it holds had already been broken once.
 
 | # | Principle | Enforcement |
 |---|---|---|
-| E1 | **Modularity is mechanical, not cultural.** Boundaries that are not enforced by a tool are not boundaries. | `tests/test_import_discipline.py` walks the imports and fails the suite. It was `import-linter` contracts in CI, and there is no CI — the principle's own standard, applied to the principle, said it was not a boundary |
+| E1 | **Modularity is mechanical, not cultural.** Boundaries that are not enforced by a tool are not boundaries. | `tests/test_import_discipline.py` walks the imports, and `.github/workflows/ci.yml` runs it on every push and pull request. For a long time the enforcement column said "import-linter contracts in CI" and there was no CI — the principle's own standard, applied to the principle, said it was not a boundary. It is one now |
 | E2 | **Extension points are plugins, never `if` statements.** Nine entry-point groups; no core module may branch on model class, regime, or format. | Lint rule banning class/regime literals outside `registry/`, `regimes/` |
 | E3 | **The API is the only interface.** No privileged server-side path exists for the UI. | Contract tests in both pipelines; a spec-diff gate on breaking changes |
 | E4 | **Two processes, always.** Front end and backend build, test, release and fail independently. | Separate pipelines; no shared build step |
@@ -273,12 +273,18 @@ is that no exception is swallowed and everything is logged through one logger, s
 importing it would have to invent a second logger or stay silent.
 
 This paragraph read *"enforced in CI"* for a long time, and printed the `.importlinter` configuration
-below to show how. **There is no CI in this repository** — no `.github/`, no `pyproject.toml`, no `ruff`,
-no `mypy`, no `import-linter`, no coverage gate — so the rule was enforced by nobody. The boundaries
-turned out to be held anyway, which is exactly why it went unnoticed: a rule everybody happens to keep is
-indistinguishable from a rule that is enforced, right up until somebody does not. It is now a source
-walker in the ordinary suite, needing no tooling and no pipeline. The configuration below is retained as
-what the CI contract should say **when there is one**.
+below to show how. **There was no CI in this repository for a long time** — and the rule was therefore
+enforced by nobody. There is now: `.github/workflows/ci.yml` runs the suite in four shards, the seven
+discipline walkers, the laws, the deck's geometry, and the whole thing a second time against real
+PostgreSQL. Still absent: no `pyproject.toml`, no `ruff`, no `mypy`, no `import-linter`, no coverage
+gate and no security scanning.
+
+The boundaries turned out to be held throughout, which is exactly why the absence went unnoticed: a rule
+everybody happens to keep is indistinguishable from a rule that is enforced, right up until somebody does
+not. The rule itself is a source
+walker in the ordinary suite, so it needs no third-party tooling to hold. The `import-linter`
+configuration below is retained as what a contract-based check would say if one were added — it is not
+what enforces the rule today.
 
 ```toml
 # .importlinter
@@ -366,29 +372,35 @@ malicious-artifact corpus.
 
 ## 7. CI gates
 
-**None of this exists.** There is no `.github/`, no pipeline definition, no `ruff`, `mypy`,
-`import-linter` or coverage tool in `requirements.txt`, and no lock file for the API spec. Every gate
-below is a specification of what a pipeline should enforce, not a description of one that runs; the
-things actually enforced today are enforced by `pytest`, which anybody can skip.
+**Four of the nine gates run.** `.github/workflows/ci.yml` fires on every push and pull request to `main`
+and `develop`, in five jobs: the seven discipline walkers, the laws, the deck's geometry and slide count,
+the suite in four shards, and the dialect-sensitive files a second time against real **PostgreSQL**.
 
-Two of them have since been brought inside the suite because waiting for a pipeline meant waiting
-indefinitely: **import contracts** (gate 2, `tests/test_import_discipline.py`) and **the laws** (part of
-gate 3, `tests/test_laws.py` and the fourteen warrant laws). The rest are unenforced.
+That last one is the gate this section did not think to ask for, and it earned its place immediately.
+`db/schema/postgres.sql` is maintained column-for-column beside the SQLite one and had **never been
+executed** — adversarial review had already found fourteen `BOOLEAN` columns in it that no insert could
+have succeeded against. Running it found something else: the suite itself was not dialect-portable. Every
+test had been getting a fresh database from `sqlite:///:memory:` without anybody deciding it should, so
+against one shared PostgreSQL database thirteen assertions failed on accumulated evidence sequences —
+`assert 467 == 1`. Isolation is now the `db` fixture's job, stated there, rather than an accident of the
+driver.
 
-A merge should require all of:
-
-1. Lint, format, type check (`ruff`, `mypy --strict` on `domain/` and core).
-2. **Import contracts pass** — the modularity guarantee.
-3. Unit + laws + integration + contract green.
-4. Coverage thresholds met.
-5. **Spec-diff gate** — no unapproved breaking API change.
-6. **Fibre totality** — every registered model class supplies a complete fibre (law L-15).
-7. Security: SAST, SCA, secret scan, container scan; SBOM generated and signed.
-8. Migration up/down rehearsed.
-9. For `maya-web`: client matches `openapi.lock.json`; axe accessibility clean.
+| | Gate | State |
+|---|---|---|
+| 1 | Lint, format, type check (`ruff`, `mypy --strict`) | **Not built** — no linter or type checker in `requirements.txt` |
+| 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
+| 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
+| 4 | Coverage thresholds met | **Not built** — coverage is collected, no threshold is enforced |
+| 5 | Spec-diff gate | **Not built** — there is no `openapi.lock.json`, so nothing detects API drift |
+| 6 | Fibre totality (`L-15`) | **Runs** — in the laws job, and again at every application start-up |
+| 7 | Security: SAST, SCA, secret scan, SBOM | **Not built**, and the largest remaining gap in this list |
+| 8 | Migration up/down rehearsed | **Not applicable** — there are no migrations; the DDL is re-applied |
+| 9 | Client matches the spec; accessibility | **Not built** — no generated client, no axe run |
 
 Release additionally requires: performance suite green, full adversarial suite green, the ten acceptance
-criteria green, and signed images with SLSA provenance.
+criteria green, and signed images with SLSA provenance. **None of those run**, and the performance one
+cannot until the three spikes in [10 §2.3](10-roadmap.md) are performed — which is why every NFR figure
+in [03 §7](03-requirements.md) is a target rather than a result.
 
 ---
 

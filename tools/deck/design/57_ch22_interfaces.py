@@ -81,7 +81,7 @@ data = [["Concern", "Today"],
         ["Process", "One FastAPI application serves /api/v1 and renders the pages. The decoupled two-origin front end is ADR-011, accepted and not built — there is no CORS middleware anywhere"],
         ["Auth", "Session cookie, SameSite=Strict, plus a CSRF token on cookie-authorised mutations"],
         ["Logic", "The server renders decisions; the page never derives them"],
-        ["Client", "The Python SDK is hand-written against the same /api/v1. There is no generated client, no openapi.lock.json and no build to fail — there is no CI in this repository at all"],
+        ["Client", "The Python SDK is hand-written against the same /api/v1. There is no generated client and no openapi.lock.json, so nothing detects spec drift — CI runs the suite, not a contract check"],
         ["Documents", "Compiled server-side to markdown and rendered through the help pipeline; PDF and DOCX are not built"]]
 table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[1.1, 4.6], row_h=0.30, fs=9, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 x = ML + CW * 0.53

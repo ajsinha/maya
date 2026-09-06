@@ -1,0 +1,171 @@
+# MAYA — Model & AI Lifecycle Assurance
+# Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+#
+# The claim this makes true.
+#
+# The platform's strongest claim is that the laws are the acceptance criteria,
+# and the deck said on five separate slides that a failing one "fails the
+# build". There was no build. 2,700 tests existed and nothing ran them on a
+# change — `tests/test_import_discipline.py` was written to retire exactly that
+# sentence, and says so in its own docstring.
+#
+# Ordering is deliberate. The cheap gates run first and independently, so a
+# wrong count or an ungated refusal fails in under a minute rather than after
+# twenty. The laws get their own job because they are the claim; a green suite
+# with a red law is not a passing build in any useful sense.
+#
+# The suite is sharded because it takes about twenty minutes in one process, and
+# a gate slow enough to be skipped is a gate nobody runs.
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A newer push supersedes an older one on the same branch. `main` is never
+  # cancelled: its result is the record of whether the shipped thing passed.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  # ---------------------------------------------------------------- the gates
+  discipline:
+    name: Discipline — the rules that hold the codebase to its own claims
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Each of these was written because something drifted, and each names the
+      # drift in its docstring. They are the fastest signal in the build.
+      - name: Counts stated in prose match the code
+        run: pytest tests/test_documentation_counts.py -q
+      - name: Every coded refusal maps to a status
+        run: pytest tests/test_refusal_discipline.py -q
+      - name: No exception is handled without logging
+        run: pytest tests/test_logging_discipline.py -q
+      - name: The layering rule
+        run: pytest tests/test_import_discipline.py -q
+      - name: The two dialects agree, and no BOOLEAN columns
+        run: pytest tests/test_schema_discipline.py -q
+      - name: No file has outgrown a reader
+        run: pytest tests/test_size_discipline.py -q
+      - name: Shipped content — links, anchors and front matter
+        run: pytest tests/test_content.py -q
+
+  laws:
+    name: Laws — the acceptance criteria
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Sixteen of twenty-one foundational laws, and all fourteen
+      # warrant-admissibility laws. The five that do not execute are named in
+      # the file itself with the reason, and that list is asserted against the
+      # table in docs/00 rather than maintained by hand.
+      - run: pytest tests/test_laws.py tests/test_grammar.py -q
+
+  deck:
+    name: Deck — geometry and slide count
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      # `design_slides.py` executes whatever chapter files it finds, so a rename
+      # or a syntax error removes slides silently and the deck still builds.
+      # The count is asserted for that reason, not for tidiness.
+      - run: pytest tests/test_deck_geometry.py -q
+
+  # ------------------------------------------------------------- the suite
+  suite:
+    name: Suite (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false        # one shard's failure must not hide another's
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      # Sharded by file so a shard is reproducible from its number alone: the
+      # same files run in the same shard on every commit, which makes a flake
+      # attributable. Splitting by test id would reshuffle on every addition.
+      - name: Run this shard
+        run: |
+          mapfile -t files < <(ls tests/test_*.py | sort)
+          total=${#files[@]}
+          per=$(( (total + 3) / 4 ))
+          start=$(( (${{ matrix.shard }} - 1) * per ))
+          slice=("${files[@]:$start:$per}")
+          if [ ${#slice[@]} -eq 0 ]; then echo "no files in this shard"; exit 0; fi
+          printf 'running %d of %d files\n' "${#slice[@]}" "$total"
+          pytest "${slice[@]}" -q
+
+  # ------------------------------------------------------- the second dialect
+  postgres:
+    name: PostgreSQL — the dialect that is written and rarely run
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: maya
+          POSTGRES_USER: maya
+          POSTGRES_DB: maya_test
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+        ports: ["5432:5432"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      # `db/schema/postgres.sql` is maintained column-for-column beside the
+      # SQLite one and had never been executed: adversarial review found
+      # fourteen BOOLEAN columns in it that no insert could have succeeded
+      # against. A schema kept in step by reading is a schema that is wrong.
+      #
+      # Not the whole suite — most of it is dialect-agnostic and would only cost
+      # time. These are the files that write rows.
+      - name: The dialect-sensitive files, against real PostgreSQL
+        env:
+          MAYA_TEST_DATABASE_URL: postgresql+psycopg://maya:maya@localhost:5432/maya_test
+        run: |
+          pytest tests/test_evidence.py tests/test_evidence_anchor.py \
+                 tests/test_domain.py tests/test_lifecycle.py \
+                 tests/test_model_composition.py tests/test_concurrency.py -q
