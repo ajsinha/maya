@@ -126,7 +126,9 @@ def attested(as_person, people):
                           legal_entity="LE-US-01", purpose="12m PD at origination")
     # Assessed before submission, because the tier decides how deep the control
     # is and approving before assessing would be choosing your own.
-    owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital")
+    owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
+                        feature_count=12, uses_alternative_data=False,
+                        interpretable=True)
     dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
     owner.lifecycle.submit(URN, note="ready for review")
     mrm.lifecycle.approve(URN, note="challenged and accepted")
@@ -181,7 +183,9 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
-        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital")
+        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
+                        feature_count=12, uses_alternative_data=False,
+                        interpretable=True)
         dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN, note="please review")
         mrm.lifecycle.approve(URN, note="ok")
@@ -197,7 +201,9 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
-        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital")
+        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
+                        feature_count=12, uses_alternative_data=False,
+                        interpretable=True)
         dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN)
         with pytest.raises(NotPermitted):
@@ -215,7 +221,9 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
-        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital")
+        owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
+                        feature_count=12, uses_alternative_data=False,
+                        interpretable=True)
         dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN)
         mrm.lifecycle.send_back(URN, reason="the benchmark is not stated")
@@ -977,7 +985,9 @@ class TestAFieldTheServerDoesNotKnowIsRefused:
             "domain": "credit", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "12-month PD"})
         client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
-                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital",
+                          "feature_count": 12, "uses_alternative_data": False,
+                          "interpretable": True})
         client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
                     json={"semver": "3.2.1", "kernel": KERNEL,
                           "contract": CONTRACT, "artifact_digest": "sha256:" + "a" * 64})

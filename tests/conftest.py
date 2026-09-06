@@ -634,7 +634,9 @@ def registered(client, people):
         "domain": "credit", "owner": "person/j.okafor", "legal_entity": "LE-US-01",
         "purpose": "12-month PD at origination"})
     client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
-                json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+                json={"exposure": 2e9, "purpose_class": "regulatory_capital",
+                      "feature_count": 12, "uses_alternative_data": False,
+                      "interpretable": True})
     client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                 json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
                       "artifact_digest": "sha256:" + "a" * 64})

@@ -120,7 +120,9 @@ class TestRegisteringAModel:
                              domain="credit", owner="person/admin",
                              legal_entity="LE-1", purpose="p")
         out = maya.models.assess(URN, exposure=2_000_000_000,
-                                 purpose_class="regulatory_capital")
+                                 purpose_class="regulatory_capital",
+                                 feature_count=12, uses_alternative_data=False,
+                                 interpretable=True)
         assert out["tier"] in (1, 2, 3, 4)
         assert out.get("derivation") or out.get("rationale"), \
             "a tier without its derivation is an opinion"

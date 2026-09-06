@@ -271,7 +271,7 @@ Every path below is relative to `/api/v1`. The permission column is what
 | `POST` | `/models/{name}/versions` | `version:create` | `semver` + `kernel`, `contract`, `artifact_digest`, `artifact_uri` |
 | `POST` | `/models/{name}/versions/{semver}/approve` | `version:approve` | Draft → approved. Refuses `quorum_required` where the tier needs two |
 | `PUT` | `/models/{name}/aliases` | `alias:move` | `semver` + `environment`, `alias`, `justification`. Gated on approval, findings, L-7 and L-12 |
-| `POST` | `/models/{name}/assess` | `risk:assess` | Risk tier with its full derivation and ruleset version |
+| `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required; `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. Returns the full derivation and ruleset version |
 
 ### The dependency graph
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import Field
 
 from core.domain import paging
@@ -59,8 +59,13 @@ class AliasIn(Body):
 
 
 class AssessIn(Body):
-    exposure: float = 0.0
-    purpose_class: str = "commercial"
+    # No defaults on these two. Exposure and purpose are the whole materiality
+    # axis, and a default of "nothing, commercial" tiers an unassessed model at
+    # the bottom of the lattice on nobody's word.
+    exposure: float
+    purpose_class: str
+    # These three keep their defaults, but the route refuses the request when a
+    # default is load-bearing — see `TieringEngine.load_bearing`.
     feature_count: int = 0
     uses_alternative_data: bool = False
     interpretable: bool = True
@@ -237,6 +242,18 @@ class ModelRoutes(Routes):
             facts = {**body.model_dump(),
                      "trainability_class": (latest_version(versions) or {})
                                            .get("trainability_class", "T0")}
+            missing = tiering.load_bearing(facts,
+                                           body.model_dump(exclude_unset=True))
+            if missing:
+                raise HTTPException(422, {
+                    "error": "fact_not_supplied",
+                    "detail": "this assessment lands on a different tier "
+                              "depending on " + ", ".join(sorted(missing))
+                              + ", and the request did not say",
+                    "remedy": "send " + ", ".join(sorted(missing))
+                              + "; the schema's defaults are the low-risk "
+                                "reading, and defaulting to it silently is "
+                                "choosing your own tier"})
             a = tiering.assess(facts)
             tiering.persist(risk_repo, m["id"], a)
             reg.set_tier(m["id"], a.tier)

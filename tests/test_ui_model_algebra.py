@@ -102,7 +102,10 @@ def estate(client, people):
                               "contract": contract})
         assert r.status_code == 201, r.text
         r = client.post(f"/api/v1/models/{name}/assess", auth=owner,
-                        json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+                        json={"exposure": 2e9, "purpose_class": "regulatory_capital",
+                              "feature_count": 12,
+                              "uses_alternative_data": False,
+                              "interpretable": True})
         assert r.status_code == 200, r.text
     # The replacement that regresses, created here rather than in each test:
     # once a session exists the acting principal is read from it, so a version

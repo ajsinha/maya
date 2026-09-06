@@ -433,7 +433,9 @@ class FeaturesetRoutes(Routes):
                        tags=["parameters"])
         def review(request: Request, parameter_set_id: str, body: ReviewIn):
             """A parameter set changes behaviour, so it is approved like a version."""
-            who = self.authorise(request, "parameter:approve")
+            who = self.authorise(
+                request, "parameter:approve",
+                model=self.model_behind(parameters.get(parameter_set_id)))
             actor = self.actor(who)
             return self.guard(
                 lambda: parameters.approve(parameter_set_id, actor, body.note)

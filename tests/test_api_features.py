@@ -589,7 +589,9 @@ class TestFittingOverTheApi:
             "model_class": "credit.spend.linear", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "expected spend"})
         client.post(f"/api/v1/models/{self.FIT_NAME}/assess", auth=owner,
-                    json={"exposure": 2e9, "purpose_class": "regulatory_capital"})
+                    json={"exposure": 2e9, "purpose_class": "regulatory_capital",
+                          "feature_count": 12, "uses_alternative_data": False,
+                          "interpretable": True})
         kernel = {"parameter_kind": "estimated_coefficients",
                   "fit_procedure": "estimate", "runtime": "estimator",
                   "entry": {"family": "ols", "target": "spend",
