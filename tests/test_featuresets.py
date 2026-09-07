@@ -1007,3 +1007,36 @@ class TestTheLeakageScreenRunsOnTheFeaturesetPath:
         suspects, why_not = screen_leakage(rows, "sale_price")
         assert suspects == []
         assert why_not and "continuous" in why_not
+
+
+class TestAFeaturesetVersionCanBeIdentified:
+    """A document filed against a featureset version needs the version's id as
+    its `subject_id`, and no API response carried one.
+
+    `GET /featuresets/{name}` listed versions by number, digest and note; the
+    plan carried everything about a version except what identifies it. So the
+    only way to attach a data dictionary was to read the id off a screen and
+    retype it — and `content/tutorials/03-featuresets.md` said exactly that in
+    prose, then printed a curl example nobody could complete. A documented dead
+    end is still a dead end. Found by running that page.
+    """
+
+    def test_the_plan_carries_the_version_id(self, nj):
+        nj.define_featureset("identified", ENTITY, "person/j.okafor",
+                             {"bedrooms": "integer", "sale_price": "numeric"},
+                             label_slot="sale_price")
+        nj.publish_featureset("identified", {"bedrooms": "bedrooms",
+                                             "sale_price": "sale_price"})
+        plan = nj.featureset_plan("identified", 1)
+        assert plan.get("id"), "the plan identifies everything except itself"
+
+    def test_it_is_the_id_an_attachment_would_use(self, nj, db):
+        nj.define_featureset("identified2", ENTITY, "person/j.okafor",
+                             {"bedrooms": "integer", "sale_price": "numeric"},
+                             label_slot="sale_price")
+        nj.publish_featureset("identified2", {"bedrooms": "bedrooms",
+                                              "sale_price": "sale_price"})
+        plan = nj.featureset_plan("identified2", 1)
+        row = db.query_one(
+            "SELECT id FROM featureset_version WHERE id = :id", {"id": plan["id"]})
+        assert row, "the plan's id must be a real featureset_version row"
