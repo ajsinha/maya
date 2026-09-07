@@ -234,12 +234,12 @@ second account of it. Pack layout version {{ pack_version }}.</p>
         <span class="text-muted">Documents:</span>
         {% for kind in document_kinds %}
         <label class="form-check-label" style="font-size:.8rem">
-          <input class="form-check-input doc-kind" type="checkbox" value="{{ kind }}"
+          <input aria-label="include this document kind" class="form-check-input doc-kind" type="checkbox" value="{{ kind }}"
                  {% if kind in documents %}checked{% endif %}> {{ kind }}
         </label>
         {% endfor %}
         <label class="form-check-label" style="font-size:.8rem">
-          <input class="form-check-input" type="checkbox" id="with-attachments" checked>
+          <input aria-label="include attachments" class="form-check-input" type="checkbox" id="with-attachments" checked>
           include the filed documents
         </label>
       </div>

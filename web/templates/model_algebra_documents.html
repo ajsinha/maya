@@ -22,31 +22,31 @@ somebody has to declare.</p>
     <div class="card h-100"><div class="card-header">File a document</div>
       <div class="card-body">
         <form id="attach-form" class="row g-2 small align-items-end">
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">kind</label>
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="attach-kind">kind</label>
             <select class="form-select form-select-sm" name="kind" id="attach-kind">
               {% for k in kinds %}<option value="{{ k.kind }}" data-means="{{ k.means }}">{{ k.kind }}</option>{% endfor %}
             </select>
             <div class="text-muted mt-1" id="attach-kind-means" style="font-size:.72rem"></div></div>
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">title</label>
-            <input class="form-control form-control-sm" name="title" required
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-documents-title">title</label>
+            <input id="model-algebra-documents-title" class="form-control form-control-sm" name="title" required
                    placeholder="say what the document is — a filename is not a title"></div>
 
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">about which version</label>
-            <select class="form-select form-select-sm" name="semver">
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-documents-about-which-version">about which version</label>
+            <select id="model-algebra-documents-about-which-version" class="form-select form-select-sm" name="semver">
               <option value="">the latest version</option>
               {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }}</option>{% endfor %}
               <option value="__model__">the model itself — model level</option>
             </select></div>
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">subject &mdash; what it is ABOUT</label>
-            <select class="form-select form-select-sm" name="subject_type">
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-documents-subject-mdash-what-it-is-about">subject &mdash; what it is ABOUT</label>
+            <select id="model-algebra-documents-subject-mdash-what-it-is-about" class="form-select form-select-sm" name="subject_type">
               <option value="">default — the version it hangs under</option>
               {% for s in subjects.subjects %}<option value="{{ s.subject }}">{{ s.subject }}</option>{% endfor %}
             </select></div>
-          <div class="col-md-6"><input class="form-control form-control-sm" name="subject_id"
+          <div class="col-md-6"><input aria-label="subject id — required when the subject is not the version" class="form-control form-control-sm" name="subject_id"
                  placeholder="subject id — required when the subject is not the version"></div>
-          <div class="col-md-6"><input class="form-control form-control-sm" name="note"
+          <div class="col-md-6"><input aria-label="note" class="form-control form-control-sm" name="note"
                  placeholder="note"></div>
-          <div class="col-md-8"><input class="form-control form-control-sm" type="file" name="file" required></div>
+          <div class="col-md-8"><input aria-label="file" class="form-control form-control-sm" type="file" name="file" required></div>
           <div class="col-md-4"><button class="btn btn-sm btn-danger w-100 py-0"
             style="font-size:.75rem">Attach</button></div>
         </form>
