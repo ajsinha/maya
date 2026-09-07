@@ -19,17 +19,20 @@ presses is not that.
 
 Signatures are one-per-role, and a principal may only sign for a role they
 actually hold. Both are enforced rather than assumed: an attestation where the
-same person signed twice under two hats is not a quorum.
+same person signed twice under two hats is not a quorum -- one-per-role and
+one-per-person are different rules, and this enforces both.
 """
 from __future__ import annotations
 
 import time
+
+from sqlalchemy.exc import IntegrityError
 from typing import Any, Dict, List, Optional, Sequence
 
 from core.evidence import EvidenceEngine
 from core.lifecycle.common import (DAY, DECISIONS, DEFAULT_REQUIRED_ROLES,
                                    DEFAULT_VALIDITY_DAYS, LifecycleError)
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from db import AttestationRepository, SignatureRepository
 
 logger = get_logger(__name__)
@@ -99,13 +102,44 @@ class AttestationService:
             raise LifecycleError("already_signed",
                                  f"the '{role}' signature is already recorded",
                                  "each required role signs once")
+        # One-per-ROLE is not one-per-PERSON, and this module's docstring
+        # claimed both. It enforced only the first: a principal holding
+        # `model_risk_manager` and `validator` -- a supported configuration,
+        # since the first is a superset of the second -- signed for each in turn
+        # and the model went into force on one person's judgement, with the
+        # record and the evidence chain both calling it a quorum. Version
+        # approval had carried this check since the quorum was built; the
+        # attestation path never did, which is the harder half to notice
+        # because the two read almost identically.
+        if any(s["principal"] == username
+               for s in self.signatures.many(attestation_id=attestation_id)):
+            raise LifecycleError(
+                "already_signed_personally",
+                f"{username} has already signed this attestation under another role",
+                "a quorum is a number of people, not a number of hats")
 
-        self.signatures.add({"attestation_id": attestation_id, "principal": username,
-                             "role": role, "decision": decision,
-                             "statement": statement, "signed_at": time.time()})
-        self.evidence.append("attestation_signed", "model", att["model_id"],
-                             {"attestation_id": attestation_id, "role": role,
-                              "decision": decision}, actor=username)
+        # The read above and the write below are separate, so the database is
+        # what settles a race between two requests from the same dual-hatted
+        # principal. `UNIQUE (attestation_id, principal)` does that; losing the
+        # race is not a different answer from being told you have already
+        # signed, so it translates back into the same refusal.
+        try:
+            with self.signatures.db.transaction():
+                self.signatures.add({"attestation_id": attestation_id,
+                                     "principal": username, "role": role,
+                                     "decision": decision, "statement": statement,
+                                     "signed_at": time.time()})
+                self.evidence.append("attestation_signed", "model", att["model_id"],
+                                     {"attestation_id": attestation_id, "role": role,
+                                      "decision": decision}, actor=username)
+        except IntegrityError as exc:
+            swallowed(logger, exc, f"recorded {username}'s '{role}' signature",
+                      detail="the uniqueness constraint refused it, which means "
+                             "another request for the same attestation won the race")
+            raise LifecycleError(
+                "already_signed_personally",
+                f"{username} has already signed this attestation under another role",
+                "a quorum is a number of people, not a number of hats") from exc
         return self._settle(attestation_id)
 
     def _settle(self, attestation_id: str) -> Dict[str, Any]:

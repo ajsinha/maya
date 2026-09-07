@@ -710,7 +710,17 @@ class Routes:
         username = current_user(request)
         if username is None:
             return None
-        return self.ctx["principals"].get(username)
+        row = self.ctx["principals"].get(username)
+        # The same `status == "active"` test `principal()` applies. Without it
+        # the two doors disagreed: suspending somebody closed the API and left
+        # every PAGE open for the life of their cookie -- up to eight hours of
+        # reading the model register, the evidence chains, the findings and the
+        # principal list, from an account the administrator had just switched
+        # off and reasonably believed was shut out. The screens even went on
+        # rendering the Suspend and Set-password buttons, all of which 401.
+        if row is None or row["status"] != "active":
+            return None
+        return row
 
     def may_view(self, request: Request, permission: str = "model:read",
                  model: Optional[Dict[str, Any]] = None) -> bool:
