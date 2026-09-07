@@ -96,7 +96,7 @@ class TestWhatRefersToAModel:
 class TestWhatRefersToAFeature:
 
     def test_a_view_carrying_it_blocks(self, nj_estate):
-        index, name = nj_estate
+        index, _features = nj_estate
         report = index.to("feature", "bedrooms")
         views = [r for r in report["references"]
                  if r["kind"] == "feature_view_version"]

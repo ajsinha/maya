@@ -49,6 +49,11 @@ class PrincipalService:
     def __init__(self, principals: PrincipalRepository, evidence: EvidenceEngine,
                  iterations: int = ITERATIONS, verification_ttl: float = VERIFICATION_TTL):
         self.principals, self.evidence = principals, evidence
+        #: Set at start-up when roles live in the register. Without one, roles
+        #: come from `roles.py` — which is what every unit test constructing
+        #: this directly relies on, and what a fresh instance uses before its
+        #: first seed.
+        self.roles = None
         self.iterations = iterations
         self.verification_ttl = verification_ttl
         # A deliberately expensive KDF is right for a login form and wrong for
@@ -115,6 +120,22 @@ class PrincipalService:
                     username)
 
     # ---------------------------------------------------------------- create
+    # ------------------------------------------------------------- the roles
+    #
+    # One source at a time. A role store means roles are in the register and a
+    # bank can define one; without it they are the eight in `roles.py`. Reading
+    # both would be two places permissions come from, and they disagree
+    # eventually in the direction of permitting more.
+    def _permissions_for(self, roles):
+        if self.roles is not None:
+            return self.roles.permissions_for(roles)
+        return permissions_for(roles)
+
+    def _conflicts(self, roles):
+        if self.roles is not None:
+            return self.roles.conflicts(roles)
+        return conflicts(roles)
+
     def create(self, username: str, display_name: str, roles: Sequence[str],
                password: Optional[str] = None, kind: str = "person",
                email: Optional[str] = None,
@@ -126,8 +147,8 @@ class PrincipalService:
                              f"a principal named '{username}' already exists",
                              "choose another username, or update the existing principal")
         roles = list(roles)
-        permissions_for(roles)                       # refuses an unknown role
-        if (found := conflicts(roles)) and not allow_conflicts:
+        self._permissions_for(roles)                 # refuses an unknown role
+        if (found := self._conflicts(roles)) and not allow_conflicts:
             raise AuthzError(
                 "incompatible_roles",
                 f"{username} would hold incompatible roles: {'; '.join(found)}",
@@ -153,8 +174,8 @@ class PrincipalService:
                   allow_conflicts: bool = False) -> Dict[str, Any]:
         row = self.require(username)
         roles = list(roles)
-        permissions_for(roles)
-        if (found := conflicts(roles)) and not allow_conflicts:
+        self._permissions_for(roles)
+        if (found := self._conflicts(roles)) and not allow_conflicts:
             raise AuthzError("incompatible_roles",
                              f"{username} would hold incompatible roles: {'; '.join(found)}",
                              "split the duties between two principals")

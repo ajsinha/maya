@@ -83,6 +83,12 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         # core: whether authority is ambient is a property of the transport,
         # and core has no view of a cookie.
         "csrf_token_invalid",
+        # Raised by the route layer when an API key is presented for something
+        # its scope excludes. The narrowing is a property of the CREDENTIAL and
+        # authorisation is a property of the identity — core has no view of
+        # which credential a request arrived on, and giving it one would make
+        # permissions come from two places.
+        "outside_key_scope",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

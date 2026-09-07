@@ -1152,3 +1152,77 @@ CREATE TABLE IF NOT EXISTS model_limitation (
     withdrawal_reason TEXT,
     UNIQUE (model_version_id, reference)
 );
+
+-- API keys: how a service or a script authenticates without a password.
+--
+-- A service principal signing in with a username and password over Basic has
+-- three problems a key does not. The password is a shared secret somebody typed
+-- and can retype elsewhere; it carries every permission the principal holds,
+-- forever; and rotating it means changing it in the register and in whatever
+-- holds it, at the same instant, or something stops working.
+--
+-- What is stored here is a HASH. The secret is shown once, at creation, and
+-- never again — not in a log, not in the evidence chain, not on this table.
+-- `prefix` is the first characters of the key, stored in clear so a person can
+-- tell two keys apart in a list and match one to a leaked string without
+-- holding either.
+CREATE TABLE IF NOT EXISTS api_key (
+    id             TEXT PRIMARY KEY,
+    principal_id   TEXT NOT NULL,
+    username       TEXT NOT NULL,
+    name           TEXT NOT NULL,
+    prefix         TEXT NOT NULL,
+    key_hash       TEXT NOT NULL,
+    -- A key may hold a SUBSET of what its principal holds, never a superset —
+    -- checked at USE rather than only at creation, so a role change or a
+    -- suspension reaches every key immediately. Empty means "everything the
+    -- principal holds", which is the honest default for a key that replaces a
+    -- password and is stated rather than implied.
+    scopes         TEXT NOT NULL DEFAULT '[]',
+    created_at     DOUBLE PRECISION NOT NULL,
+    created_by     TEXT NOT NULL,
+    -- Every key expires. A key with no expiry is a credential nobody ever
+    -- reviews, and "we will rotate it later" is the sentence before an
+    -- incident.
+    expires_at     DOUBLE PRECISION NOT NULL,
+    last_used_at   DOUBLE PRECISION,
+    -- Kept so a key that has never been used, or has stopped being used, is
+    -- visible as such: an unused credential is one nobody would notice losing.
+    use_count      INTEGER NOT NULL DEFAULT 0,
+    revoked_at     DOUBLE PRECISION,
+    revoked_by     TEXT,
+    revoke_reason  TEXT,
+    UNIQUE (key_hash),
+    UNIQUE (username, name)
+);
+
+-- Roles, in the register rather than in the source.
+--
+-- They were a Python dictionary. That is fine for the eight this platform
+-- ships and wrong for everything a bank actually has: a "Model Validation Team
+-- Lead", a "Regional MRM", a "Quant Developer with production read" — each of
+-- which meant editing `core/authz/roles.py` and redeploying. Administration
+-- that requires a release is not administration.
+--
+-- The eight built-in roles are seeded here from the definitions that used to be
+-- the whole story, and are marked `built_in`. They may be READ and they may not
+-- be edited or removed: they are what every document, tutorial and test in this
+-- repository refers to by name, and a platform whose vocabulary can be renamed
+-- underneath its own documentation is one where the documentation is wrong.
+CREATE TABLE IF NOT EXISTS role (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    description  TEXT NOT NULL DEFAULT '',
+    -- The permissions this role grants, as a JSON array. Every one is checked
+    -- against the closed permission set on the way in: a role granting a
+    -- permission nothing checks is a role that reads as authority and is not.
+    permissions  TEXT NOT NULL DEFAULT '[]',
+    -- 0 or 1, never BOOLEAN. Whether this is one of the eight the platform
+    -- ships, which may not be edited.
+    built_in     INTEGER NOT NULL DEFAULT 0,
+    created_at   DOUBLE PRECISION NOT NULL,
+    created_by   TEXT NOT NULL DEFAULT 'system',
+    updated_at   DOUBLE PRECISION,
+    updated_by   TEXT,
+    UNIQUE (name)
+);
