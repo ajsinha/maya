@@ -781,7 +781,14 @@ CREATE TABLE IF NOT EXISTS attestation_signature (
     role           TEXT NOT NULL,
     decision       TEXT NOT NULL,
     statement      TEXT NOT NULL DEFAULT '',
-    signed_at      DOUBLE PRECISION NOT NULL
+    signed_at      DOUBLE PRECISION NOT NULL,
+    -- A quorum is a number of PEOPLE. One-per-role is not enough on its own:
+    -- `model_risk_manager` is a superset of `validator`, so one principal can
+    -- hold both required hats and sign twice. The module docstring said this
+    -- was "enforced rather than assumed" and it was neither -- version approval
+    -- carried the check, attestation did not. This constraint is what decides
+    -- the race the read-then-write above it cannot.
+    UNIQUE (attestation_id, principal)
 );
 
 CREATE INDEX IF NOT EXISTS ix_signature_attestation ON attestation_signature (attestation_id);
