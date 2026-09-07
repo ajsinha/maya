@@ -44,17 +44,14 @@
    * Never summarised — the remediation is the half a caller can act on, and a
    * screen that dropped it would turn an answer back into a 400. */
   function refusal(xhr) {
-    var body = (xhr && xhr.responseJSON) || {};
-    if (body.detail && typeof body.detail === "object" && body.detail.error) {
-      body = body.detail;                   // an older nested problem shape
-    }
-    var code = body.error || (xhr && xhr.statusText) || "refused";
-    var detail = body.detail;
-    if (detail && typeof detail !== "string") { detail = JSON.stringify(detail); }
-    return '<span class="evidence-bad">' + esc(code) + "</span>" +
-      (detail ? " &mdash; " + esc(detail) : "") +
-      (body.remediation
-        ? '<div class="text-muted mt-1">' + esc(body.remediation) + "</div>" : "");
+    /* This one did `JSON.stringify(detail)` for a non-string, which is better
+       than "[object Object]" and still unreadable: a person met a raw pydantic
+       error array where a sentence naming their field belongs. */
+    var r = window.MAYA.refusal.read(xhr);
+    return '<span class="evidence-bad">' + esc(r.code || "refused") + "</span>" +
+      " &mdash; " + r.lines.map(esc).join("<br>") +
+      (r.remediation
+        ? '<div class="text-muted mt-1">' + esc(r.remediation) + "</div>" : "");
   }
 
   function lines(text) {

@@ -127,13 +127,11 @@
       }).join(""));
       $("#publish").prop("disabled", false);
     }).fail(function (xhr) {
-      var body = (xhr.responseJSON && xhr.responseJSON.detail) || {};
-      var err = body.error || (xhr.responseJSON || {}).error || "refused";
-      var detail = body.detail || (xhr.responseJSON || {}).detail || xhr.statusText;
-      var fix = body.remediation || (xhr.responseJSON || {}).remediation || "";
-      $("#verdict").html('<span class="evidence-bad">' + esc(err) + "</span> — " +
-        esc(String(detail)) +
-        (fix ? '<div class="text-muted mt-1">' + esc(String(fix)) + "</div>" : ""));
+      var r = window.MAYA.refusal.read(xhr);
+      $("#verdict").html('<span class="evidence-bad">' +
+        esc(r.code || "refused") + "</span> — " + r.lines.map(esc).join("<br>") +
+        (r.remediation
+          ? '<div class="text-muted mt-1">' + esc(r.remediation) + "</div>" : ""));
       $("#english").empty();
       // Disabled by the SERVER's verdict, never by anything decided here.
       $("#publish").prop("disabled", true);
@@ -268,9 +266,9 @@
       }
       $("#trial-out").html(html);
     }).fail(function (xhr) {
-      var b = (xhr.responseJSON && xhr.responseJSON.detail) || xhr.responseJSON || {};
+      var r = window.MAYA.refusal.read(xhr);
       $("#trial-out").html('<span class="evidence-bad">' +
-        esc(b.error || "refused") + "</span> — " + esc(String(b.detail || "")));
+        esc(r.code || "refused") + "</span> — " + r.lines.map(esc).join("<br>"));
     });
   });
 
@@ -295,9 +293,9 @@
         "other than you to approve it. <a href='/rulesets/" + esc(r.id) + "'>Read it back</a>");
       $("#publish").prop("disabled", true);
     }).fail(function (xhr) {
-      var b = (xhr.responseJSON && xhr.responseJSON.detail) || xhr.responseJSON || {};
-      $("#publish-out").html('<span class="evidence-bad">' + esc(b.error || "refused") +
-        "</span> — " + esc(String(b.detail || "")));
+      var r = window.MAYA.refusal.read(xhr);
+      $("#publish-out").html('<span class="evidence-bad">' +
+        esc(r.code || "refused") + "</span> — " + r.lines.map(esc).join("<br>"));
     });
   });
 

@@ -17,29 +17,29 @@ just finished a fit uses the same two endpoints.</p>
       <div class="card-body">
         <form id="new-model" class="small">
           <div class="row g-2">
-            <div class="col-12"><input class="form-control form-control-sm" name="urn"
+            <div class="col-12"><input aria-label="maya://model/credit.pd.smallbiz" class="form-control form-control-sm" name="urn"
                    placeholder="maya://model/credit.pd.smallbiz" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+            <div class="col-md-6"><input aria-label="name" class="form-control form-control-sm" name="name"
                    placeholder="name" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="model_class"
+            <div class="col-md-6"><input aria-label="class" class="form-control form-control-sm" name="model_class"
                    placeholder="class, e.g. credit.pd.scorecard" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="domain"
+            <div class="col-md-6"><input aria-label="domain" class="form-control form-control-sm" name="domain"
                    placeholder="domain" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="legal_entity"
+            <div class="col-md-6"><input aria-label="l" class="form-control form-control-sm" name="legal_entity"
                    placeholder="legal entity" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="owner"
+            <div class="col-12"><input aria-label="owner" class="form-control form-control-sm" name="owner"
                    placeholder="owner, e.g. person/j.okafor" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="purpose"
+            <div class="col-12"><input aria-label="what it is for" class="form-control form-control-sm" name="purpose"
                    placeholder="what it is for" required></div>
           </div>
           <div class="mt-3 pt-2" style="border-top:1px solid rgba(0,0,0,.08)">
             <label class="form-label small mb-1">A document, filed with it (optional)</label>
             <div class="row g-2">
-              <div class="col-12"><input type="file" class="form-control form-control-sm"
+              <div class="col-12"><input aria-label="artifact file to upload" type="file" class="form-control form-control-sm"
                      name="document"></div>
-              <div class="col-7"><input class="form-control form-control-sm" name="doc_title"
+              <div class="col-7"><input aria-label="title" class="form-control form-control-sm" name="doc_title"
                      placeholder="title"></div>
-              <div class="col-5"><select class="form-select form-select-sm" name="doc_kind">
+              <div class="col-5"><select aria-label="document kind" class="form-select form-select-sm" name="doc_kind">
                 {% for k in attachment_kinds %}<option value="{{ k }}">{{ k.replace('_', ' ') }}</option>{% endfor %}
               </select></div>
             </div>
@@ -81,20 +81,20 @@ just finished a fit uses the same two endpoints.</p>
         <form id="new-version" class="small">
           <div class="row g-2">
             <div class="col-md-8">
-              <select class="form-select form-select-sm" name="urn" required>
+              <select aria-label="model" class="form-select form-select-sm" name="urn" required>
                 <option value="">choose a model…</option>
                 {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
               </select></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" name="semver"
+            <div class="col-md-4"><input aria-label="1.0.0" class="form-control form-control-sm" name="semver"
                    placeholder="1.0.0" required></div>
 
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="parameter_kind">
+              <select aria-label="parameter kind" class="form-select form-select-sm" name="parameter_kind">
                 {% for k in parameter_kinds %}<option>{{ k }}</option>{% endfor %}
               </select>
               <div class="text-muted" style="font-size:.7rem">how P is inhabited</div></div>
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="fit_procedure">
+              <select aria-label="fit procedure" class="form-select form-select-sm" name="fit_procedure">
                 {% for f in fit_procedures %}<option>{{ f }}</option>{% endfor %}
               </select>
               <div class="text-muted" style="font-size:.7rem">the trainability class is derived from these two</div></div>
@@ -104,23 +104,23 @@ just finished a fit uses the same two endpoints.</p>
                `train` alone is T3 — and this form could not say either, so a
                version created here could not be a T4 at all. #}
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="adaptive">
+              <select aria-label="adaptive" class="form-select form-select-sm" name="adaptive">
                 <option value="0">adaptive: 0 — frozen once released</option>
                 <option value="1">adaptive: 1 — continues to learn</option>
               </select></div>
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="deterministic">
+              <select aria-label="deterministic" class="form-select form-select-sm" name="deterministic">
                 <option value="1">deterministic: 1 — same inputs, same answer</option>
                 <option value="0">deterministic: 0 — samples</option>
               </select></div>
 
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="runtime">
+              <select aria-label="runtime" class="form-select form-select-sm" name="runtime">
                 <option value="">descriptor_only — MAYA holds the governance, not the artifact</option>
                 {% for r in runtimes %}<option>{{ r }}</option>{% endfor %}
               </select></div>
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="output_kind">
+              <select aria-label="output kind" class="form-select form-select-sm" name="output_kind">
                 {% for o in output_kinds %}<option>{{ o }}</option>{% endfor %}
               </select></div>
 
@@ -130,13 +130,13 @@ just finished a fit uses the same two endpoints.</p>
                execution — the shape is only discovered when something tries to
                run it. `runtime_entry` was already in this page's context and
                nothing read it. #}
-            <div class="col-12"><input class="form-control form-control-sm" name="entry"
+            <div class="col-12"><input aria-label="entry — choose a runtime above and this will show its shape" class="form-control form-control-sm" name="entry"
                    id="entry-input"
                    placeholder='entry — choose a runtime above and this will show its shape'></div>
             <div class="col-12 text-muted" id="entry-shape" style="font-size:.72rem"></div>
-            <div class="col-md-7"><input class="form-control form-control-sm" name="artifact_uri"
+            <div class="col-md-7"><input aria-label="artifact uri (where to look) — leave empty if you upload below" class="form-control form-control-sm" name="artifact_uri"
                    placeholder="artifact uri (where to look) — leave empty if you upload below"></div>
-            <div class="col-md-5"><input class="form-control form-control-sm" name="artifact_digest"
+            <div class="col-md-5"><input aria-label="sha256:… (what should be there)" class="form-control form-control-sm" name="artifact_digest"
                    id="artifact-digest"
                    placeholder="sha256:… (what should be there)"></div>
 
@@ -148,14 +148,15 @@ just finished a fit uses the same two endpoints.</p>
                 </div>
                 <div class="row g-2 align-items-center">
                   <div class="col-md-4">
-                    <select class="form-select form-select-sm" id="artifact-format">
+                    <select aria-label="artifact format" class="form-select form-select-sm"
+                            id="artifact-format">
                       {% for f in artifact_formats %}
                       <option value="{{ f.format }}" data-runs="{{ 1 if f.executes_on_load else 0 }}"
                               title="{{ f.means }}">{{ f.format }}</option>
                       {% endfor %}
                     </select></div>
                   <div class="col-md-5">
-                    <input class="form-control form-control-sm" type="file" id="artifact-file"></div>
+                    <input aria-label="artifact file to upload" class="form-control form-control-sm" type="file" id="artifact-file"></div>
                   <div class="col-md-3">
                     <button type="button" class="btn btn-sm btn-outline-danger w-100 py-0"
                             id="artifact-upload" style="font-size:.75rem">Upload artifact</button></div>
@@ -165,11 +166,11 @@ just finished a fit uses the same two endpoints.</p>
               </div>
             </div>
 
-            <div class="col-12"><textarea class="form-control form-control-sm" name="input_schema" rows="2"
+            <div class="col-12"><textarea aria-label="input schema" class="form-control form-control-sm" name="input_schema" rows="2"
                    placeholder='input schema, e.g. [{"name": "dscr", "dtype": "float"}]'></textarea></div>
-            <div class="col-12"><textarea class="form-control form-control-sm" name="output_schema" rows="2"
+            <div class="col-12"><textarea aria-label="output schema" class="form-control form-control-sm" name="output_schema" rows="2"
                    placeholder='output schema, e.g. [{"name": "pd_12m", "dtype": "float"}]'></textarea></div>
-            <div class="col-12"><textarea class="form-control form-control-sm" name="contract" rows="2"
+            <div class="col-12"><textarea aria-label="operating contract" class="form-control form-control-sm" name="contract" rows="2"
                    placeholder='operating contract, e.g. {"assumptions": [], "guarantees": []}'></textarea></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Upload version</button>

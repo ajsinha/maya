@@ -318,7 +318,7 @@ placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op"
       <code>&lt;input&gt;__{{ clocks.ingest_time }}</code> to see the clock
       inherited upward.
     </p>
-    <textarea id="trial-rows" class="form-control form-control-sm mono mb-2" rows="5"
+    <textarea aria-label="sample rows, one JSON object per line" id="trial-rows" class="form-control form-control-sm mono mb-2" rows="5"
 placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 5.0, "dscr": 1.2}
 {"{{ clocks.entity }}": "C2", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 9.0, "dscr": 0}
 {"{{ clocks.entity }}": "C3", "{{ clocks.valid_time }}": 100, "{{ clocks.ingest_time }}": 110, "revenue": 4.0, "dscr": 2.0, "revenue__{{ clocks.ingest_time }}": 900}'></textarea>

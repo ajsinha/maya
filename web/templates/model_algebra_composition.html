@@ -17,12 +17,12 @@
       <div class="card-body">
         <form id="relate-form" class="small">
           <div class="row g-2">
-            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">source &mdash; the model the edge starts at</label>
-              <select class="form-select form-select-sm" name="from_urn" required>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-composition-source-mdash-the-model-the-edge-starts-at">source &mdash; the model the edge starts at</label>
+              <select id="model-algebra-composition-source-mdash-the-model-the-edge-starts-at" class="form-select form-select-sm" name="from_urn" required>
                 <option value="">choose…</option>
                 {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
               </select></div>
-            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">relation</label>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem" for="relate-kind">relation</label>
               <select class="form-select form-select-sm" name="kind" id="relate-kind">
                 {% for r in relations.relations %}
                   <option value="{{ r.kind }}" data-composes="{{ 1 if r.composes else 0 }}"
@@ -31,12 +31,12 @@
                 {% endfor %}
               </select>
               <div id="relate-meaning" class="text-muted mt-1" style="font-size:.72rem"></div></div>
-            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem">target</label>
-              <select class="form-select form-select-sm" name="to_urn" required>
+            <div class="col-12"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-composition-target">target</label>
+              <select id="model-algebra-composition-target" class="form-select form-select-sm" name="to_urn" required>
                 <option value="">choose…</option>
                 {% for m in models %}<option value="{{ m.urn }}">{{ m.name }} — {{ m.urn }}</option>{% endfor %}
               </select></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="note"
+            <div class="col-12"><input aria-label="note — what this edge records" class="form-control form-control-sm" name="note"
                    placeholder="note — what this edge records"></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Record the edge</button>
@@ -84,14 +84,14 @@
   <div class="card-body">
     <form id="composite-form" class="row g-2 small align-items-end">
       <div class="col-md-5">
-        <label class="form-label mb-0" style="font-size:.72rem">source</label>
-        <select class="form-select form-select-sm" name="from_urn" required>
+        <label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-composition-source">source</label>
+        <select id="model-algebra-composition-source" class="form-select form-select-sm" name="from_urn" required>
           <option value="">choose…</option>
           {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
         </select></div>
       <div class="col-md-5">
-        <label class="form-label mb-0" style="font-size:.72rem">target</label>
-        <select class="form-select form-select-sm" name="to_urn" required>
+        <label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-composition-target-2">target</label>
+        <select id="model-algebra-composition-target-2" class="form-select form-select-sm" name="to_urn" required>
           <option value="">choose…</option>
           {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
         </select></div>
@@ -116,7 +116,7 @@
     <div class="card h-100"><div class="card-header">Blast radius &mdash; what a change here reaches</div>
       <div class="card-body">
         <form id="radius-form" class="row g-2 small align-items-end">
-          <div class="col-9"><select class="form-select form-select-sm" name="urn" required>
+          <div class="col-9"><select aria-label="model" class="form-select form-select-sm" name="urn" required>
             <option value="">choose a model…</option>
             {% for m in models %}<option value="{{ m.urn }}"
               {% if subject and m.urn == subject.urn %}selected{% endif %}>{{ m.name }}</option>{% endfor %}
@@ -152,8 +152,8 @@
     <div class="card h-100"><div class="card-header">Shared dependencies &mdash; the obstruction, computable</div>
       <div class="card-body">
         <form id="shared-form" class="small">
-          <label class="form-label mb-0" style="font-size:.72rem">two or more models</label>
-          <select class="form-select form-select-sm" name="urns" multiple size="5">
+          <label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-composition-two-or-more-models">two or more models</label>
+          <select id="model-algebra-composition-two-or-more-models" class="form-select form-select-sm" name="urns" multiple size="5">
             {% for m in models %}<option value="{{ m.urn }}">{{ m.name }}</option>{% endfor %}
           </select>
           <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">Compare</button>

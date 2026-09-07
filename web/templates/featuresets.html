@@ -23,17 +23,17 @@ because the kernel reads the slot.</p>
   <div class="collapse" id="new-set"><div class="card-body">
     <form id="define-set" class="small">
       <div class="row g-2 mb-3">
-        <div class="col-md-3"><label class="form-label mb-1">Name</label>
-          <input class="form-control form-control-sm" name="name"
+        <div class="col-md-3"><label class="form-label mb-1" for="featuresets-name">Name</label>
+          <input id="featuresets-name" class="form-control form-control-sm" name="name"
                  placeholder="nj_home_core" required></div>
-        <div class="col-md-3"><label class="form-label mb-1">Entity</label>
-          <input class="form-control form-control-sm" name="entity"
+        <div class="col-md-3"><label class="form-label mb-1" for="featuresets-entity">Entity</label>
+          <input id="featuresets-entity" class="form-control form-control-sm" name="entity"
                  placeholder="property_id" required></div>
-        <div class="col-md-3"><label class="form-label mb-1">Label slot</label>
-          <input class="form-control form-control-sm" name="label_slot"
+        <div class="col-md-3"><label class="form-label mb-1" for="featuresets-label-slot">Label slot</label>
+          <input id="featuresets-label-slot" class="form-control form-control-sm" name="label_slot"
                  placeholder="optional"></div>
-        <div class="col-md-3"><label class="form-label mb-1">Owner</label>
-          <input class="form-control form-control-sm" name="owner"
+        <div class="col-md-3"><label class="form-label mb-1" for="featuresets-owner">Owner</label>
+          <input id="featuresets-owner" class="form-control form-control-sm" name="owner"
                  placeholder="person/j.okafor" required></div>
       </div>
 
@@ -84,12 +84,12 @@ because the kernel reads the slot.</p>
           <div class="form-check">
             <input class="form-check-input" type="checkbox" name="ephemeral" id="eph-set">
             <label class="form-check-label small" for="eph-set">ephemeral</label></div></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="ttl_days"
+        <div class="col-md-3"><input aria-label="TTL in days" class="form-control form-control-sm" name="ttl_days"
                placeholder="TTL in days"></div>
-        <div class="col-md-6"><input class="form-control form-control-sm" name="description"
+        <div class="col-md-6"><input aria-label="what it is for" class="form-control form-control-sm" name="description"
                placeholder="what it is for"></div>
       </div>
-      <textarea class="form-control form-control-sm" name="defaults" rows="2"
+      <textarea aria-label="{"fill": {"dscr": "flat_forward"}, "normalise": {"dscr": "zscore"}}" class="form-control form-control-sm" name="defaults" rows="2"
         placeholder='{"fill": {"dscr": "flat_forward"}, "normalise": {"dscr": "zscore"}}'></textarea>
       <div class="text-muted mt-1 mb-3" style="font-size:.72rem">
         Attached as this featureset's default behaviour; a request may still
@@ -175,7 +175,7 @@ function slotRow() {
     '<div class="col-md-3"><select class="form-select form-select-sm slot-type" ' +
       'aria-label="Slot type">' + DTYPES.map(function (d) { return option(d); }).join("") +
       '</select></div>' +
-    '<div class="col-md-3 form-check ms-3"><input class="form-check-input slot-null" ' +
+    '<div class="col-md-3 form-check ms-3"><input aria-label="slot may be null" class="form-check-input slot-null" ' +
       'type="checkbox" id="n"><label class="form-check-label small">nullable</label></div>' +
     removeButton() + '</div>';
 }
