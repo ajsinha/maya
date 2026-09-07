@@ -187,19 +187,19 @@ published until they pass.</p>
     <form id="draft" class="small">
       <div class="row g-2">
         <div class="col-md-4">
-          <select class="form-select form-select-sm" name="gate" id="gate">
+          <select aria-label="policy gate" class="form-select form-select-sm" name="gate" id="gate">
             {% for g in policy.gates %}
               <option value="{{ g.gate }}">{{ g.gate }}</option>
             {% endfor %}
           </select></div>
-        <div class="col-md-8"><input class="form-control form-control-sm" name="rule"
+        <div class="col-md-8"><input aria-label="blocking_findings == 0 and tier is not None" class="form-control form-control-sm" name="rule"
                id="rule" placeholder="blocking_findings == 0 and tier is not None"
                required></div>
-        <div class="col-12"><input class="form-control form-control-sm" name="reason"
+        <div class="col-12"><input aria-label="what this is for — a person refused by it will read this sentence" class="form-control form-control-sm" name="reason"
                placeholder="what this is for — a person refused by it will read this sentence"
                required></div>
         <div class="col-12">
-          <textarea class="form-control form-control-sm mono" name="cases" id="cases"
+          <textarea aria-label="cases, one JSON object per line" class="form-control form-control-sm mono" name="cases" id="cases"
                     rows="8" required></textarea>
           <div class="text-muted mt-1" style="font-size:.72rem">
             The cases are the policy's own tests, and at least one of them must be
@@ -246,12 +246,12 @@ published until they pass.</p>
     <form id="try" class="small">
       <div class="row g-2">
         <div class="col-md-4">
-          <select class="form-select form-select-sm" name="gate" id="try-gate">
+          <select aria-label="policy gate" class="form-select form-select-sm" name="gate" id="try-gate">
             {% for g in policy.gates %}
               <option value="{{ g.gate }}">{{ g.gate }}</option>
             {% endfor %}
           </select></div>
-        <div class="col-md-8"><input class="form-control form-control-sm mono" name="facts"
+        <div class="col-md-8"><input aria-label="{"blocking_findings": 1, "tier": 1}" class="form-control form-control-sm mono" name="facts"
                id="try-facts" placeholder='{"blocking_findings": 1, "tier": 1}'></div>
       </div>
       <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Decide</button>

@@ -12,10 +12,10 @@
     {% if error %}<div class="alert alert-danger py-2 small">{{ error }}</div>{% endif %}
     <form method="post" action="/login">
       <input type="hidden" name="next" value="{{ next }}">
-      <div class="mb-3"><label class="form-label small">Username</label>
-        <input class="form-control" name="username" autocomplete="username" autofocus required></div>
-      <div class="mb-3"><label class="form-label small">Password</label>
-        <input class="form-control" type="password" name="password"
+      <div class="mb-3"><label class="form-label small" for="login-username">Username</label>
+        <input id="login-username" class="form-control" name="username" autocomplete="username" autofocus required></div>
+      <div class="mb-3"><label class="form-label small" for="login-password">Password</label>
+        <input id="login-password" class="form-control" type="password" name="password"
                autocomplete="current-password" required></div>
       <button class="btn w-100" style="background:var(--crimson);color:#fff">Sign in</button>
     </form>

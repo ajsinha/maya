@@ -40,7 +40,7 @@
           The escape hatch for a nested condition the rows above cannot express.
           Edit it and the rows re-read from it.
         </p>
-        <textarea id="doc" class="form-control" rows="12"
+        <textarea aria-label="rule set document, as JSON" id="doc" class="form-control" rows="12"
                   style="font-family:var(--mono,monospace);font-size:12px"></textarea>
         <button class="btn btn-sm btn-outline-secondary mt-2" id="from-json">Read the rows back from this</button>
       </div>
@@ -63,7 +63,7 @@
           One JSON object per line. Records nothing and decides nothing &mdash;
           there is no warrant here, because nothing is being scored.
         </p>
-        <textarea id="rows" class="form-control mb-2" rows="4"
+        <textarea aria-label="sample rows to try the rules on" id="rows" class="form-control mb-2" rows="4"
                   style="font-family:var(--mono,monospace);font-size:12px"></textarea>
         <button class="btn btn-sm btn-outline-secondary" id="trial">Run these rows</button>
         <div id="trial-out" class="mt-2 small"></div>
@@ -73,10 +73,10 @@
     <div class="card mb-3">
       <div class="card-header">Publish</div>
       <div class="card-body">
-        <label class="form-label small">A name for this parameter set</label>
+        <label class="form-label small" for="name">A name for this parameter set</label>
         <input id="name" class="form-control form-control-sm mb-2"
                placeholder="eligibility-2026q1">
-        <label class="form-label small">Note</label>
+        <label class="form-label small" for="note">Note</label>
         <input id="note" class="form-control form-control-sm mb-2"
                placeholder="what changed and why">
         <button class="btn btn-sm btn-danger" id="publish" disabled>Publish for approval</button>

@@ -13,7 +13,7 @@
     <button class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size:.72rem"
             data-bs-toggle="collapse" data-bs-target="#upload">Show</button></div>
   <div class="collapse" id="upload"><div class="card-body">
-    <input type="file" id="file" class="form-control form-control-sm"
+    <input aria-label="file of rows to materialise" type="file" id="file" class="form-control form-control-sm"
            accept="{{ upload_accepts }}">
     <div class="text-muted mt-2" style="font-size:.72rem">
       Parquet, Arrow IPC or NDJSON. Every row carries
