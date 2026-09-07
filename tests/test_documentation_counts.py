@@ -245,3 +245,42 @@ def test_the_truth_table_is_reachable():
     counts = _truth()
     assert set(counts) >= set(CLAIMS)
     assert all(v > 0 for v in counts.values()), counts
+
+
+class TestThePaperAgreesWithTheTable:
+    """The research paper states the same law census as `docs/00 §12`, in two
+    forms — LaTeX and markdown — and both said *five do not run* for two
+    milestones after `L-14` and `L-17` started running.
+
+    Checked here rather than left to a reader, because the paper is the document
+    most likely to be read by somebody who cannot check it against the code, and
+    an inflated claim there costs more than the same claim anywhere else.
+    """
+
+    PAPER = ROOT / "docs" / "research" / "models-as-parametric-kernels.tex"
+    ARTICLE = ROOT / "docs" / "research" / "models-as-parametric-kernels-article.md"
+
+    def test_the_latex_table_marks_the_same_laws_as_not_built(self):
+        rows = re.findall(r"\\textsf\{(L-\d+)\}\s*&[^&]*&\s*\\emph\{not built\}",
+                          self.PAPER.read_text(encoding="utf-8"))
+        assert set(rows) == {"L-6", "L-11", "L-13"}, rows
+
+    def test_the_latex_table_states_every_law(self):
+        rows = re.findall(r"\\textsf\{(L-\d+)\}\s*&", self.PAPER.read_text(
+            encoding="utf-8"))
+        assert len(set(rows)) == _truth()["foundational laws"], sorted(set(rows))
+
+    def test_the_article_names_only_the_laws_that_do_not_run(self):
+        """Its table is prose-titled rather than coded, so this counts rows."""
+        body = self.ARTICLE.read_text(encoding="utf-8")
+        block = body.split("| Law | Why it doesn't run |", 1)[1].split("\n\n", 1)[0]
+        rows = [line for line in block.strip().splitlines()
+                if line.startswith("|") and not line.startswith("|---")]
+        assert len(rows) == _truth()["inert laws"], rows
+
+    def test_neither_form_still_says_five(self):
+        for path in (self.PAPER, self.ARTICLE):
+            body = path.read_text(encoding="utf-8")
+            for phrase in ("five that do not", "Five do not", "five do not run",
+                           "lists it among the six"):
+                assert phrase not in body, f"{path.name}: '{phrase}'"

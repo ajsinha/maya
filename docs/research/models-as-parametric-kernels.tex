@@ -74,6 +74,10 @@
   \texttt{#1}}\par\smallskip}
 \newcommand{\stated}[1]{\par\smallskip\noindent{\footnotesize\textsf{Not
   executed:} #1}\par\smallskip}
+% For a claim that IS executed but needs a sentence rather than a path — where
+% what the implementation does is not obvious from the name of the file doing it.
+\newcommand{\runsprose}[1]{\par\smallskip\noindent{\footnotesize\textsf{Runs:}
+  #1}\par\smallskip}
 
 \title{\bfseries Models as Parametric Kernels\\[6pt]
 {\large An Order, an Operator and a Polynomial:\\
@@ -225,7 +229,7 @@ polynomial.
 \item \Cref{sec:declared} draws the complement honestly: the facts that must be declared because they
       \emph{constitute} the standard against which anything else is checked.
 \item \Cref{sec:laws} states the discipline that keeps the rest from becoming ornament, gives the
-      register of twenty-one laws with the five that do not execute named, and states the properties an
+      register of twenty-one laws with the three that do not execute named, and states the properties an
       executable law delivers that a documented one does not.
 \item \Cref{sec:automation} observes that the derive/declare boundary of
       \Cref{sec:order,sec:asof,sec:poly,sec:declared} is exactly the boundary that decides where
@@ -1027,10 +1031,12 @@ $\mathrm{frag}(N_1) = 2$, while every generator of $N_2$ reaches exactly one por
 $\mathrm{frag}(N_2) = 1$. If $\rho$ is compositional then
 $\rho(N_1) = a \sqcup b = \rho(N_2)$, contradicting fragility-sensitivity.
 \end{proof}
-\stated{there is no aggregate $\rho$ in the reference implementation, so \Cref{thm:noncomp} is a theorem
-the platform respects by not claiming its negation. \Cref{prop:compose} supplies the derived composite
-signature such a $\rho$ would quantify over, and \texttt{shared\_dependencies} computes the obstruction;
-the functor itself is unbuilt. This is law \textsf{L-14}, and \Cref{sec:laws} lists it among the six.}
+\runsprose{the reference implementation carries the lax structure of \Cref{cor:lax} without ever producing an
+aggregate $\rho$ as a \emph{number}, which is what \Cref{thm:noncomp} says it cannot honestly do. The join
+over the tier lattice is computed; the interaction term is a set of \emph{named obstructions} --- an
+unassessed component sits at the top of the lattice, so silence escalates rather than passing --- and
+\texttt{shared\_dependencies} supplies them. The theorem is respected by refusing to state a magnitude, not
+by declining to compose. This is law \textsf{L-14}, and it runs in \texttt{core/risk/aggregate.py}.}
 
 \begin{plain}
 \pt Two banks each run one curve model and two pricers. Bank A uses a single curve to feed both. Bank B
@@ -1551,10 +1557,10 @@ The reference implementation states twenty-one laws. Eighteen execute; three do 
 \textsf{L-11} & lens laws for documents & \emph{not built} \\
 \textsf{L-12} & schema variance (\Cref{prop:onerelation}) & runs, and enforces \\
 \textsf{L-13} & evidence gluing within a consistency radius & \emph{not built} \\
-\textsf{L-14} & lax monoidality of risk (\Cref{cor:lax}) & \emph{not built} \\
+\textsf{L-14} & lax monoidality of risk (\Cref{cor:lax}) & runs, and enforces \\
 \textsf{L-15} & fibration totality (\Cref{prop:totality}) & runs, and gates start-up \\
 \textsf{L-16} & no obligation contradiction & runs, and enforces \\
-\textsf{L-17} & contract--serving agreement & \emph{not built} \\
+\textsf{L-17} & contract--serving agreement & runs, over declared servings \\
 \textsf{L-18} & no personal data inline in evidence nodes & runs, and enforces \\
 \textsf{L-19} & composition is a monoid (\Cref{prop:edits}) & runs \\
 \textsf{L-20} & schemas form a lattice (\Cref{thm:lattice}) & runs, and enforces \\
@@ -1563,15 +1569,26 @@ The reference implementation states twenty-one laws. Eighteen execute; three do 
 \end{tabular}
 \end{center}
 
-The five that do not run are named with their reasons, in the test file as well as in the table, because a
+The three that do not run are named with their reasons, in the test file as well as in the table, because a
 gap recorded only in a document is a gap somebody has to go looking for. \textsf{L-6} needs a replay that
 checks a document's quantitative claims against the register; the replay exists for validation episodes and
 not for documents. \textsf{L-11} needs a \emph{put}: the compiler regenerates whole documents, so there is
 no round trip, and building one merely to satisfy a law would be building the wrong thing. \textsf{L-13} has
-no implementation; no consistency radius is computed anywhere. \textsf{L-14} needs composite warrants and an
-aggregate risk function; \Cref{prop:compose} gives it a derived signature to quantify over, but the functor
-is design. \textsf{L-17} needs an online serving store to compare against; half of it exists, in that the
-system computes what serving \emph{must} read.
+no implementation; no consistency radius is computed anywhere.
+
+Two laws left this list, and how they left it is the more interesting half. \textsf{L-14} was said to need
+composite warrants and an aggregate risk \emph{function}; what it actually needed was to stop trying to be a
+number. The lax interaction term is now carried as a set of \emph{named obstructions} --- what has not been
+assessed about the composite --- joined over the tier lattice, with an unassessed component sitting at the
+top. A composite risk figure that looks like a measurement and is not one is worse than the absence of one,
+so the magnitude is still deliberately unbuilt while the law itself is enforced.
+
+\textsf{L-17} was said to need an online serving store. It did not: it was blocked on the wrong thing. The
+design states that the platform will not sit on the serving path, so a store would have contradicted it. The
+engine instead \emph{attests} which feature namespaces it read, and the platform compares that against what
+the version's contract pins --- training--serving skew becomes detectable without the platform being on the
+request path, and \emph{unattested} is its own state rather than a silent pass. What a store would still buy
+is observation rather than attestation, which is a smaller claim than the one this paragraph used to make.
 
 A property test enforces that this list and the public table agree: if the table claims a law runs, something
 must run it.
