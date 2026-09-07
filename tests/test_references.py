@@ -174,3 +174,65 @@ class TestOverTheApi:
         assert r.status_code == 422
         assert r.json()["error"] == "unknown_reference_kind"
         assert "model" in r.json()["detail"]
+
+
+class TestTheDependencyScreen:
+    """The screen and the delete check read the same index, which is the point:
+    one listing three usages while the other knows about four would say a thing
+    is safe to remove and then refuse."""
+
+    def _login(self, client):
+        from tests.api_helpers import login
+
+        login(client)
+
+    def test_it_is_reachable_from_the_menu(self, client):
+        self._login(client)
+        assert 'href="/dependencies"' in client.get("/dashboard").text
+
+    def test_it_shows_what_refers_to_a_model(self, registered, client):
+        self._login(client)
+        body = registered.get("/dependencies",
+                              params={"kind": "model", "id": URN}).text
+        assert "would be left broken" in body
+        assert "3.2.1" in body, "the version is named"
+
+    def test_it_says_plainly_when_nothing_refers(self, registered, client):
+        self._login(client)
+        registered.post("/api/v1/models", json={
+            "urn": "maya://model/lonely.one", "name": "Lonely",
+            "model_class": "c", "domain": "credit", "owner": "person/o",
+            "legal_entity": "LE-US-01", "purpose": "nothing points at it"})
+        body = registered.get(
+            "/dependencies",
+            params={"kind": "model", "id": "maya://model/lonely.one"}).text
+        assert "Nothing refers to this" in body
+        assert "nothing blocks a deletion" in body
+
+    def test_it_offers_what_exists_rather_than_an_empty_box(self, registered,
+                                                            client):
+        """A mistyped name answers 'nothing refers to this', which is the most
+        dangerous wrong answer this screen can give."""
+        self._login(client)
+        body = registered.get("/dependencies", params={"kind": "model"}).text
+        assert 'list="dep-suggestions"' in body
+        assert URN in body, "the estate's own models are offered"
+
+    def test_the_screen_and_the_delete_agree(self, registered, client):
+        """Not asserted in prose: the page is rendered from `to()` and the
+        delete calls `refuse_if_referenced`, and both are checked here against
+        the same subject."""
+        report = registered.app.state.ctx["references"].to("model", URN)
+        # The delete FIRST, on Basic credentials: once a session cookie exists
+        # the CSRF guard refuses a state-changing request without a token,
+        # which is the guard working and not the delete check answering.
+        refused = registered.request("DELETE", f"/api/v1/models/{NAME}",
+                                     params={"reason": "x"})
+        assert refused.status_code == 409, refused.text
+        assert refused.json()["error"] == "still_referenced"
+
+        self._login(client)
+        page = registered.get("/dependencies",
+                              params={"kind": "model", "id": URN}).text
+        assert str(report["blocking"]) in page
+        assert (report["blocking"] > 0) is (refused.status_code == 409)

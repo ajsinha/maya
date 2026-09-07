@@ -88,16 +88,38 @@ effective challenge, whatever the org chart says.</p>
 
 <div class="card mb-3">
   <div class="card-header">The role catalogue</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Roles live in the register. The <strong>built-in</strong> eight ship with the
+    platform and may be read and not edited — every document, tutorial and test
+    here names them, and a vocabulary that can be renamed underneath its own
+    documentation makes the documentation wrong. Anything else was defined here
+    and can be changed.
+  </div>
   <table class="table maya mb-0">
-    <thead><tr><th>Role</th><th>What it is for</th><th>Held by</th><th>Permissions</th></tr></thead>
+    <thead><tr><th>Role</th><th>What it is for</th><th>Held by</th><th>Permissions</th>
+               {% if may_manage %}<th>Change</th>{% endif %}</tr></thead>
     <tbody>
       {% for r in roles %}
       <tr>
-        <td class="mono">{{ r.name }}</td>
+        <td class="mono">{{ r.name }}
+          {% if r.built_in %}<div class="text-muted" style="font-size:.7rem">built in</div>{% endif %}</td>
         <td class="small">{{ r.description }}</td>
         <td>{{ r.held_by }}</td>
         <td class="small text-muted" style="max-width:28rem">{{ r.permissions|length }} —
           {{ r.permissions|join(", ") }}</td>
+        {% if may_manage %}
+        <td class="small text-nowrap">
+          {% if r.built_in %}<span class="text-muted" style="font-size:.72rem">&mdash;</span>
+          {% else %}
+            <button class="btn btn-sm btn-outline-secondary py-0 px-2 edit-role"
+                    style="font-size:.72rem" data-role="{{ r.name }}"
+                    data-permissions="{{ r.permissions|join(',') }}">Permissions</button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-2 remove-role"
+                    style="font-size:.72rem" data-role="{{ r.name }}"
+                    data-held="{{ r.held_by }}">Remove</button>
+          {% endif %}
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -133,6 +155,43 @@ effective challenge, whatever the org chart says.</p>
 </div>
 
 {% if may_manage %}
+<div class="card mb-3">
+  <div class="card-header">Define a role</div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">For the job your organisation actually has
+    — a <em>Model Validation Team Lead</em>, a <em>Regional MRM</em>. Every
+    permission is checked against the closed set: a role granting something
+    nothing checks reads as authority and is not. And a role holding both halves
+    of an incompatible pair is refused on the principal who is given it, however
+    it is named — the check is over permissions for exactly that reason.</p>
+
+    <form id="new-role" class="row g-2 small align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="nr-name">Name</label>
+        <input id="nr-name" class="form-control form-control-sm mono"
+               name="name" placeholder="model_validation_lead" required></div>
+      <div class="col-md-9">
+        <label class="form-label mb-1" for="nr-description">What it is for</label>
+        <input id="nr-description" class="form-control form-control-sm"
+               name="description"
+               placeholder="Runs the validation team: everything a validator does, plus board reporting"
+               required></div>
+      <div class="col-12 mt-2">
+        <label class="form-label mb-1" for="nr-permissions">Permissions</label>
+        <input id="nr-permissions" class="form-control form-control-sm mono"
+               name="permissions" list="every-permission"
+               placeholder="model:read, validation:conclude, report:read" required>
+        <datalist id="every-permission">
+          {% for p in permissions %}<option value="{{ p }}">{% endfor %}
+        </datalist></div>
+      <div class="col-12 mt-2">
+        <button class="btn btn-sm btn-danger py-0 px-3"
+                style="font-size:.75rem">Define</button></div>
+    </form>
+    <div id="nr-result" class="small mt-3"></div>
+  </div>
+</div>
+
 <div class="card mb-3">
   <div class="card-header">Add somebody</div>
   <div class="card-body">
