@@ -9,9 +9,21 @@ batch last did, whether the evidence chain still agrees with the anchors
 written outside the database — had an API and no screen, which meant the people
 who own those decisions could not see them without a developer beside them.
 
-Read-only, deliberately. Each screen shows the state and names the endpoint
-that changes it; the acts themselves stay where their evidence and their
-segregation checks already live.
+Read-only, with one exception that had to stop being one.
+
+**People and roles now authors.** The other four screens read state a person
+does not create — a rulebook, a batch, a hash chain, a fibre — and naming the
+endpoint that changes it is the right shape for those. Administering *people* is
+different: it is the one thing an operations manager does daily, this platform's
+own persona for that job is the administrator, and until now creating a user or
+changing somebody's roles meant `curl`. A governance platform whose
+administrator cannot administer it from the interface is one where somebody
+keeps a shell script, and a shell script is where the second account for a
+forgotten password comes from.
+
+Every act still goes through the same API a script would, with the same
+authorisation, the same incompatible-roles check and the same evidence. The
+screen is a client.
 """
 from __future__ import annotations
 
@@ -84,6 +96,21 @@ class AdminRoutes(Routes):
                 incompatible=[{"roles": [a, b], "reason": reason}
                               for a, b, reason in INCOMPATIBLE_ROLES],
                 segregation=authz.segregation.describe(),
+                # The entities and domains already in use, so the scope fields
+                # offer what the estate actually contains rather than an empty
+                # box. A free-typed `LE-UK-2` beside an existing `LE-UK-02` is
+                # a scope that silently reaches nothing.
+                entities_in_use=sorted({e for r in rows
+                                        for e in (r.get("legal_entities") or [])}
+                                       | {m.get("legal_entity") for m
+                                          in self.ctx["registry"].list()
+                                          if m.get("legal_entity")}),
+                domains_in_use=sorted({d for r in rows
+                                       for d in (r.get("domains") or [])}
+                                      | {m.get("domain") for m
+                                         in self.ctx["registry"].list()
+                                         if m.get("domain")}),
+                kinds=("person", "service"),
                 may_manage=authz.permits(who, "principal:manage"))
 
         # ------------------------------------------------ regulatory regimes
