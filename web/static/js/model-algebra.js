@@ -29,16 +29,21 @@
      it names the clause that failed, and paraphrasing it here would lose the
      one thing the caller can act on. */
   function refusalHtml(xhr) {
-    var body = (xhr && xhr.responseJSON) || {};
-    var detail = body.detail || (xhr && xhr.statusText) || "refused";
-    var out = '<div class="evidence-bad">Refused — ' + escapeHtml(detail) + "</div>";
-    if (body.remediation) {
+    /* `MAYA.refusal.read` normalises every shape the server sends. This used to
+       do `escapeHtml(body.detail)`, and on a 422 `detail` is an ARRAY of
+       pydantic error objects — so a letter typed into a number box rendered as
+       "Refused — [object Object]". */
+    var r = window.MAYA.refusal.read(xhr);
+    var out = '<div class="evidence-bad">Refused — ' +
+              r.lines.map(escapeHtml).join("</div><div class=\"evidence-bad\">") +
+              "</div>";
+    if (r.remediation) {
       out += '<div class="text-muted" style="font-size:.76rem">' +
-             escapeHtml(body.remediation) + "</div>";
+             escapeHtml(r.remediation) + "</div>";
     }
-    if (body.error) {
+    if (r.code) {
       out += '<div class="text-muted mono" style="font-size:.7rem">' +
-             escapeHtml(body.error) + " · HTTP " + (xhr && xhr.status) + "</div>";
+             escapeHtml(r.code) + " · HTTP " + r.status + "</div>";
     }
     return out;
   }

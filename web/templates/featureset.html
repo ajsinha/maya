@@ -113,7 +113,7 @@ owned by {{ featureset.ownership.owner }}
             data-bs-toggle="collapse" data-bs-target="#publish">Show</button></div>
   <div class="collapse" id="publish"><div class="card-body">
     <form id="publish-version" class="small">
-      <textarea class="form-control form-control-sm" name="bindings" rows="5"
+      <textarea aria-label="slot bindings, as JSON" class="form-control form-control-sm" name="bindings" rows="5"
         placeholder='{{ '{' }}{% for slot in featureset.slots %}"{{ slot }}": "{{ slot }}"{{ ", " if not loop.last }}{% endfor %}{{ '}' }}'
         required></textarea>
       <div class="text-muted mt-1" style="font-size:.72rem">

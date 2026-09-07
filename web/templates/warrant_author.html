@@ -112,16 +112,16 @@ verbatim, with the remediation it supplied.</p>
       <div class="col-lg-7">
         <form id="issue-grant" class="small">
           <div class="row g-2">
-            <div class="col-md-4"><input class="form-control form-control-sm" name="environment"
+            <div class="col-md-4"><input aria-label="environment" class="form-control form-control-sm" name="environment"
                    value="{{ environment }}" placeholder="environment" required>
               <div class="text-muted" style="font-size:.7rem">prod, uat, lab</div></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" name="principal"
+            <div class="col-md-4"><input aria-label="svc/origination" class="form-control form-control-sm" name="principal"
                    placeholder="svc/origination" required>
               <div class="text-muted" style="font-size:.7rem">who will hold it</div></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" name="declared_use"
+            <div class="col-md-4"><input aria-label="origination_decision" class="form-control form-control-sm" name="declared_use"
                    placeholder="origination_decision" required>
               <div class="text-muted" style="font-size:.7rem">what for — matched exactly at resolution</div></div>
-            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+            <div class="col-12"><input aria-label="model" class="form-control form-control-sm mono" name="urn"
                    value="{{ model.urn }}#champion" required>
               <div class="text-muted" style="font-size:.7rem">
                 a bare urn binds the alias; <code>@3.2.1</code> pins a version,
@@ -231,14 +231,14 @@ verbatim, with the remediation it supplied.</p>
       <div class="col-lg-6">
         <form id="new-profile" class="small">
           <div class="row g-2">
-            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+            <div class="col-md-6"><input aria-label="name" class="form-control form-control-sm" name="name"
                    placeholder="name, e.g. scored_in_prod" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="note"
+            <div class="col-md-6"><input aria-label="why it exists" class="form-control form-control-sm" name="note"
                    placeholder="why it exists"></div>
-            <div class="col-12"><textarea class="form-control form-control-sm mono" name="when" rows="2"
+            <div class="col-12"><textarea aria-label="{"environment": ["prod"], "trainability_class": ["T3"]}" class="form-control form-control-sm mono" name="when" rows="2"
                    placeholder='{"environment": ["prod"], "trainability_class": ["T3"]}'></textarea>
               <div class="text-muted" style="font-size:.7rem">the predicate; <code>{}</code> matches everything</div></div>
-            <div class="col-12"><textarea class="form-control form-control-sm mono" name="defaults" rows="2"
+            <div class="col-12"><textarea aria-label="{"verb": "score", "max_seconds": 5}" class="form-control form-control-sm mono" name="defaults" rows="2"
                    placeholder='{"verb": "score", "max_seconds": 5}'></textarea></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
@@ -251,11 +251,11 @@ verbatim, with the remediation it supplied.</p>
       <div class="col-lg-6">
         <form id="preview-profile" class="small">
           <div class="row g-2">
-            <div class="col-md-5"><input class="form-control form-control-sm" name="environment"
+            <div class="col-md-5"><input aria-label="environment" class="form-control form-control-sm" name="environment"
                    value="{{ environment }}" placeholder="environment"></div>
-            <div class="col-md-7"><input class="form-control form-control-sm" name="semver"
+            <div class="col-md-7"><input aria-label="semver (blank = latest)" class="form-control form-control-sm" name="semver"
                    placeholder="semver (blank = latest)"></div>
-            <div class="col-12"><textarea class="form-control form-control-sm mono" name="request" rows="2"
+            <div class="col-12"><textarea aria-label="the request as you would send it" class="form-control form-control-sm mono" name="request" rows="2"
                    placeholder='the request as you would send it, e.g. {"verb": "score"}'></textarea></div>
           </div>
           <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">
@@ -280,20 +280,20 @@ verbatim, with the remediation it supplied.</p>
     the version the alias points at must be approved.</p>
     <form id="resolve-warrant" class="small">
       <div class="row g-2">
-        <div class="col-md-3"><input class="form-control form-control-sm" name="environment"
+        <div class="col-md-3"><input aria-label="environment" class="form-control form-control-sm" name="environment"
                value="{{ environment }}" placeholder="environment" required></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="principal"
+        <div class="col-md-3"><input aria-label="principal" class="form-control form-control-sm" name="principal"
                placeholder="principal" required></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="declared_use"
+        <div class="col-md-3"><input aria-label="declared use" class="form-control form-control-sm" name="declared_use"
                placeholder="declared use" required></div>
         <div class="col-md-3">
-          <select class="form-select form-select-sm" name="verb">
+          <select aria-label="verb" class="form-select form-select-sm" name="verb">
             {% for v in verbs %}
             <option value="{{ v.verb }}" {% if v.verb == 'score' %}selected{% endif %}
                     title="{{ v.means }}">{{ v.verb }}{% if v.verb not in admits %} — refused for this class{% endif %}</option>
             {% endfor %}
           </select></div>
-        <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+        <div class="col-12"><input aria-label="model" class="form-control form-control-sm mono" name="urn"
                value="{{ model.urn }}#champion" required></div>
       </div>
       <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Resolve</button>
@@ -338,27 +338,27 @@ verbatim, with the remediation it supplied.</p>
         {% if featuresets %}
         <form id="resolve-fit" class="small">
           <div class="row g-2">
-            <div class="col-md-6"><input class="form-control form-control-sm" name="environment"
+            <div class="col-md-6"><input aria-label="environment" class="form-control form-control-sm" name="environment"
                    value="{{ environment }}" placeholder="environment" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="principal"
+            <div class="col-md-6"><input aria-label="principal" class="form-control form-control-sm" name="principal"
                    placeholder="principal" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="declared_use"
+            <div class="col-md-6"><input aria-label="declared use" class="form-control form-control-sm" name="declared_use"
                    value="model_development" required></div>
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="featureset" id="fit-featureset" required>
+              <select aria-label="featureset" class="form-select form-select-sm" name="featureset" id="fit-featureset" required>
                 {% for f in featuresets %}<option value="{{ f.name }}"
                    data-versions="{{ f.versions | join(',') }}">{{ f.name }}</option>{% endfor %}
               </select></div>
             <div class="col-md-4">
-              <select class="form-select form-select-sm" name="featureset_version" id="fit-version"></select>
+              <select aria-label="featureset version" class="form-select form-select-sm" name="featureset_version" id="fit-version"></select>
               <div class="text-muted" style="font-size:.7rem">the version, pinned</div></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" type="date" name="window_from" required>
+            <div class="col-md-4"><input aria-label="window from" class="form-control form-control-sm" type="date" name="window_from" required>
               <div class="text-muted" style="font-size:.7rem">window from</div></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" type="date" name="window_to" required>
+            <div class="col-md-4"><input aria-label="window to" class="form-control form-control-sm" type="date" name="window_to" required>
               <div class="text-muted" style="font-size:.7rem">window to</div></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" type="date" name="as_of" required>
+            <div class="col-md-6"><input aria-label="as of" class="form-control form-control-sm" type="date" name="as_of" required>
               <div class="text-muted" style="font-size:.7rem">as of — what was knowable</div></div>
-            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+            <div class="col-12"><input aria-label="model" class="form-control form-control-sm mono" name="urn"
                    value="{{ model.urn }}" required></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
@@ -387,28 +387,28 @@ verbatim, with the remediation it supplied.</p>
         <p class="kicker mb-1">STEP TWO — THE NUMBERS COME BACK</p>
         <form id="record-parameters" class="small">
           <div class="row g-2">
-            <div class="col-md-6"><input class="form-control form-control-sm" name="semver"
+            <div class="col-md-6"><input aria-label="version" class="form-control form-control-sm" name="semver"
                    placeholder="version, e.g. 3.2.1" required></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="name"
+            <div class="col-md-6"><input aria-label="name" class="form-control form-control-sm" name="name"
                    placeholder="name, e.g. sb-pd-2026q1" required></div>
             <div class="col-md-6">
-              <select class="form-select form-select-sm" name="provenance">
+              <select aria-label="provenance" class="form-select form-select-sm" name="provenance">
                 {% for kind, means in provenance.items() %}
                 <option value="{{ kind }}" title="{{ means }}">{{ kind }}</option>{% endfor %}
               </select></div>
-            <div class="col-md-6"><input class="form-control form-control-sm" name="kind"
+            <div class="col-md-6"><input aria-label="what inhabits P" class="form-control form-control-sm" name="kind"
                    value="estimated_coefficients" placeholder="what inhabits P"></div>
-            <div class="col-12"><textarea class="form-control form-control-sm mono" name="values" rows="2"
+            <div class="col-12"><textarea aria-label="{"intercept": -1.4, "dscr": 0.31}" class="form-control form-control-sm mono" name="values" rows="2"
                    placeholder='{"intercept": -1.4, "dscr": 0.31}' required></textarea></div>
-            <div class="col-12"><textarea class="form-control form-control-sm mono" name="diagnostics" rows="1"
+            <div class="col-12"><textarea aria-label="{"r2": 0.41, "n": 18400}" class="form-control form-control-sm mono" name="diagnostics" rows="1"
                    placeholder='{"r2": 0.41, "n": 18400}'></textarea></div>
-            <div class="col-md-7"><input class="form-control form-control-sm mono" name="warrant_id"
+            <div class="col-md-7"><input aria-label="the GRANT id — 'use' on a row above fills it" class="form-control form-control-sm mono" name="warrant_id"
                    id="record-warrant" placeholder="the GRANT id — 'use' on a row above fills it"></div>
-            <div class="col-md-5"><input class="form-control form-control-sm" name="featureset"
+            <div class="col-md-5"><input aria-label="featureset" class="form-control form-control-sm" name="featureset"
                    id="record-featureset" placeholder="featureset"></div>
-            <div class="col-md-4"><input class="form-control form-control-sm" name="featureset_version"
+            <div class="col-md-4"><input aria-label="fs version" class="form-control form-control-sm" name="featureset_version"
                    id="record-featureset-version" placeholder="fs version"></div>
-            <div class="col-md-8"><input class="form-control form-control-sm" type="date" name="as_of"
+            <div class="col-md-8"><input aria-label="as of" class="form-control form-control-sm" type="date" name="as_of"
                    id="record-as-of"></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
@@ -513,9 +513,9 @@ verbatim, with the remediation it supplied.</p>
       <div class="col-lg-6">
         <form id="revoke-warrant" class="small">
           <div class="row g-2">
-            <div class="col-12"><input class="form-control form-control-sm mono" name="urn"
+            <div class="col-12"><input aria-label="model" class="form-control form-control-sm mono" name="urn"
                    value="{{ model.urn }}" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="reason"
+            <div class="col-12"><input aria-label="why — recorded, and shown to whoever is refused" class="form-control form-control-sm" name="reason"
                    placeholder="why — recorded, and shown to whoever is refused" required></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem"
@@ -569,15 +569,15 @@ verbatim, with the remediation it supplied.</p>
       cover: <span class="mono">{{ engine | tojson }}</span></p>
     <form id="execute-warrant" class="small">
       <div class="row g-2">
-        <div class="col-md-3"><input class="form-control form-control-sm" name="environment"
+        <div class="col-md-3"><input aria-label="environment" class="form-control form-control-sm" name="environment"
                value="{{ environment }}" required></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="principal"
+        <div class="col-md-3"><input aria-label="principal" class="form-control form-control-sm" name="principal"
                placeholder="principal" required></div>
-        <div class="col-md-3"><input class="form-control form-control-sm" name="declared_use"
+        <div class="col-md-3"><input aria-label="declared use" class="form-control form-control-sm" name="declared_use"
                placeholder="declared use" required></div>
-        <div class="col-md-3"><input class="form-control form-control-sm mono" name="urn"
+        <div class="col-md-3"><input aria-label="model" class="form-control form-control-sm mono" name="urn"
                value="{{ model.urn }}#champion" required></div>
-        <div class="col-12"><textarea class="form-control form-control-sm mono" name="inputs" rows="1"
+        <div class="col-12"><textarea aria-label="{"dscr": 1.4}" class="form-control form-control-sm mono" name="inputs" rows="1"
                placeholder='{"dscr": 1.4}'></textarea>
           <div class="text-muted" style="font-size:.7rem">
             put a value outside the assumption to see the refusal</div></div>
@@ -637,7 +637,7 @@ verbatim, with the remediation it supplied.</p>
 
     <p class="kicker mt-3 mb-1">CHECK A DOCUMENT</p>
     <form id="check-warrant" class="small">
-      <textarea class="form-control form-control-sm mono" name="document" rows="6"
+      <textarea aria-label="paste a warrant document" class="form-control form-control-sm mono" name="document" rows="6"
         placeholder="paste a warrant document"></textarea>
       <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Check it</button>
       <button type="button" class="btn btn-sm btn-outline-secondary mt-2 py-0 px-3"

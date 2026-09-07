@@ -36,14 +36,13 @@
     /* The API's refusal, whole: the code, what it says, and what to do.
      * `problems` appears only on the grammar validator, which reports every
      * problem at once rather than the first. */
-    var e = (x && x.responseJSON) || {};
-    var body = e.detail || (x && x.statusText) || String(x);
+    var r = window.MAYA.refusal.read(x);
     var html = '<div class="border rounded p-2" style="border-color:#A51C30!important">' +
       '<span class="evidence-bad">Refused</span> ' +
-      (e.error ? '<code>' + esc(e.error) + '</code> ' : "") +
-      "&mdash; " + esc(body);
-    if (e.remediation) {
-      html += '<div class="text-muted mt-1">' + esc(e.remediation) + "</div>";
+      (r.code ? '<code>' + esc(r.code) + '</code> ' : "") +
+      "&mdash; " + r.lines.map(esc).join("<br>");
+    if (r.remediation) {
+      html += '<div class="text-muted mt-1">' + esc(r.remediation) + "</div>";
     }
     return html + "</div>";
   }

@@ -140,7 +140,7 @@ There is no task table to go stale. What this adds is that the work
         <form id="run" class="small">
           <div class="row g-2">
             <div class="col-7">
-              <select class="form-select form-select-sm" name="channel">
+              <select aria-label="notification channel" class="form-select form-select-sm" name="channel">
                 <option value="">{{ notify.default }} (the default)</option>
                 {% for c in notify.channels %}
                   <option value="{{ c.channel }}">{{ c.channel }}</option>

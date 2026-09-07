@@ -12,8 +12,25 @@
 <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="/static/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
 <style>
+/* Measured, not chosen by eye. Every pair that carries text clears WCAG AA
+   (4.5:1) against BOTH grounds it appears on — white and the striped
+   `--parch` — and every boundary a person has to find clears 3:1.
+
+   `--muted` was #7A7F87: 4.03 on white and 3.64 on the striped row, against a
+   4.5 requirement. It carries the gloss under every menu entry, every
+   `.text-muted` note and every definition — all set SMALLER than body text, so
+   the large-text allowance does not apply to any of them. The explanatory half
+   of this interface was the half that failed.
+
+   `--rule` at #D8D4CF is 1.47 on white. Fine as a table rule, which is
+   decoration, and not fine as the edge of an input box: the boundary is what
+   tells somebody where to type. So there are now two — `--rule` for dividing
+   things and `--edge` for the outline of a control. */
 :root{--crimson:#A51C30;--crimson-d:#761422;--ink:#1C1C1E;--slate:#4A4F57;
-      --muted:#7A7F87;--rule:#D8D4CF;--parch:#F6F3EF;}
+      --muted:#686D75;--rule:#D8D4CF;--edge:#8F8F8F;--parch:#F6F3EF;
+      /* White at 50% over the crimson bar resolves to 2.87:1. At 80% it is
+         5.27:1 and still reads as secondary beside the white brand. */
+      --on-crimson-dim:rgba(255,255,255,.8);}
 body{background:#fff;color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
 .navbar{background:var(--crimson)!important;}
 .navbar-brand{font-family:Georgia,serif;letter-spacing:.06em;font-weight:600;}
@@ -23,8 +40,13 @@ h1{font-size:1.75rem;}
 .rule{height:2px;background:var(--rule);margin:.6rem 0 1.2rem;}
 .accent{width:34px;height:4px;background:var(--crimson);border-radius:2px;}
 .tier{font-weight:700;font-size:.72rem;padding:.16rem .48rem;border-radius:3px;letter-spacing:.04em;}
-.tier-1{background:#A51C30;color:#fff}.tier-2{background:#B8873D;color:#fff}
-.tier-3{background:#2E4057;color:#fff}.tier-4{background:#7A7F87;color:#fff}
+/* The tier badge is the most consequential label on any of these screens, and
+   two of the four failed the measurement. #B8873D carried white text at 3.20:1
+   and #7A7F87 at 4.03:1, against a 4.5 requirement — and a badge is set small
+   and bold, which is exactly where "it looks fine" stops being evidence. The
+   hues are unchanged; only the lightness moved. */
+.tier-1{background:#A51C30;color:#fff}.tier-2{background:#966C2A;color:#fff}
+.tier-3{background:#2E4057;color:#fff}.tier-4{background:#686D75;color:#fff}
 .tier-none{background:#E8E4DE;color:#4A4F57}
 .chip{font-size:.72rem;padding:.14rem .42rem;border:1px solid var(--rule);border-radius:3px;color:var(--slate);}
 .card{border:1px solid var(--rule);border-radius:4px;}
@@ -127,7 +149,7 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .stat-l{font-size:.76rem;color:var(--muted);}
 .frozen-badge{background:#2E4057;color:#fff;font-size:.7rem;font-weight:700;
               letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
-.open-badge{background:#B8873D;color:#fff;font-size:.7rem;font-weight:700;
+.open-badge{background:#966C2A;color:#fff;font-size:.7rem;font-weight:700;
             letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
 
 /* ---- the navigation ---------------------------------------------------
@@ -170,6 +192,38 @@ footer .principle{font-family:Georgia,"Times New Roman",serif;font-style:italic;
                   font-size:.92rem;color:var(--slate);margin:0 0 .7rem;
                   padding-bottom:.7rem;border-bottom:1px solid var(--rule);
                   max-width:44rem;}
+/* ---------------------------------------------------------------- focus
+   One visible focus ring, everywhere, from one rule.
+
+   Only `.navbar .dropdown-item` had one. Everything else fell back to the
+   browser default, which Bootstrap's reset removes on buttons and links — so
+   somebody navigating this platform by keyboard could not see where they were
+   on any screen. That is not a preference: a control you cannot locate is a
+   control you cannot operate, and the estate is meant to be operable by the
+   second and third lines as much as the first.
+
+   `:focus-visible` rather than `:focus`, so a mouse click does not leave a ring
+   behind; the offset keeps it clear of the element's own border. */
+a:focus-visible, button:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible, summary:focus-visible,
+[tabindex]:focus-visible{
+  outline:3px solid var(--crimson); outline-offset:2px; border-radius:2px;}
+/* On the crimson bar the crimson ring is invisible, so it inverts there. */
+.navbar a:focus-visible, .navbar button:focus-visible{
+  outline:3px solid #fff; outline-offset:2px;}
+/* A form control's own edge, at 3:1 rather than Bootstrap's 1.30:1. */
+.form-control, .form-select{border-color:var(--edge);}
+.form-control:focus, .form-select:focus{
+  border-color:var(--crimson); box-shadow:0 0 0 .18rem rgba(165,28,48,.22);}
+/* Bootstrap's `.text-white-50` is 2.87:1 on this bar. */
+.navbar .text-white-50{color:var(--on-crimson-dim)!important;}
+.navbar .text-white-50:hover, .navbar .text-white-50:focus{color:#fff!important;}
+/* Somebody who has asked for less motion gets less motion. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;
+    animation-iteration-count:1!important;transition-duration:.01ms!important;
+    scroll-behavior:auto!important;}
+}
 </style>
 {% block head %}{% endblock %}
 </head>
@@ -193,60 +247,67 @@ footer .principle{font-family:Georgia,"Times New Roman",serif;font-style:italic;
          Models, features, featuresets. Every working screen is one of those
          three, so the menu is those three and nothing else. What is NOT here
          is as deliberate: eleven links across the bar meant the reader had to
-         read all eleven to find one. #}
+         read all eleven to find one.
+
+         Each entry carries the permission ITS PAGE checks, and the menu is
+         filtered by it — the same rule Admin has always followed, and the same
+         reason: a menu that lists what it then refuses teaches people to
+         ignore refusals. Manage listed all sixteen to everybody, so an
+         operator was offered "All features" and met a 403; that got worse the
+         moment the feature screens started gating properly.
+
+         `model:read` is held by every human role, so an entry marked with it is
+         open to anybody signed in — stated rather than left blank, because a
+         blank means "nobody checked" and this column is the check. #}
+      {% set manage_columns = [
+        ("Models", [
+          ("/dashboard", "The estate", "every model, and what is owed on it", "model:read"),
+          ("/models/new", "Register a model", "a new model, or a version of one", "model:read"),
+          ("/model-algebra", "Model algebra", "versions, refinement, lifecycle, quorum, tier", "model:read"),
+          ("/model-algebra/composition", "Composition", "one model reading another, type-checked", "model:read"),
+          ("/warrants", "Warrants", "what a run is permitted to do", "model:read"),
+          ("/packages", "Model packages", "everything about a model, in one download", "model:read"),
+          ("/telemetry", "Telemetry", "what the live models are sending", "monitor:read"),
+          ("/findings", "Open findings", "what is outstanding, across the estate", "finding:read"),
+          ("/board-pack", "Board pack", "the estate, cut for a committee", "report:read")
+        ]),
+        ("Features", [
+          ("/features", "All features", "the catalogue and its certification", "feature:read"),
+          ("/features/new", "Define a feature", "base, derived, aggregate or external", "feature:read"),
+          ("/features/load", "Load data", "bitemporal rows, with their ingest time", "feature:read"),
+          ("/features/point-in-time", "Point-in-time", "what was knowable, as of a date", "feature:read")
+        ]),
+        ("Featuresets", [
+          ("/featuresets", "All featuresets", "every set, and what fills its slots", "feature:read"),
+          ("/featuresets/author", "Compose a featureset", "declare slots, bind, publish", "featureset:define"),
+          ("/featuresets/lattice", "Schema lattice", "whether one schema stands in for another", "feature:read")
+        ])
+      ] %}
+      {# Built without `{% do %}` — the `do` extension is not enabled, and
+         turning one on for a menu would be the wrong way round. #}
+      {% set anything_visible = manage_columns
+           | sum(start=[], attribute=1) | selectattr(3, "in", may) | list %}
+      {% if anything_visible %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle text-white" href="#" role="button"
            data-bs-toggle="dropdown" aria-expanded="false" id="nav-manage">Manage</a>
         <div class="dropdown-menu dropdown-menu-end maya-mega p-0" aria-labelledby="nav-manage">
           <div class="row g-0">
-
+            {% for heading, entries in manage_columns %}
+            {% set shown = entries | selectattr(3, "in", may) | list %}
+            {% if shown %}
             <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Models</h6>
-              <a class="dropdown-item" href="/dashboard">
-                The estate<span class="d">every model, and what is owed on it</span></a>
-              <a class="dropdown-item" href="/models/new">
-                Register a model<span class="d">a new model, or a version of one</span></a>
-              <a class="dropdown-item" href="/model-algebra">
-                Model algebra<span class="d">versions, refinement, lifecycle, quorum, tier</span></a>
-              <a class="dropdown-item" href="/model-algebra/composition">
-                Composition<span class="d">one model reading another, type-checked</span></a>
-              <a class="dropdown-item" href="/warrants">
-                Warrants<span class="d">what a run is permitted to do</span></a>
-              <a class="dropdown-item" href="/packages">
-                Model packages<span class="d">everything about a model, in one download</span></a>
-              <a class="dropdown-item" href="/telemetry">
-                Telemetry<span class="d">what the live models are sending</span></a>
-              <a class="dropdown-item" href="/findings">
-                Open findings<span class="d">what is outstanding, across the estate</span></a>
-              <a class="dropdown-item" href="/board-pack">
-                Board pack<span class="d">the estate, cut for a committee</span></a>
+              <h6 class="dropdown-header">{{ heading }}</h6>
+              {% for href, label, gloss, _perm in shown %}
+                <a class="dropdown-item" href="{{ href }}">{{ label }}<span class="d">{{ gloss }}</span></a>
+              {% endfor %}
             </div>
-
-            <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Features</h6>
-              <a class="dropdown-item" href="/features">
-                All features<span class="d">the catalogue and its certification</span></a>
-              <a class="dropdown-item" href="/features/new">
-                Define a feature<span class="d">base, derived, aggregate or external</span></a>
-              <a class="dropdown-item" href="/features/load">
-                Load data<span class="d">bitemporal rows, with their ingest time</span></a>
-              <a class="dropdown-item" href="/features/point-in-time">
-                Point-in-time<span class="d">what was knowable, as of a date</span></a>
-            </div>
-
-            <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Featuresets</h6>
-              <a class="dropdown-item" href="/featuresets">
-                All featuresets<span class="d">every set, and what fills its slots</span></a>
-              <a class="dropdown-item" href="/featuresets/author">
-                Compose a featureset<span class="d">declare slots, bind, publish</span></a>
-              <a class="dropdown-item" href="/featuresets/lattice">
-                Schema lattice<span class="d">whether one schema stands in for another</span></a>
-            </div>
-
+            {% endif %}
+            {% endfor %}
           </div>
         </div>
       </li>
+      {% endif %}
 
       {# ---- Admin: the platform rather than the models -------------------
          Each entry is shown only to a principal who holds the permission the
@@ -306,6 +367,7 @@ footer .principle{font-family:Georgia,"Times New Roman",serif;font-style:italic;
 <!-- Search, sort and paging for every table. Written rather than vendored:
      this platform must run air-gapped, and a table plugin is a hundred lines
      of arithmetic wearing eighty kilobytes. -->
+<script src="/static/js/refusal.js"></script>
 <script src="/static/js/csrf.js"></script>
 <script src="/static/js/tables.js"></script>
 {% block scripts %}{% endblock %}

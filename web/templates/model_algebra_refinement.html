@@ -22,12 +22,12 @@ exactly why moving one is not a judgement call.</p>
     <div class="card h-100"><div class="card-header">Ask the question</div>
       <div class="card-body">
         <form id="substitution-form" class="row g-2 small align-items-end">
-          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem">incumbent &mdash; what is in force</label>
-            <select class="form-select form-select-sm" name="incumbent" required>
+          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-refinement-incumbent-mdash-what-is-in-force">incumbent &mdash; what is in force</label>
+            <select id="model-algebra-refinement-incumbent-mdash-what-is-in-force" class="form-select form-select-sm" name="incumbent" required>
               {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.trainability_class }}</option>{% endfor %}
             </select></div>
-          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem">replacement</label>
-            <select class="form-select form-select-sm" name="replacement" required>
+          <div class="col-md-5"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-refinement-replacement">replacement</label>
+            <select id="model-algebra-refinement-replacement" class="form-select form-select-sm" name="replacement" required>
               {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.trainability_class }}</option>{% endfor %}
             </select></div>
           <div class="col-md-2"><button class="btn btn-sm btn-outline-danger w-100 py-0"
@@ -45,15 +45,15 @@ exactly why moving one is not a judgement call.</p>
     <div class="card h-100"><div class="card-header">Move an alias</div>
       <div class="card-body">
         <form id="alias-form" class="row g-2 small align-items-end">
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">environment</label>
-            <input class="form-control form-control-sm" name="environment" value="prod"></div>
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">alias</label>
-            <input class="form-control form-control-sm" name="alias" value="champion"></div>
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">point it at</label>
-            <select class="form-select form-select-sm" name="semver" required>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-refinement-environment">environment</label>
+            <input id="model-algebra-refinement-environment" class="form-control form-control-sm" name="environment" value="prod"></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-refinement-alias">alias</label>
+            <input id="model-algebra-refinement-alias" class="form-control form-control-sm" name="alias" value="champion"></div>
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-refinement-point-it-at">point it at</label>
+            <select id="model-algebra-refinement-point-it-at" class="form-select form-select-sm" name="semver" required>
               {% for v in versions %}<option value="{{ v.semver }}">{{ v.semver }} — {{ v.status }}</option>{% endfor %}
             </select></div>
-          <div class="col-12"><input class="form-control form-control-sm" name="justification"
+          <div class="col-12"><input aria-label="justification — why this version, now" class="form-control form-control-sm" name="justification"
                  placeholder="justification — why this version, now"></div>
           <div class="col-12"><button class="btn btn-sm btn-danger py-0 px-3"
             style="font-size:.75rem">Move the alias</button></div>

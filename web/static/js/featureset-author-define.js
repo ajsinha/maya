@@ -174,14 +174,11 @@
   }
 
   function refusal(where, xhr) {
-    var body = (xhr.responseJSON && xhr.responseJSON.detail) || xhr.responseJSON || {};
-    if (typeof body === "string") { body = { detail: body }; }
-    var err = body.error || (xhr.responseJSON || {}).error || "refused";
-    var detail = body.detail || xhr.statusText;
-    var fix = body.remediation || (xhr.responseJSON || {}).remediation || "";
-    $(where).html('<span class="evidence-bad">' + esc(err) + "</span> — " +
-      esc(String(detail)) +
-      (fix ? '<div class="text-muted mt-1">' + esc(String(fix)) + "</div>" : ""));
+    var r = window.MAYA.refusal.read(xhr);
+    $(where).html('<span class="evidence-bad">' + esc(r.code || "refused") +
+      "</span> — " + r.lines.map(esc).join("<br>") +
+      (r.remediation
+        ? '<div class="text-muted mt-1">' + esc(r.remediation) + "</div>" : ""));
   }
 
   function preview() {

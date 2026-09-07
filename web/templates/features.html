@@ -41,24 +41,24 @@ pinned by the view version that wrote them.</p>
         <p class="small fw-bold mb-2" style="color:var(--crimson)">A primitive</p>
         <form id="define-primitive" class="small">
           <div class="row g-2">
-            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
-            <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
+            <div class="col-6"><input aria-label="name" class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6"><input aria-label="entity" class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
             <div class="col-6">
-              <select class="form-select form-select-sm" name="dtype">
+              <select aria-label="data type" class="form-select form-select-sm" name="dtype">
                 {% for d in dtypes %}<option>{{ d }}</option>{% endfor %}
               </select></div>
-            <div class="col-6"><input class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
-            <div class="col-6"><input class="form-control form-control-sm" name="shape"
+            <div class="col-6"><input aria-label="owner" class="form-control form-control-sm" name="owner" placeholder="owner" required></div>
+            <div class="col-12"><input aria-label="what it means" class="form-control form-control-sm" name="description" placeholder="what it means"></div>
+            <div class="col-6"><input aria-label="shape — blank=scalar, 10=vector, 10,10=matrix" class="form-control form-control-sm" name="shape"
                    placeholder="shape — blank=scalar, 10=vector, 10,10=matrix"></div>
-            <div class="col-6"><input class="form-control form-control-sm" name="components"
+            <div class="col-6"><input aria-label="component names, comma separated" class="form-control form-control-sm" name="components"
                    placeholder="component names, comma separated"></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="defaults"
+            <div class="col-12"><input aria-label="default policy" class="form-control form-control-sm" name="defaults"
                    placeholder='default policy, e.g. {"fill": {"x": "zero"}}'></div>
             <div class="col-6 form-check ms-2">
               <input class="form-check-input" type="checkbox" name="ephemeral" id="eph">
               <label class="form-check-label small" for="eph">ephemeral</label></div>
-            <div class="col-5"><input class="form-control form-control-sm" name="ttl_days"
+            <div class="col-5"><input aria-label="days to live" class="form-control form-control-sm" name="ttl_days"
                    placeholder="days to live"></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Define</button>
@@ -74,14 +74,14 @@ pinned by the view version that wrote them.</p>
         <p class="small fw-bold mb-2" style="color:var(--crimson)">A derived feature &mdash; Z = f(X, Y)</p>
         <form id="define-derived" class="small">
           <div class="row g-2">
-            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6"><input aria-label="name" class="form-control form-control-sm" name="name" placeholder="name" required></div>
             <div class="col-6">
-              <select class="form-select form-select-sm" name="dtype">
+              <select aria-label="data type" class="form-select form-select-sm" name="dtype">
                 <option>numeric</option><option>integer</option>
               </select></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="expression"
+            <div class="col-12"><input aria-label="lot_size_sqft / living_area_sqft" class="form-control form-control-sm" name="expression"
                    placeholder="lot_size_sqft / living_area_sqft" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="description" placeholder="what it means"></div>
+            <div class="col-12"><input aria-label="what it means" class="form-control form-control-sm" name="description" placeholder="what it means"></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Define</button>
         </form>
@@ -98,11 +98,11 @@ pinned by the view version that wrote them.</p>
         <p class="small fw-bold mb-2" style="color:var(--crimson)">Compose from others</p>
         <form id="define-composed" class="small">
           <div class="row g-2">
-            <div class="col-6"><input class="form-control form-control-sm" name="name" placeholder="name" required></div>
-            <div class="col-6"><input class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
-            <div class="col-12"><input class="form-control form-control-sm" name="composes"
+            <div class="col-6"><input aria-label="name" class="form-control form-control-sm" name="name" placeholder="name" required></div>
+            <div class="col-6"><input aria-label="entity" class="form-control form-control-sm" name="entity" placeholder="entity" required></div>
+            <div class="col-12"><input aria-label="parents, comma separated — left to right, rightmost wins" class="form-control form-control-sm" name="composes"
                    placeholder="parents, comma separated — left to right, rightmost wins" required></div>
-            <div class="col-12"><textarea class="form-control form-control-sm" name="operations" rows="2"
+            <div class="col-12"><textarea aria-label="[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op": "drop", "name": "1m"}]" class="form-control form-control-sm" name="operations" rows="2"
                    placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op": "drop", "name": "1m"}]'></textarea></div>
           </div>
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3" style="font-size:.75rem">Compose</button>

@@ -29,28 +29,28 @@ these controls defend&rdquo; are one definition.</p>
            from what it recorded; where none does they start empty and are
            required, so a tier is always something somebody entered. #}
         <form id="assess-form" class="row g-2 small align-items-end">
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">exposure</label>
-            <input class="form-control form-control-sm" name="exposure" required
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-risk-exposure">exposure</label>
+            <input id="model-algebra-risk-exposure" class="form-control form-control-sm" name="exposure" required
                    inputmode="decimal" placeholder="e.g. 2400000000"
                    value="{{ facts.exposure if facts.exposure is defined else '' }}"></div>
-          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem">purpose class</label>
-            <select class="form-select form-select-sm" name="purpose_class" required>
+          <div class="col-md-6"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-risk-purpose-class">purpose class</label>
+            <select id="model-algebra-risk-purpose-class" class="form-select form-select-sm" name="purpose_class" required>
               <option value="" {{ 'selected' if not facts.purpose_class }}>choose…</option>
               {% for p in purposes %}<option value="{{ p.purpose }}"
                 {{ 'selected' if facts.purpose_class == p.purpose }}
                 >{{ p.purpose }} — rank {{ p.rank }}</option>{% endfor %}
             </select></div>
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">feature count</label>
-            <input class="form-control form-control-sm" name="feature_count" required
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-risk-feature-count">feature count</label>
+            <input id="model-algebra-risk-feature-count" class="form-control form-control-sm" name="feature_count" required
                    inputmode="numeric" placeholder="e.g. 24"
                    value="{{ facts.feature_count if facts.feature_count is defined else '' }}"></div>
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">alternative data</label>
-            <select class="form-select form-select-sm" name="uses_alternative_data">
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-risk-alternative-data">alternative data</label>
+            <select id="model-algebra-risk-alternative-data" class="form-select form-select-sm" name="uses_alternative_data">
               <option value="0" {{ 'selected' if not facts.uses_alternative_data }}>0 — no</option>
               <option value="1" {{ 'selected' if facts.uses_alternative_data }}>1 — yes</option>
             </select></div>
-          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem">interpretable</label>
-            <select class="form-select form-select-sm" name="interpretable">
+          <div class="col-md-4"><label class="form-label mb-0" style="font-size:.72rem" for="model-algebra-risk-interpretable">interpretable</label>
+            <select id="model-algebra-risk-interpretable" class="form-select form-select-sm" name="interpretable">
               <option value="1" {{ 'selected' if facts.interpretable is not defined or facts.interpretable }}>1 — yes</option>
               <option value="0" {{ 'selected' if facts.interpretable is defined and not facts.interpretable }}>0 — no</option>
             </select></div>
