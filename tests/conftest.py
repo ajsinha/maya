@@ -147,11 +147,16 @@ NAME = "credit.pd.smallbiz"
 # Duties are separated in the fixtures because they are separated in the
 # system. One account cannot walk the whole path: the person who creates a
 # version may not approve it, promote it, or conclude its validation.
+# The passwords satisfy `MIN_PASSWORD`, which `create` now applies as
+# `set_password` always did. It did not before, so every account in the suite
+# and every account a real deployment made was created below the platform's own
+# floor — the rule was enforceable only on a password CHANGE, and the moment a
+# weak password is most likely to be chosen is the moment the account is made.
 PEOPLE = {
-    "d.raman":  (["model_developer"],    "dev-pw"),
-    "j.okafor": (["model_owner"],        "owner-pw"),
-    "a.mehta":  (["validator"],          "val-pw"),
-    "s.iqbal":  (["model_risk_manager"], "mrm-pw"),
+    "d.raman":  (["model_developer"],    "dev-pw-long-enough"),
+    "j.okafor": (["model_owner"],        "owner-pw-long-enough"),
+    "a.mehta":  (["validator"],          "val-pw-long-enough"),
+    "s.iqbal":  (["model_risk_manager"], "mrm-pw-long-enough"),
 }
 
 
@@ -301,10 +306,10 @@ def authz(segregation):
 @pytest.fixture
 def staff(principals):
     """One principal per duty, as a real deployment would have."""
-    principals.create("d.raman", "D Raman", ["model_developer"], "dev-pw")
-    principals.create("j.okafor", "J Okafor", ["model_owner"], "owner-pw")
-    principals.create("a.mehta", "A Mehta", ["validator"], "val-pw")
-    principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "mrm-pw")
+    principals.create("d.raman", "D Raman", ["model_developer"], "dev-pw-long-enough")
+    principals.create("j.okafor", "J Okafor", ["model_owner"], "owner-pw-long-enough")
+    principals.create("a.mehta", "A Mehta", ["validator"], "val-pw-long-enough")
+    principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "mrm-pw-long-enough")
     return {u: principals.get(u) for u in ("d.raman", "j.okafor", "a.mehta", "s.iqbal")}
 
 
@@ -628,7 +633,7 @@ logging: {{level: WARNING}}
         # Every API endpoint now requires an authenticated principal. The
         # bootstrap administrator is created on first start from configuration;
         # tests that care about authorisation override these credentials.
-        c.auth = ("admin", "admin123")
+        c.auth = ("admin", "maya-admin-dev")
         yield c
 
 

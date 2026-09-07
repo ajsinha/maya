@@ -612,7 +612,7 @@ class TestTheEditorPages:
                                     "semver": "1.0.0", "document": VALID,
                                     "name": "eligibility-q1"})
         assert created.status_code == 201, created.text
-        client.post("/login", data={"username": "d.raman", "password": "dev-pw"},
+        client.post("/login", data={"username": "d.raman", "password": "dev-pw-long-enough"},
                     follow_redirects=False)
         client.recorded_ruleset = created.json()["id"]
         return client

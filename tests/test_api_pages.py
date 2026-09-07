@@ -152,7 +152,7 @@ class TestTutorialsArea:
 class TestDashboardEstate:
     def test_the_dashboard_shows_the_estate_and_your_own_work(self, registered,
                                                               people):
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get("/dashboard").text
         assert "models registered" in body
@@ -679,9 +679,9 @@ class TestThePagesAuthoriseAndNotOnlyAuthenticate:
     def _scoped(self, client):
         client.post("/api/v1/principals", json={
             "username": "uk.val", "display_name": "UK Validator",
-            "roles": ["validator"], "password": "uk-pw",
+            "roles": ["validator"], "password": "uk-pw-long-enough",
             "legal_entities": ["LE-US-01"], "domains": ["credit"]})
-        return ("uk.val", "uk-pw")
+        return ("uk.val", "uk-pw-long-enough")
 
     def test_the_api_refuses_an_out_of_scope_model(self, registered, people):
         self._elsewhere(registered, people)
@@ -695,7 +695,7 @@ class TestThePagesAuthoriseAndNotOnlyAuthenticate:
         somebody what they are not cleared for."""
         self._elsewhere(registered, people)
         self._scoped(registered)
-        _login(registered, "uk.val", "uk-pw")
+        _login(registered, "uk.val", "uk-pw-long-enough")
         page = registered.get(f"/model/{self.OTHER_NAME}")
         assert page.status_code == 403
         assert "outside your scope" in page.text
@@ -704,13 +704,13 @@ class TestThePagesAuthoriseAndNotOnlyAuthenticate:
                                                            people):
         self._elsewhere(registered, people)
         self._scoped(registered)
-        _login(registered, "uk.val", "uk-pw")
+        _login(registered, "uk.val", "uk-pw-long-enough")
         body = registered.get(f"/model/{self.OTHER_NAME}").text
         assert "LE-EU-01" not in body and "IRB capital" not in body
 
     def test_somebody_in_scope_still_sees_their_own_model(self, registered,
                                                           people):
-        _login(registered, "s.iqbal", "mrm-pw")
+        _login(registered, "s.iqbal", "mrm-pw-long-enough")
         page = registered.get(f"/model/{NAME}")
         assert page.status_code == 200 and "SB PD" in page.text
 

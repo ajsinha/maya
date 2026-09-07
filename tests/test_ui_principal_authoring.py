@@ -39,8 +39,8 @@ class TestTheScreenCanActuallyDoIt:
     def test_somebody_without_the_permission_is_offered_none_of_it(self, client):
         client.post("/api/v1/principals", json={
             "username": "reader", "display_name": "Reader",
-            "roles": ["auditor"], "password": "pw"})
-        _login(client, "reader", "pw")
+            "roles": ["auditor"], "password": "pw-long-enough-x"})
+        _login(client, "reader", "pw-long-enough-x")
         body = client.get("/admin/principals").text
         assert 'id="new-principal"' not in body
         assert "edit-roles" not in body
@@ -139,7 +139,7 @@ class TestTheApiStillRefusesWhatItRefused:
     def test_an_incompatible_pair_is_still_refused(self, client, people):
         r = client.post("/api/v1/principals", json={
             "username": "two.hats", "display_name": "Two Hats",
-            "roles": ["model_developer", "validator"], "password": "pw"})
+            "roles": ["model_developer", "validator"], "password": "pw-long-enough-x"})
         assert r.status_code == 409
         assert r.json()["error"] == "incompatible_roles"
         assert "effective challenge" in r.json()["detail"]
@@ -147,7 +147,7 @@ class TestTheApiStillRefusesWhatItRefused:
     def test_and_can_be_granted_as_a_recorded_exception(self, client):
         r = client.post("/api/v1/principals", json={
             "username": "two.hats", "display_name": "Two Hats",
-            "roles": ["model_developer", "validator"], "password": "pw",
+            "roles": ["model_developer", "validator"], "password": "pw-long-enough-x",
             "allow_conflicts": True})
         assert r.status_code == 201, r.text
 

@@ -49,6 +49,7 @@ from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.fibres import FibreError
 from core.apikeys import ApiKeyError
+from core.risk.tiering import RiskError
 from core.references.index import ReferencedError
 from core.rules.common import RuleError
 from core.monitoring import MonitorError
@@ -115,7 +116,10 @@ STATUS: Dict[str, int] = {
     "unknown_permission": 422,
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,
-    "not_tiered": 409, "amendment_open": 409, "attestation_open": 409,
+    "not_tiered": 409,
+    # A reassessment that re-runs the formula on last year's facts and
+    # calls it a review. 422: the request is incomplete, not refused.
+    "review_says_nothing": 422, "amendment_open": 409, "attestation_open": 409,
     "attestation_closed": 409, "already_signed": 409, "no_attestation_open": 409,
     "reason_required": 422, "unknown_decision": 422,
     "role_not_required": 403, "role_not_held": 403, "deletion_refused": 403,
@@ -244,6 +248,11 @@ STATUS: Dict[str, int] = {
     "name_required": 422, "name_in_use": 409,
     "lifetime_refused": 422, "scope_exceeds_principal": 422,
     "no_such_key": 404, "already_revoked": 409,
+    # A credential that IS ours and is no longer usable. 401 rather than
+    # 403: the caller is not authenticated, and each says WHICH of the four
+    # reasons it is — an expired key used to get the anonymous 401, whose
+    # remediation told the caller to send the key it was already sending.
+    "key_expired": 401, "key_revoked": 401, "key_principal_missing": 401,
     # Roles, now that a bank can define them. 409 where the register is in a
     # state that forbids the act, 422 where the request itself is incomplete.
     "role_exists": 409, "role_in_use": 409, "built_in_role": 409,
@@ -514,6 +523,7 @@ class Routes:
         # with the uncoded validation refusals would flatten eleven refusals
         # that each name a different thing to do into one 409.
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
+                RiskError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,

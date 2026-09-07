@@ -88,13 +88,14 @@ class GenerationLog:
                "sampled": int(self._sample(capability)),
                "attested_by": None, "attested_at": None, "edit_distance": None,
                "created_at": time.time(), "created_by": actor}
-        self.generations.add(row)
-        self.evidence.append("ai_generation_drafted", subject_type, subject_id,
-                             {"generation_id": row["id"],
-                              "capability": capability_key,
-                              "grounded": report["grounded"],
-                              "rejected": report["rejected"],
-                              "oracle": verdict}, actor=actor)
+        with self.evidence.recording():
+            self.generations.add(row)
+            self.evidence.append("ai_generation_drafted", subject_type, subject_id,
+                                 {"generation_id": row["id"],
+                                  "capability": capability_key,
+                                  "grounded": report["grounded"],
+                                  "rejected": report["rejected"],
+                                  "oracle": verdict}, actor=actor)
         return self.generations.one(id=row["id"])
 
     def _oracle(self, capability: Dict[str, Any],
@@ -150,13 +151,14 @@ class GenerationLog:
         state = "attested" if accept else "rejected"
         distance = self.edit_distance(row["output"].get("text", ""), final_text) \
             if accept and final_text else None
-        self.generations.set({"state": state, "attested_by": actor,
-                              "attested_at": time.time(),
-                              "edit_distance": distance}, id=generation_id)
-        self.evidence.append(f"ai_generation_{state}", row["subject_type"],
-                             row["subject_id"],
-                             {"generation_id": generation_id, "note": note,
-                              "edit_distance": distance}, actor=actor)
+        with self.evidence.recording():
+            self.generations.set({"state": state, "attested_by": actor,
+                                  "attested_at": time.time(),
+                                  "edit_distance": distance}, id=generation_id)
+            self.evidence.append(f"ai_generation_{state}", row["subject_type"],
+                                 row["subject_id"],
+                                 {"generation_id": generation_id, "note": note,
+                                  "edit_distance": distance}, actor=actor)
         return self.generations.one(id=generation_id)
 
     @staticmethod

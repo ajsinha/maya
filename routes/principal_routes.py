@@ -86,7 +86,19 @@ class PrincipalRoutes(Routes):
             Every permission is checked against the closed set: a role granting
             something nothing checks reads as authority and is not.
             """
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: self.ctx["roles"].create(
                 body.name, body.description, body.permissions,
                 actor=self.actor(who)))
@@ -94,7 +106,19 @@ class PrincipalRoutes(Routes):
         @self.app.put(f"{api}/roles/{{name}}", tags=["authorisation"])
         def amend_role(request: Request, name: str, body: RoleAmendIn):
             """Change a role somebody here defined. Not one that ships."""
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: self.ctx["roles"].amend(
                 name, description=body.description,
                 permissions=body.permissions, actor=self.actor(who)))
@@ -102,7 +126,19 @@ class PrincipalRoutes(Routes):
         @self.app.delete(f"{api}/roles/{{name}}", tags=["authorisation"])
         def remove_role(request: Request, name: str):
             """Remove a role nobody holds — the reference rule, one layer up."""
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             holders = [p["username"] for p in people.list()
                        if name in (p.get("roles") or [])]
             return self.guard(lambda: self.ctx["roles"].remove(
@@ -134,7 +170,19 @@ class PrincipalRoutes(Routes):
             until when — which is everything a reviewer needs and nothing an
             attacker can use.
             """
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: self.ctx["api_keys"].issue(
                 body.username, body.name, scopes=body.scopes,
                 lifetime_days=body.lifetime_days, actor=self.actor(who)))
@@ -143,7 +191,19 @@ class PrincipalRoutes(Routes):
                        tags=["authorisation"])
         def revoke_key(request: Request, key_id: str, body: RevokeKeyIn):
             """Withdraw one. The row stays — it is what says the key existed."""
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: self.ctx["api_keys"].revoke(
                 key_id, body.reason, actor=self.actor(who)))
 
@@ -163,15 +223,35 @@ class PrincipalRoutes(Routes):
             **Permission pairs** are about capability, and they are the ones a
             role somebody defines could otherwise smuggle past a name check.
             """
-            self.principal(request)
+            # Two documents behind one path, because the two halves are not
+            # equally sensitive. Which roles EXIST and what each is for is
+            # ordinary product information — a developer reading "who should I
+            # ask for this?" needs it. What each role GRANTS, the whole
+            # permission vocabulary, and which duties are separated is a map of
+            # where the controls are and which pairs are the escalation paths,
+            # and it went to any authenticated caller, including a service key
+            # scoped to a single permission.
+            who = self.principal(request)
+            detailed = self.ctx["authz"].permits(who, "principal:read")
             from core.authz.rolestore import INCOMPATIBLE_PERMISSIONS
 
             store = self.ctx["roles"]
-            return {
+            catalogue = {
                 "roles": [{"name": r["name"], "description": r["description"],
-                           "permissions": sorted(r.get("permissions") or []),
-                           "built_in": bool(r.get("built_in"))}
+                           "built_in": bool(r.get("built_in")),
+                           **({"permissions": sorted(r.get("permissions") or [])}
+                              if detailed else {})}
                           for r in store.all()],
+                "detailed": detailed,
+            }
+            if not detailed:
+                catalogue["detail"] = (
+                    "role names and what each is for. What each GRANTS, and "
+                    "which duties may not be held together, needs "
+                    "'principal:read'.")
+                return catalogue
+            return {
+                **catalogue,
                 "incompatible": [{"roles": [a, b], "reason": reason}
                                  for a, b, reason in INCOMPATIBLE_ROLES],
                 "incompatible_permissions": [
@@ -192,7 +272,19 @@ class PrincipalRoutes(Routes):
 
         @self.app.post(f"{api}/principals", status_code=201, tags=["authorisation"])
         def create_principal(request: Request, body: PrincipalIn):
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: people.create(
                 body.username, body.display_name, body.roles, body.password,
                 body.kind, body.email, body.legal_entities, body.domains,
@@ -200,14 +292,38 @@ class PrincipalRoutes(Routes):
 
         @self.app.put(f"{api}/principals/{{username}}/roles", tags=["authorisation"])
         def set_roles(request: Request, username: str, body: RolesIn):
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: people.set_roles(
                 username, body.roles, actor=self.actor(who),
                 allow_conflicts=body.allow_conflicts))
 
         @self.app.post(f"{api}/principals/{{username}}/suspend", tags=["authorisation"])
         def suspend(request: Request, username: str):
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: people.suspend(username, actor=self.actor(who)))
 
         # Administration was one-way — create, set roles, suspend — so a
@@ -220,7 +336,19 @@ class PrincipalRoutes(Routes):
         def reinstate(request: Request, username: str):
             """Return a suspended principal to service. Recorded, like the
             suspension it undoes."""
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: people.reinstate(username,
                                                        actor=self.actor(who)))
 
@@ -233,6 +361,18 @@ class PrincipalRoutes(Routes):
             The fact that an administrator set it does, because somebody who can
             silently take over an account is somebody nobody can audit.
             """
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: people.set_password(
                 username, body.password, actor=self.actor(who)))

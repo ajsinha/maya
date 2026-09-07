@@ -126,7 +126,10 @@ class AliasService:
         # "a service can wrap a whole governance act without knowing what its
         # collaborators do." The evidence append opens its own and joins this
         # one rather than deadlocking against it.
-        with self.aliases.db.transaction():
+        # `serialise` because this block appends to the evidence chain, and the
+        # chain's read-then-write must be ordered by the lock BEFORE the
+        # outermost transaction reads anything. Nesting used to drop it silently.
+        with self.aliases.db.transaction(serialise="evidence_seq"):
             self.aliases.point(m["id"], environment, name, new["id"], now, actor)
             self.history.add({
                 "model_id": m["id"], "environment": environment, "name": name,

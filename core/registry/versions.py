@@ -481,7 +481,10 @@ class VersionService:
         # `db.transaction()` is re-entrant, and its docstring names this exact
         # use: a service wraps a whole governance act without knowing what its
         # collaborators do.
-        with self.versions.db.transaction():
+        # `serialise` because this block appends to the evidence chain, and the
+        # chain's read-then-write must be ordered by the lock BEFORE the
+        # outermost transaction reads anything. Nesting used to drop it silently.
+        with self.versions.db.transaction(serialise="evidence_seq"):
             self.versions.add(row)
             self.evidence.append(
                 "version_created", "version", row["id"],
@@ -565,7 +568,8 @@ class VersionService:
                 "has_contract": bool(v.get("contract")),
                 **(self.facts.version_approve(model, v) if self.facts else {})},
                 f"{urn}@{semver}")
-        self.versions.set({"status": "approved"}, id=v["id"])
-        self.evidence.append("version_approved", "version", v["id"],
-                             {"semver": semver}, actor=actor)
+        with self.evidence.recording():
+            self.versions.set({"status": "approved"}, id=v["id"])
+            self.evidence.append("version_approved", "version", v["id"],
+                                 {"semver": semver}, actor=actor)
         return {**v, "status": "approved"}

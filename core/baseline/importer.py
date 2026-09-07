@@ -72,12 +72,13 @@ class BaselineImporter:
             imported.append(result)
             total_debt += len(result["debt"])
 
-        self.imports.set({"models": len(imported), "debt_items": total_debt},
-                         id=row["id"])
-        self.evidence.append("baseline_imported", "import", row["id"],
-                             {"reference": row["reference"], "source": source,
-                              "models": len(imported), "debt_items": total_debt,
-                              "skipped": len(failures)}, actor=actor)
+        with self.evidence.recording():
+            self.imports.set({"models": len(imported), "debt_items": total_debt},
+                             id=row["id"])
+            self.evidence.append("baseline_imported", "import", row["id"],
+                                 {"reference": row["reference"], "source": source,
+                                  "models": len(imported), "debt_items": total_debt,
+                                  "skipped": len(failures)}, actor=actor)
         logger.info("baseline import %s: %d models, %d debt items, %d skipped",
                     row["reference"], len(imported), total_debt, len(failures))
         return {**self.imports.one(id=row["id"]), "imported": imported,

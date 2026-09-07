@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import random
 import time
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import (Any, Callable, Dict, List, Optional, Sequence,
                     Set, Tuple)
@@ -71,6 +72,32 @@ class EvidenceEngine:
         # one, the chain is self-certified and `verify_against_anchors` says so
         # rather than reporting a pass.
         self.anchors = anchors
+
+    @contextmanager
+    def recording(self):
+        """One transaction for a governed act AND the record of it.
+
+        Every service in this platform committed its state change and then
+        appended to the chain as a separate statement -- 85 such pairs.
+        `LifecycleService._move` is the shape at its worst:
+
+            self.registry.catalogue.models.set({"status": target}, ...)
+            self.evidence.append(f"model_{name}", ...)
+
+        Make the append fail -- a full disk, a lost connection, the UNIQUE on
+        `seq` -- and the model is `submitted` while the chain has no record of
+        it. The caller gets a 500 and retries, and the retry is refused as an
+        illegal transition FROM `submitted`, so the hole is permanent and
+        nothing can close it through the product. Segregation of duties is
+        decided by reading this chain, so a missing `version_created` node does
+        not fail closed: "you cannot approve what you created" simply has
+        nothing left to read.
+
+        `serialise` because the chain's read-then-write must be ordered by the
+        write lock before the outermost transaction reads anything.
+        """
+        with self.repo.db.transaction(serialise="evidence_seq") as conn:
+            yield conn
 
     # -------------------------------------------------------------- append
     def head(self) -> Tuple[int, str]:

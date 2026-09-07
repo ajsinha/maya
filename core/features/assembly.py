@@ -345,10 +345,11 @@ class TrainingSetBuilder:
                "featureset": featureset, "featureset_version": featureset_version,
                "digest": self.content_digest(rows),
                "created_at": time.time()}
-        self.snapshots.add(row)
-        self.evidence.append("dataset_snapshot_created", "snapshot", row["id"],
-                             {"name": name, "rows": len(rows), "pit_verified": report.passed},
-                             actor=actor)
+        with self.evidence.recording():
+            self.snapshots.add(row)
+            self.evidence.append("dataset_snapshot_created", "snapshot", row["id"],
+                                 {"name": name, "rows": len(rows), "pit_verified": report.passed},
+                                 actor=actor)
         # Storage takes 0/1 because that is what both dialects share; the caller
         # gets a bool, so no consumer has to know how a boolean is persisted.
         return {**row, "pit_verified": report.passed}

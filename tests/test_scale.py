@@ -154,7 +154,7 @@ class TestTheEstateAtScale:
 
     def test_a_principal_sees_only_their_own_work_without_scanning_twice(
             self, estate, worklist, authz, principals):
-        principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw")
+        principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw-long-enough-x")
         who = principals.require("s.iqbal")
         elapsed, mine = timed(
             lambda: worklist.mine(who, authz, estate.list()))

@@ -414,6 +414,27 @@ class UIRoutes(Routes):
                              kind=kind, subject=id, report=report,
                              suggestions=sorted(suggestions))
 
+        # ----------------------------------------------------- limitations
+        @self.app.get("/limitations", response_class=HTMLResponse, tags=["ui"])
+        def limitations_page(request: Request):
+            """Everything the estate says its models cannot do.
+
+            The register had no screen and no estate-wide query at all: reading
+            it needed a urn AND a semver, so "what are we relying on people to
+            remember, across the book?" — the question a limitation register
+            exists to answer — could not be asked. A limitation nobody can
+            enumerate is a limitation nobody is managing, and a control with no
+            screen is one this project's own rules say is not built.
+
+            Sorted worst-first: a version whose limitations are STATED rather
+            than bound to a contract clause is the one relying on somebody to
+            remember, and that is what a reader needs at the top.
+            """
+            if (r := self.page_gate(request, "limitation:read")) is not None:
+                return r
+            return self.page(request, "limitations.html",
+                             report=self.ctx["limitations"].across_the_estate())
+
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
         def notifications_page(request: Request):

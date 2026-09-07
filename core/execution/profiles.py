@@ -148,11 +148,12 @@ class WarrantProfileRegister:
                "retired": 0,
                "digest": canonical_digest({"when": when, "defaults": defaults}),
                "created_by": actor, "created_at": time.time()}
-        self.repo.add(row)
-        self.evidence.append("warrant_profile_created", "warrant_profile", row["id"],
-                             {"name": name, "version": row["version"],
-                              "when": when, "defaults": sorted(defaults),
-                              "digest": row["digest"]}, actor=actor)
+        with self.evidence.recording():
+            self.repo.add(row)
+            self.evidence.append("warrant_profile_created", "warrant_profile", row["id"],
+                                 {"name": name, "version": row["version"],
+                                  "when": when, "defaults": sorted(defaults),
+                                  "digest": row["digest"]}, actor=actor)
         logger.info("warrant profile %s v%s registered over %s facts",
                     name, row["version"], len(when))
         return row
@@ -163,11 +164,12 @@ class WarrantProfileRegister:
         if row is None:
             raise ProfileError("no_such_profile", f"no profile named '{name}'",
                                "list the profiles to see what is registered")
-        self.repo.set({"retired": 1, "retired_at": time.time(),
-                       "retired_by": actor}, id=row["id"])
-        self.evidence.append("warrant_profile_retired", "warrant_profile",
-                             row["id"], {"name": name, "version": row["version"]},
-                             actor=actor)
+        with self.evidence.recording():
+            self.repo.set({"retired": 1, "retired_at": time.time(),
+                           "retired_by": actor}, id=row["id"])
+            self.evidence.append("warrant_profile_retired", "warrant_profile",
+                                 row["id"], {"name": name, "version": row["version"]},
+                                 actor=actor)
         return self.repo.one(id=row["id"])
 
     # ------------------------------------------------------------------ read

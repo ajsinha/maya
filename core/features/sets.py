@@ -122,11 +122,12 @@ class FeaturesetRegistry:
             raise FeatureError(
                 f"the label slot '{label_slot}' is not one of the slots this "
                 f"featureset resolves to")
-        self.sets.add(row)
-        self.evidence.append("featureset_defined", "featureset", row["id"],
-                             {"name": name, "entity": entity,
-                              "slots": sorted(normalised), "label": label_slot},
-                             actor=actor)
+        with self.evidence.recording():
+            self.sets.add(row)
+            self.evidence.append("featureset_defined", "featureset", row["id"],
+                                 {"name": name, "entity": entity,
+                                  "slots": sorted(normalised), "label": label_slot},
+                                 actor=actor)
         return self.sets.one(id=row["id"])
 
     # -------------------------------------------------------------- composition
@@ -302,11 +303,12 @@ class FeaturesetRegistry:
         # here, so the children stamped against the old definition have to be
         # able to find out.
         version = (row.get("definition_version") or 1) + 1
-        self.sets.set({"defaults": checked, "definition_version": version},
-                      id=row["id"])
-        self.evidence.append("featureset_policy_set", "featureset", row["id"],
-                             {"name": name, "policy": checked,
-                              "definition_version": version}, actor=actor)
+        with self.evidence.recording():
+            self.sets.set({"defaults": checked, "definition_version": version},
+                          id=row["id"])
+            self.evidence.append("featureset_policy_set", "featureset", row["id"],
+                                 {"name": name, "policy": checked,
+                                  "definition_version": version}, actor=actor)
         return self.sets.one(id=row["id"])
 
     def destroy(self, name: str, why: str = "expired",
@@ -378,13 +380,14 @@ class FeaturesetRegistry:
                "digest": canonical_digest({"bindings": resolved,
                                            "label": label_binding}),
                "note": note, "created_by": actor, "created_at": time.time()}
-        self.versions.add(row)
-        self.evidence.append("featureset_version_published", "featureset",
-                             featureset["id"],
-                             {"name": name, "version": number,
-                              "digest": row["digest"],
-                              "features": sorted(b["feature"] for b in resolved.values())},
-                             actor=actor)
+        with self.evidence.recording():
+            self.versions.add(row)
+            self.evidence.append("featureset_version_published", "featureset",
+                                 featureset["id"],
+                                 {"name": name, "version": number,
+                                  "digest": row["digest"],
+                                  "features": sorted(b["feature"] for b in resolved.values())},
+                                 actor=actor)
         logger.info("published %s@v%d over %d slots", name, number, len(resolved))
         return self.versions.one(id=row["id"])
 

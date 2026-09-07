@@ -138,7 +138,7 @@ class TestScopeIsCheckedOnThePageAndNotOnlyTheApi:
             "legal_entity": "LE-EU-01", "purpose": "IRB capital"})
         client.post("/api/v1/principals", json={
             "username": "uk.val", "display_name": "UK Validator",
-            "roles": ["validator"], "password": "uk-pw",
+            "roles": ["validator"], "password": "uk-pw-long-enough",
             "legal_entities": ["LE-US-01"], "domains": ["credit"]})
 
     def test_the_warrant_page_refuses_a_model_out_of_scope(self, registered,
@@ -146,7 +146,7 @@ class TestScopeIsCheckedOnThePageAndNotOnlyTheApi:
         """A model's grants say who may run it and for what. That is not a thing
         to render for somebody the API refuses the model to."""
         self._elsewhere_and_scoped(registered, people)
-        _login(registered, "uk.val", "uk-pw")
+        _login(registered, "uk.val", "uk-pw-long-enough")
         page = registered.get(f"/warrants?model={self.OTHER_NAME}")
         assert page.status_code == 403
         assert "LE-EU-01" not in page.text
@@ -155,7 +155,7 @@ class TestScopeIsCheckedOnThePageAndNotOnlyTheApi:
         """A pack is the most complete thing this platform produces about a
         model, so it is the largest scope leak available."""
         self._elsewhere_and_scoped(registered, people)
-        _login(registered, "uk.val", "uk-pw")
+        _login(registered, "uk.val", "uk-pw-long-enough")
         page = registered.get(f"/packages/{self.OTHER_NAME}")
         assert page.status_code == 403
         assert "IRB capital" not in page.text
@@ -350,7 +350,7 @@ class TestTheWholeRoundTrip:
         with TestClient(ready.app) as other:
             approved = other.post(
                 f"/api/v1/parameter-sets/{pset['id']}/review",
-                auth=("a.mehta", "val-pw"),
+                auth=("a.mehta", "val-pw-long-enough"),
                 json={"accept": True, "note": "checked"})
         assert approved.status_code == 200, approved.text
 

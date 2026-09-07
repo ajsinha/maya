@@ -49,9 +49,10 @@ class ModelCatalogue:
                "legal_entity": legal_entity, "purpose": purpose, "origin": origin,
                "status": "draft", "tier": None, "attributes": attributes or {},
                "created_at": time.time(), "created_by": actor}
-        self.models.add(row)
-        self.evidence.append("model_registered", "model", row["id"],
-                             {"urn": urn, "owner": owner}, actor=actor)
+        with self.evidence.recording():
+            self.models.add(row)
+            self.evidence.append("model_registered", "model", row["id"],
+                                 {"urn": urn, "owner": owner}, actor=actor)
         return row
 
     def by_id(self, model_id: str) -> Optional[Dict[str, Any]]:
@@ -93,16 +94,18 @@ class ModelCatalogue:
                 f"editable fields are {', '.join(self.EDITABLE)}")
         if not fields:
             return model
-        self.models.set(dict(fields), id=model["id"])
-        self.evidence.append("model_updated", "model", model["id"],
-                             {"changed": sorted(fields),
-                              "from": {k: model.get(k) for k in fields}}, actor=actor)
+        with self.evidence.recording():
+            self.models.set(dict(fields), id=model["id"])
+            self.evidence.append("model_updated", "model", model["id"],
+                                 {"changed": sorted(fields),
+                                  "from": {k: model.get(k) for k in fields}}, actor=actor)
         return self.models.one(id=model["id"])
 
     def set_tier(self, model_id: str, tier: int) -> None:
         self.models.set({"tier": tier}, id=model_id)
 
     def set_status(self, model_id: str, status: str, actor: str = "system") -> None:
-        self.models.set({"status": status}, id=model_id)
-        self.evidence.append("status_changed", "model", model_id,
-                             {"status": status}, actor=actor)
+        with self.evidence.recording():
+            self.models.set({"status": status}, id=model_id)
+            self.evidence.append("status_changed", "model", model_id,
+                                 {"status": status}, actor=actor)

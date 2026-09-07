@@ -164,7 +164,7 @@ class TestFeaturesetsAndParameters:
         """Two independent lines: the role grant stops a developer, who holds no
         approval permission, and the register stops even a principal whose role
         would let them through."""
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         recorded = self._record(registered, admin).json()
         r = registered.post(f"/api/v1/parameter-sets/{recorded['id']}/review",
                             auth=admin, json={"accept": True})

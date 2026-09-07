@@ -80,11 +80,11 @@ def author(client):
     account does, and doing it before the session exists keeps the CSRF guard
     out of the fixture without disabling it for the tests that follow.
     """
-    admin = ("admin", "admin123")
+    admin = ("admin", "maya-admin-dev")
     assert client.post("/api/v1/principals", auth=admin, json={
         "username": "d.raman", "display_name": "D Raman",
-        "roles": ["model_developer"], "password": "dev-pw"}).status_code == 201
-    dev = ("d.raman", "dev-pw")
+        "roles": ["model_developer"], "password": "dev-pw-long-enough"}).status_code == 201
+    dev = ("d.raman", "dev-pw-long-enough")
 
     for name, dtype in (("living_area_sqft", "numeric"), ("bedrooms", "integer"),
                         ("sale_price", "numeric"), ("lot_size", "numeric")):
@@ -136,7 +136,7 @@ def author(client):
                      "on_boundary_violation": "reject"},
         "artifact_digest": "sha256:" + "a" * 64})
 
-    _login(client, "d.raman", "dev-pw")
+    _login(client, "d.raman", "dev-pw-long-enough")
     client.auth = None
     return client
 

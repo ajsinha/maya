@@ -30,13 +30,13 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 PEOPLE = {
-    "d.raman":  (["model_developer"],     "dev-pw",   "D Raman"),
-    "l.fontaine": (["model_developer"],   "dev-pw",   "L Fontaine"),
-    "j.okafor": (["model_owner"],         "owner-pw", "J Okafor"),
-    "a.mehta":  (["validator"],           "val-pw",   "A Mehta"),
-    "s.iqbal":  (["model_risk_manager"],  "mrm-pw",   "S Iqbal"),
-    "t.nowak":  (["operator"],            "ops-pw",   "T Nowak"),
-    "r.silva":  (["auditor"],             "aud-pw",   "R Silva"),
+    "d.raman":  (["model_developer"],     "dev-pw-long-enough",   "D Raman"),
+    "l.fontaine": (["model_developer"],   "dev-pw-long-enough",   "L Fontaine"),
+    "j.okafor": (["model_owner"],         "owner-pw-long-enough", "J Okafor"),
+    "a.mehta":  (["validator"],           "val-pw-long-enough",   "A Mehta"),
+    "s.iqbal":  (["model_risk_manager"],  "mrm-pw-long-enough",   "S Iqbal"),
+    "t.nowak":  (["operator"],            "ops-pw-long-enough",   "T Nowak"),
+    "r.silva":  (["auditor"],             "aud-pw-long-enough",   "R Silva"),
 }
 
 
@@ -52,7 +52,7 @@ def _ok(what, response, expected=(200, 201)):
 
 
 def build(client) -> None:
-    admin = ("admin", "admin123")
+    admin = ("admin", "maya-admin-dev")
 
     print("principals")
     for username, (roles, password, display) in PEOPLE.items():

@@ -340,7 +340,12 @@ class TestAQuorumIsANumberOfPeople:
         assert "IntegrityError" in source
         assert source.count("already_signed_personally") >= 2, (
             "the constraint's refusal must carry the same code as the read's")
-        assert "db.transaction()" in source
+        # `serialise="evidence_seq"`, not a bare `transaction()`. The signature
+        # and its evidence node must be one act, AND the chain's read-then-write
+        # must be ordered by the lock before the outermost transaction reads —
+        # a plain `transaction()` here silently dropped the `serialise` the
+        # nested `evidence.append` asked for.
+        assert "db.transaction(serialise=" in source
 
 
 class TestTheSequenceIsTakenUnderTheWriteLock:

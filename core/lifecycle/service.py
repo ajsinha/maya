@@ -74,10 +74,11 @@ class LifecycleService:
                 "illegal_transition",
                 f"cannot '{name}' a model that is '{state}'; from here you may: {legal}",
                 f"the record is {MEANING.get(state, 'in an unexpected state')}")
-        self.registry.catalogue.models.set({"status": rule.target}, id=model["id"])
-        self.evidence.append(f"model_{name}", "model", model["id"],
-                             {"from": state, "to": rule.target, **(payload or {})},
-                             actor=actor)
+        with self.evidence.recording():
+            self.registry.catalogue.models.set({"status": rule.target}, id=model["id"])
+            self.evidence.append(f"model_{name}", "model", model["id"],
+                                 {"from": state, "to": rule.target, **(payload or {})},
+                                 actor=actor)
         logger.info("model %s moved %s -> %s by %s", model["urn"], state, rule.target, actor)
         return self.registry.get(model["urn"])
 
@@ -140,12 +141,13 @@ class LifecycleService:
         elif progress["status"] == "declined":
             # A decline returns the record to work, not to limbo.
             back = "amend" if current.get("amendment_id") else "return"
-            self.registry.catalogue.models.set(
-                {"status": AMENDING if back == "amend" else DRAFT}, id=model["id"])
-            self.evidence.append("model_attestation_declined", "model", model["id"],
-                                 {"attestation_id": current["id"],
-                                  "to": AMENDING if back == "amend" else DRAFT},
-                                 actor=actor)
+            with self.evidence.recording():
+                self.registry.catalogue.models.set(
+                    {"status": AMENDING if back == "amend" else DRAFT}, id=model["id"])
+                self.evidence.append("model_attestation_declined", "model", model["id"],
+                                     {"attestation_id": current["id"],
+                                      "to": AMENDING if back == "amend" else DRAFT},
+                                     actor=actor)
         return self.state(model["urn"])
 
     def amend(self, model: Dict[str, Any], reason: str,

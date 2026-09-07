@@ -162,7 +162,7 @@ class TestWhatIPersonallyCanDo:
 
     def test_scope_filters_the_worklist_too(self, worklist, authz, principals,
                                             registry, a_model):
-        principals.create("uk.owner", "UK", ["model_owner"], "pw",
+        principals.create("uk.owner", "UK", ["model_owner"], "pw-long-enough-x",
                           legal_entities=["LE-UK-02"])
         mine = worklist.mine(principals.get("uk.owner"), authz, [a_model])
         assert mine["items"] == [], "a US model is outside a UK-scoped principal"

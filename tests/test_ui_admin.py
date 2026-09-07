@@ -55,7 +55,7 @@ class TestAdminPages:
         assert "Roles nobody may hold together" in body
 
     def test_people_and_roles_is_refused_without_principal_read(self, client, people):
-        _login(client, "d.raman", "dev-pw")
+        _login(client, "d.raman", "dev-pw-long-enough")
         r = client.get("/admin/principals")
         assert r.status_code == 403
 
@@ -165,7 +165,7 @@ class TestNavigation:
         The point is not tidiness. A menu that lists screens which then answer
         403 teaches people that refusals are noise.
         """
-        _login(client, "d.raman", "dev-pw")
+        _login(client, "d.raman", "dev-pw-long-enough")
         nav = _nav(client.get("/dashboard").text)
         assert 'href="/admin/principals"' not in nav
         assert 'href="/policies"' not in nav
@@ -454,7 +454,7 @@ class TestADraftRecordCannotReachProduction:
     def test_resolving_against_it_is_refused(self, client, people):
         from tests.conftest import URN
         self._to_the_edge_of_production(client, people)
-        r = client.post("/api/v1/resolve", auth=("admin", "admin123"), json={
+        r = client.post("/api/v1/resolve", auth=("admin", "maya-admin-dev"), json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination",
             "declared_use": "origination_decision"})
@@ -474,7 +474,7 @@ class TestADraftRecordCannotReachProduction:
                            json={"note": "ready"}).status_code in (200, 201)
         assert client.post(f"/api/v1/models/{NAME}/approve", auth=mrm,
                            json={"note": "approved"}).status_code in (200, 201)
-        r = client.post("/api/v1/resolve", auth=("admin", "admin123"), json={
+        r = client.post("/api/v1/resolve", auth=("admin", "maya-admin-dev"), json={
             "urn": f"{URN}#champion", "environment": "prod",
             "principal": "svc/origination",
             "declared_use": "origination_decision"})
@@ -514,7 +514,7 @@ class TestTheEstateWideFindingsQuestion:
     def test_the_screen_renders_them_worst_first(self, registered, people):
         self._raise_one(registered, people, "Observation")
         self._raise_one(registered, people, "Critical")
-        _login(registered, "s.iqbal", "mrm-pw")
+        _login(registered, "s.iqbal", "mrm-pw-long-enough")
         body = registered.get("/findings").text
         assert body.index("Critical") < body.index("Observation"), (
             "a list sorted by when things were raised buries the Critical one")
@@ -532,14 +532,14 @@ class TestTheEstateWideFindingsQuestion:
 
     def test_an_empty_answer_says_what_it_is_an_answer_about(self, registered, people):
         """"Nothing open" is a claim about a scope, and the page says whose."""
-        _login(registered, "s.iqbal", "mrm-pw")
+        _login(registered, "s.iqbal", "mrm-pw-long-enough")
         body = registered.get("/findings").text
         assert "not about the estate" in body or "your scope" in body
 
     def test_a_stranger_is_redirected_and_a_developer_may_read(self, registered, people):
         assert registered.get("/findings", follow_redirects=False).status_code in (
             302, 303, 307)
-        _login(registered, "d.raman", "dev-pw")
+        _login(registered, "d.raman", "dev-pw-long-enough")
         assert registered.get("/findings").status_code == 200
 
 
@@ -554,7 +554,7 @@ class TestAccountAdministrationIsNotOneWay:
     """
 
     def test_a_suspended_principal_can_be_reinstated(self, client, people):
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         assert client.post("/api/v1/principals/d.raman/suspend",
                            auth=admin).status_code == 200
         # Suspended means suspended: the credential stops working.
@@ -568,12 +568,12 @@ class TestAccountAdministrationIsNotOneWay:
     def test_reinstating_an_active_principal_is_refused_rather_than_ignored(
             self, client, people):
         r = client.post("/api/v1/principals/d.raman/reinstate",
-                        auth=("admin", "admin123"))
+                        auth=("admin", "maya-admin-dev"))
         assert r.status_code == 409 and r.json()["error"] == "already_active"
 
     def test_both_acts_are_on_the_evidence_chain(self, client, people):
         """A suspension and its reversal read as a pair, with who did each."""
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         client.post("/api/v1/principals/d.raman/suspend", auth=admin)
         client.post("/api/v1/principals/d.raman/reinstate", auth=admin)
         # Read from the service rather than an endpoint, because the chain is
@@ -584,22 +584,22 @@ class TestAccountAdministrationIsNotOneWay:
 
     def test_a_password_can_be_set_without_making_a_second_account(
             self, client, people):
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         r = client.post("/api/v1/principals/d.raman/password", auth=admin,
                         json={"password": "a-much-longer-secret"})
         assert r.status_code == 200, r.text
-        assert client.get("/api/v1/me", auth=("d.raman", "dev-pw")).status_code == 401
+        assert client.get("/api/v1/me", auth=("d.raman", "dev-pw-long-enough")).status_code == 401
         assert client.get("/api/v1/me",
                           auth=("d.raman", "a-much-longer-secret")).status_code == 200
 
     def test_a_short_password_is_refused(self, client, people):
         r = client.post("/api/v1/principals/d.raman/password",
-                        auth=("admin", "admin123"), json={"password": "short"})
+                        auth=("admin", "maya-admin-dev"), json={"password": "short"})
         assert r.status_code == 422 and r.json()["error"] == "password_too_short"
 
     def test_the_password_itself_never_reaches_the_evidence_chain(self, client, people):
         """The FACT is recorded; the secret is not."""
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         client.post("/api/v1/principals/d.raman/password", auth=admin,
                     json={"password": "a-much-longer-secret"})
         import json
@@ -623,7 +623,7 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
     """
 
     def test_a_developer_is_told_who_to_ask_to_register(self, client, people):
-        _login(client, "d.raman", "dev-pw")
+        _login(client, "d.raman", "dev-pw-long-enough")
         body = client.get("/models/new").text
         assert "model:register" in body
         assert "owner" in body.lower()
@@ -639,7 +639,7 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
         page working. What would be noise is telling an owner they cannot
         register.
         """
-        _login(client, "j.okafor", "owner-pw")
+        _login(client, "j.okafor", "owner-pw-long-enough")
         body = client.get("/models/new").text
         assert "<code>model:register</code>, which your account does not hold" \
             not in body
@@ -647,14 +647,14 @@ class TestAFormOffersOnlyWhatTheCallerMayDo:
             in body, "and say who to ask for the half that is not theirs"
 
     def test_a_developer_is_told_who_to_ask_for_a_warrant(self, client, people):
-        _login(client, "d.raman", "dev-pw")
+        _login(client, "d.raman", "dev-pw-long-enough")
         body = client.get("/warrants").text
         assert "warrant:issue" in body and "model owner" in body
 
     def test_the_page_still_reads_for_somebody_who_may_not_act(self, client, people):
         """The refusal hides the control, not the explanation. Everything a
         developer needs in order to ask for the right warrant is still there."""
-        _login(client, "d.raman", "dev-pw")
+        _login(client, "d.raman", "dev-pw-long-enough")
         body = client.get("/warrants").text
         assert "still reads" in body
         assert body.count("<form") >= 1

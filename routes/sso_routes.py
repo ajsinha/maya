@@ -102,7 +102,19 @@ class SsoRoutes(Routes):
             For an administrator wiring up a mapping: it answers *which roles
             would this person get* before anybody finds out the hard way.
             """
-            self.authorise(request, "principal:manage")
+            self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             provider = self._provider()
             return self.guard(lambda: provider.identity(claims))
 

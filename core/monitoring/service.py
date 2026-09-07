@@ -200,11 +200,12 @@ class MonitoringService:
                     "threshold": monitor["threshold"], "n": computed["sample"]}),
                "computed_at": now}
         self.observations.add(row)
-        self.registry.monitors.set({"last_evaluated_at": now}, id=monitor["id"])
-        self.evidence.append("monitor_evaluated", "model", monitor["model_id"],
-                             {"monitor_id": monitor["id"], "value": result.value,
-                              "passed": result.passed,
-                              "sample_size": computed["sample"]}, actor=actor)
+        with self.evidence.recording():
+            self.registry.monitors.set({"last_evaluated_at": now}, id=monitor["id"])
+            self.evidence.append("monitor_evaluated", "model", monitor["model_id"],
+                                 {"monitor_id": monitor["id"], "value": result.value,
+                                  "passed": result.passed,
+                                  "sample_size": computed["sample"]}, actor=actor)
         return self.observations.one(id=row["id"])
 
     def _react(self, monitor: Dict[str, Any], observation: Dict[str, Any],

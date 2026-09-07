@@ -49,7 +49,15 @@ def persistence(overlay: Dict[str, Any],
     correctly given a long window, while a short overlay renewed five times is
     the one that has quietly become part of the model.
     """
-    renewals = overlay.get("renewals", 0)
+    # `continuations` when the register has computed it: the count across every
+    # row this adjustment has occupied, not just the current one. Renewal
+    # counting was per ROW, so letting an overlay lapse and PROPOSING it again
+    # reset the counter to zero — and the platform's own expiry job was what
+    # performed the reset. Four consecutive 90-day overlays read as
+    # `persistent: false` throughout.
+    renewals = overlay.get("continuations")
+    if renewals is None:
+        renewals = overlay.get("renewals", 0)
     over = renewals > renewal_limit
     return {
         "renewals": renewals, "limit": renewal_limit, "persistent": over,

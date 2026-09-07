@@ -332,8 +332,8 @@ class TestTheAdminScreen:
         _issue(client, name="ecl-batch")
         client.post("/api/v1/principals", json={
             "username": "keyreader", "display_name": "R", "roles": ["auditor"],
-            "password": "pw"})
-        login(client, "keyreader", "pw")
+            "password": "pw-long-enough-x"})
+        login(client, "keyreader", "pw-long-enough-x")
         body = client.get("/admin/api-keys").text
         assert 'id="new-key"' not in body and "revoke-key" not in body
         # Named `ecl-batch` rather than `nightly-scoring`, which is the form's

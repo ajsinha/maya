@@ -178,11 +178,12 @@ class DerivedFeatures:
             "definition_version": version, "note": note,
             "digest": canonical_digest({"expression": source, "inputs": inputs}),
             "created_by": actor, "created_at": time.time()}
-        self.derived.add(definition)
-        self.evidence.append("derived_feature_defined", "feature", row["id"],
-                             {"name": name, "expression": source,
-                              "inputs": inputs, "definition_version": version,
-                              "evaluator": evaluator}, actor=actor)
+        with self.evidence.recording():
+            self.derived.add(definition)
+            self.evidence.append("derived_feature_defined", "feature", row["id"],
+                                 {"name": name, "expression": source,
+                                  "inputs": inputs, "definition_version": version,
+                                  "evaluator": evaluator}, actor=actor)
         logger.info("defined derived feature %s@v%d over %s", name, version, inputs)
         return self.derived.one(id=definition["id"])
 

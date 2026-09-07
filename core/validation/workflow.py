@@ -102,12 +102,13 @@ class FindingWorkflow:
                 "say why ownership is moving; 'reassigned' explains nothing to "
                 "whoever reads this at the next committee")
         before = row["owner"]
-        self.register.findings.set({"owner": to}, id=finding_id)
-        self._record(row, ASSIGNED, actor, from_owner=before, to_owner=to,
-                     reason=reason)
-        self.evidence.append("finding_assigned", "model", row["model_id"],
-                             {"finding_id": finding_id, "from": before, "to": to,
-                              "reason": reason}, actor=actor)
+        with self.evidence.recording():
+            self.register.findings.set({"owner": to}, id=finding_id)
+            self._record(row, ASSIGNED, actor, from_owner=before, to_owner=to,
+                         reason=reason)
+            self.evidence.append("finding_assigned", "model", row["model_id"],
+                                 {"finding_id": finding_id, "from": before, "to": to,
+                                  "reason": reason}, actor=actor)
         logger.info("finding %s handed from %s to %s", finding_id, before, to)
         return self.register.get(finding_id)
 
@@ -248,13 +249,14 @@ class FindingWorkflow:
                 "longer than the original window is a new remediation date "
                 "nobody has justified")
 
-        self.register.findings.set({"due_at": target}, id=finding_id)
-        self._record(row, EXTENDED, actor, reason=reason, due_before=row["due_at"],
-                     due_after=target, acted_at=moment)
-        self.evidence.append("finding_extended", "model", row["model_id"],
-                             {"finding_id": finding_id, "from": row["due_at"],
-                              "to": target, "days": round(granted, 1),
-                              "reason": reason}, actor=actor)
+        with self.evidence.recording():
+            self.register.findings.set({"due_at": target}, id=finding_id)
+            self._record(row, EXTENDED, actor, reason=reason, due_before=row["due_at"],
+                         due_after=target, acted_at=moment)
+            self.evidence.append("finding_extended", "model", row["model_id"],
+                                 {"finding_id": finding_id, "from": row["due_at"],
+                                  "to": target, "days": round(granted, 1),
+                                  "reason": reason}, actor=actor)
         logger.info("finding %s extended by %.0f days by %s", finding_id, granted,
                     actor)
         self._escalate_if_repeatedly_extended(finding_id, actor, moment)

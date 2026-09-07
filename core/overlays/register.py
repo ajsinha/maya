@@ -51,6 +51,35 @@ class OverlayRegister:
         self.max_days, self.renewal_limit = max_days, renewal_limit
 
     # -------------------------------------------------------------- propose
+    def lineage(self, overlay: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Every row this adjustment has occupied, oldest first.
+
+        The same model, name, kind and direction is the same adjustment however
+        many rows it has lived in. Nothing joined them, so an overlay that
+        expired and was PROPOSED again started at `renewals: 0` with no record
+        that anything had continued.
+        """
+        same = [o for o in self.overlays.many(model_id=overlay["model_id"])
+                if o.get("name") == overlay.get("name")
+                and o.get("kind") == overlay.get("kind")
+                and o.get("direction") == overlay.get("direction")]
+        return sorted(same, key=lambda o: o.get("created_at") or 0)
+
+    def continuations(self, overlay: Dict[str, Any]) -> int:
+        """How many times this adjustment has been extended beyond its first
+        period, counting re-proposal as the extension it is.
+
+        Renewal counting was per ROW, so the renewal limit — the control that
+        makes somebody ask whether the model should be FIXED rather than
+        adjusted — was avoidable in one step: let it lapse, propose it again,
+        and the counter is back at zero. Four consecutive 90-day overlays is a
+        full year of adjustment, and the register read `active: 0,
+        persistent: 0, unmeasured: 0` throughout, because the platform's own
+        expiry job performed the reset.
+        """
+        rows = self.lineage(overlay)
+        return sum(row.get("renewals") or 0 for row in rows) + max(0, len(rows) - 1)
+
     def propose(self, model_id: str, name: str, kind: str, rationale: str,
                 owner: str, direction: str = "increase",
                 basis: Optional[Dict[str, Any]] = None,
@@ -84,10 +113,11 @@ class OverlayRegister:
                "status": "proposed", "effective_from": None, "expires_at": None,
                "renewals": 0, "finding_id": None, "created_at": time.time(),
                "closed_at": None, "closure_reason": None}
-        self.overlays.add(row)
-        self.evidence.append("overlay_proposed", "model", model_id,
-                             {"overlay_id": row["id"], "reference": row["reference"],
-                              "kind": kind, "rationale": rationale}, actor=actor)
+        with self.evidence.recording():
+            self.overlays.add(row)
+            self.evidence.append("overlay_proposed", "model", model_id,
+                                 {"overlay_id": row["id"], "reference": row["reference"],
+                                  "kind": kind, "rationale": rationale}, actor=actor)
         return self.overlays.one(id=row["id"])
 
     def _reference(self, model_id: str) -> str:
@@ -109,12 +139,13 @@ class OverlayRegister:
                 "preference, not a control")
         now = time.time()
         window = days or self.max_days
-        self.overlays.set({"status": "active", "approved_by": actor,
-                           "effective_from": now,
-                           "expires_at": now + window * DAY}, id=overlay_id)
-        self.evidence.append("overlay_approved", "model", row["model_id"],
-                             {"overlay_id": overlay_id, "reference": row["reference"],
-                              "days": window}, actor=actor)
+        with self.evidence.recording():
+            self.overlays.set({"status": "active", "approved_by": actor,
+                               "effective_from": now,
+                               "expires_at": now + window * DAY}, id=overlay_id)
+            self.evidence.append("overlay_approved", "model", row["model_id"],
+                                 {"overlay_id": overlay_id, "reference": row["reference"],
+                                  "days": window}, actor=actor)
         return self.overlays.one(id=overlay_id)
 
     # -------------------------------------------------------------- measure
@@ -137,11 +168,12 @@ class OverlayRegister:
                        "magnitude": magnitude,
                        "pct_of_base": (magnitude / base_value) if base_value else None,
                        "measured_by": actor, "measured_at": time.time()}
-        self.measurements.add(measurement)
-        self.evidence.append("overlay_measured", "model", row["model_id"],
-                             {"overlay_id": overlay_id, "period": period,
-                              "magnitude": magnitude,
-                              "pct_of_base": measurement["pct_of_base"]}, actor=actor)
+        with self.evidence.recording():
+            self.measurements.add(measurement)
+            self.evidence.append("overlay_measured", "model", row["model_id"],
+                                 {"overlay_id": overlay_id, "period": period,
+                                  "magnitude": magnitude,
+                                  "pct_of_base": measurement["pct_of_base"]}, actor=actor)
         return self.measurements.one(id=measurement["id"])
 
     # --------------------------------------------------------------- renew
@@ -177,11 +209,12 @@ class OverlayRegister:
 
         now, window = time.time(), days or self.max_days
         renewals = row["renewals"] + 1
-        self.overlays.set({"renewals": renewals, "expires_at": now + window * DAY},
-                          id=overlay_id)
-        self.evidence.append("overlay_renewed", "model", row["model_id"],
-                             {"overlay_id": overlay_id, "renewals": renewals,
-                              "days": window}, actor=actor)
+        with self.evidence.recording():
+            self.overlays.set({"renewals": renewals, "expires_at": now + window * DAY},
+                              id=overlay_id)
+            self.evidence.append("overlay_renewed", "model", row["model_id"],
+                                 {"overlay_id": overlay_id, "renewals": renewals,
+                                  "days": window}, actor=actor)
 
         fresh = self.overlays.one(id=overlay_id)
         self._escalate_if_persistent(fresh, measurements, actor)
@@ -191,6 +224,9 @@ class OverlayRegister:
                                 measurements: List[Dict[str, Any]],
                                 actor: str) -> None:
         """Past the renewal limit, this is a model defect. Say so, once."""
+        # Stamped with the lineage count so persistence is judged across
+        # every row this adjustment has occupied, not the current one.
+        overlay = {**overlay, "continuations": self.continuations(overlay)}
         reading = analysis.assess(overlay, measurements, self.renewal_limit)
         if not reading["escalate"] or overlay.get("finding_id") or not self.findings:
             return
@@ -222,12 +258,13 @@ class OverlayRegister:
         if not reason.strip():
             raise OverlayError("reason_required", "closing an overlay needs a reason", "")
         row = self.require(overlay_id)
-        self.overlays.set({"status": status, "closed_at": time.time(),
-                           "closure_reason": reason}, id=overlay_id)
-        self.evidence.append(f"overlay_{status}", "model", row["model_id"],
-                             {"overlay_id": overlay_id,
-                              "reference": row["reference"], "reason": reason},
-                             actor=actor)
+        with self.evidence.recording():
+            self.overlays.set({"status": status, "closed_at": time.time(),
+                               "closure_reason": reason}, id=overlay_id)
+            self.evidence.append(f"overlay_{status}", "model", row["model_id"],
+                                 {"overlay_id": overlay_id,
+                                  "reference": row["reference"], "reason": reason},
+                                 actor=actor)
         return self.overlays.one(id=overlay_id)
 
     def sweep_expired(self, model_id: str, now: Optional[float] = None,
@@ -262,15 +299,17 @@ class OverlayRegister:
 
     def reading(self, overlay_id: str, now: Optional[float] = None) -> Dict[str, Any]:
         overlay = self.require(overlay_id)
-        return {**overlay, "measurements": self.measurements_for(overlay_id),
+        stamped = {**overlay, "continuations": self.continuations(overlay)}
+        return {**stamped, "measurements": self.measurements_for(overlay_id),
                 "assessment": analysis.assess(
-                    overlay, self.measurements_for(overlay_id),
+                    stamped, self.measurements_for(overlay_id),
                     self.renewal_limit, now=now)}
 
     def status(self, model_id: str, now: Optional[float] = None) -> Dict[str, Any]:
         """What a risk committee actually asks: how much of this is the model,
         and how much is us."""
-        overlays = self.for_model(model_id)
+        overlays = [{**o, "continuations": self.continuations(o)}
+                    for o in self.for_model(model_id)]
         by_overlay = {o["id"]: self.measurements_for(o["id"]) for o in overlays}
         return {**analysis.portfolio(overlays, by_overlay, now),
                 "detail_rows": [

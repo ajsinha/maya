@@ -208,7 +208,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     authz.roles = role_store
     principals.roles = role_store
     principals.bootstrap(cfg.get("auth.username", "admin"),
-                         cfg.get("auth.password", "admin123"))
+                         cfg.get("auth.password", "maya-admin-dev"))
 
     # The register is the BlockingSource for both gates. It is built after the
     # registry because both need the evidence engine, and attached explicitly.
@@ -238,6 +238,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     catalogue = TestCatalogue()
     validation = ValidationService(ValidationRepository(db), TestResultRepository(db),
                                    registry, catalogue, evidence, findings)
+    # So a named validator is resolved against the register rather than taken
+    # as prose: `validators` was free text, and a validation naming
+    # `person/nobody.at.all` was accepted, recorded and concluded.
+    validation.principals = principals
 
     warrants = WarrantService(WarrantRepository(db), registry, evidence,
                         signing_key=cfg.get("warrants.signing_key", "maya-dev-key"),

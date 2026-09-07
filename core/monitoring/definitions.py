@@ -124,10 +124,11 @@ class MonitorRegistry:
                "breach_severity": breach_severity, "escalate_after": escalate_after,
                "status": "active", "owner": owner, "created_at": time.time(),
                "last_evaluated_at": None}
-        self.monitors.add(row)
-        self.evidence.append("monitor_defined", "model", model_id,
-                             {"monitor_id": row["id"], "name": name, "kind": kind,
-                              "test_key": test_key, "threshold": threshold}, actor=actor)
+        with self.evidence.recording():
+            self.monitors.add(row)
+            self.evidence.append("monitor_defined", "model", model_id,
+                                 {"monitor_id": row["id"], "name": name, "kind": kind,
+                                  "test_key": test_key, "threshold": threshold}, actor=actor)
         return self.monitors.one(id=row["id"])
 
     # ----------------------------------------------------------------- query
@@ -149,9 +150,10 @@ class MonitorRegistry:
             raise MonitorError("unknown_status", f"unknown status '{status}'",
                                f"expected one of {', '.join(STATUSES)}")
         row = self.require(monitor_id)
-        self.monitors.set({"status": status}, id=monitor_id)
-        self.evidence.append("monitor_status_changed", "model", row["model_id"],
-                             {"monitor_id": monitor_id, "status": status}, actor=actor)
+        with self.evidence.recording():
+            self.monitors.set({"status": status}, id=monitor_id)
+            self.evidence.append("monitor_status_changed", "model", row["model_id"],
+                                 {"monitor_id": monitor_id, "status": status}, actor=actor)
         return self.monitors.one(id=monitor_id)
 
     def due(self, model_id: str, now: Optional[float] = None) -> List[Dict[str, Any]]:

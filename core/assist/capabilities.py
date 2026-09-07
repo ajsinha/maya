@@ -79,11 +79,12 @@ class CapabilityRegistry:
                "base_model": base_model, "prompt_digest": prompt_digest,
                "review_sample": review_sample, "status": "active", "owner": owner,
                "created_at": time.time()}
-        self.capabilities.add(row)
-        self.evidence.append("ai_capability_registered", "capability", row["id"],
-                             {"capability_key": capability_key, "tier": tier,
-                              "oracle_key": oracle_key, "base_model": base_model},
-                             actor=actor)
+        with self.evidence.recording():
+            self.capabilities.add(row)
+            self.evidence.append("ai_capability_registered", "capability", row["id"],
+                                 {"capability_key": capability_key, "tier": tier,
+                                  "oracle_key": oracle_key, "base_model": base_model},
+                                 actor=actor)
         logger.info("registered machine-assistance capability %s at tier %s",
                     capability_key, tier)
         return self.capabilities.one(id=row["id"])
@@ -108,8 +109,9 @@ class CapabilityRegistry:
     def suspend(self, capability_key: str, reason: str,
                 actor: str = "system") -> Dict[str, Any]:
         row = self.require(capability_key)
-        self.capabilities.set({"status": "suspended"}, id=row["id"])
-        self.evidence.append("ai_capability_suspended", "capability", row["id"],
-                             {"capability_key": capability_key, "reason": reason},
-                             actor=actor)
+        with self.evidence.recording():
+            self.capabilities.set({"status": "suspended"}, id=row["id"])
+            self.evidence.append("ai_capability_suspended", "capability", row["id"],
+                                 {"capability_key": capability_key, "reason": reason},
+                                 actor=actor)
         return self.capabilities.one(id=row["id"])

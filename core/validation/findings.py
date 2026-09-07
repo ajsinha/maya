@@ -59,10 +59,11 @@ class FindingRegister:
                "due_at": due_at or now + REMEDIATION_DAYS[severity] * DAY,
                "status": "open", "closed_at": None, "closure_verified_by": None,
                "closure_evidence": {}}
-        self.findings.add(row)
-        self.evidence.append("finding_raised", "model", model_id,
-                             {"finding_id": row["id"], "severity": severity,
-                              "title": title, "blocking": bool(row["blocking"])}, actor=actor)
+        with self.evidence.recording():
+            self.findings.add(row)
+            self.evidence.append("finding_raised", "model", model_id,
+                                 {"finding_id": row["id"], "severity": severity,
+                                  "title": title, "blocking": bool(row["blocking"])}, actor=actor)
         return self.findings.one(id=row["id"])
 
     # ------------------------------------------------------------------ close
@@ -92,12 +93,13 @@ class FindingRegister:
             raise ValidationError(
                 "closing a finding requires closure evidence describing what changed")
         now = time.time()
-        self.findings.set({"status": "closed", "closed_at": now,
-                           "closure_verified_by": verified_by,
-                           "closure_evidence": evidence}, id=finding_id)
-        self.evidence.append("finding_closed", "model", row["model_id"],
-                             {"finding_id": finding_id, "verified_by": verified_by,
-                              "was_blocking": bool(row["blocking"])}, actor=actor)
+        with self.evidence.recording():
+            self.findings.set({"status": "closed", "closed_at": now,
+                               "closure_verified_by": verified_by,
+                               "closure_evidence": evidence}, id=finding_id)
+            self.evidence.append("finding_closed", "model", row["model_id"],
+                                 {"finding_id": finding_id, "verified_by": verified_by,
+                                  "was_blocking": bool(row["blocking"])}, actor=actor)
         return self.findings.one(id=finding_id)
 
     def set_status(self, finding_id: str, status: str, actor: str = "system") -> Dict[str, Any]:
@@ -105,9 +107,10 @@ class FindingRegister:
         if status == "closed":
             raise ValidationError("use close() — closure needs a verifier and evidence")
         row = self.require(finding_id)
-        self.findings.set({"status": status}, id=finding_id)
-        self.evidence.append("finding_status_changed", "model", row["model_id"],
-                             {"finding_id": finding_id, "status": status}, actor=actor)
+        with self.evidence.recording():
+            self.findings.set({"status": status}, id=finding_id)
+            self.evidence.append("finding_status_changed", "model", row["model_id"],
+                                 {"finding_id": finding_id, "status": status}, actor=actor)
         return self.findings.one(id=finding_id)
 
     # ------------------------------------------------------------------ query

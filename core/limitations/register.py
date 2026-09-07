@@ -31,7 +31,7 @@ are about. A limitation on "the model" would survive a version that fixed it.
 from __future__ import annotations
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.registry.common import RegistryError
@@ -105,13 +105,14 @@ class LimitationRegister:
                "kind": kind, "statement": statement.strip(),
                "bound_key": bound_key, "basis": basis,
                "raised_by": actor, "created_at": time.time()}
-        stored = self.repo.add(row)
-        self.evidence.append("limitation_recorded", "model_version",
-                             version["id"],
-                             {"reference": row["reference"], "kind": kind,
-                              "enforced": int(bool(bound_key)),
-                              "statement": statement.strip()},
-                             actor=actor)
+        with self.evidence.recording():
+            stored = self.repo.add(row)
+            self.evidence.append("limitation_recorded", "model_version",
+                                 version["id"],
+                                 {"reference": row["reference"], "kind": kind,
+                                  "enforced": int(bool(bound_key)),
+                                  "statement": statement.strip()},
+                                 actor=actor)
         return stored
 
     def withdraw(self, limitation_id: str, reason: str,
@@ -133,12 +134,13 @@ class LimitationRegister:
                 "made about an immutable version, so removing it without one "
                 "leaves the register saying less than it did with no record of "
                 "why")
-        self.repo.set({"withdrawn_at": time.time(), "withdrawn_by": actor,
-                       "withdrawal_reason": reason.strip()}, id=limitation_id)
-        self.evidence.append("limitation_withdrawn", "model_version",
-                             row["model_version_id"],
-                             {"reference": row["reference"], "reason": reason},
-                             actor=actor)
+        with self.evidence.recording():
+            self.repo.set({"withdrawn_at": time.time(), "withdrawn_by": actor,
+                           "withdrawal_reason": reason.strip()}, id=limitation_id)
+            self.evidence.append("limitation_withdrawn", "model_version",
+                                 row["model_version_id"],
+                                 {"reference": row["reference"], "reason": reason},
+                                 actor=actor)
         return self.require(limitation_id)
 
     # ------------------------------------------------------------------- read
@@ -165,6 +167,68 @@ class LimitationRegister:
                         for k in KINDS if any(r["kind"] == k for r in standing)},
             "detail": self._detail(len(standing), len(enforced), len(stated)),
         }
+
+    def across_the_estate(self) -> Dict[str, Any]:
+        """Every standing limitation on every model, and how much is enforced.
+
+        The register could not answer its own question. `for_version` needs a
+        urn AND a semver, so "what are we relying on people to remember, across
+        the book?" — the reason a limitation register exists — had no route
+        that could be asked and no screen that asked it. A limitation nobody
+        can enumerate is a limitation nobody is managing.
+
+        Sorted worst-first: a version with limitations that are STATED rather
+        than enforced by a contract clause is the one relying on somebody to
+        remember, and that is what a reader of this needs at the top.
+        """
+        rows = [r for r in self.repo.many() if not r.get("withdrawn_at")]
+        by_version: Dict[str, List[Dict[str, Any]]] = {}
+        for row in rows:
+            by_version.setdefault(row["model_version_id"], []).append(row)
+
+        versions = []
+        for version_id, found in by_version.items():
+            where = self._describe_version(version_id)
+            enforced = [r for r in found if r.get("bound_key")]
+            stated = [r for r in found if not r.get("bound_key")]
+            versions.append({
+                **where,
+                "standing": len(found), "enforced": len(enforced),
+                "stated_only": len(stated),
+                "limitations": found,
+                "by_kind": {k: sum(1 for r in found if r["kind"] == k)
+                            for k in KINDS
+                            if any(r["kind"] == k for r in found)},
+            })
+        versions.sort(key=lambda v: (-v["stated_only"], -v["standing"],
+                                     v.get("urn") or ""))
+        standing = sum(v["standing"] for v in versions)
+        enforced = sum(v["enforced"] for v in versions)
+        stated = standing - enforced
+        return {
+            "versions": versions,
+            "models": len({v.get("urn") for v in versions}),
+            "standing": standing, "enforced": enforced, "stated_only": stated,
+            "by_kind": {k: sum(1 for r in rows if r["kind"] == k)
+                        for k in KINDS if any(r["kind"] == k for r in rows)},
+            "detail": self._detail(standing, enforced, stated),
+        }
+
+    def _describe_version(self, version_id: str) -> Dict[str, Any]:
+        """The urn and semver a limitation hangs off, for a reader.
+
+        A limitation row carries a `model_version_id` and nothing a person
+        recognises, so an estate-wide list would otherwise be a list of opaque
+        identifiers — which is how the dependency screen's own worst case is
+        described elsewhere in this codebase.
+        """
+        version = self.registry.version_by_id(version_id)
+        if not version:
+            return {"model_version_id": version_id, "urn": None,
+                    "semver": None}
+        return {"model_version_id": version_id,
+                "urn": version.get("urn"),
+                "semver": version.get("semver")}
 
     @staticmethod
     def _detail(standing: int, enforced: int, stated: int) -> str:

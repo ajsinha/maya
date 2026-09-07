@@ -201,10 +201,10 @@ class TestOverTheApi:
             "permissions": ["model:read", "finding:read", "report:read"]})
         assert made.status_code == 201, made.text
         r = client.post("/api/v1/principals", json={
-            "username": "r.mrm", "display_name": "Regional", "password": "pw",
+            "username": "r.mrm", "display_name": "Regional", "password": "pw-long-enough-x",
             "roles": ["regional_mrm"]})
         assert r.status_code == 201, r.text
-        who = client.get("/api/v1/me", auth=("r.mrm", "pw")).json()
+        who = client.get("/api/v1/me", auth=("r.mrm", "pw-long-enough-x")).json()
         assert "report:read" in who["permissions"]
 
     def test_defining_one_needs_the_permission(self, client, people):
@@ -236,7 +236,7 @@ class TestOverTheApi:
                 "name": name, "description": "one half of a separated duty",
                 "permissions": ["model:read", permission]}).status_code in (200, 201)
         r = client.post("/api/v1/principals", json={
-            "username": "sneaky", "display_name": "Sneaky", "password": "pw",
+            "username": "sneaky", "display_name": "Sneaky", "password": "pw-long-enough-x",
             "roles": ["halfone", "halftwo"]})
         assert r.status_code == 409, r.text
         assert r.json()["error"] == "incompatible_roles"

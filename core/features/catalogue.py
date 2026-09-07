@@ -271,11 +271,12 @@ class FeatureCatalogue:
             patch["components"] = shapes.check_components(
                 dims, patch.get("components", row.get("components")))
         patch["definition_version"] = (row.get("definition_version") or 1) + 1
-        self.features.set(patch, id=row["id"])
-        self.evidence.append("feature_amended", "feature", row["id"],
-                             {"name": name, "changed": sorted(fields),
-                              "definition_version": patch["definition_version"]},
-                             actor=actor)
+        with self.evidence.recording():
+            self.features.set(patch, id=row["id"])
+            self.evidence.append("feature_amended", "feature", row["id"],
+                                 {"name": name, "changed": sorted(fields),
+                                  "definition_version": patch["definition_version"]},
+                                 actor=actor)
         return self.features.one(id=row["id"])
 
     def destroy(self, name: str, why: str = "expired",

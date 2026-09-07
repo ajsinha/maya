@@ -112,15 +112,16 @@ class BoardPackBuilder:
                "unmeasured": pack["unmeasured"],
                "digest": pack["digest"], "note": note,
                "created_by": actor, "created_at": time.time()}
-        self.repo.add(row)
-        self.evidence.append(
-            "board_pack_cut", "board_pack", row["id"],
-            {"period": row["period"], "scope": pack["scope"],
-             "models": pack["models"],
-             "breaches": [e["metric"] for e in pack["exceptions"]
-                          if e["status"] == BREACH],
-             "unmeasured": sorted(pack["unmeasured"]),
-             "digest": pack["digest"]}, actor=actor)
+        with self.evidence.recording():
+            self.repo.add(row)
+            self.evidence.append(
+                "board_pack_cut", "board_pack", row["id"],
+                {"period": row["period"], "scope": pack["scope"],
+                 "models": pack["models"],
+                 "breaches": [e["metric"] for e in pack["exceptions"]
+                              if e["status"] == BREACH],
+                 "unmeasured": sorted(pack["unmeasured"]),
+                 "digest": pack["digest"]}, actor=actor)
         logger.info("board pack %s: %d model(s), %d exception(s), %d unmeasured",
                     row["period"], pack["models"], len(pack["exceptions"]),
                     len(pack["unmeasured"]))

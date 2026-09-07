@@ -23,9 +23,9 @@ def cast(client):
     """One principal per role we need, created through the API."""
     made = {}
     for username, role, password in (
-            ("op.singh", "operator", "op-pw"),
-            ("dev.two", "model_developer", "dev2-pw"),
-            ("mrm.two", "model_risk_manager", "mrm2-pw")):
+            ("op.singh", "operator", "op-pw-long-enough"),
+            ("dev.two", "model_developer", "dev2-pw-long-enough"),
+            ("mrm.two", "model_risk_manager", "mrm2-pw-long-enough")):
         r = client.post("/api/v1/principals", json={
             "username": username, "display_name": username,
             "roles": [role], "password": password})

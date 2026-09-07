@@ -119,11 +119,12 @@ class TrainingRecordCompiler:
         head, _ = self.evidence.head()
         row.update({"evidence_head": head, "status": "compiled",
                     "compiled_at": time.time(), "compiled_by": actor})
-        self.documents.add(row)
-        self.evidence.append(
-            "training_record_compiled", "parameter_set", parameter_set_id,
-            {"document_id": row["id"], "complete": row["coverage"]["complete"]},
-            actor=actor)
+        with self.evidence.recording():
+            self.documents.add(row)
+            self.evidence.append(
+                "training_record_compiled", "parameter_set", parameter_set_id,
+                {"document_id": row["id"], "complete": row["coverage"]["complete"]},
+                actor=actor)
         logger.info("training record for %s: %d/%d sections",
                     parameter_set_id, row["coverage"]["filled"],
                     row["coverage"]["sections"])

@@ -38,6 +38,7 @@ and when it stopped — and `last_used_at` is what says whether anybody noticed.
 """
 from __future__ import annotations
 
+import datetime as _dt
 import hashlib
 import secrets
 import time
@@ -45,6 +46,7 @@ from typing import Any, Dict, List, Optional
 
 from core.authz.common import require_known
 from core.evidence import EvidenceEngine
+from core.log import get_logger
 
 #: Every key starts with this. It makes one recognisable in a log somebody is
 #: about to paste into a ticket, and it is what a secret scanner matches on.
@@ -62,6 +64,9 @@ DEFAULT_LIFETIME_DAYS = 90
 MAX_LIFETIME_DAYS = 365
 
 
+logger = get_logger(__name__)
+
+
 class ApiKeyError(RuntimeError):
     """A refusal about a key."""
 
@@ -72,6 +77,14 @@ class ApiKeyError(RuntimeError):
     def as_problem(self) -> Dict[str, Any]:
         return {"error": self.code, "detail": self.detail,
                 "remediation": self.remediation}
+
+
+def _when(stamp: Optional[float]) -> str:
+    """A timestamp a person can act on, rather than a float."""
+    if not stamp:
+        return "an unrecorded date"
+    return _dt.datetime.fromtimestamp(
+        float(stamp), _dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 def _digest(secret: str) -> str:
@@ -134,18 +147,19 @@ class ApiKeyRegister:
         wanted = self._checked_scopes(scopes, held, username)
 
         secret = PREFIX + secrets.token_urlsafe(ENTROPY_BYTES)
-        row = self.repo.add({
-            "principal_id": principal["id"], "username": username,
-            "name": name.strip(), "prefix": secret[:VISIBLE_PREFIX],
-            "key_hash": _digest(secret), "scopes": sorted(wanted),
-            "created_at": time.time(), "created_by": actor,
-            "expires_at": time.time() + lifetime_days * 86400})
-        self.evidence.append(
-            "api_key_issued", "principal", principal["id"],
-            {"name": row["name"], "prefix": row["prefix"],
-             "scopes": sorted(wanted) or "everything the principal holds",
-             "expires_at": row["expires_at"]},
-            actor=actor)
+        with self.evidence.recording():
+            row = self.repo.add({
+                "principal_id": principal["id"], "username": username,
+                "name": name.strip(), "prefix": secret[:VISIBLE_PREFIX],
+                "key_hash": _digest(secret), "scopes": sorted(wanted),
+                "created_at": time.time(), "created_by": actor,
+                "expires_at": time.time() + lifetime_days * 86400})
+            self.evidence.append(
+                "api_key_issued", "principal", principal["id"],
+                {"name": row["name"], "prefix": row["prefix"],
+                 "scopes": sorted(wanted) or "everything the principal holds",
+                 "expires_at": row["expires_at"]},
+                actor=actor)
         # The only time the secret exists outside the caller's memory.
         return {**self._public(row), "secret": secret,
                 "detail": "this is the only time the secret is shown; it is "
@@ -180,13 +194,55 @@ class ApiKeyRegister:
         if not secret or not secret.startswith(PREFIX):
             return None
         row = self.repo.one(key_hash=_digest(secret))
-        if not row or row.get("revoked_at"):
+        if not row:
+            # Genuinely unknown. Nothing to say beyond "not signed in", because
+            # saying more would confirm which prefixes exist.
             return None
+
+        # Below here the credential IS ours, and every one of these used to
+        # return the same None as an unknown key -- so a batch running on an
+        # expired key got the anonymous 401, whose remediation says "send an API
+        # key as Authorization: Bearer maya_sk_...". It was telling the caller to
+        # send the credential it was already sending. Worse, `last_used_at` is
+        # bumped only on success, so a job hammering a lapsed key left no trace
+        # anywhere: no log line, no counter, nothing an operator could find.
+        if row.get("revoked_at"):
+            logger.warning("API key '%s' (%s) was presented after revocation",
+                           row["name"], row["username"])
+            raise ApiKeyError(
+                "key_revoked",
+                f"the API key '{row['name']}' was revoked on "
+                f"{_when(row['revoked_at'])}"
+                + (f": {row['revoke_reason']}" if row.get("revoke_reason") else ""),
+                "issue a new key; a revoked one is not reinstated")
         if row["expires_at"] <= time.time():
-            return None
+            logger.warning("API key '%s' (%s) expired on %s and is still in use",
+                           row["name"], row["username"], _when(row["expires_at"]))
+            raise ApiKeyError(
+                "key_expired",
+                f"the API key '{row['name']}' expired on "
+                f"{_when(row['expires_at'])}",
+                "issue a new key and rotate the caller onto it; every key "
+                "expires, which is what stops one becoming a credential nobody "
+                "reviews")
         principal = self.principals.get(row["username"])
-        if not principal or principal.get("status") != "active":
-            return None
+        if not principal:
+            logger.warning("API key '%s' names %s, who is not in the register",
+                           row["name"], row["username"])
+            raise ApiKeyError(
+                "key_principal_missing",
+                f"the API key '{row['name']}' authenticates as "
+                f"{row['username']}, who is no longer in the register",
+                "revoke this key; the identity behind it is gone")
+        if principal.get("status") != "active":
+            logger.warning("API key '%s' presented for suspended principal %s",
+                           row["name"], row["username"])
+            raise ApiKeyError(
+                "principal_not_active",
+                f"{row['username']} is {principal.get('status')}, so keys "
+                f"issued to them do not authenticate",
+                "reinstate the principal, or issue the key to one who is "
+                "active")
 
         # A JSON column that fails to decode is left as raw TEXT, and the scope
         # check downstream was `permission not in scopes` -- a SUBSTRING match
@@ -202,9 +258,17 @@ class ApiKeyRegister:
                 f"permissions, so nothing can be authorised against it",
                 "revoke this key and issue another")
 
-        self.repo.set({"last_used_at": time.time(),
-                       "use_count": (row.get("use_count") or 0) + 1},
-                      id=row["id"])
+        # `use_count = use_count + 1` in SQL, not read-then-write in Python.
+        # A key is authenticated on every request a service makes, so this is
+        # the most concurrent write in the platform — and read-modify-write
+        # loses increments under exactly the load a batch job produces. The
+        # count is what makes "this credential has never been used" and "this
+        # one stopped being used" answerable, and an undercount is the
+        # direction that hides an unused key rather than inventing traffic.
+        self.repo.db.execute(
+            "UPDATE api_key SET last_used_at = :now, "
+            "use_count = use_count + 1 WHERE id = :id",
+            {"now": time.time(), "id": row["id"]})
         return {**principal, "api_key": row["id"],
                 "api_key_name": row["name"],
                 "api_key_scopes": list(scopes)}
@@ -266,12 +330,13 @@ class ApiKeyRegister:
                 "during an incident is indistinguishable from one during a "
                 "tidy-up",
                 "say why — 'rotated', 'leaked in a ticket', 'service retired'")
-        self.repo.set({"revoked_at": time.time(), "revoked_by": actor,
-                       "revoke_reason": reason.strip()}, id=key_id)
-        self.evidence.append(
-            "api_key_revoked", "principal", row["principal_id"],
-            {"name": row["name"], "prefix": row["prefix"], "reason": reason},
-            actor=actor)
+        with self.evidence.recording():
+            self.repo.set({"revoked_at": time.time(), "revoked_by": actor,
+                           "revoke_reason": reason.strip()}, id=key_id)
+            self.evidence.append(
+                "api_key_revoked", "principal", row["principal_id"],
+                {"name": row["name"], "prefix": row["prefix"], "reason": reason},
+                actor=actor)
         return self._public(self.require(key_id))
 
     # ------------------------------------------------------------------ hygiene

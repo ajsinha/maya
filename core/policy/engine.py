@@ -79,12 +79,13 @@ class PolicyRegister:
             "published_at": None, "published_by": None,
             "test_report": report,
         }
-        self.policies.add(row)
-        self.evidence.append("policy_drafted", "policy", row["id"],
-                             {"gate": gate, "version": row["version"],
-                              "rule": compiled.source,
-                              "cases": len(cases),
-                              "passing": report["passed"]}, actor=actor)
+        with self.evidence.recording():
+            self.policies.add(row)
+            self.evidence.append("policy_drafted", "policy", row["id"],
+                                 {"gate": gate, "version": row["version"],
+                                  "rule": compiled.source,
+                                  "cases": len(cases),
+                                  "passing": report["passed"]}, actor=actor)
         return self.policies.one(id=row["id"])
 
     def check(self, gate: str, rule: Rule,
@@ -151,17 +152,18 @@ class PolicyRegister:
         drift = self.compare(row["gate"], outgoing, rule) if outgoing else {}
         if outgoing:
             self.policies.set({"state": SUPERSEDED}, id=outgoing["id"])
-        self.policies.set({"state": PUBLISHED, "published_at": time.time(),
-                           "published_by": actor, "test_report": report},
-                          id=policy_id)
-        self._compiled.pop(row["gate"], None)
-        self.evidence.append("policy_published", "policy", policy_id,
-                             {"gate": row["gate"], "version": row["version"],
-                              "rule": row["rule"],
-                              "supersedes": outgoing["version"] if outgoing else None,
-                              "loosened": drift.get("loosened", []),
-                              "tightened": drift.get("tightened", [])},
-                             actor=actor)
+        with self.evidence.recording():
+            self.policies.set({"state": PUBLISHED, "published_at": time.time(),
+                               "published_by": actor, "test_report": report},
+                              id=policy_id)
+            self._compiled.pop(row["gate"], None)
+            self.evidence.append("policy_published", "policy", policy_id,
+                                 {"gate": row["gate"], "version": row["version"],
+                                  "rule": row["rule"],
+                                  "supersedes": outgoing["version"] if outgoing else None,
+                                  "loosened": drift.get("loosened", []),
+                                  "tightened": drift.get("tightened", [])},
+                                 actor=actor)
         if drift.get("loosened"):
             logger.warning("policy %s v%d permits %d case(s) its predecessor "
                            "refused", row["gate"], row["version"],

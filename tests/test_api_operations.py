@@ -93,7 +93,7 @@ class TestMonitoringApi:
         registered.post("/api/v1/monitors", auth=people["j.okafor"], json={
             "urn": URN, "name": "score drift", "kind": "score_drift",
             "test_key": "stability.psi", "threshold": {"max": 0.25}, "owner": "o"})
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert "Monitoring" in body and "score drift" in body

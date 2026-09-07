@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Limitations — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>What the estate says its models cannot do</h1>
+<div class="accent"></div>
+
+<p class="lead small">A limitation is a statement that a model is not valid
+somewhere. It is worth something only if it is <em>enforced</em> — bound to a
+clause of the operating contract, so a call outside it is refused — or, failing
+that, if somebody can find it. This register had no estate-wide view and no
+screen at all: reading it needed a model urn <em>and</em> a version, so the
+question it exists to answer could not be asked. A limitation nobody can
+enumerate is a limitation nobody is managing.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.standing }}</div>
+    <div class="stat-l">standing limitations</div>
+    <div class="small text-muted">across {{ report.models }} model{{ '' if report.models == 1 else 's' }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.enforced }}</div>
+    <div class="stat-l">enforced by a contract clause</div>
+    <div class="small text-muted">a call outside these is refused</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.stated_only else '' }}">{{ report.stated_only }}</div>
+    <div class="stat-l">stated only</div>
+    <div class="small text-muted">relying on somebody to remember</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-l mb-1">By kind</div>
+    {% for kind, n in (report.by_kind or {}).items() %}
+      <div class="small"><span class="mono">{{ kind }}</span> — {{ n }}</div>
+    {% else %}
+      <div class="small text-muted">none recorded</div>
+    {% endfor %}
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every standing limitation</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.
+    Sorted with the most <strong>stated-only</strong> versions first, because
+    those are the ones nothing enforces.</div>
+  {% if report.versions %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Version</th><th>Kind</th><th>Statement</th>
+      <th>Enforced by</th>
+    </tr></thead>
+    <tbody>
+      {% for v in report.versions %}
+        {% for l in v.limitations %}
+        <tr>
+          <td class="mono small">
+            {% if loop.first %}
+              {% if v.urn %}<a href="/model/{{ v.urn.split('/')[-1] }}">{{ v.urn }}</a>
+              {% else %}<span class="text-muted">version {{ v.model_version_id }}</span>{% endif %}
+            {% endif %}</td>
+          <td class="mono small">{% if loop.first %}{{ v.semver or '—' }}{% endif %}</td>
+          <td class="small">{{ l.kind }}</td>
+          <td class="small">{{ l.statement }}</td>
+          <td class="small">
+            {% if l.bound_key %}
+              <span class="evidence-ok mono">{{ l.bound_key }}</span>
+            {% else %}
+              <span class="evidence-bad">stated only</span>
+            {% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No limitations are recorded anywhere on the estate. That is a claim about
+    every model in it, not an absence of one — a model with no stated
+    limitations is a model somebody has said is valid everywhere.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

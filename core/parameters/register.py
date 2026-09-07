@@ -103,12 +103,13 @@ class ParameterRegister:
             "state": PROPOSED, "note": note,
             "created_by": actor, "created_at": time.time(),
         }
-        self.parameters.add(row)
-        self.evidence.append("parameter_set_recorded", "version", version["id"],
-                             {"name": name, "provenance": provenance, "kind": kind,
-                              "digest": row["digest"], "cardinality": cardinality,
-                              "featureset": binding.get("label"),
-                              "warrant": warrant_id, "as_of": as_of}, actor=actor)
+        with self.evidence.recording():
+            self.parameters.add(row)
+            self.evidence.append("parameter_set_recorded", "version", version["id"],
+                                 {"name": name, "provenance": provenance, "kind": kind,
+                                  "digest": row["digest"], "cardinality": cardinality,
+                                  "featureset": binding.get("label"),
+                                  "warrant": warrant_id, "as_of": as_of}, actor=actor)
         logger.info("recorded %s parameter set %s v%d for %s@%s",
                     provenance, name, row["version"], urn, semver)
         return self.parameters.one(id=row["id"])
@@ -325,13 +326,14 @@ class ParameterRegister:
                 f"{actor} recorded these parameters and cannot also approve them",
                 "a parameter set changes what the model does; approval is by "
                 "somebody other than whoever produced it")
-        self.parameters.set({"state": APPROVED, "approved_by": actor,
-                             "approved_at": time.time(), "review_note": note},
-                            id=parameter_set_id)
-        self.evidence.append("parameter_set_approved", "version",
-                             row["model_version_id"],
-                             {"name": row["name"], "version": row["version"],
-                              "digest": row["digest"], "note": note}, actor=actor)
+        with self.evidence.recording():
+            self.parameters.set({"state": APPROVED, "approved_by": actor,
+                                 "approved_at": time.time(), "review_note": note},
+                                id=parameter_set_id)
+            self.evidence.append("parameter_set_approved", "version",
+                                 row["model_version_id"],
+                                 {"name": row["name"], "version": row["version"],
+                                  "digest": row["digest"], "note": note}, actor=actor)
         return self.parameters.one(id=parameter_set_id)
 
     def reject(self, parameter_set_id: str, actor: str,
@@ -343,12 +345,13 @@ class ParameterRegister:
                 "reason_required",
                 "rejecting a parameter set requires a reason",
                 "say what is wrong with it; the rejection stays in the register")
-        self.parameters.set({"state": REJECTED, "approved_by": actor,
-                             "approved_at": time.time(), "review_note": note},
-                            id=parameter_set_id)
-        self.evidence.append("parameter_set_rejected", "version",
-                             row["model_version_id"],
-                             {"name": row["name"], "note": note}, actor=actor)
+        with self.evidence.recording():
+            self.parameters.set({"state": REJECTED, "approved_by": actor,
+                                 "approved_at": time.time(), "review_note": note},
+                                id=parameter_set_id)
+            self.evidence.append("parameter_set_rejected", "version",
+                                 row["model_version_id"],
+                                 {"name": row["name"], "note": note}, actor=actor)
         return self.parameters.one(id=parameter_set_id)
 
     @staticmethod
@@ -369,11 +372,12 @@ class ParameterRegister:
                 "different_version",
                 "a parameter set can only be superseded by one for the same "
                 "model version", "")
-        self.parameters.set({"state": SUPERSEDED, "superseded_by": by},
-                            id=parameter_set_id)
-        self.evidence.append("parameter_set_superseded", "version",
-                             row["model_version_id"],
-                             {"name": row["name"], "superseded_by": by}, actor=actor)
+        with self.evidence.recording():
+            self.parameters.set({"state": SUPERSEDED, "superseded_by": by},
+                                id=parameter_set_id)
+            self.evidence.append("parameter_set_superseded", "version",
+                                 row["model_version_id"],
+                                 {"name": row["name"], "superseded_by": by}, actor=actor)
         return self.parameters.one(id=parameter_set_id)
 
     # ------------------------------------------------------------------ query

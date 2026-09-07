@@ -147,11 +147,23 @@ class PrincipalService:
                              f"a principal named '{username}' already exists",
                              "choose another username, or update the existing principal")
         roles = list(roles)
+        # The same floor `set_password` applies. It did not apply here, so the
+        # rule was enforceable only on a password CHANGE — every account was
+        # created without it, and the one moment a weak password is most likely
+        # to be chosen is the moment the account is made.
+        if password is not None and len(password) < MIN_PASSWORD:
+            raise AuthzError(
+                "password_too_short",
+                f"a password is at least {MIN_PASSWORD} characters",
+                "choose a longer one; this is the credential for a principal "
+                "that can act on the register")
         self._permissions_for(roles)                 # refuses an unknown role
-        if (found := self._conflicts(roles)) and not allow_conflicts:
+        found_at_create = self._conflicts(roles)
+        if found_at_create and not allow_conflicts:
             raise AuthzError(
                 "incompatible_roles",
-                f"{username} would hold incompatible roles: {'; '.join(found)}",
+                f"{username} would hold incompatible roles: "
+                f"{'; '.join(found_at_create)}",
                 "split the duties between two principals, or grant explicitly "
                 "with allow_conflicts if this is a deliberate, documented exception")
 
@@ -163,11 +175,22 @@ class PrincipalService:
                "password_hash": self.hash_password(password, salt) if password else None,
                "password_salt": salt if password else None,
                "created_at": time.time(), "last_seen_at": None}
-        self.principals.add(row)
-        self.evidence.append("principal_created", "principal", row["id"],
-                             {"username": username, "roles": roles, "kind": kind,
-                              "legal_entities": row["legal_entities"],
-                              "domains": row["domains"]}, actor=actor)
+        with self.evidence.recording():
+            self.principals.add(row)
+            self.evidence.append("principal_created", "principal", row["id"],
+                                 {"username": username, "roles": roles, "kind": kind,
+                                  "legal_entities": row["legal_entities"],
+                                  "domains": row["domains"],
+                                  # The override, on the record. `allow_conflicts`
+                                  # is the escape hatch the refusal itself
+                                  # recommends -- and it was written nowhere, so
+                                  # an estate could hold a dozen principals with
+                                  # separated duties in one pair of hands and
+                                  # nothing said any exception had been made.
+                                  # An exception nobody can enumerate is not an
+                                  # exception; it is a gap.
+                                  "conflicts_allowed": found_at_create or None},
+                                 actor=actor)
         return self.public(self.principals.one(id=row["id"]))
 
     def set_roles(self, username: str, roles: Sequence[str], actor: str = "system",
@@ -175,14 +198,19 @@ class PrincipalService:
         row = self.require(username)
         roles = list(roles)
         self._permissions_for(roles)
-        if (found := self._conflicts(roles)) and not allow_conflicts:
+        found = self._conflicts(roles)
+        if found and not allow_conflicts:
             raise AuthzError("incompatible_roles",
                              f"{username} would hold incompatible roles: {'; '.join(found)}",
                              "split the duties between two principals")
-        self.principals.set({"roles": roles}, id=row["id"])
-        self.evidence.append("principal_roles_changed", "principal", row["id"],
-                             {"username": username, "from": row["roles"], "to": roles},
-                             actor=actor)
+        with self.evidence.recording():
+            self.principals.set({"roles": roles}, id=row["id"])
+            self.evidence.append("principal_roles_changed", "principal", row["id"],
+                                 {"username": username, "from": row["roles"],
+                                  "to": roles,
+                                  # See `create`: the override is the record.
+                                  "conflicts_allowed": found or None},
+                                 actor=actor)
         return self.public(self.principals.one(id=row["id"]))
 
     def suspend(self, username: str, actor: str = "system") -> Dict[str, Any]:
@@ -212,10 +240,11 @@ class PrincipalService:
                 f"principals, and suspending them would leave nobody able to "
                 f"reinstate anyone",
                 "give somebody else a role carrying 'principal:manage' first")
-        self.principals.set({"status": "suspended"}, id=row["id"])
-        self.forget(username)
-        self.evidence.append("principal_suspended", "principal", row["id"],
-                             {"username": username}, actor=actor)
+        with self.evidence.recording():
+            self.principals.set({"status": "suspended"}, id=row["id"])
+            self.forget(username)
+            self.evidence.append("principal_suspended", "principal", row["id"],
+                                 {"username": username}, actor=actor)
         return self.public(self.principals.one(id=row["id"]))
 
     def _is_last_administrator(self, username: str) -> bool:
@@ -252,10 +281,11 @@ class PrincipalService:
             raise AuthzError("already_active",
                              f"{username} is not suspended",
                              "no action is needed")
-        self.principals.set({"status": "active"}, id=row["id"])
-        self.evidence.append("principal_reinstated", "principal", row["id"],
-                             {"username": username, "from": row["status"]},
-                             actor=actor)
+        with self.evidence.recording():
+            self.principals.set({"status": "active"}, id=row["id"])
+            self.evidence.append("principal_reinstated", "principal", row["id"],
+                                 {"username": username, "from": row["status"]},
+                                 actor=actor)
         logger.info("reinstated %s", username)
         return self.public(self.principals.one(id=row["id"]))
 
@@ -280,11 +310,12 @@ class PrincipalService:
                 "choose a longer one; this is the credential for a principal "
                 "that can act on the register")
         salt = secrets.token_hex(16)
-        self.principals.set({"password_hash": self.hash_password(password, salt),
-                             "password_salt": salt}, id=row["id"])
-        self.forget(username)
-        self.evidence.append("principal_password_set", "principal", row["id"],
-                             {"username": username, "by": actor}, actor=actor)
+        with self.evidence.recording():
+            self.principals.set({"password_hash": self.hash_password(password, salt),
+                                 "password_salt": salt}, id=row["id"])
+            self.forget(username)
+            self.evidence.append("principal_password_set", "principal", row["id"],
+                                 {"username": username, "by": actor}, actor=actor)
         logger.info("password set for %s by %s", username, actor)
         return self.public(self.principals.one(id=row["id"]))
 

@@ -40,9 +40,10 @@ class ViewManager:
             raise FeatureError(f"undefined features: {', '.join(missing)}")
         row = {"name": name, "entity": entity, "owner": owner, "description": description,
                "delta_table": f"features/{entity}/{name}", "created_at": time.time()}
-        self.views.add(row)
-        self.evidence.append("feature_view_created", "feature_view", row["id"],
-                             {"name": name, "features": feature_names}, actor=actor)
+        with self.evidence.recording():
+            self.views.add(row)
+            self.evidence.append("feature_view_created", "feature_view", row["id"],
+                                 {"name": name, "features": feature_names}, actor=actor)
         return row
 
     def require(self, name: str) -> Dict[str, Any]:
@@ -67,10 +68,11 @@ class ViewManager:
                "delta_version": delta_version, "valid_time_column": VALID_TIME,
                "ingest_time_column": INGEST_TIME, "row_count": len(rows),
                "quality_report": self.quality(rows, names), "materialised_at": time.time()}
-        self.view_versions.add(row)
-        self.evidence.append("feature_view_materialised", "feature_view", view["id"],
-                             {"version": number, "rows": len(rows),
-                              "table": self._path(view, number)}, actor=actor)
+        with self.evidence.recording():
+            self.view_versions.add(row)
+            self.evidence.append("feature_view_materialised", "feature_view", view["id"],
+                                 {"version": number, "rows": len(rows),
+                                  "table": self._path(view, number)}, actor=actor)
         return row
 
     @staticmethod

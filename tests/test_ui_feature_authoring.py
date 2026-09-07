@@ -111,7 +111,7 @@ def catalogued(client):
 def browser(catalogued):
     """Signed in through the form, as a person is."""
     session = TestClient(catalogued.app)
-    r = session.post("/login", data={"username": "admin", "password": "admin123",
+    r = session.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                      "next": "/dashboard"},
                      follow_redirects=False)
     assert r.status_code == 303, r.text
@@ -524,10 +524,10 @@ class TestRefusalsReachTheUser:
         control teaches nobody why."""
         r = client.post("/api/v1/principals", json={
             "username": "d.raman", "display_name": "D Raman",
-            "roles": ["model_developer"], "password": "dev-pw"})
+            "roles": ["model_developer"], "password": "dev-pw-long-enough"})
         assert r.status_code == 201, r.text
         session = TestClient(catalogued.app)
-        session.post("/login", data={"username": "d.raman", "password": "dev-pw",
+        session.post("/login", data={"username": "d.raman", "password": "dev-pw-long-enough",
                                      "next": "/dashboard"})
         dev = Browser(session)
         dev.get("/feature/dscr")

@@ -186,10 +186,11 @@ class ModelComposition:
         row = {"from_model": source["id"], "to_model": target["id"], "kind": kind,
                "note": note, "type_checked": 1 if checked else 0,
                "created_by": actor, "created_at": time.time()}
-        self.edges.add(row)
-        self.evidence.append("model_related", "model", target["id"],
-                             {"from": source["urn"], "to": target["urn"],
-                              "kind": kind, "note": note}, actor=actor)
+        with self.evidence.recording():
+            self.edges.add(row)
+            self.evidence.append("model_related", "model", target["id"],
+                                 {"from": source["urn"], "to": target["urn"],
+                                  "kind": kind, "note": note}, actor=actor)
         logger.info("recorded %s %s %s", from_urn, kind, to_urn)
         return {**row, "from_urn": source["urn"], "to_urn": target["urn"],
                 "means": KIND_MEANING[kind],

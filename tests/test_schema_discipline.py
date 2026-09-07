@@ -249,3 +249,36 @@ def test_both_dialects_declare_the_same_indexes():
     only_postgres = names(POSTGRES) - names(SQLITE)
     assert not only_sqlite and not only_postgres, \
         f"only in sqlite: {sorted(only_sqlite)}; only in postgres: {sorted(only_postgres)}"
+
+
+def test_the_reference_index_reads_every_table_that_carries_a_model_id():
+    """Nineteen tables carry a `model_id`; the index read twelve.
+
+    The dependency screen's own docstring calls a blank result "the most
+    dangerous wrong answer this screen can give", and for seven tables that is
+    what it gave. Two were reachable with no version at all, which is exactly
+    the state in which a model CAN be deleted:
+
+    `risk_assessment` holds the tier, which decides every control requirement
+    and every quorum size on the model. `compliance_debt` is raised per gap by
+    a baseline import and `DebtRegister.reconcile` is per-model, so debt
+    orphaned by a deleted model can never close — the programme's burn-down
+    stays below 100% forever, pointing at a model nobody can look up.
+
+    Driven from the schema rather than from a list, so a twentieth table cannot
+    be added without a decision about it.
+    """
+    index = (ROOT / "core" / "references" / "index.py").read_text(encoding="utf-8")
+    carrying = set()
+    for match in re.finditer(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
+                             SQLITE.read_text(encoding="utf-8"), re.S):
+        if re.search(r"^\s+model_id\s+\w", match.group(2), re.M):
+            carrying.add(match.group(1))
+
+    unread = sorted(t for t in carrying if f'"{t}"' not in index)
+    assert not unread, (
+        f"these tables carry a model_id and the reference index never reads "
+        f"them, so deleting a model orphans their rows while the dependency "
+        f"screen reports that nothing refers to it: {unread}")
+    assert len(carrying) >= 19, \
+        "the scan found fewer tables than expected; check the pattern"
