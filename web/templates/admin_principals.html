@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}People and roles — {{ app_name }}{% endblock %}
+{% block title %}People and roles — {{ app_name }}<script src="/static/js/admin-principals.js"></script>
+{% endblock %}
 {% block content %}
 {% include "admin_nav.html" %}
 <div class="accent"></div>
@@ -33,7 +34,8 @@ effective challenge, whatever the org chart says.</p>
   <div class="card-header">Every principal</div>
   <table class="table maya mb-0">
     <thead><tr><th>Username</th><th>Name</th><th>Kind</th><th>Status</th>
-               <th>Roles</th><th>Scope</th><th>Permissions</th></tr></thead>
+               <th>Roles</th><th>Scope</th><th>Permissions</th>
+               {% if may_manage %}<th>Change</th>{% endif %}</tr></thead>
     <tbody>
       {% for p in people %}
       <tr>
@@ -58,6 +60,26 @@ effective challenge, whatever the org chart says.</p>
           {% if not p.legal_entities and not p.domains %}the whole estate{% endif %}</td>
         <td class="small">{{ p.effective|length }}
           <span class="text-muted" style="font-size:.72rem">effective</span></td>
+        {% if may_manage %}
+        <td class="small text-nowrap">
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2 edit-roles"
+                  style="font-size:.72rem"
+                  data-username="{{ p.username }}"
+                  data-roles="{{ (p.roles or [])|join(',') }}">Roles</button>
+          <button class="btn btn-sm btn-outline-secondary py-0 px-2 set-password"
+                  style="font-size:.72rem"
+                  data-username="{{ p.username }}">Password</button>
+          {% if p.status == "active" %}
+            <button class="btn btn-sm btn-outline-danger py-0 px-2 suspend"
+                    style="font-size:.72rem"
+                    data-username="{{ p.username }}">Suspend</button>
+          {% else %}
+            <button class="btn btn-sm btn-outline-danger py-0 px-2 reinstate"
+                    style="font-size:.72rem"
+                    data-username="{{ p.username }}">Reinstate</button>
+          {% endif %}
+        </td>
+        {% endif %}
       </tr>
       {% endfor %}
     </tbody>
@@ -110,9 +132,92 @@ effective challenge, whatever the org chart says.</p>
   </div>
 </div>
 
+{% if may_manage %}
+<div class="card mb-3">
+  <div class="card-header">Add somebody</div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">A principal is a person or a service, and
+    the difference is not cosmetic: a service signs in to nothing and holds no
+    password. Roles are checked against the incompatible pairs before anything
+    is written &mdash; a developer who could also approve versions is a first
+    line approving its own work &mdash; and the refusal names the pair.</p>
+
+    <form id="new-principal" class="row g-2 small align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="np-username">Username</label>
+        <input id="np-username" class="form-control form-control-sm mono"
+               name="username" placeholder="a.mehta" required></div>
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="np-display">Display name</label>
+        <input id="np-display" class="form-control form-control-sm"
+               name="display_name" placeholder="Anita Mehta" required></div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="np-kind">Kind</label>
+        <select id="np-kind" class="form-select form-select-sm" name="kind">
+          {% for k in kinds %}<option value="{{ k }}">{{ k }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-4">
+        <label class="form-label mb-1" for="np-email">Email</label>
+        <input id="np-email" class="form-control form-control-sm" name="email"
+               type="email" placeholder="optional"></div>
+
+      <div class="col-12 mt-2">
+        <span class="form-label mb-1 d-block">Roles</span>
+        <div class="d-flex flex-wrap gap-3">
+          {% for r in roles %}
+            <div class="form-check">
+              <input class="form-check-input np-role" type="checkbox"
+                     id="np-role-{{ r.name }}" value="{{ r.name }}">
+              <label class="form-check-label small" for="np-role-{{ r.name }}"
+                     title="{{ r.description }}">{{ r.name }}</label>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="col-md-5 mt-2">
+        <label class="form-label mb-1" for="np-entities">Legal entities</label>
+        <input id="np-entities" class="form-control form-control-sm mono"
+               name="legal_entities" list="entities-in-use"
+               placeholder="LE-UK-01, LE-US-01 — blank is the whole estate">
+        <datalist id="entities-in-use">
+          {% for e in entities_in_use %}<option value="{{ e }}">{% endfor %}
+        </datalist></div>
+      <div class="col-md-5 mt-2">
+        <label class="form-label mb-1" for="np-domains">Domains</label>
+        <input id="np-domains" class="form-control form-control-sm mono"
+               name="domains" list="domains-in-use"
+               placeholder="credit, market — blank is every domain">
+        <datalist id="domains-in-use">
+          {% for d in domains_in_use %}<option value="{{ d }}">{% endfor %}
+        </datalist></div>
+      <div class="col-md-2 mt-2">
+        <label class="form-label mb-1" for="np-password">Password</label>
+        <input id="np-password" class="form-control form-control-sm"
+               name="password" type="password"
+               placeholder="a person needs one"></div>
+
+      <div class="col-12 mt-2">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="np-conflicts">
+          <label class="form-check-label small" for="np-conflicts">
+            Grant an incompatible pair anyway &mdash; a deliberate exception,
+            recorded as one</label>
+        </div>
+      </div>
+
+      <div class="col-12 mt-2">
+        <button class="btn btn-sm btn-danger py-0 px-3"
+                style="font-size:.75rem">Add</button></div>
+    </form>
+    <div id="np-result" class="small mt-3"></div>
+  </div>
+</div>
+{% endif %}
+
 <p class="text-muted small mt-3">
 {% if may_manage %}Every change here is a governed act recorded on the evidence
-chain:
+chain, and the screen is a client of the same API a script would use:
 <span class="mono">POST /api/v1/principals</span>,
 <span class="mono">PUT /api/v1/principals/{username}/roles</span>,
 <span class="mono">POST /api/v1/principals/{username}/suspend</span>,
@@ -123,6 +228,13 @@ fortnight's leave a one-way door and a forgotten password a reason to create a
 second account &mdash; and an evidence chain naming two people who are one
 person is a chain nobody can read. The password itself is never logged and
 never reaches the chain; the fact that somebody set it does.
+
+Nothing on this page decides anything. Every button posts to the endpoint above
+and renders what came back &mdash; the incompatible-roles check, the scope, the
+segregation of duties and the evidence all happen where they already did, and a
+screen that re-implemented any of them would be a second implementation that
+disagrees with the first eventually, in the direction of permitting more.
 {% else %}Changing any of this needs <span class="mono">principal:manage</span>,
 which you do not hold.{% endif %}</p>
+<script src="/static/js/admin-principals.js"></script>
 {% endblock %}
