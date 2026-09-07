@@ -554,6 +554,13 @@ class FeaturesetRegistry:
         featureset, version = self.require(name), self.version(name, number)
         return {
             "featureset": name, "version": number, "entity": featureset["entity"],
+            # The version's own id. It was in no API response at all, and a
+            # document filed against a featureset version needs it as
+            # `subject_id` — so the only way to attach one was to read the id
+            # off a screen and retype it. `content/tutorials/03-featuresets.md`
+            # said so in prose and then printed a curl example nobody could
+            # complete; a documented dead end is still a dead end.
+            "id": version["id"],
             "grain": featureset["grain"], "digest": version["digest"],
             "pit_rule": PIT_RULE,
             "label": version["label_binding"] or None,
