@@ -532,17 +532,33 @@ class TestNothingIsExternal:
             r = signed_in.get(f"/static/js/{script.name}")
             assert r.status_code == 200, script.name
 
+    #: Vendored, and NOT part of the screens' client stack. Swagger UI renders
+    #: the generated OpenAPI document at `/docs` and is loaded by no template
+    #: here. It is vendored for the same reason everything else is — FastAPI
+    #: fetches it from a CDN by default and the CSP is `script-src 'self'`, so
+    #: the page was blank on every instance — and it is listed rather than
+    #: silently allowed, because "the screens add no library" is the rule this
+    #: test exists to hold.
+    NOT_A_SCREEN_LIBRARY = {"swagger-ui"}
+
     def test_the_screens_add_no_library(self):
         """The whole client stack is Bootstrap, its icons and jQuery. A screen
         that needed a fourth would be a screen doing something in the browser
         that belongs on the server."""
         vendored = {p.name for p in (ROOT / "web" / "static" / "vendor").iterdir()}
-        assert vendored == {"bootstrap", "bootstrap-icons", "jquery"}, vendored
+        assert vendored - self.NOT_A_SCREEN_LIBRARY == {
+            "bootstrap", "bootstrap-icons", "jquery"}, vendored
         for path in TEMPLATES.glob("model_algebra*.html"):
             body = path.read_text(encoding="utf-8")
             for tag in body.split("<script src=\"")[1:]:
                 source = tag.split('"')[0]
                 assert source.startswith("/static/js/"), source
+
+    def test_no_template_reaches_for_the_swagger_bundle(self):
+        """Which is what makes the exemption above honest rather than a hole."""
+        for path in TEMPLATES.glob("*.html"):
+            assert "swagger" not in path.read_text(encoding="utf-8").lower(), \
+                path.name
 
     def test_every_table_on_these_screens_has_a_header(self):
         """The rule is enforced across the whole interface elsewhere; asserted

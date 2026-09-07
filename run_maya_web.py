@@ -98,6 +98,8 @@ from db import (ServingAttestationRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
+from fastapi.openapi.docs import get_swagger_ui_html
+
 from routes import ALL_ROUTES
 
 #: Sent on every response.
@@ -529,10 +531,36 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
               cfg.get_bool("logging.json", False))
     ctx = build_context(cfg)
 
+    # `docs_url=None` and `redoc_url=None` turn OFF the built-in pages, and
+    # `/docs` is re-registered below against vendored assets.
+    #
+    # FastAPI's own `/docs` and `/redoc` load Swagger UI and ReDoc from
+    # `cdn.jsdelivr.net`. The Content-Security-Policy here is `script-src
+    # 'self'` — on purpose, because every other asset in this interface is
+    # vendored so it renders air-gapped — so both pages were BLANK on every
+    # instance with the headers on, which is every instance. The API reference
+    # the platform actually advertises was a white screen and nothing said so.
+    #
+    # The fix is not a CDN exception. A hole in the policy opened for a
+    # documentation page, on a platform whose argument is that nothing here
+    # calls out, is the wrong trade — so Swagger UI is vendored beside bootstrap
+    # and jquery. ReDoc is not: two renderings of one specification is one more
+    # than anybody needs, and a second vendored bundle to maintain.
     app = FastAPI(title=cfg.get("app.name", "MAYA"),
                   description=f"{cfg.get('app.tagline')} — {cfg.get('app.slogan')}",
                   version=cfg.get("app.version", "0.1.0"),
-                  openapi_url="/api/v1/openapi.json")
+                  openapi_url="/api/v1/openapi.json",
+                  docs_url=None, redoc_url=None)
+
+    @app.get("/docs", include_in_schema=False)
+    def swagger_ui():
+        """The interactive specification, served from this origin only."""
+        return get_swagger_ui_html(
+            openapi_url="/api/v1/openapi.json",
+            title=f"{cfg.get('app.name', 'MAYA')} — API",
+            swagger_js_url="/static/vendor/swagger-ui/swagger-ui-bundle.js",
+            swagger_css_url="/static/vendor/swagger-ui/swagger-ui.css",
+            swagger_favicon_url="/static/img/maya-mark-64.png")
     app.state.ctx = ctx
     # Registered BEFORE the session middleware, which puts it INSIDE it: an
     # `add_middleware` added later wraps outside, and a CSRF guard that runs
