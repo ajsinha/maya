@@ -26,6 +26,7 @@ from __future__ import annotations
 import concurrent.futures
 
 import pathlib
+import re
 
 import pytest
 
@@ -252,14 +253,45 @@ class TestAQuorumIsANumberOfPeople:
     """
 
     def test_the_constraint_exists_in_both_dialects(self):
-        """Asserted on the DDL, because this is the half that does the work."""
+        """Asserted on the DDL, because this is the half that does the work.
+
+        As an INDEX, not a clause in the table body, and that is the whole
+        point. The schema is applied with CREATE TABLE IF NOT EXISTS, so a
+        constraint written inside a table reaches a fresh database and never
+        reaches a deployed one — and unlike a missing column, a missing
+        uniqueness rule fails nothing at the point of use. It silently permits
+        the write it existed to refuse, so this test passed for a wave while
+        every upgraded instance still let one person be a quorum.
+        """
         for dialect in ("sqlite", "postgres"):
             root = pathlib.Path(__file__).resolve().parents[1]
             sql = (root / "db" / "schema" / f"{dialect}.sql").read_text()
-            table = sql.split("CREATE TABLE IF NOT EXISTS version_approval_signature")[1]
-            table = table.split(");")[0]
-            assert "UNIQUE (version_approval_id, principal)" in table, (
-                f"{dialect}.sql lets one person sign a quorum twice")
+            for table in ("version_approval_signature", "attestation_signature"):
+                assert re.search(
+                    r"CREATE UNIQUE INDEX IF NOT EXISTS \w+\s+ON "
+                    + table + r"\s*\((\w+),\s*principal\)", sql), (
+                    f"{dialect}.sql lets one person sign a {table} quorum twice")
+
+    def test_the_constraint_reaches_a_database_that_already_exists(self, tmp_path):
+        """The half that was missing. A bank upgrades; start-up logs clean; the
+        constraint the release note describes is not on the table."""
+        from sqlalchemy import text
+
+        from db.database import Database
+
+        db = Database(f"sqlite:///{tmp_path}/deployed.db")
+        db.apply_schema()
+        # An instance that predates the constraint.
+        with db.engine.begin() as connection:
+            connection.execute(text("DROP INDEX uq_signature_attestation_principal"))
+        assert "missing index 'uq_signature_attestation_principal'" in \
+            db.drift().get("attestation_signature", []), \
+            "drift() cannot see a missing uniqueness rule, so nothing says so"
+        # Applying the shipped schema repairs it — no migration step.
+        db.apply_schema()
+        assert not db.drift()
+        assert "uq_signature_attestation_principal" in \
+            db.indexes_of("attestation_signature")
 
     def test_the_database_refuses_a_second_signature_from_one_person(self, tmp_path):
         """Below the service, so a future refactor of `sign` cannot lose it."""

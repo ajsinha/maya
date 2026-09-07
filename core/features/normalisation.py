@@ -143,6 +143,39 @@ def knowable(rows: Sequence[Dict[str, Any]], column: str,
     return out
 
 
+def knowable_any(rows: Sequence[Dict[str, Any]], column: str,
+                 as_of: float) -> List[Any]:
+    """`knowable`, without the coercion to float.
+
+    The two clock bounds and the null test, and nothing else. `knowable`
+    coerces every value to a number and drops what will not coerce, which is
+    right for a mean and fatal for a mode: `most_frequent` is documented as
+    "the commonest value; the only one that suits a category", and on a
+    category it saw an empty list and refused with "nothing was knowable for
+    'sector' at that moment". The one strategy for non-numeric columns could
+    not be used on one.
+    """
+    out: List[Any] = []
+    for row in rows:
+        if row.get(column) is None:
+            continue
+        if row.get(VALID_TIME) is not None and row[VALID_TIME] > as_of:
+            continue
+        if row.get(INGEST_TIME) is not None and row[INGEST_TIME] > as_of:
+            continue
+        value = row[column]
+        candidates = _flatten(value) if isinstance(value, (list, tuple)) else [value]
+        # A NaN is not an observation here either, and neither is a null inside
+        # a list. Everything else counts, whatever its type.
+        out.extend(v for v in candidates
+                   if v is not None and not _is_nan(v))
+    return out
+
+
+def _is_nan(value: Any) -> bool:
+    return isinstance(value, float) and value != value
+
+
 def _observed(value: Any) -> bool:
     if value is None or isinstance(value, bool):
         return False
@@ -184,8 +217,19 @@ def _parameters(method: str, values: List[float]) -> Dict[str, Any]:
         # A sample of the fitting distribution rather than all of it: a hundred
         # points place a value to a percentile, and carrying a million would
         # make the statistics larger than the data they describe.
-        step = max(n // 100, 1)
-        return {"quantiles": ordered[::step][:100]}
+        #
+        # Sampled by POSITION across the whole range, not by stride-then-cut.
+        # `ordered[::step][:100]` with `step = max(n // 100, 1)` keeps only the
+        # lowest hundred values whenever 100 < n < 200 -- the stride is 1 and
+        # the slice throws the rest away -- so at n=199 the top HALF of the
+        # fitting window mapped to 1.0 and the method's stated meaning, "the
+        # value's quantile within the fitting window", was false for half the
+        # data it was fitted on.
+        count = min(100, n)
+        if count == 1:
+            return {"quantiles": [ordered[0]]}
+        return {"quantiles": [ordered[round(i * (n - 1) / (count - 1))]
+                              for i in range(count)]}
     return {}
 
 

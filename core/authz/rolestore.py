@@ -66,30 +66,76 @@ from core.authz.roles import DESCRIPTIONS, ROLES
 #: and a model risk manager both legitimately raise findings and close them —
 #: that is the second line's job. The third line's constraint is about building
 #: what it audits, and it is a role pair.
-INCOMPATIBLE_PERMISSIONS: Tuple[Tuple[str, str, str], ...] = (
-    ("version:create", "version:approve",
-     "creating a version and approving one is a first line approving its own "
-     "work"),
-    ("version:create", "version:sign",
-     "the person who built a version may not sign its approval quorum"),
-    ("version:create", "validation:conclude",
-     "effective challenge is not effective when the builder concludes it"),
-    ("model:register", "version:approve",
-     "an owner who can also approve versions of their own models defeats "
-     "second-line challenge"),
-    ("model:register", "version:sign",
-     "an owner signing the quorum on their own model is signing for themselves"),
-    ("model:register", "validation:conclude",
-     "an owner concluding their own model's validation is signing off their "
-     "own challenge"),
+#: The acts of the FIRST line: proposing the thing. Held by `model_owner` and
+#: `model_developer`, and by neither second-line role.
+FIRST_LINE: FrozenSet[str] = frozenset({
+    "model:register", "model:submit", "version:create", "parameter:record",
+    "overlay:propose", "feature:define", "featureset:define", "warrant:issue",
+})
+
+#: The acts of the SECOND line: challenging it and letting it through. Held by
+#: `model_risk_manager` and `validator`, and by neither first-line role.
+SECOND_LINE: FrozenSet[str] = frozenset({
+    "version:approve", "version:sign", "validation:conclude", "model:approve",
+    "alias:move", "policy:publish", "parameter:approve", "overlay:approve",
+    "feature:certify", "feature:seal", "featureset:seal", "document:review",
+    "regime:activate",
+})
+
+#: Recording what a model did, and judging whether what it did was acceptable.
+#: `service` observes and `operator` evaluates, and no shipped role does both.
+OBSERVE: FrozenSet[str] = frozenset({"monitor:observe"})
+EVALUATE: FrozenSet[str] = frozenset({"monitor:evaluate"})
+
+#: Which sets of acts one person may not hold together, and why.
+SEPARATIONS: Tuple[Tuple[FrozenSet[str], FrozenSet[str], str], ...] = (
+    (FIRST_LINE, SECOND_LINE,
+     "effective challenge means somebody other than the builder runs it"),
+    (OBSERVE, EVALUATE,
+     "whoever records what a model did may not also be the one who decides "
+     "the record was acceptable"),
 )
+
+
+def _pairs_from_separations() -> Tuple[Tuple[str, str, str], ...]:
+    """Every incompatible permission pair the separations imply.
+
+    Derived rather than typed out. The six pairs written here by hand covered
+    two of the two dozen separations the shipped roles actually make, and the
+    gaps were not visible by reading them: a role called `solo` holding
+    `model:register`, `risk:assess`, `model:submit` and `version:approve`
+    collided with none of the six, so one person registered a model, set the
+    tier that decides every control on it, submitted it and approved it. All
+    six are inside what this generates.
+
+    `risk:assess`, `model:attest`, `monitor:define` and `policy:author` are in
+    NEITHER set, deliberately: `model_owner` and `model_risk_manager` both hold
+    them, so the platform's own roles say they are not separated and a rule
+    saying otherwise would make a shipped role illegal. The same trap took
+    `finding:raise` + `finding:close` out of the old list — both lines of
+    defence legitimately raise findings and close them.
+    """
+    out: List[Tuple[str, str, str]] = []
+    for first, second, reason in SEPARATIONS:
+        out.extend((a, b, reason)
+                   for a in sorted(first) for b in sorted(second))
+    return tuple(out)
+
+
+INCOMPATIBLE_PERMISSIONS: Tuple[Tuple[str, str, str], ...] = _pairs_from_separations()
 
 
 class RoleStore:
     """The roles a principal may hold, and what each grants."""
 
-    def __init__(self, repo, evidence=None):
+    def __init__(self, repo, evidence=None, principals=None):
+        # `principals` is the repository of people, needed only to answer "who
+        # already holds this role" when one is amended. Optional so the store
+        # can be built before the principal register exists; when it is absent
+        # the holder check cannot run and `amend` says so rather than passing
+        # silently.
         self.repo, self.evidence = repo, evidence
+        self.principals = principals
         self._seed()
 
     # ------------------------------------------------------------------- seed
@@ -168,6 +214,59 @@ class RoleStore:
                   if a in granted and b in granted]
         return found
 
+    def conflicts_within(self, permissions: Iterable[str]) -> List[str]:
+        """Every incompatible pair a single set of permissions contains.
+
+        `conflicts` asks the question of a set of ROLES, which is the question
+        assignment asks. This asks it of a set of PERMISSIONS, which is the
+        question defining a role asks, and nothing asked it: a role holding
+        `version:create` and `version:approve` was accepted into the catalogue,
+        listed as an ordinary row, and refused only on the first person somebody
+        tried to give it to.
+        """
+        granted = set(permissions)
+        return [f"{reason} ({a} + {b})"
+                for a, b, reason in INCOMPATIBLE_PERMISSIONS
+                if a in granted and b in granted]
+
+    def _refuse_self_conflict(self, name: str, permissions: List[str]) -> None:
+        if found := self.conflicts_within(permissions):
+            raise AuthzError(
+                "incompatible_permissions",
+                f"'{name}' would hold both halves of a separated duty: "
+                f"{'; '.join(found)}",
+                "split them between two roles; a person who needs both holds "
+                "both roles and is refused there, on the record, rather than "
+                "silently by the shape of one role")
+
+    def _refuse_for_holders(self, name: str, permissions: List[str]) -> None:
+        """Whether amending this role gives any current holder a conflict.
+
+        Amending is a change to what every holder can do, made without naming
+        any of them, so the refusal names them: an administrator who cannot see
+        who is affected cannot judge whether the change is safe.
+        """
+        if self.principals is None:               # not wired; nothing to check
+            return
+        affected = []
+        for person in self.principals.many():
+            held = list(person.get("roles") or [])
+            if name not in held or "admin" in held:
+                continue
+            granted: set = set()
+            for role in held:
+                granted |= set(permissions if role == name
+                               else (self.get(role) or {}).get("permissions") or [])
+            if found := self.conflicts_within(granted):
+                affected.append(f"{person['username']} ({'; '.join(found)})")
+        if affected:
+            raise AuthzError(
+                "incompatible_permissions",
+                f"amending '{name}' would give {len(affected)} "
+                f"{'person' if len(affected) == 1 else 'people'} both halves of "
+                f"a separated duty: {'; '.join(affected)}",
+                "change what those people hold first, or split this role in two")
+
     # ------------------------------------------------------------------ write
     def create(self, name: str, description: str, permissions: List[str],
                actor: str = "system") -> Dict[str, Any]:
@@ -186,6 +285,7 @@ class RoleStore:
                 "of permissions is not an explanation of who should hold them",
                 "say what this role is for in one sentence")
         wanted = self._checked(permissions, name)
+        self._refuse_self_conflict(name, wanted)
         row = self.repo.add({
             "name": name, "description": description.strip(),
             "permissions": wanted, "built_in": 0,
@@ -211,7 +311,17 @@ class RoleStore:
         if description is not None:
             changes["description"] = description.strip()
         if permissions is not None:
-            changes["permissions"] = self._checked(permissions, name)
+            wanted = self._checked(permissions, name)
+            self._refuse_self_conflict(name, wanted)
+            # And the people who ALREADY hold it. Every conflict check in this
+            # platform ran at the moment a role was GIVEN to somebody, and a
+            # role's permissions are mutable afterwards -- so the whole check
+            # was avoidable in two steps that were each individually allowed:
+            # define a harmless role, have it assigned, then amend it to hold
+            # both halves of a separated duty. The direct path returns 409. This
+            # one returned 200, and every holder silently acquired the pair.
+            self._refuse_for_holders(name, wanted)
+            changes["permissions"] = wanted
         self.repo.set(changes, id=row["id"])
         after = self.require(name)
         self._record("role_amended", after,

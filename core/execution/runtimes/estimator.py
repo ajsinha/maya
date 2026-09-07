@@ -400,7 +400,16 @@ class EstimatorRuntime:
             "values": {"omega": omega, "alpha": alpha, "beta": beta},
             "diagnostics": {
                 "n": len(e), "series": series,
-                "log_likelihood": self._finite(-negative_log_likelihood(theta)),
+                # The GAUSSIAN log-likelihood, constant included. The
+                # objective drops `0.5 * n * ln(2*pi)` because it is constant in
+                # theta and the optimiser cannot see it — but the register is
+                # read by a validator comparing against `arch` or
+                # `statsmodels`, or computing AIC or BIC, and for them the
+                # constant is the difference between agreeing and not. It was
+                # 735 on an 800-point series.
+                "log_likelihood": self._finite(
+                    -(negative_log_likelihood(theta)
+                      + 0.5 * len(e) * math.log(2.0 * math.pi))),
                 "iterations": iterations, "converged": True,
                 "persistence": self._finite(persistence),
                 # Long-run variance exists only under stationarity, which the

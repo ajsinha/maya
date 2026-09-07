@@ -165,12 +165,20 @@ class Expression:
             return None                       # an input we do not have yet
         try:
             return eval(compile(self.tree, "<derived>", "eval"), {"__builtins__": {}}, env)
-        except (ZeroDivisionError, ValueError, OverflowError) as exc:
+        except (ZeroDivisionError, ValueError, OverflowError, TypeError) as exc:
             # The arithmetic is undefined for this row. That is a null, not a
             # failure: the definition is sound and this row does not have an
             # answer. on_error records which was intended. Logged at debug
             # because a million-row materialisation with a thousand zero
             # denominators is normal, and a warning per row would bury the log.
+            #
+            # TypeError is here because a null PROPAGATES. `log` and `sqrt` are
+            # total and return None outside their domain -- and the moment that
+            # None met the next operator, `log(dscr) * beta` raised TypeError
+            # and took down the materialisation this method exists to keep
+            # running. An ordinary scorecard term and a single non-positive
+            # DSCR were enough. Nulls absorbing arithmetic is the same rule SQL
+            # applies and the one the rest of this file assumes.
             swallowed(logger, exc, "evaluated a derived expression",
                       f"'{self.source}' is undefined for this row; recorded null",
                       logging.DEBUG)

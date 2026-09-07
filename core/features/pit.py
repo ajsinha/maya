@@ -26,7 +26,6 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.log import get_logger, swallowed
-import itertools
 
 logger = get_logger(__name__)
 
@@ -103,20 +102,55 @@ def verify_sampled(rows: List[Dict[str, Any]], recompute, sample: int = 200) -> 
         return PitReport(True, "sampled", 0, detail="nothing to verify")
     chosen = _stratified(rows, sample)
     violations = []
+    compared = 0
     for row in chosen:
         expected = recompute(row)
         for key, want in expected.items():
+            compared += 1
             got = row.get(key)
             if not _close(got, want):
                 violations.append({"entity_id": row.get("entity_id"), "feature": key,
                                    "assembled": got, "expected": want})
+    # `N of M rows independently recomputed` counted rows SAMPLED, not
+    # comparisons MADE, and those differ by exactly the amount that matters:
+    # `_recompute` skips a row the second route cannot find, so a run that
+    # compared nothing at all described itself in the same words as one that
+    # compared eighty thousand values. Zero comparisons is not, on its own, a
+    # failure -- a point-in-time bound that legitimately excludes every row
+    # produces it too, and that is a correct answer. It is the store being
+    # unreadable that must not look like this, and that is caught where it
+    # happens, in `_recompute`. What belongs here is saying which of the two
+    # this was, in the detail the report carries.
+    if not compared:
+        return PitReport(
+            True, "sampled", len(chosen), violations,
+            detail=f"{len(chosen)} of {len(rows)} rows sampled and NO values "
+                   f"were compared: at these rows' point-in-time bounds the "
+                   f"second route found nothing to recompute. This verified "
+                   f"that both routes agree there is nothing, which is not the "
+                   f"same as verifying values")
     return PitReport(not violations, "sampled", len(chosen), violations,
-                     detail=f"{len(chosen)} of {len(rows)} rows independently recomputed")
+                     detail=f"{len(chosen)} of {len(rows)} rows independently "
+                            f"recomputed ({compared} values compared)")
 
 
 # Above this many distinct values per row, a column is continuous for our
 # purposes and the purity screen below says nothing about it.
 CONTINUOUS_RATIO = 0.5
+
+#: How wrong a "perfect" predictor is allowed to be before it stops counting as
+#: one. Both screens used to demand EXACT purity -- every bucket single-labelled,
+#: or exactly one label change along the sorted column -- and exactness is what
+#: a leak evades by accident. One contaminated cell in forty hid an otherwise
+#: perfect leaked status code, and a two-sided deterministic rule
+#: (`label = 1 iff 10 <= x <= 20`) produces two label changes rather than one
+#: and sailed through. A leak is a column that predicts the label far better
+#: than a feature has any business doing; it does not have to be flawless.
+IMPURITY_TOLERANCE = 0.02
+
+#: Below this many non-null values there is not enough left of a column to say
+#: anything about it, whatever the whole frame's size.
+MIN_SCREENABLE = 8
 
 
 def screen_leakage(rows: List[Dict[str, Any]], label_key: str = "label"
@@ -128,7 +162,7 @@ def screen_leakage(rows: List[Dict[str, Any]], label_key: str = "label"
     conditions produce that empty list without a single column being compared:
     fewer than eight rows, no label column in the frame, and a label with only
     one distinct value. A fourth is subtler — a CONTINUOUS label, where the
-    only test available is a threshold split and `_separates_perfectly`
+    only test available is a threshold split and `_separates_near_perfectly`
     declines anything that is not binary. A regression training set therefore
     came back clean having been screened for nothing at all.
 
@@ -148,7 +182,33 @@ def screen_leakage(rows: List[Dict[str, Any]], label_key: str = "label"
         return [], (f"'{label_key}' is continuous, and the only screen available "
                     f"for a continuous column is a threshold split, which means "
                     f"nothing unless the label is binary")
+    # The gap between those two conditions, and the nastiest of the four. A
+    # THREE-class label over sixty rows is neither binary nor continuous by the
+    # ratio above, so the screen ran and reported itself as having run — but
+    # `_separates_near_perfectly` returns False for any non-binary label, so
+    # every continuous column in the frame was examined for nothing. A
+    # continuous column that decoded the grade exactly came back clean, and the
+    # report said the screen had covered it.
+    if distinct_labels > 2:
+        unscreenable = [key for key in rows[0]
+                        if key not in (label_key, "entity_id", "label_ts")
+                        and _is_continuous([r.get(key) for r in rows])]
+        if unscreenable:
+            return detect_leakage(rows, label_key), (
+                f"'{label_key}' has {distinct_labels} classes, and a threshold "
+                f"split says nothing unless the label is binary — so "
+                f"{', '.join(sorted(unscreenable))} "
+                f"{'was' if len(unscreenable) == 1 else 'were'} not screened")
     return detect_leakage(rows, label_key), None
+
+
+def _is_continuous(values: List[Any]) -> bool:
+    """Whether this column is high-cardinality enough that only a threshold
+    test could say anything about it."""
+    present = [v for v in values if v is not None]
+    if len(present) < MIN_SCREENABLE:
+        return False
+    return len(set(present)) / len(present) > CONTINUOUS_RATIO
 
 
 def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List[str]:
@@ -180,31 +240,64 @@ def detect_leakage(rows: List[Dict[str, Any]], label_key: str = "label") -> List
     for key in rows[0]:
         if key in (label_key, "entity_id", "label_ts"):
             continue
-        values = [r.get(key) for r in rows]
-        if any(v is None for v in values):
+        # The NON-NULL pairs, rather than skipping any column that has a null.
+        # A single null in forty rows made a byte-for-byte copy of the label
+        # invisible to this screen -- and a leaked outcome field nulled for the
+        # population it does not apply to is the ordinary shape of one, not an
+        # exotic case. Screening what is there and saying how much was absent
+        # is the honest version.
+        pairs = [(r.get(key), lab) for r, lab in zip(rows, labels)
+                 if r.get(key) is not None and lab is not None]
+        if len(pairs) < MIN_SCREENABLE:
+            continue
+        values = [v for v, _ in pairs]
+        present_labels = [lab for _, lab in pairs]
+        if len(set(present_labels)) < 2:
             continue
         distinct = len(set(values))
         if distinct < 2:
             continue
         if distinct / len(values) > CONTINUOUS_RATIO:
-            if _separates_perfectly(values, labels):
+            if _separates_near_perfectly(values, present_labels):
                 suspects.append(key)
             continue
-        mapping: Dict[Any, set] = {}
-        for v, lab in zip(values, labels):
-            mapping.setdefault(v, set()).add(lab)
-        if all(len(s) == 1 for s in mapping.values()):
+        if _predicts_near_perfectly(values, present_labels):
             suspects.append(key)
     return suspects
 
 
-def _separates_perfectly(values: List[Any], labels: List[Any]) -> bool:
-    """Whether one threshold on this column splits the labels exactly.
+def _predicts_near_perfectly(values: List[Any], labels: List[Any]) -> bool:
+    """Whether knowing this column tells you the label almost every time.
+
+    The proportion of rows that disagree with their value's majority label,
+    against `IMPURITY_TOLERANCE`. This used to require EVERY bucket to hold
+    exactly one label, so a single contaminated cell in forty concealed an
+    otherwise perfect leaked status code -- and one contaminated cell is what a
+    real leak looks like after a correction, a backfill or a manual override.
+    """
+    mapping: Dict[Any, Dict[Any, int]] = {}
+    for value, label in zip(values, labels):
+        mapping.setdefault(value, {})
+        mapping[value][label] = mapping[value].get(label, 0) + 1
+    wrong = sum(sum(counts.values()) - max(counts.values())
+                for counts in mapping.values())
+    return wrong / len(labels) <= IMPURITY_TOLERANCE
+
+
+def _separates_near_perfectly(values: List[Any], labels: List[Any]) -> bool:
+    """Whether one threshold on this column almost splits the labels.
 
     Only meaningful for numbers and only for a binary label; anything else is
     reported as unscreenable rather than as clean, by returning False and
     leaving it to the sampled recomputation and the derived-feature lineage
     check, which are the screens that actually prove something.
+
+    The old test was "exactly one change of label along the sorted column",
+    which is a test for a ONE-SIDED rule. A deterministic two-sided predictor —
+    `label = 1 iff 10 <= x <= 20`, which is what a banded outcome field looks
+    like — produces two changes and was passed as clean. The best single
+    threshold's error rate subsumes that case and the one-contaminated-cell
+    case together.
     """
     if len(set(labels)) != 2:
         return False
@@ -218,10 +311,36 @@ def _separates_perfectly(values: List[Any], labels: List[Any]) -> bool:
                   level=logging.DEBUG)
         return False
     ordered = [lab for _, lab in pairs]
-    # Exactly one change of label along the sorted column: everything below the
-    # threshold is one class and everything above it is the other.
-    changes = sum(1 for a, b in itertools.pairwise(ordered) if a != b)
-    return changes == 1
+    total = len(ordered)
+    classes = sorted(set(ordered), key=str)
+    best = min(_interval_errors(ordered, positive) for positive in classes)
+    return best / total <= IMPURITY_TOLERANCE
+
+
+def _interval_errors(ordered: List[Any], positive: Any) -> int:
+    """Fewest rows misplaced by the best RANGE of this column.
+
+    A threshold is a range that reaches one end, so this subsumes the
+    threshold test rather than sitting beside it — and it catches the case the
+    threshold test provably cannot. `label = 1 iff 10 <= x <= 20` is a
+    deterministic predictor and a textbook leak, and no single cut point
+    separates it: the old screen asked for exactly one label change along the
+    sorted column, this rule produces two, and it was passed as clean. Widening
+    the cut to a tolerance does not help either, because the best single
+    threshold on a band is wrong for the whole band.
+
+    Scored by the best contiguous run: score +1 inside for a row of the
+    positive class and -1 for a row that is not, and the run with the largest
+    total is the range that gets the most right. Errors are then the positives
+    outside it plus the negatives inside it, which is
+    `positives - best_run`. Linear, and it needs one pass.
+    """
+    positives = sum(1 for lab in ordered if lab == positive)
+    best_run = running = 0            # the empty range, which misses every positive
+    for label in ordered:
+        running = max(0, running + (1 if label == positive else -1))
+        best_run = max(best_run, running)
+    return positives - best_run
 
 
 def _stratified(rows: List[Dict[str, Any]], n: int) -> List[Dict[str, Any]]:

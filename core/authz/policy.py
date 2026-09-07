@@ -47,10 +47,25 @@ class AuthorizationPolicy:
     roles: Any = None
 
     def permissions(self, principal: Dict[str, Any]) -> frozenset:
+        """What this principal may do, as the acting credential holds it.
+
+        A key's scope narrows the answer HERE rather than only at the
+        authorisation gate, because everything else that asks what somebody may
+        do reads this: `/api/v1/me` reported all seven permissions of the person
+        behind a key scoped to one, and the navigation built from the same call
+        offered screens the key could not use. A credential that reports
+        authority it does not carry is the same defect as one that grants it.
+
+        A key never ADDS anything — the intersection is with what the roles
+        grant, so a key cannot outlive a role change or a suspension.
+        """
         held = principal.get("roles") or ()
-        if self.roles is not None:
-            return self.roles.permissions_for(held)
-        return permissions_for(held)
+        granted = (self.roles.permissions_for(held) if self.roles is not None
+                   else permissions_for(held))
+        scopes = principal.get("api_key_scopes")
+        if scopes:
+            granted = frozenset(granted & frozenset(scopes))
+        return granted
 
     def permits(self, principal: Dict[str, Any], permission: str) -> bool:
         return require_known(permission) in self.permissions(principal)

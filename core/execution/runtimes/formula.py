@@ -54,7 +54,14 @@ class FormulaRuntime:
         return None
 
     def invoke(self, call: Invocation) -> Any:
-        entry = (call.warrant.get("operation") or {}).get("entry") or {}
+        # `call.entry`, which reads `realisation.entry` -- where the grammar
+        # requires it, where `WarrantBuilder._realisation` puts it, and where
+        # every other runtime reads it. This read `operation.entry`, which
+        # `_operation` never writes, so the runtime refused every warrant the
+        # platform actually issues. It looked correct because the only test of
+        # it hand-built `{"operation": {"entry": ...}}` -- the runtime's own
+        # private shape rather than a warrant.
+        entry = call.entry
         source = entry.get("expression")
         if not source:
             raise WarrantError(
@@ -70,9 +77,17 @@ class FormulaRuntime:
         # overwritten by an input of the same name, or a caller could supply
         # their own coefficient and the warrant would still say the model ran
         # at its approved point of `P`.
-        parameters = (call.inputs or {}).get("parameters") or {}
-        values = parameters.get("values") if isinstance(parameters, dict) else None
-        overridden = sorted(set(row) & set(values or {}))
+        # Flat, as `ExecutionEngine` supplies it: `inputs["parameters"]` is
+        # `row["values_inline"]`, a mapping of name to number. This reached for
+        # a `values` key inside it, which is never there -- so `values` was
+        # always None, the intersection below was always empty, and the control
+        # this whole block exists to be was dead. A caller supplying their own
+        # `beta` had it used, and the warrant said the model ran at its approved
+        # point of `P`.
+        values = (call.inputs or {}).get("parameters") or {}
+        if not isinstance(values, dict):
+            values = {}
+        overridden = sorted(set(row) & set(values))
         if overridden:
             raise WarrantError(
                 "parameter_overridden",
@@ -81,7 +96,7 @@ class FormulaRuntime:
                 "a caller who can set a coefficient is choosing the model; "
                 "rename the input, or record a parameter set that does not "
                 "name it")
-        row.update(values or {})
+        row.update(values)
 
         try:
             expression = Expression(source)

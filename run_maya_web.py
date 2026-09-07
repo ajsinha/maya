@@ -203,7 +203,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Both the policy and the principal service are pointed at the same store,
     # because two places permissions come from is the defect this argues
     # against one layer down.
-    role_store = RoleStore(RoleRepository(db), evidence)
+    role_store = RoleStore(RoleRepository(db), evidence,
+                           principals=PrincipalRepository(db))
     authz.roles = role_store
     principals.roles = role_store
     principals.bootstrap(cfg.get("auth.username", "admin"),

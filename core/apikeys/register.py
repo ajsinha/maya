@@ -188,12 +188,26 @@ class ApiKeyRegister:
         if not principal or principal.get("status") != "active":
             return None
 
+        # A JSON column that fails to decode is left as raw TEXT, and the scope
+        # check downstream was `permission not in scopes` -- a SUBSTRING match
+        # on that string, so 'model:read' matched inside '["model:read_only"]'
+        # and the key was granted a permission its scope excludes. A malformed
+        # cell in a table that decides authorisation refuses; it does not
+        # degrade into a weaker check.
+        scopes = row.get("scopes") or []
+        if not isinstance(scopes, (list, tuple)):
+            raise ApiKeyError(
+                "key_scope_unreadable",
+                f"the stored scope of API key '{row['name']}' is not a list of "
+                f"permissions, so nothing can be authorised against it",
+                "revoke this key and issue another")
+
         self.repo.set({"last_used_at": time.time(),
                        "use_count": (row.get("use_count") or 0) + 1},
                       id=row["id"])
         return {**principal, "api_key": row["id"],
                 "api_key_name": row["name"],
-                "api_key_scopes": row.get("scopes") or []}
+                "api_key_scopes": list(scopes)}
 
     # ------------------------------------------------------------------ query
     def for_principal(self, username: str) -> List[Dict[str, Any]]:

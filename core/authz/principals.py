@@ -186,12 +186,54 @@ class PrincipalService:
         return self.public(self.principals.one(id=row["id"]))
 
     def suspend(self, username: str, actor: str = "system") -> Dict[str, Any]:
+        """Take a principal out of service. Not yourself, and not the last
+        person who can undo it.
+
+        The screen rendered a Suspend button on every active row including the
+        administrator's own, and clicking it worked. Reinstating requires
+        `principal:manage`, which the suspended account no longer has — so on a
+        single-administrator instance the only route back was an UPDATE against
+        `principal` in the database, which is precisely the act this platform
+        exists to make unnecessary. The confirm dialog said "reinstating is a
+        separate act, so this is not a one-way door", and it was true of
+        everybody except the person clicking.
+        """
         row = self.require(username)
+        if username == actor:
+            raise AuthzError(
+                "self_suspension",
+                "you cannot suspend yourself: reinstating needs "
+                "'principal:manage', which you would no longer have",
+                "ask another administrator to suspend you, or hand over first")
+        if self._is_last_administrator(username):
+            raise AuthzError(
+                "last_administrator",
+                f"{username} is the only active principal who can administer "
+                f"principals, and suspending them would leave nobody able to "
+                f"reinstate anyone",
+                "give somebody else a role carrying 'principal:manage' first")
         self.principals.set({"status": "suspended"}, id=row["id"])
         self.forget(username)
         self.evidence.append("principal_suspended", "principal", row["id"],
                              {"username": username}, actor=actor)
         return self.public(self.principals.one(id=row["id"]))
+
+    def _is_last_administrator(self, username: str) -> bool:
+        """Whether taking this principal out of service leaves nobody who can
+        put anyone back.
+
+        Only a principal who actually administers principals can be the last
+        one — suspending an ordinary user on an instance that happens to have a
+        single account is not a lockout, it is a Tuesday.
+        """
+        row = self.principals.one(username=username)
+        if "principal:manage" not in self._permissions_for(
+                (row or {}).get("roles") or []):
+            return False
+        others = [p for p in self.principals.many()
+                  if p["username"] != username and p.get("status") == "active"]
+        return not any("principal:manage" in self._permissions_for(
+            p.get("roles") or []) for p in others)
 
     def reinstate(self, username: str, actor: str = "system") -> Dict[str, Any]:
         """Undo a suspension.
