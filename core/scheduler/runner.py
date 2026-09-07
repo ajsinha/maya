@@ -91,10 +91,11 @@ class Scheduler:
                "error": error,
                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                "ran_by": actor, "ran_at": moment}
-        self.runs.add(row)
-        self.evidence.append("scheduled_job_ran", "scheduler", job.key,
-                             {"job": job.key, "ok": error is None,
-                              "outcome": outcome, "error": error}, actor=actor)
+        with self.evidence.recording():
+            self.runs.add(row)
+            self.evidence.append("scheduled_job_ran", "scheduler", job.key,
+                                 {"job": job.key, "ok": error is None,
+                                  "outcome": outcome, "error": error}, actor=actor)
         return self.runs.one(id=row["id"])
 
     # ------------------------------------------------------------------ query

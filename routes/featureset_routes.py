@@ -252,7 +252,19 @@ class FeaturesetRoutes(Routes):
         @self.app.post(f"{api}/features/{{name}}/break-seal", tags=["features"])
         def break_feature_seal(request: Request, name: str, body: BreakSealIn):
             """Administrators only, and never quietly."""
-            who = self.authorise(request, "principal:manage")
+            who = self.authorise(
+                request, "principal:manage",
+                # Administering principals is not about one model, and
+                # nothing checked scope for it: `principal:manage` is not
+                # in MODEL_SCOPED, so ten call sites passed no model and no
+                # `estate_wide` and the scope gate never ran. A principal
+                # restricted to one legal entity could create accounts,
+                # grant roles, suspend people and reset the password of the
+                # global administrator. Whoever may decide who can act on
+                # the register may act on all of it, so this requires an
+                # unrestricted scope.
+                estate_wide="administering principals decides who may act "
+                            "anywhere on the register")
             return self.guard(lambda: features.catalogue.break_seal(
                 name, self.actor(who), body.reason))
 

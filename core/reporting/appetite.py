@@ -88,18 +88,19 @@ class AppetiteRegister:
                "digest": canonical_digest({"metric": metric, "scope": scope,
                                            "limit": limit, "amber": amber}),
                "created_by": actor, "created_at": time.time()}
-        self.repo.add(row)
+        with self.evidence.recording():
+            self.repo.add(row)
 
-        prior = self._prior(metric, key, row["version"])
-        self.evidence.append(
-            "risk_appetite_declared", "risk_appetite", row["id"],
-            {"metric": metric, "scope": scope, "version": row["version"],
-             "limit": row["limit_value"], "amber": row["amber_value"],
-             # Whether this loosened the limit is computed rather than left to
-             # a reader to work out from two numbers in two rows. A relaxation
-             # is the event somebody looks for later, so it is named here.
-             "relaxed": self._relaxes(definition, prior, row),
-             "rationale": rationale}, actor=actor)
+            prior = self._prior(metric, key, row["version"])
+            self.evidence.append(
+                "risk_appetite_declared", "risk_appetite", row["id"],
+                {"metric": metric, "scope": scope, "version": row["version"],
+                 "limit": row["limit_value"], "amber": row["amber_value"],
+                 # Whether this loosened the limit is computed rather than left to
+                 # a reader to work out from two numbers in two rows. A relaxation
+                 # is the event somebody looks for later, so it is named here.
+                 "relaxed": self._relaxes(definition, prior, row),
+                 "rationale": rationale}, actor=actor)
         logger.info("risk appetite %s%s v%s: %s %s %s", metric,
                     f" {scope}" if scope else "", row["version"],
                     definition.direction, "limit", row["limit_value"])
@@ -114,11 +115,12 @@ class AppetiteRegister:
                 "no_appetite", f"no limit is declared for '{metric}'",
                 "declare one, or ask for the indicator without an appetite — it "
                 "is still measured, it is simply not held to anything")
-        self.repo.set({"retired": 1, "retired_at": time.time(),
-                       "retired_by": actor}, id=current["id"])
-        self.evidence.append("risk_appetite_retired", "risk_appetite",
-                             current["id"],
-                             {"metric": metric, "reason": reason}, actor=actor)
+        with self.evidence.recording():
+            self.repo.set({"retired": 1, "retired_at": time.time(),
+                           "retired_by": actor}, id=current["id"])
+            self.evidence.append("risk_appetite_retired", "risk_appetite",
+                                 current["id"],
+                                 {"metric": metric, "reason": reason}, actor=actor)
         return self.repo.one(id=current["id"])
 
     # ------------------------------------------------------------------- read

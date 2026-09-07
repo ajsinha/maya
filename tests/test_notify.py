@@ -22,7 +22,7 @@ URN = "maya://model/credit.pd.smallbiz"
 @pytest.fixture
 def with_work(notifications, principals, registry, a_model, findings):
     """A model with something outstanding, and somebody who can act on it."""
-    principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw",
+    principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw-long-enough-x",
                       email="s.iqbal@bank.example")
     # Critical, so it is blocking: the worklist deliberately ignores a finding
     # that is neither blocking nor yet due, and a notification about one nobody
@@ -47,14 +47,14 @@ class TestOneMessagePerPersonNotOnePerItem:
                                                                  principals):
         """An auditor reads and does not act, so nothing is ever theirs to do.
         Writing to them anyway is how a person learns to filter the sender."""
-        principals.create("a.udit", "A Udit", ["auditor"], "pw")
+        principals.create("a.udit", "A Udit", ["auditor"], "pw-long-enough-x")
         out = with_work.run()
         assert "a.udit" not in [d["principal"] for d in out["deliveries"]]
 
     def test_a_developer_is_written_to_about_their_own_work(self, with_work,
                                                             principals):
         """The draft model is genuinely theirs to move on."""
-        principals.create("d.raman", "D Raman", ["model_developer"], "pw")
+        principals.create("d.raman", "D Raman", ["model_developer"], "pw-long-enough-x")
         digest = with_work.digest_for(principals.require("d.raman"))
         assert digest["count"] >= 1
         assert all(i["permission"] != "finding:close" for i in digest["items"])
@@ -151,8 +151,8 @@ class TestEscalationIsByRoleNotHierarchy:
                                                          principals, a_model,
                                                          findings):
         """MAYA does not know who reports to whom and should not pretend to."""
-        principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw")
-        principals.create("d.raman", "D Raman", ["model_developer"], "pw")
+        principals.create("s.iqbal", "S Iqbal", ["model_risk_manager"], "pw-long-enough-x")
+        principals.create("d.raman", "D Raman", ["model_developer"], "pw-long-enough-x")
         findings.raise_finding(a_model["id"], "Critical", "Long overdue",
                                "person/d.raman",
                                description="nobody has closed it",
@@ -162,7 +162,7 @@ class TestEscalationIsByRoleNotHierarchy:
 
     def test_a_developer_gets_no_escalations(self, notifications, principals,
                                              a_model, findings):
-        principals.create("d.raman", "D Raman", ["model_developer"], "pw")
+        principals.create("d.raman", "D Raman", ["model_developer"], "pw-long-enough-x")
         findings.raise_finding(a_model["id"], "Critical", "Long overdue",
                                "person/d.raman", description="y",
                                due_at=time.time() - 30 * DAY)

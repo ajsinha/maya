@@ -328,7 +328,7 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python run_maya_web.py
 ```
 
-Then <http://localhost:5006> — sign in as `admin` / `admin123`, and change that before anybody else
+Then <http://localhost:5006> — sign in as `admin` / `maya-admin-dev`, and change that before anybody else
 can reach it.
 
 **With something in it.** An empty register is a poor way to judge a register, so there is a script

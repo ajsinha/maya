@@ -61,11 +61,12 @@ class DebtRegister:
                "finding_id": None, "raised_at": now,
                "expires_at": now + months * 30 * DAY,
                "closed_at": None, "closed_by": None}
-        self.debts.add(row)
-        self.evidence.append("compliance_debt_raised", "model", model_id,
-                             {"debt_id": row["id"], "gap": gap_key,
-                              "materiality": gap.materiality,
-                              "expires_in_months": months}, actor=actor)
+        with self.evidence.recording():
+            self.debts.add(row)
+            self.evidence.append("compliance_debt_raised", "model", model_id,
+                                 {"debt_id": row["id"], "gap": gap_key,
+                                  "materiality": gap.materiality,
+                                  "expires_in_months": months}, actor=actor)
         return self.debts.one(id=row["id"])
 
     # ------------------------------------------------------------ burn down
@@ -90,11 +91,12 @@ class DebtRegister:
                            f"now breaches")}
 
     def _close(self, item: Dict[str, Any], actor: str) -> Dict[str, Any]:
-        self.debts.set({"status": "closed", "closed_at": time.time(),
-                        "closed_by": actor}, id=item["id"])
-        self.evidence.append("compliance_debt_closed", "model", item["model_id"],
-                             {"debt_id": item["id"], "gap": item["gap_key"]},
-                             actor=actor)
+        with self.evidence.recording():
+            self.debts.set({"status": "closed", "closed_at": time.time(),
+                            "closed_by": actor}, id=item["id"])
+            self.evidence.append("compliance_debt_closed", "model", item["model_id"],
+                                 {"debt_id": item["id"], "gap": item["gap_key"]},
+                                 actor=actor)
         logger.info("compliance debt %s closed: the evidence arrived", item["gap_key"])
         return self.debts.one(id=item["id"])
 
@@ -111,11 +113,12 @@ class DebtRegister:
                              "expiry, so it is now a breach rather than debt."),
                 category="compliance_debt", source="self_identified", actor=actor)
             finding_id = finding["id"]
-        self.debts.set({"status": "breached", "finding_id": finding_id},
-                       id=item["id"])
-        self.evidence.append("compliance_debt_breached", "model", item["model_id"],
-                             {"debt_id": item["id"], "gap": item["gap_key"],
-                              "finding_id": finding_id}, actor=actor)
+        with self.evidence.recording():
+            self.debts.set({"status": "breached", "finding_id": finding_id},
+                           id=item["id"])
+            self.evidence.append("compliance_debt_breached", "model", item["model_id"],
+                                 {"debt_id": item["id"], "gap": item["gap_key"],
+                                  "finding_id": finding_id}, actor=actor)
         logger.warning("compliance debt %s for model %s expired into a breach",
                        item["gap_key"], item["model_id"])
         return self.debts.one(id=item["id"])
@@ -126,9 +129,10 @@ class DebtRegister:
         if not plan.strip():
             raise BaselineError("plan_required",
                                 "a debt item needs a dated plan to close it", "")
-        self.debts.set({"plan": plan}, id=debt_id)
-        self.evidence.append("compliance_debt_planned", "model", item["model_id"],
-                             {"debt_id": debt_id, "plan": plan}, actor=actor)
+        with self.evidence.recording():
+            self.debts.set({"plan": plan}, id=debt_id)
+            self.evidence.append("compliance_debt_planned", "model", item["model_id"],
+                                 {"debt_id": debt_id, "plan": plan}, actor=actor)
         return self.debts.one(id=debt_id)
 
     # ----------------------------------------------------------------- query

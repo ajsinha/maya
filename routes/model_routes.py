@@ -5,7 +5,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import HTTPException, Query, Request
 from pydantic import Field
@@ -88,6 +88,15 @@ class AssessIn(Body):
     feature_count: int = 0
     uses_alternative_data: bool = False
     interpretable: bool = True
+    # What was actually examined, when the facts have not moved.
+    #
+    # A periodic review was dischargeable by re-POSTing last year's numbers:
+    # identical facts produced an identical tier and pushed `next_review_due`
+    # eighteen months out, and the job that raises "review overdue" measures
+    # whether the formula was RE-RUN, not whether anybody reviewed anything. A
+    # reassessment that changes nothing is the commonest honest outcome of a
+    # review, so it is not refused — it is required to say what was looked at.
+    review_note: Optional[str] = None
 
 
 class ModelRoutes(Routes):
@@ -103,6 +112,7 @@ class ModelRoutes(Routes):
         reg, ev = self.ctx["registry"], self.ctx["evidence"]
         composition = self.ctx["composition"]
         tiering, risk_repo = self.ctx["tiering"], self.ctx["risk_repo"]
+        findings, approvals = self.ctx["findings"], self.ctx["approvals"]
         # Accepts a bare name or the full urn MAYA prints everywhere; see
         # `core.execution.urn.urn_of` for why the second was a 404.
         urn = urn_of
@@ -249,9 +259,31 @@ class ModelRoutes(Routes):
         # naming a model nobody asked for. Written down in `14 §Addressing`;
         # discovered again here, which is what the rule is for.
         @self.app.get(f"{self.api}/limitations", tags=["models"])
-        def limitations(request: Request, urn_: str = Query(..., alias="urn"),
-                        semver: str = Query(...)):
-            """What this version cannot do, and how much of it is enforced."""
+        def limitations(request: Request,
+                        urn_: Optional[str] = Query(None, alias="urn"),
+                        semver: Optional[str] = Query(None)):
+            """What a version cannot do — or, with no urn, the whole estate.
+
+            The urn and semver were both REQUIRED, so the register could not
+            answer its own question: "what are we relying on people to
+            remember, across the book?" is the reason a limitation register
+            exists, and there was no route that could be asked it and no screen
+            that asked. A limitation nobody can enumerate is a limitation
+            nobody is managing.
+            """
+            if urn_ is None:
+                self.authorise(
+                    request, "limitation:read",
+                    estate_wide="reading every limitation on every model")
+                return self.guard(
+                    lambda: self.ctx["limitations"].across_the_estate())
+            if semver is None:
+                raise HTTPException(422, {
+                    "error": "semver_required",
+                    "detail": "a urn was given without a semver; a limitation "
+                              "is recorded against a version, not a model",
+                    "remediation": "add semver=..., or omit urn for the whole "
+                                   "estate"})
             m = self.guard(lambda: reg.require(urn_of(urn_)))
             self.authorise(request, "limitation:read", model=m)
             return self.guard(
@@ -378,17 +410,84 @@ class ModelRoutes(Routes):
                               + "; the schema's defaults are the low-risk "
                                 "reading, and defaulting to it silently is "
                                 "choosing your own tier"})
+            self.guard(lambda: tiering.refuse_a_review_that_says_nothing(
+                risk_repo, m["id"], facts, body.review_note))
             a = tiering.assess(facts)
+            was = m.get("tier")
             tiering.persist(risk_repo, m["id"], a)
             reg.set_tier(m["id"], a.tier)
             ev.append("tier_assigned", "model", m["id"],
-                      {"tier": a.tier, "rationale": a.rationale},
+                      {"tier": a.tier, "rationale": a.rationale,
+                       "previous_tier": was,
+                       "review_note": (body.review_note or "").strip() or None},
                       actor=self.actor(who))
+            # A tier that RISES invalidates the approvals granted beneath it.
+            # The first line set the tier and nothing looked back: a model
+            # assessed Tier 4, approved on one signature, and honestly
+            # reassessed to Tier 2 went on serving from prod/champion while the
+            # platform simultaneously reported `quorum_required: true,
+            # required_roles: [mrm, validator]`. No finding, no reopening —
+            # the record said the control applied and the model had never been
+            # through it.
+            #
+            # Recorded as a BLOCKING finding rather than by tearing up the
+            # approval: unwinding it silently would strand a live model with no
+            # trace, and the people who granted it are the people who have to
+            # be told. Blocking is what makes it stop an alias move.
+            stale = self._approvals_below_quorum(m, a.tier)
+            if stale:
+                self.guard(lambda: findings.raise_finding(
+                    m["id"], "High",
+                    f"tier raised to {a.tier}; "
+                    f"{len(stale)} approved version"
+                    f"{'' if len(stale) == 1 else 's'} were approved under "
+                    f"tier {was}",
+                    owner=m["owner"], category="governance",
+                    source="self_identified",
+                    blocking=True, actor=self.actor(who),
+                    description=(
+                        f"{', '.join(stale)} "
+                        f"{'was' if len(stale) == 1 else 'were'} approved when "
+                        f"this model was tier {was}, which required "
+                        f"{len(approvals.required_for(was)) or 1} signature"
+                        f"{'' if len(approvals.required_for(was)) == 1 else 's'}. "
+                        f"Tier {a.tier} requires "
+                        f"{', '.join(approvals.required_for(a.tier)) or 'one authorised person'}. "
+                        f"Re-approve each version under the quorum this tier "
+                        f"requires, or reassess the tier if the rise was an "
+                        f"error.")))
             return {"tier": a.tier, "materiality": a.materiality, "complexity": a.complexity,
                     "required_controls": list(a.required_controls), "rationale": a.rationale,
-                    "ruleset_version": a.ruleset_version}
+                    "ruleset_version": a.ruleset_version,
+                    "previous_tier": was,
+                    "approvals_below_quorum": stale}
 
         @self.app.get(f"{self.api}/evidence/chain", tags=["evidence"])
         def chain(request: Request):
             self.authorise(request, "evidence:read")
             return ev.verify_chain()
+
+
+    def _approvals_below_quorum(self, model: Dict[str, Any],
+                                tier: int) -> List[str]:
+        """Approved versions whose approval would not satisfy this tier.
+
+        A tier is not a label on a model; it is the size of the quorum every
+        version of it has to pass. Raising the tier therefore says something
+        about versions that were approved before — and nothing looked.
+        """
+        approvals = self.ctx["approvals"]
+        wanted = set(approvals.required_for(tier))
+        if not wanted:
+            return []                      # this tier needs no quorum at all
+        registry = self.ctx["registry"]
+        stale = []
+        for version in registry.versions(model["urn"]):
+            if version.get("status") != "approved":
+                continue
+            signed = {s["role"] for s in
+                      approvals.signatures_for(version["id"])
+                      if s.get("decision") == "approve"}
+            if not wanted <= signed:
+                stale.append(version["semver"])
+        return stale

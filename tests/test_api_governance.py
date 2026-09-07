@@ -509,7 +509,7 @@ class TestLifecycleApi:
 
     def test_the_workflow_renders_in_the_interface(self, registered, people):
         registered.post(f"/api/v1/models/{NAME}/submit", auth=people["j.okafor"], json={})
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert "Approval &amp; attestation" in body
@@ -709,7 +709,7 @@ class TestOverlayApi:
         registered.post("/api/v1/overlays", auth=people["j.okafor"], json={
             "urn": URN, "name": "SME sector uplift", "kind": "output",
             "rationale": "r", "owner": "person/o"})
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert "Post-model adjustments" in body and "SME sector uplift" in body
@@ -829,7 +829,7 @@ class TestRegimeApi:
         assert r.status_code == 403
 
     def test_regimes_render_on_the_model_page(self, registered):
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert "Supervisory regimes" in body
@@ -888,7 +888,7 @@ class TestDocumentApi:
         doc = registered.post("/api/v1/documents", auth=people["a.mehta"],
                               params={"urn": URN,
                                       "kind": "model_development_document"}).json()
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/document/{doc['id']}").text
         assert "Model Development Document" in body
@@ -898,7 +898,7 @@ class TestDocumentApi:
     def test_the_model_page_lists_documents(self, registered, people):
         registered.post("/api/v1/documents", auth=people["a.mehta"],
                         params={"urn": URN, "kind": "model_card"})
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert "Documentation" in body and "Model Card" in body
@@ -931,7 +931,7 @@ class TestAttachedDocuments:
         """Two independent lines. The role check already stops an owner, who
         holds no review permission; this asserts the register refuses even a
         principal whose role would otherwise let them through."""
-        admin = ("admin", "admin123")
+        admin = ("admin", "maya-admin-dev")
         attachment = self._upload(registered, admin).json()
         r = registered.post(f"/api/v1/attachments/{attachment['id']}/review",
                             auth=admin, json={"accept": True})
@@ -990,3 +990,77 @@ class TestAttachedDocuments:
         _login(registered)
         page = registered.get(f"/model/{NAME}").text
         assert "SB PD MDD" in page and "awaiting review" in page
+
+
+class TestRaisingTheTierReconsidersWhatWasApprovedBeneathIt:
+    """The first line sets the tier, and raising it used to unwind nothing.
+
+    A tier is not a label on a model; it is the size of the quorum every
+    version of it has to pass. So a model assessed Tier 4, approved on one
+    signature, and then honestly reassessed to Tier 1 went on serving from
+    `prod/champion` while the platform simultaneously reported
+    `quorum_required: true, required_roles: [model_risk_manager, validator]`.
+    No finding, no reopening — the record said the control applied and the
+    version had never been through it.
+
+    Recorded as a BLOCKING finding rather than by tearing up the approval:
+    unwinding it silently would strand a live model with no trace, and the
+    people who granted it are the ones who have to be told. Blocking is what
+    makes it stop an alias move to production.
+    """
+
+    LOW = {"exposure": 1_000, "purpose_class": "commercial", "feature_count": 3,
+           "uses_alternative_data": False, "interpretable": True}
+    HIGH = {"exposure": 2e9, "purpose_class": "regulatory_capital",
+            "feature_count": 300, "uses_alternative_data": True,
+            "interpretable": False}
+
+    def _model_at_tier_four(self, client, people):
+        owner, dev = people["j.okafor"], people["d.raman"]
+        client.post("/api/v1/models", auth=owner, json={
+            "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+        low = client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
+                          json=self.LOW)
+        assert low.json()["tier"] == 4, low.text
+        client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                    json={"semver": "1.0.0", "kernel": KERNEL,
+                          "contract": CONTRACT,
+                          "artifact_digest": "sha256:" + "a" * 64})
+        # Tier 4 needs no quorum: one authorised person approves it.
+        approved = client.post(
+            f"/api/v1/models/{NAME}/versions/1.0.0/approve",
+            auth=people["s.iqbal"])
+        assert approved.status_code == 200, approved.text
+        return client
+
+    def test_the_rise_names_the_versions_approved_beneath_it(self, client, people):
+        self._model_at_tier_four(client, people)
+        risen = client.post(f"/api/v1/models/{NAME}/assess",
+                            auth=people["j.okafor"], json=self.HIGH)
+        assert risen.status_code == 200, risen.text
+        body = risen.json()
+        assert body["tier"] < 4 and body["previous_tier"] == 4
+        assert body["approvals_below_quorum"] == ["1.0.0"], \
+            "a version approved on one signature does not meet a tier 1 quorum"
+
+    def test_the_rise_raises_a_blocking_finding(self, client, people):
+        self._model_at_tier_four(client, people)
+        client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                    json=self.HIGH)
+        body = client.get("/api/v1/findings", params={"urn": URN}).json()
+        raised = [f for f in body["open"] if "tier raised" in f["title"]]
+        assert raised, f"no finding was raised: {body['open']}"
+        assert raised[0]["blocking"], \
+            "a non-blocking finding would let the alias move go through"
+        assert "1.0.0" in raised[0]["description"]
+        # And it must be in the BLOCKING set, which is what stops an alias move.
+        assert any("tier raised" in f["title"] for f in body["blocking"])
+
+    def test_a_tier_that_does_not_rise_raises_nothing(self, client, people):
+        """The guard must not fire on a reassessment that changes nothing."""
+        self._model_at_tier_four(client, people)
+        again = client.post(f"/api/v1/models/{NAME}/assess",
+                            auth=people["j.okafor"], json=self.LOW)
+        assert again.json()["approvals_below_quorum"] == []

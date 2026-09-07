@@ -66,10 +66,11 @@ class AttestationService:
                "status": "open", "statement": statement, "opened_by": actor,
                "opened_at": now, "completed_at": None,
                "expires_at": now + self.validity_days * DAY}
-        self.attestations.add(row)
-        self.evidence.append("attestation_opened", "model", model_id,
-                             {"attestation_id": row["id"], "kind": kind,
-                              "required_roles": row["required_roles"]}, actor=actor)
+        with self.evidence.recording():
+            self.attestations.add(row)
+            self.evidence.append("attestation_opened", "model", model_id,
+                                 {"attestation_id": row["id"], "kind": kind,
+                                  "required_roles": row["required_roles"]}, actor=actor)
         return self.attestations.one(id=row["id"])
 
     # ------------------------------------------------------------------ sign
@@ -124,7 +125,10 @@ class AttestationService:
         # race is not a different answer from being told you have already
         # signed, so it translates back into the same refusal.
         try:
-            with self.signatures.db.transaction():
+            # `serialise` because this block appends to the evidence chain, and the
+            # chain's read-then-write must be ordered by the lock BEFORE the
+            # outermost transaction reads anything. Nesting used to drop it silently.
+            with self.signatures.db.transaction(serialise="evidence_seq"):
                 self.signatures.add({"attestation_id": attestation_id,
                                      "principal": username, "role": role,
                                      "decision": decision, "statement": statement,
@@ -154,11 +158,12 @@ class AttestationService:
         return self.progress(attestation_id)
 
     def _close(self, att: Dict[str, Any], status: str) -> Dict[str, Any]:
-        self.attestations.set({"status": status, "completed_at": time.time()},
-                              id=att["id"])
-        self.evidence.append(f"attestation_{status}", "model", att["model_id"],
-                             {"attestation_id": att["id"], "kind": att["kind"]},
-                             actor="system")
+        with self.evidence.recording():
+            self.attestations.set({"status": status, "completed_at": time.time()},
+                                  id=att["id"])
+            self.evidence.append(f"attestation_{status}", "model", att["model_id"],
+                                 {"attestation_id": att["id"], "kind": att["kind"]},
+                                 actor="system")
         logger.info("attestation %s for model %s is now %s",
                     att["id"], att["model_id"], status)
         return self.progress(att["id"])

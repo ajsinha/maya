@@ -144,12 +144,12 @@ class TestTheScopeActuallyBites:
         registered.post("/api/v1/principals", json={
             "username": "uk.validator", "display_name": "UK val",
             "roles": ["validator"],
-            "password": "pw", "legal_entities": ["LE-UK-02"]})
+            "password": "pw-long-enough-x", "legal_entities": ["LE-UK-02"]})
         registered.post("/api/v1/principals", json={
             "username": "uk.owner", "display_name": "UK owner",
             "roles": ["model_owner"],
-            "password": "pw", "legal_entities": ["LE-UK-02"]})
-        uk_validator, uk = ("uk.validator", "pw"), ("uk.owner", "pw")
+            "password": "pw-long-enough-x", "legal_entities": ["LE-UK-02"]})
+        uk_validator, uk = ("uk.validator", "pw-long-enough-x"), ("uk.owner", "pw-long-enough-x")
 
         # A signature on a quorum. `registered` already approved 3.2.1, so open
         # the quorum on a fresh version — the record is still in draft, which is

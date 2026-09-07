@@ -239,7 +239,7 @@ class TestGrammarApi:
         assert r.json()["error"] == "grammar_violation"
 
     def test_the_generate_button_is_on_the_model_page(self, registered):
-        registered.post("/login", data={"username": "admin", "password": "admin123",
+        registered.post("/login", data={"username": "admin", "password": "maya-admin-dev",
                                         "next": "/dashboard"})
         body = registered.get(f"/model/{NAME}").text
         assert 'id="gen-warrant"' in body and "RESOLVED WARRANT" in body
@@ -269,11 +269,27 @@ class TestAuthorisationApi:
         assert "validation:conclude" in body["permissions"]
         assert "version:approve" not in body["permissions"]
 
-    def test_the_role_catalogue_is_published(self, client, people):
+    def test_the_role_catalogue_names_roles_to_anybody_signed_in(self, client,
+                                                                  people):
+        """Which roles exist and what each is for is ordinary product
+        information: a developer reading "who do I ask for this?" needs it."""
         body = client.get("/api/v1/roles", auth=people["d.raman"]).json()
         names = {r["name"] for r in body["roles"]}
-        assert {"model_developer", "validator", "model_risk_manager", "auditor"} <= names
+        assert {"model_developer", "validator", "model_risk_manager",
+                "auditor"} <= names
+        assert body["detailed"] is False
+        assert all("permissions" not in r for r in body["roles"])
+        assert "incompatible" not in body and "permissions" not in body
+
+    def test_what_each_role_grants_needs_principal_read(self, client, people):
+        """The other half is a map of where the controls are and which pairs
+        are the escalation paths, and it went to any authenticated caller —
+        including a service key scoped to a single permission."""
+        body = client.get("/api/v1/roles", auth=("admin", "maya-admin-dev")).json()
+        assert body["detailed"] is True
         assert body["incompatible"] and body["segregation"]
+        assert body["incompatible_permissions"]
+        assert any("permissions" in r for r in body["roles"])
 
     def test_a_developer_cannot_approve_a_version(self, registered, people):
         r = registered.post(f"/api/v1/models/{NAME}/versions/3.2.1/approve",
@@ -294,10 +310,10 @@ class TestAuthorisationApi:
         it reads the evidence chain rather than the role list.
         """
         client.post("/api/v1/principals", json={
-            "username": "solo", "display_name": "Solo", "password": "pw",
+            "username": "solo", "display_name": "Solo", "password": "pw-long-enough-x",
             "roles": ["model_developer", "model_risk_manager"],
             "allow_conflicts": True})
-        solo = ("solo", "pw")
+        solo = ("solo", "pw-long-enough-x")
         client.post("/api/v1/models", auth=people["j.okafor"], json={
             "urn": "maya://model/sod.demo", "name": "SoD", "model_class": "c",
             "domain": "credit", "owner": "person/o", "legal_entity": "LE-US-01",
@@ -324,15 +340,15 @@ class TestAuthorisationApi:
     def test_the_inventory_is_filtered_by_entity_scope(self, registered, client):
         client.post("/api/v1/principals", json={
             "username": "uk.auditor", "display_name": "UK", "roles": ["auditor"],
-            "password": "pw", "legal_entities": ["LE-UK-02"]})
-        body = registered.get("/api/v1/models", auth=("uk.auditor", "pw")).json()
+            "password": "pw-long-enough-x", "legal_entities": ["LE-UK-02"]})
+        body = registered.get("/api/v1/models", auth=("uk.auditor", "pw-long-enough-x")).json()
         assert body["models"] == [], "a US model must not be visible to a UK-scoped auditor"
 
     def test_a_model_out_of_scope_is_refused_by_name_too(self, registered, client):
         client.post("/api/v1/principals", json={
             "username": "uk.auditor", "display_name": "UK", "roles": ["auditor"],
-            "password": "pw", "legal_entities": ["LE-UK-02"]})
-        r = registered.get(f"/api/v1/models/{NAME}", auth=("uk.auditor", "pw"))
+            "password": "pw-long-enough-x", "legal_entities": ["LE-UK-02"]})
+        r = registered.get(f"/api/v1/models/{NAME}", auth=("uk.auditor", "pw-long-enough-x"))
         assert r.status_code == 403 and r.json()["error"] == "out_of_scope"
 
     def test_creating_a_principal_needs_principal_manage(self, client, people):
@@ -343,7 +359,7 @@ class TestAuthorisationApi:
     def test_incompatible_roles_are_refused_over_the_api(self, client):
         r = client.post("/api/v1/principals", json={
             "username": "x", "display_name": "X",
-            "roles": ["model_developer", "model_risk_manager"], "password": "pw"})
+            "roles": ["model_developer", "model_risk_manager"], "password": "pw-long-enough-x"})
         assert r.status_code == 409 and r.json()["error"] == "incompatible_roles"
 
     def test_a_suspended_principal_loses_access_immediately(self, client, people):
@@ -380,8 +396,8 @@ class TestAWarrantCannotBeMintedForSomebodyElse:
                                                             people, client):
         client.post("/api/v1/principals", json={
             "username": "z.audit", "display_name": "Z Audit",
-            "roles": ["auditor"], "password": "aud-pw"})
-        r = self._resolve(registered, ("z.audit", "aud-pw"))
+            "roles": ["auditor"], "password": "aud-pw-long-enough"})
+        r = self._resolve(registered, ("z.audit", "aud-pw-long-enough"))
         assert r.status_code == 403, r.text
         assert r.json()["error"] in ("forbidden", "principal_not_self")
 
@@ -392,8 +408,8 @@ class TestAWarrantCannotBeMintedForSomebodyElse:
         was absent entirely."""
         client.post("/api/v1/principals", json={
             "username": "svc/other", "display_name": "Other",
-            "roles": ["service"], "password": "o-pw"})
-        r = self._resolve(registered, ("svc/other", "o-pw"),
+            "roles": ["service"], "password": "o-pw-long-enough"})
+        r = self._resolve(registered, ("svc/other", "o-pw-long-enough"),
                           principal="svc/origination")
         assert r.status_code == 403, r.text
         assert r.json()["error"] == "principal_not_self"
@@ -401,8 +417,8 @@ class TestAWarrantCannotBeMintedForSomebodyElse:
     def test_resolving_for_yourself_is_allowed(self, in_service, people, client):
         client.post("/api/v1/principals", json={
             "username": "svc/origination", "display_name": "Origination",
-            "roles": ["service"], "password": "svc-pw"})
-        r = self._resolve(in_service, ("svc/origination", "svc-pw"))
+            "roles": ["service"], "password": "svc-pw-long-enough"})
+        r = self._resolve(in_service, ("svc/origination", "svc-pw-long-enough"))
         assert r.status_code == 200, r.text
         assert r.json()["signature"]["value"]
 

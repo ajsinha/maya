@@ -13,11 +13,23 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Any, ClassVar, Dict, Iterable, List, Tuple
+from typing import Any, ClassVar, Dict, Iterable, List, Optional, Tuple
 
 from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
                                 _OPAQUE_CLASSES)
 from db import RiskRepository
+
+
+class RiskError(RuntimeError):
+    """A refusal about a risk assessment."""
+
+    def __init__(self, code: str, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.code, self.detail, self.remediation = code, detail, remediation
+
+    def as_problem(self) -> Dict[str, Any]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}
 
 
 @dataclass(frozen=True)
@@ -152,6 +164,38 @@ class TieringEngine:
         if self.assess(worst).tier == self.assess(facts).tier:
             return []
         return missing
+
+    def refuse_a_review_that_says_nothing(self, repo: RiskRepository,
+                                          model_id: str,
+                                          facts: Dict[str, Any],
+                                          note: Optional[str]) -> None:
+        """A reassessment on last year's numbers is not a review.
+
+        `next_review_due` is set from the moment `persist` runs, and the job
+        that raises "periodic review is overdue" measures whether the formula
+        was RE-RUN — not whether anybody reviewed anything. So a review was
+        dischargeable by re-POSTing the previous assessment's facts: identical
+        inputs, identical tier, and the due date eighteen months further out.
+
+        Not refused outright, because "nothing has changed" is the commonest
+        honest outcome of a real review. Refused unless it says what was
+        examined, which is the difference between a review and a re-run.
+        """
+        rows = repo.many(model_id=model_id)
+        if not rows:
+            return
+        previous = max(rows, key=lambda r: r.get("assessed_at") or 0)
+        if (previous.get("facts") or {}) != facts:
+            return                              # something moved; that IS the review
+        if (note or "").strip():
+            return
+        raise RiskError(
+            "review_says_nothing",
+            "these are the same facts as the last assessment, so re-running "
+            "the formula moves the review date without anything having been "
+            "reviewed",
+            "say what was examined and why the tier is unchanged, or send the "
+            "facts that have moved")
 
     def persist(self, repo: RiskRepository, model_id: str, a: Assessment) -> Dict[str, Any]:
         months = self._review.get(a.tier, 24)

@@ -39,7 +39,7 @@ MODEL = {"urn": "maya://model/probe.one", "name": "Probe",
 @pytest.fixture
 def browser(client):
     """A client authenticated the way a browser is: a session cookie, no header."""
-    client.post("/login", data={"username": "admin", "password": "admin123"},
+    client.post("/login", data={"username": "admin", "password": "maya-admin-dev"},
                 follow_redirects=False)
     client.headers.pop("Authorization", None)
     return client
@@ -77,14 +77,14 @@ class TestARedirectTargetIsAPathOrNothing:
 
     def test_the_login_form_no_longer_redirects_off_site(self, client):
         r = client.post("/login", follow_redirects=False,
-                        data={"username": "admin", "password": "admin123",
+                        data={"username": "admin", "password": "maya-admin-dev",
                               "next": "https://evil.example/phish"})
         assert r.status_code == 303
         assert r.headers["location"] == "/dashboard"
 
     def test_a_local_next_still_works(self, client):
         r = client.post("/login", follow_redirects=False,
-                        data={"username": "admin", "password": "admin123",
+                        data={"username": "admin", "password": "maya-admin-dev",
                               "next": "/features"})
         assert r.headers["location"] == "/features"
 
@@ -122,7 +122,7 @@ class TestTheTokenAppliesToAmbientAuthorityOnly:
         """A sign-in form has no session to carry a token from, so requiring one
         would fail the first request of every visit."""
         r = client.post("/login", follow_redirects=False,
-                        data={"username": "admin", "password": "admin123"})
+                        data={"username": "admin", "password": "maya-admin-dev"})
         assert r.status_code == 303
 
 

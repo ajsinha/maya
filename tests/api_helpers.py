@@ -31,7 +31,7 @@ def quorum_approve(client, people, semver="3.2.1", urn=None):
     return r.json()
 
 
-def login(client, username="admin", password="admin123"):
+def login(client, username="admin", password="maya-admin-dev"):
     """Sign in through the form, as a browser does, without following the
     redirect — several tests assert on the redirect itself."""
     return client.post("/login", data={"username": username, "password": password,

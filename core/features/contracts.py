@@ -42,10 +42,11 @@ class ContractBinder:
             item["namespace"] = self.views.namespace_of(view, item["version"])
         row = {"model_version_id": model_version_id, "digest": canonical_digest(items),
                "items": items, "created_at": time.time()}
-        self.contracts.add(row)
-        self.evidence.append("feature_contract_bound", "version", model_version_id,
-                             {"digest": row["digest"], "views": [i["view"] for i in items]},
-                             actor=actor)
+        with self.evidence.recording():
+            self.contracts.add(row)
+            self.evidence.append("feature_contract_bound", "version", model_version_id,
+                                 {"digest": row["digest"], "views": [i["view"] for i in items]},
+                                 actor=actor)
         return row
 
     def for_version(self, model_version_id: str) -> Optional[Dict[str, Any]]:

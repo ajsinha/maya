@@ -27,7 +27,7 @@ two different people. Run all seven steps as one account and you will be refused
 somewhere around step four — correctly, and it is the single most useful thing
 this page demonstrates.
 
-A fresh instance has one principal: `admin` / `admin123`. Change it before
+A fresh instance has one principal: `admin` / `maya-admin-dev`. Change it before
 anybody else can reach the port. Then make the four the rest of this page uses:
 
 ```bash
@@ -36,13 +36,13 @@ for who in "j.okafor|Joy Okafor|model_owner|owner-pw" \
            "s.iqbal|Sara Iqbal|model_risk_manager|mrm-pw" \
            "a.mehta|Arun Mehta|validator|val-pw"; do
   IFS='|' read -r user name role pw <<< "$who"
-  curl -su admin:admin123 -X POST localhost:5006/api/v1/principals \
+  curl -su admin:maya-admin-dev -X POST localhost:5006/api/v1/principals \
     -H 'Content-Type: application/json' \
     -d "{\"username\":\"$user\",\"display_name\":\"$name\",
          \"roles\":[\"$role\"],\"password\":\"$pw\"}"
 done
 
-curl -su admin:admin123 -X POST localhost:5006/api/v1/principals \
+curl -su admin:maya-admin-dev -X POST localhost:5006/api/v1/principals \
   -H 'Content-Type: application/json' \
   -d '{"username":"svc/origination","display_name":"Origination",
        "kind":"service","roles":["service"],"password":"svc-pw"}'

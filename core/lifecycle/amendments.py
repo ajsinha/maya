@@ -54,10 +54,11 @@ class AmendmentService:
                "reason": reason, "scope": list(scope or []), "status": "open",
                "opened_by": actor, "opened_at": time.time(),
                "closed_at": None, "closed_by": None}
-        self.amendments.add(row)
-        self.evidence.append("amendment_opened", "model", model_id,
-                             {"amendment_id": row["id"], "reference": row["reference"],
-                              "reason": reason, "scope": row["scope"]}, actor=actor)
+        with self.evidence.recording():
+            self.amendments.add(row)
+            self.evidence.append("amendment_opened", "model", model_id,
+                                 {"amendment_id": row["id"], "reference": row["reference"],
+                                  "reason": reason, "scope": row["scope"]}, actor=actor)
         logger.info("amendment %s opened against model %s", row["reference"], model_id)
         return self.amendments.one(id=row["id"])
 
@@ -68,13 +69,14 @@ class AmendmentService:
     def mark(self, amendment_id: str, status: str, actor: str = "system") -> Dict[str, Any]:
         row = self.require(amendment_id)
         closing = status in ("attested", "withdrawn")
-        self.amendments.set(
-            {"status": status,
-             **({"closed_at": time.time(), "closed_by": actor} if closing else {})},
-            id=amendment_id)
-        self.evidence.append(f"amendment_{status}", "model", row["model_id"],
-                             {"amendment_id": amendment_id,
-                              "reference": row["reference"]}, actor=actor)
+        with self.evidence.recording():
+            self.amendments.set(
+                {"status": status,
+                 **({"closed_at": time.time(), "closed_by": actor} if closing else {})},
+                id=amendment_id)
+            self.evidence.append(f"amendment_{status}", "model", row["model_id"],
+                                 {"amendment_id": amendment_id,
+                                  "reference": row["reference"]}, actor=actor)
         return self.amendments.one(id=amendment_id)
 
     def withdraw(self, model_id: str, actor: str = "system") -> Optional[Dict[str, Any]]:

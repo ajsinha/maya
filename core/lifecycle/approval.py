@@ -152,11 +152,12 @@ class VersionApproval:
                "tier": model["tier"], "required_roles": list(roles),
                "status": OPEN, "statement": statement,
                "opened_by": actor, "opened_at": time.time(), "completed_at": None}
-        self.approvals.add(row)
-        self.evidence.append("version_approval_opened", "version", version["id"],
-                             {"approval_id": row["id"], "semver": semver,
-                              "tier": model["tier"], "required_roles": list(roles)},
-                             actor=actor)
+        with self.evidence.recording():
+            self.approvals.add(row)
+            self.evidence.append("version_approval_opened", "version", version["id"],
+                                 {"approval_id": row["id"], "semver": semver,
+                                  "tier": model["tier"], "required_roles": list(roles)},
+                                 actor=actor)
         logger.info("opened approval for %s@%s requiring %s", urn, semver, roles)
         return self.approvals.one(id=row["id"])
 
@@ -224,7 +225,10 @@ class VersionApproval:
         # going to get anyway, because losing a race is not a different answer
         # from being told you have already signed.
         try:
-            with self.signatures.db.transaction():
+            # `serialise` because this block appends to the evidence chain, and the
+            # chain's read-then-write must be ordered by the lock BEFORE the
+            # outermost transaction reads anything. Nesting used to drop it silently.
+            with self.signatures.db.transaction(serialise="evidence_seq"):
                 self.signatures.add({"version_approval_id": approval_id,
                                      "principal": username, "role": role,
                                      "decision": decision, "statement": statement,
@@ -254,11 +258,12 @@ class VersionApproval:
         return self.progress(approval_id)
 
     def _close(self, approval: Dict[str, Any], status: str) -> Dict[str, Any]:
-        self.approvals.set({"status": status, "completed_at": time.time()},
-                           id=approval["id"])
-        self.evidence.append(f"version_approval_{status}", "version",
-                             approval["model_version_id"],
-                             {"approval_id": approval["id"]}, actor="system")
+        with self.evidence.recording():
+            self.approvals.set({"status": status, "completed_at": time.time()},
+                               id=approval["id"])
+            self.evidence.append(f"version_approval_{status}", "version",
+                                 approval["model_version_id"],
+                                 {"approval_id": approval["id"]}, actor="system")
         if status == APPROVED:
             # The quorum is the decision; the registry records its consequence.
             version = self.registry.version_by_id(approval["model_version_id"])
@@ -315,6 +320,18 @@ class VersionApproval:
             return "withdrawn before a quorum was reached"
         return (f"waiting on {', '.join(outstanding)}"
                 if outstanding else "waiting")
+
+    def signatures_for(self, version_id: str) -> List[Dict[str, Any]]:
+        """Every signature recorded on every approval of this version.
+
+        Asked when the TIER changes: a tier is the size of the quorum each
+        version has to pass, so raising one says something about versions
+        already approved — and nothing used to look.
+        """
+        found: List[Dict[str, Any]] = []
+        for approval in self.approvals.history(version_id):
+            found.extend(self.signatures.many(version_approval_id=approval["id"]))
+        return found
 
     def history(self, urn: str, semver: str) -> List[Dict[str, Any]]:
         _, version = self._subject(urn, semver)

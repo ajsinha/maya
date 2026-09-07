@@ -63,6 +63,13 @@ def _without_trailing_comments(sql: str) -> str:
 # The connection a transaction() is running on, if any. A ContextVar
 # rather than a thread local so it is correct under async as well.
 _CONNECTION: ContextVar = ContextVar("maya_db_connection", default=None)
+
+# Which named write locks the transaction on `_CONNECTION` currently holds.
+# Kept because re-entrancy made `serialise=` silently optional: a nested call
+# joined the running transaction and skipped the lock on the grounds that "the
+# lock, if any, was taken when it opened" -- which was an ASSUMPTION about the
+# caller, not a fact, and it was false at every site that mattered.
+_LOCKS_HELD: ContextVar = ContextVar("maya_db_locks", default=frozenset())
 SCHEMA_DIR = Path(__file__).resolve().parent / "schema"
 
 
@@ -353,27 +360,77 @@ class Database:
         """
         existing = _CONNECTION.get()
         if existing is not None:
-            # Already inside one. The lock, if any, was taken when it opened —
-            # taking a second here would be taking it after reads have already
-            # happened, which is the ordering this exists to prevent.
-            yield existing
+            held = _LOCKS_HELD.get()
+            if serialise is None or serialise in held:
+                yield existing
+                return
+            # A nested call asking for a lock the outer transaction does not
+            # hold. This used to yield anyway, on the reasoning that "the lock,
+            # if any, was taken when it opened" — an assumption about the
+            # caller that was false at every site that mattered.
+            # `create_version`, `alias.move` and `approval.sign` each open a
+            # plain transaction and call `evidence.append` inside it, so
+            # `serialise="evidence_seq"` was dropped on the three most important
+            # governance acts in the platform.
+            #
+            # SQLite hid it: the outer transaction's first statement is an
+            # INSERT, which takes SQLite's single write lock before the chain
+            # head is read. PostgreSQL has no such lock, so the read-then-write
+            # on `evidence_node.seq` was a live race — and when the loser hit
+            # the UNIQUE, the OUTER transaction was aborted, so all twelve
+            # retries re-entered a poisoned connection and died on
+            # InFailedSqlTransaction, which is not IntegrityError and so escaped
+            # the retry handler entirely. Sixteen concurrent version creations
+            # produced five versions and eleven 500s.
+            #
+            # Taken here instead. It is later than ideal — the outer
+            # transaction may already have read — but the read this lock exists
+            # to order is the one BELOW it, inside the nested block, and that
+            # read has not happened yet. There is one named lock, so taking it
+            # late cannot deadlock against a different ordering. Logged at
+            # warning because the outer transaction should ask for it, and this
+            # is how the next site that does not gets found.
+            logger.warning(
+                "'%s' was requested inside a transaction that does not hold "
+                "it; taking it now. The outermost transaction should open with "
+                "serialise=%r so the lock is held before anything is read.",
+                serialise, serialise)
+            self._take_write_lock(existing, serialise, nested=True)
+            lock_token = _LOCKS_HELD.set(held | {serialise})
+            try:
+                yield existing
+            finally:
+                _LOCKS_HELD.reset(lock_token)
             return
         with self.engine.begin() as conn:
             if serialise is not None:
                 self._take_write_lock(conn, serialise)
             token = _CONNECTION.set(conn)
+            lock_token = _LOCKS_HELD.set(
+                frozenset({serialise}) if serialise else frozenset())
             try:
                 yield conn
             finally:
+                _LOCKS_HELD.reset(lock_token)
                 _CONNECTION.reset(token)
 
-    def _take_write_lock(self, conn: Any, name: str) -> None:
+    def _take_write_lock(self, conn: Any, name: str,
+                         nested: bool = False) -> None:
         """Escalate to a write lock now, before the transaction reads."""
         if self.dialect == "sqlite":
+            if nested:
+                # `BEGIN IMMEDIATE` inside a transaction is an error, and it is
+                # also unnecessary: SQLite has ONE write lock per database, and
+                # the enclosing transaction either already holds it or takes it
+                # at its first write, which is before any append can commit.
+                # This is why the dropped lock never showed on SQLite.
+                return
             # pysqlite defers BEGIN to the first write statement, so nothing has
             # started a transaction yet and this is the BEGIN, not a second one.
             conn.exec_driver_sql("BEGIN IMMEDIATE")
         elif self.dialect.startswith("postgres"):
+            # Idempotent within a transaction and released at commit, so taking
+            # it from a nested call is safe.
             conn.exec_driver_sql(
                 f"SELECT pg_advisory_xact_lock({self._ADVISORY_LOCKS[name]})")
 

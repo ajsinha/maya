@@ -306,7 +306,7 @@ class TestProvisioningIsADecision:
         """This test previously asserted the opposite, and the opposite was the
         vulnerability: a directory login resolved onto a local account by
         username, and the username was what carried the roles."""
-        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw-long-enough-x")
         identity = provider.identity(
             {"sub": "u", "preferred_username": "j.okafor",
              "groups": ["maya-validators"]})
@@ -320,7 +320,7 @@ class TestProvisioningIsADecision:
         the directory is authoritative about that person's roles -- which was
         always the intended behaviour, and now happens only after somebody
         deliberately said these two are the same human."""
-        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw-long-enough-x")
         principals.bind_directory("j.okafor", provider.issuer, "u")
         identity = provider.identity(
             {"sub": "u", "preferred_username": "j.okafor",
@@ -334,7 +334,7 @@ class TestProvisioningIsADecision:
         mapped group, and previously you were signed in as the local
         administrator with every permission -- because both guards that should
         have stopped it only fire when the principal does NOT already exist."""
-        principals.create("admin", "Administrator", ["admin"], "pw")
+        principals.create("admin", "Administrator", ["admin"], "pw-long-enough-x")
         identity = provider.identity(
             {"sub": "attacker-subject", "preferred_username": "admin",
              "groups": []})
@@ -344,7 +344,7 @@ class TestProvisioningIsADecision:
 
     def test_a_second_directory_identity_cannot_take_over_a_linked_account(
             self, provider, principals, evidence):
-        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw-long-enough-x")
         principals.bind_directory("j.okafor", provider.issuer, "the-real-one")
         identity = provider.identity(
             {"sub": "somebody-else", "preferred_username": "j.okafor",
@@ -357,7 +357,7 @@ class TestProvisioningIsADecision:
             self, provider, principals, evidence):
         """A directory may reuse a username; it guarantees the subject. So a
         person renamed in the directory keeps their account here."""
-        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw")
+        principals.create("j.okafor", "J Okafor", ["model_developer"], "pw-long-enough-x")
         principals.bind_directory("j.okafor", provider.issuer, "stable-subject")
         identity = provider.identity(
             {"sub": "stable-subject", "preferred_username": "jane.okafor-smith",

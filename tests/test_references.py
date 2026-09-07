@@ -288,13 +288,13 @@ class TestTheDeleteControlsAreOfferedSafely:
 
         registered.post("/api/v1/principals", json={
             "username": "nodelete", "display_name": "N", "roles": ["validator"],
-            "password": "pw"})
+            "password": "pw-long-enough-x"})
 
         login(client)
         assert 'id="delete-model"' in registered.get(
             "/model/credit.pd.smallbiz").text
 
-        login(client, "nodelete", "pw")
+        login(client, "nodelete", "pw-long-enough-x")
         body = registered.get("/model/credit.pd.smallbiz").text
         assert 'id="delete-model"' not in body, \
             "a validator holds no model:delete"

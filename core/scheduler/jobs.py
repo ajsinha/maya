@@ -94,6 +94,14 @@ def attestation_lapsed(ctx: JobContext) -> Dict[str, Any]:
                          "its validity period. Either renew it or withdraw the "
                          "model from use; a model in force on a lapsed attestation "
                          "is in force on nobody's current signature."),
+            # BLOCKING. `BLOCKING_BY_DEFAULT` is ("Critical",) and every job
+            # here raises High or Medium, so every finding the governance batch
+            # has ever raised was advisory — a model whose attestation lapsed
+            # could still be moved to production, and the platform's own
+            # description of the condition is "in force on nobody's current
+            # signature". A control that raises a row nobody has to act on is
+            # the defect this codebase is named for.
+            blocking=True,
             category="attestation", source="self_identified", actor=ctx.actor)
         raised.append(model["urn"])
     return {"raised": raised, "count": len(raised)}
@@ -147,6 +155,13 @@ def review_overdue(ctx: JobContext) -> Dict[str, Any]:
                 f"a model past its review date is running on an assessment "
                 f"nobody has confirmed still describes it. Reassess it, or "
                 f"retire it."),
+            # BLOCKING on the tiers whose review cadence is the control. A
+            # review 1,285 days overdue used to let an alias move to production
+            # through with a 200: the finding was raised, listed, and stopped
+            # nothing. Tiers 3 and 4 stay advisory, because a low-materiality
+            # model past its review date is a housekeeping matter and blocking
+            # it would teach people to ignore the flag.
+            blocking=(latest.get("tier") or 4) <= 2,
             category="periodic_review", source="self_identified",
             actor=ctx.actor)
         raised.append(model["urn"])

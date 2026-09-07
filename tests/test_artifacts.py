@@ -121,7 +121,7 @@ class TestOverTheApi:
     def test_an_artifact_can_be_uploaded_and_fetched(self, client, people):
         client.post("/api/v1/principals", json={
             "username": "d.raman", "display_name": "D", "roles": ["model_developer"],
-            "password": "dev-pw"}) if False else None
+            "password": "dev-pw-long-enough"}) if False else None
         r = client.post("/api/v1/artifacts?format=onnx", content=WEIGHTS,
                         headers={"Content-Type": "application/octet-stream"})
         assert r.status_code == 201, r.text

@@ -90,10 +90,11 @@ class WarrantGrants:
             if not v:
                 raise WarrantError("validation_failed", f"no version {semver} for {m['urn']}", "")
             row["version_id"] = v["id"]
-        self.repo.add(row)
-        self.evidence.append("warrant_issued", "model", m["id"],
-                             {"urn": urn, "principal": principal, "use": declared_use,
-                              "environment": environment}, actor=actor)
+        with self.evidence.recording():
+            self.repo.add(row)
+            self.evidence.append("warrant_issued", "model", m["id"],
+                                 {"urn": urn, "principal": principal, "use": declared_use,
+                                  "environment": environment}, actor=actor)
         return row
 
     def find(self, model_id: str, environment: str, principal: str) -> Optional[Dict[str, Any]]:
@@ -108,10 +109,11 @@ class WarrantGrants:
         if not row:
             raise WarrantError("not_found", f"no warrant {warrant_id}", "")
         self.epoch += 1
-        self.repo.set({"revoked": True, "revoke_reason": reason, "epoch": self.epoch},
-                      id=warrant_id)
-        self.evidence.append("warrant_revoked", "model", row["model_id"],
-                             {"warrant_id": warrant_id, "reason": reason}, actor=actor)
+        with self.evidence.recording():
+            self.repo.set({"revoked": True, "revoke_reason": reason, "epoch": self.epoch},
+                          id=warrant_id)
+            self.evidence.append("warrant_revoked", "model", row["model_id"],
+                                 {"warrant_id": warrant_id, "reason": reason}, actor=actor)
         return {"warrant_id": warrant_id, "revoked": True, "reason": reason, "epoch": self.epoch}
 
     def revoke_model(self, urn: str, reason: str, actor: str = "system") -> int:

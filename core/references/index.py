@@ -193,6 +193,51 @@ class ReferenceIndex:
                 "document", row["id"], row["kind"],
                 "a compiled document about this model", True))
 
+        # The seven tables this index did not read. Nineteen tables carry a
+        # `model_id` and twelve were checked, so a delete could orphan the rest
+        # while the dependency screen -- whose own docstring calls a blank
+        # result "the most dangerous wrong answer this screen can give" --
+        # reported that nothing referred to the model.
+        #
+        # Two of the seven are reachable with no version at all, which is
+        # exactly the case the delete permits:
+        #
+        #   `risk_assessment` holds the TIER, which decides every control
+        #   requirement and every quorum size on the model.
+        #
+        #   `compliance_debt` is raised per gap by a baseline import, and
+        #   `DebtRegister.reconcile` is per-model — so debt orphaned by a
+        #   deleted model can never close, and the programme's burn-down is
+        #   pinned below 100% forever with no row anyone can act on.
+        #
+        # The rest are history rather than live commitments, so they are
+        # reported and do not block: refusing to delete a model because it once
+        # had an amendment would make the control unusable.
+        for table, columns, kind, label, why, blocking in (
+                ("risk_assessment", "id, tier", "risk_assessment", "tier",
+                 "the tier assessment that decides this model's controls", True),
+                ("compliance_debt", "id, gap_key, status", "compliance_debt",
+                 "gap_key",
+                 "an open baseline gap that can only be closed against this "
+                 "model", True),
+                ("attestation", "id, kind, status", "attestation", "kind",
+                 "an attestation of this model", True),
+                ("amendment", "id, status", "amendment", "status",
+                 "an amendment raised against this model", True),
+                ("breach", "id, severity", "breach", "severity",
+                 "a recorded breach of appetite by this model", False),
+                ("alias_history", "id, name", "alias_history", "name",
+                 "a past alias move on this model", False),
+                ("finding_action", "id, finding_id", "finding_action",
+                 "finding_id",
+                 "an action recorded against a finding on this model", False)):
+            for row in self.db.query(
+                    f"SELECT {columns} FROM {table} WHERE model_id = :m",
+                    {"m": model_id}):
+                found.append(Reference(
+                    kind, str(row["id"]), str(row.get(label) or row["id"]),
+                    why, blocking))
+
         return found
 
     def _to_model_version(self, version_id: str) -> List[Reference]:

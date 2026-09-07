@@ -77,11 +77,12 @@ class BreachRegister:
                "consecutive": consecutive, "detail": detail,
                "finding_id": finding["id"], "status": "open",
                "opened_at": time.time(), "closed_at": None}
-        self.breaches.add(row)
-        self.evidence.append("monitor_breached", "model", monitor["model_id"],
-                             {"monitor_id": monitor["id"], "breach_id": row["id"],
-                              "severity": severity, "consecutive": consecutive,
-                              "finding_id": finding["id"]}, actor=actor)
+        with self.evidence.recording():
+            self.breaches.add(row)
+            self.evidence.append("monitor_breached", "model", monitor["model_id"],
+                                 {"monitor_id": monitor["id"], "breach_id": row["id"],
+                                  "severity": severity, "consecutive": consecutive,
+                                  "finding_id": finding["id"]}, actor=actor)
         return {**self.breaches.one(id=row["id"]), "finding": finding}
 
     def resolve(self, monitor_id: str, actor: str = "system") -> List[Dict[str, Any]]:
@@ -93,12 +94,13 @@ class BreachRegister:
         """
         closed = []
         for row in self.breaches.many(monitor_id=monitor_id, status="open"):
-            self.breaches.set({"status": "resolved", "closed_at": time.time()},
-                              id=row["id"])
-            self.evidence.append("monitor_recovered", "model", row["model_id"],
-                                 {"monitor_id": monitor_id, "breach_id": row["id"],
-                                  "finding_id": row["finding_id"],
-                                  "finding_remains_open": True}, actor=actor)
+            with self.evidence.recording():
+                self.breaches.set({"status": "resolved", "closed_at": time.time()},
+                                  id=row["id"])
+                self.evidence.append("monitor_recovered", "model", row["model_id"],
+                                     {"monitor_id": monitor_id, "breach_id": row["id"],
+                                      "finding_id": row["finding_id"],
+                                      "finding_remains_open": True}, actor=actor)
             closed.append(self.breaches.one(id=row["id"]))
         return closed
 

@@ -153,7 +153,16 @@ def same_person(a: str, b: str) -> bool:
     about identity, and every subsystem that enforces a duties rule has to ask
     it the same way. Two of them were asking it differently.
     """
-    def bare(who: str) -> str:
-        return (who or "").strip().rsplit("/", 1)[-1].casefold()
+    return bool(a) and bool(b) and bare_name(a) == bare_name(b)
 
-    return bool(a) and bool(b) and bare(a) == bare(b)
+
+def bare_name(who: str) -> str:
+    """The username inside an identity, however it was written.
+
+    `person/j.okafor`, `svc/decisioning` and `j.okafor` all name something the
+    register knows by its last segment. Exposed rather than nested inside
+    `same_person` because callers that need to LOOK SOMEBODY UP need the same
+    rule as callers that compare two identities — and a lookup that used the
+    unstripped string would fail to find principals that exist.
+    """
+    return (who or "").strip().rsplit("/", 1)[-1].casefold()

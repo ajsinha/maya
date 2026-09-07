@@ -127,11 +127,12 @@ class DocumentCompiler:
         head, _ = self.evidence.head()
         row.update({"evidence_head": head, "status": "compiled",
                     "compiled_at": time.time(), "compiled_by": actor})
-        self.documents.add(row)
-        self.evidence.append("document_compiled", "model", row["model_id"],
-                             {"document_id": row["id"], "kind": kind,
-                              "citations": len(row["citations"]),
-                              "complete": row["coverage"]["complete"]}, actor=actor)
+        with self.evidence.recording():
+            self.documents.add(row)
+            self.evidence.append("document_compiled", "model", row["model_id"],
+                                 {"document_id": row["id"], "kind": kind,
+                                  "citations": len(row["citations"]),
+                                  "complete": row["coverage"]["complete"]}, actor=actor)
         logger.info("compiled %s for %s: %d/%d sections, %d citations",
                     kind, urn, row["coverage"]["filled"],
                     row["coverage"]["sections"], len(row["citations"]))

@@ -188,12 +188,13 @@ class AttachmentRegister:
                 "say what is wrong with it; the rejection stays in the register")
 
         state = "accepted" if accept else "rejected"
-        self.attachments.set({"state": state, "reviewed_by": actor,
-                              "reviewed_at": time.time(), "review_note": note},
-                             id=attachment_id)
-        self.evidence.append(f"document_{state}", "model", row["model_id"],
-                             {"attachment_id": attachment_id, "kind": row["kind"],
-                              "title": row["title"], "note": note}, actor=actor)
+        with self.evidence.recording():
+            self.attachments.set({"state": state, "reviewed_by": actor,
+                                  "reviewed_at": time.time(), "review_note": note},
+                                 id=attachment_id)
+            self.evidence.append(f"document_{state}", "model", row["model_id"],
+                                 {"attachment_id": attachment_id, "kind": row["kind"],
+                                  "title": row["title"], "note": note}, actor=actor)
         return self.attachments.one(id=attachment_id)
 
     # ------------------------------------------------------------------ read

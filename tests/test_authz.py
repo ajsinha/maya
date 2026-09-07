@@ -210,73 +210,73 @@ class TestSegregation:
 # ================================================================ principals
 class TestPrincipals:
     def test_a_principal_is_created_with_roles_and_scope(self, principals):
-        p = principals.create("a.mehta", "A Mehta", ["validator"], "pw",
+        p = principals.create("a.mehta", "A Mehta", ["validator"], "pw-long-enough-x",
                               legal_entities=["LE-UK-02"], domains=["credit"])
         assert p["roles"] == ["validator"]
         assert p["legal_entities"] == ["LE-UK-02"]
 
     def test_credentials_never_leave_the_service(self, principals):
-        p = principals.create("a.mehta", "A Mehta", ["validator"], "pw")
+        p = principals.create("a.mehta", "A Mehta", ["validator"], "pw-long-enough-x")
         assert "password_hash" not in p and "password_salt" not in p
         assert all("password_hash" not in row for row in principals.list())
 
     def test_a_duplicate_username_is_refused(self, principals):
-        principals.create("a.mehta", "A", ["validator"], "pw")
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
         with pytest.raises(AuthzError, match="already exists"):
-            principals.create("a.mehta", "A", ["validator"], "pw")
+            principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
 
     def test_incompatible_roles_are_refused(self, principals):
         with pytest.raises(AuthzError) as exc:
-            principals.create("x", "X", ["model_developer", "model_risk_manager"], "pw")
+            principals.create("x", "X", ["model_developer", "model_risk_manager"], "pw-long-enough-x")
         assert exc.value.code == "incompatible_roles"
         assert "allow_conflicts" in exc.value.remediation, "name the deliberate route"
 
     def test_a_documented_exception_can_be_granted_explicitly(self, principals):
         p = principals.create("x", "X", ["model_developer", "model_risk_manager"],
-                              "pw", allow_conflicts=True)
+                              "pw-long-enough-x", allow_conflicts=True)
         assert len(p["roles"]) == 2
 
     def test_authentication_succeeds_with_the_right_password(self, principals):
-        principals.create("a.mehta", "A", ["validator"], "pw")
-        assert principals.authenticate("a.mehta", "pw")["username"] == "a.mehta"
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
+        assert principals.authenticate("a.mehta", "pw-long-enough-x")["username"] == "a.mehta"
 
     def test_authentication_fails_with_the_wrong_password(self, principals):
-        principals.create("a.mehta", "A", ["validator"], "pw")
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
         assert principals.authenticate("a.mehta", "nope") is None
 
     def test_an_unknown_username_fails_the_same_way(self, principals):
-        assert principals.authenticate("ghost", "pw") is None
+        assert principals.authenticate("ghost", "pw-long-enough-x") is None
 
     def test_a_service_principal_has_no_password_and_cannot_sign_in(self, principals):
         principals.create("svc/pricing", "Pricing", ["service"], kind="service")
         assert principals.authenticate("svc/pricing", "") is None
 
     def test_a_suspended_principal_cannot_authenticate(self, principals):
-        principals.create("a.mehta", "A", ["validator"], "pw")
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
         principals.suspend("a.mehta")
-        assert principals.authenticate("a.mehta", "pw") is None
+        assert principals.authenticate("a.mehta", "pw-long-enough-x") is None
 
     def test_suspension_takes_effect_immediately_despite_the_cache(self, principals):
         """The cache shortens the key derivation, never the decision."""
-        principals.create("a.mehta", "A", ["validator"], "pw")
-        assert principals.authenticate("a.mehta", "pw") is not None   # warms the cache
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
+        assert principals.authenticate("a.mehta", "pw-long-enough-x") is not None   # warms the cache
         principals.suspend("a.mehta")
-        assert principals.authenticate("a.mehta", "pw") is None
+        assert principals.authenticate("a.mehta", "pw-long-enough-x") is None
 
     def test_roles_can_be_changed_and_the_change_is_recorded(self, principals, evidence):
-        principals.create("a.mehta", "A", ["validator"], "pw")
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
         updated = principals.set_roles("a.mehta", ["auditor"])
         assert updated["roles"] == ["auditor"]
         kinds = [n["kind"] for n in evidence.repo.many()]
         assert "principal_roles_changed" in kinds
 
     def test_bootstrap_creates_the_first_administrator(self, principals):
-        created = principals.bootstrap("admin", "admin123")
+        created = principals.bootstrap("admin", "maya-admin-dev")
         assert created["roles"] == ["admin"]
 
     def test_bootstrap_does_nothing_once_principals_exist(self, principals):
-        principals.create("a.mehta", "A", ["validator"], "pw")
-        assert principals.bootstrap("admin", "admin123") is None, \
+        principals.create("a.mehta", "A", ["validator"], "pw-long-enough-x")
+        assert principals.bootstrap("admin", "maya-admin-dev") is None, \
             "restarting a live deployment must not resurrect a development password"
 
 
@@ -289,7 +289,7 @@ class TestPolicy:
         assert "model_developer" in exc.value.detail, "name the roles they hold"
 
     def test_scope_is_checked_after_permission(self, authz, principals):
-        principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw",
+        principals.create("uk.mrm", "UK", ["model_risk_manager"], "pw-long-enough-x",
                           legal_entities=["LE-UK-02"])
         row = principals.get("uk.mrm")
         with pytest.raises(AuthzError) as exc:
@@ -318,7 +318,7 @@ class TestPolicy:
         assert described["scope"] == "all entities, all domains"
 
     def test_visible_filters_an_inventory(self, authz, principals):
-        principals.create("uk", "UK", ["auditor"], "pw", legal_entities=["LE-UK-02"])
+        principals.create("uk", "UK", ["auditor"], "pw-long-enough-x", legal_entities=["LE-UK-02"])
         row = principals.get("uk")
         models = [{"urn": "a", "legal_entity": "LE-UK-02", "domain": "credit"},
                   {"urn": "b", "legal_entity": "LE-US-01", "domain": "credit"}]

@@ -32,7 +32,7 @@ from core.evidence import EvidenceEngine
 from core.ports import BlockingSource
 from core.registry import ModelRegistry
 from core.validation.catalogue import TestCatalogue
-from core.authz.common import same_person
+from core.authz.common import bare_name, same_person
 from core.validation.common import KINDS, OUTCOMES, ValidationError
 from db import TestResultRepository, ValidationRepository
 
@@ -48,6 +48,10 @@ class ValidationService:
         self.validations, self.results = validations, results
         self.registry, self.catalogue = registry, catalogue
         self.evidence, self.blocking = evidence, blocking
+        # The principal register, for resolving named validators. Optional so
+        # the service can be built before it exists; when absent, `_resolve`
+        # cannot run and says so rather than passing silently.
+        self.principals: Any = None
 
     # ------------------------------------------------------------------- open
     def open(self, urn: str, semver: str, kind: str = "initial",
@@ -65,6 +69,12 @@ class ValidationService:
         validators = list(validators or [])
         if not validators:
             raise ValidationError("a validation needs at least one named validator")
+        # Resolved against the register rather than accepted as prose. This was
+        # free text: a validation naming `person/nobody.at.all` was accepted,
+        # recorded and concluded, and the independence check compared that
+        # string against the builder's username — so an independence test on a
+        # name that resolves to nobody passes by construction.
+        self._resolve(validators)
 
         independence = self.attest(validators, version)
         if not independence["independent"]:
@@ -77,11 +87,38 @@ class ValidationService:
                "independence": independence, "status": "in_progress", "outcome": None,
                "conditions": [], "snapshot_id": snapshot_id, "started_at": time.time(),
                "completed_at": None, "due_at": due_at}
-        self.validations.add(row)
-        self.evidence.append("validation_opened", "version", version["id"],
-                             {"validation_id": row["id"], "kind": kind,
-                              "validators": validators}, actor=actor)
+        with self.evidence.recording():
+            self.validations.add(row)
+            self.evidence.append("validation_opened", "version", version["id"],
+                                 {"validation_id": row["id"], "kind": kind,
+                                  "validators": validators}, actor=actor)
         return self.validations.one(id=row["id"])
+
+    def _resolve(self, validators: Sequence[str]) -> None:
+        """Every named validator must be a principal who exists and is active.
+
+        Refused rather than warned: a validation is a record of who challenged
+        the model, and a name nobody can look up is not that record.
+        """
+        if self.principals is None:            # not wired; nothing to check
+            return
+        unknown, inactive = [], []
+        for name in validators:
+            row = self.principals.get(bare_name(name))
+            if row is None:
+                unknown.append(name)
+            elif row.get("status") != "active":
+                inactive.append(name)
+        if unknown:
+            raise ValidationError(
+                f"no principal is registered for {', '.join(sorted(unknown))}; "
+                f"a validation names who challenged the model, and a name "
+                f"nobody can look up is not a record of that")
+        if inactive:
+            raise ValidationError(
+                f"{', '.join(sorted(inactive))} "
+                f"{'is' if len(inactive) == 1 else 'are'} not active, so "
+                f"cannot be recorded as having challenged this version")
 
     @staticmethod
     def attest(validators: Sequence[str], version: Dict[str, Any]) -> Dict[str, Any]:
@@ -113,11 +150,12 @@ class ValidationService:
         outcome = self.catalogue.run(test_key, left, right, threshold, parameters, slice_)
         row = {"validation_id": validation_id, **outcome.as_row(),
                "computed_at": time.time()}
-        self.results.add(row)
-        self.evidence.append("test_result_recorded", "version", v["model_version_id"],
-                             {"validation_id": validation_id, "test_key": test_key,
-                              "value": outcome.value, "passed": outcome.passed,
-                              "digest": row["digest"]}, actor=actor)
+        with self.evidence.recording():
+            self.results.add(row)
+            self.evidence.append("test_result_recorded", "version", v["model_version_id"],
+                                 {"validation_id": validation_id, "test_key": test_key,
+                                  "value": outcome.value, "passed": outcome.passed,
+                                  "digest": row["digest"]}, actor=actor)
         return self.results.one(id=row["id"])
 
     def results_for(self, validation_id: str) -> List[Dict[str, Any]]:
@@ -140,17 +178,28 @@ class ValidationService:
         if outcome == "approved":
             self._check_approvable(v, failed, conditions)
 
-        self.validations.set({"status": "completed", "outcome": outcome,
-                              "conditions": conditions, "completed_at": time.time()},
-                             id=validation_id)
-        self.evidence.append("validation_concluded", "version", v["model_version_id"],
-                             {"validation_id": validation_id, "outcome": outcome,
-                              "failed_tests": [r["test_key"] for r in failed],
-                              "conditions": conditions}, actor=actor)
+        with self.evidence.recording():
+            self.validations.set({"status": "completed", "outcome": outcome,
+                                  "conditions": conditions, "completed_at": time.time()},
+                                 id=validation_id)
+            self.evidence.append("validation_concluded", "version", v["model_version_id"],
+                                 {"validation_id": validation_id, "outcome": outcome,
+                                  "failed_tests": [r["test_key"] for r in failed],
+                                  "conditions": conditions}, actor=actor)
         return self.validations.one(id=validation_id)
 
     def _check_approvable(self, v: Dict[str, Any], failed: List[Dict[str, Any]],
                           conditions: List[str]) -> None:
+        # A validation with NO results is not a validation that found nothing;
+        # it is a validation that did not happen. `failed` is empty in both
+        # cases, so an episode opened and concluded `approved` in two calls,
+        # with no test recorded, satisfied every check here — and effective
+        # challenge is the control the whole second line exists to be.
+        if not self.results_for(v["id"]):
+            raise ValidationError(
+                "cannot approve: no test result has been recorded, so there is "
+                "nothing this validation examined. Record what was tested and "
+                "what it showed, or conclude 'rejected'")
         if failed:
             keys = ", ".join(sorted({r["test_key"] for r in failed}))
             raise ValidationError(

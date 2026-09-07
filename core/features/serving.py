@@ -74,11 +74,12 @@ class ServingRegister:
             "detail": self._detail(pinned, served, divergence),
             "attested_by": actor, "attested_at": time.time(),
         }
-        self.attestations.add(row)
-        self.evidence.append(
-            "serving_attested", "version", version["id"],
-            {"agrees": not divergence, "views": sorted(served),
-             "divergence": divergence, "warrant_id": warrant_id}, actor=actor)
+        with self.evidence.recording():
+            self.attestations.add(row)
+            self.evidence.append(
+                "serving_attested", "version", version["id"],
+                {"agrees": not divergence, "views": sorted(served),
+                 "divergence": divergence, "warrant_id": warrant_id}, actor=actor)
         if divergence:
             logger.error("L-17 violated for %s@%s: %s", urn, semver,
                          row["detail"])
