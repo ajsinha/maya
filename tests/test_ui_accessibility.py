@@ -90,3 +90,132 @@ def test_no_two_controls_share_an_id() -> None:
                 clashes.append(f"{path.name}: id=\"{ident}\"")
             seen.add(ident)
     assert clashes == [], ", ".join(clashes)
+
+
+# ------------------------------------------------------------------ contrast
+def _luminance(colour: str) -> float:
+    def channel(value: int) -> float:
+        c = value / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+    h = colour.lstrip("#")
+    r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+
+def contrast(a: str, b: str) -> float:
+    la, lb = _luminance(a), _luminance(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
+def _palette() -> dict:
+    """The tokens as the stylesheet actually declares them."""
+    body = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+    block = body.split(":root{", 1)[1].split("}", 1)[0]
+    found = dict(re.findall(r"--([a-z-]+):(#[0-9A-Fa-f]{6})", block))
+    assert {"crimson", "ink", "slate", "muted", "rule", "parch", "edge"} <= set(found), found
+    return {"white": "#FFFFFF", **found}
+
+
+class TestContrastIsMeasuredRatherThanJudged:
+    """`--muted` was #7A7F87 — 4.03 on white and 3.64 on the striped row,
+    against a 4.5 requirement. It carries the gloss under every menu entry,
+    every `.text-muted` note and every definition, all set SMALLER than body
+    text, so the large-text allowance applies to none of them. The explanatory
+    half of the interface was the half that failed.
+    """
+
+    #: Every token that carries text, and the grounds it appears on.
+    TEXT_ON = [("ink", "white"), ("ink", "parch"),
+               ("slate", "white"), ("slate", "parch"),
+               ("muted", "white"), ("muted", "parch"),
+               ("crimson", "white"), ("crimson", "parch")]
+
+    def test_every_text_pair_clears_aa(self):
+        palette = _palette()
+        failures = []
+        for fg, bg in self.TEXT_ON:
+            ratio = contrast(palette[fg], palette[bg])
+            if ratio < 4.5:
+                failures.append(f"--{fg} on --{bg}: {ratio:.2f}")
+        assert failures == [], (
+            "these carry text below WCAG AA 4.5:1, and every one of them is "
+            "used at a font size SMALLER than body text, so the large-text "
+            "allowance does not apply: " + ", ".join(failures))
+
+    def test_white_on_the_crimson_bar_clears_aa(self):
+        assert contrast("#FFFFFF", _palette()["crimson"]) >= 4.5
+
+    def test_a_controls_own_edge_clears_the_three_to_one_rule(self):
+        """`--rule` is 1.47 on white. Fine for a table rule, which is
+        decoration, and not fine for the edge of an input: the boundary is what
+        tells somebody where to type."""
+        palette = _palette()
+        assert contrast(palette["edge"], palette["white"]) >= 3.0
+        assert "border-color:var(--edge)" in (
+            ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+
+    def test_every_badge_carries_its_text_at_aa(self):
+        """The tier badge is the most consequential label on these screens, and
+        two of the four failed: amber at 3.20:1 and grey at 4.03:1, both set
+        small and bold — exactly where "it looks fine" stops being evidence."""
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        failures = []
+        # Every rule that sets a background AND a colour, however the
+        # declarations after them are punctuated. The first version of this
+        # anchored on `}` and missed `.open-badge`, which was the same amber at
+        # the same 3.20:1 — a scan that matches the cases you remembered is the
+        # defect this file keeps finding one layer down.
+        for name, ground, ink in re.findall(
+                r"\.([a-z0-9-]+)\{background:(#[0-9A-Fa-f]{6});"
+                r"color:(#[0-9A-Fa-f]{3,6})\b",
+                css):
+            colour = ink if len(ink) == 7 else "#" + "".join(c * 2 for c in ink[1:])
+            ratio = contrast(colour, ground)
+            if ratio < 4.5:
+                failures.append(f".{name}: {ratio:.2f}")
+        assert failures == [], "badges below AA: " + ", ".join(failures)
+        assert len(re.findall(
+            r"\.([a-z0-9-]+)\{background:(#[0-9A-Fa-f]{6});color:", css)) >= 6, \
+            "the scan found almost nothing, which means it is looking wrongly"
+
+    def test_the_measurement_can_fail(self):
+        """A contrast check that passes everything is a check nobody can trust."""
+        assert contrast("#CCCCCC", "#FFFFFF") < 4.5
+        assert contrast("#000000", "#FFFFFF") > 20
+
+
+class TestKeyboardFocusIsVisible:
+    """Only `.navbar .dropdown-item` had a focus ring. Everything else fell back
+    to the browser default, which Bootstrap's reset removes on buttons and
+    links — so somebody navigating by keyboard could not see where they were on
+    any screen in the platform.
+    """
+
+    @staticmethod
+    def _css() -> str:
+        return (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+
+    def test_every_focusable_kind_gets_a_ring(self):
+        css = self._css()
+        rule = [block for block in css.split("}")
+                if ":focus-visible" in block and "outline:3px" in block]
+        assert rule, "there is no focus-visible rule at all"
+        combined = " ".join(rule)
+        for element in ("a:", "button:", "input:", "select:", "textarea:"):
+            assert f"{element}focus-visible" in combined, element
+
+    def test_the_ring_inverts_on_the_crimson_bar(self):
+        """A crimson ring on a crimson bar is not a ring."""
+        assert ".navbar a:focus-visible" in self._css()
+        assert "outline:3px solid #fff" in self._css()
+
+    def test_it_is_focus_visible_and_not_focus(self):
+        """`:focus` would leave a ring behind after every mouse click, which is
+        how a focus style gets removed again a week later."""
+        css = self._css()
+        assert "a:focus-visible" in css
+        assert not re.search(r"\ba:focus\s*[,{]", css)
+
+    def test_reduced_motion_is_honoured(self):
+        assert "prefers-reduced-motion:reduce" in self._css()
