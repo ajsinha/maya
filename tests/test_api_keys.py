@@ -367,3 +367,76 @@ class TestTheAdminScreen:
         issue = script.split('$("#new-key")')[1].split('$(".revoke-key")')[0]
         assert "location.reload" in issue, "there is a way to move on"
         assert "nk-done" in issue, "and it is a button, not an automatic reload"
+
+
+class TestAKeyReportsOnlyWhatItCarries:
+    """The scope check lived at the authorisation gate and nowhere else, so
+    every other question about what the caller could do was answered for the
+    PERSON behind the key.
+
+    `/api/v1/me` reported all seven permissions of a principal whose key was
+    scoped to one, and the navigation is built from the same call — so the
+    screens offered were screens the credential could not use. A credential
+    that reports authority it does not carry is the same defect as one that
+    grants it, arriving a step earlier.
+    """
+
+    def test_me_reports_the_keys_scope_not_the_persons(self, client, keyed):
+        client.post("/api/v1/principals", json={
+            "username": "svc.narrow", "display_name": "Narrow",
+            "kind": "service", "roles": ["operator"]})
+        made = _issue(client, username="svc.narrow", name="one-permission",
+                      scopes=["model:read"]).json()
+        headers = {"X-API-Key": made["secret"]}
+
+        mine = keyed.get("/api/v1/me", headers=headers).json()
+        assert mine["permissions"] == ["model:read"], \
+            "the key carries one permission and must report one"
+        # The person behind it still holds more, which is the whole point of a
+        # narrowed credential.
+        assert len(client.app.state.ctx["authz"].permissions(
+            {"roles": ["operator"]})) > 1
+
+    def test_a_key_never_widens_what_its_principal_holds(self, client, keyed):
+        """The intersection runs the other way too: a role removed from the
+        person reaches every key immediately, rather than being frozen into the
+        scope recorded when the key was issued."""
+        client.post("/api/v1/principals", json={
+            "username": "svc.shrink", "display_name": "Shrink",
+            "kind": "service", "roles": ["operator"]})
+        made = _issue(client, username="svc.shrink", name="two",
+                      scopes=["model:read", "evidence:read"]).json()
+        headers = {"X-API-Key": made["secret"]}
+        assert set(keyed.get("/api/v1/me", headers=headers).json()["permissions"]) \
+            == {"model:read", "evidence:read"}
+
+        client.put("/api/v1/principals/svc.shrink/roles",
+                   json={"roles": ["service"]})
+        after = keyed.get("/api/v1/me", headers=headers).json()["permissions"]
+        assert "evidence:read" not in after, \
+            "the role is gone, so the key's scope over it is gone with it"
+
+    def test_a_malformed_scope_refuses_rather_than_matching_a_substring(
+            self, client, keyed):
+        """A JSON column that fails to decode is left as raw TEXT, and the check
+        was `permission not in scopes` — a substring match on that string. So
+        `model:read` matched inside `["model:read_only"]` and the key was
+        granted a permission its scope excludes."""
+        from sqlalchemy import text
+
+        client.post("/api/v1/principals", json={
+            "username": "svc.corrupt", "display_name": "Corrupt",
+            "kind": "service", "roles": ["operator"]})
+        made = _issue(client, username="svc.corrupt", name="broken",
+                      scopes=["model:read_only" if False else "monitor:read"]).json()
+        headers = {"X-API-Key": made["secret"]}
+
+        database = keyed.app.state.ctx["db"]
+        with database.engine.begin() as connection:
+            connection.execute(text(
+                "UPDATE api_key SET scopes = '[\"model:read_only\" ' "
+                "WHERE name = 'broken'"))
+        r = keyed.get("/api/v1/models", headers=headers)
+        assert r.status_code == 500, r.text
+        assert r.json()["error"] == "key_scope_unreadable"
+        assert "revoke this key" in r.json()["remediation"]

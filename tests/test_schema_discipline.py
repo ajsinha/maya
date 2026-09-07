@@ -197,3 +197,55 @@ def test_every_timestamp_column_survives_an_epoch_second():
                 assert match.group(2) == kind, (
                     f"{dialect}.sql: {match.group(1)} is {match.group(2)}, "
                     f"and a timestamp column here must be {kind}")
+
+
+def _unique_clauses(path: pathlib.Path) -> list:
+    """(table, clause) for every UNIQUE written inside a CREATE TABLE body."""
+    out = []
+    for match in re.finditer(r"CREATE TABLE IF NOT EXISTS (\w+) \((.*?)\n\);",
+                             path.read_text(encoding="utf-8"), re.S):
+        table, body = match.group(1), match.group(2)
+        for line in body.splitlines():
+            line = line.split("--")[0].strip().rstrip(",")
+            if line.upper().startswith("UNIQUE ("):
+                out.append((table, line))
+    return out
+
+
+def test_uniqueness_is_declared_as_an_index_and_never_inside_a_table():
+    """A UNIQUE clause in a CREATE TABLE body never reaches a database that
+    already exists — and unlike a missing column, it fails nothing at the point
+    of use. It silently permits the write it existed to refuse.
+
+    Two quorum constraints shipped that way. The commit message said a quorum
+    was now a number of people, the suite proved it on a fresh database, and on
+    every database that already existed one dual-hatted principal was still a
+    quorum of one. `CREATE UNIQUE INDEX IF NOT EXISTS` applies to a table that
+    already exists, in both dialects, with no migration step — so uniqueness is
+    written that way and this holds the line.
+
+    PRIMARY KEY is exempt: it is part of creating the table at all, and there is
+    no version of this platform whose tables lack one.
+    """
+    for path in (SQLITE, POSTGRES):
+        clauses = _unique_clauses(path)
+        assert not clauses, (
+            f"{path.name} declares uniqueness inside a CREATE TABLE body, where "
+            f"it will never reach an existing database: {clauses}. Write it as "
+            f"CREATE UNIQUE INDEX IF NOT EXISTS instead.")
+
+
+def test_both_dialects_declare_the_same_indexes():
+    """The indexes are as much of the schema as the columns, and now that
+    uniqueness lives in them, a dialect missing one is a dialect missing a
+    control rather than missing a bit of speed."""
+    def names(path):
+        return {(m.group(2), m.group(1), "UNIQUE" in m.group(0).upper())
+                for m in re.finditer(
+                    r"CREATE\s+(?:UNIQUE\s+)?INDEX IF NOT EXISTS (\w+)\s+ON (\w+)",
+                    path.read_text(encoding="utf-8"), re.I)}
+
+    only_sqlite = names(SQLITE) - names(POSTGRES)
+    only_postgres = names(POSTGRES) - names(SQLITE)
+    assert not only_sqlite and not only_postgres, \
+        f"only in sqlite: {sorted(only_sqlite)}; only in postgres: {sorted(only_postgres)}"

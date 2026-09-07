@@ -80,9 +80,11 @@ CREATE TABLE IF NOT EXISTS model_edge (
     -- somebody had. So the distinction is recorded rather than lost.
     type_checked INTEGER NOT NULL DEFAULT 0,
     created_by   TEXT NOT NULL,
-    created_at   DOUBLE PRECISION NOT NULL,
-    UNIQUE (from_model, to_model, kind)
+    created_at   DOUBLE PRECISION NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_edge_from_model_to_model_kind
+    ON model_edge (from_model, to_model, kind);
 CREATE INDEX IF NOT EXISTS ix_edge_from ON model_edge (from_model);
 CREATE INDEX IF NOT EXISTS ix_edge_to   ON model_edge (to_model);
 
@@ -111,9 +113,11 @@ CREATE TABLE IF NOT EXISTS model_version (
     artifact_size      integer,
     status             TEXT NOT NULL DEFAULT 'draft',
     created_at         DOUBLE PRECISION NOT NULL,
-    created_by         TEXT NOT NULL,
-    UNIQUE (model_id, semver)
+    created_by         TEXT NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_version_model_id_semver
+    ON model_version (model_id, semver);
 CREATE INDEX IF NOT EXISTS ix_version_model ON model_version (model_id);
 
 CREATE TABLE IF NOT EXISTS alias (
@@ -123,9 +127,11 @@ CREATE TABLE IF NOT EXISTS alias (
     name        TEXT NOT NULL,
     version_id  TEXT NOT NULL,
     moved_at    DOUBLE PRECISION NOT NULL,
-    moved_by    TEXT NOT NULL,
-    UNIQUE (model_id, environment, name)
+    moved_by    TEXT NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_alias_model_id_environment_name
+    ON alias (model_id, environment, name);
 
 CREATE TABLE IF NOT EXISTS alias_history (
     id              TEXT PRIMARY KEY,
@@ -265,9 +271,11 @@ CREATE TABLE IF NOT EXISTS feature_view_version (
     ingest_time_column TEXT NOT NULL DEFAULT 'ingest_ts',
     row_count          INTEGER NOT NULL DEFAULT 0,
     quality_report     TEXT NOT NULL DEFAULT '{}',
-    materialised_at    DOUBLE PRECISION NOT NULL,
-    UNIQUE (feature_view_id, version)
+    materialised_at    DOUBLE PRECISION NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_feature_view_version_feature_view_id_version
+    ON feature_view_version (feature_view_id, version);
 CREATE INDEX IF NOT EXISTS ix_fvv_view ON feature_view_version (feature_view_id);
 
 -- Binds a model version to exact feature view versions. Serving with a
@@ -277,9 +285,11 @@ CREATE TABLE IF NOT EXISTS feature_contract (
     model_version_id TEXT NOT NULL,
     digest           TEXT NOT NULL,
     items            TEXT NOT NULL DEFAULT '[]',
-    created_at       DOUBLE PRECISION NOT NULL,
-    UNIQUE (model_version_id)
+    created_at       DOUBLE PRECISION NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_feature_contract_model_version_id
+    ON feature_contract (model_version_id);
 
 -- ------------------------------------------------------- serving attestation
 -- What an engine says it READ, against what the contract says it must.
@@ -349,9 +359,11 @@ CREATE TABLE IF NOT EXISTS policy_rule (
     created_by   text NOT NULL,
     created_at   double precision NOT NULL,
     published_at double precision,
-    published_by text,
-    UNIQUE (gate, version)
+    published_by text
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_policy_rule_gate_version
+    ON policy_rule (gate, version);
 CREATE INDEX IF NOT EXISTS ix_policy_gate ON policy_rule (gate, state);
 
 -- A warrant profile: named, versioned defaults for the REQUEST a warrant is
@@ -376,9 +388,11 @@ CREATE TABLE IF NOT EXISTS warrant_profile (
     created_by  text NOT NULL,
     created_at  double precision NOT NULL,
     retired_at  double precision,
-    retired_by  text,
-    UNIQUE (name, version)
+    retired_by  text
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_warrant_profile_name_version
+    ON warrant_profile (name, version);
 CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
 
 -- A declared risk-appetite limit. Versions accumulate; nothing is edited, because
@@ -403,9 +417,11 @@ CREATE TABLE IF NOT EXISTS risk_appetite (
     created_by   text NOT NULL,
     created_at   double precision NOT NULL,
     retired_at   double precision,
-    retired_by   text,
-    UNIQUE (metric, scope_key, version)
+    retired_by   text
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_risk_appetite_metric_scope_key_version
+    ON risk_appetite (metric, scope_key, version);
 CREATE INDEX IF NOT EXISTS ix_appetite_metric ON risk_appetite (metric, retired);
 
 -- A board pack as it was read. Kept rather than recomputed: a committee minute
@@ -461,9 +477,11 @@ CREATE TABLE IF NOT EXISTS version_approval (
     statement        text NOT NULL DEFAULT '',
     opened_by        text NOT NULL,
     opened_at        double precision NOT NULL,
-    completed_at     double precision,
-    UNIQUE (model_version_id, opened_at)
+    completed_at     double precision
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_version_approval_model_version_id_opened_at
+    ON version_approval (model_version_id, opened_at);
 CREATE INDEX IF NOT EXISTS ix_version_approval ON version_approval (model_version_id);
 
 CREATE TABLE IF NOT EXISTS version_approval_signature (
@@ -473,13 +491,26 @@ CREATE TABLE IF NOT EXISTS version_approval_signature (
     role                 text NOT NULL,
     decision             text NOT NULL DEFAULT 'approve',
     statement            text NOT NULL DEFAULT '',
-    signed_at            double precision NOT NULL,
-    UNIQUE (version_approval_id, role),
-    -- A quorum is a number of PEOPLE, not a number of hats. See sqlite.sql for
-    -- the race this refuses: two requests from one dual-hatted principal put
-    -- both signatures of a Tier 1 quorum on one person, 1 trial in 25.
-    UNIQUE (version_approval_id, principal)
+    signed_at            double precision NOT NULL
 );
+
+-- A quorum is a number of PEOPLE, not a number of hats. See sqlite.sql for the
+-- race this refuses: two requests from one dual-hatted principal put both
+-- signatures of a Tier 1 quorum on one person, 1 trial in 25.
+--
+-- Both uniqueness rules on this table are INDEXES rather than clauses in the
+-- CREATE TABLE above, and that is the load-bearing part. The schema is applied
+-- with CREATE TABLE IF NOT EXISTS, so a table that already exists is skipped
+-- whole: a constraint added to a table body reaches a fresh database and never
+-- reaches a deployed one. The commit said the quorum was fixed, the suite
+-- proved it on a fresh database, and the bank running that release was
+-- unchanged -- one dual-hatted principal was still a Tier 1 quorum. CREATE
+-- UNIQUE INDEX IF NOT EXISTS does apply to a table that already exists, in both
+-- dialects, with no migration step.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_version_approval_signature_role
+    ON version_approval_signature (version_approval_id, role);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_version_approval_signature_principal
+    ON version_approval_signature (version_approval_id, principal);
 
 CREATE TABLE IF NOT EXISTS derived_feature (
     id                 text PRIMARY KEY,
@@ -493,9 +524,11 @@ CREATE TABLE IF NOT EXISTS derived_feature (
     digest             text NOT NULL,
     note               text NOT NULL DEFAULT '',
     created_by         text NOT NULL,
-    created_at         double precision NOT NULL,
-    UNIQUE (name, definition_version)
+    created_at         double precision NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_derived_feature_name_definition_version
+    ON derived_feature (name, definition_version);
 CREATE INDEX IF NOT EXISTS ix_derived_feature ON derived_feature (feature_id);
 
 -- ---------------------------------------------------------------- featuresets
@@ -537,9 +570,11 @@ CREATE TABLE IF NOT EXISTS featureset_version (
     digest         text NOT NULL,
     note           text NOT NULL DEFAULT '',
     created_by     text NOT NULL,
-    created_at     double precision NOT NULL,
-    UNIQUE (featureset_id, version)
+    created_at     double precision NOT NULL
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_featureset_version_featureset_id_version
+    ON featureset_version (featureset_id, version);
 CREATE INDEX IF NOT EXISTS ix_fsv_set ON featureset_version (featureset_id);
 
 -- ---------------------------------------------------------------- parameters
@@ -571,9 +606,11 @@ CREATE TABLE IF NOT EXISTS parameter_set (
     approved_by           text,
     approved_at           double precision,
     review_note           text NOT NULL DEFAULT '',
-    superseded_by         text,
-    UNIQUE (model_version_id, name, version)
+    superseded_by         text
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_parameter_set_model_version_id_name_version
+    ON parameter_set (model_version_id, name, version);
 CREATE INDEX IF NOT EXISTS ix_parameter_set_version ON parameter_set (model_version_id);
 
 CREATE TABLE IF NOT EXISTS dataset_snapshot (
@@ -781,17 +818,29 @@ CREATE TABLE IF NOT EXISTS attestation_signature (
     role           TEXT NOT NULL,
     decision       TEXT NOT NULL,
     statement      TEXT NOT NULL DEFAULT '',
-    signed_at      DOUBLE PRECISION NOT NULL,
-    -- A quorum is a number of PEOPLE. One-per-role is not enough on its own:
-    -- `model_risk_manager` is a superset of `validator`, so one principal can
-    -- hold both required hats and sign twice. The module docstring said this
-    -- was "enforced rather than assumed" and it was neither -- version approval
-    -- carried the check, attestation did not. This constraint is what decides
-    -- the race the read-then-write above it cannot.
-    UNIQUE (attestation_id, principal)
+    signed_at      DOUBLE PRECISION NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_signature_attestation ON attestation_signature (attestation_id);
+
+-- A quorum is a number of PEOPLE. One-per-role is not enough on its own:
+-- `model_risk_manager` is a superset of `validator`, so one principal can hold
+-- both required hats and sign twice, and for a wave one did -- putting a model
+-- in force on one person's judgement while the record and the evidence chain
+-- both called it a quorum.
+--
+-- An INDEX rather than a UNIQUE clause inside the CREATE TABLE, and that is the
+-- load-bearing part. The schema is applied with CREATE TABLE IF NOT EXISTS, so
+-- a table that already exists is skipped whole: a constraint added to a table
+-- body reaches new databases and never reaches a deployed one. The commit says
+-- the quorum was fixed, the suite proves it on a fresh database, and the bank
+-- running last month's release is unchanged. CREATE UNIQUE INDEX IF NOT EXISTS
+-- does apply to a table that already exists, in both dialects, with no
+-- migration step -- so a constraint expressed this way arrives everywhere.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_signature_attestation_principal
+    ON attestation_signature (attestation_id, principal);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_signature_attestation_role
+    ON attestation_signature (attestation_id, role);
 
 -- --------------------------------------------------------------------------
 -- Monitoring: monitors, observations and breaches
@@ -1156,9 +1205,11 @@ CREATE TABLE IF NOT EXISTS model_limitation (
     created_at       DOUBLE PRECISION NOT NULL,
     withdrawn_at     DOUBLE PRECISION,
     withdrawn_by     TEXT,
-    withdrawal_reason TEXT,
-    UNIQUE (model_version_id, reference)
+    withdrawal_reason TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_limitation_model_version_id_reference
+    ON model_limitation (model_version_id, reference);
 
 -- API keys: how a service or a script authenticates without a password.
 --
@@ -1198,10 +1249,13 @@ CREATE TABLE IF NOT EXISTS api_key (
     use_count      INTEGER NOT NULL DEFAULT 0,
     revoked_at     DOUBLE PRECISION,
     revoked_by     TEXT,
-    revoke_reason  TEXT,
-    UNIQUE (key_hash),
-    UNIQUE (username, name)
+    revoke_reason  TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_api_key_key_hash
+    ON api_key (key_hash);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_api_key_username_name
+    ON api_key (username, name);
 
 -- Roles, in the register rather than in the source.
 --
@@ -1230,6 +1284,8 @@ CREATE TABLE IF NOT EXISTS role (
     created_at   DOUBLE PRECISION NOT NULL,
     created_by   TEXT NOT NULL DEFAULT 'system',
     updated_at   DOUBLE PRECISION,
-    updated_by   TEXT,
-    UNIQUE (name)
+    updated_by   TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_role_name
+    ON role (name);
