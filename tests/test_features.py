@@ -569,3 +569,132 @@ class TestAVerificationSaysWhatItActuallyCompared:
                                        as_of=1000.0)
         assert "is not present" in str(refusal.value)
         assert "must not be recorded as verified" in str(refusal.value)
+
+
+class TestAFeatureMayBeShaped:
+    """`shape: [12]` and `shape: [3, 3]` are accepted by the register, reasoned
+    about by the contract algebra, and could not be LOADED.
+
+    `quality()` counted distinct values with `len({v for v in vs})`, and a list
+    is unhashable — so materialising any array feature answered 500 with
+    `TypeError: unhashable type: 'list'`. A balance history and a correlation
+    matrix are the two most ordinary shaped features a bank has.
+    """
+
+    ROWS = [
+        {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0,
+         "dscr": 1.20,
+         "monthly_balances": [10, 11, 12, 11, 10, 9, 9, 10, 11, 12, 13, 12],
+         "correlation": [[1, 0.3, 0.1], [0.3, 1, 0.2], [0.1, 0.2, 1]]},
+        {"entity_id": "C2", "event_ts": 100.0, "ingest_ts": 110.0,
+         "dscr": 2.10,
+         "monthly_balances": [20, 21, 22, 21, 20, 19, 19, 20, 21, 22, 23, 22],
+         "correlation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]},
+    ]
+
+    def _shaped(self, features):
+        features.define("dscr", "borrower", "numeric", "a scalar", "person/d.raman")
+        features.define("monthly_balances", "borrower", "numeric",
+                        "twelve monthly balances", "person/d.raman",
+                        shape=[12])
+        features.define("correlation", "borrower", "numeric",
+                        "a 3x3 correlation matrix", "person/d.raman",
+                        shape=[3, 3])
+        features.create_view("qa_shaped", "borrower", "person/d.raman",
+                             ["dscr", "monthly_balances", "correlation"])
+        return features
+
+    def test_a_scalar_an_array_and_a_matrix_load_together(self, features):
+        version = self._shaped(features).materialise("qa_shaped", self.ROWS)
+        assert version["row_count"] == 2
+
+    def test_the_quality_report_counts_shaped_values_by_content(self, features):
+        """Two different matrices are two distinct values; counting them needs
+        equality, not hashing."""
+        version = self._shaped(features).materialise("qa_shaped", self.ROWS)
+        report = version["quality_report"]
+        assert report["correlation"]["distinct"] == 2
+        assert report["monthly_balances"]["distinct"] == 2
+        assert report["dscr"]["distinct"] == 2
+        assert report["correlation"]["null_rate"] == 0.0
+
+    def test_a_repeated_shaped_value_is_not_counted_twice(self, features):
+        rows = [dict(self.ROWS[0]),
+                {**self.ROWS[1], "correlation": self.ROWS[0]["correlation"]}]
+        version = self._shaped(features).materialise("qa_shaped", rows)
+        assert version["quality_report"]["correlation"]["distinct"] == 1
+
+
+class TestAnOrphanedTableWithDifferentColumnsIsStillReplaceable:
+    """The orphan overwrite has to replace the SCHEMA as well as the rows.
+
+    Delta keeps the existing schema on an overwrite unless told otherwise. The
+    orphan a failed materialisation leaves behind was often written from a
+    different set of features — the view was redefined in between, which is
+    frequently WHY the first attempt failed — so refusing on
+    `SchemaMismatchError` left the table permanently unwritable with no way
+    through the product.
+    """
+
+    def test_a_view_redefined_after_a_failed_write_can_still_materialise(
+            self, features, tmp_path):
+        features.define("a", "borrower", "numeric", "one", "person/o")
+        features.define("b", "borrower", "numeric", "two", "person/o")
+        features.create_view("widened", "borrower", "person/o", ["a"])
+        pin = features.views._path(
+            features.views.require("widened"), 1)
+
+        # An orphan: Delta written, nothing recorded, with columns that do not
+        # match what the next materialisation will carry.
+        features.views.delta.write(
+            pin, [{"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 1.0,
+                   "a": 1.0, "gone": "a column no longer written"}])
+        assert features.views.delta.exists(pin)
+
+        # The real write carries different columns. Without `schema_mode`, Delta
+        # keeps the orphan's schema and raises SchemaMismatchError — leaving the
+        # table permanently unwritable through the product.
+        version = features.materialise("widened", [
+            {"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 1.0,
+             "a": 1.0, "b": 2.0}])
+        assert version["row_count"] == 1
+        stored = features.views.delta.read(pin)
+        assert "gone" not in stored.columns, "the orphan's schema survived"
+
+
+class TestAMalformedPolicyIsRefusedRatherThanCrashing:
+    """`check` exists to refuse a bad policy at the moment it is written, and a
+    policy of the wrong SHAPE got past it into a 500.
+
+    Every section is keyed by column — `{"normalise": {"dscr": "zscore"}}` —
+    and the obvious mistake is to write `{"normalise": "zscore"}`, meaning
+    "this column, this way". That reached `.items()` on a string.
+    """
+
+    def test_a_section_written_as_a_bare_string_is_refused(self):
+        from core.features.policy import check
+
+        for policy, section in (({"normalise": "zscore"}, "normalise"),
+                                ({"fill": "median"}, "fill"),
+                                ({"align": "flat_forward"}, "align")):
+            with pytest.raises(FeatureError) as refusal:
+                check(policy)
+            assert section in str(refusal.value)
+            # And says what the right shape is, since the reader has just
+            # demonstrated they do not know it.
+            assert "{" in str(refusal.value)
+
+    def test_a_well_formed_policy_still_passes(self):
+        from core.features.policy import check
+
+        policy = {"fill": {"dscr": "median"},
+                  "normalise": {"dscr": "zscore"},
+                  "align": {"rule": "flat_forward"}}
+        assert check(policy) == policy
+
+    def test_an_unknown_section_is_still_refused_by_name(self):
+        from core.features.policy import check
+
+        with pytest.raises(FeatureError) as refusal:
+            check({"minimum": 0.0, "maximum": 1.0})
+        assert "minimum" in str(refusal.value)

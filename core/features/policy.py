@@ -50,6 +50,26 @@ def check(policy: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         raise FeatureError(
             f"a retrieval policy says {', '.join(SECTIONS)} and nothing else; "
             f"it does not say {', '.join(unknown)}")
+    # Each section is keyed by COLUMN, and a caller who writes
+    # `"normalise": "zscore"` — meaning "this column, this way" — hits
+    # `.items()` on a string and gets a 500 from a function whose whole job is
+    # to refuse a bad policy at the moment it is written. The shape is checked
+    # before the values.
+    for section in ("fill", "normalise"):
+        value = policy.get(section)
+        if value is not None and not isinstance(value, dict):
+            raise FeatureError(
+                f"'{section}' is written per column, so it is a mapping of "
+                f"column to {'strategy' if section == 'fill' else 'method'} — "
+                f"not {type(value).__name__}. Write "
+                f"{{\"{section}\": {{\"your_column\": "
+                f"\"{'median' if section == 'fill' else 'zscore'}\"}}}}")
+    if (align := policy.get("align")) is not None and not isinstance(align, dict):
+        raise FeatureError(
+            "'align' is a mapping and takes a 'rule' — not "
+            f"{type(align).__name__}. Write "
+            '{"align": {"rule": "flat_forward"}}')
+
     fill = policy.get("fill") or {}
     for column, ask in fill.items():
         strategy = ask if isinstance(ask, str) else (ask or {}).get("strategy")

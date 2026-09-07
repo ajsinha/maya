@@ -13,12 +13,13 @@ with its contract digest still matching and every monitor green.
 """
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.features.catalogue import FeatureCatalogue
-from core.log import get_logger
+from core.log import get_logger, swallowed
 from core.features.common import ENTITY, INGEST_TIME, RESERVED, VALID_TIME, FeatureError
 from db import DeltaStore, FeatureViewRepository, FeatureViewVersionRepository
 
@@ -114,9 +115,39 @@ class ViewManager:
 
     @staticmethod
     def quality(rows: List[Dict[str, Any]], names: List[str]) -> Dict[str, Any]:
+        """Null rate and distinct count per column.
+
+        `distinct` counts by CONTENT rather than by hash, because a feature may
+        be shaped: `shape: [12]` for a balance history, `shape: [3, 3]` for a
+        correlation matrix. Both arrive as lists, and a list is unhashable — so
+        `len({v for v in vs})` raised TypeError and materialising any array
+        feature answered 500. The register accepts shaped features, the
+        contract algebra reasons about their shape, and this one line meant no
+        data could ever be loaded into one.
+        """
+        def distinct(values: List[Any]) -> int:
+            seen: List[Any] = []
+            for value in values:
+                if value is None:
+                    continue
+                try:
+                    if value not in seen:
+                        seen.append(value)
+                except (TypeError, ValueError) as exc:
+                    # A value that will not compare to the ones already seen.
+                    # Counted as distinct, which over-counts rather than
+                    # under-counts — a quality report that hides variety is the
+                    # more dangerous direction.
+                    swallowed(logger, exc, "counted distinct feature values",
+                              detail="a value would not compare; counted as "
+                                     "distinct rather than dropped",
+                              level=logging.DEBUG)
+                    seen.append(value)
+            return len(seen)
+
         vals = {n: [r.get(n) for r in rows] for n in names}
         return {n: {"null_rate": round(sum(v is None for v in vs) / max(len(vs), 1), 4),
-                    "distinct": len({v for v in vs if v is not None})}
+                    "distinct": distinct(vs)}
                 for n, vs in vals.items()}
 
     def versions_of(self, view_name: str) -> List[Dict[str, Any]]:
