@@ -25,10 +25,28 @@ class Field:
     nullable: bool = False
     minimum: Optional[float] = None
     maximum: Optional[float] = None
+    #: How this field is written in mathematics — `\\sigma`, `\\mathrm{DSCR}`.
+    #: Optional, and used only for typesetting: a name with no symbol is set
+    #: upright, because `debt_service` in italics reads as nine letters
+    #: multiplied together.
+    symbol: Optional[str] = None
+    #: What the number MEANS dimensionally — `GBP`, `ratio`, `years`, `bp`.
+    #: Not parsed and not converted: MAYA is not a units library, and pretending
+    #: to convert would be worse than not knowing. It is compared, which is the
+    #: part that catches something — a replacement declaring `bp` where the
+    #: incumbent declared `ratio` is a hundred-fold error that every type check
+    #: passes, because both are numbers.
+    unit: Optional[str] = None
 
     def accepts(self, other: "Field") -> bool:
         """True when this field can stand in for ``other`` as an INPUT."""
         if self.dtype != other.dtype:
+            return False
+        # A declared unit that CHANGES is a regression, and one that appears or
+        # disappears is not: an incumbent that said nothing about units cannot
+        # have callers relying on one, and a replacement that starts saying so
+        # is adding information. Only a contradiction refuses.
+        if self.unit and other.unit and self.unit != other.unit:
             return False
         if other.nullable and not self.nullable:
             return False                                  # we would reject nulls it allows
@@ -54,7 +72,8 @@ class Schema:
         """Covariance in outputs. Returns the names no longer provided."""
         mine = self.by_name()
         return [f.name for f in other.fields
-                if f.name not in mine or mine[f.name].dtype != f.dtype]
+                if f.name not in mine or mine[f.name].dtype != f.dtype
+                or (f.unit and mine[f.name].unit and mine[f.name].unit != f.unit)]
 
 
 @dataclass(frozen=True)

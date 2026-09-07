@@ -29,7 +29,7 @@ for i, (name, gloss, values) in enumerate(AXES):
 tf = txt(sl, ML, yy + 0.24, CW, 0.5)
 runs(tf, [("Extends the right way. ", CRIMSON, True),
           ("A model technology nobody anticipated is a new value in one vocabulary \u2014 almost always a runtime "
-           "\u2014 not a new document type. Six of the eighteen run inside MAYA; the rest name an engine the bank "
+           "\u2014 not a new document type. Six of the nineteen run inside MAYA; the rest name an engine the bank "
            "already operates, and the warrant is what MAYA hands it.",
            INK, False)],
      size=11.5, first=True, space_after=0, line=1.26)

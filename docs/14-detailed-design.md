@@ -947,7 +947,7 @@ distributed compute anywhere in this repository.
 ### 14.1 One document, four axes
 
 A warrant is the product of four independent vocabularies, and their *product* is what covers the estate:
-how `P` is inhabited × how the kernel is realised (**eighteen runtimes**) × what is asked of it (ten verbs)
+how `P` is inhabited × how the kernel is realised (**nineteen runtimes**) × what is asked of it (ten verbs)
 × where its data comes from (twelve bindings). Six output sinks and ten named document sections complete
 it.
 
@@ -1479,7 +1479,7 @@ rot, and each exists because the rule it holds had already been broken once:
 | `test_refusal_discipline` | every coded refusal maps to a status that says who must act, and no code is mapped twice |
 | `test_schema_discipline` | the two dialects agree column for column; no `BOOLEAN` anywhere; no relational table holds bulk data |
 | `test_size_discipline` | no source file over 1,500 lines |
-| `test_documentation_counts` | every number claimed in prose is recounted from the code — **and from `.py` docstrings**, because two source files said "seventeen" against eighteen entries and survived every pass while the test read only markdown |
+| `test_documentation_counts` | every number claimed in prose is recounted from the code — **and from `.py` docstrings**, because two source files said "seventeen" against nineteen entries and survived every pass while the test read only markdown |
 | `test_deck_geometry` | no slide has overlapping or escaping content |
 | `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
 | `test_laws` | the foundational laws, run as tests, with the three that do not run named |
@@ -1493,8 +1493,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 190 modules that pass and carries 62 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 252 modules in one
+the 194 modules that pass and carries 62 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 256 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

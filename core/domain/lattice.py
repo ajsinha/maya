@@ -222,7 +222,9 @@ def schema_of(slots: Dict[str, object]) -> Schema:
             fields.append(Field(name, str(definition.get("dtype", "numeric")),
                                 bool(definition.get("nullable", False)),
                                 definition.get("minimum"),
-                                definition.get("maximum")))
+                                definition.get("maximum"),
+                                definition.get("symbol"),
+                                definition.get("unit")))
         else:
             fields.append(Field(name, str(definition)))
     return Schema(tuple(fields))
