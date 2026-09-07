@@ -94,7 +94,8 @@ from db import (ServingAttestationRepository,
                 FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
-                LimitationRepository, OverlayRepository,
+                ApiKeyRepository, LimitationRepository, RoleRepository,
+                OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
@@ -102,6 +103,8 @@ from db import (ServingAttestationRepository,
 from fastapi.openapi.docs import get_swagger_ui_html
 
 from core.limitations import LimitationRegister
+from core.apikeys import ApiKeyRegister
+from core.authz.rolestore import RoleStore
 from core.references import ReferenceIndex
 
 from routes import ALL_ROUTES
@@ -196,6 +199,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         iterations=cfg.get_int("auth.kdf_iterations", 200_000),
         verification_ttl=cfg.get_float("auth.verification_ttl_seconds", 60.0))
     authz = AuthorizationPolicy(SegregationPolicy(evidence))
+    # Roles live in the register, seeded from the eight this platform ships.
+    # Both the policy and the principal service are pointed at the same store,
+    # because two places permissions come from is the defect this argues
+    # against one layer down.
+    role_store = RoleStore(RoleRepository(db), evidence)
+    authz.roles = role_store
+    principals.roles = role_store
     principals.bootstrap(cfg.get("auth.username", "admin"),
                          cfg.get("auth.password", "admin123"))
 
@@ -460,6 +470,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "export": export, "dossier": dossier,
                            "training_records": training_records, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
+                           "roles": role_store,
+                           "api_keys": ApiKeyRegister(
+                               ApiKeyRepository(db), principals, authz, evidence),
                            "references": ReferenceIndex(db, registry, features),
                            "limitations": LimitationRegister(
                                LimitationRepository(db), registry, evidence),

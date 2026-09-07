@@ -48,6 +48,7 @@ from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.fibres import FibreError
+from core.apikeys import ApiKeyError
 from core.references.index import ReferencedError
 from core.rules.common import RuleError
 from core.monitoring import MonitorError
@@ -224,6 +225,19 @@ STATUS: Dict[str, int] = {
     # the request is well formed and the register is in a state that
     # forbids it, which is exactly what a conflict is.
     "still_referenced": 409,
+    # An API key presented for something its scope excludes. 403,
+    # not 401: the credential is valid and the act is not permitted
+    # to it, which is a different thing from not being signed in.
+    "outside_key_scope": 403,
+    "principal_not_active": 409,
+    "name_required": 422, "name_in_use": 409,
+    "lifetime_refused": 422, "scope_exceeds_principal": 422,
+    "no_such_key": 404, "already_revoked": 409,
+    # Roles, now that a bank can define them. 409 where the register is in a
+    # state that forbids the act, 422 where the request itself is incomplete.
+    "role_exists": 409, "role_in_use": 409, "built_in_role": 409,
+    "role_name_required": 422, "role_description_required": 422,
+    "role_grants_nothing": 422,
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
     "artifact_format_mismatch": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
@@ -491,7 +505,7 @@ class Routes:
                 FindingWorkflowError, PolicyError,
                 ArtifactError, ProfileError, ExportError,
                 ReportingError, FibreError, RuleError,
-                ReferencedError) as exc:
+                ReferencedError, ApiKeyError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)
@@ -524,11 +538,38 @@ class Routes:
             if (row := people.authenticate(*creds)) is not None:
                 _identify(request, row)
                 return row
+        # An API key, which is how a service authenticates without holding a
+        # password. Tried after a session and after Basic because those name a
+        # person and this names a credential; where both are present the person
+        # is the more specific answer.
+        if (row := self._api_key_principal(request)) is not None:
+            _identify(request, row)
+            return row
         raise HTTPException(401, {
             "error": "unauthenticated",
             "detail": "this endpoint requires an authenticated principal",
-            "remediation": "sign in, or present HTTP Basic credentials",
+            "remediation": "sign in, present HTTP Basic credentials, or send "
+                           "an API key as 'Authorization: Bearer maya_sk_…' "
+                           "or 'X-API-Key'",
         }, headers={"WWW-Authenticate": 'Basic realm="MAYA"'})
+
+    def _api_key_principal(self, request: Request) -> Optional[Dict[str, Any]]:
+        """The principal a key acts as, or None.
+
+        Two headers, because both are what people actually send: `Bearer` is
+        what an HTTP client library defaults to, and `X-API-Key` is what a curl
+        line somebody typed looks like. Accepting one and not the other buys
+        nothing and costs an afternoon.
+        """
+        keys = self.ctx.get("api_keys")
+        if keys is None:
+            return None
+        header = request.headers.get("authorization") or ""
+        secret = ""
+        if header.lower().startswith("bearer "):
+            secret = header[7:].strip()
+        secret = secret or (request.headers.get("x-api-key") or "").strip()
+        return keys.authenticate(secret) if secret else None
 
     def authorise(self, request: Request, permission: str,
                   model: Optional[Dict[str, Any]] = None,
@@ -546,6 +587,22 @@ class Routes:
         against 'system'.
         """
         who = self.principal(request)
+        # A key narrows what its principal may do, and never widens it. Checked
+        # here rather than inside `authorise`, because the narrowing is a
+        # property of the CREDENTIAL and authorisation is a property of the
+        # identity: a key that carried its own permissions would be a second
+        # place permissions come from.
+        scopes = who.get("api_key_scopes")
+        if scopes and permission not in scopes:
+            raise HTTPException(403, {
+                "error": "outside_key_scope",
+                "detail": f"the API key '{who.get('api_key_name')}' does not "
+                          f"carry '{permission}', though "
+                          f"{who.get('username')} does",
+                "remediation": "use a key whose scope covers this, or issue "
+                               "one that does — narrowing a key is how a "
+                               "service is given only what it needs",
+            })
         self.ctx["authz"].authorise(who, permission, model, subject_id, about,
                                     estate_wide)
         return who
