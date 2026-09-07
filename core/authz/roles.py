@@ -30,6 +30,10 @@ from core.authz.common import PERMISSIONS, READ_PERMISSIONS, AuthzError, require
 # ---------------------------------------------------------------------------
 MODEL_DEVELOPER = {
     "model:read", "version:create",
+    # The first line states what the model cannot do — they are the ones who
+    # know. Withdrawing a limitation makes the register say less than it did,
+    # so it is not theirs.
+    "limitation:read", "limitation:record",
     "feature:read", "feature:define", "feature:materialise", "feature:assemble",
     "feature:contract", "validation:read", "finding:read", "evidence:read",
     # A finding can be owned by whoever has to fix it, and the first line does
@@ -76,6 +80,9 @@ VALIDATOR = READ_PERMISSIONS | {
     # The second line accepts or rejects what the first line filed -- and
     # approves the parameters it fitted, which change what the model does.
     "document:review", "parameter:approve", "version:sign",
+    # Withdrawing a limitation makes the register say less than it did about an
+    # immutable version, so it is the second line's, not the first's.
+    "limitation:withdraw",
     "feature:seal", "featureset:seal",
     # Writing a gate and putting it in force are different acts, so a validator
     # drafts and the model risk manager publishes. A rule authored and enacted
@@ -92,6 +99,9 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     "model:approve", "model:attest", "monitor:define", "document:compile",
     "overlay:approve", "assist:register", "assist:attest",
     "document:review", "parameter:approve", "version:sign",
+    # Withdrawing a limitation makes the register say less than it did about an
+    # immutable version, so it is the second line's, not the first's.
+    "limitation:withdraw",
     "baseline:import", "baseline:plan", "regime:activate",
     "policy:publish",
     # Cutting the pack a committee is minuted against sits with the second line,
@@ -106,6 +116,9 @@ MODEL_RISK_MANAGER = VALIDATOR | {
 AUDITOR = READ_PERMISSIONS | {"finding:raise"}
 # The batch runner: it evaluates monitors on a schedule and can do nothing else.
 OPERATOR = {"model:read", "warrant:read", "evidence:read",
+            # Reads what a model cannot do, because that is what decides
+            # whether an operational question belongs to this model at all.
+            "limitation:read",
             # Evaluates on the schedule. Never delivers telemetry -- it does
             # not run the models and has no rows of its own to hand over.
             "monitor:read", "monitor:evaluate",

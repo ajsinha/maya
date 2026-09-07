@@ -7,12 +7,14 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Query, Request
 from pydantic import Field
 
 from core.execution.urn import urn_of
 from core.domain import paging
 from routes.base import Body, Routes
+from core.features.rendering import to_latex, to_python
+from core.limitations import KIND_MEANING, KINDS
 from core.registry.versions import latest_version
 
 
@@ -57,6 +59,22 @@ class AliasIn(Body):
     environment: str = "prod"
     alias: str = "champion"
     justification: str = ""
+
+
+class LimitationIn(Body):
+    urn: str
+    semver: str
+    kind: str
+    statement: str
+    basis: str = ""
+    #: The contract clause that enforces this, if one does. Checked against the
+    #: version's own contract rather than accepted — a limitation claiming an
+    #: enforcement that does not exist reads as the safe case and is not.
+    bound_key: Optional[str] = None
+
+
+class WithdrawLimitationIn(Body):
+    reason: str
 
 
 class AssessIn(Body):
@@ -212,6 +230,109 @@ class ModelRoutes(Routes):
             return self.guard(lambda: reg.create_version(
                 urn(name), body.semver, body.kernel, body.contract,
                 body.artifact_digest, body.artifact_uri, actor=self.actor(who)))
+
+        # ------------------------------------------------------- limitations
+        @self.app.get(f"{self.api}/limitation-kinds", tags=["models"])
+        def limitation_kinds(request: Request):
+            """The four kinds, and what each is for. Closed on purpose."""
+            self.principal(request)
+            return {"kinds": [{"kind": k, "means": KIND_MEANING[k]}
+                              for k in KINDS],
+                    "detail": "a limitation names the contract clause that "
+                              "enforces it, or names none — and none is the "
+                              "value worth counting"}
+
+        # A model name is a QUERY parameter here rather than a path segment,
+        # which is this API's rule wherever a name is not the last thing in the
+        # path: `{name:path}` is greedy, so `/models/x/versions/1.0.0/limitations`
+        # resolves `name` to `x/versions/1.0.0/limitations` and answers 404
+        # naming a model nobody asked for. Written down in `14 §Addressing`;
+        # discovered again here, which is what the rule is for.
+        @self.app.get(f"{self.api}/limitations", tags=["models"])
+        def limitations(request: Request, urn_: str = Query(..., alias="urn"),
+                        semver: str = Query(...)):
+            """What this version cannot do, and how much of it is enforced."""
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "limitation:read", model=m)
+            return self.guard(
+                lambda: self.ctx["limitations"].for_version(urn_of(urn_), semver))
+
+        @self.app.post(f"{self.api}/limitations", status_code=201,
+                       tags=["models"])
+        def record_limitation(request: Request, body: LimitationIn):
+            """State a limitation against one version."""
+            m = self.guard(lambda: reg.require(urn_of(body.urn)))
+            who = self.authorise(request, "limitation:record", model=m)
+            return self.guard(lambda: self.ctx["limitations"].record(
+                urn_of(body.urn), body.semver, body.kind, body.statement,
+                basis=body.basis, bound_key=body.bound_key,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/limitations/{{limitation_id}}/withdraw",
+                       tags=["models"])
+        def withdraw_limitation(request: Request, limitation_id: str,
+                                body: WithdrawLimitationIn):
+            """Withdraw one. Never deleted: the version is immutable, so what it
+            was understood to be is part of the record."""
+            row = self.guard(
+                lambda: self.ctx["limitations"].require(limitation_id))
+            who = self.authorise(request, "limitation:withdraw",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["limitations"].withdraw(
+                limitation_id, body.reason, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/mathematics", tags=["models"])
+        def mathematics(request: Request, name: str = Query(..., alias="urn"),
+                        semver: str = Query(...)):
+            """The version's kernel as mathematics and as code, both derived.
+
+            Neither is stored. A `latex` field beside the expression, filled in
+            by whoever wrote it, is a second description of one model — and two
+            descriptions drift, with the one nobody executes drifting first. So
+            this renders the syntax tree the platform evaluates, which means a
+            disagreement between the equation, the code and the answer is not
+            possible rather than merely unlikely.
+
+            Only a `formula` kernel has an expression to render. Every other
+            runtime names an artifact MAYA does not read, and inventing an
+            equation for one would be exactly the invented description this
+            exists to avoid — so it says so instead.
+            """
+            m = self.guard(lambda: reg.require(urn_of(name)))
+            self.authorise(request, "model:read", model=m)
+            version = self.guard(
+                lambda: reg.version_service.require(urn_of(name), semver))
+            kernel = (version.get("manifest") or {}).get("kernel") or {}
+            entry = kernel.get("entry") or {}
+            expression = entry.get("expression")
+            if kernel.get("runtime") != "formula" or not expression:
+                raise HTTPException(409, {
+                    "error": "not_derivable",
+                    "detail": f"version {semver} runs on "
+                              f"'{kernel.get('runtime') or 'no runtime'}', which "
+                              f"names an artifact rather than carrying its own "
+                              f"expression — so there is nothing here to derive "
+                              f"an equation from",
+                    "remediation": "only a 'formula' kernel is renderable; for "
+                                   "everything else the mathematics belongs in "
+                                   "an attached document, where a person signs "
+                                   "for it"})
+            symbols = {f["name"]: f["symbol"]
+                       for f in (version.get("input_schema") or [])
+                       if isinstance(f, dict) and f.get("symbol")}
+            reads = sorted({f["name"] for f in (version.get("input_schema") or [])
+                            if isinstance(f, dict) and f.get("name")})
+            return {
+                "urn": urn_of(name), "semver": semver,
+                "expression": expression,
+                "target": entry.get("target") or "value",
+                "latex": to_latex(expression, symbols),
+                "python": to_python(expression, name="predict", inputs=reads),
+                "symbols": symbols,
+                "detail": "both are derived from the expression at request "
+                          "time and neither is stored, so they cannot disagree "
+                          "with what runs",
+            }
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions/{{semver}}/approve",
                        tags=["versions"])

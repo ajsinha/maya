@@ -101,7 +101,7 @@ The warrant is the product of four independent vocabularies, not a union of spec
 | `operation.verb` | what is being asked of it? | ten: score, fit, validate, backtest, explain, simulate, stress, optimise, generate, monitor |
 | `data.*.binding` | where do the inputs come from? | twelve, of which three are bitemporal and can therefore answer *what was known at time t* |
 
-`descriptor_only` is one of the eighteen and matters most in a bank: much of the estate already runs
+`descriptor_only` is one of the nineteen and matters most in a bank: much of the estate already runs
 inside engines nobody is going to replace, and a warrant that carries governance and no execution is
 the honest description of that case.
 
@@ -114,7 +114,7 @@ because somebody ticked a box. Full protocol in [06](06-warrants-and-execution.m
 
 `core/execution/engine.py` ships a **captive engine** so that the protocol has a reference
 implementation, and it is deliberately not privileged: it resolves a warrant like any other consumer
-and refuses by name a runtime it does not have. It implements six of the eighteen —
+and refuses by name a runtime it does not have. It implements six of the nineteen —
 `python.callable`, `onnx`, `pmml`, `quantlib`, `estimator` and `rules`, and answers for
 `descriptor_only` as well. `RuntimeRegistry.invoke` distinguishes two refusals that need different
 actions: a runtime never implemented (route the warrant elsewhere) and one whose dependency is
