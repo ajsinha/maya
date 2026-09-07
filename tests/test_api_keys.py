@@ -270,3 +270,100 @@ class TestTheHashing:
         from core.apikeys.register import ENTROPY_BYTES
 
         assert ENTROPY_BYTES >= 32
+
+
+class TestTheSdkAndCurlBothCarryOne:
+    """A key is only useful if the clients people actually use can send it."""
+
+    def test_the_sdk_connects_with_a_key(self, client, service):
+        import sys
+
+        sys.path.insert(0, "sdk/python")
+        from maya_sdk.transport import HttpTransport
+
+        secret = _issue(client).json()["secret"]
+        transport = HttpTransport("http://x", api_key=secret)
+        assert transport._authorization == f"Bearer {secret}"
+        assert "Basic" not in transport._authorization
+
+    def test_a_client_with_no_way_in_is_refused_at_construction(self):
+        import sys
+
+        sys.path.insert(0, "sdk/python")
+        from maya_sdk.transport import HttpTransport
+
+        with pytest.raises(ValueError, match="needs a way in"):
+            HttpTransport("http://x")
+
+    def test_curl_style_x_api_key_reaches_the_same_principal(self, client,
+                                                             keyed, service):
+        secret = _issue(client).json()["secret"]
+        bearer = keyed.get("/api/v1/me",
+                           headers={"Authorization": f"Bearer {secret}"})
+        header = keyed.get("/api/v1/me", headers={"X-API-Key": secret})
+        assert bearer.status_code == header.status_code == 200
+        assert bearer.json()["username"] == header.json()["username"]
+
+
+class TestTheAdminScreen:
+    """Issuing a key is an administrator's job and had to stop being curl's."""
+
+    def test_it_is_reachable_from_the_menu(self, client):
+        from tests.api_helpers import login
+
+        login(client)
+        assert '"/admin/api-keys"' in client.get("/dashboard").text or \
+            'href="/admin/api-keys"' in client.get("/dashboard").text
+
+    def test_an_administrator_is_offered_the_form(self, client, service):
+        from tests.api_helpers import login
+
+        # Issued BEFORE signing in. Once a session cookie exists the CSRF guard
+        # refuses a POST without a token, which is the guard working: this
+        # client authenticates with Basic until then.
+        login(client)
+        body = client.get("/admin/api-keys").text
+        assert 'id="new-key"' in body
+        assert "revoke-key" not in body, "no keys yet, so nothing to revoke"
+
+    def test_a_reader_sees_the_list_and_no_controls(self, client, service):
+        from tests.api_helpers import login
+
+        _issue(client, name="ecl-batch")
+        client.post("/api/v1/principals", json={
+            "username": "keyreader", "display_name": "R", "roles": ["auditor"],
+            "password": "pw"})
+        login(client, "keyreader", "pw")
+        body = client.get("/admin/api-keys").text
+        assert 'id="new-key"' not in body and "revoke-key" not in body
+        # Named `ecl-batch` rather than `nightly-scoring`, which is the form's
+        # own placeholder — an assertion that matched the placeholder would
+        # pass on a page listing no keys at all.
+        assert "ecl-batch" in body, "reading is still allowed"
+
+    def test_an_issued_key_gets_a_revoke_control(self, client, service):
+        from tests.api_helpers import login
+
+        _issue(client, name="ecl-batch")
+        login(client)
+        body = client.get("/admin/api-keys").text
+        assert "revoke-key" in body and "ecl-batch" in body
+
+    def test_no_secret_is_ever_on_the_page(self, client, service):
+        from tests.api_helpers import login
+
+        secret = _issue(client).json()["secret"]
+        login(client)
+        assert secret not in client.get("/admin/api-keys").text
+
+    def test_the_screen_does_not_reload_over_the_secret(self):
+        """The one screen that shows a secret shows it once. Reloading would
+        take it off the screen before somebody had copied it, and there is no
+        second chance — which is the property being relied on."""
+        import pathlib
+
+        script = (pathlib.Path(__file__).resolve().parents[1] / "web" /
+                  "static" / "js" / "admin-api-keys.js").read_text()
+        issue = script.split('$("#new-key")')[1].split('$(".revoke-key")')[0]
+        assert "location.reload" in issue, "there is a way to move on"
+        assert "nk-done" in issue, "and it is a button, not an automatic reload"

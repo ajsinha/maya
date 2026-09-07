@@ -50,14 +50,25 @@ class Maya:
 
     def __init__(self, base_url: str = "http://localhost:5006",
                  username: str = "", password: str = "", *,
-                 transport: Any = None, timeout: float = 30.0,
+                 api_key: str = "", transport: Any = None, timeout: float = 30.0,
                  verify_tls: bool = True):
-        # A transport may be supplied instead of credentials. That is how the
-        # SDK is tested against the real application in-process rather than
-        # against a mock of its routes — a mock of the thing under test proves
-        # only that the mock agrees with itself.
+        """A client, addressed as one principal.
+
+        `api_key` is how a service should connect. A password names a person and
+        carries everything they hold; a key names a credential that expires, can
+        be narrowed to a subset, and can be revoked without touching the
+        account:
+
+            Maya("https://maya.internal", api_key=os.environ["MAYA_API_KEY"])
+
+        A transport may be supplied instead of either. That is how the SDK is
+        tested against the real application in-process rather than against a
+        mock of its routes — a mock of the thing under test proves only that the
+        mock agrees with itself.
+        """
         self.transport = transport or HttpTransport(
-            base_url, username, password, timeout=timeout, verify_tls=verify_tls)
+            base_url, username, password, timeout=timeout,
+            verify_tls=verify_tls, api_key=api_key)
         self.api = API
         self.last_request_id: str = ""
 

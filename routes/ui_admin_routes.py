@@ -113,6 +113,27 @@ class AdminRoutes(Routes):
                 kinds=("person", "service"),
                 may_manage=authz.permits(who, "principal:manage"))
 
+        # ------------------------------------------------------- API keys
+        @self.app.get("/admin/api-keys", response_class=HTMLResponse,
+                      tags=["ui"])
+        def api_keys_page(request: Request):
+            """How services authenticate, what each may do, and when it ends."""
+            refusal, who = gate(request, "principal:read")
+            if refusal is not None:
+                return refusal
+            from core.apikeys import MAX_LIFETIME_DAYS
+            from core.authz.common import PERMISSIONS
+
+            return self.page(
+                request, "admin_api_keys.html",
+                report=self.ctx["api_keys"].report(),
+                people=sorted(self.ctx["principals"].list(),
+                              key=lambda p: p["username"]),
+                permissions=sorted(PERMISSIONS),
+                max_lifetime_days=MAX_LIFETIME_DAYS,
+                may_manage=self.ctx["authz"].permits(
+                    who, "principal:manage"))
+
         # ------------------------------------------------ regulatory regimes
         @self.app.get("/admin/regimes", response_class=HTMLResponse, tags=["ui"])
         def regimes_page(request: Request):
