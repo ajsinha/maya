@@ -132,7 +132,8 @@ pinned by the view version that wrote them.</p>
   {% endif %}
   <table class="table maya mb-0">
     <thead><tr><th>Feature</th><th>Shape</th><th>How it is produced</th>
-               <th>Ownership</th><th>State</th><th></th></tr></thead>
+               <th>Ownership</th><th>State</th>
+               <th>Sealing &amp; dependencies</th></tr></thead>
     <tbody>
     {% for f in features %}
       {% if f.unresolved %}
@@ -174,10 +175,17 @@ pinned by the view version that wrote them.</p>
               <span class="evidence-bad">ephemeral</span>
               <div class="text-muted">{{ f.lifetime.detail }}</div>
             {% else %}<span class="text-muted">{{ f.certification }}</span>{% endif %}</td>
-          <td class="small text-end">
+          <td class="small text-end text-nowrap">
             {% if not f.sealed and not f.lifetime.ephemeral %}
               <a href="#" class="seal-feature" data-name="{{ f.name }}"
                  style="color:var(--crimson);text-decoration:none">seal</a>
+            {% endif %}
+            <a href="/dependencies?kind=feature&amp;id={{ f.name }}"
+               class="ms-2" style="color:var(--crimson);text-decoration:none"
+               title="what refers to this">used by</a>
+            {% if may_define and f.lifetime.ephemeral and not f.sealed %}
+              <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 destroy-feature"
+                      style="font-size:.72rem" data-name="{{ f.name }}">Delete</button>
             {% endif %}</td></tr>
       {% endif %}
     {% else %}
@@ -369,6 +377,23 @@ $(".seal-feature").on("click", function (e) {
   if (!confirm("Seal '" + name + "'? It becomes final and cannot be amended. " +
                "It can still be composed from — that is what sealing is for.")) { return; }
   post("/api/v1/features/" + name + "/seal", {note: ""}, "Seal");
+});
+/* Delete. The register refuses one that something refers to, naming what — so
+   the confirmation says where to look rather than promising it will work. */
+$(".destroy-feature").on("click", function () {
+  var name = $(this).data("name");
+  if (!confirm("Delete the ephemeral feature '" + name + "'?\n\n" +
+               "It is refused if a view carries it, a derived feature reads " +
+               "it, or a featureset pins it — /dependencies?kind=feature&id=" +
+               name + " shows what does.")) { return; }
+  $.ajax({url: "/api/v1/features/" + encodeURIComponent(name),
+          method: "DELETE"})
+    .done(function () { window.location.reload(); })
+    .fail(function (xhr) {
+      var r = window.MAYA.refusal.read(xhr);
+      alert("Refused" + (r.code ? " (" + r.code + ")" : "") + "\n\n" +
+            r.lines.join("\n") + (r.remediation ? "\n\n" + r.remediation : ""));
+    });
 });
 </script>
 {% endblock %}

@@ -480,6 +480,14 @@ class OverlayRepository(Repository):
     TABLE, JSON, ORDER = "overlay", ("basis",), "created_at"
 
 
+class RoleRepository(Repository):
+    TABLE, JSON, ORDER = "role", ("permissions",), "name"
+
+
+class ApiKeyRepository(Repository):
+    TABLE, JSON, ORDER = "api_key", ("scopes",), "created_at"
+
+
 class LimitationRepository(Repository):
     #: `basis` is prose here rather than JSON — a limitation's basis is a
     #: sentence somebody wrote, not a structure.

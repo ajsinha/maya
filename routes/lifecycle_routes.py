@@ -111,7 +111,20 @@ class LifecycleRoutes(Routes):
 
         @self.app.delete(f"{api}/models/{{name:path}}", tags=["lifecycle"])
         def delete(request: Request, name: str, reason: str = ""):
-            """Administrators only. The evidence chain survives the deletion."""
+            """Administrators only, and only if nothing refers to it.
+
+            Nineteen tables carry a `model_id`. Deleting a model with a live
+            warrant, an open finding, a monitor and three parameter sets left
+            every one of those rows pointing at an identifier that no longer
+            resolves — and the evidence chain, which survives the deletion by
+            design, then described acts against a model nobody could look up.
+
+            The refusal names what refers to it rather than saying no: somebody
+            told *why* can go and deal with it, and somebody told *no* finds
+            another way.
+            """
             model = model_of(name)
             who = self.authorise(request, "model:delete", model=model)
+            self.guard(lambda: self.ctx["references"].refuse_if_referenced(
+                "model", model["urn"], label=model["urn"]))
             return self.guard(lambda: lifecycle.delete(model, who, reason))

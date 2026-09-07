@@ -477,12 +477,34 @@ class TestLifecycleApi:
                                    auth=who, params={"reason": "cleanup"})
             assert r.status_code == 403, f"{who[0]} must not be able to delete"
 
-    def test_an_administrator_may_delete_and_the_evidence_remains(self, registered):
-        before = registered.get("/api/v1/evidence/chain").json()["length"]
+    def test_a_model_something_refers_to_is_not_deleted(self, registered):
+        """`registered` has a version, an alias and a live warrant.
+
+        Nineteen tables carry a `model_id`. Deleting this used to succeed and
+        leave every one of those rows pointing at an identifier that no longer
+        resolves — and the evidence chain, which survives the deletion by
+        design, then described acts against a model nobody could look up.
+        """
         r = registered.request("DELETE", f"/api/v1/models/{NAME}",
                                params={"reason": "registered in error"})
-        assert r.status_code == 200 and r.json()["deleted"] is True
-        chain = registered.get("/api/v1/evidence/chain").json()
+        assert r.status_code == 409, r.text
+        assert r.json()["error"] == "still_referenced"
+        detail = r.json()["detail"]
+        assert "version 3.2.1" in detail, "name what refers to it"
+        assert "retire this instead" in r.json()["remediation"]
+
+    def test_an_administrator_may_delete_what_nothing_refers_to(self, client):
+        """Registered in error, two minutes old, nothing hanging off it — which
+        is the case deletion exists for."""
+        before = client.get("/api/v1/evidence/chain").json()["length"]
+        client.post("/api/v1/models", json={
+            "urn": "maya://model/typo.mistake", "name": "Typo",
+            "model_class": "c", "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "registered by mistake"})
+        r = client.request("DELETE", "/api/v1/models/typo.mistake",
+                           params={"reason": "registered in error"})
+        assert r.status_code == 200 and r.json()["deleted"] is True, r.text
+        chain = client.get("/api/v1/evidence/chain").json()
         assert chain["valid"] is True and chain["length"] > before
 
     def test_the_workflow_renders_in_the_interface(self, registered, people):

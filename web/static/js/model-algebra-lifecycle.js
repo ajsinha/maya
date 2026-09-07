@@ -74,4 +74,28 @@
       });
     }
   };
+
+  /* Deletion. Not a transition, and not offered beside them: `retire`
+     withdraws a model from use and keeps every reference readable, while this
+     removes the row — and nineteen tables carry a `model_id`. The register
+     refuses one that anything refers to and names what, so the refusal is
+     rendered whole rather than summarised. */
+  var deleteButton = document.getElementById("delete-model");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", function () {
+      var name = deleteButton.getAttribute("data-name");
+      var reason = window.prompt(
+        "Delete " + name + " permanently. Why?\n\n" +
+        "The evidence chain survives this, so the reason is what makes the " +
+        "acts it still describes readable. Refused if anything refers to the " +
+        "model — retiring is almost always the right act instead.");
+      if (!reason) { return; }
+      A.remove("/api/v1/models/" + encodeURIComponent(name) +
+               "?reason=" + encodeURIComponent(reason))
+        .done(function () { window.location = "/dashboard"; })
+        .fail(function (xhr) {
+          document.getElementById("delete-msg").innerHTML = A.refusalHtml(xhr);
+        });
+    });
+  }
 }());

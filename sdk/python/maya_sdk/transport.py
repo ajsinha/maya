@@ -67,17 +67,35 @@ class Response:
 
 
 class HttpTransport:
-    """urllib, with Basic credentials, a timeout and a bounded retry."""
+    """urllib, with credentials, a timeout and a bounded retry.
 
-    def __init__(self, base_url: str, username: str, password: str,
+    Two ways in, and a service should prefer the second. **Basic** names a
+    person and carries every permission they hold. An **API key** names a
+    credential: it expires, it can be narrowed to a subset of what its principal
+    holds, and it can be revoked without touching the account — which is what
+    makes rotating one an ordinary Tuesday rather than an outage.
+    """
+
+    def __init__(self, base_url: str, username: str = "", password: str = "",
                  timeout: float = TIMEOUT_SECONDS, retries: int = RETRIES,
-                 verify_tls: bool = True):
+                 verify_tls: bool = True, api_key: str = ""):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.retries = retries
         self.verify_tls = verify_tls
-        token = base64.b64encode(f"{username}:{password}".encode()).decode()
-        self._authorization = f"Basic {token}"
+        if api_key:
+            # `Bearer`, because that is what an HTTP client library defaults to
+            # and what an intermediary expects to see; MAYA accepts `X-API-Key`
+            # as well, for the curl line somebody typed.
+            self._authorization = f"Bearer {api_key}"
+        elif username or password:
+            token = base64.b64encode(f"{username}:{password}".encode()).decode()
+            self._authorization = f"Basic {token}"
+        else:
+            raise ValueError(
+                "a MAYA client needs a way in: a username and password, or an "
+                "api_key. Constructing one with neither would fail on the "
+                "first call with a 401 that names nothing")
 
     def request(self, method: str, path: str, *, json: Any = None,
                 content: Optional[bytes] = None,
