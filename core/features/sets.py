@@ -311,6 +311,34 @@ class FeaturesetRegistry:
                                   "definition_version": version}, actor=actor)
         return self.sets.one(id=row["id"])
 
+    def retire(self, name: str, reason: str,
+               actor: str = "system") -> Dict[str, Any]:
+        """Take a durable featureset out of use without erasing it.
+
+        See `FeatureCatalogue.retire`: the refusal on `destroy` names this act
+        and nothing implemented it, so a featureset authored by mistake was
+        permanent — and `/featuresets` rendered zero Delete buttons in
+        practice, because nothing seeded or authored through the form is
+        ephemeral.
+        """
+        row = self.require(name)
+        if row.get("retired_at"):
+            raise FeatureError(
+                f"'{name}' was already retired by {row.get('retired_by')}",
+                remediation="define a new featureset if this one is needed again")
+        if not (reason or "").strip():
+            raise FeatureError(
+                f"retiring '{name}' needs a reason; a featureset that leaves "
+                f"the catalogue without one is a decision nobody can review",
+                remediation="say why it is being retired")
+        with self.evidence.recording():
+            self.sets.set({"retired_at": time.time(), "retired_by": actor,
+                           "retire_reason": reason.strip()}, id=row["id"])
+            self.evidence.append("featureset_retired", "featureset", row["id"],
+                                 {"name": name, "reason": reason.strip()},
+                                 actor=actor)
+        return self.sets.one(id=row["id"])
+
     def destroy(self, name: str, why: str = "expired",
                 actor: str = "system") -> Dict[str, Any]:
         """Remove an ephemeral featureset and its versions. The record stays."""
@@ -318,7 +346,9 @@ class FeaturesetRegistry:
         if not row.get("ephemeral"):
             raise FeatureError(
                 f"'{name}' is not ephemeral. a durable featureset that a contract "
-                f"or a warrant pinned cannot simply stop existing")
+                f"or a warrant pinned cannot simply stop existing. Retire it "
+                f"instead, which takes it out of use and keeps the record",
+                remediation=f"POST /api/v1/featuresets/{name}/retire with a reason")
         versions = self.versions.many(featureset_id=row["id"])
         self.lifecycle.record_destruction(
             row, why, {"versions": len(versions),

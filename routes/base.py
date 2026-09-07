@@ -253,6 +253,7 @@ STATUS: Dict[str, int] = {
     # reasons it is — an expired key used to get the anonymous 401, whose
     # remediation told the caller to send the key it was already sending.
     "key_expired": 401, "key_revoked": 401, "key_principal_missing": 401,
+    "key_principal_not_active": 401,
     # Roles, now that a bank can define them. 409 where the register is in a
     # state that forbids the act, 422 where the request itself is incomplete.
     "role_exists": 409, "role_in_use": 409, "built_in_role": 409,
@@ -541,7 +542,15 @@ class Routes:
                     ValidationError: "validation_refused"}[type(exc)]
             logger.warning("refused (%s): %s", code, exc)
             raise HTTPException(STATUS[code], {
-                "error": code, "detail": str(exc), "remediation": REMEDY[type(exc)]}) from exc
+                # The refusal's OWN remediation when it carries one. The
+                # per-type fallback is right for the common case — most of
+                # these are about a definition — and wrong for the ones that
+                # are not: "why can I not delete this featureset?" was answered
+                # with "correct the feature definition or the view version and
+                # retry", an instruction about a different object entirely.
+                "error": code, "detail": str(exc),
+                "remediation": (getattr(exc, "remediation", "")
+                                or REMEDY[type(exc)])}) from exc
 
     # ---------------------------------------------------------- authorisation
     def principal(self, request: Request) -> Dict[str, Any]:

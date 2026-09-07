@@ -279,6 +279,41 @@ class FeatureCatalogue:
                                  actor=actor)
         return self.features.one(id=row["id"])
 
+    def retire(self, name: str, reason: str,
+               actor: str = "system") -> Dict[str, Any]:
+        """Take a durable feature out of use without erasing it.
+
+        The act the refusals have named since they were written, and which
+        nothing implemented. `destroy` on a durable feature says "it is not
+        destroyed but retired" and there was no retire endpoint anywhere — so a
+        feature created by mistake could never be removed, and the two refusals
+        pointed at each other: delete the featureset and you are told to remove
+        what refers to it; delete the feature and you are told to correct the
+        view version.
+
+        The row stays, because something composed from it and a definition that
+        stops existing makes every historical reference unreadable. What
+        changes is that it can no longer be composed from, and the catalogue
+        says who retired it and why.
+        """
+        row = self.require(name)
+        if row.get("retired_at"):
+            raise FeatureError(
+                f"'{name}' was already retired by {row.get('retired_by')}",
+                remediation="define a new feature if this one is needed again")
+        if not (reason or "").strip():
+            raise FeatureError(
+                f"retiring '{name}' needs a reason; a feature that leaves the "
+                f"catalogue without one is a decision nobody can review",
+                remediation="say why it is being retired")
+        with self.evidence.recording():
+            self.features.set({"retired_at": time.time(), "retired_by": actor,
+                               "retire_reason": reason.strip()}, id=row["id"])
+            self.evidence.append("feature_retired", "feature", row["id"],
+                                 {"name": name, "reason": reason.strip()},
+                                 actor=actor)
+        return self.features.one(id=row["id"])
+
     def destroy(self, name: str, why: str = "expired",
                 actor: str = "system") -> Dict[str, Any]:
         """Remove an ephemeral feature. The rows go; the record does not."""
@@ -287,7 +322,9 @@ class FeatureCatalogue:
             raise FeatureError(
                 f"'{name}' is not ephemeral, so it is not destroyed but retired; "
                 f"a durable feature that something composed from cannot simply "
-                f"stop existing")
+                f"stop existing. Retire it instead: "
+                f"POST /api/v1/features/{name}/retire with a reason",
+                remediation=f"POST /api/v1/features/{name}/retire")
         self.lifecycle.record_destruction(row, why, actor=actor)
         self.features.remove(id=row["id"])
         return {"name": name, "destroyed": True, "why": why}

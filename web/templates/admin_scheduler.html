@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Scheduled jobs — {{ app_name }}{% endblock %}
+{% block title %}Scheduled jobs — {{ app_name }}{% if may_run %}<script src="/static/js/admin-scheduler.js"></script>{% endif %}
+{% endblock %}
 {% block content %}
 {% include "admin_nav.html" %}
 <div class="accent"></div>
@@ -21,12 +22,31 @@ did not run" is a governance fact and not an operational one.</p>
         <div class="stat-l">jobs have ever run</div>
       </div>
       <div>
-        <div class="stat">{{ health.hours_since if health.hours_since is not none else "—" }}</div>
+        <div class="stat {{ 'evidence-bad' if health.stale }}">{{ health.hours_since if health.hours_since is not none else "—" }}</div>
         <div class="stat-l">hours since the last run</div>
+        <div class="small text-muted">expected every {{ health.expected_every_hours }}h</div>
       </div>
       <div class="flex-grow-1">
         <div class="state-note mb-0">{{ health.detail }}</div>
       </div>
+    </div>
+    {# The loop, said out loud. `scheduler.loop.enabled` ships false, and the
+       start-up warning that says so scrolls past once — so this screen, which
+       the configuration file itself tells the deployer to check, said nothing
+       about whether anything is actually driving the batch. #}
+    <div class="mt-3 small">
+      {% if loop_enabled %}
+        <span class="evidence-ok">The in-process loop is enabled</span>,
+        running every {{ health.expected_every_hours }} hours.
+      {% else %}
+        <span class="evidence-bad">The in-process loop is DISABLED.</span>
+        Something outside this process must call
+        <span class="mono">POST /api/v1/scheduler/run</span> on a schedule —
+        cron, a Kubernetes CronJob, whatever this deployment uses. If nothing
+        does, every lapse, overdue finding and silent monitor stays invisible,
+        because each is derived rather than stored: an estate with nothing
+        outstanding looks exactly like an estate nobody is checking.
+      {% endif %}
     </div>
     {% if health.never_run %}
       <p class="small evidence-bad mt-2 mb-0">Never run:
@@ -81,11 +101,21 @@ did not run" is a governance fact and not an operational one.</p>
   {% endif %}
 </div>
 
-<p class="text-muted small">
-{% if may_run %}Running the batch by hand is
-<span class="mono">POST /api/v1/scheduler/run</span>, optionally with the keys of
-the jobs to run. It records the same evidence a scheduled run does, so a
-hand-run is not invisible.
-{% else %}Running a job needs <span class="mono">scheduler:run</span>, which you
-do not hold.{% endif %}</p>
+{% if may_run %}
+<div class="card mb-3">
+  <div class="card-header">Run it now</div>
+  <div class="card-body py-3">
+    <p class="small text-muted mb-2">The batch is idempotent — a job that has
+    already raised a finding for a condition does not raise a second — so a
+    hand-run is safe at any time. It records the same evidence a scheduled run
+    does, so it is not invisible.</p>
+    <button id="run-all" class="btn btn-sm btn-danger py-0 px-3"
+            style="font-size:.78rem">Run the whole batch</button>
+    <span id="run-result" class="ms-2 small" role="status" aria-live="polite"></span>
+  </div>
+</div>
+{% else %}
+<p class="text-muted small">Running a job needs
+<span class="mono">scheduler:run</span>, which you do not hold.</p>
+{% endif %}
 {% endblock %}

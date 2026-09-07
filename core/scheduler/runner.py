@@ -46,13 +46,23 @@ class SchedulerError(RuntimeError):
                 "remediation": self.remediation}
 
 
+#: The batch's expected cadence, and how many missed cycles count as stopped.
+#: Two rather than one, so a single slow or skipped run is not an alarm.
+DEFAULT_INTERVAL_SECONDS = 3600.0
+STALE_AFTER_INTERVALS = 2
+
+
 class Scheduler:
     """Runs the idempotent jobs and records what each one did."""
 
     def __init__(self, runs: ScheduledRunRepository, evidence: EvidenceEngine,
-                 context: JobContext, jobs: Optional[Dict[str, Any]] = None):
+                 context: JobContext, jobs: Optional[Dict[str, Any]] = None,
+                 interval_seconds: float = DEFAULT_INTERVAL_SECONDS):
         self.runs, self.evidence = runs, evidence
         self.context, self.jobs = context, jobs or JOBS
+        # How often this batch is SUPPOSED to run, so `health` can say whether
+        # it has stopped rather than only how long it has been.
+        self.interval_seconds = interval_seconds
 
     # -------------------------------------------------------------------- run
     def run(self, keys: Optional[Sequence[str]] = None, now: Optional[float] = None,
@@ -141,14 +151,34 @@ class Scheduler:
         ran = [r for r in last if r]
         newest = max((r["ran_at"] for r in ran), default=None)
         failing = [r["job"] for r in ran if not r["ok"]]
+        # STALE, with a threshold, because "30 days" and "0.2 hours" rendered
+        # identically as a number on a tile. `hours_since` had no threshold and
+        # no flag, so a batch that stopped a month ago looked exactly like one
+        # that ran on time — and that matters more here than almost anywhere,
+        # because lapses, overdue findings and stalled monitors are DERIVED and
+        # only become records when the batch runs. A dead scheduler makes the
+        # estate look clean rather than stale.
+        overdue_after = self.interval_seconds * STALE_AFTER_INTERVALS
+        stale = newest is None or (moment - newest) > overdue_after
         return {
             "jobs": len(self.jobs), "ever_run": len(ran),
             "never_run": [k for k in sorted(self.jobs) if not self.last(k)],
             "last_run_at": newest,
             "hours_since": round((moment - newest) / 3600, 1) if newest else None,
             "failing": failing,
-            "detail": ("the scheduler has never run" if not ran else
-                       f"last ran {(moment - newest) / 3600:.1f} hours ago"
-                       + (f"; {len(failing)} job(s) failing: {', '.join(failing)}"
-                          if failing else "")),
+            "stale": stale,
+            "expected_every_hours": round(self.interval_seconds / 3600, 2),
+            "stale_after_hours": round(overdue_after / 3600, 2),
+            "detail": (
+                "the governance batch has NEVER run, so nothing in this estate "
+                "has been checked for lapses, overdue findings or silent "
+                "monitors — an estate with nothing outstanding looks exactly "
+                "like this one" if not ran else
+                f"last ran {(moment - newest) / 3600:.1f} hours ago"
+                + (f", which is past the {overdue_after / 3600:.0f}-hour point "
+                   f"at which this batch is considered stopped; every derived "
+                   f"condition it records is therefore out of date"
+                   if stale else "")
+                + (f"; {len(failing)} job(s) failing: {', '.join(failing)}"
+                   if failing else "")),
         }

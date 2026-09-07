@@ -26,11 +26,18 @@ refuses.</p>
       <div class="col-md-7">
         <label class="form-label mb-1" for="dep-id">Which one</label>
         <input id="dep-id" class="form-control form-control-sm mono" name="id"
-               value="{{ subject }}" list="dep-suggestions"
+               value="{{ subject }}" list="dep-suggestions-{{ kind }}"
                placeholder="a model urn, a feature name, a featureset name">
-        <datalist id="dep-suggestions">
-          {% for s in suggestions %}<option value="{{ s }}">{% endfor %}
-        </datalist></div>
+        {# One datalist per kind, and the script swaps which is attached when
+           the Kind select changes. A single list was populated for the kind in
+           the URL only, so switching to "feature" left the box suggesting
+           model urns — and two kinds got no suggestions at all, which are the
+           two addressed by opaque ids that appear nowhere on the screen. #}
+        {% for k, names in suggestions_by_kind.items() %}
+        <datalist id="dep-suggestions-{{ k }}">
+          {% for s in names %}<option value="{{ s }}">{% endfor %}
+        </datalist>
+        {% endfor %}</div>
       <div class="col-md-2">
         <button class="btn btn-sm btn-danger py-0 px-3 w-100"
                 style="font-size:.75rem">Look</button></div>
@@ -38,8 +45,21 @@ refuses.</p>
   </div>
 </div>
 
-<div id="deps-result">
-{% if report %}
+<div role="status" aria-live="polite" id="deps-result">
+{% if missing %}
+  {# NOT a blank. A mistyped name used to render exactly what a real,
+     unreferenced thing renders: "nothing blocks a deletion". #}
+  <div class="card mb-3">
+    <div class="card-header"><span class="evidence-bad">Nothing to look up</span></div>
+    <div class="card-body py-3 small">
+      <p class="evidence-bad mb-1">{{ missing }}.</p>
+      <p class="text-muted mb-0">This is not the same answer as &ldquo;nothing
+      refers to it&rdquo;. Check the spelling, or pick from the suggestions in
+      the box &mdash; treating a name that does not exist as one that is safe to
+      delete is how something gets removed that was never there.</p>
+    </div>
+  </div>
+{% elif report %}
   <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
       <span>What refers to <span class="mono">{{ report.id }}</span></span>

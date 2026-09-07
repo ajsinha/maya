@@ -215,8 +215,30 @@ class TestTheSchedulerReportsOnItself:
     def test_it_says_when_it_has_never_run(self, scheduler):
         health = scheduler.health()
         assert health["ever_run"] == 0
-        assert health["detail"] == "the scheduler has never run"
+        assert health["stale"] is True
+        assert "NEVER run" in health["detail"]
+        # And says what that MEANS, because the consequence is the point: every
+        # lapse, overdue finding and silent monitor is derived and only becomes
+        # a record when this batch runs.
+        assert "looks exactly like this one" in health["detail"]
         assert len(health["never_run"]) == len(JOBS)
+
+    def test_a_batch_that_has_stopped_reads_differently_from_one_running(
+            self, scheduler):
+        """`hours_since` had no threshold, so 30 days and 0.2 hours rendered
+        identically as a number on a tile — a batch that stopped a month ago
+        looked exactly like one that ran on time."""
+        import time as _t
+
+        scheduler.run()
+        fresh = scheduler.health(now=_t.time() + 600)
+        assert fresh["stale"] is False
+
+        stopped = scheduler.health(
+            now=_t.time() + scheduler.interval_seconds * 3)
+        assert stopped["stale"] is True
+        assert "considered stopped" in stopped["detail"]
+        assert stopped["expected_every_hours"] > 0
 
     def test_it_reports_how_long_since_the_last_pass(self, scheduler):
         scheduler.run()

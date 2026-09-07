@@ -1,6 +1,5 @@
 {% extends "base.html" %}
-{% block title %}People and roles — {{ app_name }}<script src="/static/js/admin-principals.js"></script>
-{% endblock %}
+{% block title %}People and roles — {{ app_name }}{% endblock %}
 {% block content %}
 {% include "admin_nav.html" %}
 <div class="accent"></div>
@@ -197,7 +196,7 @@ effective challenge, whatever the org chart says.</p>
         <button class="btn btn-sm btn-danger py-0 px-3"
                 style="font-size:.75rem">Define</button></div>
     </form>
-    <div id="nr-result" class="small mt-3"></div>
+    <div role="status" aria-live="polite" id="nr-result" class="small mt-3"></div>
   </div>
 </div>
 
@@ -278,7 +277,7 @@ effective challenge, whatever the org chart says.</p>
         <button class="btn btn-sm btn-danger py-0 px-3"
                 style="font-size:.75rem">Add</button></div>
     </form>
-    <div id="np-result" class="small mt-3"></div>
+    <div role="status" aria-live="polite" id="np-result" class="small mt-3"></div>
   </div>
 </div>
 {% endif %}

@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Not found — {{ app_name }}{% endblock %}
 {% block content %}
+{# Parameterised. This hardcoded "No such model" and a `maya://model/...`
+   identifier, and sixteen call sites reused it — so mistyping a help topic
+   answered "No such model — Nothing is registered under
+   maya://model/help/nosuchtopic", which is not a sentence anybody can act on,
+   and the button sent a help reader to the model list. #}
 <div class="accent"></div>
-<h1 class="mt-3">No such model</h1>
+<h1 class="mt-3">No such {{ what | default("model") }}</h1>
 <div class="rule"></div>
 <p class="text-muted">Nothing is registered under
-  <code class="mono">maya://model/{{ name }}</code>.</p>
-<a href="/" class="btn btn-sm" style="background:var(--crimson);color:#fff">Back to the inventory</a>
+  <code class="mono">{{ identifier | default("maya://model/" ~ name) }}</code>.</p>
+<a href="{{ back_href | default("/") }}" class="btn btn-sm"
+   style="background:var(--crimson);color:#fff">{{ back_label | default("Back to the inventory") }}</a>
 {% endblock %}
