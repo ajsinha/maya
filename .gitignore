@@ -128,3 +128,14 @@ package-lock.json
 .coverage.*
 htmlcov/
 sbom.json
+
+# Files the tutorials tell a reader to create, and the pack they download.
+# `content/tutorials/` is run against a live instance as part of reviewing it,
+# and the run leaves these in the working directory.
+*.zip
+sb-pd-mdd.md
+sb_pd_2026_v2_dictionary.md
+ebitda.md
+fit-note.md
+q2.csv
+my-warrant.json
