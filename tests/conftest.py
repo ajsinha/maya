@@ -62,6 +62,24 @@ def db():
     if not url:
         return Database("sqlite:///:memory:")
 
+    # One URL, many xdist workers, and `_empty` truncates fifty tables between
+    # tests -- so worker A truncated while worker B was mid-test. The CI
+    # PostgreSQL job inherits `-n auto` from `pytest.ini` and was therefore red
+    # and non-deterministic: ten failures on one run, seven on the next,
+    # different tests each time. The one job that executes the second dialect
+    # cannot be trusted, which is worse than not having it, because a red job
+    # nobody believes is a job nobody reads.
+    #
+    # Refused rather than worked around: sharing one database between parallel
+    # workers has no safe behaviour, and a guard that silently serialised would
+    # hide the misconfiguration from whoever set it.
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        raise RuntimeError(
+            "MAYA_TEST_DATABASE_URL is set and pytest is running in parallel. "
+            "Every worker shares this database and truncates between tests, so "
+            "they destroy each other's rows. Run the dialect tests with '-n 0', "
+            "or give each worker its own database.")
+
     database = Database(url)
     _empty(database)
     return database

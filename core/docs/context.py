@@ -43,6 +43,14 @@ class ContextBuilder:
         self.attachments = attachments
 
     def __call__(self, urn: str) -> Dict[str, Any]:
+        # Which sections could not be READ, as distinct from which had nothing
+        # to show. `_optional` returned the same `[]` for both, so a finding
+        # register that threw rendered as "No findings are open against this
+        # model." -- a fact nobody established, in a document the compiler then
+        # persisted, stamped with the evidence head and appended to the chain as
+        # `document_compiled`. The docstring on `_optional` already promised
+        # "the section reports the gap"; nothing carried the gap to the section.
+        self._unreadable: set = set()
         model = self.registry.require(urn)
         versions = self.registry.versions(urn)
         version = self._current(urn, versions)
@@ -89,6 +97,7 @@ class ContextBuilder:
         ctx["regimes"] = self._optional(
             lambda: self.regimes.determine_all(self.regimes.core_state(ctx)),
             "regime determinations", default={})
+        ctx["unreadable"] = sorted(self._unreadable)
         return ctx
 
     def _current(self, urn: str, versions: List[Dict[str, Any]]) -> Optional[Dict]:
@@ -106,8 +115,7 @@ class ContextBuilder:
         rows = self.risk_repo.many(model_id=model_id)
         return latest_version(rows)
 
-    @staticmethod
-    def _optional(fetch, what: str, default=None):
+    def _optional(self, fetch, what: str, default=None):
         """Fetch from a service that may be absent, or may have nothing.
 
         A subsystem that is not wired in, or has nothing recorded, must not stop
@@ -119,8 +127,10 @@ class ContextBuilder:
         except AttributeError as exc:
             swallowed(logger, exc, f"{what} is not available to the compiler",
                       detail="the section will report the gap", level=10)
+            self._unreadable.add(what)
             return default
         except Exception as exc:                      # a service refusing is data
             swallowed(logger, exc, f"could not read {what} while compiling",
                       detail="the section will report the gap")
+            self._unreadable.add(what)
             return default

@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from core.features.common import FeatureError
 from core.features.normalisation import (METHOD_MEANING, METHODS, NONE,
-                                         Statistics, knowable)
+                                         Statistics, knowable, knowable_any)
 from core.log import get_logger
 
 logger = get_logger(__name__)
@@ -131,7 +131,12 @@ def _fill_value(strategy: str, constant: Any, values: List[float],
         return (ordered[middle] if len(ordered) % 2
                 else (ordered[middle - 1] + ordered[middle]) / 2)
     if strategy == MOST_FREQUENT:
-        return max(set(values), key=values.count)
+        # Counted rather than set-then-count so unhashable values do not raise,
+        # and ties broken by first appearance so the answer is deterministic.
+        counts: Dict[Any, int] = {}
+        for value in values:
+            counts[value] = counts.get(value, 0) + 1
+        return max(counts, key=lambda v: (counts[v], -values.index(v)))
     raise FeatureError(f"'{strategy}' is not a fill strategy; expected one of "
                        f"{', '.join(STRATEGIES)}")
 
@@ -164,7 +169,15 @@ def impute(rows: Sequence[Dict[str, Any]], spec: Dict[str, Any],
                 f"{strategy} of the whole column is the one it turned out to be, "
                 f"and using it to fill a row from three years ago puts the future "
                 f"into the past")
-        observed = knowable(rows, column, as_of) if strategy in FITTED else []
+        # `most_frequent` reads the values as they are; the numeric strategies
+        # coerce. A mode does not need a number and, on the categorical columns
+        # this strategy exists for, coercion left it with nothing to work from.
+        if strategy == MOST_FREQUENT:
+            observed = knowable_any(rows, column, as_of)
+        elif strategy in FITTED:
+            observed = knowable(rows, column, as_of)
+        else:
+            observed = []
         plan[column] = {"strategy": strategy,
                         "value": _fill_value(strategy, constant, observed, column),
                         "fitted_on": len(observed) if strategy in FITTED else None}

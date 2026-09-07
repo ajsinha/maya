@@ -275,6 +275,21 @@ class TrainingSetBuilder:
         knowable_by = min(row["label_ts"], as_of)
         for column in columns:
             pin = self.views.pinned(column.view, column.view_version)
+            # The table is PINNED, so it existed when the view version was
+            # published and its absence now is an outage rather than an answer.
+            # `DeltaStore.read` returns an empty frame for a table that is not
+            # there, which is the same frame a point-in-time bound legitimately
+            # produces -- so an unmounted volume made every column recompute to
+            # nothing, the comparison loop ran zero times, and the snapshot was
+            # persisted, digested, chained and marked `pit_verified: true` with
+            # every feature value null. A fit warrant then pinned that digest.
+            if not self.delta.exists(pin["namespace"]):
+                raise AssemblyRejected(
+                    f"the pinned source '{pin['namespace']}' is not present, so "
+                    f"this assembly cannot be independently recomputed and "
+                    f"nothing about it has been verified. Restore the feature "
+                    f"store and rebuild; a snapshot that cannot be recomputed "
+                    f"must not be recorded as verified.")
             frame = self.delta.as_of(pin["namespace"], row["label_ts"],
                                      knowable_by, pin["delta_version"])
             match = frame[frame[ENTITY] == row[ENTITY]] if not frame.empty else frame

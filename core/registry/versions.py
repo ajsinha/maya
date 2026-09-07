@@ -21,7 +21,7 @@ import logging
 import time
 from typing import Any, Dict, List, Optional
 
-from core.artifacts import is_content_address
+from core.artifacts import ArtifactError, is_content_address
 from core.domain import (FitProcedure, OutputKind, ParameterKind, ParameterObject,
                          ParametricKernel)
 from core.evidence import EvidenceEngine
@@ -501,9 +501,33 @@ class VersionService:
             return None
         try:
             return self.artifacts.describe(digest)
-        except Exception as exc:                       # any store failure at all
-            logger.info("artifact %s not resolvable in the store: %s", digest, exc)
+        except ArtifactError as exc:
+            # NOT STORED HERE, which is a legitimate answer: the artifact lives
+            # in a model store somewhere else and is named so the engine can
+            # check it on load.
+            logger.info("artifact %s is not held by MAYA: %s", digest, exc)
             return None
+        except OSError as exc:
+            # The store FAILED, which is a different answer and used to be the
+            # same one. `except Exception` made "permission denied" and "the
+            # volume is not mounted" indistinguishable from "it legitimately
+            # lives elsewhere" — so on a store outage the caller-supplied URI
+            # was never corrected, `artifact_size` stayed null, and the
+            # kernel-versus-artifact format cross-check was skipped entirely.
+            # That check's own comment says a mismatch routed code out of the
+            # sandbox that exists to contain it. A warrant was then issued for
+            # bytes MAYA could not confirm it had, and the engine found out as a
+            # 404 at run time.
+            logger.error(
+                "the artifact store could not be read while resolving %s: %s. "
+                "Registration is refused rather than recording a version whose "
+                "artifact nobody has checked", digest, exc)
+            raise RegistryError(
+                "artifact_store_unreadable",
+                f"the artifact store could not be read while registering this "
+                f"version ({exc}), so whether {digest} is held here is unknown",
+                "fix the store and retry; registering now would record a "
+                "version whose artifact nobody has checked") from exc
 
     def _check_open(self, model: Dict[str, Any]) -> None:
         if self.gate is None:
