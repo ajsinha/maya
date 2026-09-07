@@ -38,12 +38,12 @@
   }
 
   function refused(x) {
-    var e = (x && x.responseJSON) || {};
+    var r = window.MAYA.refusal.read(x);
     return '<div class="border rounded p-2" style="border-color:#A51C30!important">' +
       '<span class="evidence-bad">Refused</span> ' +
-      (e.error ? "<code>" + esc(e.error) + "</code> " : "") + "&mdash; " +
-      esc(e.detail || (x && x.statusText) || String(x)) +
-      (e.remediation ? '<div class="text-muted mt-1">' + esc(e.remediation) +
+      (r.code ? "<code>" + esc(r.code) + "</code> " : "") + "&mdash; " +
+      r.lines.map(esc).join("<br>") +
+      (r.remediation ? '<div class="text-muted mt-1">' + esc(r.remediation) +
                        "</div>" : "") + "</div>";
   }
 

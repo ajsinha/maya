@@ -531,11 +531,17 @@ class TestNothingIsFetchedFromTheInternet:
 
     def test_the_pages_load_the_shared_client_stack_and_add_nothing(self,
                                                                     signed_in):
-        """csrf.js and tables.js come from the base template. These pages add
-        one script each and no library."""
+        """refusal.js, csrf.js and tables.js come from the base template. These
+        pages add one script each and no library.
+
+        `refusal.js` joined the base stack when nine screens turned out to have
+        nine copies of "read the refusal body", all nine of them rendering a
+        validation error as the text `[object Object]`."""
         body = signed_in.get(f"/warrants?model={NAME}").text
-        assert "/static/js/csrf.js" in body and "/static/js/tables.js" in body
-        assert body.count("<script src=") == 5, "jquery, bootstrap, csrf, tables, ours"
+        for shared in ("csrf.js", "tables.js", "refusal.js"):
+            assert f"/static/js/{shared}" in body, shared
+        assert body.count("<script src=") == 6, \
+            "jquery, bootstrap, refusal, csrf, tables, ours"
 
 
 class TestTheMarkupIsWhatTheHouseRulesRequire:

@@ -131,13 +131,11 @@
   }
 
   function refusal(where, xhr) {
-    var body = (xhr.responseJSON && xhr.responseJSON.detail) || xhr.responseJSON || {};
-    if (typeof body === "string") { body = { detail: body }; }
-    var err = body.error || (xhr.responseJSON || {}).error || "refused";
-    var detail = body.detail || xhr.statusText;
-    var fix = body.remediation || (xhr.responseJSON || {}).remediation || "";
+    var r = window.MAYA.refusal.read(xhr);
+    var err = r.code || "refused";
+    var fix = r.remediation;
     $(where).html('<span class="evidence-bad">' + esc(err) + "</span> — " +
-      esc(String(detail)) +
+      r.lines.map(esc).join("<br>") +
       (fix ? '<div class="text-muted mt-1">' + esc(String(fix)) + "</div>" : "") +
       '<div class="text-muted mt-1">Nothing was recorded: the schema check, the ' +
       "leakage check and every pin run before a row is written.</div>");
