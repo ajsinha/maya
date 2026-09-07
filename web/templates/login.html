@@ -20,8 +20,16 @@
       <button class="btn w-100" style="background:var(--crimson);color:#fff">Sign in</button>
     </form>
   </div></div>
+  {# Only while the shipped credential still works. This rendered
+     unconditionally, to anonymous visitors, on every instance — so a deployed
+     one told a stranger exactly where to look while saying nothing about
+     whether there was anything to find. When the password has been changed the
+     sentence is both useless and a hint. #}
+  {% if default_credentials_live %}
   <p class="text-muted small text-center mt-3 mb-0">
-    Development credentials are set in <code class="mono">config/application.yaml</code>.
-    Override them before exposing this beyond a workstation.</p>
+    This instance still accepts the development credential from
+    <code class="mono">config/application.yaml</code>.
+    Change it before anybody else can reach this.</p>
+  {% endif %}
 </div></div>
 {% endblock %}

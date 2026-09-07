@@ -324,6 +324,36 @@ class WarrantService:
     def grants_for(self, urn: str) -> List[Dict[str, Any]]:
         return self.grants.of_model(urn)
 
+    def every_grant(self) -> List[Dict[str, Any]]:
+        """Every standing grant on the estate, soonest to lapse first.
+
+        "Which service principals currently hold authority to run which models,
+        and when do those grants lapse?" is the question a day-to-day
+        administrator asks most often, and it had no answer: `/warrants`
+        requires a model to be chosen before it shows anything, and
+        `GET /api/v1/warrants` is 405 because the path is a POST. So the
+        estate-wide view of who may run what did not exist in either the API or
+        the interface.
+
+        Ordered by expiry rather than by model, because the reason to read this
+        list is to find what is about to stop working — or what should have
+        stopped and has not.
+        """
+        rows = []
+        for row in self.grants.repo.many():
+            grant = dict(row)
+            # A grant stores `model_id`; a reader recognises a urn. Resolved
+            # here rather than in the template, because a page that renders an
+            # opaque identifier is a page nobody can act on.
+            model = self.registry.catalogue.by_id(grant.get("model_id"))
+            grant["model_urn"] = (model or {}).get("urn")
+            grant["model_name"] = (model or {}).get("name")
+            rows.append(grant)
+        far = float("inf")
+        rows.sort(key=lambda r: (bool(r.get("revoked")),
+                                 r.get("expires_at") or far))
+        return rows
+
     def entitlement(self, urn: str, environment: str, principal: str,
                     declared_use: str) -> Dict[str, Any]:
         """The standing grant a descriptor for this call would be minted from.

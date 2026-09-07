@@ -309,7 +309,15 @@ class EstimatorRuntime:
         fitted = X @ beta
         residual = y - fitted
         rss = float(residual @ residual)
-        tss = float(((y - y.mean()) ** 2).sum())
+        # CENTRED total sum of squares only when the fit HAS an intercept.
+        # Without one the model is not free to reproduce the mean, so measuring
+        # it against deviations from the mean is measuring it against a
+        # benchmark it was never allowed to reach — a fit that recovers the
+        # slope correctly reported r_squared = -24.3, which reads to a
+        # validator as a broken model rather than as the wrong convention.
+        # Both conventions exist; which one is in use is now stated beside the
+        # number instead of being inferred.
+        tss = float(((y - y.mean()) ** 2).sum() if intercept else (y ** 2).sum())
         dof = n - k
         sigma2 = rss / dof
         # Standard errors from the pseudo-inverse of X'X, which exists because
@@ -330,6 +338,8 @@ class EstimatorRuntime:
             "diagnostics": {
                 "n": n, "k": k, "degrees_of_freedom": dof,
                 "r_squared": self._finite(r2),
+                "r_squared_convention": ("centred" if intercept
+                                         else "uncentred"),
                 "adjusted_r_squared": self._finite(adjusted),
                 "residual_std_error": self._finite(math.sqrt(sigma2)),
                 "standard_errors": {nm: float(s) for nm, s in zip(names, stderr)},

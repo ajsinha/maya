@@ -350,3 +350,44 @@ class TestAmendingARoleCannotSmuggleAConflictPast:
         after = store.amend("readers",
                             permissions=["model:read", "evidence:read"])
         assert sorted(after["permissions"]) == ["evidence:read", "model:read"]
+
+
+class TestARoleAQuorumStillNeedsCannotBeRemoved:
+    """`remove` asked only whether anybody HOLDS the role.
+
+    A quorum names the roles it requires, and `sign` needs both
+    `role in required_roles` and `role in principal.roles` — so deleting a role
+    an open attestation names makes that attestation permanently unsignable by
+    anybody, with nothing anywhere saying why. The check that was there passes
+    precisely because nobody holds it, which is the state that makes deletion
+    look safe.
+    """
+
+    def test_a_role_named_by_an_open_attestation_is_refused(self, db, evidence):
+        import time
+
+        from core.authz.common import AuthzError
+        from db import RoleRepository
+
+        store = RoleStore(RoleRepository(db), evidence, db=db)
+        store.create("second_signer", "signs the second half", ["model:read"])
+        db.execute(
+            "INSERT INTO attestation (id, model_id, kind, required_roles, "
+            "status, statement, opened_by, opened_at, expires_at) VALUES "
+            "('att-1', 'm-1', 'annual', :roles, 'open', '', 'admin', :now, :exp)",
+            {"roles": '["model_owner", "second_signer"]', "now": time.time(),
+             "exp": time.time() + 86400})
+
+        with pytest.raises(AuthzError) as refusal:
+            store.remove("second_signer", holders=[])
+        assert refusal.value.code == "role_awaited"
+        assert "unsignable" in refusal.value.detail
+
+    def test_a_role_no_quorum_awaits_is_still_removable(self, db, evidence):
+        """The guard must not make every custom role permanent."""
+        from db import RoleRepository
+
+        store = RoleStore(RoleRepository(db), evidence, db=db)
+        store.create("unwanted", "defined by mistake", ["model:read"])
+        store.remove("unwanted", holders=[])
+        assert store.get("unwanted") is None
