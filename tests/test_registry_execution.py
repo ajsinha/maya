@@ -725,3 +725,87 @@ class TestAnAssumptionMustBeAboutSomethingTheKernelReads:
         kernel = {k: v for k, v in self.KERNEL.items() if k != "input_schema"}
         assert registry.create_version(urn, "1.0.0", kernel, {
             "assumptions": [{"key": "anything", "minimum": 0}]})
+
+
+class TestWhereTheCodeThatBuiltThisVersionLives:
+    """The artifact digest says *these are the bytes*. It says nothing about
+    where they came from.
+
+    "Which commit built this model" is the first question at every incident, and
+    until now it was answered by asking somebody who might remember. `built_from`
+    records it, and is checked rather than stored as prose — a reference is worth
+    exactly what it can be followed to.
+    """
+
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate",
+              "input_schema": [{"name": "dscr", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]}
+    SHA = "9f2c1a4e7b0d3852649ac1fe07bb35d248e0916c"
+
+    @staticmethod
+    def _model(registry, name):
+        urn = f"maya://model/{name}"
+        registry.register(urn, name, "credit", "retail", "person/o",
+                          "LE-US-01", "provenance")
+        return urn
+
+    def _create(self, registry, name, built_from):
+        urn = self._model(registry, name)
+        kernel = {**self.KERNEL, "built_from": built_from}
+        return registry.create_version(urn, "1.0.0", kernel)
+
+    def _refused(self, registry, name, built_from):
+        import pytest
+
+        from core.registry.common import RegistryError
+
+        with pytest.raises(RegistryError) as refusal:
+            self._create(registry, name, built_from)
+        return str(refusal.value)
+
+    def test_a_full_reference_is_accepted_and_kept(self, registry):
+        version = self._create(registry, "bf.good", {
+            "repository": "https://git.internal/models/sb-pd",
+            "commit": self.SHA, "ref": "release/2026Q1",
+            "path": "models/sb_pd/kernel.py"})
+        held = version["manifest"]["kernel"]["built_from"]
+        assert held["commit"] == self.SHA and held["ref"] == "release/2026Q1"
+
+    def test_a_short_hash_is_refused(self, registry):
+        """Ambiguous across a repository's lifetime."""
+        detail = self._refused(registry, "bf.short",
+                               {"repository": "https://git.internal/m",
+                                "commit": self.SHA[:12]})
+        assert "forty hexadecimal characters" in detail
+
+    def test_a_branch_name_in_the_commit_field_is_refused(self, registry):
+        """A branch moves, which is the whole reason `ref` sits beside the
+        commit rather than in it."""
+        detail = self._refused(registry, "bf.branch",
+                               {"repository": "https://git.internal/m",
+                                "commit": "main"})
+        assert "a branch name moves" in detail
+
+    def test_a_local_path_is_not_an_address(self, registry):
+        detail = self._refused(registry, "bf.local",
+                               {"repository": "file:///home/d.raman/models",
+                                "commit": self.SHA})
+        assert "somebody's machine recorded as though it were an address" in detail
+
+    def test_a_commit_with_no_repository_has_nothing_to_follow_it_in(
+            self, registry):
+        detail = self._refused(registry, "bf.norepo", {"commit": self.SHA})
+        assert "nothing to follow the commit in" in detail
+
+    def test_an_unknown_key_is_refused_rather_than_dropped(self, registry):
+        detail = self._refused(registry, "bf.unknown",
+                               {"repository": "https://git.internal/m",
+                                "commit": self.SHA, "sha": self.SHA})
+        assert "which nothing reads" in detail
+
+    def test_it_stays_optional(self, registry):
+        """Plenty of versions are registered against a vendor artifact with no
+        repository at all, and refusing those would be refusing the truth."""
+        urn = self._model(registry, "bf.absent")
+        assert registry.create_version(urn, "1.0.0", dict(self.KERNEL))

@@ -311,8 +311,60 @@ class VersionService:
         "parameter_kind", "fit_procedure", "output_kind", "adaptive",
         "deterministic", "input_schema", "output_schema",
         "artifact_format", "runtime", "entry", "environment", "seed",
-        "descriptor_only",
+        "descriptor_only", "built_from",
     })
+
+    #: What `built_from` may say, and nothing else. A source reference is
+    #: valuable exactly to the extent it can be followed, so the shape is
+    #: checked: a commit is forty hexadecimal characters or it is not a commit.
+    BUILT_FROM_KEYS = frozenset({"repository", "commit", "ref", "path", "note"})
+
+    @classmethod
+    def _refuse_malformed_provenance(cls, kernel_spec: Dict[str, Any]) -> None:
+        """Where the code that produced this version lives.
+
+        The artifact digest says *these are the bytes*. It says nothing about
+        where they came from, and "which commit built this model" is the first
+        question at every incident — answered until now by asking somebody who
+        might remember.
+
+        Checked rather than stored as prose, because a reference is worth
+        exactly what it can be followed to. A branch name is not a reference: it
+        moves. So `commit` is forty hexadecimal characters, `ref` is the
+        human-readable name beside it and is explicitly *not* the identifier,
+        and the URL goes through the same outbound rules as everything else —
+        `file:///` in a repository field is somebody's workstation, recorded as
+        though it were an address.
+        """
+        spec = kernel_spec.get("built_from")
+        if spec is None:
+            return
+        if not isinstance(spec, dict):
+            raise RegistryError(
+                f"'built_from' must be an object naming where this version's "
+                f"code lives, not {type(spec).__name__}")
+        if unknown := sorted(set(spec) - cls.BUILT_FROM_KEYS):
+            raise RegistryError(
+                f"'built_from' names {', '.join(unknown)}, which nothing reads; "
+                f"known keys are {', '.join(sorted(cls.BUILT_FROM_KEYS))}")
+        if not spec.get("repository"):
+            raise RegistryError(
+                "'built_from' names no repository, so there is nothing to "
+                "follow the commit in")
+        scheme = str(spec["repository"]).split(":", 1)[0].lower()
+        if scheme not in ("https", "ssh", "git"):
+            raise RegistryError(
+                f"'built_from.repository' is '{spec['repository']}'. A "
+                f"'{scheme}' reference is a path on somebody's machine "
+                f"recorded as though it were an address; use https, ssh or git")
+        commit = str(spec.get("commit") or "")
+        if len(commit) != 40 or any(c not in "0123456789abcdefABCDEF"
+                                    for c in commit):
+            raise RegistryError(
+                f"'built_from.commit' is '{commit or 'absent'}', and a commit "
+                f"is forty hexadecimal characters. A short hash is ambiguous "
+                f"across a repository's lifetime and a branch name moves, "
+                f"which is why `ref` sits beside this rather than in it")
 
     @classmethod
     def _refuse_unknown_kernel_keys(cls, kernel_spec: Dict[str, Any]) -> None:
@@ -401,6 +453,7 @@ class VersionService:
         self._refuse_unexplained_parameters(kernel)
         self._refuse_malformed_contract(contract_spec)
         self._refuse_unbound_assumptions(kernel_spec, contract_spec)
+        self._refuse_malformed_provenance(kernel_spec)
         manifest = {"urn": urn, "semver": semver, "kernel": kernel_spec,
                     "contract": contract_spec or {},
                     "artifact_digest": artifact_digest, "artifact_uri": artifact_uri,
