@@ -79,3 +79,57 @@ class TestNotificationHistoryIsNotServedPastTheApi:
         assert "What has been sent to you" not in body
         assert client.get("/api/v1/notifications/history",
                           auth=(user, pw)).status_code == 200
+
+
+class TestTheMenuOffersOnlyWhatItCanOpen:
+    """Admin filtered its entries by permission from the day it was written,
+    with a comment saying why: *a menu that lists what it then refuses teaches
+    people to ignore refusals.* Manage listed all sixteen of its entries to
+    everybody, and that got worse the moment the feature screens started gating
+    properly — an operator was offered "All features" and met a 403.
+    """
+
+    def test_an_operator_is_not_offered_the_feature_screens(self, client, cast):
+        user, pw = cast["operator"]
+        _login(client, user, pw)
+        body = client.get("/dashboard").text
+        for href in ("/features", "/featuresets", "/features/new",
+                     "/featuresets/lattice"):
+            assert f'href="{href}"' not in body, f"{href} is offered and refuses"
+
+    def test_a_risk_manager_is_offered_them(self, client, cast):
+        """The filter must remove the right entries and no others."""
+        user, pw = cast["model_risk_manager"]
+        _login(client, user, pw)
+        body = client.get("/dashboard").text
+        for href in ("/features", "/featuresets", "/model-algebra", "/warrants"):
+            assert f'href="{href}"' in body, href
+
+    def test_every_link_the_menu_offers_actually_opens(self, registered, client,
+                                                       cast):
+        """The whole claim, checked rather than argued: for each role, every
+        Manage and Admin link on the page is fetched and must not refuse.
+
+        A crawler over the navigation is the only thing that catches an entry
+        whose permission drifts from its page's."""
+        import re
+
+        for role, (user, pw) in cast.items():
+            _login(client, user, pw)
+            body = registered.get("/dashboard").text
+            menu = body.split('id="nav-manage"')[-1].split("</nav>")[0]
+            links = sorted(set(re.findall(r'class="dropdown-item" href="([^"]+)"',
+                                          menu)))
+            assert links, f"{role} sees no menu at all, which is not the claim"
+            for href in links:
+                r = registered.get(href)
+                assert r.status_code == 200, \
+                    f"{role} is offered {href} and gets {r.status_code}"
+
+    def test_a_column_with_nothing_visible_is_not_rendered_empty(self, client,
+                                                                 cast):
+        user, pw = cast["operator"]
+        _login(client, user, pw)
+        body = client.get("/dashboard").text
+        assert ">Features<" not in body, \
+            "an empty column heading is a promise of entries there are none of"

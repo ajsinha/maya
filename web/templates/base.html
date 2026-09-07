@@ -193,60 +193,67 @@ footer .principle{font-family:Georgia,"Times New Roman",serif;font-style:italic;
          Models, features, featuresets. Every working screen is one of those
          three, so the menu is those three and nothing else. What is NOT here
          is as deliberate: eleven links across the bar meant the reader had to
-         read all eleven to find one. #}
+         read all eleven to find one.
+
+         Each entry carries the permission ITS PAGE checks, and the menu is
+         filtered by it — the same rule Admin has always followed, and the same
+         reason: a menu that lists what it then refuses teaches people to
+         ignore refusals. Manage listed all sixteen to everybody, so an
+         operator was offered "All features" and met a 403; that got worse the
+         moment the feature screens started gating properly.
+
+         `model:read` is held by every human role, so an entry marked with it is
+         open to anybody signed in — stated rather than left blank, because a
+         blank means "nobody checked" and this column is the check. #}
+      {% set manage_columns = [
+        ("Models", [
+          ("/dashboard", "The estate", "every model, and what is owed on it", "model:read"),
+          ("/models/new", "Register a model", "a new model, or a version of one", "model:read"),
+          ("/model-algebra", "Model algebra", "versions, refinement, lifecycle, quorum, tier", "model:read"),
+          ("/model-algebra/composition", "Composition", "one model reading another, type-checked", "model:read"),
+          ("/warrants", "Warrants", "what a run is permitted to do", "model:read"),
+          ("/packages", "Model packages", "everything about a model, in one download", "model:read"),
+          ("/telemetry", "Telemetry", "what the live models are sending", "monitor:read"),
+          ("/findings", "Open findings", "what is outstanding, across the estate", "finding:read"),
+          ("/board-pack", "Board pack", "the estate, cut for a committee", "report:read")
+        ]),
+        ("Features", [
+          ("/features", "All features", "the catalogue and its certification", "feature:read"),
+          ("/features/new", "Define a feature", "base, derived, aggregate or external", "feature:read"),
+          ("/features/load", "Load data", "bitemporal rows, with their ingest time", "feature:read"),
+          ("/features/point-in-time", "Point-in-time", "what was knowable, as of a date", "feature:read")
+        ]),
+        ("Featuresets", [
+          ("/featuresets", "All featuresets", "every set, and what fills its slots", "feature:read"),
+          ("/featuresets/author", "Compose a featureset", "declare slots, bind, publish", "featureset:define"),
+          ("/featuresets/lattice", "Schema lattice", "whether one schema stands in for another", "feature:read")
+        ])
+      ] %}
+      {# Built without `{% do %}` — the `do` extension is not enabled, and
+         turning one on for a menu would be the wrong way round. #}
+      {% set anything_visible = manage_columns
+           | sum(start=[], attribute=1) | selectattr(3, "in", may) | list %}
+      {% if anything_visible %}
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle text-white" href="#" role="button"
            data-bs-toggle="dropdown" aria-expanded="false" id="nav-manage">Manage</a>
         <div class="dropdown-menu dropdown-menu-end maya-mega p-0" aria-labelledby="nav-manage">
           <div class="row g-0">
-
+            {% for heading, entries in manage_columns %}
+            {% set shown = entries | selectattr(3, "in", may) | list %}
+            {% if shown %}
             <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Models</h6>
-              <a class="dropdown-item" href="/dashboard">
-                The estate<span class="d">every model, and what is owed on it</span></a>
-              <a class="dropdown-item" href="/models/new">
-                Register a model<span class="d">a new model, or a version of one</span></a>
-              <a class="dropdown-item" href="/model-algebra">
-                Model algebra<span class="d">versions, refinement, lifecycle, quorum, tier</span></a>
-              <a class="dropdown-item" href="/model-algebra/composition">
-                Composition<span class="d">one model reading another, type-checked</span></a>
-              <a class="dropdown-item" href="/warrants">
-                Warrants<span class="d">what a run is permitted to do</span></a>
-              <a class="dropdown-item" href="/packages">
-                Model packages<span class="d">everything about a model, in one download</span></a>
-              <a class="dropdown-item" href="/telemetry">
-                Telemetry<span class="d">what the live models are sending</span></a>
-              <a class="dropdown-item" href="/findings">
-                Open findings<span class="d">what is outstanding, across the estate</span></a>
-              <a class="dropdown-item" href="/board-pack">
-                Board pack<span class="d">the estate, cut for a committee</span></a>
+              <h6 class="dropdown-header">{{ heading }}</h6>
+              {% for href, label, gloss, _perm in shown %}
+                <a class="dropdown-item" href="{{ href }}">{{ label }}<span class="d">{{ gloss }}</span></a>
+              {% endfor %}
             </div>
-
-            <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Features</h6>
-              <a class="dropdown-item" href="/features">
-                All features<span class="d">the catalogue and its certification</span></a>
-              <a class="dropdown-item" href="/features/new">
-                Define a feature<span class="d">base, derived, aggregate or external</span></a>
-              <a class="dropdown-item" href="/features/load">
-                Load data<span class="d">bitemporal rows, with their ingest time</span></a>
-              <a class="dropdown-item" href="/features/point-in-time">
-                Point-in-time<span class="d">what was knowable, as of a date</span></a>
-            </div>
-
-            <div class="col-12 col-lg-4 maya-col">
-              <h6 class="dropdown-header">Featuresets</h6>
-              <a class="dropdown-item" href="/featuresets">
-                All featuresets<span class="d">every set, and what fills its slots</span></a>
-              <a class="dropdown-item" href="/featuresets/author">
-                Compose a featureset<span class="d">declare slots, bind, publish</span></a>
-              <a class="dropdown-item" href="/featuresets/lattice">
-                Schema lattice<span class="d">whether one schema stands in for another</span></a>
-            </div>
-
+            {% endif %}
+            {% endfor %}
           </div>
         </div>
       </li>
+      {% endif %}
 
       {# ---- Admin: the platform rather than the models -------------------
          Each entry is shown only to a principal who holds the permission the
