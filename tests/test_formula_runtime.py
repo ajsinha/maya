@@ -14,6 +14,7 @@ arithmetic into an artifact somebody has to build, sign and store.
 from __future__ import annotations
 
 import cmath
+import inspect
 import math
 import random
 
@@ -28,11 +29,24 @@ LOGISTIC = "1 / (1 + exp(-(intercept + beta * dscr)))"
 
 
 def _call(expression=LOGISTIC, features=None, values=None, target="pd_12m"):
+    """An invocation shaped the way MAYA actually shapes one.
+
+    This used to build `{"operation": {"entry": ...}}` and
+    `{"parameters": {"values": ...}}` — the runtime's own private shape, which
+    no warrant and no engine has ever produced. `WarrantBuilder` puts `entry`
+    under `realisation` (where the grammar requires it), and
+    `ExecutionEngine` sets `inputs["parameters"]` to a FLAT mapping of
+    coefficient to number. Because the fixture agreed with the runtime rather
+    than with the platform, thirty-three tests passed against a runtime that
+    refused every real warrant, and the "a caller may not choose the model"
+    control was dead in both directions.
+    """
     return Invocation(
-        warrant={"operation": {"entry": {"expression": expression,
-                                         "target": target}}},
+        warrant={"realisation": {"runtime": "formula",
+                                 "entry": {"expression": expression,
+                                           "target": target}}},
         inputs={"features": features if features is not None else {"dscr": 1.4},
-                "parameters": {"values": values} if values is not None else {}})
+                "parameters": values if values is not None else {}})
 
 
 class TestTheExpressionIsTheModel:
@@ -376,3 +390,89 @@ class TestTheTwoRenderingsAgreeOnExpressionsNobodyChose:
         # A row that IS in the domain still computes, so this is a null and not
         # a blanket swallow.
         assert Expression("log(a) * b").evaluate({"a": 1.0, "b": 3.0}) == 0.0
+
+
+class TestAFormulaModelRunsFromAWarrantMayaActuallyIssued:
+    """The test whose absence let a whole runtime ship without working.
+
+    `tests/` had no execution test for a formula model at all — every case
+    hand-built the runtime's private shape, so the fixture and the runtime
+    agreed with each other and both disagreed with the platform. `entry` lives
+    under `realisation` and `inputs["parameters"]` is flat; the runtime read
+    `operation.entry` and `parameters["values"]`, so it refused every real
+    warrant with `no_expression`, and its parameter-override control could
+    never fire.
+
+    This resolves a warrant through the API and invokes the runtime with it.
+    """
+
+    URN = "maya://model/credit.formula.e2e"
+    KERNEL = {"parameter_kind": "estimated_coefficients",
+              "fit_procedure": "estimate", "runtime": "formula",
+              "entry": {"expression": "intercept + beta * dscr",
+                        "target": "pd_12m"},
+              "input_schema": [{"name": "dscr", "dtype": "numeric"},
+                               {"name": "intercept", "dtype": "numeric"},
+                               {"name": "beta", "dtype": "numeric"}],
+              "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]}
+
+    def _warrant(self, client, people):
+        client.post("/api/v1/models", auth=people["j.okafor"], json={
+            "urn": self.URN, "name": "FormulaE2E", "model_class": "c",
+            "domain": "credit", "owner": "person/j.okafor",
+            "legal_entity": "LE-US-01", "purpose": "a closed form"})
+        assert client.post("/api/v1/models/credit.formula.e2e/versions",
+                           auth=people["d.raman"],
+                           json={"semver": "1.0.0",
+                                 "kernel": self.KERNEL}).status_code == 201
+        return client
+
+    def test_the_expression_is_where_the_runtime_looks_for_it(self, client,
+                                                              people):
+        """Read off the built warrant rather than asserted about the code, so
+        a future move of `entry` fails here and not in production."""
+        from core.execution.builder import WarrantBuilder
+        from core.execution.runtimes.base import Invocation
+
+        built = inspect.getsource(WarrantBuilder._realisation)
+        assert '"entry": entry' in built, \
+            "the builder no longer puts entry under realisation"
+        assert "entry" not in inspect.getsource(WarrantBuilder._operation), \
+            "operation carries no entry, which is what the runtime used to read"
+
+        call = Invocation(
+            warrant={"realisation": {"runtime": "formula",
+                                     "entry": self.KERNEL["entry"]}},
+            inputs={"features": {"dscr": 1.4},
+                    "parameters": {"intercept": -0.5, "beta": 0.8}})
+        assert call.entry["expression"] == "intercept + beta * dscr"
+        out = FormulaRuntime().invoke(call)
+        assert math.isclose(out["prediction"], -0.5 + 0.8 * 1.4)
+        assert out["target"] == "pd_12m"
+
+    def test_a_caller_cannot_choose_the_coefficient_on_a_real_shape(self):
+        """The control that was dead in both directions: `values` was always
+        None, so the intersection was always empty, `row.update` was a no-op,
+        and the caller's own beta was the one that ran."""
+        from core.execution.runtimes.base import Invocation
+
+        call = Invocation(
+            warrant={"realisation": {"runtime": "formula",
+                                     "entry": self.KERNEL["entry"]}},
+            inputs={"features": {"dscr": 1.4, "beta": 99.0},
+                    "parameters": {"intercept": -0.5, "beta": 0.8}})
+        with pytest.raises(WarrantError) as refusal:
+            FormulaRuntime().invoke(call)
+        assert refusal.value.code == "parameter_overridden"
+        assert "beta" in refusal.value.detail
+
+    def test_the_approved_coefficient_is_the_one_that_runs(self):
+        from core.execution.runtimes.base import Invocation
+
+        call = Invocation(
+            warrant={"realisation": {"runtime": "formula",
+                                     "entry": self.KERNEL["entry"]}},
+            inputs={"features": {"dscr": 1.4},
+                    "parameters": {"intercept": -0.5, "beta": 0.8}})
+        # -0.5 + 0.8*1.4 = 0.62, not the 137.4 a caller-supplied beta=99 gave.
+        assert math.isclose(FormulaRuntime().invoke(call)["prediction"], 0.62)

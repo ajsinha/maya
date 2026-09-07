@@ -253,6 +253,10 @@ STATUS: Dict[str, int] = {
     "artifact_format_mismatch": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
     "artifact_not_stored": 404,
+    # The store could not be READ, which is not the same as the artifact
+    # not being there. 503: the request is fine and the platform cannot
+    # answer it right now.
+    "artifact_store_unreadable": 503,
     # warrant profiles: request defaults, selected by derived facts
     "profile_name_required": 422, "unknown_profile_fact": 422,
     "empty_predicate": 422,

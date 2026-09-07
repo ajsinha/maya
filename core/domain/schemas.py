@@ -69,11 +69,18 @@ class Schema:
                 if f.name not in mine or not mine[f.name].accepts(f)]
 
     def provides_superset_of(self, other: "Schema") -> List[str]:
-        """Covariance in outputs. Returns the names no longer provided."""
-        mine = self.by_name()
-        return [f.name for f in other.fields
-                if f.name not in mine or mine[f.name].dtype != f.dtype
-                or (f.unit and mine[f.name].unit and mine[f.name].unit != f.unit)]
+        """Covariance in outputs. Returns the names no longer provided.
+
+        Delegates rather than reimplementing. This method carried the unit
+        comparison and had NO callers; `lattice.provides` is what
+        `substitutable` asks, and it compared name and dtype only — so the one
+        check that would have caught a `ratio` becoming a `bp` was written,
+        correct, and never run. Two implementations of one rule is how that
+        happens, so now there is one.
+        """
+        from core.domain.lattice import provides
+
+        return list(provides(self, other))
 
 
 @dataclass(frozen=True)

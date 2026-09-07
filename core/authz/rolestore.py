@@ -115,7 +115,7 @@ def _pairs_from_separations() -> Tuple[Tuple[str, str, str], ...]:
     `finding:raise` + `finding:close` out of the old list — both lines of
     defence legitimately raise findings and close them.
     """
-    out = []
+    out: List[Tuple[str, str, str]] = []
     for first, second, reason in SEPARATIONS:
         out.extend((a, b, reason)
                    for a in sorted(first) for b in sorted(second))

@@ -147,11 +147,11 @@ def _invoke_in_child(conn, warrant: Dict[str, Any], inputs: Dict[str, Any],
         # still hear why the child stopped.
         conn.send(("limit", "the artifact exhausted the memory it was allowed"))
         swallowed(_log, exc, "ran the artifact",
-                  "it exhausted the memory the warrant allowed", "warning")
+                  "it exhausted the memory the warrant allowed", logging.WARNING)
     except BaseException as exc:
         conn.send(("failed", f"{type(exc).__name__}: {exc}"))
         swallowed(_log, exc, "ran the artifact",
-                  "the failure is reported to the parent process", "error")
+                  "the failure is reported to the parent process", logging.ERROR)
     finally:
         conn.close()
 
@@ -170,7 +170,12 @@ class SubprocessSandbox:
     def run(self, warrant: Dict[str, Any], inputs: Dict[str, Any],
             artifact_dir: Optional[Path], limits: Limits) -> Any:
         parent, child = self._ctx.Pipe(duplex=False)
-        process = self._ctx.Process(
+        # `mp.get_context()` is typed as returning `BaseContext`, which
+        # declares no `Process`; the concrete SpawnContext does. Annotated
+        # rather than left for the backlog, because the backlog is how the
+        # string-for-int defect two handlers up survived: the gate found it and
+        # was told not to look at this file.
+        process = self._ctx.Process(   # type: ignore[attr-defined]
             target=_invoke_in_child,
             args=(child, warrant, inputs,
                   str(artifact_dir) if artifact_dir else None, limits))

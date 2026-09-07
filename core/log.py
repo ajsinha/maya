@@ -34,7 +34,7 @@ import re
 import secrets
 import time
 from contextvars import ContextVar
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 FORMAT = "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s %(principal)s] | %(message)s"
 DATEFMT = "%Y-%m-%d %H:%M:%S"
@@ -181,12 +181,26 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def swallowed(logger: logging.Logger, exc: BaseException, action: str,
-              detail: Optional[Any] = None, level: int = logging.WARNING) -> None:
+              detail: Optional[Any] = None,
+              level: Union[int, str] = logging.WARNING) -> None:
     """Record a handled exception that the caller has chosen to recover from.
 
     Use this at every ``except`` that returns a default or skips a value. It is
     deliberately noisy at WARNING: recovering from an error is a decision, and a
     decision that never appears in a log is indistinguishable from a bug.
+
+    `level` accepts the name as well as the number, because two callers assumed
+    it did and the assumption was invisible. `core/execution/sandbox.py` passed
+    `"warning"` and `"error"` into the terminal handlers of the sandboxed child
+    — so `level >= logging.ERROR` raised TypeError, the child died with that
+    instead of a log line, and the ONE line explaining why a governed model
+    execution was killed was never written. An operator investigating found a
+    TypeError inside the logging helper. A helper whose contract is "record
+    what you recovered from" must not itself be a way to lose the record.
     """
+    if isinstance(level, str):
+        level = logging.getLevelName(level.upper())
+        if not isinstance(level, int):
+            level = logging.WARNING
     logger.log(level, "%s — recovered from %s: %s%s", action, type(exc).__name__, exc,
                f" ({detail})" if detail is not None else "", exc_info=level >= logging.ERROR)

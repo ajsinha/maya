@@ -163,6 +163,8 @@ def data_and_features(ctx: Dict[str, Any]) -> Rendered:
 
 
 def validation(ctx: Dict[str, Any]) -> Rendered:
+    if (gap := unreadable(ctx, "validations")) is not None:
+        return gap
     episodes = ctx.get("validations") or []
     if not episodes:
         return None, []
@@ -186,7 +188,27 @@ def validation(ctx: Dict[str, Any]) -> Rendered:
                                  "test_result_recorded", "validation_concluded")
 
 
+def unreadable(ctx: Dict[str, Any], what: str) -> Optional[Rendered]:
+    """The section a source could not be read for, said plainly.
+
+    An empty list from `_optional` meant both "nothing is recorded" and "the
+    read raised", and the lenses reported the first for both — so a board pack
+    could assert "No findings are open against this model" on the strength of a
+    finding register that threw, and the compiler would then persist it, stamp
+    the evidence head and append `document_compiled` to the chain. A document
+    that cannot read a source says so; it does not guess the reassuring answer.
+    """
+    if what in (ctx.get("unreadable") or ()):
+        return (f"**This section could not be compiled.** {what.capitalize()} "
+                f"could not be read when this document was built, so its "
+                f"absence below is not evidence that there are none. Rebuild "
+                f"the document once the source is reachable.\n", [])
+    return None
+
+
 def findings(ctx: Dict[str, Any]) -> Rendered:
+    if (gap := unreadable(ctx, "findings")) is not None:
+        return gap
     open_findings = ctx.get("findings") or []
     if not open_findings:
         return ("No findings are open against this model.\n", [])
@@ -200,6 +222,8 @@ def findings(ctx: Dict[str, Any]) -> Rendered:
 
 
 def monitoring(ctx: Dict[str, Any]) -> Rendered:
+    if (gap := unreadable(ctx, "monitoring")) is not None:
+        return gap
     status = ctx.get("monitoring") or {}
     detail = status.get("detail") or []
     if not detail:
@@ -289,6 +313,8 @@ def overlays(ctx: Dict[str, Any]) -> Rendered:
 
 
 def regimes(ctx: Dict[str, Any]) -> Rendered:
+    if (gap := unreadable(ctx, "regime determinations")) is not None:
+        return gap
     determinations = (ctx.get("regimes") or {}).get("regimes") or []
     if not determinations:
         return None, []
