@@ -105,6 +105,37 @@ repair is a redirect target nobody understands.
 | Max age | 8 hours (`auth.session_max_age`) | Deployment |
 | Signing secret | `auth.session_secret` | **Deployment.** Four values ship in this repository and are therefore public. Starting on one of them logs a warning naming the consequence: anybody with a copy of the source can forge a signed-in session as any user, including `admin`, with no password. The fallback stays — refusing to start would be worse for a workstation — but it can no longer be done by accident quietly |
 
+### 1.4 The response headers
+
+There were none. Every page here renders model names, finding titles and document
+titles that people supplied, and nothing stopped an injected `<script src>` from
+loading — so a stored-injection defect anywhere in the register became a
+credential theft in the browser. Six headers now go on **every** response,
+including the API's:
+
+| Header | Value | What it stops |
+|---|---|---|
+| `Content-Security-Policy` | `default-src 'self'` with `script-src`/`style-src` also allowing `'unsafe-inline'`, `img-src 'self' data:`, `connect-src 'self'`, `frame-ancestors 'none'`, `base-uri 'self'`, `form-action 'self'` | An injected script or style **from another origin**, a page framed for clickjacking, a rewritten `<base>`, and a form posted somewhere else |
+| `X-Frame-Options` | `DENY` | The same clickjacking, for the proxies that strip CSP |
+| `X-Content-Type-Options` | `nosniff` | A stored document served as `text/plain` being executed as script because a browser guessed |
+| `Referrer-Policy` | `same-origin` | A URL carrying a model URN and a semver appearing in somebody else's referrer log |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` | Capabilities nothing here uses being available to injected code |
+
+**`'unsafe-inline'` is in the policy and it is a decision, not an oversight.**
+Several pages carry inline handlers and `<style>` blocks. A policy that broke
+them would be switched off within a week, which is strictly worse than one that
+blocks the external-origin case and says so in writing. Removing it means moving
+those blocks out first, which is its own change and is in [10](10-roadmap.md).
+
+**The strictness cost something, and that is the point.** `script-src 'self'`
+made FastAPI's `/docs` and `/redoc` blank on every instance, because both load
+Swagger UI and ReDoc from `cdn.jsdelivr.net`. The fix was **not** a CDN
+exception — a hole opened in the policy for a documentation page, on a platform
+whose argument is that nothing here calls out, is the wrong trade. Swagger UI is
+vendored beside bootstrap and jquery; `/redoc` is gone rather than blank. That
+this took two milestones to notice is itself the finding: nothing tested a page
+the framework generates rather than a template this repository owns.
+
 ---
 
 ## 2. Identity, and the four questions it answers
