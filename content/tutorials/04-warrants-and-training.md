@@ -21,6 +21,16 @@ There are two you will meet on Monday:
 | **fit warrant** | train *this* version from *that* featureset version, over this window, as of this moment | `POST /api/v1/fit-warrants` |
 | **scoring warrant** | run *this* version at *these* approved parameters, inside this operating boundary | `POST /api/v1/resolve` |
 
+**The three variables every curl block here uses**, stated rather than assumed —
+the page used them from the first block and named them nowhere, so a reader
+copying one ran `curl -u ":"` against an empty host:
+
+```bash
+MAYA=http://localhost:5006
+USER=j.okafor
+PASS=owner-pw
+```
+
 Every screen below is on one page: **`/warrants`**, with the model chosen at the
 top. Every screen posts to the endpoint shown beside its button — the same
 endpoint your engine calls.
@@ -75,11 +85,18 @@ print(grant["id"])          # 01a0737af0614a9778204e856443
 **With curl.**
 
 ```bash
-curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/warrants" \
+GRANT=$(curl -s -u "$USER:$PASS" -X POST "$MAYA/api/v1/warrants" \
   -H 'Content-Type: application/json' \
   -d '{"urn":"maya://model/credit.pd.smallbiz#champion","environment":"prod",
-       "principal":"svc/origination","declared_use":"origination_decision"}'
+       "principal":"svc/origination","declared_use":"origination_decision"}' \
+  | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+echo "$GRANT"
 ```
+
+**Keep that id.** Section 4 needs it, and there is no endpoint that lists
+grants — the `/warrants` screen reads them from the register directly, so a
+script has to hold on to what the creation returned. That asymmetry is worth
+knowing before you find it.
 
 ```json
 {"model_id": "01a0737aef0bb2354e5898b17e85", "environment": "prod",
@@ -95,7 +112,7 @@ Three things to notice, because each one bites later:
 - **`declared_use` is matched exactly.** Asking with `"pricing"` against a grant
   approved for `"origination_decision"` is refused `use_not_approved`, 403.
 - **A bare urn binds the alias**, so the grant follows `champion` wherever it is
-  pointed. `#champion` says so explicitly; `@3.2.1` pins one version instead.
+  pointed. `#champion` says so explicitly; `@1.0.0` pins one version instead.
 - **`ttl_seconds` and `grace_seconds` come from the tier**, not from you: 60s and
   no grace at Tier 1, 300s at Tier 2, an hour with 15 minutes of grace at Tiers 3
   and 4. Tier 1 is the most material, which is why its credential is the
@@ -124,7 +141,7 @@ back on the page.
 fit = maya.warrants.for_fitting(
     urn="maya://model/credit.pd.smallbiz",
     principal="svc/model-lab",
-    featureset="sb_core", featureset_version=1,
+    featureset="sb_pd_2026", featureset_version=2,
     window={"from": 1546300800.0, "to": 1735603200.0},
     as_of=1736899200.0,
     environment="lab")
@@ -132,15 +149,44 @@ fit = maya.warrants.for_fitting(
 
 **With curl.**
 
+The fit warrant below names **`credit.pd.sbset`**, the model
+[featuresets §7](/tutorials/featuresets) registered over `sb_pd_2026`. The
+scorecard from [defining a model](/tutorials/defining-a-model) reads `dscr`,
+which this set does not carry, and `L-W10` refuses the pair —
+`schema_not_satisfied: 'sb_pd_2026' does not provide dscr`. That is the law
+working; naming the right model is the fix.
+
+A fit warrant resolves through an **alias in its own environment**, so `lab`
+needs one — `nothing bound for … in lab` is not a missing grant, it is a missing
+binding, and the two refusals are worth telling apart:
+
+```bash
+curl -u s.iqbal:mrm-pw -X PUT "$MAYA/api/v1/models/credit.pd.sbset/aliases" \
+  -H 'Content-Type: application/json' \
+  -d '{"semver":"1.0.0","environment":"lab","alias":"champion",
+       "justification":"the version the lab trains against"}'
+```
+
+A grant is per **principal, environment and use**, so the prod grant above does
+not reach a lab fit — `no_entitlement: svc/model-lab holds no warrant for … in
+lab` is the register declining to widen one on your behalf:
+
+```bash
+curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/warrants" \
+  -H 'Content-Type: application/json' \
+  -d '{"urn":"maya://model/credit.pd.sbset","environment":"lab",
+       "principal":"svc/model-lab","declared_use":"model_development"}'
+```
+
 ```bash
 curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/fit-warrants" \
   -H 'Content-Type: application/json' \
-  -d '{"urn":"maya://model/credit.pd.smallbiz",
+  -d '{"urn":"maya://model/credit.pd.sbset",
        "environment":"lab",
        "principal":"svc/model-lab",
        "declared_use":"model_development",
-       "featureset":"sb_core",
-       "featureset_version":1,
+       "featureset":"sb_pd_2026",
+       "featureset_version":2,
        "window":{"from":1546300800,"to":1735603200},
        "as_of":1736899200}'
 ```
@@ -161,7 +207,7 @@ abridged only where a block repeats what you already sent:
   "issued_at": 1788643831.988,
 
   "subject": {"urn": "maya://model/credit.pd.smallbiz",
-              "version": "3.2.1", "version_id": "01a0737aef4b5e1b83d0e791df6a",
+              "version": "1.0.0", "version_id": "01a0737aef4b5e1b83d0e791df6a",
               "manifest_digest": "sha256:fc8f8fee…",
               "binding_kind": "alias", "trainability_class": "T2"},
 
@@ -180,7 +226,7 @@ abridged only where a block repeats what you already sent:
                   "environment": {}},
 
   "data": {"inputs": [{"name": "training_set", "binding": "featureset",
-                       "featureset": "sb_core", "version": 1,
+                       "featureset": "sb_pd_2026", "version": 2,
                        "digest": "sha256:f0d6d9d3…",
                        "as_of": 1736899200.0,
                        "window": {"from": 1546300800.0, "to": 1735603200.0},
@@ -316,12 +362,12 @@ trap above.
 
 ```python
 recorded = maya.parameters.record(
-    urn="maya://model/credit.pd.smallbiz", semver="3.2.1",
+    urn="maya://model/credit.pd.smallbiz", semver="1.1.0",
     name="sb-pd-2026q1", kind="estimated_coefficients",
     values={"intercept": -1.42, "dscr": 0.31, "turnover": -0.02},
     provenance="fitted",
     warrant_id=grant["id"],                    # the GRANT, not fit["warrant_id"]
-    featureset="sb_core", featureset_version=1,
+    featureset="sb_pd_2026", featureset_version=2,
     window={"from": 1546300800.0, "to": 1735603200.0},
     as_of=1736899200.0,
     diagnostics={"r_squared": 0.41, "rows": 18400, "condition_number": 12.4})
@@ -329,20 +375,25 @@ recorded = maya.parameters.record(
 
 **With curl.**
 
+The `warrant_id` is **the grant that authorised the fit**, and it is the id from
+your own run rather than the one printed above — parameters recorded against a
+warrant this register did not issue are refused with `unknown_warrant`, which is
+the whole point of the field:
+
 ```bash
 curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/parameters" \
   -H 'Content-Type: application/json' \
-  -d '{"urn":"maya://model/credit.pd.smallbiz","semver":"3.2.1",
+  -d '{"urn":"maya://model/credit.pd.smallbiz","semver":"1.1.0",
        "name":"sb-pd-2026q1","kind":"estimated_coefficients","provenance":"fitted",
        "values":{"intercept":-1.42,"dscr":0.31,"turnover":-0.02},
        "diagnostics":{"r_squared":0.41,"rows":18400,"condition_number":12.4},
-       "featureset":"sb_core","featureset_version":1,
+       "featureset":"sb_pd_2026","featureset_version":2,
        "window":{"from":1546300800,"to":1735603200},"as_of":1736899200,
-       "warrant_id":"01a0737af083a9ff44ea7a5229ab"}'
+       "warrant_id":"'"$GRANT"'"}'
 ```
 
 ```json
-{"id": "01a0737af0e732dad5541b84792b", "name": "sb-pd-2026q1", "version": 1,
+{"id": "01a0737af0e732dad5541b84792b", "name": "sb-pd-2026q1", "version": 2,
  "provenance": "fitted", "state": "proposed",
  "digest": "sha256:5a31438f7462264f14c2c6ce56a7137dcb40833662abac73c56e4d3d372f849b",
  "created_by": "d.raman",
@@ -382,11 +433,11 @@ what it may run on and what is waiting.
 Ask what the version may run on at any time:
 
 ```bash
-curl -u "$USER:$PASS" "$MAYA/api/v1/parameters?urn=maya://model/credit.pd.smallbiz&semver=3.2.1"
+curl -u "$USER:$PASS" "$MAYA/api/v1/parameters?urn=maya://model/credit.pd.smallbiz&semver=1.1.0"
 ```
 
 ```json
-{"model_version": "maya://model/credit.pd.smallbiz@3.2.1",
+{"model_version": "maya://model/credit.pd.smallbiz@1.0.0",
  "recorded": 1, "approved": 1, "awaiting_approval": 0, "ready": true,
  "detail": "running on 'sb-pd-2026q1' v1, fitted"}
 ```
@@ -398,6 +449,26 @@ point-in-time verification. Parameters recorded with `provenance: "declared"` �
 a closed form's constants, an elicited weight — need neither a warrant nor a
 featureset, because nobody fitted them; they are an assertion by a person and
 are attested rather than fitted.
+
+---
+
+### The second person
+
+A fitted set lands `proposed` and inhabits nothing until somebody **other than
+its author** accepts it. Skip this and §5 answers `no_approved_parameters:
+this version's parameter object is 'estimated_coefficients' and nothing
+inhabits it` — which is the register declining to serve a model that has no
+numbers rather than serving one with unreviewed numbers:
+
+```bash
+PSET=$(curl -s -u "$USER:$PASS" \
+        "$MAYA/api/v1/parameters?urn=maya://model/credit.pd.smallbiz&semver=1.1.0" \
+       | python3 -c 'import json,sys; print(json.load(sys.stdin)["parameter_sets"][0]["id"])')
+
+curl -u s.iqbal:mrm-pw -X POST "$MAYA/api/v1/parameter-sets/$PSET/review" \
+  -H 'Content-Type: application/json' \
+  -d '{"accept": true, "note": "diagnostics and condition number reviewed"}'
+```
 
 ---
 
@@ -440,7 +511,7 @@ The section your engine reads first:
     "binding": "parameter_set",
     "parameter_set": "01a0737af0e732dad5541b84792b",
     "name": "sb-pd-2026q1",
-    "version": 1,
+    "version": 2,
     "digest": "sha256:5a31438f7462264f14c2c6ce56a7137dcb40833662abac73c56e4d3d372f849b",
     "as_of": 1736899200.0,
     "age_seconds": 51744632.2
@@ -498,10 +569,12 @@ whatever ran the model, against the boundary the warrant carried.
 
 Withdraw everything with one call. It is the kill switch and it is the only
 revocation the API offers — every grant on the model, in every environment, for
-every principal:
+every principal. **Not by the owner**: `warrant:revoke` is a second-line
+permission, and the owner of a model is not the person who takes it out of
+service:
 
 ```bash
-curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/warrants/revoke" \
+curl -u s.iqbal:mrm-pw -X POST "$MAYA/api/v1/warrants/revoke" \
   -H 'Content-Type: application/json' \
   -d '{"urn":"maya://model/credit.pd.smallbiz","reason":"withdrawn pending investigation"}'
 # 200 {"revoked":2,"urn":"maya://model/credit.pd.smallbiz",
@@ -517,9 +590,9 @@ ignorant of a withdrawal it has already been told about.
 > ### The other one that costs an hour
 >
 > On a model whose parameters live in MAYA's register, resolve **by alias**, not
-> by pinned version. `maya://model/credit.pd.smallbiz@3.2.1` is refused
+> by pinned version. `maya://model/credit.pd.smallbiz@1.0.0` is refused
 > `409 registry_refused — "no model registered with urn
-> maya://model/credit.pd.smallbiz@3.2.1"`, because the lookup for the approved
+> maya://model/credit.pd.smallbiz@1.0.0"`, because the lookup for the approved
 > parameter set strips a trailing `#alias` and does not strip `@semver`.
 > Artifact-backed versions are unaffected, which is why this only shows up on
 > models you fitted here. Use `#champion`, or the bare urn.
@@ -543,6 +616,10 @@ a document with ten sections. Here is a hand-written fit warrant with four thing
 wrong with it:
 
 ```bash
+cat > my-warrant.json <<'JSON'
+{"verb": "fit", "environment": "prod"}
+JSON
+
 curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/grammar/validate" \
   -H 'Content-Type: application/json' -d @my-warrant.json
 ```
@@ -593,13 +670,19 @@ convergence study for one morning's calibration, or the note explaining the fit
 that went wrong, belongs on the parameter set:
 
 ```bash
+printf '# Fit note\n\nsb-pd-2026q1, fitted in the lab.\n' > fit-note.md
+
+PSET=$(curl -s -u "$USER:$PASS" \
+        "$MAYA/api/v1/parameters?urn=maya://model/credit.pd.smallbiz&semver=1.1.0" \
+       | python3 -c 'import json,sys; print(json.load(sys.stdin)["parameter_sets"][0]["id"])')
+
 curl -u "$USER:$PASS" -X POST "$MAYA/api/v1/attachments" \
   -F "urn=maya://model/credit.pd.smallbiz" \
   -F "kind=model_development_document" \
   -F "title=Fit note - sb-pd-2026q1" \
-  -F "semver=3.2.1" \
+  -F "semver=1.1.0" \
   -F "subject_type=parameter_set" \
-  -F "subject_id=01a0737af0e732dad5541b84792b" \
+  -F "subject_id=$PSET" \
   -F "file=@fit-note.md;type=text/markdown"
 ```
 
