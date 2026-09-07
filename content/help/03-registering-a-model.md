@@ -359,6 +359,33 @@ same rule governs the quotient — *given what we have, what must the challenger
 deliver?* — where a partner promising `gini ≥ 0.2` discharges nothing at all
 against a target of `gini ≥ 0.4`.
 
+### Where the code that built it lives
+
+The digest says *these are the bytes*. It says nothing about where they came
+from, and **which commit built this model** is the first question at every
+incident — answered, until there was a field for it, by asking somebody who
+might remember.
+
+```json
+"built_from": {
+  "repository": "https://git.internal/models/sb-pd",
+  "commit": "9f2c1a4e7b0d3852649ac1fe07bb35d248e0916c",
+  "ref": "release/2026Q1",
+  "path": "models/sb_pd/kernel.py"
+}
+```
+
+Checked rather than stored as prose, because a reference is worth exactly what
+it can be followed to. The commit is **forty hexadecimal characters**: a short
+hash is ambiguous across a repository's lifetime, and a branch name moves —
+which is the whole reason `ref` sits *beside* the commit rather than in it. A
+`file:///` repository is a path on somebody's workstation recorded as though it
+were an address, and is refused.
+
+Optional, and it stays optional. Plenty of versions are registered against a
+vendor artifact with no repository at all, and refusing those would be refusing
+the truth.
+
 ## The limitation register
 
 A contract carries what a machine can check. It cannot carry most of what a
