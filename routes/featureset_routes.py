@@ -11,12 +11,17 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Query
 from pydantic import Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
+import logging
+
+from core.log import get_logger, swallowed
 from routes.base import Body, Routes
+
+logger = get_logger(__name__)
 from routes.warrant_routes import strip_qualifier
 
 
@@ -151,6 +156,33 @@ class FeaturesetRoutes(Routes):
         parameters, registry = self.ctx["parameters"], self.ctx["registry"]
 
         # ------------------------------------------------------- derived features
+        # ------------------------------------------------------ dependencies
+        @self.app.get(f"{api}/references", tags=["features"])
+        def references(request: Request, kind: str = Query(...),
+                       id_: str = Query(..., alias="id")):
+            """What refers to this — and whether it could be deleted.
+
+            The same index a delete consults. *Where is this feature used?* and
+            *may I remove it?* are the same question with different
+            consequences, and answering them separately is how a screen comes to
+            list three usages while the delete check knows about four.
+            """
+            self.authorise(request, "feature:read")
+            try:
+                return self.ctx["references"].to(kind, id_)
+            except ValueError as exc:
+                # Translated rather than swallowed: the caller asked about a
+                # kind the index does not answer for, which is a 422 naming the
+                # ones it does — not a 500 and not an empty list, which would
+                # read as "nothing refers to it".
+                swallowed(logger, exc, "looked up what refers to something",
+                          detail=f"'{kind}' is not a kind this index answers "
+                                 f"for; refused rather than answered empty",
+                          level=logging.INFO)
+                raise HTTPException(422, {
+                    "error": "unknown_reference_kind", "detail": str(exc),
+                    "remediation": "ask about one of the kinds it names"}) from exc
+
         @self.app.get(f"{api}/expression-language", tags=["features"])
         def language(request: Request):
             """What a derived feature may be written in. Deliberately small."""
@@ -233,8 +265,26 @@ class FeaturesetRoutes(Routes):
 
         @self.app.delete(f"{api}/features/{{name}}", tags=["features"])
         def destroy_feature(request: Request, name: str):
-            """Remove an ephemeral feature. The rows go; the record does not."""
+            """Remove an ephemeral feature. The rows go; the record does not.
+
+            "Ephemeral" is the right rule and not the whole rule: an ephemeral
+            feature sitting in a materialised view or a published featureset
+            version is exactly as load-bearing while it is there.
+            """
             who = self.authorise(request, "feature:define")
+            # Ordering matters, and it is about which refusal helps.
+            #
+            # "A durable feature is retired, not destroyed" is a property of the
+            # THING and the answer is the same tomorrow. "Two views carry it" is
+            # a property of the ESTATE and changes when somebody deals with
+            # them. Telling a person about the estate when the thing is not
+            # deletable at all sends them to remove three references and meet
+            # the real refusal afterwards, so the register's own rule goes
+            # first and this applies to what survives it.
+            row = self.guard(lambda: features.catalogue.require(name))
+            if row.get("ephemeral"):
+                self.guard(lambda: self.ctx["references"].refuse_if_referenced(
+                    "feature", name, label=f"feature '{name}'"))
             return self.guard(lambda: features.catalogue.destroy(
                 name, "asked for", self.actor(who)))
 
@@ -307,7 +357,14 @@ class FeaturesetRoutes(Routes):
 
         @self.app.delete(f"{api}/featuresets/{{name}}", tags=["features"])
         def destroy_set(request: Request, name: str):
+            """Remove an ephemeral featureset — unless something pinned it."""
             who = self.authorise(request, "featureset:define")
+            # The same ordering as a feature: the register's own rule about
+            # what kind of thing this is, then what refers to it.
+            row = self.guard(lambda: features.sets.require(name))
+            if row.get("ephemeral"):
+                self.guard(lambda: self.ctx["references"].refuse_if_referenced(
+                    "featureset", name, label=f"featureset '{name}'"))
             return self.guard(lambda: features.sets.destroy(
                 name, "asked for", self.actor(who)))
 

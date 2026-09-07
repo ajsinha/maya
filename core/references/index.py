@@ -1,0 +1,370 @@
+"""
+MAYA — Model & AI Lifecycle Assurance
+Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+
+What refers to what — asked once, answered for two different questions.
+
+**"Where is this feature used?"** and **"may I delete this?"** are the same
+question with different consequences, and building them separately is how they
+come to disagree. A screen that lists three usages while a delete check knows
+about four is a screen that says a thing is safe to remove and then refuses.
+
+Both read this.
+
+## Why a delete needed it
+
+`DELETE /models/{name}` checked that the caller was an administrator and that
+they had given a reason, and then removed the row. Nineteen tables carry a
+`model_id`. Deleting a model with a live warrant, an open finding, a monitor and
+three parameter sets left every one of those rows pointing at an identifier that
+no longer resolves — and the evidence chain, which survives the deletion by
+design, then described acts against a model nobody could look up.
+
+Feature and featureset deletion refused a **durable** one, which is the right
+rule and not the whole rule: an *ephemeral* feature sitting in a materialised
+view or a published featureset version is exactly as load-bearing while it is
+there.
+
+## The distinction that matters
+
+A reference is **blocking** or it is **historical**, and conflating them makes
+the check useless in one direction or the other.
+
+*Blocking*: something that would be left broken. A warrant naming this model, a
+featureset version pinning this feature, a version this alias points at.
+
+*Historical*: something that records what happened and reads correctly
+afterwards. An evidence node, a closed finding, an amendment. Those are not
+reasons to refuse — a register in which nothing may ever be deleted because
+something once happened is a register that grows without bound — but they are
+worth *seeing* before deleting, which is why they are returned rather than
+filtered out.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+#: The things this index can be asked about.
+KINDS: Tuple[str, ...] = ("model", "model_version", "feature", "feature_view",
+                          "featureset", "featureset_version")
+
+
+@dataclass(frozen=True)
+class Reference:
+    """One thing that refers to the subject."""
+    kind: str            #: what the referrer is — "warrant", "featureset_version"
+    identifier: str      #: how to find it
+    label: str           #: how to say it to a person
+    why: str             #: what the reference IS, in one clause
+    blocking: bool       #: would deleting the subject leave this broken
+
+    def as_dict(self) -> Dict[str, Any]:
+        return {"kind": self.kind, "id": self.identifier, "label": self.label,
+                "why": self.why, "blocking": int(self.blocking)}
+
+
+class ReferenceIndex:
+    """Answers what refers to a model, a version, a feature or a featureset."""
+
+    def __init__(self, db, registry, features):
+        self.db, self.registry, self.features = db, registry, features
+
+    # ------------------------------------------------------------------ query
+    def to(self, kind: str, identifier: str) -> Dict[str, Any]:
+        """Everything that refers to one thing, with the blocking ones marked."""
+        if kind not in KINDS:
+            raise ValueError(
+                f"'{kind}' is not something this index knows about; it answers "
+                f"for {', '.join(KINDS)}")
+        found = getattr(self, f"_to_{kind}")(identifier)
+        blocking = [r for r in found if r.blocking]
+        return {
+            "kind": kind, "id": identifier,
+            "references": [r.as_dict() for r in found],
+            "blocking": len(blocking),
+            "historical": len(found) - len(blocking),
+            "deletable": not blocking,
+            "detail": self._detail(len(blocking), len(found) - len(blocking)),
+        }
+
+    @staticmethod
+    def _detail(blocking: int, historical: int) -> str:
+        if not blocking and not historical:
+            return "nothing refers to this"
+        parts = []
+        if blocking:
+            parts.append(f"{blocking} reference(s) would be left broken by a "
+                         f"deletion")
+        if historical:
+            parts.append(f"{historical} historical reference(s), which read "
+                         f"correctly afterwards and do not block one")
+        return "; ".join(parts)
+
+    # ------------------------------------------------------------- the models
+    def _to_model(self, urn: str) -> List[Reference]:
+        model = self.registry.get(urn)
+        if not model:
+            return []
+        model_id = model["id"]
+        found: List[Reference] = []
+
+        for row in self.db.query(
+                "SELECT semver, status FROM model_version WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "model_version", row["semver"], f"version {row['semver']}",
+                f"an immutable version of this model, {row['status']}", True))
+
+        for row in self.db.query(
+                "SELECT id, principal, environment, declared_use, revoked "
+                "FROM warrant WHERE model_id = :m", {"m": model_id}):
+            live = not row["revoked"]
+            found.append(Reference(
+                "warrant", row["id"],
+                f"{row['principal']} in {row['environment']}",
+                ("a live grant to run this model" if live
+                 else "a revoked grant, kept as a record"),
+                live))
+
+        for row in self.db.query(
+                "SELECT id, environment, name FROM alias WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "alias", row["id"], f"{row['environment']}/{row['name']}",
+                "an alias consumers bind to instead of a semver", True))
+
+        for row in self.db.query(
+                "SELECT id, name, state FROM parameter_set WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "parameter_set", row["id"], row["name"],
+                f"a point of P this model runs at, {row['state']}",
+                row["state"] == "approved"))
+
+        for row in self.db.query(
+                "SELECT id, title, status FROM finding WHERE model_id = :m",
+                {"m": model_id}):
+            open_ = row["status"] not in ("closed", "withdrawn")
+            found.append(Reference(
+                "finding", row["id"], row["title"],
+                ("an open finding against this model" if open_
+                 else "a closed finding, which is the record that it was"),
+                open_))
+
+        for row in self.db.query(
+                "SELECT id, name, status FROM monitor WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "monitor", row["id"], row["name"],
+                f"a monitor on this model, {row['status']}",
+                row["status"] == "active"))
+
+        for row in self.db.query(
+                "SELECT id, name, status FROM overlay WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "overlay", row["id"], row["name"],
+                f"an adjustment on this model's output, {row['status']}",
+                row["status"] not in ("closed", "expired")))
+
+        for row in self.db.query(
+                "SELECT id, from_model, to_model, kind FROM model_edge "
+                "WHERE from_model = :u OR to_model = :u", {"u": urn}):
+            other = (row["to_model"] if row["from_model"] == urn
+                     else row["from_model"])
+            found.append(Reference(
+                "model_edge", row["id"], f"{row['kind']} {other}",
+                "a relation to another model, which would point at nothing",
+                True))
+
+        for row in self.db.query(
+                "SELECT id, title FROM attachment WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "attachment", row["id"], row["title"],
+                "a document filed against this model", True))
+
+        for row in self.db.query(
+                "SELECT id, kind FROM document WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "document", row["id"], row["kind"],
+                "a compiled document about this model", True))
+
+        return found
+
+    def _to_model_version(self, version_id: str) -> List[Reference]:
+        found: List[Reference] = []
+        for table, columns, kind, why, blocking in (
+                ("parameter_set", "id, name, state", "parameter_set",
+                 "a point of P against this version", None),
+                ("validation", "id, status", "validation",
+                 "an effective-challenge episode about this version", None),
+                ("version_approval", "id, status", "version_approval",
+                 "the quorum that approved this version", False),
+                ("feature_contract", "id", "feature_contract",
+                 "the featureset this version's contract pins", True),
+                ("serving_attestation", "id", "serving_attestation",
+                 "an engine's statement of what it served", False),
+                ("model_limitation", "id, reference", "limitation",
+                 "a stated limitation of this version", True)):
+            for row in self.db.query(
+                    f"SELECT {columns} FROM {table} WHERE model_version_id = :v",
+                    {"v": version_id}):
+                blocks = (blocking if blocking is not None
+                          else (row.get("state") or row.get("status"))
+                          in ("approved", "open", "in_progress"))
+                found.append(Reference(
+                    kind, row["id"],
+                    str(row.get("name") or row.get("reference")
+                        or row.get("state") or row.get("status")
+                        or row["id"][:12]),
+                    why, bool(blocks)))
+        return found
+
+    # ----------------------------------------------------------- the features
+    def _to_feature(self, name: str) -> List[Reference]:
+        found: List[Reference] = []
+
+        # A view carries feature names in a JSON column, so this is read in
+        # Python rather than as SQL — `LIKE '%name%'` would match `ltv` inside
+        # `ltv_band`, which is the kind of near-miss that makes a delete check
+        # untrustworthy in the direction that matters.
+        for view in self.features.views.views.many():
+            for pin in self.features.views.versions_of(view["name"]):
+                if name in (pin.get("features") or []):
+                    found.append(Reference(
+                        "feature_view_version", pin["id"],
+                        f"{view['name']} v{pin['version']}",
+                        "a materialised view carrying this feature's values",
+                        True))
+
+        for derived in self.features.derived.list():
+            if name in (derived.get("inputs") or []):
+                found.append(Reference(
+                    "derived_feature", derived["id"], derived["name"],
+                    "a derived feature computed from this one", True))
+
+        for row in self.features.sets.sets.many():
+            plan = row.get("slots") or {}
+            if name in plan:
+                found.append(Reference(
+                    "featureset", row["id"], row["name"],
+                    "a featureset declaring a slot of this name", True))
+
+        for version in self.features.sets.versions.many():
+            bindings = version.get("bindings") or {}
+            bound = [slot for slot, b in bindings.items()
+                     if (b.get("feature") if isinstance(b, dict) else b) == name]
+            if bound:
+                found.append(Reference(
+                    "featureset_version", version["id"],
+                    f"version {version['version']} · {', '.join(sorted(bound))}",
+                    "a published featureset version pinning this feature",
+                    True))
+        return found
+
+    def _to_feature_view(self, name: str) -> List[Reference]:
+        found: List[Reference] = []
+        view = self.features.views.views.one(name=name)
+        if not view:
+            return []
+        for version in self.features.sets.versions.many():
+            for slot, binding in (version.get("bindings") or {}).items():
+                if isinstance(binding, dict) and binding.get("view") == name:
+                    found.append(Reference(
+                        "featureset_version", version["id"],
+                        f"version {version['version']} · slot {slot}",
+                        "a featureset version pinned to this view", True))
+                    break
+        return found
+
+    def _to_featureset(self, name: str) -> List[Reference]:
+        row = self.features.sets.get(name)
+        if not row:
+            return []
+        found: List[Reference] = []
+        for version in self.features.sets.versions.many(featureset_id=row["id"]):
+            found += self._to_featureset_version(version["id"])
+            found.append(Reference(
+                "featureset_version", version["id"],
+                f"version {version['version']}",
+                "a published version of this set, digested and pinnable", True))
+        for other in self.features.sets.sets.many():
+            composes = [c.get("name") if isinstance(c, dict) else c
+                        for c in (other.get("composes") or [])]
+            if name in composes:
+                found.append(Reference(
+                    "featureset", other["id"], other["name"],
+                    "a featureset composed from this one", True))
+        return found
+
+    def _to_featureset_version(self, version_id: str) -> List[Reference]:
+        found: List[Reference] = []
+        for row in self.db.query(
+                "SELECT id, name, state FROM parameter_set "
+                "WHERE featureset_version_id = :v", {"v": version_id}):
+            found.append(Reference(
+                "parameter_set", row["id"], row["name"],
+                "coefficients fitted from this exact set", True))
+
+        # `dataset_snapshot` names the set and its number rather than the
+        # version's id, so this looks it up by those.
+        version = self.features.sets.versions.one(id=version_id)
+        if version:
+            owner = self.features.sets.sets.one(id=version["featureset_id"])
+            for row in self.db.query(
+                    "SELECT id, name FROM dataset_snapshot WHERE featureset = :f "
+                    "AND featureset_version = :n",
+                    {"f": (owner or {}).get("name"), "n": version["version"]}):
+                found.append(Reference(
+                    "dataset_snapshot", row["id"], row["name"],
+                    "a training set assembled from this version", True))
+        return found
+
+    # ----------------------------------------------------------------- refuse
+    def refuse_if_referenced(self, kind: str, identifier: str,
+                             label: Optional[str] = None) -> None:
+        """Raise unless nothing would be left broken.
+
+        The message names what refers to it rather than saying no: somebody who
+        is told *why* can go and deal with it, and somebody who is told *no*
+        finds another way.
+        """
+        report = self.to(kind, identifier)
+        blocking = [r for r in report["references"] if r["blocking"]]
+        if not blocking:
+            return
+        shown = blocking[:6]
+        listed = "; ".join(f"{r['kind']} {r['label']} — {r['why']}"
+                           for r in shown)
+        more = (f" and {len(blocking) - len(shown)} more"
+                if len(blocking) > len(shown) else "")
+        raise ReferencedError(
+            "still_referenced",
+            f"{label or identifier} cannot be deleted: {len(blocking)} thing(s) "
+            f"refer to it and would be left pointing at nothing — {listed}"
+            f"{more}",
+            "remove or retire what refers to it first, or retire this instead "
+            "of deleting it — retiring withdraws it from use and keeps every "
+            "reference readable")
+
+
+class ReferencedError(RuntimeError):
+    """Something refers to this, so it may not be deleted.
+
+    The code is the first argument, like every other coded refusal here — the
+    discipline test walks `core/` for exactly that shape, and a class attribute
+    would have left this status documented and, as far as the walker could see,
+    raised by nothing.
+    """
+
+    def __init__(self, code: str, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.code, self.detail, self.remediation = code, detail, remediation
+
+    def as_problem(self) -> Dict[str, Any]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}

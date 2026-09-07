@@ -48,6 +48,7 @@ from core.features import AssemblyRejected, FeatureError
 from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.fibres import FibreError
+from core.references.index import ReferencedError
 from core.rules.common import RuleError
 from core.monitoring import MonitorError
 from core.overlays import OverlayError
@@ -219,6 +220,10 @@ STATUS: Dict[str, int] = {
     # further down: those mean the engine could not fetch what a warrant named,
     # which is a 502; these mean the store was asked for something it does not
     # hold or was handed bytes that are not what the caller said they were.
+    # A delete refused because something still points at the thing. 409:
+    # the request is well formed and the register is in a state that
+    # forbids it, which is exactly what a conflict is.
+    "still_referenced": 409,
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
     "artifact_format_mismatch": 422,
     "artifact_digest_mismatch": 409, "artifact_too_large": 413,
@@ -485,7 +490,8 @@ class Routes:
                 ParameterError, TelemetryError, NotifyError,
                 FindingWorkflowError, PolicyError,
                 ArtifactError, ProfileError, ExportError,
-                ReportingError, FibreError, RuleError) as exc:
+                ReportingError, FibreError, RuleError,
+                ReferencedError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)
