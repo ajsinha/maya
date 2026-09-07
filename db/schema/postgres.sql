@@ -1120,3 +1120,35 @@ CREATE TABLE IF NOT EXISTS attachment (
 
 CREATE INDEX IF NOT EXISTS ix_attachment_model ON attachment (model_id, state);
 CREATE INDEX IF NOT EXISTS ix_attachment_version ON attachment (model_version_id, kind);
+
+-- A model's stated limitations, structured rather than buried in a document.
+--
+-- The operating CONTRACT already carries what can be checked: `dscr` between
+-- -5 and 20, refused at execution. What it cannot carry is everything a model
+-- risk manager actually writes — "calibrated on 2019-2024 and never through a
+-- rate shock above 400bp", "assumes the sector mix is stable", "the LGD is a
+-- flat haircut and not modelled". Those live in a PDF nobody can query, and
+-- the question a supervisor asks is exactly a query: WHICH of this model's
+-- limitations are enforced and which are only written down?
+--
+-- So each row says which it is. `bound_key` names the contract clause that
+-- enforces it, or is null — and null is the interesting value, because it is
+-- the count of things this platform is trusting a person to remember.
+CREATE TABLE IF NOT EXISTS model_limitation (
+    id               TEXT PRIMARY KEY,
+    model_id         TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    reference        TEXT NOT NULL,
+    kind             TEXT NOT NULL,
+    statement        TEXT NOT NULL,
+    -- The contract clause that enforces this, if one does. Null means the
+    -- limitation is stated and not enforced, which is a fact worth counting.
+    bound_key        TEXT,
+    basis            TEXT NOT NULL DEFAULT '',
+    raised_by        TEXT NOT NULL,
+    created_at       DOUBLE PRECISION NOT NULL,
+    withdrawn_at     DOUBLE PRECISION,
+    withdrawn_by     TEXT,
+    withdrawal_reason TEXT,
+    UNIQUE (model_version_id, reference)
+);

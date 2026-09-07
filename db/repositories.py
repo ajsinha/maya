@@ -480,6 +480,12 @@ class OverlayRepository(Repository):
     TABLE, JSON, ORDER = "overlay", ("basis",), "created_at"
 
 
+class LimitationRepository(Repository):
+    #: `basis` is prose here rather than JSON — a limitation's basis is a
+    #: sentence somebody wrote, not a structure.
+    TABLE, ORDER = "model_limitation", "created_at"
+
+
 class MeasurementRepository(Repository):
     TABLE, ORDER = "overlay_measurement", "measured_at"
 

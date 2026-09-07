@@ -94,11 +94,14 @@ from db import (ServingAttestationRepository,
                 FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
-                OverlayRepository, PrincipalRepository, RiskRepository,
+                LimitationRepository, OverlayRepository,
+                PrincipalRepository, RiskRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
 from fastapi.openapi.docs import get_swagger_ui_html
+
+from core.limitations import LimitationRegister
 
 from routes import ALL_ROUTES
 
@@ -456,6 +459,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "export": export, "dossier": dossier,
                            "training_records": training_records, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
+                           "limitations": LimitationRegister(
+                               LimitationRepository(db), registry, evidence),
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,

@@ -359,6 +359,61 @@ same rule governs the quotient — *given what we have, what must the challenger
 deliver?* — where a partner promising `gini ≥ 0.2` discharges nothing at all
 against a target of `gini ≥ 0.4`.
 
+## The limitation register
+
+A contract carries what a machine can check. It cannot carry most of what a
+model risk manager actually writes — *calibrated on 2019–2024 and never through
+a rate shock above 400bp*, *assumes the sector mix is stable*, *LGD is a flat
+haircut and not modelled*. Those went in a document, and a document is prose: it
+cannot be counted, cannot be compared between two versions, and cannot answer
+the question a supervisor actually asks, which is **which of these are enforced
+and which are only written down**.
+
+That is a query, so limitations are rows:
+
+```bash
+POST /api/v1/limitations
+{"urn": "maya://model/credit.pd.smallbiz", "semver": "1.0.0",
+ "kind": "data",
+ "statement": "calibrated on 2019-2024; never through a rate shock above 400bp",
+ "basis": "the calibration window in the MDD, section 4"}
+```
+
+Four kinds, closed because an open list becomes a free-text field with extra
+steps: **`data`** (what it was fitted on, and has therefore not seen),
+**`methodology`** (a choice that bounds what it can answer), **`scope`** (where
+it may be used, as opposed to where it runs) and **`implementation`**
+(something true of this build rather than of the model).
+
+**`bound_key` is the interesting field.** Name a contract clause and the
+limitation is *enforced* — an execution outside it is refused. Name none and it
+is *stated*, and relied on a person to remember. Reading the register back gives
+you both counts, which is the sentence a supervisor is asking for:
+
+```json
+{"standing": 7, "enforced": 2, "stated_only": 5,
+ "by_kind": {"data": 3, "methodology": 2, "scope": 2},
+ "detail": "7 standing: 2 enforced by a contract clause, 5 stated and relied on
+            a person to remember"}
+```
+
+A `bound_key` naming a clause the contract does not have is **refused**. It is
+the worst of the three states, because it reads as the safe one.
+
+Three things this deliberately does not do. It does not parse the statement — a
+limitation is prose, and pretending otherwise produces a check that passes on
+nonsense. It does not refuse a version for having unenforced limitations, since
+most genuinely cannot be bounds and a control that refused them would be routed
+around by writing none down, which is worse than the document nobody queries.
+And it does not delete: a limitation is **withdrawn**, with a reason, by the
+second line rather than by whoever stated it — the version it describes is
+immutable, so what that version was understood to be is part of the record.
+*We used to think this model could not do X* is exactly the sentence a review
+needs.
+
+No limitations recorded is itself a claim about the model, not an absence of
+one, and the register says so.
+
 ## Artifacts
 
 `artifact_digest` is the content hash of whatever actually runs — the ONNX graph,

@@ -1482,6 +1482,70 @@
         ]
       }
     },
+    "/api/v1/limitation-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/limitations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "basis",
+          "bound_key",
+          "kind!",
+          "semver!",
+          "statement!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/limitations/{limitation_id}/withdraw": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:limitation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/mathematics": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "body": [],

@@ -287,6 +287,11 @@ Every path below is relative to `/api/v1`. The permission column is what
 | `POST` | `/models/{name}/versions` | `version:create` | `semver` + `kernel`, `contract`, `artifact_digest`, `artifact_uri` |
 | `POST` | `/models/{name}/versions/{semver}/approve` | `version:approve` | Draft → approved. Refuses `quorum_required` where the tier needs two |
 | `PUT` | `/models/{name}/aliases` | `alias:move` | `semver` + `environment`, `alias`, `justification`. Gated on approval, findings, L-7 and L-12 |
+| `GET` | `/limitations` | `limitation:read` | `urn` + `semver`. What a version cannot do, split into what a contract clause enforces and what is relied on a person to remember |
+| `POST` | `/limitations` | `limitation:record` | `urn`, `semver`, `kind`, `statement`; `bound_key` names the clause that enforces it and is refused if the contract has no such clause |
+| `POST` | `/limitations/{id}/withdraw` | `limitation:withdraw` | `reason` required. Withdrawn, never deleted — the version is immutable |
+| `GET` | `/limitation-kinds` | — | The four kinds and what each is for |
+| `GET` | `/mathematics` | `model:read` | `urn` + `semver`. A `formula` version's equation and an importable Python module, both derived from the expression and neither stored. `not_derivable` for every other runtime |
 | `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required; `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. Returns the full derivation and ruleset version |
 
 ### The dependency graph

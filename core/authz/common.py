@@ -69,6 +69,10 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "version:sign",
     "parameter:record", "parameter:approve",
     "overlay:read", "overlay:propose", "overlay:approve", "overlay:measure",
+    # A limitation is a statement about a version, and stating one is a
+    # first-line act; withdrawing one is not, because it makes the
+    # register say less than it did.
+    "limitation:read", "limitation:record", "limitation:withdraw",
     "assist:read", "assist:register", "assist:generate", "assist:attest",
     "baseline:read", "baseline:import", "baseline:plan",
     "regime:read", "regime:activate",
@@ -114,6 +118,7 @@ MODEL_SCOPED: FrozenSet[str] = frozenset({
     "document:compile", "document:attach", "document:review",
     "parameter:record", "parameter:approve",
     "overlay:propose", "overlay:approve", "overlay:measure",
+    "limitation:record", "limitation:withdraw",
 })
 
 # Deliberately NOT in the set above: `assist:generate` and `assist:attest`. A
