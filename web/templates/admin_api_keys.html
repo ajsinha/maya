@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}API keys — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>API keys</h1>
+<div class="accent"></div>
+
+<p class="lead small">How a service authenticates without a password. A password
+names a <em>person</em> and carries everything they hold, for as long as the
+account exists. A key names a <em>credential</em>: it expires, it can be
+narrowed to a subset of what its principal holds, and it can be revoked without
+touching the account — which is what makes rotating one an ordinary Tuesday
+rather than an outage.</p>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card mb-3"><div class="card-header">What needs looking at</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>State</th><th>Keys</th></tr></thead>
+        <tbody>
+          <tr><td class="small">active</td><td class="small">{{ report.active }}</td></tr>
+          <tr><td class="small">expired</td><td class="small">{{ report.expired }}</td></tr>
+          <tr><td class="small">revoked</td><td class="small">{{ report.revoked }}</td></tr>
+        </tbody>
+      </table>
+      <div class="card-body py-2 small">
+        {% if report.never_used %}
+          <div class="evidence-bad">{{ report.never_used|length }} never used</div>
+          <div class="text-muted" style="font-size:.74rem">A credential nobody
+          has used is one nobody would notice losing.</div>
+        {% endif %}
+        {% if report.expiring_soon %}
+          <div class="evidence-bad mt-2">{{ report.expiring_soon|length }} expiring within a fortnight</div>
+          <div class="text-muted" style="font-size:.74rem">An outage somebody
+          should schedule rather than meet.</div>
+        {% endif %}
+        {% if not report.never_used and not report.expiring_soon %}
+          <span class="evidence-ok">Nothing outstanding.</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if may_manage %}
+    <div class="card mb-3"><div class="card-header">Issue one</div>
+      <div class="card-body">
+        <form id="new-key" class="row g-2 small align-items-end">
+          <div class="col-12">
+            <label class="form-label mb-1" for="nk-username">Principal</label>
+            <select id="nk-username" class="form-select form-select-sm mono"
+                    name="username" required>
+              <option value="">choose…</option>
+              {% for p in people %}
+                <option value="{{ p.username }}">{{ p.username }} — {{ p.kind }}</option>
+              {% endfor %}
+            </select></div>
+          <div class="col-12">
+            <label class="form-label mb-1" for="nk-name">Name</label>
+            <input id="nk-name" class="form-control form-control-sm" name="name"
+                   placeholder="nightly-scoring" required>
+            <div class="text-muted" style="font-size:.72rem">Name it after the
+            thing that will hold it. A list of unnamed keys is a list nobody
+            can safely revoke from.</div></div>
+          <div class="col-12">
+            <label class="form-label mb-1" for="nk-days">Lifetime, in days</label>
+            <input id="nk-days" class="form-control form-control-sm" name="days"
+                   type="number" min="1" max="{{ max_lifetime_days }}" value="90">
+            <div class="text-muted" style="font-size:.72rem">At most
+            {{ max_lifetime_days }}. A key with no practical expiry is a
+            credential nobody ever reviews.</div></div>
+          <div class="col-12">
+            <label class="form-label mb-1" for="nk-scopes">Scope</label>
+            <input id="nk-scopes" class="form-control form-control-sm mono"
+                   name="scopes" list="every-permission"
+                   placeholder="model:read, warrant:read — blank is everything the principal holds">
+            <datalist id="every-permission">
+              {% for p in permissions %}<option value="{{ p }}">{% endfor %}
+            </datalist>
+            <div class="text-muted" style="font-size:.72rem">A key narrows what
+            its principal may do and never widens it.</div></div>
+          <div class="col-12">
+            <button class="btn btn-sm btn-danger py-0 px-3"
+                    style="font-size:.75rem">Issue</button></div>
+        </form>
+        <div id="nk-result" class="small mt-3"></div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card mb-3"><div class="card-header">Every key</div>
+      <table class="table maya mb-0">
+        <thead><tr><th>Name</th><th>Principal</th><th>Prefix</th><th>Scope</th>
+                   <th>State</th><th>Expires</th><th>Used</th>
+                   {% if may_manage %}<th>Change</th>{% endif %}</tr></thead>
+        <tbody>
+          {# `report["keys"]`, not `report.keys` — Jinja resolves the
+             attribute first and finds the dict's own `keys` method,
+             which renders as nothing and raises on iteration. #}
+          {% for k in report["keys"] %}
+          <tr>
+            <td class="small">{{ k.name }}</td>
+            <td class="small mono">{{ k.username }}</td>
+            <td class="small mono" style="font-size:.72rem">{{ k.prefix }}</td>
+            <td class="small">{{ k.scope_detail }}
+              {% if k.scopes %}
+                <div class="text-muted" style="font-size:.7rem">
+                  {{ k.scopes|join(", ") }}</div>
+              {% endif %}</td>
+            <td class="small">
+              {% if k.state == "active" %}<span class="evidence-ok">active</span>
+              {% else %}<span class="evidence-bad">{{ k.state }}</span>{% endif %}
+              {% if k.revoke_reason %}
+                <div class="text-muted" style="font-size:.7rem">{{ k.revoke_reason }}</div>
+              {% endif %}</td>
+            <td class="small">
+              {% if k.state == "active" %}
+                {% if k.expires_in_days <= 14 %}
+                  <span class="evidence-bad">{{ k.expires_in_days }} days</span>
+                {% else %}{{ k.expires_in_days }} days{% endif %}
+              {% else %}&mdash;{% endif %}</td>
+            <td class="small">
+              {% if k.never_used %}<span class="evidence-bad">never</span>
+              {% else %}{{ k.use_count }}&times;{% endif %}</td>
+            {% if may_manage %}
+            <td class="small">
+              {% if k.state == "active" %}
+                <button class="btn btn-sm btn-outline-danger py-0 px-2 revoke-key"
+                        style="font-size:.72rem"
+                        data-key="{{ k.id }}" data-name="{{ k.name }}">Revoke</button>
+              {% else %}&mdash;{% endif %}</td>
+            {% endif %}
+          </tr>
+          {% else %}
+          <tr><td colspan="{{ 8 if may_manage else 7 }}" class="text-muted small">
+            No keys issued. Every service here signs in with a password, which
+            is the thing keys exist to stop.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<p class="text-muted small mt-3">
+The secret is shown <strong>once</strong>, when the key is issued, and is stored
+as a hash. It is not in a log, not on the evidence chain and not on the row —
+the chain records that a key was issued, to whom, with what scope and until
+when, which is everything a reviewer needs and nothing an attacker can use. The
+<span class="mono">prefix</span> is enough to match a key to a leaked string
+without holding either.
+{% if not may_manage %}<br>Issuing and revoking need
+<span class="mono">principal:manage</span>, which you do not hold.{% endif %}</p>
+
+<script src="/static/js/admin-api-keys.js"></script>
+{% endblock %}

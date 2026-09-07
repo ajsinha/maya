@@ -9,9 +9,21 @@ batch last did, whether the evidence chain still agrees with the anchors
 written outside the database — had an API and no screen, which meant the people
 who own those decisions could not see them without a developer beside them.
 
-Read-only, deliberately. Each screen shows the state and names the endpoint
-that changes it; the acts themselves stay where their evidence and their
-segregation checks already live.
+Read-only, with one exception that had to stop being one.
+
+**People and roles now authors.** The other four screens read state a person
+does not create — a rulebook, a batch, a hash chain, a fibre — and naming the
+endpoint that changes it is the right shape for those. Administering *people* is
+different: it is the one thing an operations manager does daily, this platform's
+own persona for that job is the administrator, and until now creating a user or
+changing somebody's roles meant `curl`. A governance platform whose
+administrator cannot administer it from the interface is one where somebody
+keeps a shell script, and a shell script is where the second account for a
+forgotten password comes from.
+
+Every act still goes through the same API a script would, with the same
+authorisation, the same incompatible-roles check and the same evidence. The
+screen is a client.
 """
 from __future__ import annotations
 
@@ -21,7 +33,9 @@ from typing import Any, Dict
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
-from core.authz import DESCRIPTIONS, INCOMPATIBLE_ROLES, ROLES
+from core.authz import INCOMPATIBLE_ROLES
+from core.authz.common import PERMISSIONS
+from core.authz.rolestore import INCOMPATIBLE_PERMISSIONS
 from core.execution.grammar import vocabulary
 from core.log import get_logger
 from routes.base import Routes, login_required
@@ -77,14 +91,59 @@ class AdminRoutes(Routes):
                     if a in (row.get("roles") or []) and b in (row.get("roles") or [])]
             return self.page(
                 request, "admin_principals.html", people=rows,
-                roles=[{"name": name, "description": DESCRIPTIONS.get(name, ""),
-                        "permissions": sorted(perms), "held_by":
-                            sum(1 for r in rows if name in (r.get("roles") or []))}
-                       for name, perms in sorted(ROLES.items())],
+                # From the REGISTER rather than from `roles.py`, so a role a
+                # bank defined here appears without anybody editing a template
+                # — which was the whole point of moving them.
+                roles=[{"name": r["name"], "description": r["description"],
+                        "permissions": sorted(r.get("permissions") or []),
+                        "built_in": bool(r.get("built_in")),
+                        "held_by": sum(1 for p in rows
+                                       if r["name"] in (p.get("roles") or []))}
+                       for r in self.ctx["roles"].all()],
+                permissions=sorted(PERMISSIONS),
+                incompatible_permissions=[
+                    {"permissions": [a, b], "reason": reason}
+                    for a, b, reason in INCOMPATIBLE_PERMISSIONS],
                 incompatible=[{"roles": [a, b], "reason": reason}
                               for a, b, reason in INCOMPATIBLE_ROLES],
                 segregation=authz.segregation.describe(),
+                # The entities and domains already in use, so the scope fields
+                # offer what the estate actually contains rather than an empty
+                # box. A free-typed `LE-UK-2` beside an existing `LE-UK-02` is
+                # a scope that silently reaches nothing.
+                entities_in_use=sorted({e for r in rows
+                                        for e in (r.get("legal_entities") or [])}
+                                       | {m.get("legal_entity") for m
+                                          in self.ctx["registry"].list()
+                                          if m.get("legal_entity")}),
+                domains_in_use=sorted({d for r in rows
+                                       for d in (r.get("domains") or [])}
+                                      | {m.get("domain") for m
+                                         in self.ctx["registry"].list()
+                                         if m.get("domain")}),
+                kinds=("person", "service"),
                 may_manage=authz.permits(who, "principal:manage"))
+
+        # ------------------------------------------------------- API keys
+        @self.app.get("/admin/api-keys", response_class=HTMLResponse,
+                      tags=["ui"])
+        def api_keys_page(request: Request):
+            """How services authenticate, what each may do, and when it ends."""
+            refusal, who = gate(request, "principal:read")
+            if refusal is not None:
+                return refusal
+            from core.apikeys import MAX_LIFETIME_DAYS
+            from core.authz.common import PERMISSIONS
+
+            return self.page(
+                request, "admin_api_keys.html",
+                report=self.ctx["api_keys"].report(),
+                people=sorted(self.ctx["principals"].list(),
+                              key=lambda p: p["username"]),
+                permissions=sorted(PERMISSIONS),
+                max_lifetime_days=MAX_LIFETIME_DAYS,
+                may_manage=self.ctx["authz"].permits(
+                    who, "principal:manage"))
 
         # ------------------------------------------------ regulatory regimes
         @self.app.get("/admin/regimes", response_class=HTMLResponse, tags=["ui"])

@@ -39,9 +39,18 @@ class AuthorizationPolicy:
         self.segregation = segregation
 
     # ------------------------------------------------------------ permission
-    @staticmethod
-    def permissions(principal: Dict[str, Any]) -> frozenset:
-        return permissions_for(principal.get("roles") or ())
+    #: Set at start-up. When a role store is wired, roles come from the
+    #: register; without one they come from `roles.py`, which is what every
+    #: unit test that constructs a policy directly relies on. One source at a
+    #: time, never both — two places permissions come from is the defect this
+    #: whole module argues against.
+    roles: Any = None
+
+    def permissions(self, principal: Dict[str, Any]) -> frozenset:
+        held = principal.get("roles") or ()
+        if self.roles is not None:
+            return self.roles.permissions_for(held)
+        return permissions_for(held)
 
     def permits(self, principal: Dict[str, Any], permission: str) -> bool:
         return require_known(permission) in self.permissions(principal)

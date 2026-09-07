@@ -116,6 +116,28 @@
       </div>
     {% endif %}
 
+    {# Deletion, which is not a transition and is deliberately not offered
+       beside them. `retire` withdraws a model from use and keeps every
+       reference readable; deleting removes the row, and nineteen tables carry a
+       `model_id`. So this sits apart, needs `model:delete`, and links to what
+       refers to the model rather than finding out at the refusal. #}
+    {% if 'model:delete' in may and model %}
+      <div class="mt-3 pt-2" style="border-top:1px solid var(--rule)">
+        <span class="small text-muted">Registered in error?</span>
+        <a href="/dependencies?kind=model&amp;id={{ model.urn }}"
+           class="ms-2 small" style="color:var(--crimson);text-decoration:none">
+          see what refers to it</a>
+        <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2"
+                id="delete-model" style="font-size:.72rem"
+                data-name="{{ model.urn.split('/')[-1] }}">Delete</button>
+        <div class="text-muted mt-1" style="font-size:.72rem">
+          Refused while anything refers to it. <strong>Retiring</strong> is
+          almost always the right act instead: it withdraws the model from use
+          and keeps every reference readable.</div>
+        <div class="small mt-2" id="delete-msg"></div>
+      </div>
+    {% endif %}
+
     {% if flow.amendment_history %}
       <div class="kicker mt-3 mb-1">AMENDMENT HISTORY</div>
       {% for a in flow.amendment_history %}

@@ -28,6 +28,15 @@
         ]
       }
     },
+    "/admin/api-keys": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/admin/evidence": {
       "get": {
         "body": [],
@@ -79,6 +88,45 @@
         "parameters": [
           "query:from_urn!",
           "query:to_urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/api-keys": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:username"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "lifetime_days",
+          "name!",
+          "scopes",
+          "username!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/api-keys/{key_id}/revoke": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:key_id!"
         ],
         "responses": [
           "200",
@@ -2390,6 +2438,19 @@
         ]
       }
     },
+    "/api/v1/references": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:id!",
+          "query:kind!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/regimes": {
       "get": {
         "body": [],
@@ -2527,6 +2588,43 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "description!",
+          "name!",
+          "permissions!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/roles/{name}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "put": {
+        "body": [
+          "description",
+          "permissions"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
@@ -3101,6 +3199,19 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/dependencies": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:id",
+          "query:kind"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },

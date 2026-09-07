@@ -8,6 +8,8 @@ with their rationale. Every asset is vendored, so it renders air-gapped.
 """
 from __future__ import annotations
 
+import logging
+
 import time
 from typing import Any, Dict, Optional
 
@@ -155,7 +157,8 @@ class UIRoutes(Routes):
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
             return self.page(
-                request, "features.html", unresolved=unresolved,
+                request, "features.html",
+                may_define=self.may_view(request, "feature:define"), unresolved=unresolved,
                 # From the code. Two forms carried their own list and they
                 # disagreed about `boolean`, so whether a feature could be one
                 # depended on which screen you opened.
@@ -205,7 +208,8 @@ class UIRoutes(Routes):
                 retrieval=__import__("core.features.preparation",
                                      fromlist=["describe"]).describe(),
                 alignment=__import__("core.features.alignment",
-                                     fromlist=["describe"]).describe())
+                                     fromlist=["describe"]).describe(),
+                may_define=self.may_view(request, "featureset:define"))
 
         @self.app.get("/featureset/{name}", response_class=HTMLResponse,
                       tags=["ui"])
@@ -360,6 +364,55 @@ class UIRoutes(Routes):
                 overdue=sum(1 for f in rows if f["overdue"]),
                 blocking=sum(1 for f in rows if f.get("blocking")),
                 permissions=self.ctx["authz"].explain(who)["permissions"])
+
+        # ---------------------------------------------------- dependencies
+        @self.app.get("/dependencies", response_class=HTMLResponse, tags=["ui"])
+        def dependencies_page(request: Request, kind: str = "model",
+                              id: str = ""):
+            """Where a model, feature or featureset is used.
+
+            The same index a delete consults, which is the point: a screen that
+            listed three usages while the delete check knew about four would say
+            a thing is safe to remove and then refuse.
+            """
+            if (r := self.page_gate(request, "model:read")) is not None:
+                return r
+            from core.references import KINDS
+
+            registry, features = self.ctx["registry"], self.ctx["features"]
+            who = self.page_principal(request)
+            report = None
+            if id:
+                try:
+                    report = self.ctx["references"].to(kind, id)
+                except ValueError as exc:
+                    # A kind this index does not answer for. Recovered from
+                    # rather than raised, because the page's own form is how
+                    # somebody corrects it — but said out loud, since a blank
+                    # result here reads as "nothing refers to this", which is
+                    # the most dangerous wrong answer this screen can give.
+                    swallowed(logger, exc, "rendered the dependency view",
+                              detail=f"'{kind}' is not a kind the reference "
+                                     f"index answers for; the page shows the "
+                                     f"form and no result",
+                              level=logging.INFO)
+                    report = None
+            # What a person is likely to be asking about, so the field is not an
+            # empty box: a mistyped name answers "nothing refers to this", which
+            # is the most dangerous wrong answer this screen can give.
+            suggestions = []
+            if kind == "model":
+                suggestions = [m["urn"] for m in
+                               self.ctx["authz"].visible(who, registry.list())]
+            elif kind == "feature":
+                suggestions = [f["name"] for f in features.list_features()]
+            elif kind == "featureset":
+                suggestions = [f["name"] for f in features.sets.list()]
+            elif kind == "feature_view":
+                suggestions = [v["name"] for v in features.views.views.many()]
+            return self.page(request, "dependencies.html", kinds=list(KINDS),
+                             kind=kind, subject=id, report=report,
+                             suggestions=sorted(suggestions))
 
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
