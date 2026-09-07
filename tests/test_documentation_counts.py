@@ -37,6 +37,22 @@ WORDS = {21: "twenty-one", 114: "a hundred and fourteen",
          20: "twenty"}
 
 
+def _typechecked():
+    """(gated, backlog), from the same two functions the CI gate uses.
+
+    Imported rather than reimplemented: a second enumeration of "which modules
+    are type-checked" is a second answer, and this file exists because second
+    answers drift.
+    """
+    import sys
+
+    sys.path.insert(0, str(ROOT))
+    from tools.ci.typecheck import backlogged, modules
+
+    excused = backlogged()
+    return len([m for m in modules() if m not in excused]), len(excused)
+
+
 def _truth():
     """Every count, taken from the code rather than from a document."""
     from core.authz.common import PERMISSIONS
@@ -86,6 +102,22 @@ def _truth():
         "help topics": len(list((ROOT / "content" / "help").glob("*.md"))),
         "ADRs": len(list((ROOT / "docs" / "adr").glob("ADR-*.md"))),
         "warrant examples": len(list((ROOT / "examples" / "warrants").glob("*.json"))),
+        # The complement of the executable count, because the sentence that
+        # carries one almost always carries the other and they drifted together.
+        "inert laws": len(law_rows) - sum(1 for state in law_rows
+                                          if "Executable" in state
+                                          or "Enforcing" in state),
+        # `L-W0` through `L-W13`. Stated as eleven in one ADR and fourteen in
+        # five other places, which is how a reader learns to check nothing.
+        # `typecheck.py` gates on these and carries the rest in a backlog file.
+        # Both numbers appear in two documents each and both had drifted.
+        "gated modules": _typechecked()[0],
+        "backlog modules": _typechecked()[1],
+        "total modules": sum(_typechecked()),
+        "warrant laws": len({name for name in re.findall(
+            r"L-W(\d+)", "\n".join(
+                p.read_text(encoding="utf-8")
+                for p in sorted((ROOT / "core").rglob("*.py"))))}),
     }
 
 
@@ -107,8 +139,40 @@ CLAIMS = {
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.
-    "executable laws": [r"(\w+) of the twenty-one foundational laws are executable",
-                        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable"],
+    # Two patterns were not enough, and the gap was not subtle: this pair
+    # matched neither "Sixteen of twenty-one run", nor "Sixteen execute. Five
+    # do not", nor "sixteen of the twenty-one stated laws execute", nor the six
+    # other spellings the same claim had acquired across the documents, the
+    # research paper and two decks. Every one of them said sixteen while the
+    # table said eighteen — so the check that exists to stop THIS EXACT drift
+    # passed, on the most-repeated number in the project, for two milestones.
+    #
+    # A narrow pattern is right when the risk is crying wolf. It is wrong when
+    # the phrase varies and the number does not, which is what prose does.
+    "executable laws": [
+        r"(\w+) of the twenty-one foundational laws are executable",
+        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable",
+        r"(\w+) of (?:the )?twenty-one(?: stated| foundational)?"
+        r"(?: foundational)? laws?(?: run| execute)",
+        r"(\w+) of twenty-one (?:foundational )?laws run",
+        r"\*\*(\w+) execute\.",
+        r"(\w+) execute; \w+ do not",
+        r"(\w+) of twenty-one is the honest number",
+        r"of which (\w+) are executable",
+        r"(\w+) are executable and enforcing"],
+    # The other half of the same sentence, and it drifted with it: five became
+    # three when `L-14` and `L-17` started running, in the same documents.
+    "inert laws": [r"\*\*\w+ execute\. (\w+) do not\*\*",
+                   r"\w+ execute; (\w+) do not",
+                   r"the (\w+) that do not are named",
+                   r"twenty-one run; (\w+) do not"],
+    "warrant laws": [r"all (\w+) warrant[- ]admissibility laws",
+                     r"(\w+) warrant laws"],
+    "gated modules": [r"gates on(?: the)? (\d+) modules",
+                      r"the (\d+) modules that (?:pass|check clean)"],
+    "backlog modules": [r"carries (?:the other )?(\d+) in "],
+    "total modules": [r"`--strict` across (\d+) modules",
+                      r"adopting it across (\d+) modules"],
     # The word immediately before "foundational laws" is the total. Written this
     # narrowly because the looser form captured "Thirteen" out of "thirteen of
     # the nineteen foundational laws" and reported the executable count as the

@@ -1482,19 +1482,19 @@ rot, and each exists because the rule it holds had already been broken once:
 | `test_documentation_counts` | every number claimed in prose is recounted from the code — **and from `.py` docstrings**, because two source files said "seventeen" against eighteen entries and survived every pass while the test read only markdown |
 | `test_deck_geometry` | no slide has overlapping or escaping content |
 | `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
-| `test_laws` | the foundational laws, run as tests, with the five that do not run named |
+| `test_laws` | the foundational laws, run as tests, with the three that do not run named |
 
 **This is now a gate.** It was not: for most of the build there was no pipeline, no linter, no type
 checker and no coverage threshold, and the suite was real but run by a person — which is a different
 thing from a build that fails.
-[11 §4.8](11-adversarial-review.md#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) is
+[11 §4.8](11-adversarial-review.md#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build) is
 where that was argued, and it was right. `.github/workflows/ci.yml` now runs seven jobs: hygiene
 (linter, types, dependency advisories, secrets, SBOM, spec lock), discipline, laws, deck geometry, the
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 186 modules that pass and carries 62 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 248 modules in one
+the 190 modules that pass and carries 62 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 252 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

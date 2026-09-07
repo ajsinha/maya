@@ -246,7 +246,8 @@ set is accepted against a policy gate on the residuals and **held** when it fail
 requiring a signature. `L-W11` refuses a calibration warrant that will not say what it was calibrated
 **as of**, because without the stamp staleness is silent.
 
-Worked in [12 — A calibrated term-structure model](../content/tutorials/12-hull-white.md).
+*Not worked in a tutorial.* The per-fibre walkthroughs were removed rather than
+left standing as prose nobody had executed; see [02 §5](02-model-taxonomy.md).
 
 ### J3 — A closed-form model where there is nothing to fit
 
@@ -255,7 +256,8 @@ implementation → govern the inputs (curve, conventions, valuation date, librar
 monitor the inputs against the range it was benchmarked over`. A fit warrant is **refused** by `L-W1`,
 naming the fact about the kernel that made the request incoherent.
 
-Worked in [11 — A derivative pricing model](../content/tutorials/11-derivative-pricing.md).
+*Not worked in a tutorial* — see [02 §5](02-model-taxonomy.md) for why the
+per-fibre walkthroughs are absent rather than pending.
 
 ### J4 — Onboard a vendor black box
 
@@ -273,7 +275,7 @@ parameter set → frozen evaluation set → pre-deployment evaluation → human-
 re-evaluate on schedule and on every provider version change`. `L-W13` refuses a warrant naming a model
 family without a build.
 
-Worked in [15 — An LLM application](../content/tutorials/15-llm-application.md).
+*Not worked in a tutorial* — see [02 §5](02-model-taxonomy.md).
 
 ### J6 — Issue a warrant to an execution engine
 
@@ -1055,7 +1057,7 @@ requirements that unlock all four.
 | AC-7 | An overlay appears with magnitude relative to the model's own output, ageing, expiry and persistence; renewal is refused without a measurement; one renewed past its limit raises a finding. **Downstream notification is not built.** | **Partly met** |
 | AC-8 | Feature drift raises a breach, the breach raises a finding, and the finding refuses warrant resolution. **Training–serving skew is not detected**, because there is no online store. | **Partly met** |
 | AC-9 | An artifact in a format the store does not accept is refused; a truncated upload is refused rather than stored under the address of what arrived; a format that executes on load is named as such on the warrant. **There is no scan and no risk-acceptance path.** | **Partly met** |
-| AC-10 | The traceability of §10 is satisfied by executable tests rather than by assertion. | **Partly met** — sixteen of the twenty-one foundational laws and all fourteen warrant-admissibility laws run, and a failing one fails the build. The obligations marked *not met* in §10 are not covered by any test, because they are not covered by any code |
+| AC-10 | The traceability of §10 is satisfied by executable tests rather than by assertion. | **Partly met** — eighteen of the twenty-one foundational laws and all fourteen warrant-admissibility laws run, and a failing one fails the build. The obligations marked *not met* in §10 are not covered by any test, because they are not covered by any code |
 
 ### 12.2 Product success metrics
 

@@ -28,13 +28,13 @@ data = [["", "Foundational", "Warrant admissibility"],
 th = table(sl, data, x, y, CW * 0.42, col_w=[1.5, 1.9, 1.94],
            row_h=0.36, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 note(sl, x, y + th + 0.28, CW * 0.42, 1.55,
-     "Sixteen of twenty-one is the honest number. ",
+     "Eighteen of twenty-one is the honest number. ",
      "The strongest claim this design makes is that the laws are the acceptance "
      "criteria, and a claim only partly true reads as wholly true to everybody "
      "who does not check. The count is computed from the table's own rows.")
 
 # --------------------------------------------------- what runs, what does not
-sl, y = content("Sixteen of the twenty-one run; five do not",
+sl, y = content("Eighteen of the twenty-one run; three do not",
                 "The laws · what is enforced")
 left = [["Law", "What it says"],
         ["L-1", "no state is reachable except along declared transitions"],
