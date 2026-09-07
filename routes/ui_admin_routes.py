@@ -33,7 +33,9 @@ from typing import Any, Dict
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
-from core.authz import DESCRIPTIONS, INCOMPATIBLE_ROLES, ROLES
+from core.authz import INCOMPATIBLE_ROLES
+from core.authz.common import PERMISSIONS
+from core.authz.rolestore import INCOMPATIBLE_PERMISSIONS
 from core.execution.grammar import vocabulary
 from core.log import get_logger
 from routes.base import Routes, login_required
@@ -89,10 +91,19 @@ class AdminRoutes(Routes):
                     if a in (row.get("roles") or []) and b in (row.get("roles") or [])]
             return self.page(
                 request, "admin_principals.html", people=rows,
-                roles=[{"name": name, "description": DESCRIPTIONS.get(name, ""),
-                        "permissions": sorted(perms), "held_by":
-                            sum(1 for r in rows if name in (r.get("roles") or []))}
-                       for name, perms in sorted(ROLES.items())],
+                # From the REGISTER rather than from `roles.py`, so a role a
+                # bank defined here appears without anybody editing a template
+                # — which was the whole point of moving them.
+                roles=[{"name": r["name"], "description": r["description"],
+                        "permissions": sorted(r.get("permissions") or []),
+                        "built_in": bool(r.get("built_in")),
+                        "held_by": sum(1 for p in rows
+                                       if r["name"] in (p.get("roles") or []))}
+                       for r in self.ctx["roles"].all()],
+                permissions=sorted(PERMISSIONS),
+                incompatible_permissions=[
+                    {"permissions": [a, b], "reason": reason}
+                    for a, b, reason in INCOMPATIBLE_PERMISSIONS],
                 incompatible=[{"roles": [a, b], "reason": reason}
                               for a, b, reason in INCOMPATIBLE_ROLES],
                 segregation=authz.segregation.describe(),

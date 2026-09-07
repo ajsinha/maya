@@ -97,6 +97,58 @@
         .fail(function (xhr) { say("#np-result", refusal(xhr)); });
     });
 
+    /* ---- define a role ------------------------------------------------ */
+    $("#new-role").on("submit", function (event) {
+      event.preventDefault();
+      $.ajax({url: "/api/v1/roles", method: "POST",
+              contentType: "application/json",
+              data: JSON.stringify({
+                name: $("#nr-name").val().trim(),
+                description: $("#nr-description").val().trim(),
+                permissions: list($("#nr-permissions").val())
+              })})
+        .done(reloadShortly)
+        .fail(function (xhr) { say("#nr-result", refusal(xhr)); });
+    });
+
+    $(".edit-role").on("click", function () {
+      var role = this.getAttribute("data-role");
+      var current = this.getAttribute("data-permissions") || "";
+      var answer = window.prompt(
+        "Permissions for " + role + ", comma separated.\n\n" +
+        "Every one is checked against the closed set; a role granting " +
+        "something nothing checks reads as authority and is not.", current);
+      if (answer === null) { return; }
+      $.ajax({url: "/api/v1/roles/" + encodeURIComponent(role), method: "PUT",
+              contentType: "application/json",
+              data: JSON.stringify({permissions: list(answer)})})
+        .done(reloadShortly)
+        .fail(function (xhr) { say("#nr-result", refusal(xhr)); });
+    });
+
+    $(".remove-role").on("click", function () {
+      var role = this.getAttribute("data-role");
+      var held = Number(this.getAttribute("data-held") || 0);
+      /* The register refuses this anyway — a role that stops existing while
+         somebody holds it makes their next request resolve against a name that
+         is not there. Asked here first so the answer arrives before the click
+         rather than after it. */
+      if (held > 0) {
+        say("#nr-result",
+            '<div class="evidence-bad">' + esc(role) + " is held by " + held +
+            " principal(s).</div><div class=\"text-muted small\">Change their " +
+            "roles first: a role that stops existing while somebody holds it " +
+            "makes their next request resolve against a name that is not " +
+            "there.</div>");
+        return;
+      }
+      if (!window.confirm("Remove the role " + role + "?")) { return; }
+      $.ajax({url: "/api/v1/roles/" + encodeURIComponent(role),
+              method: "DELETE"})
+        .done(reloadShortly)
+        .fail(function (xhr) { say("#nr-result", refusal(xhr)); });
+    });
+
     /* ---- change somebody's roles -------------------------------------- */
     $(".edit-roles").on("click", function () {
       var username = this.getAttribute("data-username");

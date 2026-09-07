@@ -28,6 +28,15 @@
         ]
       }
     },
+    "/admin/api-keys": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/admin/evidence": {
       "get": {
         "body": [],
@@ -3190,6 +3199,19 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/dependencies": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:id",
+          "query:kind"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },

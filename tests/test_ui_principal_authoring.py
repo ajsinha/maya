@@ -81,6 +81,32 @@ class TestTheScreenDecidesNothing:
                 assert hard_coded not in page, \
                     f"'{hard_coded}' is written into the page rather than read"
 
+    def test_the_role_list_comes_from_the_register(self, client):
+        """Roles moved out of a Python dictionary so a bank could define one.
+        A page that then rendered its own list would have undone that."""
+        from tests.api_helpers import login
+
+        # Defined BEFORE signing in: once a session cookie exists the CSRF
+        # guard refuses a POST without a token, which is the guard working.
+        made = client.post("/api/v1/roles", json={
+            "name": "regional_mrm", "description": "MRM for one region",
+            "permissions": ["model:read", "report:read"]})
+        assert made.status_code == 201, made.text
+        login(client)
+        body = client.get("/admin/principals").text
+        assert "regional_mrm" in body, \
+            "a role defined through the API appears without editing a template"
+
+    def test_a_built_in_role_is_offered_no_controls(self, client):
+        from tests.api_helpers import login
+
+        login(client)
+        body = client.get("/admin/principals").text
+        assert "built in" in body
+        # `validator` ships; the remove control must not be offered for it.
+        row = body.split(">validator<")[1][:600] if ">validator<" in body else ""
+        assert "remove-role" not in row
+
     def test_the_client_holds_no_incompatible_pairs(self):
         """Comments may explain the check; code may not repeat it."""
         script = SCRIPT.read_text(encoding="utf-8")
@@ -95,7 +121,11 @@ class TestTheScreenDecidesNothing:
         script = SCRIPT.read_text(encoding="utf-8")
         urls = set(re.findall(r'"(/api/v1/[^"]*)"', script))
         assert urls, "the client posts to nothing"
-        assert all(u.startswith("/api/v1/principals") for u in urls), urls
+        # People and roles, which is what this screen is called and what it
+        # administers. Anything else here would be a second screen wearing this
+        # one's name.
+        assert all(u.startswith(("/api/v1/principals", "/api/v1/roles"))
+                   for u in urls), urls
 
     def test_it_reads_refusals_through_the_one_reader(self):
         """The `[object Object]` fix applies here too, and this is a new screen

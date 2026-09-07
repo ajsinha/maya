@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Dependencies — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Where is this used?</h1>
+<div class="accent"></div>
+
+<p class="lead small">One index, two questions. <em>Where is this feature
+used?</em> and <em>may I delete this?</em> are the same question with different
+consequences — so a delete consults exactly what this screen shows. Building
+them separately is how they come to disagree: a page listing three usages while
+the delete check knows about four says a thing is safe to remove and then
+refuses.</p>
+
+<div class="card mb-3">
+  <div class="card-header">Ask about something</div>
+  <div class="card-body">
+    <form id="deps-form" class="row g-2 small align-items-end">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="dep-kind">Kind</label>
+        <select id="dep-kind" class="form-select form-select-sm" name="kind">
+          {% for k in kinds %}
+            <option value="{{ k }}" {{ 'selected' if k == kind }}>{{ k.replace('_', ' ') }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="col-md-7">
+        <label class="form-label mb-1" for="dep-id">Which one</label>
+        <input id="dep-id" class="form-control form-control-sm mono" name="id"
+               value="{{ subject }}" list="dep-suggestions"
+               placeholder="a model urn, a feature name, a featureset name">
+        <datalist id="dep-suggestions">
+          {% for s in suggestions %}<option value="{{ s }}">{% endfor %}
+        </datalist></div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-danger py-0 px-3 w-100"
+                style="font-size:.75rem">Look</button></div>
+    </form>
+  </div>
+</div>
+
+<div id="deps-result">
+{% if report %}
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span>What refers to <span class="mono">{{ report.id }}</span></span>
+      {% if report.deletable %}
+        <span class="evidence-ok" style="font-size:.78rem">nothing blocks a deletion</span>
+      {% else %}
+        <span class="evidence-bad" style="font-size:.78rem">{{ report.blocking }} would be left broken</span>
+      {% endif %}
+    </div>
+    <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.
+      A <strong>blocking</strong> reference is something that would be left
+      pointing at nothing. A <strong>historical</strong> one records what
+      happened and reads correctly afterwards — a register in which nothing may
+      ever be deleted because something once happened grows without bound, so
+      those are shown rather than enforced.</div>
+    <table class="table maya mb-0">
+      <thead><tr><th>What</th><th>Which</th><th>Why it refers</th><th>Blocking</th></tr></thead>
+      <tbody>
+        {% for r in report.references %}
+        <tr>
+          <td class="small mono">{{ r.kind.replace('_', ' ') }}</td>
+          <td class="small">{{ r.label }}</td>
+          <td class="small text-muted">{{ r.why }}</td>
+          <td class="small">
+            {% if r.blocking %}<span class="evidence-bad">yes</span>
+            {% else %}<span class="text-muted">historical</span>{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-muted small">Nothing refers to this.
+          It can be deleted, and deleting it will leave nothing broken.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+</div>
+
+<script src="/static/js/dependencies.js"></script>
+{% endblock %}
