@@ -52,6 +52,12 @@ val   = Maya(BASE, "a.mehta",  "…")
 mrm   = Maya(BASE, "s.iqbal",  "…")
 
 URN = "maya://model/credit.spend.smallbiz"
+
+# The three moments this walkthrough turns on, defined here because the rest
+# of the page is one script and a script does not read ahead.
+AS_OF  = 1767571200.0      # 5 Jan 2026 — before B07's turnover was restated
+LATER  = 1774915200.0      # 31 Mar 2026 — after it, for the quarterly refit
+WINDOW = {"from": 1704067200.0, "to": 1767139200.0}   # 2025, the fit's data
 ```
 
 One client each and not one client with four passwords, because several steps
@@ -284,7 +290,7 @@ dev.call("POST", "/feature-views/sb_spend/versions/1/as-of",
          json={"label_ts": AS_OF, "as_of": AS_OF, "entity_id": "B07"})
 ```
 
-with `AS_OF = 1767571200.0` — 5 January 2026, before the restatement landed:
+`AS_OF` is 5 January 2026, before the restatement landed:
 
 ```json
 { "entities": [{ "entity_id": "B07",
@@ -376,9 +382,9 @@ mrm.call("GET", "/version-approvals", params={"urn": URN, "semver": "1.0.0"})
 ```python
 approval = mrm.versions.open_quorum(urn=URN, semver="1.0.0")
 mrm.versions.sign_quorum(approval["id"], role="model_risk_manager",
-                         note="tier 2, shape reviewed")
+                         statement="tier 2, shape reviewed")
 val.versions.sign_quorum(approval["id"], role="validator",
-                         note="regressors and schema agree")
+                         statement="regressors and schema agree")
 ```
 
 ```json
@@ -422,6 +428,42 @@ The champion now points at an approved kernel with no numbers in it. Nothing
 can run yet, and you will see exactly how it refuses in §11.
 
 *In the UI: `/model-algebra/version/credit.spend.smallbiz`.*
+
+### The record itself, which is a different approval
+
+Approving a *version* says the kernel is right. Approving the **record** says
+the model exists and somebody is accountable for it, and those are two
+decisions with two audiences. A warrant will not resolve against a record still
+in `draft` — it has been asserted by nobody — so this has to happen before §9
+and it is the step that is easiest to leave until last.
+
+```python
+owner.lifecycle.submit(URN, note="1.0.0 approved; ready for the register")
+mrm.lifecycle.approve(URN, note="tier 2 controls in place")
+owner.lifecycle.attest(URN, role="model_owner")
+mrm.lifecycle.attest(URN, role="model_risk_manager")
+```
+
+```json
+{ "state": "attested",
+  "meaning": "in force and immutable; open an amendment to change it",
+  "mutable": false,
+  "available_transitions": [
+    {"name": "amend", "to": "amending", "permission": "model:amend"},
+    {"name": "retire", "to": "retired", "permission": "model:retire"}] }
+```
+
+Three acts, not one: **submitted** is the owner putting it forward, **approved**
+is the second line accepting it, and **attested** is the signature that puts it
+in force. Only the last makes it immutable — and only `attested` can be amended,
+which is the state machine saying that you cannot open an amendment against
+something nobody has yet asserted.
+
+Read `mutable: false` carefully, because it is about to matter. **An attested
+record accepts no new versions.** §11 adds one, and the way through is an
+amendment: not a workaround, but the mechanism this state exists to provide.
+
+*In the UI: the approval card on `/model/credit.spend.smallbiz`.*
 
 ---
 
@@ -660,14 +702,15 @@ owner.warrants.execute(
 { "descriptor_id": "01a0737d261ea6da143959bba1a6",
   "model_urn": "maya://model/credit.spend.smallbiz",
   "version": "1.0.0",
-  "prediction": {"family": "ols", "prediction": 12477.010258682109,
+  "prediction": {"family": "ols", "prediction": 12482.10868298368,
                  "target": "annual_spend"},
-  "boundary_ok": true, "boundary_violations": [], "latency_ms": 1.901 }
+  "boundary_ok": true, "boundary_violations": [], "latency_ms": 1.6 }
 ```
 
-£12,477 for a business turning over £240k with six years of tenure. Check it
+£12,482 for a business turning over £240k with six years of tenure. Check it
 against the coefficients above if you like; it is the arithmetic and nothing
-else.
+else. (`latency_ms` is the one number here that will not match: it is measured,
+not derived.)
 
 Try it outside the boundary. A `turnover` of 9000, against a declared maximum
 of 2000, is refused whether you nest it under `features` or put it at the top
@@ -701,7 +744,7 @@ Next quarter, on data that now includes B07's restatement:
 refit_snapshot = dev.featuresets.training_set(
     "sb_spend_v1", version=1,
     spine=[{"entity_id": f"B{i:02d}", "label_ts": LATER} for i in range(60)],
-    as_of=LATER, snapshot_name="sb_spend_2026_04")     # LATER = 31 Mar 2026
+    as_of=LATER, snapshot_name="sb_spend_2026_04")
 
 dev.parameters.fit(urn=URN, snapshot_id=refit_snapshot["id"],
                    principal="person/d.raman", window=WINDOW,
@@ -712,11 +755,12 @@ dev.parameters.fit(urn=URN, snapshot_id=refit_snapshot["id"],
 ```json
 { "name": "ols_2026_04", "state": "proposed",
   "model_version_id": "01a0737d23d51759066ba6a5c503",
-  "values_inline": {"intercept": 1331.9415164193629,
-                    "turnover": 30.27825565718268,
-                    "tenure_years": 652.2692271470183},
-  "diagnostics": {"r_squared": 0.9804121386731571, "n": 60,
-                  "condition_number": 804.3493821808597,
+  "values_inline": {"intercept": 1345.500273999794,
+                    "turnover": 30.07029845682578,
+                    "tenure_years": 655.7543736948965},
+  "diagnostics": {"r_squared": 0.9935897220671718, "n": 60,
+                  "adjusted_r_squared": 0.9933648000344409,
+                  "residual_std_error": 313.0122025361728,
                   "snapshot": "sb_spend_2026_04", "pit_verified": true} }
 ```
 
@@ -743,6 +787,28 @@ dev.call("GET", "/parameters", params={"urn": URN, "semver": "1.0.0"})
 
 Adding a regressor *is* a model change. The refusal in §7 said so; here is the
 other half of it.
+
+The record was attested in §6 and is therefore frozen, so the first move is not
+the version — it is saying, on the record, that the model is being changed and
+why:
+
+```python
+owner.lifecycle.amend(URN, reason="add a sector index as a third regressor",
+                      scope=["versions"])
+```
+
+```json
+{ "state": "amending",
+  "reference": "AMD-0001",
+  "meaning": "explicitly open for change, and will have to be attested again",
+  "mutable": true }
+```
+
+An amendment is a **declaration before the fact**, which is the whole of its
+value: the register records that somebody intended this change, with a reason
+and a scope, before any of it happened. A record you could quietly edit would
+make every version after the first indistinguishable from a correction nobody
+announced.
 
 ```python
 KERNEL_2 = {**KERNEL,
@@ -817,16 +883,20 @@ contravariant; a replacement must accept everything the incumbent accepted. So
 **fit and approve before you promote**, because promotion is a door that only
 opens one way.
 
-The champion, meanwhile, is untouched and still returns 12477.010258682109.
+The champion, meanwhile, is untouched and still returns 12482.10868298368.
 
 ### What an attested record refuses
 
 Attestation is the record's own approval — the statement that this is what the
 model *is*. Once given, the record is immutable.
 
+The amendment opened above is still open, and closing it is the same three acts
+the record went through in §6 — which is the point of a cycle rather than a
+one-way path:
+
 ```python
 owner.lifecycle.submit(URN, note="1.0.0 in production, 1.1.0 in challenge")
-mrm.lifecycle.approve(URN, note="tier 2 controls in place")
+mrm.lifecycle.approve(URN, note="1.1.0 reviewed; tier 2 controls still in place")
 owner.lifecycle.attest(URN, role="model_owner")
 mrm.lifecycle.attest(URN, role="model_risk_manager")
 ```
@@ -964,9 +1034,9 @@ Assembled from snapshot `01a0737d2531521f8980a271f891`, read at its pinned
 Delta version rather than at the head.
 
 ## What it produced
-| `intercept` | 1220.3600769425334 |
-| `turnover` | 30.955652521929828 |
-| `tenure_years` | 637.8822627460695 |
+| `intercept` | 1203.1628787878885 |
+| `turnover` | 30.774999999999924 |
+| `tenure_years` | 648.8243006993016 |
 
 ## Who accepted it
 Accepted by **s.iqbal** — condition number and standard errors reviewed

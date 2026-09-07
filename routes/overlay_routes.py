@@ -74,7 +74,8 @@ class OverlayRoutes(Routes):
         def approve(request: Request, overlay_id: str, days: Optional[int] = None):
             who = self.authorise(
                 request, "overlay:approve",
-                model=self.model_behind(overlays.get(overlay_id)))
+                model=self.model_behind(
+                    self.guard(lambda: overlays.require(overlay_id))))
             return self.guard(lambda: overlays.approve(overlay_id, self.actor(who),
                                                        days))
 
@@ -83,7 +84,8 @@ class OverlayRoutes(Routes):
         def measure(request: Request, overlay_id: str, body: MeasureIn):
             who = self.authorise(
                 request, "overlay:measure",
-                model=self.model_behind(overlays.get(overlay_id)))
+                model=self.model_behind(
+                    self.guard(lambda: overlays.require(overlay_id))))
             return self.guard(lambda: overlays.measure(
                 overlay_id, body.period, body.base_value, body.adjusted_value,
                 self.actor(who)))
@@ -94,7 +96,8 @@ class OverlayRoutes(Routes):
             """Extend it. Refused unless its size has been measured."""
             who = self.authorise(
                 request, "overlay:approve",
-                model=self.model_behind(overlays.get(overlay_id)))
+                model=self.model_behind(
+                    self.guard(lambda: overlays.require(overlay_id))))
             return self.guard(lambda: overlays.renew(overlay_id, self.actor(who),
                                                      days, period))
 
@@ -102,6 +105,7 @@ class OverlayRoutes(Routes):
         def close(request: Request, overlay_id: str, body: CloseIn):
             who = self.authorise(
                 request, "overlay:approve",
-                model=self.model_behind(overlays.get(overlay_id)))
+                model=self.model_behind(
+                    self.guard(lambda: overlays.require(overlay_id))))
             return self.guard(lambda: overlays.close(overlay_id, body.status,
                                                      body.reason, self.actor(who)))

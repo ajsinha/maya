@@ -77,7 +77,8 @@ class MonitoringRoutes(Routes):
             """Compute one observation. Refused over an immature cohort."""
             who = self.authorise(
                 request, "monitor:evaluate",
-                model=self.model_behind(monitors.get(monitor_id)))
+                model=self.model_behind(
+                    self.guard(lambda: monitors.require(monitor_id))))
             return self.guard(lambda: monitoring.evaluate(
                 monitor_id, body.rows, body.reference, body.now, self.actor(who)))
 
@@ -92,6 +93,7 @@ class MonitoringRoutes(Routes):
         def set_status(request: Request, monitor_id: str, status: str):
             who = self.authorise(
                 request, "monitor:define",
-                model=self.model_behind(monitors.get(monitor_id)))
+                model=self.model_behind(
+                    self.guard(lambda: monitors.require(monitor_id))))
             return self.guard(lambda: monitors.set_status(monitor_id, status,
                                                           self.actor(who)))

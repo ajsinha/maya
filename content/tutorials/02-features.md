@@ -74,28 +74,6 @@ maya.features.define(name="debt_service", entity="customer", dtype="numeric",
                      owner="person/d.raman", source_system="loan.servicing")
 ```
 
-### Through curl
-
-```bash
-curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
-  -H 'Content-Type: application/json' -d '{
-  "name": "ebitda", "entity": "customer", "dtype": "numeric",
-  "description": "Trailing twelve month EBITDA", "owner": "person/d.raman",
-  "source_system": "finance.warehouse"}'
-```
-
-```json
-{"feature": {"id": "01a07372d56042fb3bea5edad925", "name": "ebitda",
-  "entity": "customer", "dtype": "numeric", "owner": "person/d.raman",
-  "shape": [], "components": [], "definition_version": 1,
-  "certification": "experimental", "created_by": "admin"},
- "possible_duplicates": []}
-```
-
-Two fields to notice. It lands **experimental** — certification is a later act
-by somebody else (section 6). And `created_by` is recorded separately from
-`owner`: who made it and who is accountable for it are different facts.
-
 ### Ask before you write
 
 `check` refuses exactly what `define` refuses, and writes nothing.
@@ -117,6 +95,46 @@ curl -u d.raman:… -X POST http://localhost:5006/api/v1/features/check \
 
 In the SDK that is `catalogue.check(name="ebitda", entity="customer",
 description="Trailing twelve month EBITDA")`.
+
+### Through curl
+
+```bash
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "ebitda", "entity": "customer", "dtype": "numeric",
+  "description": "Trailing twelve month EBITDA", "owner": "person/d.raman",
+  "source_system": "finance.warehouse"}'
+```
+
+The SDK block above defines two features and this one defines one, which is the
+sort of asymmetry that makes a walkthrough stop three sections later. Both, then
+— and `monthly_revenue`, which §2 derives from:
+
+```bash
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "debt_service", "entity": "customer", "dtype": "numeric",
+  "description": "Annual scheduled principal and interest",
+  "owner": "person/d.raman", "source_system": "loan.servicing"}'
+
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "monthly_revenue", "entity": "customer", "dtype": "numeric",
+  "description": "Revenue in the month", "owner": "person/d.raman",
+  "source_system": "finance.warehouse"}'
+```
+
+```json
+{"feature": {"id": "01a07372d56042fb3bea5edad925", "name": "ebitda",
+  "entity": "customer", "dtype": "numeric", "owner": "person/d.raman",
+  "shape": [], "components": [], "definition_version": 1,
+  "certification": "experimental", "created_by": "admin"},
+ "possible_duplicates": []}
+```
+
+Two fields to notice. It lands **experimental** — certification is a later act
+by somebody else (section 6). And `created_by` is recorded separately from
+`owner`: who made it and who is accountable for it are different facts.
 
 ---
 
@@ -324,6 +342,9 @@ maya.features.load("sb_financials", "q2.csv")   # media type from the extension
 ```
 
 ```bash
+printf 'entity_id,event_ts,ingest_ts,ebitda,debt_service\nC3,1717200000,1717286400,96000,60000\n' \
+  > q2.csv
+
 curl -u d.raman:… -X POST \
   http://localhost:5006/api/v1/feature-views/sb_financials/data \
   --data-binary @q2.csv -H 'Content-Type: text/csv'
@@ -524,11 +545,20 @@ curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
                "align": {"axis": "event_ts", "rule": "flat_forward"}}}'
 ```
 
-Get it wrong and the check says so, free, before anything is written:
+Get it wrong and the check says so, free, before anything is written — this is
+a *different* call from the one above, with `backfill` where a strategy belongs:
+
+```bash
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/features/check \
+  -H 'Content-Type: application/json' -d '{
+  "kind": "primitive", "name": "utilisation_bad", "entity": "customer",
+  "description": "Revolver utilisation",
+  "defaults": {"fill": {"utilisation_bad": {"strategy": "backfill"}}}}'
+```
 
 ```json
 {"error": "feature_refused",
- "detail": "fill of 'utilisation': 'backfill' is not a strategy; expected one of keep, constant, zero, mean, median, most_frequent"}
+ "detail": "fill of 'utilisation_bad': 'backfill' is not a strategy; expected one of keep, constant, zero, mean, median, most_frequent"}
 ```
 
 The statistics are fitted on what was **observed** and at a stated moment — a
@@ -702,16 +732,26 @@ Yes, with one honest caveat.
 signal — its business definition, the argument for how it is computed". File one
 by naming the subject:
 
+A document about a feature still hangs off a **model**, because that is what a
+reviewer opens; `subject_type` says what it is really about. Pass `model_level`
+so the register knows you meant the model rather than a version it would
+otherwise have to pick — without it the answer is
+`no_version_to_attach_to: … a document filed at model level has to say so`,
+which is the register declining to guess.
+
 ```python
 maya.attachments.attach("maya://model/credit.pd.smallbiz", "ebitda.md",
                         kind="other", title="EBITDA: source and definition",
+                        model_level=True,
                         subject_type="feature", subject_id="ebitda")
 ```
 
 ```bash
+printf '# EBITDA\n\nTrailing twelve months, from the finance warehouse.\n' > ebitda.md
+
 curl -u d.raman:… -X POST http://localhost:5006/api/v1/attachments \
   -F 'urn=maya://model/credit.pd.smallbiz' -F 'kind=other' \
-  -F 'title=EBITDA: source and definition' \
+  -F 'title=EBITDA: source and definition' -F 'model_level=1' \
   -F 'subject_type=feature' -F 'subject_id=ebitda' \
   -F 'file=@ebitda.md;type=text/markdown'
 ```

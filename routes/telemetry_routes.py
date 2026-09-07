@@ -93,7 +93,8 @@ class TelemetryRoutes(Routes):
             # rows also rule on them.
             who = self.authorise(
                 request, "monitor:evaluate",
-                model=self.model_behind(monitoring.registry.get(monitor_id)))
+                model=self.model_behind(
+                    self.guard(lambda: monitoring.registry.require(monitor_id))))
             return self.guard(lambda: monitoring.evaluate_from_telemetry(
                 monitor_id, body.since, body.until, body.reference_from,
                 body.reference_to, actor=self.actor(who)))

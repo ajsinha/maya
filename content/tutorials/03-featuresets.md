@@ -37,12 +37,62 @@ Three things worth knowing before you start.
 
 This page assumes the catalogue and views from
 [features](/tutorials/features): the entity `customer`, the features `ebitda`,
-`debt_service` and `utilisation`, and the view `sb_financials` carrying them.
-Add three more things there before you start — a label feature `defaulted_12m`,
-two derived features `loss_given_default = defaulted_12m * 0.45` and
-`expected_loss = loss_given_default * debt_service`, and a view `sb_outcomes`
-carrying all three. Section 6 is why the derived pair is worth having. If you
-have not registered a model, start at [defining a
+`debt_service` and `utilisation`, and the view `sb_financials` carrying the
+first two. `utilisation` is defined there and put into no view, because that
+page is about defining it; a featureset can only pin a slot to a view that has
+been **materialised**, so it needs one here.
+Three more things are needed and are not on that page, so they are here rather
+than described — a label feature, two derived features, and a view carrying all
+three. Section 6 is why the derived pair is worth having:
+
+```bash
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "defaulted_12m", "entity": "customer", "dtype": "numeric",
+  "description": "1 if the borrower defaulted within twelve months",
+  "owner": "person/d.raman"}'
+
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/derived-features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "loss_given_default", "expression": "defaulted_12m * 0.45",
+  "dtype": "numeric", "description": "LGD, flat 45% of a defaulted exposure"}'
+
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/derived-features \
+  -H 'Content-Type: application/json' -d '{
+  "name": "expected_loss", "expression": "loss_given_default * debt_service",
+  "dtype": "numeric", "description": "EL over the serviced balance"}'
+
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/feature-views \
+  -H 'Content-Type: application/json' -d '{
+  "name": "sb_outcomes", "entity": "customer", "owner": "person/d.raman",
+  "features": ["defaulted_12m", "loss_given_default", "expected_loss"],
+  "description": "Outcomes for small-business borrowers"}'
+
+curl -u d.raman:… -X POST http://localhost:5006/api/v1/feature-views \
+  -H 'Content-Type: application/json' -d '{
+  "name": "sb_exposure", "entity": "customer", "owner": "person/d.raman",
+  "features": ["utilisation"],
+  "description": "Revolver utilisation for small-business borrowers"}'
+```
+
+And **materialise** both, because a slot is pinned to a view *version* and a
+view with no data has none:
+
+```bash
+curl -u d.raman:… -X POST \
+  http://localhost:5006/api/v1/feature-views/sb_outcomes/materialise \
+  -H 'Content-Type: application/json' -d '{"rows": [
+    {"entity_id":"C1","event_ts":1717200000,"ingest_ts":1717286400,
+     "defaulted_12m":0}]}'
+
+curl -u d.raman:… -X POST \
+  http://localhost:5006/api/v1/feature-views/sb_exposure/materialise \
+  -H 'Content-Type: application/json' -d '{"rows": [
+    {"entity_id":"C1","event_ts":1717200000,"ingest_ts":1717286400,
+     "utilisation":0.62}]}'
+```
+
+If you have not registered a model, start at [defining a
 model](/tutorials/defining-a-model).
 
 ## The SDK, once
@@ -713,10 +763,82 @@ the refusal.
 A featureset composed from parents, declaring nothing of its own, **satisfies
 the kernel it covers**:
 
+This is `L-W10`, and it is checked against the **version's declared inputs** —
+so it needs a version that reads what this set provides. The model from
+[defining a model](/tutorials/defining-a-model) reads `dscr`, which
+`sb_pd_2026` does not carry, and asking anyway is refused with
+`schema_not_satisfied: 'sb_pd_2026' does not provide dscr, which this version
+declares it reads`. That refusal is the section's point arriving early; here is
+the version that satisfies it:
+
+```bash
+curl -u j.okafor:… -X POST localhost:5006/api/v1/models \
+  -H 'Content-Type: application/json' -d '{
+  "urn": "maya://model/credit.pd.sbset", "name": "SB PD over sb_pd_2026",
+  "model_class": "credit.pd.scorecard", "domain": "credit",
+  "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+  "purpose": "PD defined over the composed featureset"}'
+
+curl -u d.raman:… -X POST \
+  localhost:5006/api/v1/models/credit.pd.sbset/versions \
+  -H 'Content-Type: application/json' -d '{
+  "semver": "1.0.0",
+  "kernel": {"parameter_kind": "estimated_coefficients",
+             "fit_procedure": "estimate", "output_kind": "point_estimate",
+             "runtime": "estimator",
+             "entry": {"family": "ols", "target": "pd_12m",
+                       "regressors": ["ebitda", "debt_service",
+                                      "utilisation"]},
+             "input_schema": [{"name": "ebitda", "dtype": "numeric"},
+                              {"name": "debt_service", "dtype": "numeric"},
+                              {"name": "utilisation", "dtype": "numeric"}],
+             "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]},
+  "contract": {"assumptions": [{"key": "ebitda", "minimum": 0}],
+               "guarantees": [{"key": "pd_12m", "minimum": 0,
+                               "maximum": 1}]}}'
+```
+
+A warrant resolves against an **alias**, not a semver, so the version has to be
+approved and the alias pointed at it — the same two acts as
+[defining a model §6](/tutorials/defining-a-model):
+
+```bash
+curl -u j.okafor:… -X POST localhost:5006/api/v1/models/credit.pd.sbset/assess \
+  -H 'Content-Type: application/json' \
+  -d '{"exposure": 40000000, "purpose_class": "risk_management",
+       "feature_count": 3, "uses_alternative_data": false,
+       "interpretable": true}'
+
+curl -u s.iqbal:… -X POST \
+  localhost:5006/api/v1/models/credit.pd.sbset/versions/1.0.0/approve \
+  -H 'Content-Type: application/json' -d '{"note": "reviewed"}'
+
+curl -u s.iqbal:… -X PUT localhost:5006/api/v1/models/credit.pd.sbset/aliases \
+  -H 'Content-Type: application/json' \
+  -d '{"semver": "1.0.0", "environment": "prod", "alias": "champion",
+       "justification": "first version over the composed set"}'
+
+curl -u j.okafor:… -X POST localhost:5006/api/v1/models/credit.pd.sbset/submit \
+  -H 'Content-Type: application/json' -d '{"note": "ready"}'
+curl -u s.iqbal:… -X POST localhost:5006/api/v1/models/credit.pd.sbset/approve \
+  -H 'Content-Type: application/json' -d '{"note": "tier 3 controls in place"}'
+```
+
+A fit warrant is then minted against a **grant** — *this principal may ask* — so
+the lab account needs one, or the answer is
+`no_entitlement: svc/model-lab holds no warrant for … in prod`:
+
+```bash
+curl -u j.okafor:… -X POST http://localhost:5006/api/v1/warrants \
+  -H 'Content-Type: application/json' -d '{
+  "urn": "maya://model/credit.pd.sbset", "environment": "prod",
+  "principal": "svc/model-lab", "declared_use": "model_development"}'
+```
+
 ```bash
 curl -u j.okafor:… -X POST http://localhost:5006/api/v1/fit-warrants \
   -H 'Content-Type: application/json' -d '{
-  "urn": "maya://model/credit.pd.smallbiz", "environment": "prod",
+  "urn": "maya://model/credit.pd.sbset", "environment": "prod",
   "principal": "svc/model-lab",
   "featureset": "sb_pd_2026", "featureset_version": 2,
   "window": {"from": 1546300800.0, "to": 1735603200.0}, "as_of": 1753920000.0}'
@@ -844,10 +966,13 @@ Three things to know before you file one.
   `featureset_version`.
 - **A document still hangs under a model URN.** There is no way to file one
   against a featureset version alone.
-- **You get the version's id from the plan screen.** No API response carries it:
-  `GET /featuresets/{name}` lists versions by number, digest and note. The plan
-  page prints the id in the *Documents filed against this version* card for
-  exactly this purpose.
+- **The version's id comes from the plan.** `GET
+  /featuresets/{name}/versions/{n}` carries it as `id`. It did not until this
+  page was run against a live instance: `GET /featuresets/{name}` lists versions
+  by number, digest and note, the plan carried everything about the version
+  except what identifies it, and the only way to file a document was to read the
+  id off a screen and retype it. This page said so in prose and then printed a
+  curl example nobody could complete.
 
 ### Through the interface
 
@@ -883,13 +1008,22 @@ rebuilt.
 
 ### Through curl
 
+The version id above is from the run that produced this page. Take yours from
+the register rather than pasting one, and make the file the upload needs:
+
 ```bash
+printf '# sb_pd_2026 v2\n\n| slot | source |\n|---|---|\n| ebitda | finance.warehouse |\n' \
+  > sb_pd_2026_v2_dictionary.md
+
+FSV=$(curl -s -u d.raman:… localhost:5006/api/v1/featuresets/sb_pd_2026/versions/2 \
+      | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+
 curl -u d.raman:… -X POST http://localhost:5006/api/v1/attachments \
   -F "urn=maya://model/credit.pd.smallbiz" \
-  -F "kind=other" \
+  -F "kind=other" -F "model_level=1" \
   -F "title=sb_pd_2026 v2 - data dictionary" \
   -F "subject_type=featureset_version" \
-  -F "subject_id=01a0737bc02a940f5461180a85bc" \
+  -F "subject_id=$FSV" \
   -F "file=@sb_pd_2026_v2_dictionary.md;type=text/markdown"
 ```
 
