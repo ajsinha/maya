@@ -169,12 +169,23 @@ The grammar's nineteen runtimes, grouped by what they are:
 | Portable model formats | `onnx` · `pmml` · `pfa` |
 | Quantitative libraries | `quantlib` · `estimator` · `solver` |
 | Statistical platforms | `sas` · `r` · `matlab` |
-| Declarative | `sql` · `spreadsheet` · `rules` |
+| Declarative | `formula` · `sql` · `spreadsheet` · `rules` |
 | Generative | `llm.prompt` · `llm.agent` |
 | The honest one | `descriptor_only` |
 
-Two are odd ones. `estimator` is the only runtime whose job is to **inhabit** a
-parameter object rather than to read one. `rules` is the newest, and the only one
+Three are odd ones. **`formula`** is the one with nothing to locate: its
+`entry.expression` is the whole of `f`, written in the language MAYA already
+parses for derived features, so there is no artifact, no digest and no engine —
+the JSON *is* the model. It exists because a bank runs hundreds of small
+closed-form models — a scorecard, a logistic link, an LGD haircut, a Basel risk
+weight — and every one of them previously had to be `descriptor_only` (governed
+and unrunnable) or wrapped in a container, which turns four lines of arithmetic
+into an artifact somebody has to build, sign and store. `P` is inhabited the
+ordinary way: an expression naming only its inputs is T0, one naming
+coefficients is T2 and they arrive as an approved parameter set.
+
+`estimator` is the only runtime whose job is to **inhabit** a parameter object
+rather than to read one. `rules` is the newest, and the only one
 whose parameter object is a document MAYA can *read*: for a T8 model the rule set
 **is** `P`, so it arrives the way every register-held parameter object does, and
 running one at an unapproved point of `P` is refused by the same mechanism that
@@ -182,6 +193,34 @@ refuses running a scorecard at unapproved coefficients. See
 [Rule sets](/help/rule-sets). `descriptor_only` is one of the nineteen and
 matters most in a bank, because much of the estate already runs inside engines
 nobody is going to replace.
+
+### The equation and the code, both derived
+
+A `formula` version can be read as mathematics and as Python:
+
+```bash
+GET /api/v1/mathematics?urn=maya://model/credit.pd.smallbiz&semver=1.0.0
+```
+
+comes back with `latex`, `python`, and the expression both were derived from.
+**Neither is stored**, and that is the design rather than an economy. A `latex`
+field beside the expression — filled in by whoever wrote it — is a second
+description of one model, and two descriptions drift, with the one nobody
+executes drifting first. These are rendered from the syntax tree the platform
+evaluates, so a disagreement between the equation, the code and the answer is
+not possible rather than merely unlikely.
+
+The Python is a whole importable module, not a fragment: a validator's
+independent recompute should be `import kernel; kernel.predict(**row)` rather
+than an exercise in assembling somebody's snippet. Declare `symbol` on an input
+and it typesets as that symbol; a field with none is set upright, because
+`debt_service` in italics reads as nine letters multiplied together.
+
+Every other runtime names an artifact MAYA does not read, and asking for its
+mathematics answers `not_derivable` — inventing an equation for a model the
+platform cannot inspect is exactly the invented description this avoids. For
+those the mathematics belongs in an attached document, where a person signs
+for it.
 
 Two further closed vocabularies sit alongside the four. Where an output may go —
 `response`, `delta_table`, `stream`, `artifact`, `parameter_object`, `evidence`.

@@ -893,7 +893,7 @@ Grouped, with source. `A` = derived by MAYA, `H` = human-entered, `I` = from an 
 
 | Data class | Store | Why |
 |---|---|---|
-| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — two hand-written schemas, 47 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
+| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — two hand-written schemas, 48 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
 | Feature values, snapshots, telemetry streams | **Delta** | Columnar scale, ACID, time travel, cheap retention |
 | Artifact bytes | **Content-addressed local store**, two-level fan-out, 8 GiB ceiling | A file's name is its own digest, so an artifact cannot be edited in place and deduplication is free |
 | Attachments | Content-addressed, re-hashed on read | What an approver accepted is what a reader fetches |
