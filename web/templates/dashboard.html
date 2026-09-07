@@ -10,20 +10,31 @@
   <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
     <div class="stat" style="color:var(--crimson)">{{ estate.models }}</div>
     <div class="stat-l">models registered</div>
-    <div class="stat-l mt-1">{{ estate.in_force }} in force</div></div></div></div>
+    {# The MODEL counts belong on the model tile. Two of them sat as the
+       sub-line of the findings tile and the breaches tile, where a stat card
+       is read as "0 open breaches, 6 unmonitored" — six unmonitored breaches,
+       when it is six unmonitored MODELS. And nothing anywhere said what "in
+       force" means, so "6 registered / 0 in force" read as a broken
+       register rather than as "none has been attested yet". #}
+    <div class="stat-l mt-1" title="attested — a quorum has signed that the
+      controls are operating, which is what puts a model in force">{{ estate.in_force }} in force
+      <span class="text-muted">(attested)</span></div>
+    <div class="stat-l">{{ estate.governance.not_in_force }} models not in force</div>
+    <div class="stat-l">{{ estate.assurance.unmonitored }} models unmonitored</div>
+    </div></div></div>
 
   <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
     <div class="stat {{ 'evidence-bad' if estate.governance.blocking_findings else '' }}">
       {{ estate.governance.blocking_findings }}</div>
     <div class="stat-l">blocking findings</div>
-    <div class="stat-l mt-1">{{ estate.governance.not_in_force }} not in force</div>
+    <div class="stat-l mt-1 text-muted">across the estate</div>
   </div></div></div>
 
   <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
     <div class="stat {{ 'evidence-bad' if estate.assurance.open_breaches else '' }}">
       {{ estate.assurance.open_breaches }}</div>
     <div class="stat-l">open breaches</div>
-    <div class="stat-l mt-1">{{ estate.assurance.unmonitored }} unmonitored</div>
+    <div class="stat-l mt-1 text-muted">of risk appetite</div>
   </div></div></div>
 
   <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">

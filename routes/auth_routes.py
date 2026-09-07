@@ -30,6 +30,8 @@ class AuthRoutes(Routes):
             # rendered back into the form: a target the form would carry is one
             # the browser will follow.
             return self.page(request, "login.html", next=local_path(next),
+                             default_credentials_live=bool(
+                                 self.ctx.get("default_credentials_live")),
                              error=None)
 
         @self.app.post("/login", tags=["auth"])
@@ -40,6 +42,8 @@ class AuthRoutes(Routes):
             if principal is None:
                 return self.page(request, "login.html", http_status=401,
                                  next=local_path(next),
+                                 default_credentials_live=bool(
+                                     self.ctx.get("default_credentials_live")),
                                  error="Those credentials were not recognised.")
             request.session["username"] = principal["username"]
             return RedirectResponse(local_path(next), status_code=303)

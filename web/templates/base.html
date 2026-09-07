@@ -287,6 +287,7 @@ table.maya thead th button:focus-visible,
           ("/model-algebra", "Model algebra", "versions, refinement, lifecycle, quorum, tier", "model:read"),
           ("/model-algebra/composition", "Composition", "one model reading another, type-checked", "model:read"),
           ("/warrants", "Warrants", "what a run is permitted to do", "model:read"),
+          ("/warrants/estate", "Who may run what", "every standing grant, soonest to lapse first", "warrant:read"),
           ("/packages", "Model packages", "everything about a model, in one download", "model:read"),
           ("/telemetry", "Telemetry", "what the live models are sending", "monitor:read"),
           ("/dependencies", "Dependencies", "where a model, feature or featureset is used — and whether it could be deleted", "model:read"),
@@ -393,6 +394,7 @@ table.maya thead th button:focus-visible,
      of arithmetic wearing eighty kilobytes. -->
 <script src="/static/js/refusal.js"></script>
 <script src="/static/js/csrf.js"></script>
+<script src="/static/js/session.js"></script>
 <script src="/static/js/tables.js"></script>
 {% block scripts %}{% endblock %}
 </body>

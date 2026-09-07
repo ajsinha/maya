@@ -97,6 +97,48 @@ class TestCompositionIsAMonoid:
         assert merge({}, a) == a == merge(a, {})
         assert fold([a]) == a
 
+    # -----------------------------------------------------------------
+    # The two above are the law asserted on ONE hand-picked triple and one
+    # hand-picked dictionary. A monoid law is a claim about every triple, and
+    # `(A ∘ B) ∘ C = A ∘ (B ∘ C)` is what the profile fold, the featureset
+    # composition and the deck all lean on — so it is worth generating the
+    # inputs rather than choosing them.
+
+    @staticmethod
+    def _dicts(rng, n):
+        keys = "vwxyz"
+        return [{rng.choice(keys): rng.randint(0, 9)
+                 for _ in range(rng.randint(0, 4))} for _ in range(n)]
+
+    def test_associativity_holds_for_triples_nobody_chose(self):
+        import random
+
+        rng = random.Random(19)
+        for _ in range(500):
+            a, b, c = self._dicts(rng, 3)
+            assert merge(merge(a, b), c) == merge(a, merge(b, c)), (a, b, c)
+
+    def test_the_identity_holds_on_both_sides_for_any_composition(self):
+        import random
+
+        rng = random.Random(20)
+        for _ in range(500):
+            (a,) = self._dicts(rng, 1)
+            assert merge({}, a) == a, a
+            assert merge(a, {}) == a, a
+
+    def test_the_fold_agrees_with_repeated_merging(self):
+        """`fold` is the monoid operation iterated, so it must equal doing it by
+        hand — including for the empty list, which is the identity."""
+        import functools
+        import random
+
+        rng = random.Random(21)
+        assert fold([]) == {}
+        for _ in range(300):
+            parts = self._dicts(rng, rng.randint(1, 5))
+            assert fold(parts) == functools.reduce(merge, parts, {}), parts
+
     def test_the_rightmost_wins(self):
         assert fold([{"x": 1}, {"x": 2}, {"x": 3}])["x"] == 3
 

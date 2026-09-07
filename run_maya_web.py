@@ -204,11 +204,30 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # because two places permissions come from is the defect this argues
     # against one layer down.
     role_store = RoleStore(RoleRepository(db), evidence,
-                           principals=PrincipalRepository(db))
+                           principals=PrincipalRepository(db),
+                           # So removing a role can ask whether an open quorum
+                           # still requires it: a role nobody HOLDS can still be
+                           # one an attestation names, and deleting it makes
+                           # that attestation unsignable by anybody.
+                           db=db)
     authz.roles = role_store
     principals.roles = role_store
-    principals.bootstrap(cfg.get("auth.username", "admin"),
-                         cfg.get("auth.password", "maya-admin-dev"))
+    bootstrap_user = cfg.get("auth.username", "admin")
+    bootstrap_password = cfg.get("auth.password", "maya-admin-dev")
+    principals.bootstrap(bootstrap_user, bootstrap_password)
+    # Whether the SHIPPED credential still opens the door. The login page
+    # carried "development credentials are set in config/application.yaml"
+    # unconditionally, to anonymous visitors — true and helpful on a
+    # workstation, and on a deployed instance it tells a stranger where to
+    # look while saying nothing about whether there is anything to find. Asked
+    # once, at start-up, so the page states a fact rather than a guess.
+    default_credentials_live = bool(
+        principals.authenticate(bootstrap_user, bootstrap_password))
+    if default_credentials_live:
+        logger.warning(
+            "the bootstrap credential from configuration still authenticates "
+            "as '%s'. Change it before this instance is reachable by anybody "
+            "else; until then the sign-in page says so.", bootstrap_user)
 
     # The register is the BlockingSource for both gates. It is built after the
     # registry because both need the evidence engine, and attached explicitly.
@@ -502,6 +521,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
+                           "default_credentials_live": default_credentials_live,
                            "scheduler_loop_enabled": cfg.get_bool(
                                "scheduler.loop.enabled", False),
                            "appetite": appetite, "board_packs": board_packs,
@@ -630,9 +650,21 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                     "detail": "this request changes something and was "
                               "authenticated by a session cookie, but carries "
                               "no valid CSRF token",
-                    "remediation": f"send the token from the page's "
-                                   f"'{csrf.HEADER}' meta tag in that header, "
-                                   f"or authenticate with HTTP Basic, which "
+                    # Two audiences, and the old text served neither. It said
+                    # "send the token from the page's 'x-maya-csrf' meta tag",
+                    # which conflates the HEADER name with the META TAG name and
+                    # names a tag that does not exist -- and told a person
+                    # sitting in a browser to set an HTTP header, which they
+                    # cannot do. The person's instruction comes first, because
+                    # a person is who usually reads this.
+                    "remediation": f"reload the page and try again: this "
+                                   f"usually means the page was open long "
+                                   f"enough for its token to go stale. If you "
+                                   f"are calling this from a script, read the "
+                                   f"value of the page's <meta "
+                                   f"name=\"{csrf.META}\"> tag and send it in "
+                                   f"the '{csrf.HEADER}' header, or "
+                                   f"authenticate with HTTP Basic, which "
                                    f"carries no ambient authority and needs no "
                                    f"token",
                 }, status_code=403)

@@ -538,10 +538,10 @@ class TestNothingIsFetchedFromTheInternet:
         nine copies of "read the refusal body", all nine of them rendering a
         validation error as the text `[object Object]`."""
         body = signed_in.get(f"/warrants?model={NAME}").text
-        for shared in ("csrf.js", "tables.js", "refusal.js"):
+        for shared in ("csrf.js", "tables.js", "refusal.js", "session.js"):
             assert f"/static/js/{shared}" in body, shared
-        assert body.count("<script src=") == 6, \
-            "jquery, bootstrap, refusal, csrf, tables, ours"
+        assert body.count("<script src=") == 7, \
+            "jquery, bootstrap, refusal, csrf, session, tables, ours"
 
 
 class TestTheMarkupIsWhatTheHouseRulesRequire:
@@ -561,3 +561,42 @@ class TestTheMarkupIsWhatTheHouseRulesRequire:
         """0 and 1, in both dialects, in Delta, and in a query string."""
         body = (SCRIPTS / "package.js").read_text(encoding="utf-8")
         assert "attachments=" in body and "true" not in body
+
+
+class TestTheEstateWideWarrantView:
+    """"Which service principals hold authority to run which models, and when
+    do those grants lapse?" is the question a day-to-day administrator asks
+    most, and it had no answer anywhere.
+
+    `/warrants` needs a model chosen before it shows a grant,
+    `GET /api/v1/warrants` is 405 because the path is a POST, and the dashboard
+    has no warrant tile.
+    """
+
+    def test_it_lists_grants_without_choosing_a_model_first(self, signed_in):
+        body = signed_in.get("/warrants/estate").text
+        assert "Who may run what" in body
+        assert "svc/origination" in body, "the fixture's grant must be listed"
+        assert URN in body, "and named by its urn, not by an opaque id"
+
+    def test_it_is_reachable_from_the_menu(self, signed_in):
+        """A screen nobody can click to is not built."""
+        nav = signed_in.get("/dashboard").text
+        assert 'href="/warrants/estate"' in nav
+
+    def test_it_says_when_each_grant_lapses(self, signed_in):
+        body = signed_in.get("/warrants/estate").text
+        assert "Lapses" in body
+        assert "in force" in body
+
+    def test_it_is_scoped_like_everything_else(self, registered, people):
+        """A grant says who may run a model, so it is not a thing to show
+        somebody the API refuses that model to."""
+        registered.post("/api/v1/principals", json={
+            "username": "eu.only", "display_name": "EU only",
+            "roles": ["auditor"], "password": "eu-pw-long-enough",
+            "legal_entities": ["LE-EU-99"]})
+        _login(registered, "eu.only", "eu-pw-long-enough")
+        body = registered.get("/warrants/estate").text
+        assert "svc/origination" not in body
+        assert "scoped to the models you" in body

@@ -38,11 +38,15 @@ there, and whatever those roles are called.
 """
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Tuple
 
 from core.authz.common import AuthzError, require_known
 from core.authz.roles import DESCRIPTIONS, ROLES
+from core.log import get_logger, swallowed
+
+logger = get_logger(__name__)
 
 #: Conflicts expressed as PERMISSIONS, which is what a custom role can smuggle
 #: past a check over role names.
@@ -128,7 +132,7 @@ INCOMPATIBLE_PERMISSIONS: Tuple[Tuple[str, str, str], ...] = _pairs_from_separat
 class RoleStore:
     """The roles a principal may hold, and what each grants."""
 
-    def __init__(self, repo, evidence=None, principals=None):
+    def __init__(self, repo, evidence=None, principals=None, db=None):
         # `principals` is the repository of people, needed only to answer "who
         # already holds this role" when one is amended. Optional so the store
         # can be built before the principal register exists; when it is absent
@@ -136,6 +140,9 @@ class RoleStore:
         # silently.
         self.repo, self.evidence = repo, evidence
         self.principals = principals
+        # For asking whether an open quorum requires a role. Optional so the
+        # store can be built without it; absent, the check cannot run.
+        self.db = db
         self._seed()
 
     # ------------------------------------------------------------------- seed
@@ -213,6 +220,36 @@ class RoleStore:
                   for a, b, reason in INCOMPATIBLE_PERMISSIONS
                   if a in granted and b in granted]
         return found
+
+    def _awaited_by_a_quorum(self, name: str) -> List[str]:
+        """Open attestations and approvals whose `required_roles` name this.
+
+        `remove` asked only whether anybody HOLDS the role. A quorum names the
+        roles it needs, and a role that no longer exists cannot be held — so
+        deleting one that an open attestation requires makes that attestation
+        impossible to complete, with no message anywhere saying why.
+        """
+        if self.db is None:                     # not wired; nothing to check
+            return []
+        awaited = []
+        for table, label in (("attestation", "attestation"),
+                             ("version_approval", "version approval")):
+            try:
+                rows = self.db.query(
+                    f"SELECT id, required_roles FROM {table} "
+                    f"WHERE status = 'open'")
+            except Exception as exc:            # a table this build lacks
+                swallowed(logger, exc, f"read open {label}s",
+                          detail="the role removal is not checked against them",
+                          level=logging.DEBUG)
+                continue
+            for row in rows:
+                required = row.get("required_roles")
+                if isinstance(required, str):
+                    required = [r.strip(' "[]') for r in required.split(",")]
+                if name in (required or []):
+                    awaited.append(f"{label} {row['id'][:8]}")
+        return awaited
 
     def conflicts_within(self, permissions: Iterable[str]) -> List[str]:
         """Every incompatible pair a single set of permissions contains.
@@ -350,6 +387,22 @@ class RoleStore:
                 f"that stops existing while somebody holds it makes their next "
                 f"request resolve against a name that is not there",
                 "change those principals' roles first")
+        # A role nobody HOLDS can still be one a quorum REQUIRES. `sign` needs
+        # both `role in required_roles` and `role in principal.roles`, so
+        # deleting a role named by an open attestation or approval makes it
+        # permanently unsignable — and the check above passes precisely because
+        # nobody holds it, which is the state that makes it look safe.
+        if awaited := self._awaited_by_a_quorum(name):
+            raise AuthzError(
+                "role_awaited",
+                f"'{name}' is a required signature on {len(awaited)} open "
+                f"quorum{'' if len(awaited) == 1 else 's'} "
+                f"({', '.join(awaited[:4])}"
+                f"{', …' if len(awaited) > 4 else ''}), and removing it would "
+                f"leave "
+                f"{'that one' if len(awaited) == 1 else 'those'} unsignable by "
+                f"anybody",
+                "complete or withdraw those first, or leave the role in place")
         self.repo.remove(id=row["id"])
         self._record("role_removed", row, {}, actor)
         return {"name": name, "removed": True}

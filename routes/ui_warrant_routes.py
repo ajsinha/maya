@@ -29,6 +29,7 @@ from __future__ import annotations
 import inspect
 import io
 import re
+import time
 import zipfile
 from typing import Any, Callable, Dict, List, Optional
 
@@ -155,6 +156,38 @@ class WarrantAuthoringRoutes(Routes):
         registry, warrants = self.ctx["registry"], self.ctx["warrants"]
 
         # ------------------------------------------------------- warrants
+        @self.app.get("/warrants/estate", response_class=HTMLResponse,
+                      tags=["ui"])
+        def warrants_estate(request: Request):
+            """Who currently holds authority to run what, and until when.
+
+            The question a day-to-day administrator asks most often, and it had
+            no answer anywhere: `/warrants` requires a model to be chosen first,
+            `GET /api/v1/warrants` is 405 because the path is a POST, and the
+            dashboard has no warrant tile.
+
+            Scoped like everything else — a grant says who may run a model, so
+            somebody the API refuses that model to does not see its grants.
+            """
+            if (r := self.page_gate(request, "warrant:read")) is not None:
+                return r
+            who = self.page_principal(request)
+            readable = {m["urn"] for m in
+                        self.ctx["authz"].visible(who, registry.list())}
+            grants = [g for g in warrants.every_grant()
+                      if g.get("model_urn") in readable]
+            now = time.time()
+            for grant in grants:
+                expires = grant.get("expires_at")
+                grant["lapses_in_days"] = (
+                    round((expires - now) / 86400.0, 1)
+                    if expires else None)
+                grant["lapsed"] = bool(expires and expires <= now)
+            return self.page(request, "warrants_estate.html", grants=grants,
+                             live=[g for g in grants
+                                   if not g.get("revoked") and not g["lapsed"]],
+                             now=now)
+
         @self.app.get("/warrants", response_class=HTMLResponse, tags=["ui"])
         def warrant_authoring(request: Request, model: str = "",
                               environment: str = "prod"):
