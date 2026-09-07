@@ -178,10 +178,12 @@ execution:
     enabled: true
     max_seconds: 30
     # Artifacts are read from data.artifacts and their digest is verified against
-    # the warrant before anything is loaded. The engine implements six of the
-    # grammar's eighteen runtimes -- registered callables (which also answer for
+    # the warrant before anything is loaded. The engine implements seven of the
+    # grammar's nineteen runtimes -- registered callables (which also answer for
     # descriptor_only), ONNX, the regression and scorecard subset of PMML,
-    # QuantLib, the estimator and rules -- and refuses the rest by name.
+    # QuantLib, the estimator, rules, and formula -- and refuses the rest by
+    # name. `formula` is the one with no artifact to read: the version's own
+    # expression is the model.
     #
     # Artifact-backed runtimes run in a child process with CPU and memory limits
     # taken from the warrant's constraints.resources. That protects against a

@@ -19,7 +19,9 @@ from core.domain import Bound, Contract, Field, Schema
 
 def schema_of(spec: List[Dict[str, Any]]) -> Schema:
     return Schema(tuple(Field(f["name"], f["dtype"], f.get("nullable", False),
-                              f.get("minimum"), f.get("maximum")) for f in spec or []))
+                              f.get("minimum"), f.get("maximum"),
+                              f.get("symbol"), f.get("unit"))
+                        for f in spec or []))
 
 
 def bounds_of(items) -> tuple:

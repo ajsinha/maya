@@ -403,7 +403,7 @@ because a list of "standards we align with" is a list nobody can check.
 
 | Standard | Status in MAYA |
 |---|---|
-| **Open Inference Protocol / KServe V2** | **Design target, not implemented.** `rest` is one of the eighteen runtimes in the warrant grammar; MAYA does not host an OIP endpoint |
+| **Open Inference Protocol / KServe V2** | **Design target, not implemented.** `rest` is one of the nineteen runtimes in the warrant grammar; MAYA does not host an OIP endpoint |
 | **ONNX / PMML / safetensors** | **Adopted.** Among the eight artifact formats the store accepts. There is no `pickle`, at all, by construction |
 | **`torchscript` / `tar`** | **Accepted and labelled.** Both execute code on load; the warrant says so, so an engine is not inferring it from a file extension |
 | **SPDX 3.0 AI & Dataset profiles / CycloneDX ML-BOM / OWASP AIBOM** | **Not built.** Worth adopting as an export format — research indicates current AIBOM schemas already satisfy 13 of 14 EU AI Act information obligations — and the export pack is the natural place for it |
@@ -527,8 +527,9 @@ lost.
 - **Parameters are computed for two families and recorded for the rest.** `ols` and `garch11` in the
   captive engine; everything else is fitted wherever you run models and refused unless a warrant MAYA
   issued authorised the run.
-- **Six runtimes of the eighteen** are implemented in the captive engine — callables, ONNX, a PMML
-  subset, QuantLib, the estimator and `rules`. Each of the rest is refused by name.
+- **Seven runtimes of the nineteen** are implemented in the captive engine — callables, ONNX, a PMML
+  subset, QuantLib, the estimator, `rules`, and `formula`, where the version's own JSON is the model
+  and there is no artifact to locate. Each of the rest is refused by name.
 - **No artifact signing, no build provenance, no upload scanning** — §4.
 - **Scale is designed for and not demonstrated.** The scale suite asserts complexity rather than
   wall-clock, deliberately; it has not been run against a real estate.

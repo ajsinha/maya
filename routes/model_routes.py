@@ -13,6 +13,7 @@ from pydantic import Field
 from core.execution.urn import urn_of
 from core.domain import paging
 from routes.base import Body, Routes
+from core.features.rendering import to_latex, to_python
 from core.registry.versions import latest_version
 
 
@@ -212,6 +213,58 @@ class ModelRoutes(Routes):
             return self.guard(lambda: reg.create_version(
                 urn(name), body.semver, body.kernel, body.contract,
                 body.artifact_digest, body.artifact_uri, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/models/{{name:path}}/versions/{{semver}}/mathematics",
+                      tags=["models"])
+        def mathematics(request: Request, name: str, semver: str):
+            """The version's kernel as mathematics and as code, both derived.
+
+            Neither is stored. A `latex` field beside the expression, filled in
+            by whoever wrote it, is a second description of one model — and two
+            descriptions drift, with the one nobody executes drifting first. So
+            this renders the syntax tree the platform evaluates, which means a
+            disagreement between the equation, the code and the answer is not
+            possible rather than merely unlikely.
+
+            Only a `formula` kernel has an expression to render. Every other
+            runtime names an artifact MAYA does not read, and inventing an
+            equation for one would be exactly the invented description this
+            exists to avoid — so it says so instead.
+            """
+            m = self.guard(lambda: reg.require(urn(name)))
+            self.authorise(request, "model:read", model=m)
+            version = self.guard(lambda: reg.version_service.require(urn(name), semver))
+            kernel = (version.get("manifest") or {}).get("kernel") or {}
+            entry = kernel.get("entry") or {}
+            expression = entry.get("expression")
+            if kernel.get("runtime") != "formula" or not expression:
+                raise HTTPException(409, {
+                    "error": "not_derivable",
+                    "detail": f"version {semver} runs on "
+                              f"'{kernel.get('runtime') or 'no runtime'}', which "
+                              f"names an artifact rather than carrying its own "
+                              f"expression — so there is nothing here to derive "
+                              f"an equation from",
+                    "remediation": "only a 'formula' kernel is renderable; for "
+                                   "everything else the mathematics belongs in "
+                                   "an attached document, where a person signs "
+                                   "for it"})
+            symbols = {f["name"]: f["symbol"]
+                       for f in (version.get("input_schema") or [])
+                       if isinstance(f, dict) and f.get("symbol")}
+            reads = sorted({f["name"] for f in (version.get("input_schema") or [])
+                            if isinstance(f, dict) and f.get("name")})
+            return {
+                "urn": urn(name), "semver": semver,
+                "expression": expression,
+                "target": entry.get("target") or "value",
+                "latex": to_latex(expression, symbols),
+                "python": to_python(expression, name="predict", inputs=reads),
+                "symbols": symbols,
+                "detail": "both are derived from the expression at request "
+                          "time and neither is stored, so they cannot disagree "
+                          "with what runs",
+            }
 
         @self.app.post(f"{self.api}/models/{{name:path}}/versions/{{semver}}/approve",
                        tags=["versions"])

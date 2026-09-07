@@ -88,7 +88,7 @@ is their **product**.
 | Axis | Field | Values |
 |---|---|---|
 | **1 · how `P` is inhabited** | `parameters.kind` | `none` · `calibration_set` · `estimated_coefficients` · `learned_weights` · `llm_configuration` · `rule_set` · `elicited_weights` · `opaque` — **eight** |
-| **2 · how the kernel is realised** | `realisation.runtime` | `python.callable` · `container` · `rest` · `onnx` · `pmml` · `pfa` · `quantlib` · **`estimator`** · `solver` · `sas` · `r` · `matlab` · `sql` · `spreadsheet` · `rules` · `llm.prompt` · `llm.agent` · `descriptor_only` — **eighteen runtimes** |
+| **2 · how the kernel is realised** | `realisation.runtime` | `python.callable` · `container` · `rest` · `onnx` · `pmml` · `pfa` · `quantlib` · **`estimator`** · `solver` · `sas` · `r` · `matlab` · `sql` · `spreadsheet` · `rules` · `llm.prompt` · `llm.agent` · `descriptor_only` — **nineteen runtimes** |
 | **3 · what is asked of it** | `operation.verb` | `score` · `fit` · `validate` · `backtest` · `explain` · `simulate` · `stress` · `optimise` · `generate` · `monitor` — **ten** |
 | **4 · where its data comes from** | `data.inputs[].binding` | `inline` · `request` · `feature_namespace` · `featureset` · `dataset_snapshot` · `delta_table` · `sql_query` · `stream` · `market_data` · `document_corpus` · `scenario_set` · `artifact` — **twelve** |
 
@@ -583,7 +583,7 @@ alias move.
 
 ## 10. What actually executes
 
-The grammar names eighteen runtimes. No engine implements all of them, and the useful thing an
+The grammar names nineteen runtimes. No engine implements all of them, and the useful thing an
 engine can do is be **precise about which** — so a warrant naming a runtime this engine does not
 have is refused by name, listing what it does have, rather than failing inside an artifact loader.
 The refusal distinguishes two cases needing different actions: `no_runtime` (never implemented —
@@ -668,7 +668,7 @@ isolation it does not have is more dangerous than one that claims none.
 
 ### 10.3 `descriptor_only`, and the governance it cannot reach
 
-`descriptor_only` is one of the eighteen and matters most in a bank, because the majority of the
+`descriptor_only` is one of the nineteen and matters most in a bank, because the majority of the
 estate already runs inside engines nobody is going to replace. MAYA governs **resolution**, not
 execution: a receiving engine can skip boundary checks, ignore the io contract, cache the artifact
 indefinitely and never report telemetry. This was finding **C-6** of the
