@@ -87,6 +87,13 @@
                         data: JSON.stringify(body || {})});
   }
 
+  /* DELETE, which the three verbs above did not cover. Added when the model
+     page grew a delete control; a screen assembling its own `$.ajax` beside
+     these would be a fourth spelling of the same thing. */
+  function remove(url) {
+    return jQuery.ajax({url: url, method: "DELETE"});
+  }
+
   function patch(url, body) {
     return jQuery.ajax({url: url, method: "PATCH", contentType: "application/json",
                         data: JSON.stringify(body || {})});
@@ -110,7 +117,8 @@
 
   window.mayaAlgebra = {
     escapeHtml: escapeHtml, refusalHtml: refusalHtml, refuse: refuse,
-    accept: accept, parseField: parseField, post: post, put: put, patch: patch,
+    accept: accept, parseField: parseField, post: post, put: put,
+    patch: patch, remove: remove,
     fields: fields, schemaHtml: schemaHtml
   };
 }());

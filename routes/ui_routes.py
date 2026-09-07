@@ -157,7 +157,8 @@ class UIRoutes(Routes):
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
             return self.page(
-                request, "features.html", unresolved=unresolved,
+                request, "features.html",
+                may_define=self.may_view(request, "feature:define"), unresolved=unresolved,
                 # From the code. Two forms carried their own list and they
                 # disagreed about `boolean`, so whether a feature could be one
                 # depended on which screen you opened.
@@ -207,7 +208,8 @@ class UIRoutes(Routes):
                 retrieval=__import__("core.features.preparation",
                                      fromlist=["describe"]).describe(),
                 alignment=__import__("core.features.alignment",
-                                     fromlist=["describe"]).describe())
+                                     fromlist=["describe"]).describe(),
+                may_define=self.may_view(request, "featureset:define"))
 
         @self.app.get("/featureset/{name}", response_class=HTMLResponse,
                       tags=["ui"])
