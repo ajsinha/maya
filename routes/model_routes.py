@@ -253,7 +253,7 @@ class ModelRoutes(Routes):
                     "detail": "this assessment lands on a different tier "
                               "depending on " + ", ".join(sorted(missing))
                               + ", and the request did not say",
-                    "remedy": "send " + ", ".join(sorted(missing))
+                    "remediation": "send " + ", ".join(sorted(missing))
                               + "; the schema's defaults are the low-risk "
                                 "reading, and defaulting to it silently is "
                                 "choosing your own tier"})
