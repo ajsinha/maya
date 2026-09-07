@@ -157,11 +157,11 @@ Every model a bank runs differs along exactly four **independent** axes:
 | Axis | Field | Vocabulary |
 |---|---|---|
 | How the parameter object is inhabited | `parameters.kind` | **8**: none, calibration_set, estimated_coefficients, learned_weights, llm_configuration, rule_set, elicited_weights, opaque |
-| How the kernel becomes runnable | `realisation.runtime` | **eighteen runtimes** (below) |
+| How the kernel becomes runnable | `realisation.runtime` | **nineteen runtimes** (below) |
 | What is being asked of it | `operation.verb` | **10**: score, fit, validate, backtest, explain, simulate, stress, optimise, generate, monitor |
 | Where its data comes from | `data.*.binding` | **12**: request, inline, feature_namespace, featureset, dataset_snapshot, delta_table, sql_query, stream, market_data, document_corpus, scenario_set, artifact |
 
-The grammar's eighteen runtimes, grouped by what they are:
+The grammar's nineteen runtimes, grouped by what they are:
 
 | | |
 |---|---|
@@ -179,7 +179,7 @@ whose parameter object is a document MAYA can *read*: for a T8 model the rule se
 **is** `P`, so it arrives the way every register-held parameter object does, and
 running one at an unapproved point of `P` is refused by the same mechanism that
 refuses running a scorecard at unapproved coefficients. See
-[Rule sets](/help/rule-sets). `descriptor_only` is one of the eighteen and
+[Rule sets](/help/rule-sets). `descriptor_only` is one of the nineteen and
 matters most in a bank, because much of the estate already runs inside engines
 nobody is going to replace.
 

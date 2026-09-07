@@ -91,6 +91,13 @@ RUNTIME_ENTRY: Dict[str, Tuple[str, ...]] = {
     "r": ("script",),
     "matlab": ("function",),
     # --- declarative ------------------------------------------------------
+    # The one runtime with nothing to locate: the expression IS the model, in
+    # the language this platform already parses for derived features. A
+    # scorecard, a logistic link, a Basel risk weight — the small closed-form
+    # models a bank has hundreds of — could previously be `descriptor_only`
+    # (governed and unrunnable) or wrapped in a container, which turns four
+    # lines of arithmetic into an artifact somebody has to build and sign.
+    "formula": ("expression",),
     "sql": ("statement", "dialect"),
     "spreadsheet": ("workbook", "sheet", "input_cells", "output_cells"),
     "rules": ("ruleset", "engine"),

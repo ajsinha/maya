@@ -320,6 +320,12 @@ STATUS: Dict[str, int] = {
     "pmml_malformed": 502, "pmml_unsupported": 501,
     "runtime_unavailable": 503,
     "missing_inputs": 422, "input_not_in_graph": 422,
+    # The formula runtime. `parameter_overridden` is a 409 rather than a
+    # 422 because the request is well formed and the conflict is with the
+    # approved parameter set; `malformed_expression` is a 409 because the
+    # version is immutable and the defect is in what was registered.
+    "no_expression": 422, "parameter_overridden": 409,
+    "malformed_expression": 409,
     "execution_timeout": 504, "execution_limit": 507,
     "execution_failed": 502,
     # the quantlib runtime's own refusals

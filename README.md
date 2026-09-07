@@ -247,8 +247,8 @@ blocking finding stops resolution, so a validation finding actually stops the mo
 generating an email.
 
 A warrant is the product of **four independent vocabularies** — how `P` is inhabited × how the kernel
-is realised (**eighteen runtimes**) × what is asked of it (**ten verbs**) × where its data comes from
-(**twelve bindings**). `descriptor_only` is one of the eighteen and matters most in a bank: much of
+is realised (**nineteen runtimes**) × what is asked of it (**ten verbs**) × where its data comes from
+(**twelve bindings**). `descriptor_only` is one of the nineteen and matters most in a bank: much of
 the estate already runs inside engines nobody is going to replace.
 
 **Warrants differ by kind of model as refusals over one document, never as different documents.**
