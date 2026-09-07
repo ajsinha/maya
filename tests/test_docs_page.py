@@ -47,3 +47,41 @@ class TestTheSpecificationPageRenders:
         csp = client.get("/docs").headers["content-security-policy"]
         assert "script-src 'self' 'unsafe-inline'" in csp
         assert "cdn." not in csp, "no CDN exception was opened for this"
+
+
+class TestTheHeadersAreDocumented:
+    """Six headers were added and described nowhere. A control nobody can read
+    about is a control the next person removes because they cannot see what it
+    was for — and this one costs something visible (`/docs` went blank), which
+    makes it exactly the kind somebody switches off.
+    """
+
+    SECURITY_DOC = (pathlib.Path(__file__).resolve().parents[1]
+                    / "docs" / "09-security-compliance.md")
+
+    def test_every_header_the_app_sends_is_named_in_the_document(self, client):
+        from run_maya_web import SECURITY_HEADERS
+
+        prose = self.SECURITY_DOC.read_text(encoding="utf-8")
+        missing = [name for name in SECURITY_HEADERS if name not in prose]
+        assert missing == [], (
+            "these headers are sent on every response and appear in no design "
+            "document: " + ", ".join(missing))
+
+    def test_the_document_names_no_header_the_app_does_not_send(self, client):
+        """The other direction, which is the one that rots: a document
+        describing a control that was removed."""
+        from run_maya_web import SECURITY_HEADERS
+
+        sent = {name.lower() for name in SECURITY_HEADERS}
+        actual = {k.lower() for k in client.get("/login").headers}
+        assert sent <= actual, sorted(sent - actual)
+
+    def test_the_unsafe_inline_decision_is_written_down(self):
+        prose = self.SECURITY_DOC.read_text(encoding="utf-8")
+        assert "'unsafe-inline'" in prose and "decision, not an oversight" in prose
+
+    def test_the_headers_reach_the_api_as_well_as_the_pages(self, client):
+        for path in ("/login", "/api/v1/openapi.json"):
+            headers = client.get(path).headers
+            assert "content-security-policy" in headers, path

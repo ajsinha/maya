@@ -342,15 +342,34 @@ sequenceDiagram
 minor versions of overlap and `Sunset` headers. The front end pins `openapi.lock.json`, so a backend
 change can never silently break it — the pipeline fails first, which is the point.
 
-**Local development.** `docker compose up` starts Postgres, Redis, MinIO, a Delta-capable Spark, and
-`maya-api`. `maya-web` runs against either the local API or a **Prism mock generated from the spec**, so
-front-end work is never blocked by backend availability. That is the practical dividend of E4.
+**Local development — planned, and not what happens today.** The paragraph below describes the
+intended shape. What actually exists is `python run_maya_web.py`: one process, SQLite on disk, Delta on
+the local filesystem, and the interface served by the same application that serves the API. There is no
+`docker-compose.yml` in this repository, no Redis, no MinIO and no Spark, and `maya-web` is not a
+separate deployable — [§3](#3-repository-topology) shows the split this plan assumes and
+[§0](#0-build-status) records that it was not taken.
+
+*Intended:* `docker compose up` starts Postgres, Redis, MinIO, a Delta-capable Spark and `maya-api`;
+`maya-web` runs against either the local API or a **Prism mock generated from the spec**, so front-end
+work is never blocked by backend availability. That is the practical dividend of E4.
 
 ---
 
 ## 6. Test strategy
 
-| Layer | Scope | Target | Runs |
+**Four of these nine layers exist.** Unit, laws, scale and — through the PostgreSQL job — a narrow
+slice of integration. The other five name tools that are not dependencies of this repository:
+testcontainers, Schemathesis, an adversarial corpus, migration rehearsal against production-shaped
+data, and a front-end component suite with `axe`. The *Runs* column below is what the plan asks for,
+not a record of what happens; [§0](#0-build-status) is the record, and [§7](#7-ci-gates) lists the
+seven jobs that actually fire.
+
+Two of the missing five are worth separating. **Migration rehearsal is not missing, it is not
+applicable** — there are no migrations; the DDL is re-applied. **Accessibility is partly covered**
+after all: `tests/test_ui_accessibility.py` computes contrast ratios against WCAG AA and asserts every
+form control carries a programmatic name, which is not `axe` and is not nothing.
+
+| Layer | Scope | Target | Runs (planned) |
 |---|---|---|---|
 | **Unit** | `domain/`, core modules; no I/O | ≥ 90% on domain, ≥ 85% overall | Every commit, < 90 s |
 | **Laws** (beside the code they constrain) | The executable laws — L-4, L-5, L-7, L-12, L-14, L-17, L-18, L-19 and the fourteen warrant laws. Hypothesis for L-4; exhaustive or example-based for the rest, which is what a finite lattice deserves | All pass | Every commit |
@@ -372,9 +391,14 @@ malicious-artifact corpus.
 
 ## 7. CI gates
 
-**Four of the nine gates run.** `.github/workflows/ci.yml` fires on every push and pull request to `main`
-and `develop`, in five jobs: the seven discipline walkers, the laws, the deck's geometry and slide count,
-the suite in four shards, and the dialect-sensitive files a second time against real **PostgreSQL**.
+**Seven of the nine gates run.** The header said *four* while the table three lines below it marked
+seven as running, which is the shape of drift this document exists to prevent — a number written once
+and not recounted when the rows under it changed.
+
+`.github/workflows/ci.yml` fires on every push and pull request to `main` and `develop`, in **seven
+jobs**: hygiene (linter, types, dependency advisories, secret scan, SBOM, spec lock), the discipline
+walkers, the laws, the deck's geometry and slide count, the suite in four shards, a combined coverage
+floor, and the dialect-sensitive files a second time against real **PostgreSQL**.
 
 That last one is the gate this section did not think to ask for, and it earned its place immediately.
 `db/schema/postgres.sql` is maintained column-for-column beside the SQLite one and had **never been
@@ -405,6 +429,14 @@ in [03 §7](03-requirements.md) is a target rather than a result.
 ---
 
 ## 8. Environments
+
+**None of these exist.** There is one deployment shape today: a single process, run by hand or by a
+container image somebody builds, against SQLite or PostgreSQL. No `local` compose stack, no `ci`
+environment beyond the GitHub runner, no `dev`, `uat` or `prod` — and therefore no blue/green, no
+independently deployed warrant plane and no masked copy of a real inventory. The table is the target
+that [10](10-roadmap.md) sequences, kept here because the *shape* is a design decision (the warrant
+plane deploying independently is a claim about coupling, not about hosting) and deleting it would lose
+the argument along with the fiction.
 
 | Environment | Purpose | Data | Notes |
 |---|---|---|---|
