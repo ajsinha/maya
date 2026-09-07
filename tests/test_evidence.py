@@ -101,6 +101,52 @@ class TestAppendChain:
                             {"name": "A Borrower"}, personal_data=True)
         assert n["payload"] == {} and n["contains_personal_data"] is True
 
+    def test_no_personal_payload_survives_anywhere_on_the_node(self, evidence):
+        """The law is about the DATA not being there, and the assertion above is
+        about one field being empty.
+
+        A payload discarded from `payload` and echoed into a digest, a detail
+        string or a summary would satisfy that assertion and break the law —
+        and the whole point of L-18 is that erasure is possible, which it is not
+        if the value survives somewhere else on the row. So the check is
+        against the serialised node, not against one key.
+        """
+        import json
+
+        # A distinctive value, so finding it anywhere is unambiguous.
+        borrower_name = "Wilhelmina Ashcombe-Trevelyan"
+        node = evidence.append("subject_record", "version", "v1",
+                               {"name": borrower_name,
+                                "nested": {"also": borrower_name}},
+                               personal_data=True)
+        assert borrower_name not in json.dumps(node, default=str), \
+            "the value survives somewhere on the node, so it cannot be erased"
+
+        # And not in the stored row either, which is what an examiner reads.
+        stored = evidence.repo.one(id=node["id"])
+        assert borrower_name not in json.dumps(stored, default=str)
+
+    def test_a_flagged_node_still_verifies_against_itself(self, evidence):
+        """The payload is discarded and the node hashes WHAT IT STORED, so the
+        chain does not break at the row that carries nothing. A node that
+        hashed the payload it threw away would fail verification forever."""
+        evidence.append("subject_record", "version", "v1",
+                        {"name": "A Borrower"}, personal_data=True)
+        evidence.append("test_result", "version", "v1", {"gini": 0.47})
+        report = evidence.verify_chain()
+        assert report["valid"] is True, report
+
+    def test_the_flag_is_what_decides_it_and_not_the_shape(self, evidence):
+        """An identical payload without the flag is retained. The law is about
+        what somebody DECLARED, because MAYA cannot detect personal data and
+        pretending otherwise would be a control that fails silently."""
+        flagged = evidence.append("subject_record", "version", "v1",
+                                  {"name": "A Borrower"}, personal_data=True)
+        plain = evidence.append("subject_record", "version", "v2",
+                                {"name": "A Borrower"})
+        assert flagged["payload"] == {}
+        assert plain["payload"] == {"name": "A Borrower"}
+
     def test_ordinary_payloads_are_retained(self, evidence):
         n = evidence.append("test_result", "version", "v1", {"gini": 0.47})
         assert n["payload"] == {"gini": 0.47}

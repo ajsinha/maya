@@ -57,8 +57,19 @@ effective challenge, whatever the org chart says.</p>
           {% if p.legal_entities %}entities: {{ p.legal_entities|join(", ") }}<br>{% endif %}
           {% if p.domains %}domains: {{ p.domains|join(", ") }}{% endif %}
           {% if not p.legal_entities and not p.domains %}the whole estate{% endif %}</td>
-        <td class="small">{{ p.effective|length }}
-          <span class="text-muted" style="font-size:.72rem">effective</span></td>
+        {# The list, not just its length. The route computes
+           `sorted(authz.permissions(row))` and the template rendered the COUNT
+           and threw the rest away — so "23 effective" was the answer to the
+           question an administrator opens this screen to ask: why can this
+           person not do X? #}
+        <td class="small">
+          <details>
+            <summary style="cursor:pointer">{{ p.effective|length }}
+              <span class="text-muted" style="font-size:.72rem">effective</span></summary>
+            <div class="mt-1" style="font-size:.7rem;line-height:1.5;max-width:22rem">
+              {% for perm in p.effective %}<span class="mono me-1">{{ perm }}</span>{% endfor %}
+            </div>
+          </details></td>
         {% if may_manage %}
         <td class="small text-nowrap">
           <button class="btn btn-sm btn-outline-secondary py-0 px-2 edit-roles"
@@ -143,6 +154,26 @@ effective challenge, whatever the org chart says.</p>
           <div><dt>{{ c.roles|join(" + ") }}</dt><dd>{{ c.reason }}</dd></div>
         {% endfor %}
       </dl>
+      {# The PERMISSION pairs, which the route has always computed and the page
+         has never rendered. The Define-a-role card warns that "a role holding
+         both halves of an incompatible pair is refused" and never said which
+         pairs those are — so the only way to find out was to define a role and
+         be refused. Grouped, because the pairs are derived from two sets of
+         acts and listing all 105 individually would be noise. #}
+      <div class="card-body py-2 small border-top">
+        <details>
+          <summary style="cursor:pointer"><strong>Acts nobody may hold
+            together</strong> &mdash; {{ incompatible_permissions|length }} pairs</summary>
+          <div class="mt-2" style="font-size:.72rem;line-height:1.6">
+            {% for group, pairs in incompatible_permissions|groupby("reason") %}
+              <div class="mb-2">
+                <div class="text-muted">{{ group }}</div>
+                {% for c in pairs %}<span class="mono me-1">{{ c.permissions|join(" + ") }}</span>{% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </details>
+      </div>
     </div>
   </div>
   <div class="col-12 col-lg-7">

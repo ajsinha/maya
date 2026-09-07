@@ -44,6 +44,12 @@ logger = get_logger(__name__)
 
 SESSION_KEY = "csrf_token"
 HEADER = "x-maya-csrf"
+
+#: The meta tag `base.html` renders the token into. Named here rather than
+#: written out in the refusal, because the refusal named the HEADER as if it
+#: were the meta tag -- "send the token from the page's 'x-maya-csrf' meta tag"
+#: -- and no such tag exists. Two names for two things, in one place.
+META = "csrf-token"
 FORM_FIELD = "csrf_token"
 
 # Methods that cannot change anything, and are therefore not worth a token. HEAD

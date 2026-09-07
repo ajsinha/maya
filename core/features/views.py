@@ -18,8 +18,12 @@ from typing import Any, Dict, List, Optional
 
 from core.evidence import EvidenceEngine
 from core.features.catalogue import FeatureCatalogue
+from core.log import get_logger
 from core.features.common import ENTITY, INGEST_TIME, RESERVED, VALID_TIME, FeatureError
 from db import DeltaStore, FeatureViewRepository, FeatureViewVersionRepository
+
+
+logger = get_logger(__name__)
 
 
 class ViewManager:
@@ -62,7 +66,31 @@ class ViewManager:
         self._check_clocks(rows)
         latest = self.view_versions.first("version", desc=True, feature_view_id=view["id"])
         number = (latest["version"] + 1) if latest else 1
-        delta_version = self.delta.write(self._path(view, number), rows)
+        target = self._path(view, number)
+        # An ORPHAN from an attempt that died between the two writes.
+        #
+        # Delta is written first and the control-plane row second, and they
+        # cannot share a transaction — one is a table on a volume, the other is
+        # a row in the register. If the row write fails, the Delta table for
+        # version N exists and nothing records it; `number` is recomputed from
+        # `view_versions` next time and comes back as N again, and
+        # `DeltaStore.write` defaults to `mode="append"` — so the abandoned rows
+        # merge into what is then recorded as version N, and `row_count`
+        # disagrees with the table it describes.
+        #
+        # Overwriting is safe precisely because the orphan was never recorded:
+        # no version row, no contract and no warrant can be pinned to it. Said
+        # out loud, because rows disappearing silently is the other way to get
+        # this wrong.
+        if self.delta.exists(target):
+            logger.warning(
+                "'%s' already holds data that no feature view version records "
+                "— an earlier materialisation wrote Delta and did not record "
+                "it. Overwriting: nothing can be pinned to a version that was "
+                "never registered.", target)
+            delta_version = self.delta.write(target, rows, mode="overwrite")
+        else:
+            delta_version = self.delta.write(target, rows)
         names = feature_names or sorted({k for r in rows for k in r} - set(RESERVED))
         row = {"feature_view_id": view["id"], "version": number, "features": names,
                "delta_version": delta_version, "valid_time_column": VALID_TIME,
@@ -72,7 +100,7 @@ class ViewManager:
             self.view_versions.add(row)
             self.evidence.append("feature_view_materialised", "feature_view", view["id"],
                                  {"version": number, "rows": len(rows),
-                                  "table": self._path(view, number)}, actor=actor)
+                                  "table": target}, actor=actor)
         return row
 
     @staticmethod
