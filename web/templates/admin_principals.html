@@ -70,9 +70,18 @@ effective challenge, whatever the org chart says.</p>
                   style="font-size:.72rem"
                   data-username="{{ p.username }}">Password</button>
           {% if p.status == "active" %}
+            {% if p.username == me %}
+              {# Suspending yourself is refused by the service, because
+                 reinstating needs a permission the suspended account no longer
+                 has. Not offering it is the honest half of the same rule. #}
+              <span class="text-muted" style="font-size:.72rem"
+                    title="Reinstating needs 'principal:manage', which you would
+                           no longer have. Ask another administrator.">you</span>
+            {% else %}
             <button class="btn btn-sm btn-outline-danger py-0 px-2 suspend"
                     style="font-size:.72rem"
                     data-username="{{ p.username }}">Suspend</button>
+            {% endif %}
           {% else %}
             <button class="btn btn-sm btn-outline-danger py-0 px-2 reinstate"
                     style="font-size:.72rem"

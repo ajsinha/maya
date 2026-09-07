@@ -90,7 +90,14 @@ STATUS: Dict[str, int] = {
     # authorisation
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,
+    # Same answer as `incompatible_roles`, asked of a role's permissions
+    # rather than of a person's roles: nothing is wrong with the request,
+    # the duties are.
+    "incompatible_permissions": 409,
     "duplicate_principal": 409, "no_such_principal": 404, "unknown_role": 422,
+    # Both 409: the request is well-formed, and the register is in a state
+    # where granting it would leave nobody able to undo it.
+    "self_suspension": 409, "last_administrator": 409,
     # 500, not 403: a model-scoped permission checked without a model is a
     # defect in the route, and the caller may well hold the permission. A 403
     # here would send somebody to ask for access they already have.
@@ -229,6 +236,10 @@ STATUS: Dict[str, int] = {
     # not 401: the credential is valid and the act is not permitted
     # to it, which is a different thing from not being signed in.
     "outside_key_scope": 403,
+    # A stored scope that is not a list. 500 rather than 403: nothing is
+    # wrong with the request, and the platform cannot tell what this
+    # credential is permitted to do.
+    "key_scope_unreadable": 500,
     "principal_not_active": 409,
     "name_required": 422, "name_in_use": 409,
     "lifetime_refused": 422, "scope_exceeds_principal": 422,
@@ -569,7 +580,22 @@ class Routes:
         if header.lower().startswith("bearer "):
             secret = header[7:].strip()
         secret = secret or (request.headers.get("x-api-key") or "").strip()
-        return keys.authenticate(secret) if secret else None
+        if not secret:
+            return None
+        # `authenticate` returns None for a key that is unknown, expired,
+        # revoked or whose principal is suspended -- all of which are "not
+        # signed in". It RAISES only when the stored credential cannot be read
+        # at all, which is not the same answer and must not be flattened into
+        # one: a key whose scope column is corrupt would otherwise fall through
+        # to the anonymous 401, and an operator would go looking for a key that
+        # is present and valid.
+        try:
+            return keys.authenticate(secret)
+        except ApiKeyError as exc:
+            logger.error("API key '%s' could not be applied: %s", exc.code,
+                         exc.detail)
+            raise HTTPException(STATUS.get(exc.code, 500),
+                                exc.as_problem()) from exc
 
     def authorise(self, request: Request, permission: str,
                   model: Optional[Dict[str, Any]] = None,
@@ -592,6 +618,9 @@ class Routes:
         # property of the CREDENTIAL and authorisation is a property of the
         # identity: a key that carried its own permissions would be a second
         # place permissions come from.
+        # Always a list by the time it gets here: `ApiKeyRegister.authenticate`
+        # refuses a stored scope that is not one, because this check used to be
+        # a SUBSTRING match when the JSON column failed to decode.
         scopes = who.get("api_key_scopes")
         if scopes and permission not in scopes:
             raise HTTPException(403, {

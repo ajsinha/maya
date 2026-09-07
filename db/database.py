@@ -29,6 +29,10 @@ _CREATE_TABLE = re.compile(
     r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\((.*)\)\s*$",
     re.S | re.I)
 
+_CREATE_INDEX = re.compile(
+    r"CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s+"
+    r"ON\s+(\w+)\s*\(", re.S | re.I)
+
 # Words that begin a table constraint rather than a column.
 _NOT_A_COLUMN = {"PRIMARY", "UNIQUE", "CONSTRAINT", "FOREIGN", "CHECK", "INDEX"}
 
@@ -223,6 +227,29 @@ class Database:
                                if c and c.upper() not in _NOT_A_COLUMN}
         return declared
 
+    def declared_indexes(self) -> Dict[str, Set[str]]:
+        """Table to the index names the shipped DDL creates."""
+        declared: Dict[str, Set[str]] = {}
+        for stmt in self._statements(self.schema_file().read_text()):
+            match = _CREATE_INDEX.match(_without_trailing_comments(stmt))
+            if match:
+                declared.setdefault(match.group(2), set()).add(match.group(1))
+        return declared
+
+    def indexes_of(self, table: str) -> List[str]:
+        """The index names a table actually has, from the database itself."""
+        try:
+            found = {i["name"] for i in inspect(self.engine).get_indexes(table)}
+            # A UNIQUE clause inside a CREATE TABLE surfaces as a constraint
+            # rather than an index on both dialects, so both are read.
+            found |= {c["name"] for c in
+                      inspect(self.engine).get_unique_constraints(table)}
+            return sorted(n for n in found if n)
+        except Exception as exc:                          # pragma: no cover
+            swallowed(logger, exc, f"inspected indexes of '{table}'",
+                      detail="treated as absent")
+            return []
+
     def drift(self) -> Dict[str, List[str]]:
         """Where the live database and the shipped DDL disagree.
 
@@ -235,6 +262,21 @@ class Database:
 
         There is no migration tool here and this is not one. It is the check
         that turns that silence into a sentence at start-up.
+
+        Indexes are checked as well as columns, and the reason is the sharpest
+        version of this whole problem. A UNIQUE clause written into a CREATE
+        TABLE body is skipped on an existing table exactly as a column is -- but
+        unlike a missing column, a missing uniqueness constraint fails NOTHING
+        at the point of use. It silently permits the write it existed to refuse.
+        Two quorum constraints shipped that way: the commit message said a
+        quorum was now a number of people, the suite proved it on a fresh
+        database, and on every database that already existed one dual-hatted
+        principal remained a quorum of one. Nothing anywhere said so.
+
+        Both are now `CREATE UNIQUE INDEX IF NOT EXISTS`, which DOES apply to an
+        existing table in both dialects -- so they arrive on a deployed database
+        with no migration step. This check is what catches the next one written
+        the other way.
         """
         gaps: Dict[str, List[str]] = {}
         for table, columns in self.declared_schema().items():
@@ -244,6 +286,13 @@ class Database:
                 continue
             if missing := sorted(columns - live):
                 gaps[table] = [f"missing column '{c}'" for c in missing]
+        indexes = self.declared_indexes()
+        for table, names in indexes.items():
+            if table in gaps and gaps[table] == ["the table is absent"]:
+                continue
+            if missing := sorted(names - set(self.indexes_of(table))):
+                gaps.setdefault(table, []).extend(
+                    f"missing index '{i}'" for i in missing)
         return gaps
 
     def check_drift(self) -> Dict[str, List[str]]:
