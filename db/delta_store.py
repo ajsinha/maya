@@ -79,10 +79,22 @@ class DeltaStore:
         return DeltaTable(self.path(table)).version() if self.exists(table) else -1
 
     def write(self, table: str, rows: List[Dict[str, Any]], mode: str = "append") -> int:
-        """Append rows and return the resulting table version."""
+        """Append rows and return the resulting table version.
+
+        An `overwrite` replaces the schema as well as the rows. Delta keeps the
+        existing schema on an overwrite unless told otherwise, which is right
+        for a table being refreshed and wrong for the only case that asks for
+        overwrite here: replacing an ORPHAN left by a materialisation that wrote
+        Delta and failed before recording it. That orphan may have been written
+        from a different set of features — the view was redefined in between,
+        which is often WHY the first attempt failed — and refusing on
+        `SchemaMismatchError` leaves the table permanently unwritable with no
+        way through the product.
+        """
         if not rows:
             return self.version(table)
-        write_deltalake(self.path(table), pd.DataFrame(rows), mode=mode)
+        extra = {"schema_mode": "overwrite"} if mode == "overwrite" else {}
+        write_deltalake(self.path(table), pd.DataFrame(rows), mode=mode, **extra)
         return self.version(table)
 
     def read(self, table: str, as_of_version: Optional[int] = None) -> pd.DataFrame:
