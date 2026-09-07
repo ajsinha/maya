@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
@@ -156,8 +156,27 @@ class UIRoutes(Routes):
                 versions = f.views.versions_of(view["name"])
                 views.append({**view, "versions": versions,
                               "latest": versions[-1] if versions else None})
+            # What the DELETE check would say, asked here. The button rendered
+            # on `ephemeral and not sealed` and never consulted the reference
+            # index — which the same row links to, two elements to its left —
+            # so a feature the index already knew was blocked was offered for
+            # deletion and then refused. The dependency screen's own lead
+            # paragraph says the two must not disagree.
+            blocked = set()
+            for row in catalogue:
+                try:
+                    if not self.ctx["references"].to("feature",
+                                                     row["name"])["deletable"]:
+                        blocked.add(row["name"])
+                except Exception as exc:
+                    swallowed(logger, exc,
+                              f"asked whether '{row['name']}' is deletable",
+                              detail="the row is treated as blocked, which is "
+                                     "the safe direction for a delete button",
+                              level=logging.INFO)
+                    blocked.add(row["name"])
             return self.page(
-                request, "features.html",
+                request, "features.html", blocked=sorted(blocked),
                 may_define=self.may_view(request, "feature:define"), unresolved=unresolved,
                 # From the code. Two forms carried their own list and they
                 # disagreed about `boolean`, so whether a feature could be one
@@ -378,13 +397,25 @@ class UIRoutes(Routes):
             if (r := self.page_gate(request, "model:read")) is not None:
                 return r
             from core.references import KINDS
+            from core.references.index import NoSuchSubject
 
             registry, features = self.ctx["registry"], self.ctx["features"]
             who = self.page_principal(request)
-            report = None
+            report, missing = None, None
             if id:
                 try:
                     report = self.ctx["references"].to(kind, id)
+                except NoSuchSubject as exc:
+                    # Said in red on the page rather than answered with a
+                    # blank. A mistyped name used to render exactly what a real
+                    # unreferenced thing renders — "It can be deleted, and
+                    # deleting it will leave nothing broken."
+                    swallowed(logger, exc, "rendered the dependency view",
+                              detail=f"there is no {kind} called '{id}'; the "
+                                     f"page says so rather than answering that "
+                                     f"nothing refers to it",
+                              level=logging.INFO)
+                    missing = exc.detail
                 except ValueError as exc:
                     # A kind this index does not answer for. Recovered from
                     # rather than raised, because the page's own form is how
@@ -412,6 +443,11 @@ class UIRoutes(Routes):
                 suggestions = [v["name"] for v in features.views.views.many()]
             return self.page(request, "dependencies.html", kinds=list(KINDS),
                              kind=kind, subject=id, report=report,
+                             missing=missing,
+                             # Every kind's suggestions, so switching the Kind
+                             # select does not leave the box offering the
+                             # previous kind's names.
+                             suggestions_by_kind=self._dependency_suggestions(who),
                              suggestions=sorted(suggestions))
 
         # ----------------------------------------------------- limitations
@@ -666,6 +702,34 @@ class UIRoutes(Routes):
             return None, None
         return model, registry.version(urn, semver)
 
+    def _dependency_suggestions(self, who) -> Dict[str, List[str]]:
+        """What to offer for EVERY kind, not only the one in the URL.
+
+        The datalist was populated for the current kind alone, and nothing
+        repopulated it when the Kind select changed — so landing on
+        /dependencies and switching to "feature" left the box suggesting model
+        urns. Two kinds got no suggestions at all, and they are the two
+        addressed by opaque ids that appear nowhere on the screen.
+        """
+        registry, features = self.ctx["registry"], self.ctx["features"]
+        out: Dict[str, List[str]] = {
+            "model": sorted(m["urn"] for m in
+                            self.ctx["authz"].visible(who, registry.list())),
+            "feature": sorted(f["name"] for f in features.list_features()),
+            "featureset": sorted(f["name"] for f in features.sets.list()),
+            "feature_view": sorted(v["name"] for v in
+                                   features.views.views.many()),
+        }
+        # The two addressed by id. Labelled with something a person recognises,
+        # since an opaque identifier in a suggestion list helps nobody.
+        out["model_version"] = sorted(
+            v["id"] for m in registry.list()
+            for v in registry.versions(m["urn"]))
+        out["featureset_version"] = sorted(
+            r["id"] for r in self.ctx["db"].query(
+                "SELECT id FROM featureset_version"))
+        return out
+
     def _featureset_labels(self, parameter_sets) -> Dict[str, str]:
         """featureset version id -> 'name@vN', for the sets that name one."""
         sets = self.ctx["features"].sets
@@ -718,7 +782,6 @@ def _kernel_type(versions) -> Optional[Dict[str, Any]]:
         "inputs": fields(version.get("input_schema")),
         "outputs": fields(version.get("output_schema")),
     }
-
 
 #: What each way of inhabiting `P` actually is, in a reader's words. Short on
 #: purpose: the page is showing a type, not teaching the taxonomy.

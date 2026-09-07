@@ -77,7 +77,8 @@ class PublicRoutes(Routes):
             found = content.get(area, slug)
             if found is None:
                 return self.page(request, "not_found.html", http_status=404,
-                                 name=f"{area}/{slug}")
+                                 what="help topic", identifier=f"{area}/{slug}",
+                                 back_href="/help", back_label="Back to help")
             related = [t for t in content.topics(area) if t.section == found.section]
             return self.page(request, "help_topic.html", topic=found, related=related,
                              **area_context(area))

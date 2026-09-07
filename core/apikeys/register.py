@@ -238,7 +238,11 @@ class ApiKeyRegister:
             logger.warning("API key '%s' presented for suspended principal %s",
                            row["name"], row["username"])
             raise ApiKeyError(
-                "principal_not_active",
+                # Its own code, not the 409 `principal_not_active` that issuing
+                # a key to an inactive principal raises. This is an
+                # AUTHENTICATION failure and answers 401; the two read the same
+                # in prose and are different answers to different questions.
+                "key_principal_not_active",
                 f"{row['username']} is {principal.get('status')}, so keys "
                 f"issued to them do not authenticate",
                 "reinstate the principal, or issue the key to one who is "

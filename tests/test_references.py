@@ -111,10 +111,19 @@ class TestWhatRefersToAFeature:
 
     def test_a_near_miss_name_is_not_a_reference(self, nj_estate):
         """`LIKE '%ltv%'` matches `ltv_band`, and a delete check that is wrong
-        in that direction is one nobody can trust."""
-        index, _ = nj_estate
+        in that direction is one nobody can trust.
+
+        `bed` is defined here rather than merely asked about, because asking
+        about a name that does not exist is now its own refusal — which is the
+        point of the test below.
+        """
+        index, features = nj_estate
+        features.define("bed", "property_id", "numeric",
+                        "a name that is a substring of bedrooms",
+                        "person/d.raman")
         report = index.to("feature", "bed")
-        assert report["references"] == []
+        assert report["references"] == [], \
+            "bedrooms' usages are not bed's usages"
 
     def test_an_unused_feature_is_deletable(self, nj_estate):
         index, features = nj_estate
@@ -143,9 +152,22 @@ class TestTheIndexItself:
         with pytest.raises(ValueError, match="not something this index knows"):
             index.to("teapot", "x")
 
-    def test_every_kind_it_names_can_be_asked(self, index):
+    def test_a_name_that_does_not_exist_is_not_safe_to_delete(self, index):
+        """The most dangerous wrong answer this index can give, and it gave it.
+
+        `to()` never checked that the subject existed, so a mistyped name
+        answered exactly what a real, unreferenced thing answers: "nothing
+        refers to this. It can be deleted, and deleting it will leave nothing
+        broken." Reassurance about something that was never there.
+        """
+        from core.references.index import NoSuchSubject
+
         for kind in KINDS:
-            assert index.to(kind, "nothing-of-this-name")["references"] == []
+            with pytest.raises(NoSuchSubject) as refusal:
+                index.to(kind, "nothing-of-this-name")
+            assert refusal.value.code == "no_such_subject"
+            assert "nothing-of-this-name" in refusal.value.detail
+            assert "not the same answer" in refusal.value.remediation
 
     def test_the_refusal_carries_a_code_like_every_other(self):
         """The discipline walker looks for the code as the first argument, and
@@ -198,16 +220,36 @@ class TestTheDependencyScreen:
         assert "3.2.1" in body, "the version is named"
 
     def test_it_says_plainly_when_nothing_refers(self, registered, client):
-        self._login(client)
-        registered.post("/api/v1/models", json={
+        """The model is created with HTTP Basic, BEFORE the session exists.
+
+        This used to post it with the session cookie and no CSRF token, so the
+        create was refused and the model never existed — and the test passed
+        anyway, because a name that does not exist answered exactly what a real
+        unreferenced model answers. The bug under test was holding the test up.
+        """
+        made = registered.post("/api/v1/models", auth=("admin", "maya-admin-dev"),
+                               json={
             "urn": "maya://model/lonely.one", "name": "Lonely",
             "model_class": "c", "domain": "credit", "owner": "person/o",
             "legal_entity": "LE-US-01", "purpose": "nothing points at it"})
+        assert made.status_code == 201, made.text
+        self._login(client)
         body = registered.get(
             "/dependencies",
             params={"kind": "model", "id": "maya://model/lonely.one"}).text
         assert "Nothing refers to this" in body
         assert "nothing blocks a deletion" in body
+
+    def test_a_name_that_does_not_exist_says_so_in_red(self, registered, client):
+        """Held apart from the case above, because they used to render
+        identically — and one of them is a deletion nobody meant."""
+        self._login(client)
+        body = registered.get(
+            "/dependencies",
+            params={"kind": "model", "id": "maya://model/never.existed"}).text
+        assert "Nothing to look up" in body
+        assert "there is no model called" in body
+        assert "nothing blocks a deletion" not in body
 
     def test_it_offers_what_exists_rather_than_an_empty_box(self, registered,
                                                             client):
@@ -215,7 +257,11 @@ class TestTheDependencyScreen:
         dangerous wrong answer this screen can give."""
         self._login(client)
         body = registered.get("/dependencies", params={"kind": "model"}).text
-        assert 'list="dep-suggestions"' in body
+        assert 'list="dep-suggestions-model"' in body
+        # And every OTHER kind has its own list, so switching the Kind select
+        # does not leave the box offering the previous kind's names.
+        assert 'id="dep-suggestions-feature"' in body
+        assert 'id="dep-suggestions-featureset_version"' in body
         assert URN in body, "the estate's own models are offered"
 
     def test_the_screen_and_the_delete_agree(self, registered, client):

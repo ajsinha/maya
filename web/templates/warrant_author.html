@@ -132,7 +132,7 @@ verbatim, with the remediation it supplied.</p>
             Issue the grant</button>
           <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.grant }}</span>
         </form>
-        <div id="grant-result" class="small mt-2"></div>
+        <div role="status" aria-live="polite" id="grant-result" class="small mt-2"></div>
       </div>
       <div class="col-lg-5">
         <table class="table table-sm maya">
@@ -246,7 +246,7 @@ verbatim, with the remediation it supplied.</p>
             Register the profile</button>
           <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.profile }}</span>
         </form>
-        <div id="profile-result" class="small mt-2"></div>
+        <div role="status" aria-live="polite" id="profile-result" class="small mt-2"></div>
       </div>
       <div class="col-lg-6">
         <form id="preview-profile" class="small">
@@ -262,7 +262,7 @@ verbatim, with the remediation it supplied.</p>
             What would apply?</button>
           <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.preview }}</span>
         </form>
-        <div id="preview-result" class="small mt-2"></div>
+        <div role="status" aria-live="polite" id="preview-result" class="small mt-2"></div>
       </div>
     </div>
   </div>
@@ -307,7 +307,7 @@ verbatim, with the remediation it supplied.</p>
       the alias at the moment of use and not by anything on this page. The other
       verbs are still offered, so that a refusal explains itself rather than a
       control silently disappearing.</p>
-    <div id="warrant-result" class="mt-3"></div>
+    <div role="status" aria-live="polite" id="warrant-result" class="mt-3"></div>
   </div>
 </div>
 
@@ -380,7 +380,7 @@ verbatim, with the remediation it supplied.</p>
           it trains from, and there is none to name.
           <a href="/featuresets">Declare one first.</a></p>
         {% endif %}
-        <div id="fit-result" class="mt-3"></div>
+        <div role="status" aria-live="polite" id="fit-result" class="mt-3"></div>
       </div>
 
       <div class="col-lg-6">
@@ -423,7 +423,7 @@ verbatim, with the remediation it supplied.</p>
           numbers" has no answer. <strong>Declared</strong> parameters need
           neither: they are an assertion by a person, and are attested rather than
           fitted.</p>
-        <div id="record-result" class="mt-3"></div>
+        <div role="status" aria-live="polite" id="record-result" class="mt-3"></div>
       </div>
     </div>
 
@@ -476,7 +476,7 @@ verbatim, with the remediation it supplied.</p>
     <p class="small text-muted">This model has no versions, so there is nothing to
       inhabit.</p>
     {% endfor %}
-    <div id="review-result" class="small"></div>
+    <div role="status" aria-live="polite" id="review-result" class="small"></div>
     <p class="text-muted mb-0" style="font-size:.72rem">
       A set arrives <strong>proposed</strong>. Whoever recorded it cannot approve
       it — the register refuses <code>self_approval</code> — because a parameter
@@ -529,7 +529,7 @@ verbatim, with the remediation it supplied.</p>
           environment, for every principal. There is no endpoint for withdrawing
           one grant, though the service underneath has the method.
         </div>
-        <div id="revoke-result" class="small mt-2"></div>
+        <div role="status" aria-live="polite" id="revoke-result" class="small mt-2"></div>
       </div>
     </div>
   </div>
@@ -585,7 +585,7 @@ verbatim, with the remediation it supplied.</p>
       <button class="btn btn-sm btn-outline-danger mt-2 py-0 px-3" style="font-size:.75rem">Execute</button>
       <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.execute }}</span>
     </form>
-    <div id="execute-result" class="small mt-2"></div>
+    <div role="status" aria-live="polite" id="execute-result" class="small mt-2"></div>
     {% else %}
     <p class="small text-muted mb-0">This instance issues warrants and runs
       nothing, so there is no engine here to demonstrate a violation with. The
@@ -644,7 +644,7 @@ verbatim, with the remediation it supplied.</p>
               id="load-last" style="font-size:.75rem">Load the last warrant resolved</button>
       <span class="text-muted ms-2 mono" style="font-size:.7rem">{{ curl.check }}</span>
     </form>
-    <div id="check-result" class="mt-3"></div>
+    <div role="status" aria-live="polite" id="check-result" class="mt-3"></div>
   </div>
 </div>
 {% endblock %}

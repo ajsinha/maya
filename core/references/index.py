@@ -65,6 +65,29 @@ class Reference:
                 "why": self.why, "blocking": int(self.blocking)}
 
 
+class NoSuchSubject(LookupError):
+    """The thing being asked about does not exist.
+
+    Held apart from "nothing refers to it", because conflating the two is how
+    the dependency screen told somebody a name they had mistyped was safe to
+    delete.
+    """
+
+    def __init__(self, kind: str, identifier: str):
+        super().__init__(identifier)
+        self.kind, self.identifier = kind, identifier
+        self.code = "no_such_subject"
+        self.detail = (f"there is no {kind.replace('_', ' ')} called "
+                       f"'{identifier}'")
+        self.remediation = ("check the name; this is not the same answer as "
+                            "'nothing refers to it', and treating it as one is "
+                            "how something gets deleted that was never there")
+
+    def as_problem(self) -> Dict[str, Any]:
+        return {"error": self.code, "detail": self.detail,
+                "remediation": self.remediation}
+
+
 class ReferenceIndex:
     """Answers what refers to a model, a version, a feature or a featureset."""
 
@@ -78,6 +101,14 @@ class ReferenceIndex:
             raise ValueError(
                 f"'{kind}' is not something this index knows about; it answers "
                 f"for {', '.join(KINDS)}")
+        # Does the subject EXIST? Nothing asked, so a mistyped name answered
+        # "nothing refers to this. It can be deleted, and deleting it will
+        # leave nothing broken" — identical to the answer for a real,
+        # unreferenced thing. The screen's own docstring calls a blank result
+        # the most dangerous wrong answer it can give, and this was how it gave
+        # it: reassurance about something that was never there.
+        if not self._exists(kind, identifier):
+            raise NoSuchSubject(kind, identifier)
         found = getattr(self, f"_to_{kind}")(identifier)
         blocking = [r for r in found if r.blocking]
         return {
@@ -88,6 +119,24 @@ class ReferenceIndex:
             "deletable": not blocking,
             "detail": self._detail(len(blocking), len(found) - len(blocking)),
         }
+
+    def _exists(self, kind: str, identifier: str) -> bool:
+        """Whether the thing being asked about is there at all."""
+        if kind == "model":
+            return self.registry.get(identifier) is not None
+        if kind == "model_version":
+            return self.registry.version_by_id(identifier) is not None
+        if kind == "feature":
+            return self.features.feature(identifier) is not None
+        if kind == "featureset":
+            return self.features.featureset(identifier) is not None
+        if kind == "feature_view":
+            return bool(self.features.views.views.one(name=identifier))
+        if kind == "featureset_version":
+            return bool(self.db.query(
+                "SELECT id FROM featureset_version WHERE id = :i LIMIT 1",
+                {"i": identifier}))
+        return True
 
     @staticmethod
     def _detail(blocking: int, historical: int) -> str:

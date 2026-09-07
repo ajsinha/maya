@@ -643,7 +643,8 @@ class FeatureAuthoringRoutes(Routes):
                 return self.refused_page(request, f"The feature {name}")
             if features.catalogue.get(name) is None:
                 return self.page(request, "not_found.html", http_status=404,
-                                 name=name)
+                                 what="feature", identifier=name,
+                                 back_href="/features", back_label="Back to the feature catalogue")
             derived = features.derived.get(name) if features.derived else None
             return self.page(
                 request, "feature_author_feature.html",

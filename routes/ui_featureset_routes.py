@@ -176,7 +176,8 @@ class FeaturesetAuthoringRoutes(Routes):
             row = next((v for v in versions if v["version"] == version), None)
             if row is None:
                 return self.page(request, "not_found.html", http_status=404,
-                                 name=f"{name} v{version}")
+                                 what="featureset version", identifier=f"{name} v{version}",
+                                 back_href="/featuresets", back_label="Back to the featuresets")
             previous = next((v for v in versions if v["version"] == version - 1),
                             None)
             return self.page(
@@ -291,7 +292,9 @@ class FeaturesetAuthoringRoutes(Routes):
         """
         if features.sets is None or features.sets.get(name) is None:
             return self.page(request, "not_found.html", http_status=404,
-                             name=name)
+                             what="featureset", identifier=name,
+                             back_href="/featuresets",
+                             back_label="Back to the featuresets")
         return None
 
     # ------------------------------------------------------------- the register

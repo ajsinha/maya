@@ -421,16 +421,24 @@
 
     <div class="card mb-3"><div class="card-header d-flex justify-content-between align-items-center">
         <span>Export pack</span>
-        <a class="btn btn-sm btn-danger py-0 px-2" style="font-size:.72rem"
-           href="/api/v1/export-packs/{{ model.urn.replace('maya://model/','') }}"
-           id="cut-pack">Cut a pack</a></div>
+        {# A BUTTON, not a link. This was an `<a href>` to a POST-only endpoint
+           with a click handler over it: middle-click, ctrl-click, "open in new
+           tab" or any JS failure landed the user on `{"detail":"Method Not
+           Allowed"}` — bare FastAPI JSON, not even MAYA's refusal shape, with
+           no way back. It was also announced to assistive technology as a link
+           when it performs an action. #}
+        <button type="button" class="btn btn-sm btn-danger py-0 px-2"
+                style="font-size:.72rem" id="cut-pack">Cut a pack</button></div>
       <div class="card-body small">
         <p class="text-muted mb-2">Everything about this model as one digested
           zip, for somebody who will not be given a login &mdash; a supervisor,
           an internal auditor, a diligence team.</p>
         <div id="pack-manifest" class="text-muted" style="font-size:.72rem">
-          <a href="#" id="peek-pack">What would it contain, and has anything
-            changed since the last one?</a></div>
+          {# `<a href="#">` is a link to nowhere; this asks a question and
+             renders the answer, which is a button's job. #}
+          <button type="button" id="peek-pack" class="btn btn-link p-0 border-0
+                  align-baseline" style="font-size:.72rem">What would it
+            contain, and has anything changed since the last one?</button></div>
       </div></div>
 
     <div class="card mb-3"><div class="card-header">Supervisory regimes</div>

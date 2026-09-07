@@ -245,7 +245,18 @@ CREATE TABLE IF NOT EXISTS feature (
     expires_at         double precision,
     created_by         text NOT NULL DEFAULT 'system',
     certification      TEXT NOT NULL DEFAULT 'experimental',
-    created_at         DOUBLE PRECISION NOT NULL
+    created_at         DOUBLE PRECISION NOT NULL,
+    -- Retirement, which the refusals have named since they were written and
+    -- which nothing implemented: `destroy` on a durable feature says "it is not
+    -- destroyed but retired", and there was no retire endpoint anywhere. A
+    -- feature created by mistake could therefore never be removed, and the two
+    -- refusals pointed at each other -- delete the featureset, told to remove
+    -- what refers to it; delete the feature, told to correct the view version.
+    -- A timestamp rather than a flag, per the no-BOOLEAN rule, and it doubles
+    -- as WHEN.
+    retired_at    double precision,
+    retired_by    TEXT,
+    retire_reason TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_feature_entity ON feature (entity);
 
@@ -555,7 +566,18 @@ CREATE TABLE IF NOT EXISTS featureset (
     expires_at          double precision,
     grain               text NOT NULL DEFAULT '',
     created_by          text NOT NULL,
-    created_at          double precision NOT NULL
+    created_at          double precision NOT NULL,
+    -- Retirement, which the refusals have named since they were written and
+    -- which nothing implemented: `destroy` on a durable feature says "it is not
+    -- destroyed but retired", and there was no retire endpoint anywhere. A
+    -- feature created by mistake could therefore never be removed, and the two
+    -- refusals pointed at each other -- delete the featureset, told to remove
+    -- what refers to it; delete the feature, told to correct the view version.
+    -- A timestamp rather than a flag, per the no-BOOLEAN rule, and it doubles
+    -- as WHEN.
+    retired_at    double precision,
+    retired_by    TEXT,
+    retire_reason TEXT
 );
 
 -- A version FILLS the schema. Every binding pins a feature AND the feature view

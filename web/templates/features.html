@@ -177,15 +177,31 @@ pinned by the view version that wrote them.</p>
             {% else %}<span class="text-muted">{{ f.certification }}</span>{% endif %}</td>
           <td class="small text-end text-nowrap">
             {% if not f.sealed and not f.lifetime.ephemeral %}
-              <a href="#" class="seal-feature" data-name="{{ f.name }}"
-                 style="color:var(--crimson);text-decoration:none">seal</a>
+              {# Sealing is an act, so it is a button. `<a href="#">` reads
+                 as a link to a keyboard or screen-reader user and goes
+                 nowhere if the handler does not attach. #}
+              <button type="button" class="btn btn-link p-0 border-0 align-baseline
+                      seal-feature" data-name="{{ f.name }}"
+                      style="color:var(--crimson);text-decoration:none;font-size:inherit"
+                      >seal</button>
             {% endif %}
             <a href="/dependencies?kind=feature&amp;id={{ f.name }}"
                class="ms-2" style="color:var(--crimson);text-decoration:none"
                title="what refers to this">used by</a>
             {% if may_define and f.lifetime.ephemeral and not f.sealed %}
-              <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 destroy-feature"
-                      style="font-size:.72rem" data-name="{{ f.name }}">Delete</button>
+              {# Disabled when the reference index already knows it is blocked.
+                 This rendered on lifetime alone, so a feature the delete check
+                 would refuse was offered anyway — and the dependency screen
+                 this row links to says the two must not disagree. #}
+              {% if f.name in blocked %}
+                <a class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2 disabled"
+                   style="font-size:.72rem" aria-disabled="true"
+                   href="/dependencies?kind=feature&amp;id={{ f.name }}"
+                   title="something refers to this; see what">Delete &mdash; in use</a>
+              {% else %}
+                <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 destroy-feature"
+                        style="font-size:.72rem" data-name="{{ f.name }}">Delete</button>
+              {% endif %}
             {% endif %}</td></tr>
       {% endif %}
     {% else %}
@@ -228,7 +244,7 @@ pinned by the view version that wrote them.</p>
         <button class="btn btn-sm btn-danger w-100" type="submit">Load</button>
       </div>
     </form>
-    <div id="load-result" class="mt-3"></div>
+    <div role="status" aria-live="polite" id="load-result" class="mt-3"></div>
   </div>
 </div>
 

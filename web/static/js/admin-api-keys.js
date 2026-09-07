@@ -59,10 +59,48 @@
             esc(out.secret) + "</div>" +
             '<div class="text-muted small mt-1">Put it where the service will ' +
             'read it from, then reload this page. It is stored as a hash and ' +
-            'cannot be recovered.</div>' +
-            '<button class="btn btn-sm btn-outline-secondary py-0 px-2 mt-2" ' +
-            'style="font-size:.72rem" id="nk-done">I have copied it</button>');
-          $("#nk-done").on("click", function () { window.location.reload(); });
+            'cannot be recovered &mdash; if you lose it, revoke this key and ' +
+            'issue another. Nothing is broken by doing that: an unused key ' +
+            'shows as <em>never used</em> in the panel opposite.</div>' +
+            '<button class="btn btn-sm btn-danger py-0 px-2 mt-2" ' +
+            'style="font-size:.72rem" id="nk-copy">Copy the secret</button>' +
+            '<button class="btn btn-sm btn-outline-secondary py-0 px-2 mt-2 ms-1" ' +
+            'style="font-size:.72rem" id="nk-done">I have copied it</button>' +
+            '<span id="nk-copied" class="ms-2 small" role="status" ' +
+            'aria-live="polite"></span>');
+
+          /* A 51-character string in a break-all div, with no way to copy it
+             and no guard on leaving. Any nav click, back button or accidental
+             F5 lost it permanently. */
+          $("#nk-copy").on("click", function () {
+            var secret = out.secret;
+            var report = function (ok) {
+              $("#nk-copied")
+                .attr("class", "ms-2 small " + (ok ? "evidence-ok" : "evidence-bad"))
+                .text(ok ? "copied to the clipboard"
+                         : "could not copy \u2014 select the text above instead");
+            };
+            if (window.navigator.clipboard) {
+              window.navigator.clipboard.writeText(secret)
+                .then(function () { report(true); }, function () { report(false); });
+            } else {
+              report(false);
+            }
+          });
+
+          /* Leaving with the secret still on screen loses it for good, so the
+             browser asks. Cleared by "I have copied it", which is the point of
+             that button. */
+          var guard = function (event) {
+            event.preventDefault();
+            event.returnValue = "";
+            return "";
+          };
+          window.addEventListener("beforeunload", guard);
+          $("#nk-done").on("click", function () {
+            window.removeEventListener("beforeunload", guard);
+            window.location.reload();
+          });
         })
         .fail(function (xhr) { $("#nk-result").html(refusal(xhr)); });
     });

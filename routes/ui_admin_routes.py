@@ -207,6 +207,12 @@ class AdminRoutes(Routes):
                 # longer reverses an ascending list to get the order it wanted.
                 history=scheduler.history(50),
                 now=time.time(),
+                # Whether ANYTHING is driving the batch. `scheduler.loop.enabled`
+                # ships false and the start-up warning that says so scrolls past
+                # once — so this screen, which the configuration file itself
+                # names as the place to confirm the batch arrived, said nothing
+                # about it.
+                loop_enabled=bool(self.ctx.get("scheduler_loop_enabled")),
                 may_run=self.ctx["authz"].permits(who, "scheduler:run"))
 
         # ------------------------------------------------ evidence integrity

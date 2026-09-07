@@ -81,7 +81,7 @@ rather than an outage.</p>
             <button class="btn btn-sm btn-danger py-0 px-3"
                     style="font-size:.75rem">Issue</button></div>
         </form>
-        <div id="nk-result" class="small mt-3"></div>
+        <div role="status" aria-live="polite" id="nk-result" class="small mt-3"></div>
       </div>
     </div>
     {% endif %}
@@ -114,10 +114,17 @@ rather than an outage.</p>
                 <div class="text-muted" style="font-size:.7rem">{{ k.revoke_reason }}</div>
               {% endif %}</td>
             <td class="small">
+              {# Both branches used to emit identical text, so the ONLY
+                 difference between "rotate this next week" and "fine for three
+                 months" was the colour — WCAG 1.4.1, and invisible to anybody
+                 reading in greyscale or with a screen reader. The float is
+                 rounded too: it rendered as "3.0 days". #}
               {% if k.state == "active" %}
+                {% set days = k.expires_in_days | round | int %}
                 {% if k.expires_in_days <= 14 %}
-                  <span class="evidence-bad">{{ k.expires_in_days }} days</span>
-                {% else %}{{ k.expires_in_days }} days{% endif %}
+                  <span class="evidence-bad">{{ days }} day{{ '' if days == 1 else 's' }}
+                    — expiring</span>
+                {% else %}{{ days }} day{{ '' if days == 1 else 's' }}{% endif %}
               {% else %}&mdash;{% endif %}</td>
             <td class="small">
               {% if k.never_used %}<span class="evidence-bad">never</span>

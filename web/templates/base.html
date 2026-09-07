@@ -208,9 +208,29 @@ a:focus-visible, button:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible, summary:focus-visible,
 [tabindex]:focus-visible{
   outline:3px solid var(--crimson); outline-offset:2px; border-radius:2px;}
-/* On the crimson bar the crimson ring is invisible, so it inverts there. */
-.navbar a:focus-visible, .navbar button:focus-visible{
+/* On any crimson surface the crimson ring is invisible, so it inverts there.
+   This was scoped to `.navbar` alone — and `tables.js` sets `tabIndex = 0` on
+   every `<th>` of every table with two or more rows, while `table.maya thead th`
+   is painted with the same crimson. So every sortable header on every screen was
+   a tab stop with a 1:1 contrast focus ring: perhaps forty invisible stops on
+   /admin/principals by itself. The accessibility test asserted the inversion on
+   the NAVBAR, and could not see that the design has a second crimson surface
+   which JavaScript makes focusable. */
+.navbar a:focus-visible, .navbar button:focus-visible,
+table.maya thead th:focus-visible, table.maya thead th a:focus-visible,
+table.maya thead th button:focus-visible,
+.prose thead th:focus-visible, .prose thead th a:focus-visible,
+.skip-link:focus-visible{
   outline:3px solid #fff; outline-offset:2px;}
+
+/* Skip to content. There is a <main> landmark and no way to jump to it: the
+   navigation is 33 focusable elements against 8 in the page, so a keyboard user
+   tabbed the whole mega-menu on every page load, on every page (WCAG 2.4.1,
+   Level A). Visible only when focused, which is the point of it. */
+.skip-link{position:absolute; left:-9999px; top:0; z-index:2000;
+  background:var(--crimson); color:#fff; padding:.6rem 1rem;
+  font-size:.85rem; text-decoration:none; border-radius:0 0 3px 0;}
+.skip-link:focus{left:0;}
 /* A form control's own edge, at 3:1 rather than Bootstrap's 1.30:1. */
 .form-control, .form-select{border-color:var(--edge);}
 .form-control:focus, .form-select:focus{
@@ -228,6 +248,7 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible,
 {% block head %}{% endblock %}
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <nav class="navbar navbar-expand-lg navbar-dark mb-4">
   <div class="container">
     <a class="navbar-brand d-flex align-items-center gap-2"
@@ -262,7 +283,7 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible,
       {% set manage_columns = [
         ("Models", [
           ("/dashboard", "The estate", "every model, and what is owed on it", "model:read"),
-          ("/models/new", "Register a model", "a new model, or a version of one", "model:read"),
+          ("/models/new", "Register a model", "a new model, or a version of one", "model:register"),
           ("/model-algebra", "Model algebra", "versions, refinement, lifecycle, quorum, tier", "model:read"),
           ("/model-algebra/composition", "Composition", "one model reading another, type-checked", "model:read"),
           ("/warrants", "Warrants", "what a run is permitted to do", "model:read"),
@@ -275,8 +296,8 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible,
         ]),
         ("Features", [
           ("/features", "All features", "the catalogue and its certification", "feature:read"),
-          ("/features/new", "Define a feature", "base, derived, aggregate or external", "feature:read"),
-          ("/features/load", "Load data", "bitemporal rows, with their ingest time", "feature:read"),
+          ("/features/new", "Define a feature", "base, derived, aggregate or external", "feature:define"),
+          ("/features/load", "Load data", "bitemporal rows, with their ingest time", "feature:materialise"),
           ("/features/point-in-time", "Point-in-time", "what was knowable, as of a date", "feature:read")
         ]),
         ("Featuresets", [
@@ -358,7 +379,7 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible,
     </div>
   </div>
 </nav>
-<main class="container">{% block content %}{% endblock %}</main>
+<main class="container" id="main" tabindex="-1">{% block content %}{% endblock %}</main>
 <footer><div class="container">
   <p class="principle">{{ principle }}</p>
   {{ app_name }} {{ version }} — {{ tagline }}. <strong>{{ slogan }}</strong><br>

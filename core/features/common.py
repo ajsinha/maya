@@ -22,7 +22,19 @@ RESERVED = (ENTITY, VALID_TIME, INGEST_TIME)
 
 
 class FeatureError(RuntimeError):
-    """A feature operation was refused. The message always says why."""
+    """A feature operation was refused. The message always says why.
+
+    `remediation` is optional and usually absent, because most of these are
+    about a definition and the generic line fits. It exists for the ones where
+    it does not: `routes/base.py` maps every uncaught FeatureError to "correct
+    the feature definition or the view version and retry", so asking "why can I
+    not delete this featureset?" was answered with an instruction about a
+    different object entirely.
+    """
+
+    def __init__(self, detail: str, remediation: str = ""):
+        super().__init__(detail)
+        self.detail, self.remediation = detail, remediation
 
 
 #: The dtypes a form should OFFER. Not a constraint — `feature_author_define`

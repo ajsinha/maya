@@ -454,7 +454,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    debts=debts, documents=documents,
                    notifications=notifications,
                    finding_workflow=finding_workflow,
-                   evidence=evidence, risk=RiskRepository(db)))
+                   evidence=evidence, risk=RiskRepository(db)),
+        # The configured cadence, so `health` can say the batch has STOPPED
+        # rather than only how many hours it has been. A dead scheduler makes
+        # the estate look clean, not stale, because every lapse it records is
+        # derived rather than stored.
+        interval_seconds=cfg.get_float("scheduler.loop.interval_seconds", 3600.0))
 
     # L-17: what an engine says it served, against what the contract pins.
     # MAYA does not read the online store — it does not own one, deliberately —
@@ -497,6 +502,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
+                           "scheduler_loop_enabled": cfg.get_bool(
+                               "scheduler.loop.enabled", False),
                            "appetite": appetite, "board_packs": board_packs,
                            "renderer": MarkdownRenderer(),
                            "content": ContentLibrary(

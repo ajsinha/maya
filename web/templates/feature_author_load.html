@@ -71,7 +71,7 @@
           <button class="btn btn-sm btn-danger mt-2 py-0 px-3"
                   style="font-size:.75rem">Create the view</button>
         </form>
-        <div id="view-result" class="small mt-2"></div>
+        <div role="status" aria-live="polite" id="view-result" class="small mt-2"></div>
       </div>
     </div>
   </div>
@@ -136,7 +136,7 @@ placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ c
           endpoint an execution engine uses. The interface exercises the
           contract rather than a convenience beside it.
         </div>
-        <div id="load-result" class="mt-3 small"></div>
+        <div role="status" aria-live="polite" id="load-result" class="mt-3 small"></div>
       </div>
     </div>
   </div>

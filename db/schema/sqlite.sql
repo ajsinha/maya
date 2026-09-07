@@ -234,7 +234,18 @@ CREATE TABLE IF NOT EXISTS feature (
     expires_at         REAL,
     created_by         TEXT NOT NULL DEFAULT 'system',
     certification      TEXT NOT NULL DEFAULT 'experimental',
-    created_at         REAL NOT NULL
+    created_at         REAL NOT NULL,
+    -- Retirement, which the refusals have named since they were written and
+    -- which nothing implemented: `destroy` on a durable feature says "it is not
+    -- destroyed but retired", and there was no retire endpoint anywhere. A
+    -- feature created by mistake could therefore never be removed, and the two
+    -- refusals pointed at each other -- delete the featureset, told to remove
+    -- what refers to it; delete the feature, told to correct the view version.
+    -- A timestamp rather than a flag, per the no-BOOLEAN rule, and it doubles
+    -- as WHEN.
+    retired_at    REAL,
+    retired_by    TEXT,
+    retire_reason TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_feature_entity ON feature (entity);
 
@@ -551,7 +562,18 @@ CREATE TABLE IF NOT EXISTS featureset (
     expires_at          REAL,
     grain               TEXT NOT NULL DEFAULT '',
     created_by          TEXT NOT NULL,
-    created_at          REAL NOT NULL
+    created_at          REAL NOT NULL,
+    -- Retirement, which the refusals have named since they were written and
+    -- which nothing implemented: `destroy` on a durable feature says "it is not
+    -- destroyed but retired", and there was no retire endpoint anywhere. A
+    -- feature created by mistake could therefore never be removed, and the two
+    -- refusals pointed at each other -- delete the featureset, told to remove
+    -- what refers to it; delete the feature, told to correct the view version.
+    -- A timestamp rather than a flag, per the no-BOOLEAN rule, and it doubles
+    -- as WHEN.
+    retired_at    REAL,
+    retired_by    TEXT,
+    retire_reason TEXT
 );
 
 -- A version FILLS the schema. Every binding pins a feature AND the feature view

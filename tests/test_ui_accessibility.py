@@ -205,10 +205,56 @@ class TestKeyboardFocusIsVisible:
         for element in ("a:", "button:", "input:", "select:", "textarea:"):
             assert f"{element}focus-visible" in combined, element
 
-    def test_the_ring_inverts_on_the_crimson_bar(self):
-        """A crimson ring on a crimson bar is not a ring."""
-        assert ".navbar a:focus-visible" in self._css()
-        assert "outline:3px solid #fff" in self._css()
+    def test_the_ring_inverts_on_every_crimson_surface(self):
+        """A crimson ring on a crimson surface is not a ring.
+
+        This asserted the inversion on the NAVBAR and stopped there — and the
+        design has a second crimson surface: `table.maya thead th`. `tables.js`
+        sets `tabIndex = 0` on every header of every table with two or more
+        rows, so every sortable column on every screen was a tab stop with a
+        1:1 contrast focus ring. Roughly forty invisible stops on
+        /admin/principals alone.
+
+        Enumerated from the stylesheet rather than named, so a THIRD crimson
+        surface cannot be added without this failing.
+        """
+        css = re.sub(r"/\*.*?\*/", "", self._css(), flags=re.S)
+        assert "outline:3px solid #fff" in css
+
+        #: Crimson surfaces that hold no focusable content — a rule, a dot, a
+        #: pseudo-element. Named rather than pattern-matched, so adding one is a
+        #: decision somebody writes down.
+        decorative = {".accent", ".flow .step.done .dot", ".sig.declined .ic"}
+
+        painted = set(re.findall(
+            r"([^{}]+)\{[^{}]*background:\s*var\(--crimson\)", css))
+        surfaces = {sel.strip() for block in painted
+                    for sel in block.split(",")
+                    if sel.strip() and not sel.strip().startswith("@")
+                    and "::" not in sel}          # a pseudo-element cannot focus
+        surfaces -= decorative
+        assert surfaces, "no crimson surface found; the pattern needs updating"
+
+        inverted = re.search(r"([^{}]+)\{\s*outline:3px solid #fff", css)
+        assert inverted, "nothing inverts the ring at all"
+        for surface in surfaces:
+            root = surface.split(":")[0].strip()
+            assert root in inverted.group(1), (
+                f"'{root}' is painted crimson and its focus ring is not "
+                f"inverted, so focus on it is invisible. Either invert it, or "
+                f"add it to `decorative` if nothing on it can take focus.")
+
+    def test_there_is_a_way_past_the_navigation(self):
+        """33 focusable elements in the bar against 8 in the page, and no skip
+        link — so a keyboard user tabbed the whole mega-menu on every page
+        load, on every page. WCAG 2.4.1, Level A."""
+        base = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        assert 'class="skip-link" href="#main"' in base
+        assert 'id="main"' in base
+        # And it must be the FIRST thing focusable, or it is not a skip link.
+        body = base.split("<body>", 1)[1]
+        assert body.strip().startswith('<a class="skip-link"')
+        assert ".skip-link:focus{left:0" in self._css()
 
     def test_it_is_focus_visible_and_not_focus(self):
         """`:focus` would leave a ring behind after every mouse click, which is
@@ -219,3 +265,46 @@ class TestKeyboardFocusIsVisible:
 
     def test_reduced_motion_is_honoured(self):
         assert "prefers-reduced-motion:reduce" in self._css()
+
+
+class TestAnOutcomeIsAnnounced:
+    """`grep -rn aria-live web/templates/` returned ZERO hits.
+
+    Every result on the screens added most recently was injected into a plain
+    `<div>`: add, roles, password, suspend, reinstate, role define/edit/remove,
+    key issue/revoke — including the once-only secret — the dependency answer
+    and the delete outcome. A screen-reader user clicked Suspend, heard
+    nothing, and had no way to know whether it worked. The only live region in
+    the platform was the table search's row count.
+    """
+
+    #: Containers a handler writes an outcome into. Enumerated from the
+    #: JavaScript rather than listed by hand, so a new one is caught.
+    def _written_into(self):
+        import re as _re
+
+        targets = set()
+        for script in (ROOT / "web" / "static" / "js").glob("*.js"):
+            body = script.read_text(encoding="utf-8")
+            for match in _re.finditer(
+                    r'(?:say|\$)\(\s*"#([a-z0-9-]*result[a-z0-9-]*|'
+                    r'[a-z0-9-]*msg)"', body):
+                targets.add(match.group(1))
+        return targets
+
+    def test_every_result_container_is_a_live_region(self):
+        markup = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in (ROOT / "web" / "templates").glob("*.html"))
+        silent = []
+        for target in sorted(self._written_into()):
+            found = re.search(
+                r'<[^>]*id="' + re.escape(target) + r'"[^>]*>', markup)
+            if found is None:
+                continue                       # written by a page not in templates/
+            if "aria-live" not in found.group(0):
+                silent.append(target)
+        assert not silent, (
+            f"these containers receive an outcome and announce nothing, so a "
+            f"screen-reader user acts and hears silence: {silent}. Add "
+            f'role="status" aria-live="polite".')

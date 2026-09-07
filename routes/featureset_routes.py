@@ -51,6 +51,13 @@ class BreakSealIn(Body):
     reason: str
 
 
+class RetireIn(Body):
+    # Required, with no default. A feature leaving the catalogue without a
+    # stated reason is a decision nobody can review afterwards, which is the
+    # thing this register exists to prevent.
+    reason: str
+
+
 class TransferIn(Body):
     to: str
     reason: str = ""
@@ -274,6 +281,33 @@ class FeaturesetRoutes(Routes):
             who = self.authorise(request, "feature:define")
             return self.guard(lambda: features.catalogue.transfer(
                 name, body.to, self.actor(who), body.reason))
+
+        @self.app.post(f"{api}/features/{{name}}/retire", tags=["features"])
+        def retire_feature(request: Request, name: str, body: RetireIn):
+            """Take a durable feature out of use, keeping the record.
+
+            The act every refusal on `destroy` has named since they were
+            written, and which nothing implemented — so a feature created by
+            mistake was permanent, and the two refusals pointed at each other:
+            delete the featureset and you are told to remove what refers to it;
+            delete the feature and you are told to correct the view version.
+            """
+            who = self.authorise(request, "feature:define")
+            # The same index a delete consults, so retiring cannot strand
+            # anything a delete would have refused to strand.
+            self.guard(lambda: self.ctx["references"].refuse_if_referenced(
+                "feature", name, label=f"feature '{name}'"))
+            return self.guard(lambda: features.catalogue.retire(
+                name, body.reason, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/featuresets/{{name}}/retire", tags=["features"])
+        def retire_featureset(request: Request, name: str, body: RetireIn):
+            """Take a durable featureset out of use, keeping the record."""
+            who = self.authorise(request, "featureset:define")
+            self.guard(lambda: self.ctx["references"].refuse_if_referenced(
+                "featureset", name, label=f"featureset '{name}'"))
+            return self.guard(lambda: features.sets.retire(
+                name, body.reason, actor=self.actor(who)))
 
         @self.app.delete(f"{api}/features/{{name}}", tags=["features"])
         def destroy_feature(request: Request, name: str):
