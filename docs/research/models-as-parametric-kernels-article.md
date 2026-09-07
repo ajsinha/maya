@@ -718,7 +718,7 @@ against *generated* inputs, with failure treated as a build failure.
 One discipline matters more than the rest. Each law is tested **as it is stated**, not as the implementation
 happens to behave. A test written from the code proves only that the code agrees with itself.
 
-There are twenty-one laws. **Sixteen execute. Five do not**, and here they are, because a gap recorded only
+There are twenty-one laws. **Eighteen execute. Three do not**, and here they are, because a gap recorded only
 in a document is a gap somebody has to go looking for:
 
 | Law | Why it doesn't run |
@@ -726,11 +726,30 @@ in a document is a gap somebody has to go looking for:
 | summary soundness | needs a replay that checks a document's quantitative claims against the register; the replay exists for validation episodes, not for documents |
 | lens laws | needs a `put`. The compiler regenerates whole documents, so there's no round trip — and building one to satisfy a law would be building the wrong thing |
 | evidence gluing | no implementation; no consistency radius is computed anywhere |
-| lax monoidality of risk | needs composite warrants and an aggregate risk function. The composite has a derived schema to quantify over; the functor is design |
-| contract–serving agreement | needs an online store to compare against. Half exists: the system computes what serving *must* read |
 
 And a property test enforces that this list and the public table agree — if the table claims a law runs,
 something has to run it.
+
+**Two laws left that table, and how they left it is worth more than the fact.** Both had been listed as
+*not built*, and in both cases the entry named the wrong obstacle.
+
+*Lax monoidality of risk* was said to need "an aggregate risk function". What it actually needed was to
+**stop trying to be a number**. There is a theorem two sections above saying no fragility-sensitive risk
+assignment composes — so a composite risk *magnitude* is precisely the thing that cannot be produced
+honestly. The lax interaction term is now carried as a set of **named obstructions**: what has not been
+assessed about the composite, joined over the tier lattice, with an unassessed component sitting at the
+*top* so silence escalates rather than passing. The law is enforced and the magnitude is still, quite
+deliberately, unbuilt.
+
+*Contract–serving agreement* was said to need an online feature store. It did not — it was blocked on
+something the design had already ruled out, since the platform deliberately does not sit on the serving
+path, and a store would have contradicted that. The engine **attests** which feature namespaces it read
+and the platform compares that against what the version's contract pins. Training–serving skew becomes
+detectable without the platform being on the request path, and *unattested* is its own state rather than
+a silent pass.
+
+A law that will not run is sometimes waiting for a component. Sometimes it is waiting for somebody to
+notice it was asking for the wrong one.
 
 ### What an executable law gives you that a written one doesn't
 

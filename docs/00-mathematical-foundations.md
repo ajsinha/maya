@@ -84,10 +84,13 @@ that is the direction in which nobody files a bug.
 | how do regulators coexist? | institutions and comorphisms | a regime whose encoding changes the truth, or contradicts itself | `L-8`, `L-16` |
 | how is risk ordered? | monotone maps and a Galois connection between lattices | a tier that falls when exposure rises | `L-4`, `L-5` |
 
-Two of those refusals are **not made today**: `L-6` and `L-14` are stated and do not run,
-so a summary that understates risk, a composite risk figure and a model class with no evidence
-schema each pass unremarked. The row says what the structure licenses; §12 says what is checked, and
-the two are deliberately not the same column.
+One of those refusals is **not made today**: `L-6` is stated and does not run, so a
+generated summary that understates risk passes unremarked. `L-14` used to sit beside it —
+a composite risk figure that nothing computed — and now runs: `core/risk/aggregate.py`
+orders the tier lattice and names the obstructions, which is the interaction term
+expressed as *what is unassessed* rather than as a magnitude nobody could defend. The row
+says what the structure licenses; §12 says what is checked, and the two are deliberately
+not the same column.
 
 ---
 
@@ -1040,13 +1043,13 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | The content-addressed artifact store | `core/artifacts/store.py` — the digest is the address, so *the bytes match the warrant* is true by construction rather than by a check somebody remembered to write |
 | Document lenses | `core/docs/lenses.py` — fifteen lenses, `get` only (see `L-11`) |
 | Oracles for machine assistance | `core/assist/oracles.py` — five registered; `core/assist/capabilities.py` refuses a Tier A capability that names none |
-| The obligation jobs | `core/scheduler/jobs.py` — eight, doing the work an MTL compiler would have generated (§9.5) |
-| The executable laws | Beside the code they constrain: `tests/test_laws.py` (L-1, L-2, L-3, L-9, L-10, L-16, L-20, L-21), `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_regimes.py` (L-8), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W0…L-W9), `tests/test_warrant_profiles.py` (L-W11…L-W13), `tests/test_api.py` (L-W10) |
+| The obligation jobs | `core/scheduler/jobs.py` — ten, doing the work an MTL compiler would have generated (§9.5) |
+| The executable laws | Beside the code they constrain: `tests/test_laws.py` (L-1, L-2, L-3, L-9, L-10, L-14, L-15, L-16, L-17, L-20, L-21), `tests/test_risk.py` (L-4, L-5), `tests/test_domain.py` (L-7, L-12), `tests/test_regimes.py` (L-8), `tests/test_evidence.py` (L-18), `tests/test_composition.py` (L-19), `tests/test_grammar.py` (L-W0…L-W9), `tests/test_warrant_profiles.py` (L-W11…L-W13), `tests/test_api.py` (L-W10) |
 | Sheaf consistency radius (`L-13`) | **Not built** |
-| Aggregate risk as a lax monoidal functor (`L-14`) | **Not built** |
+| The aggregate `ρ` as a magnitude | **Not built, and deliberately.** `L-14` itself runs — `core/risk/aggregate.py` joins the tier lattice and carries named **obstructions** — but the interaction term is a list of what has not been assessed, never a number. A composite risk figure that looks like a measurement and is not one is worse than the absence of one |
 | The fibration | `core/fibres/` — nine fibres over the trainability classes, a totality gate at start-up (`L-15`), and the per-class metric set that makes an unanswerable monitor a refusal |
-| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the ten scheduler jobs do that work by hand. The four rows above are laws that do not run — this one is a component that does not exist beneath a law that does |
-| An online feature store (`L-17`) | **Not built** — `serving_namespaces` is the half that can exist without one |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the ten scheduler jobs do that work by hand. The rows above that say a law does not run are `L-11` and `L-13`; the other two are components that do not exist beneath laws that do |
+| An online feature store | **Not built, and `L-17` no longer waits on it.** The law was blocked on the wrong thing: §7 says MAYA will not sit on the serving path, so the engine **attests** which namespaces it read and MAYA compares against what the contract pins (`core/features/serving.py`). What a store would buy is *observation* rather than attestation — MAYA seeing for itself rather than being told — which is a smaller claim than this row used to make |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its
 module structure looks the way it does. The data model is [05](05-data-model.md).

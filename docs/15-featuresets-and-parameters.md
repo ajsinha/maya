@@ -3,7 +3,7 @@
 *The two letters of `f : P ⊗ X → D(Y)` that are not the kernel. What each is in
 the register, what each refuses, and which law holds it. The narrative version
 with a worked regression is the in-app tutorial
-[**training a model end to end**](../content/tutorials/06-train-a-model-end-to-end.md);
+[**one model, end to end**](../content/tutorials/06-end-to-end.md);
 this is the part a reviewer needs.*
 
 ---

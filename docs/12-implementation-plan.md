@@ -73,7 +73,7 @@ signature.
 | ✅ | **Lifecycle & attestation** (`core/lifecycle/`) | **Complete** | Seven-state record machine: draft → submitted → approved → attested, plus `baselined` for an imported model and `amending`/`retired`, with amendment as the only route out of immutability. Attestation is a quorum of configured roles, each signing once and only for a role they hold; one decline returns the record to work. An attested record refuses field changes *and* new versions. Retirement keeps everything; deletion is administrators-only and leaves the evidence chain intact. Workflow stepper in the interface driven by the same API an external client uses |
 | ✅ | **Warrant grammar** (`core/execution/grammar/`) | **Complete** | Four independent vocabularies whose *product* covers the estate: how the parameter object is inhabited × how the kernel is realised (18 runtimes) × what is asked of it (10 verbs) × where its data comes from (12 bindings). Fourteen admissibility laws derived from the algebra — `fit` is refused for T0 and T6 because that is what those classes mean, and the last three quantify over how `P` is inhabited rather than over a category anybody attached: a calibration must state its `as_of` (**L-W11**) or staleness is silent, parameters living inside an artifact need that artifact digested (**L-W12**), and a generative runtime must pin the build rather than the model family (**L-W13**). Each caught a shipped example on the day it was written. JSON Schema generated from the vocabulary and published; every warrant validated before it is signed. Thirteen worked examples in `examples/warrants/`, spanning QuantLib swaption pricing, swap pricing and Hull–White calibration, ONNX, PMML, prompt bundles, agents, a vendor black box, a spreadsheet, a VaR backtest, and a linear regression fitted from a featureset and then scored on the parameters it produced — all validated on every test run |
 | ✅ | **Decks** (`tools/deck/`) | **Complete** | Three, reproducible from source rather than binaries nobody can edit safely, each re-audited for geometry before it ships. The *research* deck argues models as parametric kernels; the *system design* deck is for whoever builds the platform; the *model and feature engineering* deck is for whoever uses it: it opens with the five words and a single-slide process diagram of model, feature and warrant management, and closes with a worked example carrying real numbers — a daily price series and a lagged unemployment rate, aligned into one featureset, read by a linear regression and a GARCH model, then extended until the old model can no longer consume it — the four rows being the catalogue, the selection, the model, and what comes back |
-| ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | Fifteen worked walkthroughs rendered at request time. Eight are the platform: a model end to end with four separated principals, storing artifacts, running several versions, features end to end, training a model end to end, warrants by model family, the whole path from an empty register to a champion serving, and a map of the model shapes. Seven are one per kind of model, each complete from registration to monitoring — a linear regression, a GARCH (with ARMA and ARIMA in the same slot), a closed-form pricer where `P` is empty, a daily Hull–White calibration approved by exception, a Monte Carlo engine where the seed is a parameter, a neural network whose weights live in the artifact store, and an LLM application whose base model moves underneath it. What changes between them is only how `P` is inhabited, which is the argument the definition makes |
+| ✅ | **Tutorials** (`content/tutorials/`) | **Complete** | **Six** worked walkthroughs, rendered at request time, each produced by *running it* against a live instance — a pass that found eight defects in the platform, which is the argument for writing one that way. They are: defining a model, features, featuresets, warrants and training, the model package, and one model end to end. Sixteen existed before, including one per kind of model; eleven were removed rather than left standing as prose nobody had executed, and their links survived in four documents for two milestones afterwards. What the per-fibre ones carried is stated rather than narrated: the fibre table in `02 §4` gives every class its `parameter_kind`, `fit_procedure`, runtime and evidence schema, and the warrant grammar refuses the combinations that make no sense |
 | ✅ | **Machine assistance** (`core/assist/`) | **Complete** | Capabilities registered at Tier A (a named oracle checks the output) or Tier B (every claim cites evidence); Tier C is deliberately not registrable. Five oracles, each backed by machinery that exists for another reason. The grounding gate *removes* unsupported claims rather than flagging them, and keeps them for the reviewer. Nothing is evidence until a person attests it, and never the person who asked. Edit distance and a mandatory review sample detect automation bias |
 | ✅ | **Scheduler** (`core/scheduler/`) | **Complete** | Ten idempotent jobs turning computed conditions into recorded consequences: a lapsed attestation, a stalled monitor and a model past the review date its own tier set each raise a finding, overlays past their window close, baseline debt reconciles, a missed remediation window is recorded as its own finding rather than by rewriting the original, a finding nobody ever accepted is recorded as another, and everybody with outstanding work is told about it. A run is an ordinary authenticated call — cron, a CronJob or a person produce identical results — with an in-process loop offered as a convenience and off by default. One failing job does not stop the others, and the scheduler reports its own health on `/health/ready` |
 | ✅ | **Estate view & worklist** (`core/estate/`) | **Complete** | Outstanding work derived from the register rather than assigned — no task table, so it cannot go stale, disagree with the register, or accumulate orphans. Filtered to what a principal holds the permission and scope to do, and for attestation to their own role's signature. A finding whose owner has never accepted it is derived onto the list too, which makes the reminder cycle the existing notification digest rather than a second delivery path. Estate summary aggregates governance, assurance, adjustments and baseline debt, with debt kept apart from breach |
@@ -342,18 +342,37 @@ sequenceDiagram
 minor versions of overlap and `Sunset` headers. The front end pins `openapi.lock.json`, so a backend
 change can never silently break it — the pipeline fails first, which is the point.
 
-**Local development.** `docker compose up` starts Postgres, Redis, MinIO, a Delta-capable Spark, and
-`maya-api`. `maya-web` runs against either the local API or a **Prism mock generated from the spec**, so
-front-end work is never blocked by backend availability. That is the practical dividend of E4.
+**Local development — planned, and not what happens today.** The paragraph below describes the
+intended shape. What actually exists is `python run_maya_web.py`: one process, SQLite on disk, Delta on
+the local filesystem, and the interface served by the same application that serves the API. There is no
+`docker-compose.yml` in this repository, no Redis, no MinIO and no Spark, and `maya-web` is not a
+separate deployable — [§3](#3-repository-topology) shows the split this plan assumes and
+[§0](#0-build-status) records that it was not taken.
+
+*Intended:* `docker compose up` starts Postgres, Redis, MinIO, a Delta-capable Spark and `maya-api`;
+`maya-web` runs against either the local API or a **Prism mock generated from the spec**, so front-end
+work is never blocked by backend availability. That is the practical dividend of E4.
 
 ---
 
 ## 6. Test strategy
 
-| Layer | Scope | Target | Runs |
+**Four of these nine layers exist.** Unit, laws, scale and — through the PostgreSQL job — a narrow
+slice of integration. The other five name tools that are not dependencies of this repository:
+testcontainers, Schemathesis, an adversarial corpus, migration rehearsal against production-shaped
+data, and a front-end component suite with `axe`. The *Runs* column below is what the plan asks for,
+not a record of what happens; [§0](#0-build-status) is the record, and [§7](#7-ci-gates) lists the
+seven jobs that actually fire.
+
+Two of the missing five are worth separating. **Migration rehearsal is not missing, it is not
+applicable** — there are no migrations; the DDL is re-applied. **Accessibility is partly covered**
+after all: `tests/test_ui_accessibility.py` computes contrast ratios against WCAG AA and asserts every
+form control carries a programmatic name, which is not `axe` and is not nothing.
+
+| Layer | Scope | Target | Runs (planned) |
 |---|---|---|---|
 | **Unit** | `domain/`, core modules; no I/O | ≥ 90% on domain, ≥ 85% overall | Every commit, < 90 s |
-| **Laws** (beside the code they constrain) | The executable laws — L-4, L-5, L-7, L-12, L-18, L-19 and the eleven warrant laws. Hypothesis for L-4; exhaustive or example-based for the rest, which is what a finite lattice deserves | All pass | Every commit |
+| **Laws** (beside the code they constrain) | The executable laws — L-4, L-5, L-7, L-12, L-14, L-17, L-18, L-19 and the fourteen warrant laws. Hypothesis for L-4; exhaustive or example-based for the rest, which is what a finite lattice deserves | All pass | Every commit |
 | **Scale** (`tests/test_scale.py`, `tests/test_transfer_scale.py`) | Complexity, not stopwatch: that doubling the estate does not more than double the work, and that a read claimed not to materialise a dataset does not | All pass at a size the default suite will not run | Marked `scale`, **excluded by default** — a slow suite gets disabled, and a disabled suite proves nothing |
 | **Integration** | Real Postgres, Redis, MinIO, Delta via testcontainers | Every repository and service path | Every commit, < 8 min |
 | **Contract** | Schemathesis against the live spec; SDK round-trip | Full endpoint coverage | Every commit |
@@ -372,9 +391,14 @@ malicious-artifact corpus.
 
 ## 7. CI gates
 
-**Four of the nine gates run.** `.github/workflows/ci.yml` fires on every push and pull request to `main`
-and `develop`, in five jobs: the seven discipline walkers, the laws, the deck's geometry and slide count,
-the suite in four shards, and the dialect-sensitive files a second time against real **PostgreSQL**.
+**Seven of the nine gates run.** The header said *four* while the table three lines below it marked
+seven as running, which is the shape of drift this document exists to prevent — a number written once
+and not recounted when the rows under it changed.
+
+`.github/workflows/ci.yml` fires on every push and pull request to `main` and `develop`, in **seven
+jobs**: hygiene (linter, types, dependency advisories, secret scan, SBOM, spec lock), the discipline
+walkers, the laws, the deck's geometry and slide count, the suite in four shards, a combined coverage
+floor, and the dialect-sensitive files a second time against real **PostgreSQL**.
 
 That last one is the gate this section did not think to ask for, and it earned its place immediately.
 `db/schema/postgres.sql` is maintained column-for-column beside the SQLite one and had **never been
@@ -387,7 +411,7 @@ driver.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 186 modules that check cleanly and carries the other 62 in `mypy_backlog.txt`. Not `--strict`: adopting it across 248 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 190 modules that check cleanly and carries the other 62 in `mypy_backlog.txt`. Not `--strict`: adopting it across 252 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
 | 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |
@@ -405,6 +429,14 @@ in [03 §7](03-requirements.md) is a target rather than a result.
 ---
 
 ## 8. Environments
+
+**None of these exist.** There is one deployment shape today: a single process, run by hand or by a
+container image somebody builds, against SQLite or PostgreSQL. No `local` compose stack, no `ci`
+environment beyond the GitHub runner, no `dev`, `uat` or `prod` — and therefore no blue/green, no
+independently deployed warrant plane and no masked copy of a real inventory. The table is the target
+that [10](10-roadmap.md) sequences, kept here because the *shape* is a design decision (the warrant
+plane deploying independently is a claim about coupling, not about hosting) and deleting it would lose
+the argument along with the fiction.
 
 | Environment | Purpose | Data | Notes |
 |---|---|---|---|

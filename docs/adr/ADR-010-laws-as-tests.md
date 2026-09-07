@@ -37,11 +37,17 @@ There is **no `tests/laws/` package**. The executable laws live beside the code 
 warrant-admissibility laws). Hypothesis is used for L-4 and nowhere else; the rest are exhaustive or
 example-based, which is adequate for a finite lattice and honest about being so.
 
-The law count is now **nineteen** foundational plus eleven warrant laws, not sixteen. Of the nineteen,
-seven are executable and enforcing; the remainder are stated and not yet executable, each marked as such
-in [00 §12](../00-mathematical-foundations.md#12-the-laws-maya-enforces). The decision above stands as
-the target. The gap between it and this section is the honest cost of having shipped the mechanisms in
-a different order from the one this ADR assumed.
+The law count is now **twenty-one** foundational plus fourteen warrant laws. Of the twenty-one,
+**eighteen** are executable and enforcing; three — `L-6`, `L-11` and `L-13` — are stated and not yet
+executable, each marked as such in
+[00 §12](../00-mathematical-foundations.md#12-the-laws-maya-enforces). Every warrant law runs.
+
+This paragraph has been wrong three times, in three different directions — it undercounted the
+foundational laws, undercounted the warrant laws, and undercounted the executable ones — and each
+number was true on the day somebody typed it. The counts above are now derived by
+`tests/test_documentation_counts.py` from the table in `00 §12` and from the code, so this paragraph
+fails the build rather than ageing quietly. (The historical figures are deliberately not repeated
+here: a document that recites its own old numbers gives that check something to match.)
 
 ---
 

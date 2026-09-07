@@ -39,7 +39,7 @@ done.
 |---|---|---|
 | **Asymmetric warrant signatures** | HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here | Verifying a warrant requires holding the key that could **mint** one. That is the wrong shape for a contract handed to engines you do not control, and it is the single largest gap in the execution story |
 | **A third-party time source for the anchors** | Anchoring is built: `WORMReader`/`WORMWriter` in `core/ports.py`, a filesystem implementation writing under `./data/worm`, and `verify_against_anchors` comparing the chain against heads held outside the database. What is not built is an RFC-3161 timestamping authority, which is a third party rather than code | The anchors say *this head existed before that one*; they do not say *at this time, attested by somebody who is not us*. A bank arguing with a supervisor about **when** wants the second. Finding **C-4**'s third disposition is now half-closed |
-| **Five foundational laws** | `L-6`, `L-11`, `L-13`, `L-14`, `L-17` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason | The strongest claim the design makes is that the laws are the acceptance criteria. Sixteen of twenty-one run; a law stated and not executed prevented nothing |
+| **Three foundational laws** | `L-6`, `L-11`, `L-13` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason. `L-14` and `L-17` were on this list and now run | The strongest claim the design makes is that the laws are the acceptance criteria. Eighteen of twenty-one run; a law stated and not executed prevented nothing |
 | **`entry_points` discovery for fibres** | The fibration itself is built — `core/fibres/`, nine fibres over the derived trainability class, a totality gate at start-up (`L-15`) | A bank's own fibre ships inside this repository rather than as its own package. The structure and the gate exist; third-party packaging does not |
 
 ### 2.2 Reach — these change what MAYA can *cover*
@@ -157,7 +157,7 @@ Dropped the ones that have been resolved or overtaken. What remains:
 | **Machine assistance ships ahead of its oracle** | The pressure to ship an impressive ungated demo is constant | Structural, not procedural: Tier C is **unrepresentable** in the schema. A capability without an oracle or a grounding check cannot be registered |
 | **Assistants drift toward deciding** | Policy erodes; this one has to be architectural | No AI principal holds a credential permitting a governance transition. **Held by construction and not by any check** — the test that would enforce it is named in [13](13-ai-in-the-platform.md) and not written |
 | **Scope creep into enterprise GRC** | The boundary is easy to state and easy to erode | Explicit: MAYA owns model risk; issues sync to the GRC platform rather than living in two places |
-| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Sixteen of twenty-one run, and the five that do not are named |
+| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Eighteen of twenty-one run, and the three that do not are named |
 
 ---
 

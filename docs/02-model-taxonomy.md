@@ -297,24 +297,29 @@ describes the wrong direction.
 
 ### One fibre per tutorial
 
-Eight fibres are worked end to end, one tutorial each, from registration through fit or authorship,
-approval, warrant, execution and monitoring. This document does not repeat them; it says which is
-which.
+**These eight tutorials do not exist.** Sixteen were written, then replaced by
+six that were produced *by running them* against a live instance — a pass that
+found eight defects in the platform, which is the whole argument for writing a
+walkthrough that way. The eleven per-fibre ones were not rewritten under that
+discipline and were removed rather than left standing as prose nobody had
+executed. Their links stayed here for two milestones, pointing at files that had
+been deleted.
 
-| Tutorial | `parameter_kind` / `fit_procedure` | Runtime | Read it for |
-|---|---|---|---|
-| [A linear regression](../content/tutorials/09-linear-regression.md) | `estimated_coefficients` / `estimate` | `estimator` (`ols`) | the whole path at its simplest — every control, nothing exotic |
-| [A GARCH volatility model](../content/tutorials/10-garch.md) | `estimated_coefficients` / `estimate` | `estimator` (`garch11`) | an iterative fit that can fail while looking like it succeeded, and a score that needs **state**. ARMA, ARIMA and EGARCH sit in this same slot |
-| [A derivative pricing model](../content/tutorials/11-derivative-pricing.md) | `none` / `none` | `quantlib` | what governance means when there is nothing to fit, and what is governed instead: the curve, the conventions, the valuation date, the library version |
-| [A calibrated term-structure model](../content/tutorials/12-hull-white.md) | `calibration_set` / `calibrate` | `quantlib` | daily recalibration, and approval **by exception** — a procedure approved once rather than a committee that meets every morning |
-| [A Monte Carlo engine](../content/tutorials/13-monte-carlo.md) | `calibration_set` / `calibrate` | `container` | the seed as a parameter, and the patch release that passed eleven thousand tests and broke the netting sets |
-| [A neural network](../content/tutorials/14-neural-network.md) | `learned_weights` / `train` | `onnx` | where `P` becomes an **artifact** — the content-addressed store, and which formats run code when they load |
-| [An LLM application](../content/tutorials/15-llm-application.md) | `llm_configuration` / `configure` | `llm.prompt` | where the base model is somebody else's and moves without telling you, and `P` is the assembly you configured |
-| [A rule set](../content/tutorials/16-rule-sets.md) | `rule_set` / `author` | `rules` | where `P` is something a person wrote, what the platform can say about it that it can say about nothing else, and why an editor here is not a breach of the boundary |
+What exists is six walkthroughs, each run end to end:
 
-[08 — Every kind of model, worked](../content/tutorials/08-every-kind-of-model.md) is the map across
-them, including the six ordered questions that pick the right fibre for a model you have in front of
-you.
+| Tutorial | What it works through |
+|---|---|
+| [Defining a model](../content/tutorials/01-defining-a-model.md) | registration, the kernel, the trainability class MAYA *derives* rather than accepts |
+| [Features](../content/tutorials/02-features.md) | definition, derivation, the two clocks, loading rows |
+| [Featuresets](../content/tutorials/03-featuresets.md) | slots, bindings, publication, the digest a warrant pins |
+| [Warrants and training](../content/tutorials/04-warrants-and-training.md) | a fit warrant, the parameters it produces, and running one |
+| [The model package](../content/tutorials/05-model-package.md) | everything about a model in one download |
+| [One model, end to end](../content/tutorials/06-end-to-end.md) | a multiple linear regression the whole way, as one script whose every response is real |
+
+The per-fibre material is not lost, only unworked: the fibre table in §4 states
+each class's `parameter_kind`, `fit_procedure`, runtime and evidence schema, and
+the warrant grammar refuses the combinations that make no sense. What is missing
+is a narrative for each, and this document should not pretend otherwise.
 
 **One fibre has no tutorial and one is only named.** T7 (expert judgment) is specified here and in
 the warrant grammar and is not worked anywhere; T6 (vendor black box) appears as a row in the map and
