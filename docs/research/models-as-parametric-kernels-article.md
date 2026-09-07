@@ -718,7 +718,7 @@ against *generated* inputs, with failure treated as a build failure.
 One discipline matters more than the rest. Each law is tested **as it is stated**, not as the implementation
 happens to behave. A test written from the code proves only that the code agrees with itself.
 
-There are twenty-one laws. **Sixteen execute. Five do not**, and here they are, because a gap recorded only
+There are twenty-one laws. **Eighteen execute. Three do not**, and here they are, because a gap recorded only
 in a document is a gap somebody has to go looking for:
 
 | Law | Why it doesn't run |

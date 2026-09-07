@@ -328,28 +328,43 @@ consumes it, so a principal that resolves warrants and has never reported anythi
 The reference `CaptiveEngine` is the only engine that has ever run a MAYA warrant. Everything the platform
 says about governed execution outside it is a statement about a document, not about an observation.
 
-### 4.8 The laws are the acceptance criteria, and there is no build
+### 4.8 The laws are the acceptance criteria, and there is now a build
 
 **The attack.** The strongest claim this design makes is that its laws are executable and that a failing
 law fails the build. Show me the build.
 
-**There is not one.** No `.github/`, no pipeline configuration of any kind, no `.importlinter`, no
-`pyproject.toml`, no `ruff` or `mypy` in `requirements.txt`, no coverage threshold anywhere. The whole of
-the enforcement apparatus described in [12 §2 and §7](12-implementation-plan.md) — import contracts as a CI
-gate, a spec-diff gate on breaking API changes, fibre totality, SAST, SCA, a signed SBOM, migration
-rehearsal — names tools that are not dependencies and files that do not exist. What exists is `pytest.ini`,
-nine lines, whose only directive is to exclude the scale suite from the default run.
+**When this section was written there was not one.** No `.github/`, no pipeline configuration of any kind,
+no `pyproject.toml`, no `ruff` or `mypy` in the requirements, no coverage threshold anywhere. The whole of
+the enforcement apparatus described in [12 §2 and §7](12-implementation-plan.md) named tools that were not
+dependencies and files that did not exist. What existed was `pytest.ini`, nine lines, whose only directive
+was to exclude the scale suite. The finding stood: *a law that fails on a developer's machine and is not
+run before a merge has not prevented anything*, and the sentence *"a failing law fails the build"*
+described a build that did not exist.
 
-**The honest answer, in three parts.** First, the tests themselves are real and are the thing that matters
-most: 2,246 collected, of which 2,227 run by default and 19 are the scale suite. Second, the law suite is
-real — eighteen of the twenty-one foundational laws are executable, and the three that are not are named in
-`tests/test_laws.py` as well as in the table, which is more than most projects manage. Third,
-none of that is a *gate*. It is a suite somebody runs. A law that fails on a developer's machine and is not
-run before a merge has not prevented anything, and the sentence *"a failing law fails the build"* describes
-a build that does not exist.
+**It exists now**, and the finding is left in place rather than deleted, because what closed it is the
+better half of the answer.
 
-This is the cheapest finding in this document to close and the most damaging to leave, because it is the
-one that turns every other assurance in the repository from a guarantee into a habit.
+`.github/workflows/ci.yml` runs seven jobs on every push and pull request, and each is a refusal rather
+than a report:
+
+| Job | What fails the build |
+|---|---|
+| **Hygiene** | `ruff` over the whole tree; `mypy` gated on the modules that check clean, with the rest carried in `tools/ci/mypy_backlog.txt` so the backlog can only shrink; `pip-audit`; a signed SBOM; a secret scan that plants a private key to prove it can still see one |
+| **Discipline** | The counts in this documentation against the code, refusal codes against their HTTP statuses, logging, imports, schema and file size — each its own suite |
+| **Laws** | `tests/test_laws.py` and `tests/test_grammar.py` on their own, so a failing law is legible in the run list rather than buried among three thousand others |
+| **Deck** | Slide geometry, because a deck that overflows its frame is a deck nobody can show |
+| **Suite** | Four shards, each fanned across the runner's cores, over the full 3,070 tests |
+| **Coverage** | Combined across the shards against a floor of 90% — a floor, not a target, set to catch a release that deletes tests |
+| **Postgres** | The same suite against the other dialect, because a `BOOLEAN` column once broke it silently |
+
+A spec-diff gate (`tools/ci/spec_lock.py`) refuses an unannounced change to the public API: the OpenAPI
+document is locked, and a diff has to arrive in the same commit that made it.
+
+**What is still true.** Eighteen of the twenty-one foundational laws are executable, and the three that
+are not are named in `tests/test_laws.py` as well as in the table. That count was *sixteen* in this
+paragraph and in nine other places for two milestones after `L-14` and `L-17` started running — which is
+the same defect as this section, one level up: a check that exists to stop a number drifting, written
+narrowly enough to miss the drift.
 
 ### 4.9 The interface and the API are two answers to one question
 
@@ -553,7 +568,7 @@ were attacked deliberately and held.
 | **The schema lattice** | **Held, and it is the best structural change since the review.** Four places asked *can this stand in for that* with four implementations, and four implementations of one order disagree eventually, in the direction of permitting more. `L-20` gives one order and `L-12`, `L-W10` and `L-21` all go through it. The meet is **partial** and informatively so: two schemas whose shared slot has two types have no meet, which is the honest answer to *can one featureset serve both models* |
 | **The overlay register** | **Held.** No defects found across two reviews; still the element with no equivalent in any competing product |
 | **Refusals as the product** | **Held.** 272 coded refusals mapped to fourteen HTTP statuses in one table, each carrying what was violated and what to do about it, with `tests/test_refusal_discipline.py` asserting that every code maps to a status saying who must act and that no code is mapped twice |
-| **Laws as acceptance criteria** | **Held in principle, and see [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) for what the principle currently rests on.** Eighteen of the twenty-one foundational laws are executable, plus fourteen warrant-admissibility laws checked before every signature. `L-W8`, `L-W11` and `L-W13` each caught a real error in a shipped example on the day it was written, which is the strongest available evidence that the discipline pays for itself |
+| **Laws as acceptance criteria** | **Held in principle, and see [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build) for what the principle currently rests on.** Eighteen of the twenty-one foundational laws are executable, plus fourteen warrant-admissibility laws checked before every signature. `L-W8`, `L-W11` and `L-W13` each caught a real error in a shipped example on the day it was written, which is the strongest available evidence that the discipline pays for itself |
 | **Sandbox honesty** | **Held, and it is the shape every other boundary in the platform should copy.** `core/execution/sandbox.py::describe` publishes what the sandbox protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact, because the child shares the filesystem and the network namespace. Saying so beats implying an isolation the process model does not provide |
 
 ---
@@ -565,7 +580,7 @@ were attacked deliberately and held.
 | **Critical** | C-1 … C-6 | C-2, C-4 (partly), C-5 | C-1 reopened; C-3 open; C-4 dispositions 2–4 open; C-6 four of five mitigations unbuilt |
 | **High** | H-1 … H-9 | H-6 | H-2, H-5, H-8, H-9 open; H-1, H-4, H-7 moot because the thing they were about was not built |
 | **Medium / low** | M-1 … M-8, F-1 … F-4 | M-1, M-2, F-1 … F-4 | M-4, M-6 not built; M-7, M-8 partial; M-3, M-5 moot |
-| **New** | [§4](#4-the-open-attacks) | — | Ten, of which [§4.1](#41-there-is-one-database-one-identity-and-a-generic-update-on-every-table), [§4.2](#42-the-revocation-floor-cannot-fire), [§4.4](#44-no-transaction-spans-a-governance-act) and [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-no-build) are the ones that would change what MAYA can claim |
+| **New** | [§4](#4-the-open-attacks) | — | Ten, of which [§4.1](#41-there-is-one-database-one-identity-and-a-generic-update-on-every-table), [§4.2](#42-the-revocation-floor-cannot-fire), [§4.4](#44-no-transaction-spans-a-governance-act) and [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build) are the ones that would change what MAYA can claim |
 
 **The four to fix first**, and the argument for that order. **A build** first, because it is a day's work
 and every other assurance in this repository is currently a habit rather than a gate. **The revocation

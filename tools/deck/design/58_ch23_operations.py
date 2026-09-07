@@ -79,7 +79,7 @@ data = [["Surface", "What it does"],
         ["Ten scheduler jobs", "Each idempotent, each re-deriving its own condition; anchoring and full chain verification are two of them"],
         ["One logger, one format", "Request id and acting principal on every line; a refusal is logged at WARNING because it is a governance decision"],
         ["The scale suite", "19 tests, marked scale and excluded by default. It asserts COMPLEXITY, not milliseconds — doubling the estate must not more than double the work"],
-        ["test_laws.py", "Eighteen of the twenty-one foundational laws are executable and run as tests; the five that do not are named with the reason. All fourteen warrant laws run before a signature"]]
+        ["test_laws.py", "Eighteen of the twenty-one foundational laws are executable and run as tests; the three that do not are named with the reason. All fourteen warrant laws run before a signature"]]
 th = table(sl, data, ML, y + 0.36, CW * 0.48, col_w=[1.6, 4.4], row_h=0.30,
            fs=9, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
 x = ML + CW * 0.52

@@ -150,8 +150,8 @@ request incoherent:
 
 What is governed instead moves to where the risk actually is: the conventions, the curve, the
 valuation date, the library version, and the **domain of applicability** the model was benchmarked
-in. See [every kind of model, worked](content/tutorials/08-every-kind-of-model.md) for the same
-treatment applied to seven families, one tutorial each.
+in. The fibre table in [02 §4](docs/02-model-taxonomy.md) gives the same treatment to every
+class: what inhabits `P`, what fits it, what runs it, and what evidence it owes.
 
 ---
 
@@ -378,8 +378,6 @@ registered properly.
 |---|---|
 | [**Help**](content/help/) | Seventeen topics in seven sections, rendered in the interface at `/help` |
 | [**Tutorials**](content/tutorials/) | Six walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — and one end to end. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
-| [**The whole path**](content/tutorials/07-the-whole-path.md) | One example from an empty register to a champion serving in production, including every refusal on the way |
-| [**Every kind of model**](content/tutorials/08-every-kind-of-model.md) | The map to the seven: regression, GARCH, a closed-form pricer, a daily calibration, a Monte Carlo engine, a neural network, an LLM application |
 
 ### Specifying it
 

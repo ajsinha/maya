@@ -149,7 +149,9 @@ Restore a database older than its anchors and `/admin/evidence` will report a
 disagreement permanently — a write-once store has no operation that removes an
 anchor, and giving it one would defeat the whole control. That is the anchoring
 working, not a fault, and it is the reason the pair is a pair. The full table of
-cases is in [09 §4.6](../docs/09-security-compliance.md).
+cases is in `docs/09-security-compliance.md` §4.6 in the repository — not
+linked, because this page is rendered in the interface and the design
+documents are not served with it.
 
 If the anchor root is genuinely lost, do not reconstruct one from the database.
 An anchor derived from the thing it checks proves nothing. Start a new root and
