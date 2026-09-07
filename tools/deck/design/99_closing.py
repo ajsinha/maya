@@ -19,8 +19,8 @@ outs = [("A model is a representation, and error is a quantity",
          "computed. A stored derivation is one that can go stale, and the stale "
          "one is what somebody reads."),
         ("The laws are the acceptance criteria",
-         "Sixteen of twenty-one foundational laws run, and all fourteen warrant "
-         "laws run before a signature. The five that do not are named with the "
+         "Eighteen of twenty-one foundational laws run, and all fourteen warrant "
+         "laws run before a signature. The three that do not are named with the "
          "reason, because a law stated but not executed prevented nothing."),
         ("The compliant path is the fast path",
          "If registering a model properly took forty lines of plumbing and "

@@ -37,6 +37,22 @@ WORDS = {21: "twenty-one", 114: "a hundred and fourteen",
          20: "twenty"}
 
 
+def _typechecked():
+    """(gated, backlog), from the same two functions the CI gate uses.
+
+    Imported rather than reimplemented: a second enumeration of "which modules
+    are type-checked" is a second answer, and this file exists because second
+    answers drift.
+    """
+    import sys
+
+    sys.path.insert(0, str(ROOT))
+    from tools.ci.typecheck import backlogged, modules
+
+    excused = backlogged()
+    return len([m for m in modules() if m not in excused]), len(excused)
+
+
 def _truth():
     """Every count, taken from the code rather than from a document."""
     from core.authz.common import PERMISSIONS
@@ -86,6 +102,22 @@ def _truth():
         "help topics": len(list((ROOT / "content" / "help").glob("*.md"))),
         "ADRs": len(list((ROOT / "docs" / "adr").glob("ADR-*.md"))),
         "warrant examples": len(list((ROOT / "examples" / "warrants").glob("*.json"))),
+        # The complement of the executable count, because the sentence that
+        # carries one almost always carries the other and they drifted together.
+        "inert laws": len(law_rows) - sum(1 for state in law_rows
+                                          if "Executable" in state
+                                          or "Enforcing" in state),
+        # `L-W0` through `L-W13`. Stated as eleven in one ADR and fourteen in
+        # five other places, which is how a reader learns to check nothing.
+        # `typecheck.py` gates on these and carries the rest in a backlog file.
+        # Both numbers appear in two documents each and both had drifted.
+        "gated modules": _typechecked()[0],
+        "backlog modules": _typechecked()[1],
+        "total modules": sum(_typechecked()),
+        "warrant laws": len({name for name in re.findall(
+            r"L-W(\d+)", "\n".join(
+                p.read_text(encoding="utf-8")
+                for p in sorted((ROOT / "core").rglob("*.py"))))}),
     }
 
 
@@ -107,8 +139,40 @@ CLAIMS = {
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.
-    "executable laws": [r"(\w+) of the twenty-one foundational laws are executable",
-                        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable"],
+    # Two patterns were not enough, and the gap was not subtle: this pair
+    # matched neither "Sixteen of twenty-one run", nor "Sixteen execute. Five
+    # do not", nor "sixteen of the twenty-one stated laws execute", nor the six
+    # other spellings the same claim had acquired across the documents, the
+    # research paper and two decks. Every one of them said sixteen while the
+    # table said eighteen — so the check that exists to stop THIS EXACT drift
+    # passed, on the most-repeated number in the project, for two milestones.
+    #
+    # A narrow pattern is right when the risk is crying wolf. It is wrong when
+    # the phrase varies and the number does not, which is what prose does.
+    "executable laws": [
+        r"(\w+) of the twenty-one foundational laws are executable",
+        r"\*\*(\w+) of the twenty-one\*\* foundational laws are executable",
+        r"(\w+) of (?:the )?twenty-one(?: stated| foundational)?"
+        r"(?: foundational)? laws?(?: run| execute)",
+        r"(\w+) of twenty-one (?:foundational )?laws run",
+        r"\*\*(\w+) execute\.",
+        r"(\w+) execute; \w+ do not",
+        r"(\w+) of twenty-one is the honest number",
+        r"of which (\w+) are executable",
+        r"(\w+) are executable and enforcing"],
+    # The other half of the same sentence, and it drifted with it: five became
+    # three when `L-14` and `L-17` started running, in the same documents.
+    "inert laws": [r"\*\*\w+ execute\. (\w+) do not\*\*",
+                   r"\w+ execute; (\w+) do not",
+                   r"the (\w+) that do not are named",
+                   r"twenty-one run; (\w+) do not"],
+    "warrant laws": [r"all (\w+) warrant[- ]admissibility laws",
+                     r"(\w+) warrant laws"],
+    "gated modules": [r"gates on(?: the)? (\d+) modules",
+                      r"the (\d+) modules that (?:pass|check clean)"],
+    "backlog modules": [r"carries (?:the other )?(\d+) in "],
+    "total modules": [r"`--strict` across (\d+) modules",
+                      r"adopting it across (\d+) modules"],
     # The word immediately before "foundational laws" is the total. Written this
     # narrowly because the looser form captured "Thirteen" out of "thirteen of
     # the nineteen foundational laws" and reported the executable count as the
@@ -181,3 +245,42 @@ def test_the_truth_table_is_reachable():
     counts = _truth()
     assert set(counts) >= set(CLAIMS)
     assert all(v > 0 for v in counts.values()), counts
+
+
+class TestThePaperAgreesWithTheTable:
+    """The research paper states the same law census as `docs/00 §12`, in two
+    forms — LaTeX and markdown — and both said *five do not run* for two
+    milestones after `L-14` and `L-17` started running.
+
+    Checked here rather than left to a reader, because the paper is the document
+    most likely to be read by somebody who cannot check it against the code, and
+    an inflated claim there costs more than the same claim anywhere else.
+    """
+
+    PAPER = ROOT / "docs" / "research" / "models-as-parametric-kernels.tex"
+    ARTICLE = ROOT / "docs" / "research" / "models-as-parametric-kernels-article.md"
+
+    def test_the_latex_table_marks_the_same_laws_as_not_built(self):
+        rows = re.findall(r"\\textsf\{(L-\d+)\}\s*&[^&]*&\s*\\emph\{not built\}",
+                          self.PAPER.read_text(encoding="utf-8"))
+        assert set(rows) == {"L-6", "L-11", "L-13"}, rows
+
+    def test_the_latex_table_states_every_law(self):
+        rows = re.findall(r"\\textsf\{(L-\d+)\}\s*&", self.PAPER.read_text(
+            encoding="utf-8"))
+        assert len(set(rows)) == _truth()["foundational laws"], sorted(set(rows))
+
+    def test_the_article_names_only_the_laws_that_do_not_run(self):
+        """Its table is prose-titled rather than coded, so this counts rows."""
+        body = self.ARTICLE.read_text(encoding="utf-8")
+        block = body.split("| Law | Why it doesn't run |", 1)[1].split("\n\n", 1)[0]
+        rows = [line for line in block.strip().splitlines()
+                if line.startswith("|") and not line.startswith("|---")]
+        assert len(rows) == _truth()["inert laws"], rows
+
+    def test_neither_form_still_says_five(self):
+        for path in (self.PAPER, self.ARTICLE):
+            body = path.read_text(encoding="utf-8")
+            for phrase in ("five that do not", "Five do not", "five do not run",
+                           "lists it among the six"):
+                assert phrase not in body, f"{path.name}: '{phrase}'"
