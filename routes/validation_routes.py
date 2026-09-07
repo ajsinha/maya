@@ -109,7 +109,8 @@ class ValidationRoutes(Routes):
         def record_result(request: Request, validation_id: str, body: RecordTestIn):
             who = self.authorise(
                 request, "validation:record",
-                model=self.model_behind(service.get(validation_id)))
+                model=self.model_behind(
+                    self.guard(lambda: service.require(validation_id))))
             return self.guard(lambda: service.record(
                 validation_id, body.test_key, body.left, body.right,
                 body.threshold, body.parameters, body.slice, actor=self.actor(who)))

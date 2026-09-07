@@ -184,3 +184,42 @@ class TestTheScopeActuallyBites:
         assert profile.json()["error"] == "scope_insufficient", profile.text
         assert "LE-UK-02" in profile.json()["detail"], \
             "say which scope was too narrow"
+
+
+class TestAMissingSubjectIsFourOhFourAndNotFiveHundred:
+    """`model_behind(None)` is None, and `authorise` refuses a model-scoped
+    permission with no model as `scope_not_checked` — a 500, deliberately,
+    because it means the ROUTE forgot.
+
+    Eleven routes loaded their subject with `.get(id)`, which returns None for
+    an id that does not exist. So asking to review an attachment that is not
+    there produced a 500 blaming the route, when the honest answer is that the
+    attachment is not there. Found by running tutorial 01, which reviews an
+    attachment it had failed to create.
+    """
+
+    def test_reviewing_an_attachment_that_does_not_exist(self, registered,
+                                                         people):
+        r = registered.post("/api/v1/attachments/01a000000000000000000000/review",
+                            auth=people["s.iqbal"],
+                            json={"accept": True, "note": "n/a"})
+        assert r.status_code == 404, r.text
+        assert r.json()["error"] != "scope_not_checked"
+
+    def test_the_same_for_every_subject_that_carries_a_model(self, registered,
+                                                             people):
+        absent = "01a000000000000000000000"
+        for path, body in (
+                (f"/api/v1/overlays/{absent}/approve", None),
+                (f"/api/v1/monitors/{absent}/evaluate", {"rows": []}),
+                (f"/api/v1/validations/{absent}/results",
+                 {"test_key": "discrimination.auc", "left": [], "right": []})):
+            r = (registered.post(path, auth=people["s.iqbal"], json=body)
+                 if body is not None
+                 else registered.post(path, auth=people["s.iqbal"]))
+            # 404 or the service's own governed refusal — the register decides
+            # how it says "no such thing". What none of them may say is 500.
+            assert r.status_code < 500, f"{path} -> {r.status_code} {r.text}"
+            assert r.json()["error"] != "scope_not_checked", path
+            assert absent in r.json()["detail"], \
+                f"{path}: the refusal must name the subject that is missing"

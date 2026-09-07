@@ -285,7 +285,12 @@ val.attachments.review(doc["id"], accept=True,
 `application/octet-stream` for a `.md` file otherwise, and the register then
 honestly records the document as stored but not indexed.
 
+The upload needs a file, so make one — this walkthrough is meant to run:
+
 ```bash
+printf '# SB PD model development document\n\n## 4 Sampling\n\nSixty borrowers, 2025H1.\n' \
+  > sb-pd-mdd.md
+
 curl -u d.raman:dev-pw -X POST localhost:5006/api/v1/attachments \
   -F urn=maya://model/credit.pd.smallbiz \
   -F kind=model_development_document \
@@ -303,11 +308,17 @@ curl -u d.raman:dev-pw -X POST localhost:5006/api/v1/attachments \
  "attached_by": "d.raman"}
 ```
 
-It lands `attached`, not accepted. Somebody else moves it:
+It lands `attached`, not accepted. Somebody else moves it — and the id is the
+one that just came back, not the one printed above, which is from the run that
+produced this page:
 
 ```bash
+DOC=$(curl -s -u d.raman:dev-pw \
+        "localhost:5006/api/v1/attachments?urn=maya://model/credit.pd.smallbiz" \
+      | python3 -c 'import json,sys; print(json.load(sys.stdin)["attachments"][0]["id"])')
+
 curl -u a.mehta:val-pw -X POST \
-  localhost:5006/api/v1/attachments/01a07374f914272c3465f053d92d/review \
+  localhost:5006/api/v1/attachments/$DOC/review \
   -H 'Content-Type: application/json' \
   -d '{"accept": true, "note": "Reproduced the fit on the 2025 sample."}'
 ```
@@ -392,7 +403,39 @@ And once attested:
 ```
 
 The same refusal covers editing the record's fields. The way out is an amendment,
-which is the only one, and it leaves a reason behind:
+which is the only one, and it leaves a reason behind.
+
+**An amendment is opened against an `attested` record and against no other**,
+which is the state machine saying you cannot declare a change to something
+nobody has yet asserted. So the record has to go all the way through first —
+three acts, by three different people, and this is the shortest honest version
+of them:
+
+```bash
+curl -u j.okafor:owner-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/assess \
+  -H 'Content-Type: application/json' \
+  -d '{"exposure": 40000000, "purpose_class": "risk_management",
+       "feature_count": 12, "uses_alternative_data": false,
+       "interpretable": true}'
+
+curl -u j.okafor:owner-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/submit \
+  -H 'Content-Type: application/json' -d '{"note": "1.0.0 ready"}'
+
+curl -u s.iqbal:mrm-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/approve \
+  -H 'Content-Type: application/json' -d '{"note": "tier 3 controls in place"}'
+
+curl -u j.okafor:owner-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/attest \
+  -H 'Content-Type: application/json' -d '{"role": "model_owner"}'
+curl -u s.iqbal:mrm-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/attest \
+  -H 'Content-Type: application/json' -d '{"role": "model_risk_manager"}'
+```
+
+Now the amendment is legal, and now it means something:
 
 ```python
 owner.lifecycle.amend("maya://model/credit.pd.smallbiz",
@@ -406,6 +449,25 @@ curl -u j.okafor:owner-pw -X POST \
   localhost:5006/api/v1/models/credit.pd.smallbiz/amend \
   -H 'Content-Type: application/json' \
   -d '{"reason": "recalibrated on the 2026 sample", "scope": ["versions"]}'
+```
+
+With the record open again, §6 needs a second version to move an alias onto:
+
+```bash
+curl -u d.raman:dev-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/versions \
+  -H 'Content-Type: application/json' \
+  -d '{"semver": "1.1.0",
+       "kernel": {"parameter_kind": "estimated_coefficients",
+                  "fit_procedure": "estimate",
+                  "output_kind": "point_estimate",
+                  "input_schema": [{"name": "dscr", "dtype": "numeric",
+                                    "minimum": -5, "maximum": 20}],
+                  "output_schema": [{"name": "pd_12m", "dtype": "numeric"}]},
+       "contract": {"assumptions": [{"key": "dscr", "minimum": -5,
+                                     "maximum": 20}],
+                    "guarantees": [{"key": "pd_12m", "minimum": 0,
+                                    "maximum": 1}]}}'
 ```
 
 **On screen** this is **`/model-algebra/lifecycle/{name}`**: the state you are
@@ -425,6 +487,20 @@ naming the clause.
   no less.
 * **L-12, variance.** Inputs are contravariant, outputs covariant, so code
   written against the old version still type-checks against the new one.
+
+An alias may only point at an **approved** version, so 1.1.0 has to be approved
+before §6 can move anything onto it. This model is **Tier 3**, and a Tier 3
+version is approved by one authorised person — asking for a quorum here is
+refused with `no_quorum_required: a tier 3 version is approved by one authorised
+person, so there is no quorum to open`. The tier decides the control depth; you
+do not:
+
+```bash
+curl -u s.iqbal:mrm-pw -X POST \
+  localhost:5006/api/v1/models/credit.pd.smallbiz/versions/1.1.0/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"note": "recalibration reviewed"}'
+```
 
 **On screen.** **`/model-algebra/refinement/{name}`** puts both halves on one
 page: *Ask the question* on the left, *Move an alias* on the right, and the two
@@ -505,6 +581,28 @@ carries. Two of them do the work everybody means.
 `GET /api/v1/model-relations` publishes this list with its meanings; `feeds` is
 still accepted on the way in and stored as `input_to`.
 
+Both relations below are between real models, so register the other two first
+— a relation to a model that does not exist is refused, which is the register
+declining to draw an arrow to nowhere:
+
+```bash
+curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/models \
+  -H 'Content-Type: application/json' \
+  -d '{"urn": "maya://model/credit.pd.smallbiz.challenger",
+       "name": "SB PD challenger", "model_class": "credit.pd.scorecard",
+       "domain": "credit", "owner": "person/j.okafor",
+       "legal_entity": "LE-US-01",
+       "purpose": "challenger to the small business PD scorecard"}'
+
+curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/models \
+  -H 'Content-Type: application/json' \
+  -d '{"urn": "maya://model/credit.ecl.smallbiz",
+       "name": "SB ECL stack", "model_class": "credit.ecl.stack",
+       "domain": "credit", "owner": "person/j.okafor",
+       "legal_entity": "LE-US-01",
+       "purpose": "IFRS 9 lifetime ECL, reading the PD as an input"}'
+```
+
 **Inheritance is `derives_from`.** It records lineage and nothing propagates
 along it. The derived model is its own model with its own versions and its own
 approvals — MAYA has no notion of one model inheriting another's approvals, and
@@ -523,6 +621,29 @@ curl -u j.okafor:owner-pw -X POST localhost:5006/api/v1/model-relations \
 only two: the source supplies **at least one** field the target reads, and every
 field they **share** type-checks. What the target reads from elsewhere is
 somebody else's edge, or the caller's to supply.
+
+Both of those are questions about *schemas*, so both ends need a version before
+the edge can be checked at all — `a composite has no schema until both ends have
+a version`. The ECL stack needs one, and it reads `pd_12m`, which is what makes
+the edge type-check rather than merely exist:
+
+```bash
+curl -u d.raman:dev-pw -X POST \
+  localhost:5006/api/v1/models/credit.ecl.smallbiz/versions \
+  -H 'Content-Type: application/json' \
+  -d '{"semver": "1.0.0",
+       "kernel": {"parameter_kind": "estimated_coefficients",
+                  "fit_procedure": "estimate",
+                  "output_kind": "point_estimate",
+                  "input_schema": [{"name": "pd_12m", "dtype": "numeric",
+                                    "minimum": 0, "maximum": 1},
+                                   {"name": "lgd", "dtype": "numeric"},
+                                   {"name": "ead", "dtype": "numeric"}],
+                  "output_schema": [{"name": "ecl", "dtype": "numeric"}]},
+       "contract": {"assumptions": [{"key": "pd_12m", "minimum": 0,
+                                     "maximum": 1}],
+                    "guarantees": [{"key": "ecl", "minimum": 0}]}}'
+```
 
 **On screen.** **`/model-algebra/composition`** — *Propose an edge*, then
 *The composite, computed* and *Blast radius* underneath.
