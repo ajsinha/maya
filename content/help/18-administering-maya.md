@@ -26,6 +26,89 @@ those would be the one act in MAYA with no record.
 
 ---
 
+
+## People, roles and keys
+
+Three things an administrator does daily, and until recently all three meant
+`curl`.
+
+### People
+
+**`/admin/principals`** adds a principal, changes roles, sets a password,
+suspends and reinstates. The screen decides nothing: every act posts to the same
+API a script would, and the incompatible-roles check, the scope, the segregation
+of duties and the evidence happen where they already did.
+
+The one place it asks a second question is an **incompatible pair**. The server
+refuses, the screen reads the refusal and offers to retry as a recorded
+exception — because a small firm giving one person two hats *visibly* is better
+than a hybrid role that hides it.
+
+### Roles
+
+Roles live in the register. Eight ship with the platform, marked **built-in**,
+and may be read and not edited: every document, tutorial and test here names
+them, and a vocabulary that can be renamed underneath its own documentation
+makes the documentation wrong. Everything else is yours — a *Model Validation
+Team Lead*, a *Regional MRM* — defined on the same screen, with every permission
+checked against the closed set.
+
+**Two kinds of conflict are checked, and neither catches what the other does.**
+
+*Role pairs* are about **independence** — which line somebody is in.
+`auditor + model_developer` has no permission collision at all, since an auditor
+holds reads and `finding:raise`; the conflict is that the third line must not
+build what it audits, and a permission check cannot see that.
+
+*Permission pairs* are about **capability**, and they exist because a role you
+define could otherwise smuggle one past: give one role `version:create` and
+`version:approve` together and a check over role *names* sees a single
+unfamiliar name and passes it.
+
+### API keys
+
+**`/admin/api-keys`.** A service signing in with a password has three problems a
+key does not: the password is a shared secret somebody typed and can retype
+elsewhere, it carries every permission the principal holds for as long as the
+account exists, and rotating it means changing it in two places at the same
+instant or something stops working.
+
+| | |
+|---|---|
+| Shown once | The secret is in the creation response and nowhere else — not a log, not the evidence chain, not the row. The chain records that a key was issued, to whom, with what scope and until when |
+| Always expires | Ninety days by default, a year at most. A key with no practical expiry is a credential nobody ever reviews |
+| Narrows, never widens | A key may hold a subset of its principal's permissions — checked **at use**, so a role removed or an account suspended reaches every key immediately |
+| Rotated as two keys | Issue the new one, move the caller, revoke the old. A rotation that is one atomic act has a window in which nothing works |
+| Revoked, never deleted | The row is what says the key existed; `last_used_at` is what says whether anybody would have noticed losing it |
+
+Send one as `Authorization: Bearer maya_sk_…` or `X-API-Key`, or give the SDK
+`Maya(base_url, api_key=…)`.
+
+The list shows the two things worth acting on rather than every key: one **never
+used** is one nobody would notice losing, and one **expiring within a fortnight**
+is an outage somebody should schedule rather than meet.
+
+## Deleting things, and seeing what would break
+
+**`/dependencies`** answers *where is this used?* — and a delete consults
+exactly what it shows. Building those separately is how they come to disagree: a
+screen listing three usages while the delete check knows about four says a thing
+is safe to remove and then refuses.
+
+A reference is **blocking** or **historical**. A live warrant naming this model
+would be left broken; a revoked one records what happened and reads correctly
+afterwards. A register in which nothing may ever be deleted because something
+once happened grows without bound, so historical references are shown rather
+than enforced.
+
+Deleting a model was previously checked for two things — that the caller was an
+administrator and had given a reason — and **nineteen tables carry a
+`model_id`**. Refusals now name what refers to the thing, because somebody told
+*why* can go and deal with it and somebody told *no* finds another way.
+
+**Retiring is almost always the right act instead.** It withdraws a model from
+use and keeps every reference readable.
+
 ## People and roles
 
 `/admin/principals` — needs `principal:read`

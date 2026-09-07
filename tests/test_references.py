@@ -236,3 +236,81 @@ class TestTheDependencyScreen:
                               params={"kind": "model", "id": URN}).text
         assert str(report["blocking"]) in page
         assert (report["blocking"] > 0) is (refused.status_code == 409)
+
+
+class TestTheDeleteControlsAreOfferedSafely:
+    """A screen that offers a delete which then refuses teaches people to
+    ignore refusals — the same argument the menu filtering made. So each
+    control is offered only where the register would consider the act at all,
+    and every one of them links to what refers to the thing first."""
+
+    def _login(self, client):
+        from tests.api_helpers import login
+
+        login(client)
+
+    def test_the_catalogues_link_to_the_dependency_view(self, nj_estate, client):
+        self._login(client)
+        for path, kind in (("/features", "feature"),
+                           ("/featuresets", "featureset")):
+            body = client.get(path).text
+            assert f"/dependencies?kind={kind}" in body, path
+
+    def test_a_durable_feature_is_offered_no_delete(self, client):
+        """It is retired, not destroyed — offering the button would be offering
+        a refusal.
+
+        Defined through the API rather than through the `full_features` fixture:
+        that service runs against the in-memory database and the application
+        against a file, so a feature created there is invisible here.
+        """
+        client.post("/api/v1/features", json={
+            "name": "durable_signal", "entity": "customer", "dtype": "numeric",
+            "description": "not ephemeral", "owner": "person/d.raman"})
+        self._login(client)
+        body = client.get("/features").text
+        assert "durable_signal" in body
+        # The BUTTON, not the string — the page's own handler names the class
+        # in its script whether or not a row carries one.
+        assert "ms-2 destroy-feature" not in body, \
+            "nothing in this catalogue is ephemeral, so nothing is deletable"
+
+    def test_the_model_page_offers_delete_only_to_an_administrator(
+            self, registered, client, people):
+        """Every state-changing setup call happens BEFORE the first sign-in.
+
+        Once a session cookie exists the CSRF guard refuses a POST without a
+        token — correctly — and a setup call that silently 403s leaves the test
+        asserting against the previous principal. That has now caught me three
+        times in this session, in three different files.
+        """
+        from tests.api_helpers import login
+
+        registered.post("/api/v1/principals", json={
+            "username": "nodelete", "display_name": "N", "roles": ["validator"],
+            "password": "pw"})
+
+        login(client)
+        assert 'id="delete-model"' in registered.get(
+            "/model/credit.pd.smallbiz").text
+
+        login(client, "nodelete", "pw")
+        body = registered.get("/model/credit.pd.smallbiz").text
+        assert 'id="delete-model"' not in body, \
+            "a validator holds no model:delete"
+
+    def test_it_says_retiring_is_almost_always_right(self, registered, client):
+        self._login(client)
+        body = registered.get("/model/credit.pd.smallbiz").text
+        assert "Retiring</strong> is" in body or "Retiring" in body
+        assert "/dependencies?kind=model" in body
+
+    def test_the_client_renders_the_refusal_whole(self):
+        """The refusal names what refers to the model, and a summary of it
+        would drop the half somebody can act on."""
+        import pathlib
+
+        script = (pathlib.Path(__file__).resolve().parents[1] / "web" /
+                  "static" / "js" / "model-algebra-lifecycle.js").read_text()
+        assert "A.refusalHtml(xhr)" in script
+        assert "A.remove(" in script, "through the shared client, not its own ajax"

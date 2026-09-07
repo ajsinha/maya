@@ -111,7 +111,7 @@ because the kernel reads the slot.</p>
 <div class="card mb-3"><div class="card-header">Declared featuresets</div>
   <table class="table maya mb-0">
     <thead><tr><th>Featureset</th><th>Slots</th><th>Owner</th><th>State</th>
-               <th>Newest</th><th></th></tr></thead>
+               <th>Newest</th><th>Data &amp; dependencies</th></tr></thead>
     <tbody>
     {% for s in featuresets %}
       <tr><td class="small"><a href="/featureset/{{ s.name }}"
@@ -136,10 +136,17 @@ because the kernel reads the slot.</p>
             {% if s.latest %}v{{ s.latest.version }}
               <div class="text-muted"><code style="font-size:.7rem">{{ s.latest.digest[7:19] }}&hellip;</code></div>
             {% else %}<span class="text-muted">unfilled</span>{% endif %}</td>
-          <td class="small text-end">
+          <td class="small text-end text-nowrap">
             {% if s.latest %}
               <a href="/api/v1/featuresets/{{ s.name }}/versions/{{ s.latest.version }}/data?format=parquet"
                  style="color:var(--crimson);text-decoration:none">parquet</a>
+            {% endif %}
+            <a href="/dependencies?kind=featureset&amp;id={{ s.name }}"
+               class="ms-2" style="color:var(--crimson);text-decoration:none"
+               title="what refers to this">used by</a>
+            {% if may_define and s.lifetime.ephemeral and not s.sealed %}
+              <button class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 destroy-set"
+                      style="font-size:.72rem" data-name="{{ s.name }}">Delete</button>
             {% endif %}</td></tr>
     {% else %}
       <tr><td colspan="6" class="text-muted small">
@@ -295,6 +302,23 @@ $("#define-set").on("submit", function (e) {
       $("#set-preview").html('<span class="evidence-bad">Refused &mdash; ' +
         (e.detail || x.statusText) + '</span>' +
         (e.remediation ? '<div class="text-muted small">' + e.remediation + '</div>' : ''));
+    });
+});
+/* Delete. Refused when a version, a parameter set, a contract or a snapshot
+   points at it — /dependencies?kind=featureset shows what does. */
+$(".destroy-set").on("click", function () {
+  var name = $(this).data("name");
+  if (!confirm("Delete the ephemeral featureset '" + name + "'?\n\n" +
+               "It is refused if anything pins it or was fitted from it.")) {
+    return;
+  }
+  $.ajax({url: "/api/v1/featuresets/" + encodeURIComponent(name),
+          method: "DELETE"})
+    .done(function () { window.location.reload(); })
+    .fail(function (xhr) {
+      var r = window.MAYA.refusal.read(xhr);
+      alert("Refused" + (r.code ? " (" + r.code + ")" : "") + "\n\n" +
+            r.lines.join("\n") + (r.remediation ? "\n\n" + r.remediation : ""));
     });
 });
 </script>
