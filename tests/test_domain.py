@@ -461,3 +461,66 @@ class TestLawsUnderGeneratedInput:
         kinds, fits = list(ParameterKind), list(FitProcedure)
         k = kernel(kinds[i % len(kinds)], fits[i % len(fits)])
         assert k.trainability_class in {f"T{n}" for n in range(9)}
+
+
+class TestTheUnitIsPartOfTheType:
+    """`Field.unit`'s own docstring says a replacement declaring `bp` where the
+    incumbent declared `ratio` is a hundred-fold error that every type check
+    passes. Three places let exactly that through.
+
+    The comparison existed, on `Schema.provides_superset_of`, and that method
+    had no callers at all — `substitutable` asks `lattice.provides`, which
+    compared name and dtype only. A rule written twice is a rule enforced in
+    whichever copy nobody calls.
+    """
+
+    def test_a_version_changing_ratio_to_basis_points_is_not_a_substitute(self):
+        from core.domain.lattice import provides
+        from core.domain.schemas import Field, Schema
+
+        ratio = Schema((Field("ltv", "numeric", unit="ratio"),))
+        basis_points = Schema((Field("ltv", "numeric", unit="bp"),))
+        assert provides(basis_points, ratio) == ("ltv",), \
+            "a hundred-fold change of scale is not a compatible output"
+        assert provides(ratio, ratio) == ()
+
+    def test_an_incumbent_that_declared_no_unit_still_accepts_one(self):
+        """The asymmetry is deliberate: callers of a field that never declared
+        a unit cannot have been relying on one."""
+        from core.domain.lattice import provides
+        from core.domain.schemas import Field, Schema
+
+        silent = Schema((Field("ltv", "numeric"),))
+        stated = Schema((Field("ltv", "numeric", unit="ratio"),))
+        assert provides(stated, silent) == ()
+
+    def test_the_two_implementations_agree_because_there_is_one(self):
+        from core.domain.lattice import provides
+        from core.domain.schemas import Field, Schema
+
+        a = Schema((Field("x", "numeric", unit="GBP"),))
+        b = Schema((Field("x", "numeric", unit="USD"),))
+        assert a.provides_superset_of(b) == list(provides(a, b)) == ["x"]
+
+    def test_a_meet_carries_the_unit_rather_than_erasing_it(self):
+        """`meet` rebuilt every Field without `symbol` or `unit`, so anything
+        checked against a computed meet — "can one featureset serve both these
+        models" — had its unit constraint silently dropped."""
+        from core.domain.lattice import join, meet
+        from core.domain.schemas import Field, Schema
+
+        a = Schema((Field("ltv", "numeric", unit="ratio", symbol=r"\lambda"),))
+        b = Schema((Field("ltv", "numeric", unit="ratio"),))
+        assert meet(a, b).fields[0].unit == "ratio"
+        assert meet(a, b).fields[0].symbol == r"\lambda"
+        assert join(a, b).fields[0].unit == "ratio"
+
+    def test_two_schemas_measuring_in_different_units_have_no_meet(self):
+        from core.domain.lattice import NoMeet, meet
+        from core.domain.schemas import Field, Schema
+
+        ratio = Schema((Field("ltv", "numeric", unit="ratio"),))
+        basis_points = Schema((Field("ltv", "numeric", unit="bp"),))
+        with pytest.raises(NoMeet) as refusal:
+            meet(ratio, basis_points)
+        assert "ratio" in str(refusal.value) and "bp" in str(refusal.value)

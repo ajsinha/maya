@@ -8,6 +8,7 @@ pinned to v7 must never be served v8 values — finding C-2).
 
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
+
 import pytest
 
 from core.features import AssemblyRejected, FeatureError, detect_leakage, static_check
@@ -236,6 +237,72 @@ class TestLeakageDetection:
     def test_too_few_rows_yields_no_finding(self):
         assert detect_leakage([{"entity_id": "C1", "label": 0, "x": 0}]) == []
 
+    # ------------------------------------------------------------------
+    # Four datasets that leak and were passed as clean. Each defeated the
+    # screen by being slightly imperfect, which is what a real leak looks
+    # like: exactness is the property a leak loses first.
+
+    def test_a_label_copy_with_one_null_is_still_a_label_copy(self):
+        """`if any(v is None for v in values): continue` skipped the whole
+        column. A leaked outcome field nulled for the population it does not
+        apply to is the ordinary shape of one."""
+        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 2,
+                 "leaked": (i % 2) if i != 13 else None} for i in range(40)]
+        assert "leaked" in detect_leakage(rows)
+
+    def test_a_two_sided_rule_is_caught_though_no_threshold_splits_it(self):
+        """`label = 1 iff 10 <= x <= 20` is deterministic and a textbook leak,
+        and provably no single cut point separates it — the old screen asked
+        for exactly one label change along the sorted column and this produces
+        two. Widening the cut to a tolerance does not help; the screen has to
+        consider a RANGE."""
+        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "x": float(i),
+                 "label": 1 if 10 <= i <= 20 else 0} for i in range(40)]
+        assert "x" in detect_leakage(rows)
+
+    def test_one_contaminated_cell_does_not_hide_a_leak(self):
+        """The purity screen required EVERY bucket to hold exactly one label,
+        so a single correction, backfill or manual override concealed an
+        otherwise perfect leaked status code."""
+        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 2,
+                 "status": ("A" if i % 2 else "B") if i != 7 else "A"}
+                for i in range(40)]
+        assert "status" in detect_leakage(rows)
+
+    def test_a_three_class_label_reports_what_it_could_not_screen(self):
+        """The nastiest of the four. Three classes over sixty rows is neither
+        binary nor continuous by the ratio, so the screen ran and reported
+        itself as having run — but a threshold test declines any non-binary
+        label, so every continuous column was examined for nothing and came
+        back clean."""
+        from core.features import screen_leakage
+
+        rows = [{"entity_id": f"C{i}", "label_ts": 1.0, "label": i % 3,
+                 "decoder": (i % 3) * 1000 + i} for i in range(60)]
+        _, why_not = screen_leakage(rows)
+        assert why_not is not None, \
+            "reporting this as screened is the wrong answer, not a small one"
+        assert "decoder" in why_not and "3 classes" in why_not
+
+    def test_honest_features_are_not_flagged(self):
+        """A screen loose enough to catch the four above must not start
+        refusing ordinary training sets, or it gets turned off."""
+        import random
+
+        from core.features import screen_leakage
+
+        rng = random.Random(11)
+        for _ in range(50):
+            rows = [{"entity_id": f"C{i}", "label_ts": 1.0,
+                     "label": (label := rng.randint(0, 1)),
+                     "income": rng.gauss(50_000, 12_000),
+                     "age": rng.randint(18, 90),
+                     "region": rng.choice(["uk", "us", "de", "fr"]),
+                     # Weakly predictive, as a real feature is.
+                     "score": rng.gauss(0.4 + 0.2 * label, 0.35)}
+                    for i in range(80)]
+            assert screen_leakage(rows)[0] == []
+
     def test_injected_leakage_fails_the_assembly(self, sb_view, features):
         """Adversarial: the verifier must catch leakage it was not told about."""
         features.define("outcome_copy", "customer", "int", "Copy of the label", "p")
@@ -427,3 +494,78 @@ class TestTheTwoPointInTimePathsAgreeOnATie:
                  "dscr": 1.1}]
         assert TrainingSetBuilder.latest_admissible(rows, 200.0, 200.0)["dscr"] \
             == 1.1, "the later fact wins whatever its content sorts as"
+
+
+class TestAVerificationSaysWhatItActuallyCompared:
+    """`N of M rows independently recomputed` counted rows SAMPLED, not values
+    COMPARED, and those differ by exactly the amount that matters.
+
+    `_recompute` skips a row the second route cannot find. When the source is
+    unreadable — an unmounted volume, a permission change overnight — every row
+    is skipped, `expected` is empty every time, the comparison loop runs zero
+    times, and `PitReport(not violations, ...)` is True with an empty
+    violations list. The assembler produces None for every column in that same
+    situation, so the snapshot was persisted, digested, appended to the
+    evidence chain and marked `pit_verified: true`; a fit warrant pinned the
+    digest and a model was fitted on nulls, with the register's own control
+    saying the data had been independently recomputed.
+
+    Zero comparisons is NOT by itself a failure — a point-in-time bound that
+    legitimately excludes every row produces it too, and that is a correct
+    answer that this suite already relies on. So the outage is refused where it
+    happens, in the assembler, and what the report owes the reader here is
+    saying which of the two this was.
+    """
+
+    ROWS = [{"entity_id": f"e{i}", "label_ts": 500.0, "label": i % 2,
+             "dscr": None, "revenue": None} for i in range(40)]
+
+    def test_comparing_nothing_does_not_describe_itself_as_recomputing(self):
+        from core.features.pit import verify_sampled
+
+        report = verify_sampled(self.ROWS, lambda row: {})
+        assert "NO values were compared" in report.detail
+        assert "not the same as verifying values" in report.detail
+        assert "independently recomputed" not in report.detail
+
+    def test_a_frame_that_genuinely_verifies_says_how_much_it_compared(self):
+        from core.features.pit import verify_sampled
+
+        report = verify_sampled(self.ROWS,
+                                lambda row: {"dscr": None, "revenue": None})
+        assert report.passed is True
+        assert "80 values compared" in report.detail
+
+    SPINE = [{"entity_id": "C1", "label_ts": 500.0, "label": 0},
+             {"entity_id": "C2", "label_ts": 500.0, "label": 1}]
+    VIEWS = [{"view": "sb_financials", "version": 1}]
+
+    def test_an_absent_pinned_source_refuses_the_assembly(self, sb_view,
+                                                          tmp_path):
+        """The outage itself, caught where it happens.
+
+        The source is PINNED, so its absence is an outage rather than an
+        answer — but `DeltaStore.read` returns the same empty frame for a table
+        that is not there as for a bound that legitimately excluded everything.
+        With the store gone, every column recomputed to nothing, the comparison
+        loop ran zero times, and a snapshot of entirely null features was
+        recorded `pit_verified: true`.
+        """
+        import shutil
+
+        # It builds while the store is there.
+        ok = sb_view.build_training_set("before", self.SPINE, self.VIEWS,
+                                        as_of=1000.0)
+        assert ok["pit_report"]["passed"] is True
+
+        # The volume goes away. The pinned namespace is what the recomputation
+        # reads, and it is not the view's bare name.
+        pin = sb_view.views.pinned("sb_financials", 1)
+        shutil.rmtree(sb_view.delta.path(pin["namespace"]))
+        assert not sb_view.delta.exists(pin["namespace"])
+
+        with pytest.raises(AssemblyRejected) as refusal:
+            sb_view.build_training_set("after", self.SPINE, self.VIEWS,
+                                       as_of=1000.0)
+        assert "is not present" in str(refusal.value)
+        assert "must not be recorded as verified" in str(refusal.value)

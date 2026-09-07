@@ -206,10 +206,18 @@ jobs:
           if [ ${#slice[@]} -eq 0 ]; then echo "no files in this shard"; exit 0; fi
           printf 'running %d of %d files\n' "${#slice[@]}" "$total"
           pytest "${slice[@]}" -q --cov --cov-report= --cov-context=test
+          # Named by shard BEFORE upload. Every shard wrote a file called
+          # `.coverage`, and the combining job downloads them with
+          # `merge-multiple: true`, which extracts all four to the same path --
+          # so three were overwritten and the floor was applied to whichever
+          # arrived last. `coverage combine` then exits 0 on "No data to
+          # combine" and leaves that one file untouched, so the step named
+          # "Combine and check" combined nothing and reported success.
+          mv .coverage ".coverage.shard${{ matrix.shard }}"
       - uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.shard }}
-          path: .coverage*
+          path: .coverage.shard*
           include-hidden-files: true
 
   # --------------------------------------------------------- the coverage floor
@@ -237,8 +245,19 @@ jobs:
           merge-multiple: true
       - name: Combine and check
         run: |
-          coverage combine
-          coverage report
+          # `coverage combine` exits 0 when it finds nothing, so the count is
+          # asserted rather than assumed: a floor computed from one shard of
+          # four is worse than no floor, because it reports a number that looks
+          # like the whole suite.
+          found=$(ls -1 .coverage.shard* 2>/dev/null | wc -l)
+          echo "shards downloaded: $found"
+          if [ "$found" -ne 4 ]; then
+            echo "expected 4 shard coverage files, found $found —"
+            echo "the floor would be computed from part of the suite."
+            exit 1
+          fi
+          coverage combine .coverage.shard*
+          coverage report --fail-under=90
 
   # ------------------------------------------------------- the second dialect
   postgres:
@@ -274,6 +293,14 @@ jobs:
         env:
           MAYA_TEST_DATABASE_URL: postgresql+psycopg://maya:maya@localhost:5432/maya_test
         run: |
+          # `-n 0` overrides the `-n auto` in pytest.ini. Every worker would
+          # otherwise share this one database and TRUNCATE between tests, so
+          # they destroyed each other's rows: this job was red and
+          # non-deterministic, ten failures on one run and seven on the next.
+          # Serially these files take well under a minute; `tests/conftest.py`
+          # refuses a parallel run against a shared URL so this cannot regress
+          # silently.
           pytest tests/test_evidence.py tests/test_evidence_anchor.py \
                  tests/test_domain.py tests/test_lifecycle.py \
-                 tests/test_model_composition.py tests/test_concurrency.py -q
+                 tests/test_model_composition.py tests/test_concurrency.py \
+                 -q -n 0

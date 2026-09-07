@@ -88,13 +88,17 @@ class _Renderer:
     """Walks the tree once. Subclasses decide only how to spell each node."""
 
     def render(self, node: ast.AST, parent_power: int = 0,
-               right_of_same: bool = False) -> str:
+               equal_binds_elsewhere: bool = False,
+               force: bool = False) -> str:
         text = self._render(node)
         mine = _power(node)
-        # Brackets when this node binds LOOSER than its parent — and also when
-        # it binds EQUALLY and sits on the right of a non-associative operator,
-        # which is where `a - (b - c)` lives.
-        if mine < parent_power or (mine == parent_power and right_of_same):
+        # Brackets when this node binds LOOSER than its parent, when it binds
+        # EQUALLY and the operator groups the other way (`a - (b - c)`), or when
+        # the caller knows something the binding powers do not — a comparison
+        # inside a comparison, which re-reads as a chain and is a different
+        # operator entirely.
+        if force or mine < parent_power or (mine == parent_power
+                                            and equal_binds_elsewhere):
             return self._bracket(text)
         return text
 
@@ -107,12 +111,29 @@ class _Renderer:
     # -- shared walk ------------------------------------------------------
     def _children_of_binop(self, node: ast.BinOp):
         power = _power(node)
+        # Which side needs its brackets kept at equal precedence is decided by
+        # how the operator GROUPS, not by which operator the parent happens to
+        # be. Two mistakes lived here:
+        #
+        #   `**` groups to the RIGHT, so it is the LEFT child that needs them.
+        #   `((1 + r) ** 12) ** years` was emitted as `(1 + r) ** 12 ** years`
+        #   -- 1.01 ** 144, a different number, while the LaTeX beside it was
+        #   right. The generated module is what a validator recomputes from.
+        #
+        #   Everything else groups to the LEFT, so the RIGHT child needs them
+        #   whenever it binds equally -- and that is a fact about the CHILD, not
+        #   the parent. `notional * (days % 360)` came out as
+        #   `notional * days % 360`, off by a factor of a million, because the
+        #   parent `*` was in nobody's list of non-associative operators.
+        #
+        # `a * (b / c)` and `a * b / c` also differ in floating point, so the
+        # bracket is kept at equal precedence unconditionally rather than for
+        # the operators where the difference is exact.
+        if isinstance(node.op, ast.Pow):
+            left = self.render(node.left, power, equal_binds_elsewhere=True)
+            return left, self.render(node.right, power)
         left = self.render(node.left, power)
-        # `-`, `/`, `%`, `//` and `**` are not associative, so the right-hand
-        # side of an equal-precedence operator needs its brackets kept.
-        non_associative = isinstance(node.op, (ast.Sub, ast.Div, ast.Mod,
-                                               ast.FloorDiv, ast.Pow))
-        right = self.render(node.right, power, right_of_same=non_associative)
+        right = self.render(node.right, power, equal_binds_elsewhere=True)
         return left, right
 
 
@@ -147,7 +168,12 @@ class _Latex(_Renderer):
                 return (rf"\frac{{{self.render(node.left)}}}"
                         rf"{{{self.render(node.right)}}}")
             if isinstance(node.op, ast.Pow):
-                base = self.render(node.left, _ATOM)
+                # `exp` sets as a superscript itself, and a `Call` binds as
+                # tightly as a name, so nothing asked for the bracket that keeps
+                # `e^{a}^{2}` -- a double superscript, which does not typeset at
+                # all -- from reaching the page.
+                base = self.render(node.left, _ATOM,
+                                   force=_sets_as_superscript(node.left))
                 return rf"{base}^{{{self.render(node.right)}}}"
             if isinstance(node.op, ast.FloorDiv):
                 return (rf"\left\lfloor \frac{{{self.render(node.left)}}}"
@@ -164,10 +190,16 @@ class _Latex(_Renderer):
             return rf"\lnot {operand}"
         if isinstance(node, ast.Compare):
             power = _power(node)
-            parts = [self.render(node.left, power)]
+            # A comparison operand that is itself a comparison is bracketed
+            # whatever the binding powers say. `(a < b) < c` emitted flat is the
+            # chain `a < b < c`, which Python evaluates as `a < b and b < c` --
+            # a different operator, silently. At a=5, b=1, c=1 the two disagree.
+            parts = [self.render(node.left, power,
+                                 force=isinstance(node.left, ast.Compare))]
             for op, right in zip(node.ops, node.comparators):
                 parts.append(_LATEX_COMPARE[type(op)])
-                parts.append(self.render(right, power))
+                parts.append(self.render(right, power,
+                                         force=isinstance(right, ast.Compare)))
             return " ".join(parts)
         if isinstance(node, ast.BoolOp):
             power = _power(node)
@@ -200,7 +232,7 @@ class _Python(_Renderer):
         if isinstance(node, ast.Name):
             return node.id
         if isinstance(node, ast.Constant):
-            return _number(node.value)
+            return _number(node.value, typed=True)
         if isinstance(node, ast.BinOp):
             left, right = self._children_of_binop(node)
             return f"{left} {_PY_BINOP[type(node.op)]} {right}"
@@ -213,10 +245,16 @@ class _Python(_Renderer):
             return f"not {operand}"
         if isinstance(node, ast.Compare):
             power = _power(node)
-            parts = [self.render(node.left, power)]
+            # A comparison operand that is itself a comparison is bracketed
+            # whatever the binding powers say. `(a < b) < c` emitted flat is the
+            # chain `a < b < c`, which Python evaluates as `a < b and b < c` --
+            # a different operator, silently. At a=5, b=1, c=1 the two disagree.
+            parts = [self.render(node.left, power,
+                                 force=isinstance(node.left, ast.Compare))]
             for op, right in zip(node.ops, node.comparators):
                 parts.append(_PY_COMPARE[type(op)])
-                parts.append(self.render(right, power))
+                parts.append(self.render(right, power,
+                                         force=isinstance(right, ast.Compare)))
             return " ".join(parts)
         if isinstance(node, ast.BoolOp):
             power = _power(node)
@@ -241,13 +279,16 @@ class _Python(_Renderer):
 _PY_NAME = {"log": "_log", "exp": "_exp", "sqrt": "_sqrt",
             "floor": "_floor", "ceil": "_ceil"}
 
+
 _PREAMBLE = '''"""Generated by MAYA from a model version's kernel. Do not edit.
 
 Regenerating this from the kernel gives the same file; editing it makes a
 fourth description of the model, which is the thing the generation exists to
 prevent. The total variants below are MAYA's own: `log` and `sqrt` return None
 outside their domain rather than raising, because a training set with one
-non-positive value should not stop a batch.
+non-positive value should not stop a batch. The generated function guards its
+whole body for the same reason, catching what MAYA catches and no more: a row
+this returns None for is a row MAYA returns None for.
 """
 import math
 
@@ -270,6 +311,8 @@ def _floor(x):
 
 def _ceil(x):
     return math.ceil(x)
+
+
 '''
 
 
@@ -292,9 +335,25 @@ def to_python(source: str, name: str = "predict",
     assembling somebody's snippet.
     """
     body = _Python().render(_parse(source))
-    args = ", ".join(sorted(inputs or _names(source)))
+    # `feature_names()` excludes `event_ts`, `ingest_ts` and `event_year` by
+    # design -- they are the row's clocks rather than features -- and the input
+    # schema a caller passes as `inputs` does not carry them either. They are
+    # still free names in the emitted body, so leaving them out produced a
+    # module that imported cleanly and raised NameError on the first call.
+    args = ", ".join(sorted(set(inputs or _names(source)) | _clocks(source)))
+    # The guard catches exactly what `Expression.evaluate` catches, because
+    # the claim this module makes is that the two compute the same thing --
+    # including where they decline to. Totalising `log` and `sqrt` covered the
+    # two easiest of the five ways a row goes undefined; `ebitda /
+    # debt_service` with a zero denominator completed a batch in MAYA and
+    # raised ZeroDivisionError in the validator's recompute, which is the
+    # argument the preamble makes, failing on its own terms.
     return (_PREAMBLE + f"\n\ndef {name}({args}):\n"
-            f"    return {body}\n")
+            f"    try:\n"
+            f"        return {body}\n"
+            f"    except (ZeroDivisionError, ValueError, OverflowError,\n"
+            f"            TypeError):\n"
+            f"        return None\n")
 
 
 def _parse(source: str) -> ast.Expression:
@@ -309,11 +368,30 @@ def _names(source: str) -> List[str]:
     return Expression(source).feature_names()
 
 
-def _number(value: Any) -> str:
+def _clocks(source: str) -> set:
+    from core.features.expressions import BUILTIN_NAMES, Expression
+
+    return set(Expression(source).names & BUILTIN_NAMES)
+
+
+def _sets_as_superscript(node: ast.AST) -> bool:
+    """Whether this node's LaTeX already ends in a superscript group, so a
+    power taken of it needs the base bracketed."""
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+            and node.func.id == "exp")
+
+
+def _number(value: Any, typed: bool = False) -> str:
     """A constant, without Python's float noise. `0.1 + 0.2` is not what a
-    reader wants to see beside a coefficient."""
+    reader wants to see beside a coefficient.
+
+    `typed` is set for the Python rendering, where trimming `2.0` to `2` is not
+    cosmetic: it moves the expression from float arithmetic to Python's exact
+    integers, so `2.0 ** b` overflowed to None in MAYA and returned a 3,011
+    digit integer in the generated module. Mathematics has one `2` and does not
+    have this problem, so LaTeX keeps the tidier form."""
     if isinstance(value, bool):
         return "True" if value else "False"
     if isinstance(value, float) and value.is_integer():
-        return str(int(value))
+        return repr(value) if typed else str(int(value))
     return repr(value)

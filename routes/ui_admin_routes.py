@@ -91,6 +91,13 @@ class AdminRoutes(Routes):
                     if a in (row.get("roles") or []) and b in (row.get("roles") or [])]
             return self.page(
                 request, "admin_principals.html", people=rows,
+                # The screen rendered Suspend on every active row including the
+                # administrator's own, and clicking it worked: reinstating needs
+                # `principal:manage`, which the suspended account no longer has,
+                # so on a single-administrator instance the only route back was
+                # an UPDATE against the database. The service refuses it now;
+                # the button stops being offered here.
+                me=(who or {}).get("username"),
                 # From the REGISTER rather than from `roles.py`, so a role a
                 # bank defined here appears without anybody editing a template
                 # — which was the whole point of moving them.

@@ -140,11 +140,23 @@ def meet(a: Schema, b: Schema) -> Schema:
         if held.dtype != field.dtype:
             conflicts[field.name] = (held.dtype, field.dtype)
             continue
+        # A unit disagreement is a conflict of the same kind as a dtype
+        # disagreement, and for the same reason: there is no single field that
+        # is both. This rebuilt the Field without `symbol` or `unit` at all, so
+        # the meet of a `ratio` schema and a `bp` schema silently declared
+        # neither — and anything checked against that meet had its unit
+        # constraint dropped on the way through.
+        if held.unit and field.unit and held.unit != field.unit:
+            conflicts[field.name] = (f"{held.dtype} in {held.unit}",
+                                     f"{field.dtype} in {field.unit}")
+            continue
         fields[field.name] = Field(
             field.name, field.dtype,
             nullable=held.nullable or field.nullable,
             minimum=_wider_low(held.minimum, field.minimum),
-            maximum=_wider_high(held.maximum, field.maximum))
+            maximum=_wider_high(held.maximum, field.maximum),
+            symbol=held.symbol or field.symbol,
+            unit=held.unit or field.unit)
     if conflicts:
         raise NoMeet(conflicts)
     return Schema(tuple(fields[name] for name in sorted(fields)))
@@ -164,11 +176,17 @@ def join(a: Schema, b: Schema) -> Schema:
         other = theirs.get(field.name)
         if other is None or other.dtype != field.dtype:
             continue
+        # A field the two schemas measure in different units is not a field
+        # they share, so it does not survive the join either.
+        if field.unit and other.unit and field.unit != other.unit:
+            continue
         fields.append(Field(
             field.name, field.dtype,
             nullable=field.nullable and other.nullable,
             minimum=_narrower_low(field.minimum, other.minimum),
-            maximum=_narrower_high(field.maximum, other.maximum)))
+            maximum=_narrower_high(field.maximum, other.maximum),
+            symbol=field.symbol or other.symbol,
+            unit=field.unit or other.unit))
     return Schema(tuple(sorted(fields, key=lambda f: f.name)))
 
 
@@ -202,10 +220,20 @@ def provides(a: Schema, b: Schema) -> Tuple[str, ...]:
     Outputs are judged more coarsely than inputs, and deliberately: a consumer
     reads an output's *name and type*, and narrowing the range of something you
     produce is a promise kept more tightly rather than one broken.
+
+    The UNIT is not part of that coarseness. `Field.unit`'s own docstring says a
+    replacement declaring `bp` where the incumbent declared `ratio` is a
+    hundred-fold error that every type check passes — and this function, which
+    is what `substitutable` actually calls, compared name and dtype only. The
+    check that did compare units lived on `Schema.provides_superset_of`, which
+    had no callers at all, so a version whose output changed from a ratio to
+    basis points was declared a compatible substitute.
     """
     mine = a.by_name()
     return tuple(f.name for f in b.fields
-                 if f.name not in mine or mine[f.name].dtype != f.dtype)
+                 if f.name not in mine or mine[f.name].dtype != f.dtype
+                 or (f.unit and mine[f.name].unit
+                     and mine[f.name].unit != f.unit))
 
 
 def schema_of(slots: Dict[str, object]) -> Schema:

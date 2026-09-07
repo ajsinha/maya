@@ -85,16 +85,32 @@ class TestTheEvidenceChainAtEstateSize:
         assert report["valid"] and report["length"] == 6_000
         assert growth(small, large, 3) < 2.0
 
-    def test_a_tamper_is_still_found_in_a_long_chain(self, evidence, repos):
+    def test_a_tamper_is_still_found_in_a_long_chain(self, evidence, repos, db):
         """The chain's whole purpose. Finding it at fixture size proves nothing
-        about finding it at the size an examiner would look at."""
+        about finding it at the size an examiner would look at.
+
+        Tampered through SQL rather than through the repository. `AppendOnly`
+        now refuses `repos["evidence"].set(...)`, so this test raised
+        `AppendOnlyViolation` instead of asserting anything — and because
+        `scale` is excluded from every default run and from CI, nothing
+        noticed. The claim it protects had not been checked since that control
+        landed.
+
+        SQL is also the honest threat model: `AppendOnly` stops the
+        application writing over its own history, and its docstring says so. It
+        cannot stop somebody holding the database, and detecting exactly that
+        is what the hash chain is for.
+        """
         for i in range(5_000):
             evidence.append("test", "model", f"m{i}", {"i": i})
         assert evidence.verify_chain()["valid"]
         middle = repos["evidence"].many()[2_500]
-        repos["evidence"].set({"payload": {"i": "altered"}}, id=middle["id"])
+        db.execute("UPDATE evidence_node SET payload = :p WHERE id = :i",
+                   {"p": '{"i": "altered"}', "i": middle["id"]})
         report = evidence.verify_chain()
         assert not report["valid"]
+        assert report.get("broken_at") or report.get("detail"), \
+            "a tamper report must say WHERE the chain stops verifying"
 
     def test_reading_one_subject_does_not_read_the_whole_chain(self, evidence):
         for i in range(6_000):
