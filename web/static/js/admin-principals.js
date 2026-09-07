@@ -111,19 +111,48 @@
         .fail(function (xhr) { say("#nr-result", refusal(xhr)); });
     });
 
+    /* An inline field backed by the permission picker this page already has,
+     * not a prompt. `unknown_permission`'s remediation says "check the
+     * spelling against core.authz.common.PERMISSIONS" — a Python module, told
+     * to an operations manager — and the datalist of every valid permission
+     * was four elements away on the same screen. */
     $(".edit-role").on("click", function () {
       var role = this.getAttribute("data-role");
       var current = this.getAttribute("data-permissions") || "";
-      var answer = window.prompt(
-        "Permissions for " + role + ", comma separated.\n\n" +
-        "Every one is checked against the closed set; a role granting " +
-        "something nothing checks reads as authority and is not.", current);
-      if (answer === null) { return; }
-      $.ajax({url: "/api/v1/roles/" + encodeURIComponent(role), method: "PUT",
-              contentType: "application/json",
-              data: JSON.stringify({permissions: list(answer)})})
-        .done(reloadShortly)
-        .fail(function (xhr) { say("#nr-result", refusal(xhr)); });
+      var $row = $(this).closest("tr");
+      if ($row.next(".perm-row").length) {
+        $row.next(".perm-row").remove();
+        return;
+      }
+      $(".perm-row").remove();
+      var $editor = $(
+        '<tr class="perm-row"><td colspan="' + $row.children("td").length + '">' +
+        '<form class="ep-form row g-2 align-items-end small">' +
+        '<div class="col-md-9"><label class="form-label mb-1" for="ep-perms">' +
+        "Permissions for <strong>" + esc(role) + "</strong>, comma separated" +
+        "</label>" +
+        '<input id="ep-perms" class="form-control form-control-sm mono" ' +
+        'list="every-permission" value="' + esc(current) + '"></div>' +
+        '<div class="col-auto"><button class="btn btn-sm btn-danger py-0 px-3" ' +
+        'style="font-size:.75rem">Set them</button></div>' +
+        '<div class="col-12 text-muted" style="font-size:.72rem">Every one is ' +
+        "checked against the closed set; a role granting something nothing " +
+        "checks reads as authority and is not. The box suggests what exists." +
+        "</div>" +
+        '<div class="col-12" id="ep-msg" role="status" aria-live="polite"></div>' +
+        "</form></td></tr>");
+      $row.after($editor);
+      $editor.find("#ep-perms").trigger("focus");
+
+      $editor.find(".ep-form").on("submit", function (event) {
+        event.preventDefault();
+        $.ajax({url: "/api/v1/roles/" + encodeURIComponent(role), method: "PUT",
+                contentType: "application/json",
+                data: JSON.stringify(
+                  {permissions: list($editor.find("#ep-perms").val())})})
+          .done(reloadShortly)
+          .fail(function (xhr) { $editor.find("#ep-msg").html(refusal(xhr)); });
+      });
     });
 
     $(".remove-role").on("click", function () {
@@ -150,53 +179,139 @@
     });
 
     /* ---- change somebody's roles -------------------------------------- */
+    /* Checkboxes in the row, not a comma-separated string in a prompt.
+     *
+     * The roles are already on this page as a checkbox list in the
+     * "Add somebody" card; asking for the same thing as free text meant a typo
+     * became `unknown_role` after the fact, and there was nowhere to put the
+     * `allow_conflicts` question except a second dialog. */
     $(".edit-roles").on("click", function () {
       var username = this.getAttribute("data-username");
-      var current = this.getAttribute("data-roles") || "";
-      var answer = window.prompt(
-        "Roles for " + username + ", comma separated.\n\n" +
-        "An incompatible pair is refused unless it is a deliberate exception; " +
-        "the refusal names the pair and why.", current);
-      if (answer === null) { return; }
-      post("/api/v1/principals/" + encodeURIComponent(username) + "/roles",
-           {roles: list(answer), allow_conflicts: false}, "PUT")
-        .done(reloadShortly)
-        .fail(function (xhr) {
-          var r = window.MAYA.refusal.read(xhr);
-          if (r.code !== "incompatible_roles") {
-            say("#np-result", refusal(xhr));
-            return;
-          }
-          /* The one place a second question is worth asking: an incompatible
-             pair is sometimes deliberate, and a small firm giving one person
-             two hats visibly is better than a hybrid role that hides it. */
-          if (window.confirm(r.lines.join("\n") +
-                             "\n\nGrant it anyway, as a recorded exception?")) {
-            post("/api/v1/principals/" + encodeURIComponent(username) + "/roles",
-                 {roles: list(answer), allow_conflicts: true}, "PUT")
-              .done(reloadShortly)
-              .fail(function (x) { say("#np-result", refusal(x)); });
-          } else {
-            say("#np-result", refusal(xhr));
-          }
-        });
+      var held = list(this.getAttribute("data-roles") || "");
+      var $row = $(this).closest("tr");
+      if ($row.next(".roles-row").length) {
+        $row.next(".roles-row").remove();
+        return;
+      }
+      $(".roles-row").remove();
+      var boxes = $(".np-role").map(function () {
+        var name = this.value;
+        var on = held.indexOf(name) !== -1 ? " checked" : "";
+        return '<label class="form-check form-check-inline small">' +
+          '<input class="form-check-input er-role" type="checkbox" value="' +
+          esc(name) + '"' + on + '> <span class="mono">' + esc(name) +
+          "</span></label>";
+      }).get().join("");
+      var $editor = $(
+        '<tr class="roles-row"><td colspan="' + $row.children("td").length + '">' +
+        '<form class="er-form small">' +
+        '<div class="mb-1">Roles for <strong>' + esc(username) + "</strong></div>" +
+        boxes +
+        '<div class="mt-2"><button class="btn btn-sm btn-danger py-0 px-3" ' +
+        'style="font-size:.75rem">Set them</button></div>' +
+        '<div class="mt-1" id="er-msg" role="status" aria-live="polite"></div>' +
+        "</form></td></tr>");
+      $row.after($editor);
+
+      $editor.find(".er-form").on("submit", function (event) {
+        event.preventDefault();
+        var chosen = $editor.find(".er-role:checked").map(function () {
+          return this.value;
+        }).get();
+        var $msg = $editor.find("#er-msg");
+        post("/api/v1/principals/" + encodeURIComponent(username) + "/roles",
+             {roles: chosen, allow_conflicts: false}, "PUT")
+          .done(reloadShortly)
+          .fail(function (xhr) {
+            var r = window.MAYA.refusal.read(xhr);
+            /* The escalation is offered ONLY for the one refusal it answers.
+               Which is a question for the server, not for this file: the
+               browser used to decide when `allow_conflicts` was appropriate. */
+            if (r.code !== "incompatible_roles") {
+              $msg.html(refusal(xhr));
+              return;
+            }
+            $msg.html(refusal(xhr) +
+              '<button class="btn btn-sm btn-outline-danger py-0 px-2 mt-2" ' +
+              'style="font-size:.72rem" id="er-force">Grant anyway, as a ' +
+              "documented exception</button>");
+            $editor.find("#er-force").on("click", function () {
+              post("/api/v1/principals/" + encodeURIComponent(username) + "/roles",
+                   {roles: chosen, allow_conflicts: true}, "PUT")
+                .done(reloadShortly)
+                .fail(function (second) { $msg.html(refusal(second)); });
+            });
+          });
+      });
     });
 
     /* ---- set a password ----------------------------------------------- */
+    /* An inline form in the row, not `window.prompt`.
+     *
+     * A prompt shows the password in CLEAR TEXT — to anyone standing behind the
+     * administrator, and to any screen recording — has no confirm field, and no
+     * room to state the length rule, so the twelve-character floor arrived as a
+     * 422 after the fact. It is also unstyleable and cannot be driven by a test.
+     */
+    var MIN_PASSWORD = 12;
+
     $(".set-password").on("click", function () {
       var username = this.getAttribute("data-username");
-      var password = window.prompt(
-        "New password for " + username + ".\n\n" +
-        "It is never logged and never reaches the evidence chain; the fact " +
-        "that somebody set it does.");
-      if (!password) { return; }
-      post("/api/v1/principals/" + encodeURIComponent(username) + "/password",
-           {password: password})
-        .done(function () {
-          say("#np-result", '<span class="evidence-ok">Password set for ' +
-              esc(username) + "</span>");
-        })
-        .fail(function (xhr) { say("#np-result", refusal(xhr)); });
+      var $row = $(this).closest("tr");
+      if ($row.next(".pw-row").length) {          // a second click closes it
+        $row.next(".pw-row").remove();
+        return;
+      }
+      $(".pw-row").remove();
+      var columns = $row.children("td").length;
+      var $editor = $([
+        '<tr class="pw-row"><td colspan="' + columns + '">',
+        '<form class="pw-form row g-2 align-items-end small">',
+        '<div class="col-auto"><label class="form-label mb-1" for="pw-a">',
+        'New password for ', esc(username), '</label>',
+        '<input id="pw-a" type="password" class="form-control form-control-sm" ',
+        'autocomplete="new-password" required></div>',
+        '<div class="col-auto"><label class="form-label mb-1" for="pw-b">Again',
+        '</label><input id="pw-b" type="password" ',
+        'class="form-control form-control-sm" autocomplete="new-password" required>',
+        '</div>',
+        '<div class="col-auto"><button class="btn btn-sm btn-danger py-0 px-3" ',
+        'style="font-size:.75rem">Set it</button></div>',
+        '<div class="col-12 text-muted" style="font-size:.72rem">At least ',
+        MIN_PASSWORD, ' characters. It is never logged and never reaches the ',
+        'evidence chain; the fact that you set it does.</div>',
+        '<div class="col-12" id="pw-msg" role="status" aria-live="polite"></div>',
+        '</form></td></tr>'
+      ].join(""));
+      $row.after($editor);
+      $editor.find("#pw-a").trigger("focus");
+
+      $editor.find(".pw-form").on("submit", function (event) {
+        event.preventDefault();
+        var first = $editor.find("#pw-a").val();
+        var again = $editor.find("#pw-b").val();
+        var $msg = $editor.find("#pw-msg");
+        if (first !== again) {
+          $msg.html('<span class="evidence-bad">The two do not match.</span>');
+          return;
+        }
+        /* Stated here as well as enforced there. The rule lives in
+           `core.authz.principals`; this is the same number said early, so
+           nobody is refused after typing it twice. */
+        if (first.length < MIN_PASSWORD) {
+          $msg.html('<span class="evidence-bad">At least ' + MIN_PASSWORD +
+                    ' characters.</span>');
+          return;
+        }
+        post("/api/v1/principals/" + encodeURIComponent(username) + "/password",
+             {password: first})
+          .done(function () {
+            $editor.remove();
+            say("#np-result", '<span class="evidence-ok">Password set for ' +
+                esc(username) + "</span>");
+          })
+          .fail(function (xhr) { $msg.html(refusal(xhr)); });
+      });
     });
 
     /* ---- suspend and reinstate ---------------------------------------- */

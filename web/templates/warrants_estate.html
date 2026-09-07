@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Warrants across the estate — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Who may run what</h1>
+<div class="accent"></div>
+
+<p class="lead small">Every standing grant on the estate, soonest to lapse
+first. A grant is authority to run a model for a stated use — nothing resolves
+without one, and <span class="mono">no_entitlement</span> is the most common
+surprise on this platform. This view did not exist: <a href="/warrants">the
+warrant page</a> needs a model chosen before it shows anything, so
+&ldquo;which service principals hold authority, and when does it lapse?&rdquo;
+could not be asked.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat" style="color:var(--crimson)">{{ live|length }}</div>
+    <div class="stat-l">grants in force</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    {% set soon = live|selectattr("lapses_in_days")|selectattr("lapses_in_days", "le", 14)|list %}
+    <div class="stat {{ 'evidence-bad' if soon else '' }}">{{ soon|length }}</div>
+    <div class="stat-l">lapsing within 14 days</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    {% set gone = grants|selectattr("lapsed")|rejectattr("revoked")|list %}
+    <div class="stat {{ 'evidence-bad' if gone else '' }}">{{ gone|length }}</div>
+    <div class="stat-l">already lapsed</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat">{{ grants|selectattr("revoked")|list|length }}</div>
+    <div class="stat-l">revoked</div></div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Standing grants</div>
+  {% if grants %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Principal</th><th>Model</th><th>Environment</th><th>Declared use</th>
+      <th>Verbs</th><th>Lapses</th><th>State</th>
+    </tr></thead>
+    <tbody>
+      {% for g in grants %}
+      <tr>
+        <td class="mono small">{{ g.principal }}</td>
+        <td class="mono small">
+          <a href="/warrants?model={{ (g.model_urn or '').split('/')[-1] }}">{{ g.model_urn }}</a></td>
+        <td class="small">{{ g.environment }}</td>
+        <td class="small">{{ g.declared_use }}</td>
+        <td class="mono" style="font-size:.72rem">{{ (g.verbs or [])|join(", ") }}</td>
+        <td class="small text-nowrap">
+          {% if g.lapses_in_days is none %}<span class="text-muted">no expiry</span>
+          {% elif g.lapsed %}<span class="evidence-bad">lapsed</span>
+          {% elif g.lapses_in_days <= 14 %}
+            <span class="evidence-bad">{{ g.lapses_in_days | round | int }} days</span>
+          {% else %}{{ g.lapses_in_days | round | int }} days{% endif %}</td>
+        <td class="small">
+          {% if g.revoked %}<span class="text-muted">revoked</span>
+          {% elif g.lapsed %}<span class="evidence-bad">not in force</span>
+          {% else %}<span class="evidence-ok">in force</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No standing grants you can see. That is not the same as none existing — a
+    grant says who may run a model, so this list is scoped to the models you
+    may read.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

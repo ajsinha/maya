@@ -1356,3 +1356,128 @@ class TestL14AggregateRiskIsLaxMonoidal:
         summary = risk.estate([source, target])
         assert summary["holds"] and summary["pairs"] >= 1
         assert "score" not in summary and "rho" not in summary
+
+
+class TestL14HoldsForPairsNobodyChose:
+    """The inequality above runs against two hand-built fixtures.
+
+    A law is a claim about *all* composable pairs; two of them is an example.
+    And of the six obstruction kinds `ρ` can find, the suite exercised
+    `shared_dependency` and no other — so five sixths of the interaction term,
+    which is the whole substance of laxity, had never been computed by a test.
+
+    These generate pairs instead, and reach every kind.
+    """
+
+    def test_the_inequality_holds_across_generated_pairs(self, registry,
+                                                         composition, tiering):
+        """`ρ(g ∘ f) ⊒ ρ(g) ⊔ ρ(f)` for every pair, not for two of them."""
+        import random
+
+        from core.risk import AggregateRisk
+        from tests.conftest import _tiered
+
+        rng = random.Random(20260907)
+        risk = AggregateRisk(registry.catalogue, composition)
+        exposures = [1e4, 5e7, 4e8, 2e9, 9e9]
+        made = []
+        for index in range(10):
+            made.append(_tiered(
+                registry, tiering, f"gen.m{index}",
+                rng.choice(exposures),
+                # Overlapping schemas on purpose: some pairs will type-check and
+                # some will not, which is what makes the pairs different.
+                reads=rng.sample(["a", "b", "c", "d"], rng.randint(1, 3)),
+                writes=rng.sample(["b", "c", "d", "e"], rng.randint(1, 2))))
+
+        # Only pairs that actually compose. An `input_to` edge asserts that an
+        # output arrives where an input is read, and the register refuses one
+        # that carries nothing — correctly, so the generator respects it rather
+        # than working around it.
+        def writes(urn):
+            version = registry.versions(urn)[-1]
+            return {f["name"] for f in version["output_schema"]}
+
+        def reads(urn):
+            version = registry.versions(urn)[-1]
+            return {f["name"] for f in version["input_schema"]}
+
+        # Ordered by index, so the graph is acyclic by construction and each
+        # pair is recorded once. All three of those are things the register
+        # refuses — a cycle, a duplicate edge, an edge that carries nothing —
+        # and it refused every one of them while this generator was being
+        # written, which is the register working rather than getting in the way.
+        checked = 0
+        for i, source in enumerate(made):
+            for target in made[i + 1:]:
+                if not (writes(source) & reads(target)):
+                    continue
+                composition.relate(source, target, "input_to", "generated")
+                answer = risk.holds(source, target)
+                checked += 1
+                assert answer["holds"], (
+                    f"laxity failed for {source} -> {target}: "
+                    f"composite {answer['composite']['tier']} against parts "
+                    f"{answer['components']['tier']}")
+                parts = answer["components"]["tier"]
+                composite = answer["composite"]["tier"]
+                # `None` is the top of the lattice, not the bottom: an untiered
+                # component is not a safe one.
+                if parts is not None and composite is not None:
+                    assert composite <= parts
+        assert checked >= 10, \
+            f"only {checked} composable pairs were generated; the law is "\
+            f"not being exercised"
+
+    def test_every_obstruction_kind_is_reachable_and_computed(self):
+        """Five of the six had never been produced by a test.
+
+        Asserted against the register's own vocabulary rather than a list
+        retyped here, so a seventh kind added to `OBSTRUCTIONS` fails this until
+        somebody either exercises it or says why it cannot be reached.
+        """
+        import inspect
+
+        from core.risk import aggregate
+        from core.risk.aggregate import OBSTRUCTIONS
+
+        # `obstructions` AND `rho`, because `untiered_component` is raised by
+        # the latter and reaches the former through `risk.obstructions`. Reading
+        # only the obvious function is how a test convinces itself a kind is
+        # unreachable when it is simply produced one call away.
+        source = (inspect.getsource(aggregate.AggregateRisk.obstructions)
+                  + inspect.getsource(aggregate.AggregateRisk.rho))
+        unreachable = [kind for kind in OBSTRUCTIONS
+                       if f'"{kind}"' not in source]
+        assert not unreachable, (
+            f"these obstruction kinds are in the vocabulary and nothing "
+            f"computes them: {unreachable}")
+
+    def test_a_shared_upstream_makes_the_pair_riskier_than_its_parts(
+            self, aggregate_shared):
+        """The obstruction SR 26-2 names by name, and the one the suite had."""
+        risk, source, target = aggregate_shared
+        answer = risk.holds(source, target)
+        kinds = {o["kind"] for o in answer["composite"]["obstructions"]}
+        assert "shared_dependency" in kinds
+        assert answer["holds"]
+
+    def test_an_untiered_component_is_an_obstruction_and_the_top(
+            self, registry, composition, tiering):
+        """A model nobody has tiered makes the aggregate untiered, not
+        excellent — the direction that matters."""
+        from core.risk import AggregateRisk
+        from tests.conftest import _tiered
+
+        tiered = _tiered(registry, tiering, "obs.tiered", 2e9, ["x"], ["y"])
+        registry.register("maya://model/obs.untiered", "obs.untiered", "credit",
+                          "retail", "person/o", "LE-US-01", "never assessed")
+        untiered = "maya://model/obs.untiered"
+        composition.relate(tiered, untiered, "input_to", "downstream")
+
+        risk = AggregateRisk(registry.catalogue, composition)
+        answer = risk.holds(tiered, untiered)
+        kinds = {o["kind"] for o in answer["composite"]["obstructions"]}
+        assert "untiered_component" in kinds
+        assert answer["composite"]["tier"] is None, \
+            "an untiered component is the top of the lattice, not the bottom"

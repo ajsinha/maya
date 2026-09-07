@@ -257,6 +257,7 @@ STATUS: Dict[str, int] = {
     # Roles, now that a bank can define them. 409 where the register is in a
     # state that forbids the act, 422 where the request itself is incomplete.
     "role_exists": 409, "role_in_use": 409, "built_in_role": 409,
+    "role_awaited": 409,
     "role_name_required": 422, "role_description_required": 422,
     "role_grants_nothing": 422,
     "unknown_format": 422, "empty_artifact": 422, "malformed_digest": 422,
