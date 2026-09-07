@@ -102,6 +102,7 @@ from db import (ServingAttestationRepository,
 from fastapi.openapi.docs import get_swagger_ui_html
 
 from core.limitations import LimitationRegister
+from core.references import ReferenceIndex
 
 from routes import ALL_ROUTES
 
@@ -459,6 +460,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "export": export, "dossier": dossier,
                            "training_records": training_records, "tiering": tiering, "warrants": warrants,
                            "risk_repo": RiskRepository(db), "engine": None,
+                           "references": ReferenceIndex(db, registry, features),
                            "limitations": LimitationRegister(
                                LimitationRepository(db), registry, evidence),
                            "findings": findings, "validation": validation,
