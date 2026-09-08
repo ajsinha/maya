@@ -27,16 +27,60 @@ except Blocked as refusal:
 
 ## What is here
 
+Twenty-five subjects. This table listed seven of them for a long time, which is
+worse than listing none: a reader concludes the SDK cannot do the other
+eighteen and writes raw calls for things it already had — the same way a
+tutorial once fell back to `client.call()` for methods that existed. A test
+asserts every subject on the client appears here, so the list cannot quietly
+fall behind again.
+
+**The model, and what may be said about it**
+
 | | |
 |---|---|
-| `maya.models` | register, read, assess, submit, attest, relate, blast radius |
-| `maya.versions` | create, approve, quorum, promote an alias |
-| `maya.features` | define, derive, create a view, upload values |
+| `maya.models` | register, read, assess a tier, submit, approve, attest, relate, blast radius, shared dependencies |
+| `maya.versions` | create, approve, open and sign a quorum, promote an alias |
+| `maya.approvals` | the quorum a tier needs, what is still outstanding, withdraw |
+| `maya.lifecycle` | the state machine, submit, approve, send back, attest, amend, retire, delete |
+| `maya.relations` | what a model derives from and what it feeds, and removing an edge |
+| `maya.artifacts` | put, get, verify a digest, where each is used |
+| `maya.parameters` | fit, record a fitted set, review it, provenance |
+| `maya.rules` | the expression vocabulary, check, trial, publish a rule set, explain one |
+
+**Features, and the data under them**
+
+| | |
+|---|---|
+| `maya.features` | define, derive, create a view, upload values from a file |
+| `maya.catalogue` | read one resolved, amend, certify, seal and break a seal, transfer, retire, check a definition for free |
+| `maya.views` | materialise rows, list versions, read as-of, stream data, ask what is retirable |
 | `maya.featuresets` | define, preview a composition, fill, seal, assemble a training set, stream data |
-| `maya.warrants` | grant, resolve, fit-warrant, execute, grammar, profiles |
-| `maya.artifacts` | put, get, verify, usage |
-| `maya.parameters` | fit, record, review, provenance |
+| `maya.featureset_algebra` | the plan, restatements, roll forward, retrieval policy, transfer |
+| `maya.contracts` | bind a version's inputs, and the namespaces serving must read |
+| `maya.training_sets` | build one from a spine |
+
+**Running, and watching**
+
+| | |
+|---|---|
+| `maya.warrants` | grant, resolve, fit-warrant, execute, the grammar, profiles |
+| `maya.validations` | open, record a test, conclude, replay |
+| `maya.findings` | raise, assign, acknowledge, plan, extend, close, ageing, escalation |
+| `maya.monitors` | define, evaluate, evaluate from telemetry, observations |
+| `maya.fibres` | what each trainability class must carry |
+
+**Documents, and the platform itself**
+
+| | |
+|---|---|
+| `maya.attachments` | attach a file, list, download, review |
+| `maya.documents` | compile, read, the dossier, a training record |
+| `maya.packages` | cut an evidence package, its manifest |
+| `maya.principals` | people, services, roles, permissions, suspend and reinstate |
+| `maya.api_keys` | issue, list, revoke — how a service authenticates |
 | `maya.whoami()` | who you are and what you may do — from the platform, never derived here |
+| `maya.health()`, `maya.verify_evidence()` | is it up, and does the chain still verify |
+| `maya.call(...)` | the escape hatch, for anything the SDK does not name |
 
 ## Three things worth knowing before you use it
 
