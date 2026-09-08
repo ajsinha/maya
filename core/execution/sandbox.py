@@ -38,7 +38,7 @@ from __future__ import annotations
 
 import logging
 import multiprocessing as mp
-import resource
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,6 +50,41 @@ from core.log import get_logger, swallowed
 logger = get_logger(__name__)
 
 _log = get_logger(__name__)
+
+# `resource` is POSIX-only. On Windows it does not exist, and importing it at
+# module scope took the whole platform down at start-up — MAYA could not boot
+# on Windows at all, which is a portability bug rather than a sandbox one and
+# is why it is an import guard and not a feature flag.
+#
+# What survives without it, and what does not, is the whole of the honesty this
+# module is about:
+#
+#   survives   process isolation — a crash kills the child, not the register
+#   survives   the WALL-CLOCK deadline — the parent reclaims a child that does
+#              not return, which catches a hang and a slow model
+#   lost       RLIMIT_CPU — a child spinning inside its wall-clock window is
+#              not stopped early
+#   lost       RLIMIT_AS — an artifact may allocate past the warrant's budget
+#
+# Windows can bound both through Job Objects, which needs pywin32 or a slab of
+# ctypes; that is a real option and it is not this. What matters is that the
+# platform stops CLAIMING the two it cannot deliver.
+try:
+    import resource
+except ImportError as _exc:                           # Windows
+    resource = None                                   # type: ignore[assignment]
+    # Said once, at import, and at WARNING. An operator on a platform without
+    # resource limits should learn it from the log at start-up rather than from
+    # a refusal the first time somebody executes a warrant that states one.
+    logger.warning(
+        "POSIX resource limits are unavailable here (%s), so the sandbox "
+        "cannot bound an artifact's cpu or memory. It still isolates — a "
+        "crash does not reach the register and the parent reclaims a child "
+        "that does not return — and a warrant STATING max_memory_mb is "
+        "refused rather than run unbounded.", _exc)
+
+#: Whether this platform can bound what a child consumes.
+RLIMITS = resource is not None
 
 DEFAULT_SECONDS = 30.0
 DEFAULT_MEMORY_MB = 2048
@@ -64,15 +99,42 @@ class Limits:
     """What a child may consume, read from the warrant that authorised it."""
     seconds: float = DEFAULT_SECONDS
     memory_mb: int = DEFAULT_MEMORY_MB
+    #: Which of these the WARRANT stated, as against which MAYA defaulted.
+    #:
+    #: The distinction decides what happens on a platform that cannot enforce
+    #: them. A default is MAYA's own conservative choice and running past it is
+    #: a degradation; a figure written into a warrant is a constraint somebody
+    #: signed for, and running an artifact while silently not applying it would
+    #: be the platform asserting compliance with a control it did not exercise.
+    declared: tuple = ()
 
     @classmethod
     def of(cls, warrant: Dict[str, Any]) -> "Limits":
         resources = (warrant.get("constraints") or {}).get("resources") or {}
+        stated = tuple(sorted(
+            key for key in ("max_seconds", "max_memory_mb")
+            if resources.get(key)))
         return cls(float(resources.get("max_seconds") or DEFAULT_SECONDS),
-                   int(resources.get("max_memory_mb") or DEFAULT_MEMORY_MB))
+                   int(resources.get("max_memory_mb") or DEFAULT_MEMORY_MB),
+                   stated)
 
     def as_dict(self) -> Dict[str, Any]:
-        return {"max_seconds": self.seconds, "max_memory_mb": self.memory_mb}
+        return {"max_seconds": self.seconds, "max_memory_mb": self.memory_mb,
+                "declared_by_the_warrant": list(self.declared)}
+
+    def unenforceable(self) -> tuple:
+        """Limits this platform cannot apply, of those the warrant STATED.
+
+        Empty where rlimits exist, and empty on Windows for a warrant that
+        stated none — because there is then nothing anybody was promised.
+        """
+        if RLIMITS:
+            return ()
+        # `max_seconds` is still bounded, by the parent's wall clock. It is
+        # bounded LESS precisely — a child may burn CPU inside its window — but
+        # a warrant asking for thirty seconds does get thirty seconds, so
+        # calling it unenforced would be the opposite error.
+        return tuple(key for key in self.declared if key == "max_memory_mb")
 
 
 @runtime_checkable
@@ -108,19 +170,30 @@ def _address_space() -> int:
     return 0
 
 
-def _apply_limits(limits: Limits) -> None:
+def _apply_limits(limits: Limits) -> tuple:
     """Bound what the ARTIFACT consumes, after the interpreter has loaded.
 
     Applied here rather than at process start on purpose: capping address space
     before Python has imported its own runtime means the child dies importing
     lxml, which is a limit on the platform rather than on the model.
+
+    Returns what was ACTUALLY applied. The caller reports it back to the
+    parent, so that "the artifact ran under a 512 MB cap" is something the
+    platform observed rather than something it intended — on a system without
+    rlimits those are different statements, and only one of them is evidence.
     """
+    if not RLIMITS:
+        return ()
+    applied = []
     soft_cpu = max(1, int(limits.seconds))
     resource.setrlimit(resource.RLIMIT_CPU, (soft_cpu, soft_cpu + 1))
+    applied.append("cpu_seconds")
     if limits.memory_mb:
         budget = limits.memory_mb * 1024 * 1024
         cap = _address_space() + budget
         resource.setrlimit(resource.RLIMIT_AS, (cap, cap))
+        applied.append("address_space")
+    return tuple(applied)
 
 
 def _invoke_in_child(conn, warrant: Dict[str, Any], inputs: Dict[str, Any],
@@ -135,7 +208,14 @@ def _invoke_in_child(conn, warrant: Dict[str, Any], inputs: Dict[str, Any],
         registry = RuntimeRegistry([OnnxRuntime(directory), PmmlRuntime(directory)])
         for runtime in (OnnxRuntime(directory), PmmlRuntime(directory)):
             runtime.available()          # force the dependency import under no cap
-        _apply_limits(limits)
+        applied = _apply_limits(limits)
+        if not applied:
+            _log.warning(
+                "this artifact ran with NO resource limits applied: POSIX "
+                "rlimits are unavailable on this platform. The child is still "
+                "isolated — a crash does not reach the register and the parent "
+                "reclaims a child that does not return — but CPU and memory "
+                "are unbounded within that window.")
         conn.send(("ok", registry.invoke(Invocation(warrant, inputs))))
     except WarrantError as exc:
         # The child has its own logger; the parent learns through the pipe.
@@ -169,6 +249,25 @@ class SubprocessSandbox:
 
     def run(self, warrant: Dict[str, Any], inputs: Dict[str, Any],
             artifact_dir: Optional[Path], limits: Limits) -> Any:
+        # A limit the WARRANT stated and this platform cannot apply is a
+        # refusal, not a warning. Running anyway would put an execution on the
+        # evidence chain under a warrant declaring a memory cap that was never
+        # imposed — the platform asserting compliance with a control it did not
+        # exercise, which is the one thing a governance system must not do.
+        #
+        # A limit MAYA merely DEFAULTED to is different: nobody was promised
+        # it, so the run proceeds and `describe()` says what is enforced.
+        if (missing := limits.unenforceable()):
+            raise WarrantError(
+                "limit_not_enforceable",
+                f"this warrant states {', '.join(missing)} and this platform "
+                f"cannot enforce it: POSIX resource limits are unavailable "
+                f"here, which is the case on Windows. The artifact has not "
+                f"been run.",
+                "run the engine on a platform with resource limits, run this "
+                "model on a remote engine, or remove the limit from the "
+                "warrant — which is a governance decision and should be a "
+                "deliberate one")
         parent, child = self._ctx.Pipe(duplex=False)
         # `mp.get_context()` is typed as returning `BaseContext`, which
         # declares no `Process`; the concrete SpawnContext does. Annotated
@@ -242,18 +341,43 @@ class InProcessSandbox:
 
 
 def describe(sandbox: Sandbox) -> Dict[str, Any]:
-    """What this sandbox does and does not protect against."""
+    """What this sandbox does and does not protect against, ON THIS PLATFORM.
+
+    Platform-dependent because the answer is. Reporting "protects against
+    unbounded memory" on a system with no `resource` module would be this
+    module's own stated failure — an engine claiming isolation it does not
+    have — printed by the function whose job is to prevent it.
+    """
     isolated = sandbox.name == "subprocess"
+    if not isolated:
+        return {
+            "sandbox": sandbox.name, "isolates": False,
+            "resource_limits": "not applicable",
+            "protects_against": [],
+            "does_not_protect_against": [
+                "anything; this sandbox provides no isolation and is for bound "
+                "callables and development only"],
+        }
+
+    protects = ["artifact crash",
+                "a hung or slow artifact: the parent reclaims it on the wall "
+                "clock"]
+    misses = ["a deliberately hostile artifact: the child shares the "
+              "filesystem and the network namespace",
+              "bound callables, which run unisolated by construction"]
+    if RLIMITS:
+        protects[:0] = ["runaway cpu", "unbounded memory"]
+    else:
+        misses[:0] = [
+            "unbounded memory: POSIX resource limits are unavailable on this "
+            "platform, so an artifact may allocate past the warrant's budget",
+            "cpu burned inside the wall-clock window, for the same reason"]
     return {
-        "sandbox": sandbox.name,
-        "isolates": isolated,
-        "protects_against": (["runaway cpu", "unbounded memory", "artifact crash"]
-                             if isolated else []),
-        "does_not_protect_against": (
-            ["a deliberately hostile artifact: the child shares the filesystem "
-             "and the network namespace",
-             "bound callables, which run unisolated by construction"]
-            if isolated else
-            ["anything; this sandbox provides no isolation and is for bound "
-             "callables and development only"]),
+        "sandbox": sandbox.name, "isolates": True,
+        "resource_limits": "enforced" if RLIMITS else
+                           "UNAVAILABLE on this platform; a warrant that states "
+                           "max_memory_mb is refused rather than run unbounded",
+        "platform": sys.platform,
+        "protects_against": protects,
+        "does_not_protect_against": misses,
     }
