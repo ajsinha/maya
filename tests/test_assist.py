@@ -281,7 +281,35 @@ class TestTheReviewSampleIsDeterministic:
         import hashlib
         drawn = len(generations.generations.many(capability_id=tier_b["id"]))
         expected = hashlib.sha256(
-            f"{tier_b['id']}:{drawn}".encode()).digest()[0] / 255.0
+            f"{tier_b['id']}:{drawn}".encode()).digest()[0] / 256.0
         assert generations._sample({**tier_b, "review_sample": 1.0}) is True
         assert (expected < 0.5) == generations._sample(
             {**tier_b, "review_sample": 0.5})
+
+    def test_a_rate_of_one_reviews_every_generation_including_the_worst_id(
+            self, generations):
+        """The boundary that made this test itself flaky, one run in 256.
+
+        A byte over 255.0 lands in [0, 1] inclusive, so the id whose digest
+        begins 0xFF scored exactly 1.0 and `1.0 < 1.0` skipped it. A capability
+        configured to review EVERYTHING then did not, and because the seed is
+        fixed by the capability id rather than by a clock, it was that
+        capability's draws that escaped every time rather than a random one.
+        """
+        import hashlib
+        import itertools
+        worst = next(f"cap-{i}" for i in itertools.count()
+                     if hashlib.sha256(f"cap-{i}:0".encode()).digest()[0] == 255)
+        assert generations._sample(
+            {"id": worst, "review_sample": 1.0}) is True, (
+            f"{worst} is the id a rate of 1.0 used to skip")
+
+    def test_a_rate_draws_the_share_it_states(self, generations):
+        """Over 256 values, k/256 draws exactly k. Over 255 it did not."""
+        for rate, expected in ((1.0, 256), (0.5, 128), (0.25, 64), (0.0, 0)):
+            drawn = sum(1 for i in range(4096)
+                        if generations._sample(
+                            {"id": f"c{i}", "review_sample": rate}))
+            share = drawn / 4096
+            assert abs(share - expected / 256) < 0.02, (
+                f"a stated rate of {rate} drew {share:.3f}")
