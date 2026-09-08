@@ -180,7 +180,7 @@
       <tr><td class="small">v{{ v.version }}</td>
           <td class="small">{{ "{:,}".format(v.row_count) }}</td>
           <td class="small">{{ (v.features or [])|join(', ') }}</td>
-          <td class="small">delta v{{ v.delta_version }}</td>
+          <td class="small" title="{{ v.delta_version }}">{{ v.delta_version|pin }}</td>
           <td class="small">
             {% if v.restated %}<span class="evidence-bad">restated</span>
               <div class="text-muted">now at delta v{{ v.current_delta_version }}</div>

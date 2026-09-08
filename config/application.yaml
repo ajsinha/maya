@@ -121,6 +121,30 @@ data:
   # Delta Lake root. Feature values, dataset snapshots, inference logs and
   # monitoring observations live here — everything whose volume scales with
   # business events rather than with the number of models (see docs/05, rule R2).
+  # Which table format holds the feature data: `delta` or `iceberg`.
+  #
+  # Delta is the default, and not by inertia — it is what the soak run and
+  # every worked example in the documentation have actually run against.
+  # Iceberg is for a bank whose lakehouse already is Iceberg, so that their
+  # Trino, Athena or Snowflake can read the feature store directly rather than
+  # keeping a second copy in a format they cannot query.
+  #
+  # `MAYA_TABLE_FORMAT` overrides this. Set it ONCE, at the start: switching an
+  # estate that already holds data does not migrate it — tables written in the
+  # other format are simply not visible, and a feature view then reads as empty
+  # rather than failing. Start-up says so at WARNING when Iceberg is in use.
+  table_format: delta
+
+  # Where the Iceberg catalog is, when the format is Iceberg. Left empty, MAYA
+  # keeps a SQLite catalog inside the warehouse directory, so a laptop needs no
+  # external service. Point it at Glue, Nessie, Polaris or a REST catalog where
+  # a bank already runs one:
+  #
+  #   iceberg:
+  #     catalog: {uri: "https://polaris.internal/api/catalog", warehouse: "s3://bank-lake/maya"}
+  iceberg:
+    catalog: {}
+
   delta:
     dir: "${data.dir}/delta"
     features: "${data.delta.dir}/features"

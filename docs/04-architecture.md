@@ -170,9 +170,20 @@ data/delta/
 └── monitoring/                        metric time series
 ```
 
-Delta rather than a plain table for one reason that decides it: **table versions give the
-transaction-time axis for free**, which is the mechanism behind point-in-time correctness (`L-10`).
-Every feature row carries `event_ts` and `ingest_ts`, and one missing either is refused at the write.
+A versioned table format rather than a plain table for one reason that decides it: **table versions
+give the transaction-time axis for free**, which is the mechanism behind point-in-time correctness
+(`L-10`). Every feature row carries `event_ts` and `ingest_ts`, and one missing either is refused at
+the write.
+
+**Delta or Iceberg, by configuration.** The six operations MAYA asks of a table format — open,
+current version, read at a version, read whole, stream, write — exist in both, and nothing above
+`db/` knows which is underneath. Delta is the default and is what the soak and every worked example
+ran against; `MAYA_TABLE_FORMAT=iceberg` (or `data.table_format`) selects the other, for a bank whose
+lakehouse is already Iceberg and whose query engines should be able to read the feature store
+directly. `db/table_backend.py` decides once at start-up. Switching an estate that already holds data
+**does not migrate it**, and start-up says so rather than letting an invisible table read as empty.
+The one thing that reached the register: a snapshot id is int64, so the version columns are `BIGINT`.
+[07 §9.4](07-feature-platform.md) is the treatment.
 
 > **Not built.** Change Data Feed, deletion vectors, crypto-shredding, `VACUUM` retention by
 > regulatory class, liquid clustering and Spark are all target and none is used. `DeltaPaths` carries
@@ -520,7 +531,7 @@ discovers the difference by looking for a service that is not there.
 | API | FastAPI, Pydantic, Uvicorn behind Gunicorn | as stated, one process |
 | Front end | Bootstrap 5.3, jQuery 3.7, server-rendered Jinja2 | as stated, **vendored** — no CDN, no external call. See [08](08-ui-ux.md). The rule-set editor (`web/static/js/ruleset-editor.js`, ~300 lines) is the only page holding a document in the browser; it introduces no framework, no build step and no new asset host. It **decides nothing** — every question about whether a rule set is valid is answered by `POST /rulesets/check` and the screen renders the answer, so the publish button is enabled by the server's verdict and never by anything computed in the browser. That is the SDK's rule (§9, *Clients*) applied to a page: a client that re-implemented a governance check would be a second implementation, and it disagrees with the first eventually, in the direction of permitting more. The operator list is rendered into the page from `core/rules/common.py` rather than written into the script, because a screen holding its own vocabulary is a second vocabulary |
 | Database | PostgreSQL 16 | PostgreSQL **or** SQLite, by URL alone. **No ORM, no migration tool.** SQLAlchemy Core metadata typed once and compiled to each dialect; fifty-one tables. `ltree`, `pgvector`, RLS and partitioning are **not used**; the shipped DDL has no foreign keys, no `CHECK` and no triggers, and referential integrity lives in the repositories ([05](05-data-model.md)). On SQLite the engine sets `journal_mode=WAL` and a 30-second `busy_timeout` on every connection: the default journal makes a writer block every reader, and the driver's own five-second give-up turns a moment of contention into a governance act that did not happen |
-| Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process. **No Spark**; the PIT join is Python over Delta files. `deltalake` is OPTIONAL: it is a compiled Rust extension and some estates forbid binary wheels, so `maya_deltalake/` implements the six calls MAYA makes in pure Python and writes the real transaction log — tables stay readable by Spark, Databricks and `deltalake` itself. `db/delta_backend.py` chooses, preferring the reference implementation where it installs; CI runs the whole suite both ways and the counts must match |
+| Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process, or **Apache Iceberg** via `pyiceberg` by configuration — `db/table_backend.py` decides once, CI runs the whole suite both ways. **No Spark**; the PIT join is Python over the table files. `deltalake` is OPTIONAL: it is a compiled Rust extension and some estates forbid binary wheels, so `maya_deltalake/` implements the six calls MAYA makes in pure Python and writes the real transaction log — tables stay readable by Spark, Databricks and `deltalake` itself. `db/delta_backend.py` chooses, preferring the reference implementation where it installs; CI runs the whole suite both ways and the counts must match |
 | Object store | S3/ADLS/GCS with Object Lock for WORM | a content-addressed store on the local filesystem, digest as key, re-hashed on every read |
 | Cache / queue | Redis 7 | **not used.** Warrant TTL and jitter are computed in process |
 | Async | Celery, APScheduler | `core/scheduler/`: **ten idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |

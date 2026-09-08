@@ -898,8 +898,10 @@ Grouped, with source. `A` = derived by MAYA, `H` = human-entered, `I` = from an 
 | Artifact bytes | **Content-addressed local store**, two-level fan-out, 8 GiB ceiling | A file's name is its own digest, so an artifact cannot be edited in place and deduplication is free |
 | Attachments | Content-addressed, re-hashed on read | What an approver accepted is what a reader fetches |
 
-**No `BOOLEAN` column exists anywhere**, in either dialect or in Delta: integer 0/1, converted at the
-service boundary, and enforced by a test that walks both schemas and compares them column for column.
+**The schema is one typed declaration** — `db/schema/tables.py`, fifty-one tables — and the DDL for each
+dialect is generated from it, so the two dialects cannot drift apart by hand. Truth values are `BOOLEAN`
+in both; counts are `INTEGER`; timestamps are epoch seconds in a `DOUBLE`. A test fails the build if the
+checked-in `.sql` no longer matches the declaration.
 
 Detailed schemas in [05 — Data Model](05-data-model.md).
 

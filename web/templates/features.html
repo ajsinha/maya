@@ -269,7 +269,7 @@ pinned by the view version that wrote them.</p>
           <td class="small">
             {% if v.latest %}v{{ v.latest.version }}
               <div class="text-muted">{{ "{:,}".format(v.latest.row_count) }} rows
-                · delta v{{ v.latest.delta_version }}</div>
+                · {{ v.latest.delta_version|pin }}</div>
             {% else %}<span class="text-muted">never materialised</span>{% endif %}</td>
           <td class="small text-end">
             {% if v.latest %}

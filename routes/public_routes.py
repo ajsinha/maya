@@ -102,17 +102,17 @@ class PublicRoutes(Routes):
 
         @self.app.get("/health", tags=["health"])
         def health():
-            from db.delta_backend import describe
+            from db.table_backend import describe
 
             return {"status": "healthy",
                     "uptime_seconds": round(time.time() - started, 1),
                     "version": self.ctx["config"].get("app.version"),
-                    # Which Delta implementation is underneath. `deltalake` is
-                    # a compiled extension and some estates forbid binary
-                    # wheels, so MAYA has its own; an operator should be able
-                    # to ask which is running rather than infer it from a
+                    # What holds the feature data: Delta or Iceberg, and for
+                    # Delta which implementation is writing it — MAYA has its
+                    # own for estates that forbid binary wheels. An operator
+                    # should be able to ASK, rather than infer it from a
                     # start-up line that scrolled past a week ago.
-                    "delta": describe()}
+                    "storage": describe(self.ctx.get("table_store"))}
 
         @self.app.get("/health/live", tags=["health"])
         def live():

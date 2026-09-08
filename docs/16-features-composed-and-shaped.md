@@ -283,8 +283,9 @@ silently would hide which was done.
 
 `feature` gains `shape`, `components`, `composes`, `operations`, `defaults`,
 `ephemeral`, `ttl_days`, `sealed_at`, `sealed_by`; `featureset` gains the same
-composition and lifecycle columns. Both dialects, column for column, no
-`BOOLEAN` anywhere — integer 0/1, converted at the service boundary.
+composition and lifecycle columns. One declaration in `db/schema/tables.py`, rendered
+to both dialects: `ephemeral` and the other truth values are `Boolean`, `ttl_days`
+is an `Integer` because it is a count, and `sealed_at` is a `Double` epoch second.
 
 ---
 

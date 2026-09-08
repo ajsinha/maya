@@ -388,9 +388,9 @@ registered properly.
 | **02** | [Model Taxonomy](docs/02-model-taxonomy.md) | Families, fibres, and what each needs as evidence |
 | **03** | [Requirements](docs/03-requirements.md) | ~200 numbered requirements with regulatory traceability |
 | **04** | [Architecture](docs/04-architecture.md) | Containers, bounded contexts, extension points, failure modes |
-| **05** | [Data Model](docs/05-data-model.md) | Schemas in both dialects, the evidence graph, the Delta layout |
+| **05** | [Data Model](docs/05-data-model.md) | One typed schema rendered to both dialects, the evidence graph, the data-plane layout |
 | **06** | [Warrants & Execution](docs/06-warrants-and-execution.md) | URNs, the grammar, resolution, revocation, composites |
-| **07** | [Feature Platform](docs/07-feature-platform.md) | Two clocks, point-in-time assembly, contracts, transfer |
+| **07** | [Feature Platform](docs/07-feature-platform.md) | Two clocks, point-in-time assembly, contracts, transfer, Delta or Iceberg |
 | **08** | [UI & UX](docs/08-ui-ux.md) | The interface, and the tense warning on what is designed versus built |
 | **09** | [Security & Compliance](docs/09-security-compliance.md) | Threat model, sandbox, identity, ambient authority, audit |
 | **10** | [What Is Left](docs/10-roadmap.md) | What remains, why each thing is not built, and the order it should be done in |
@@ -458,6 +458,7 @@ maya/
 │   └── schema/                      tables.py — 51 typed tables; the .sql files are generated from it
 ├── maya_deltalake/                  the Delta subset MAYA uses, in pure Python — used where
 │                                    binary wheels are forbidden and `deltalake` cannot install
+│                                    (Iceberg is the other table format, by configuration)
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies
@@ -477,7 +478,7 @@ Several tests do not test a feature. They walk the source and hold a rule that w
 |---|---|
 | `test_logging_discipline` | No exception is ignored. Every `except` logs; none is bare; none is only `pass` |
 | `test_refusal_discipline` | Every coded refusal maps to a status that says who must act, and no code is mapped twice |
-| `test_schema_discipline` | The two dialects agree column for column; no `BOOLEAN` anywhere |
+| `test_schema_discipline` | One typed declaration renders identically to both dialects; the checked-in `.sql` is not stale; a truth value is a `Boolean` and a count is not |
 | `test_size_discipline` | No source file over 1,500 lines |
 | `test_documentation_counts` | Every number claimed in prose is recounted from the code |
 | `test_deck_geometry` | No slide has overlapping or escaping content |

@@ -38,6 +38,20 @@ hypothesis>=6.100
 # reference implementation, it is faster, and it supports the whole protocol.
 deltalake>=1.0
 #
+# Apache Iceberg, also OPTIONAL, and only needed by an estate that sets
+# `MAYA_TABLE_FORMAT=iceberg` — for a bank whose lakehouse is Iceberg and whose
+# Trino, Athena or Snowflake should be able to read the feature store directly.
+# Delta is the default and is what the soak and every worked example run
+# against.
+#
+# It publishes a compiled wheel and does not need it: `new_decoder()` falls
+# back to a pure-Python Avro decoder, and the extension is only used for
+# manifest metadata rather than for data, so at MAYA's scale it buys nothing
+# measurable. An estate that forbids binary wheels can install it from the
+# sdist without a compiler.
+#
+# pyiceberg>=0.9
+#
 # pandas and pyarrow are NOT optional, and an estate that forbids binary wheels
 # entirely cannot run MAYA at all — the feature sources, the transfer layer and
 # the assembly use pyarrow directly. Naming that here is better than

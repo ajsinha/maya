@@ -92,7 +92,26 @@ class TrainingSetBuilder:
         report = verify_sampled(rows, lambda r: self._recompute(r, plan, as_of))
         self._screen_for_leakage(report, rows, label_slot)
         return self._persist(name, rows, as_of, report, actor,
-                             featureset, featureset_version)
+                             featureset, featureset_version, plan)
+
+    def _dtypes(self, plan: Optional[List["Column"]]) -> Dict[str, str]:
+        """The declared dtype behind each SLOT of the assembled frame.
+
+        Keyed by slot, because that is what the column is called once it
+        arrives — the whole point of the binding is that a slot and the feature
+        filling it need not share a name.
+
+        Needed for the columns that come back entirely null, which is ordinary
+        rather than exceptional: a feature with nothing inside the window, or
+        one every row of which was withdrawn. Arrow cannot infer a type from no
+        values, MAYA has always known it, and until now nobody passed it.
+        """
+        out: Dict[str, str] = {}
+        for column in plan or []:
+            feature = self.views.catalogue.get(column.feature)
+            if feature and feature.get("dtype"):
+                out[column.slot] = feature["dtype"]
+        return out
 
     @staticmethod
     def _screen_for_leakage(report: "PitReport", rows: List[Dict[str, Any]],
@@ -330,12 +349,14 @@ class TrainingSetBuilder:
     def _persist(self, name: str, rows: List[Dict[str, Any]], as_of: float,
                  report, actor: str,
                  featureset: Optional[str] = None,
-                 featureset_version: Optional[int] = None) -> Dict[str, Any]:
+                 featureset_version: Optional[int] = None,
+                 plan: Optional[List["Column"]] = None) -> Dict[str, Any]:
         table = f"snapshots/{name}"
         # The pins the assembly actually read, recorded so a replay reads the
         # same bytes rather than the same paths.
         row = {"name": name, "kind": "training", "delta_table": table,
-               "delta_version": self.delta.write(table, rows, mode="overwrite"),
+               "delta_version": self.delta.write(table, rows, mode="overwrite",
+                                                 dtypes=self._dtypes(plan)),
                "row_count": len(rows), "as_of": as_of,
                "pit_verified": int(report.passed), "pit_report": report.as_dict(),
                # Stored, not returned-and-forgotten. A fit warrant pins the

@@ -11,7 +11,7 @@ h = code(sl, ML, y, CW * 0.54, [
  "report = verify_sampled(rows, self._recompute) # LAYER 2",
  "report.leakage = detect_leakage(rows)          # purity screen",
  "",
- "self._persist(name, rows, as_of, report, ...)  # Delta + evidence",
+ "self._persist(name, rows, as_of, report, ...)  # table + evidence",
 ], fs=9.5, title="THE ASSEMBLY")
 x = ML + CW * 0.57
 h2 = code(sl, x, y, CW * 0.43, [
@@ -29,11 +29,13 @@ runs(tf, [("Two clocks, and the min is the reproducibility guarantee. ", CRIMSON
            INK, False),
           ("min(ℓ, a)", INK, False, False, MONO),
           (" makes every a ≥ ℓ give the same answer: the row assembled the day the label matured and the same row "
-           "re-assembled a year later are identical, however many restatements arrived in between. Delta supplies the "
-           "second clock — a version pinned per view, read through ", INK, False),
-          ("deltalake", INK, False, False, MONO),
-          (". There is no Spark here: the join is a Python loop over the rows of a pinned Delta version, which is the "
-           "same operator at a smaller scale and is where a cluster engine would go.", INK, False)],
+           "re-assembled a year later are identical, however many restatements arrived in between. The table format "
+           "supplies the second clock — a version pinned per view, ", INK, False),
+          ("Delta or Iceberg", INK, True),
+          (" by configuration, since both answer the six questions MAYA asks and a bank should not have to keep a "
+           "second copy of its features in a format its query engines cannot read. There is no Spark here: the join "
+           "is a Python loop over the rows of a pinned version, which is the same operator at a smaller scale and is "
+           "where a cluster engine would go.", INK, False)],
      size=11.5, first=True, space_after=0, line=1.28)
 
 # ------------------------------------------------- copy, do not connect
@@ -80,7 +82,7 @@ runs(tf, [("Copy, do not connect. ", CRIMSON, True),
            "The query would not fail. It would return the restated number and "
            "say nothing. So MAYA pulls \u2014 SQL through SQLAlchemy, files "
            "and S3 and GCS through pyarrow \u2014 bitemporalises what it got, "
-           "and writes it into its own Delta as an ordinary, immutable, "
+           "and writes it into its own store as an ordinary, immutable, "
            "pinnable version. It costs a copy. It is the only way the operator "
            "survives contact with somebody else\u2019s warehouse.", INK, False)],
      size=11.5, first=True, space_after=0, line=1.28)

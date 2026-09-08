@@ -114,12 +114,21 @@ Four properties of that shape are load-bearing and are worth stating before any 
 
 **The control plane and the data plane are separated by size, not by ceremony.** Anything a person reads one
 at a time — a model, a version, a finding, an evidence node — is a row. Anything that runs to hundreds of
-millions of rows lives in Delta and the register keeps a `delta_table` and a `delta_version` that together
-name exactly which bytes a read gets. `tests/test_schema_discipline.py` holds both halves of that: no
-relational table may grow a `rows` or `values` column, and the four tables that own bulk data must name
-their Delta location.
+millions of rows lives in a versioned table format, and the register keeps a `delta_table` and a
+`delta_version` that together name exactly which bytes a read gets. `tests/test_schema_discipline.py`
+holds both halves of that: no relational table may grow a `rows` or `values` column, and the four tables
+that own bulk data must name their table location.
 
-**There are no migrations, on purpose.** `db/schema/tables.py` *is* the schema — fifty typed SQLAlchemy
+That format is **Delta or Iceberg, by configuration** — `db/table_backend.py` chooses once at start-up,
+`db/delta_store.py` and `db/iceberg_store.py` offer the same surface, and nothing above `db/` asks which.
+Delta is the default. The columns are named for it and stay named for it, because what they hold is *the
+version this read is pinned at* and that concept does not change with the format; they are `BigInteger`
+because an Iceberg snapshot id is int64 and would not fit an `INTEGER` on PostgreSQL. Separately,
+`db/delta_backend.py` chooses between two *implementations* of Delta — the compiled `deltalake` and
+MAYA's own pure-Python `maya_deltalake/` — for estates that forbid binary wheels. Two independent
+choices: [07 §9.3](07-feature-platform.md) is the second, [§9.4](07-feature-platform.md) the first.
+
+**There are no migrations, on purpose.** `db/schema/tables.py` *is* the schema — fifty-one typed SQLAlchemy
 Core tables, from which the DDL for each dialect is generated. `db/schema/sqlite.sql` and `postgres.sql`
 are rendered from it by `tools/ci/render_schema.py` as reference for a DBA who wants to read the DDL
 without running Python, and CI fails if they are stale.
@@ -1509,7 +1518,7 @@ rot, and each exists because the rule it holds had already been broken once:
 |---|---|
 | `test_logging_discipline` | no exception is ignored: every `except` logs, none is bare, none is only `pass` |
 | `test_refusal_discipline` | every coded refusal maps to a status that says who must act, and no code is mapped twice |
-| `test_schema_discipline` | the two dialects agree column for column; no `BOOLEAN` anywhere; no relational table holds bulk data |
+| `test_schema_discipline` | one typed declaration renders identically to both dialects; the checked-in `.sql` is not stale; a truth value is a `Boolean` and a count is not; no relational table holds bulk data |
 | `test_size_discipline` | no source file over 1,500 lines |
 | `test_documentation_counts` | every number claimed in prose is recounted from the code — **and from `.py` docstrings**, because two source files said "seventeen" against nineteen entries and survived every pass while the test read only markdown |
 | `test_deck_geometry` | no slide has overlapping or escaping content |
@@ -1525,8 +1534,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 205 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 266 modules in one
+the 207 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 268 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

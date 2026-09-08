@@ -221,7 +221,7 @@ owned by {{ featureset.ownership.owner }}
             <td class="small">{{ s.feature }}
               {% if s.derived %}<div class="text-muted">derived · def v{{ s.definition_version }}</div>{% endif %}</td>
             <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
-            <td class="small">delta v{{ s.delta_version }}</td></tr>
+            <td class="small" title="{{ s.delta_version }}">{{ s.delta_version|pin }}</td></tr>
       {% endfor %}
       </tbody></table>
     <div class="card-body py-2 small border-top">

@@ -76,6 +76,7 @@ from core.risk import AggregateRisk, TieringEngine
 from core.telemetry import TelemetryCollector
 from core.validation import (FindingRegister, FindingWorkflow, Replayer,
                              SnapshotProvider, TestCatalogue, ValidationService)
+from db import table_backend
 from db import (ServingAttestationRepository,
                 AliasHistoryRepository, AliasRepository, AmendmentRepository,
                 AttachmentRepository, DerivedFeatureRepository,
@@ -89,7 +90,7 @@ from db import (ServingAttestationRepository,
                 ParameterSetRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
-                DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository, ModelEdgeRepository,
+                DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository, ModelEdgeRepository,
                 FeatureRepository, FeatureSourceRepository,
                 FeatureViewRepository,
                 FeatureViewVersionRepository, FindingActionRepository,
@@ -275,7 +276,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     # Telemetry is what turns monitoring from something somebody remembers to
     # do into something the scheduler can actually run.
-    telemetry = TelemetryCollector(DeltaStore(delta.root), registry, evidence,
+    # The table format, chosen once. Delta by default; Iceberg where a bank's
+    # lakehouse is Iceberg and its Trino or Athena should be able to read the
+    # feature store directly. Nothing above `db/` knows which.
+    table_store = table_backend.build(
+        delta.root, cfg.get("data.table_format", None),
+        cfg.get("data.iceberg.catalog", None))
+
+    telemetry = TelemetryCollector(table_store, registry, evidence,
                                    TelemetryBatchRepository(db))
 
     # `L-15`, checked before anything is served. A partial fibre found at run
@@ -305,7 +313,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
                                FeatureViewVersionRepository(db), ContractRepository(db),
-                               SnapshotRepository(db), DeltaStore(delta.root), evidence,
+                               SnapshotRepository(db), table_store, evidence,
                                DerivedFeatureRepository(db), FeaturesetRepository(db),
                                FeaturesetVersionRepository(db),
                                sources=FeatureSourceRepository(db),
@@ -404,7 +412,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # holding the numbers.
     replayer = Replayer(validation, catalogue,
                         SnapshotProvider(SnapshotRepository(db),
-                                         DeltaStore(delta.root), features))
+                                         table_store, features))
 
     # The quorum records its outcome through the registry, and the registry
     # refuses a single signature where the quorum applies. Connected explicitly
@@ -495,6 +503,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     ctx: Dict[str, Any] = {"config": cfg, "db": db, "delta": delta, "features": features,
                            "evidence": evidence, "serving": serving,
+                           # The store, so `/health` can say which table
+                           # format holds the feature data without
+                           # constructing a second one to ask.
+                           "table_store": table_store,
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules,
@@ -549,7 +561,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         # perform one itself. That is the honest shape of the dependency.
         ctx["fitting"] = FittingService(
             ctx["engine"], warrants, parameters, features,
-            SnapshotRepository(db), DeltaStore(delta.root), evidence)
+            SnapshotRepository(db), table_store, evidence)
     return ctx
 
 
@@ -578,6 +590,27 @@ def _session_secret(cfg) -> str:
             "(or MAYA_SESSION_SECRET) before this instance is reachable by "
             "anybody else.")
     return secret
+
+
+def _pin_writer(store: Any):
+    """A filter that renders a storage version the way its format numbers them.
+
+    Delta's are sequential and short, so `delta v3` reads well. Iceberg's are
+    int64 snapshot ids, where the full number is noise on a table and the last
+    digits are enough to tell two apart — the whole value is on the element's
+    title for anybody who needs to quote it.
+    """
+    fmt = getattr(store, "format", "delta")
+
+    def pin(value: Any) -> str:
+        if value is None or value == "":
+            return "—"
+        if fmt == "delta":
+            return f"delta v{value}"
+        text = str(value)
+        return f"iceberg …{text[-6:]}" if len(text) > 8 else f"iceberg {text}"
+
+    return pin
 
 
 def _credential_resolver(cfg: PropertiesConfigurator):
@@ -844,6 +877,11 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     # retirement facts the register held and could not tell anybody.
     templates.env.filters["when"] = _when
     templates.env.filters["ago"] = _ago
+    # How to write a storage pin. Delta numbers versions 0, 1, 2 and Iceberg
+    # uses a 19-digit snapshot id, so "delta v0" is both a wrong word and a
+    # wrong shape on an Iceberg estate — and the pin is exactly what a reviewer
+    # reads to know a namespace cannot move underneath them.
+    templates.env.filters["pin"] = _pin_writer(ctx.get("table_store"))
 
     @app.exception_handler(AuthzError)
     async def refused(_request, exc: AuthzError):

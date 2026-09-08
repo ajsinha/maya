@@ -45,7 +45,8 @@ rather than defended here.
 """
 from __future__ import annotations
 
-from sqlalchemy import (Boolean, Column, Double, Index, Integer, MetaData,
+from sqlalchemy import (BigInteger, Boolean, Column, Double, Index, Integer,
+                        MetaData,
                         Table, Text, text)
 
 #: Every table in MAYA. `Database` applies it and compares against it; nothing
@@ -357,7 +358,16 @@ FEATURE_VIEW_VERSION = Table(
     Column("feature_view_id", Text, nullable=False),
     Column("version", Integer, nullable=False),
     Column("features", Text, nullable=False, server_default=text("'[]'")),
-    Column("delta_version", Integer, nullable=False, server_default=text('0')),
+    # BigInteger, and the reason is a number rather than a preference. This is
+    # the TABLE FORMAT's own version coordinate, and the two formats number
+    # very differently: a Delta version is sequential and small (0, 1, 2), an
+    # Iceberg snapshot id is a 19-digit int64 — 2775452360009792490 was the
+    # first one a test produced. PostgreSQL INTEGER stops at 2,147,483,647, so
+    # an Iceberg id overflows it while SQLite swallows the same value without
+    # complaint. That is the dialect divergence this codebase has been bitten
+    # by before: right on the database somebody develops against, wrong on the
+    # one they deploy to.
+    Column("delta_version", BigInteger, nullable=False, server_default=text('0')),
     Column("valid_time_column", Text, nullable=False, server_default=text("'event_ts'")),
     Column("ingest_time_column", Text, nullable=False, server_default=text("'ingest_ts'")),
     Column("row_count", Integer, nullable=False, server_default=text('0')),
@@ -743,7 +753,16 @@ DATASET_SNAPSHOT = Table(
     Column("name", Text, nullable=False),
     Column("kind", Text, nullable=False, server_default=text("'training'")),
     Column("delta_table", Text, nullable=False),
-    Column("delta_version", Integer, nullable=False, server_default=text('0')),
+    # BigInteger, and the reason is a number rather than a preference. This is
+    # the TABLE FORMAT's own version coordinate, and the two formats number
+    # very differently: a Delta version is sequential and small (0, 1, 2), an
+    # Iceberg snapshot id is a 19-digit int64 — 2775452360009792490 was the
+    # first one a test produced. PostgreSQL INTEGER stops at 2,147,483,647, so
+    # an Iceberg id overflows it while SQLite swallows the same value without
+    # complaint. That is the dialect divergence this codebase has been bitten
+    # by before: right on the database somebody develops against, wrong on the
+    # one they deploy to.
+    Column("delta_version", BigInteger, nullable=False, server_default=text('0')),
     Column("row_count", Integer, nullable=False, server_default=text('0')),
     Column("as_of", Double, nullable=False),
     Column("pit_verified", Boolean, nullable=False, server_default=text('0')),

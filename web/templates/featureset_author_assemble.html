@@ -97,14 +97,14 @@
     {% for s in plan.slots %}
       <tr><td class="small">{{ s.slot }}</td><td class="small">{{ s.feature }}</td>
           <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
-          <td class="small">delta v{{ s.delta_version }}</td></tr>
+          <td class="small" title="{{ s.delta_version }}">{{ s.delta_version|pin }}</td></tr>
     {% endfor %}
     </tbody></table></div>
 
 {% for namespace, sample in rows.items() %}
 <div class="card mb-3">
   <div class="card-header">Rows already in <code>{{ namespace }}</code>
-    <span class="text-muted small">&mdash; delta v{{ sample.delta_version }},
+    <span class="text-muted small">&mdash; {{ sample.delta_version|pin }},
       {{ sample.total }} row(s), showing {{ sample.rows|length }}</span></div>
   <table class="table maya mb-0">
     <thead><tr>{% for c in sample.columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
@@ -118,7 +118,7 @@
     {% endfor %}
     </tbody></table>
   <div class="card-body py-2 small text-muted border-top">
-    Read at the pinned Delta version, not at the head of the namespace &mdash;
+    Read at the pinned storage version, not at the head of the namespace &mdash;
     the same bytes the assembly will read. Build a spine against these
     <code>entity_id</code> values and watch the two clocks decide: a row whose
     <code>ingest_ts</code> is after <code>min(label_ts, as_of)</code> is
@@ -143,7 +143,7 @@
             {% else %}<span class="evidence-bad">not verified</span>{% endif %}
             <div class="text-muted">{{ s.pit_report.detail }}</div></td>
           <td class="small"><code style="font-size:.7rem">{{ s.delta_table }}</code>
-            <div class="text-muted">v{{ s.delta_version }}</div></td></tr>
+            <div class="text-muted" title="{{ s.delta_version }}">{{ s.delta_version|pin }}</div></td></tr>
     {% else %}
       <tr><td colspan="6" class="small text-muted">
         None yet. A snapshot built here names the featureset version, so a fit

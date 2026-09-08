@@ -267,7 +267,13 @@ class TestADefinitionAndAVersionWorkEndToEnd:
         namespace without a Delta version is a path, and a path is mutable."""
         body = _prose(published, "/featureset/nj_home_core/plan/1")
         assert "features/property_id/nj_characteristics/v1" in body
-        assert "delta v0" in body
+        from db.table_backend import chosen
+
+        assert f"{chosen()} " in body, (
+            "the plan must show the storage pin. Its SPELLING belongs to the "
+            "format — `delta v0` against `iceberg …698510` — and asserting "
+            "one of them would be asserting which format this estate uses "
+            "rather than that the pin is there")
         assert "and not only the path" in body
 
     def test_the_plan_carries_what_an_engine_reads(self, published):
