@@ -373,6 +373,12 @@ STATUS: Dict[str, int] = {
     "malformed_expression": 409,
     "execution_timeout": 504, "execution_limit": 507,
     "execution_failed": 502,
+    # 501: the warrant is valid and this DEPLOYMENT cannot honour it. A limit
+    # the warrant states and the platform cannot enforce — POSIX resource
+    # limits are unavailable on Windows — is a missing capability here rather
+    # than a fault in the request, and the caller's remedy is a different
+    # engine rather than a different warrant.
+    "limit_not_enforceable": 501,
     # the quantlib runtime's own refusals
     "no_evaluation_date": 422, "no_curve": 422, "malformed_curve": 422,
     "malformed_date": 422, "malformed_fixing": 422, "missing_fixing": 422,
