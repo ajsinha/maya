@@ -16,7 +16,16 @@
     <input aria-label="file of rows to materialise" type="file" id="file" class="form-control form-control-sm"
            accept="{{ upload_accepts }}">
     <div class="text-muted mt-2" style="font-size:.72rem">
-      Parquet, Arrow IPC or NDJSON. Every row carries
+      {# The formats are listed in the order somebody actually has one. CSV and
+         JSONL are what a person brings; the page named neither and led with
+         Parquet, so the format the tutorials use looked unsupported. The
+         `accept` attribute above has always taken them — the prose was the
+         part that was wrong. #}
+      <strong>CSV</strong> or <strong>JSONL</strong> for a file somebody has;
+      Parquet or Arrow IPC when it is coming from a job. A CSV is read and
+      never written: it cannot carry a type, so a feature exported as one would
+      come back as text with both clocks as strings.
+      Every row carries
       <code>entity_id</code>, <code>event_ts</code> (when the fact was true) and
       <code>ingest_ts</code> (when we learned it) &mdash; a row without both
       clocks is refused here rather than two layers later, where it stops being

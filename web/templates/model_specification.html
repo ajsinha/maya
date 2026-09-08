@@ -123,7 +123,7 @@ two descriptions of one model drift and the one nobody executes drifts first.</p
       <tr>
         <td class="small">{{ a.title }}</td>
         <td class="small">{{ a.kind.replace('_', ' ') }}</td>
-        <td class="mono small">{{ a.semver or '&mdash;' }}</td>
+        <td class="mono small">{% if a.semver %}{{ a.semver }}{% else %}&mdash;{% endif %}</td>
         <td class="small">
           {% if a.state == 'accepted' %}<span class="evidence-ok">accepted</span>
           {% elif a.state == 'rejected' %}<span class="evidence-bad">rejected</span>
