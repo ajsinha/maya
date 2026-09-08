@@ -82,7 +82,8 @@ data = [["Concern", "Today"],
         ["Auth", "Session cookie, SameSite=Strict, plus a CSRF token on cookie-authorised mutations"],
         ["Logic", "The server renders decisions; the page never derives them"],
         ["Client", "The Python SDK is hand-written against the same /api/v1. There is no generated client and no openapi.lock.json, so nothing detects spec drift — CI runs the suite, not a contract check"],
-        ["Documents", "Compiled server-side to markdown and rendered through the help pipeline; PDF and DOCX are not built"]]
+        ["Documents", "Compiled server-side to markdown and rendered through the help pipeline; PDF and DOCX are not built"],
+        ["Legibility", "Theme and a five-step text scale, both applied before the first paint. 31 assertions hold WCAG AA contrast in both themes, a focus ring on every focusable kind, and no template pinning a colour or a pixel size"]]
 table(sl, data, ML, y + 0.40, CW * 0.47, col_w=[1.1, 4.6], row_h=0.30, fs=9, hfs=10, bold_col0=True, first_col_color=CRIMSON)
 x = ML + CW * 0.53
 tf = txt(sl, x, y, CW * 0.47, 0.35)
