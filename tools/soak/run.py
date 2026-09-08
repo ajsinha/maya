@@ -95,7 +95,7 @@ class BackgroundLoad:
                 if n % 7 == 0:
                     # A screen as well as an endpoint: the templates render on
                     # every request and are a real share of the work.
-                    self.client.get(self.base + "/dashboard", auth=auth)
+                    self.client.page("/dashboard", auth)
             except Exception as exc:
                 self.journal.event("background_error",
                                    error=f"{type(exc).__name__}: {exc}")
@@ -214,8 +214,9 @@ def main() -> int:
             scenarios.refusals_that_must_hold(client, journal, cycle, model)
             scenarios.features_and_shapes(client, journal, cycle)
             concurrent_evidence(client, journal, cycle, args.writers)
+            scenarios.detail_pages(client, journal, cycle, model)
             scenarios.platform_surfaces(client, journal)
-            scenarios.ui_pages(client, journal, base)
+            scenarios.ui_pages(client, journal)
             if cycle % 3 == 1:
                 scenarios.api_keys(client, journal, cycle)
             if cycle % 5 == 1:

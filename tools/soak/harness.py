@@ -31,14 +31,18 @@ away: a soak whose log says "all good" is a soak nobody can audit.
 """
 from __future__ import annotations
 
+import http.cookiejar
 import json
 import os
 import pathlib
+import re
 import signal
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Dict, List, Optional
 
@@ -76,7 +80,16 @@ class Journal:
     def record(self, **row) -> None:
         row["n"] = self.checks
         row["at"] = round(time.time() - self.started, 3)
-        self.handle.write(json.dumps(row, default=str) + "\n")
+        # Truncated HERE rather than at the point of reading a response: a
+        # whole HTML page in every journal line makes a file nobody can open,
+        # and truncating on the way IN made three checks search a fragment of
+        # the page they were asked about.
+        line = json.dumps(row, default=str)
+        if len(line) > 4000:
+            line = json.dumps({**{k: (v if len(json.dumps(v, default=str)) < 1500
+                                     else json.dumps(v, default=str)[:1500] + "…")
+                                 for k, v in row.items()}}, default=str)
+        self.handle.write(line + "\n")
         self.handle.flush()
 
     def check(self, family: str, name: str, ok: bool, expected: Any,
@@ -113,6 +126,14 @@ class Client:
         self.calls = 0
         self.server_errors: List[Dict[str, Any]] = []
         self.latencies: List[float] = []
+        # One cookie jar per persona. A SCREEN is not an API call: the pages
+        # resolve who you are from the session, so HTTP Basic gets you a
+        # redirect to /login — which urllib follows, so the check then examines
+        # the sign-in page and finds it 200 and empty of everything it was
+        # looking for. Thirty-three screen assertions per cycle were passing
+        # against the login page.
+        self._sessions: Dict[str, Any] = {}
+        self._lock = threading.Lock()
 
     def call(self, method: str, path: str, body: Any = None,
              auth=ADMIN, headers: Optional[Dict[str, str]] = None,
@@ -150,7 +171,13 @@ class Client:
         try:
             parsed = json.loads(raw) if raw else {}
         except ValueError:
-            parsed = {"_raw": raw[:2000]}
+            # HTML. Kept WHOLE: this was truncated to two thousand characters
+            # to keep the journal small, and the journal is not where it goes —
+            # so three checks that looked for a link partway down a page
+            # reported "NOT LINKED" about a page that linked perfectly well.
+            # Truncation belongs at the point of RECORDING, which is where it
+            # is now.
+            parsed = {"_raw": raw}
         if status >= 500:
             # Tracked separately and never as an ordinary outcome. MAYA's whole
             # argument is that a refusal is a considered answer with a code and
@@ -160,6 +187,75 @@ class Client:
             self.journal.event("server_error", method=method, path=path,
                                status=status, body=parsed)
         return status, parsed
+
+    def session_for(self, auth) -> Any:
+        """A signed-in browser session for this persona, made once.
+
+        Through the real sign-in form, with its CSRF token, because that is the
+        door a person uses and a soak that skipped it would not be exercising
+        it.
+        """
+        key = auth[0] if auth else "-"
+        with self._lock:
+            if key in self._sessions:
+                return self._sessions[key]
+        jar = http.cookiejar.CookieJar()
+        opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(jar))
+        try:
+            page = opener.open(BASE + "/login", timeout=20).read().decode(
+                "utf-8", "replace")
+            form = {"username": auth[0], "password": auth[1], "next": "/dashboard"}
+            if (token := re.search(r'name="csrf_token"\s+value="([^"]+)"', page)):
+                form["csrf_token"] = token.group(1)
+            opener.open(BASE + "/login",
+                        urllib.parse.urlencode(form).encode(), timeout=20).read()
+        except Exception as exc:
+            self.journal.event("session_failed", who=key,
+                               error=f"{type(exc).__name__}: {exc}")
+            return None
+        with self._lock:
+            self._sessions[key] = opener
+        return opener
+
+    def page(self, path: str, auth, timeout: float = 30.0):
+        """Fetch a SCREEN, as a signed-in browser. Returns (status, html)."""
+        opener = self.session_for(auth)
+        if opener is None:
+            return 0, ""
+        url = path if path.startswith("http") else BASE + path
+        began = time.time()
+        try:
+            with opener.open(url, timeout=timeout) as response:
+                body = response.read().decode("utf-8", "replace")
+                status = response.status
+        except urllib.error.HTTPError as exc:
+            body, status = exc.read().decode("utf-8", "replace"), exc.code
+        except Exception as exc:
+            self.journal.event("transport_error", method="GET", path=path,
+                               error=f"{type(exc).__name__}: {exc}")
+            return 0, ""
+        finally:
+            self.calls += 1
+            self.latencies.append(time.time() - began)
+        if status >= 500:
+            self.server_errors.append({"method": "GET", "path": path,
+                                       "status": status, "body": body[:400]})
+            self.journal.event("server_error", method="GET", path=path,
+                               status=status, body=body[:400])
+        return status, body
+
+    @staticmethod
+    def is_sign_in(html: str) -> bool:
+        """Whether this is the sign-in form rather than the page asked for.
+
+        urllib follows the redirect, so an unauthenticated screen request ends
+        at 200 with a login form — which is how thirty-three screen assertions
+        per cycle passed while examining the wrong page entirely. A screen
+        check has to rule this out explicitly or it is asserting that /login
+        renders.
+        """
+        return 'name="csrf_token"' in html and 'name="password"' in html
 
     def get(self, path, **kw):
         return self.call("GET", path, **kw)

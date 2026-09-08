@@ -347,6 +347,55 @@ def features_and_shapes(client, journal, cycle: int) -> None:
                   "200 with a list", status)
 
 
+def detail_pages(client, journal, cycle: int, model: Dict[str, Any]) -> None:
+    """The pages that answer *what is this thing*, on things this run made.
+
+    Added because two of them were unreachable and nothing noticed: a detail
+    page that renders only when somebody types its URL is a page no test and no
+    person ever opens. Driven here against a REAL feature and a REAL model that
+    this cycle created, so the pages are asked about data rather than about
+    nothing.
+    """
+    family = "details"
+    feature = f"soak_dscr_{cycle:05d}"
+    status, html = client.page(f"/feature/{feature}", creds("soak.dev"))
+    journal.check(family, "the feature detail page renders",
+                  status == 200 and not client.is_sign_in(html), 200, status)
+    journal.check(family, "and shows the seal and lifetime the register holds",
+                  "Declared shape" in html and "Created" in html,
+                  "the defining attributes",
+                  "shown" if "Declared shape" in html else "MISSING")
+
+    status, html = client.page("/features", creds("soak.dev"))
+    linked = f'href="/feature/{feature}"' in html
+    journal.check(family, "and the catalogue links to it",
+                  linked, "a link in the catalogue",
+                  "linked" if linked else "NOT LINKED")
+
+    matrix = f"soak_corr_{cycle:05d}"
+    status, html = client.page(f"/feature/{matrix}", creds("soak.dev"))
+    journal.check(family, "a matrix feature's page shows its declared shape",
+                  status == 200 and "Declared shape" in html,
+                  "200 naming the shape", status)
+
+    name = model.get("name")
+    if name and model.get("reached") != "none":
+        status, html = client.page(f"/model/{name}", creds("soak.mrm"))
+        journal.check(family, "the model page renders",
+                      status == 200 and not client.is_sign_in(html), 200, status)
+        journal.check(family, "and offers the specification editor",
+                      "/specification" in html, "a link to the LaTeX editor",
+                      "offered" if "/specification" in html else "MISSING")
+        # Written by whoever writes the model's mathematics, which is not the
+        # person who approves it. `soak.mrm` is refused here and that refusal
+        # is correct — the harness was asking as the wrong persona.
+        status, html = client.page(f"/model/{name}/specification",
+                                   creds("soak.dev"))
+        journal.check(family, "the LaTeX specification editor opens",
+                      status == 200 and "katex" in html.lower(),
+                      "200 with the maths renderer", status)
+
+
 def evidence_and_chain(client, journal) -> Dict[str, Any]:
     """Read the chain. The invariant checks verify it; this reads it as a user."""
     family = "evidence"
@@ -384,7 +433,7 @@ def platform_surfaces(client, journal) -> None:
         journal.check(family, f"GET {path}", status == 200, 200, status)
 
 
-def ui_pages(client, journal, base: str) -> None:
+def ui_pages(client, journal) -> None:
     """Every screen a signed-in person can reach, still rendering.
 
     Server-rendered HTML, so a 200 with a body is a real answer. A screen
@@ -392,8 +441,16 @@ def ui_pages(client, journal, base: str) -> None:
     of use is worse than one that was never there.
     """
     family = "screens"
-    for path in ("/dashboard", "/features", "/featuresets", "/featuresets/author",
-                 "/featuresets/lattice", "/features/load", "/features/new",
+    # Authoring screens are driven as the developer; everything else as the
+    # risk manager. A screen refusing the wrong persona is the platform
+    # working, and asserting a 200 there would be asserting that it does not.
+    for path in ("/features/new", "/features/load", "/featuresets/author"):
+        status, html = client.page(path, creds("soak.dev"))
+        journal.check(family, f"screen {path}",
+                      status == 200 and not client.is_sign_in(html),
+                      "200, and the page itself", status)
+    for path in ("/dashboard", "/features", "/featuresets",
+                 "/featuresets/lattice",
                  "/features/point-in-time", "/models/new", "/model-algebra",
                  "/warrants", "/warrants/estate", "/limitations", "/findings",
                  "/dependencies", "/notifications", "/telemetry", "/board-pack",
@@ -402,10 +459,11 @@ def ui_pages(client, journal, base: str) -> None:
                  "/admin/api-keys", "/admin/regimes",
                  "/policies", "/packages", "/tutorials", "/docs",
                  "/help", "/about", "/health"):
-        status, _ = client.get(base + path, auth=creds("soak.mrm"))
+        status, html = client.page(path, creds("soak.mrm"))
         journal.check(family, f"screen {path}",
-                      status in (200, 303), "200 (or a redirect to sign in)",
-                      status)
+                      status == 200 and not client.is_sign_in(html),
+                      "200, and the page itself",
+                      f"{status}{' — the SIGN-IN FORM' if client.is_sign_in(html) else ''}")
 
 
 def scheduler_batch(client, journal) -> None:
