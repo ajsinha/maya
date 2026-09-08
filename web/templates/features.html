@@ -144,13 +144,21 @@ pinned by the view version that wrote them.</p>
          Omitting the row would be worse: nobody could tell the catalogue was
          incomplete. Blank cells would be worse again: they would assert
          "materialised, not sealed" about a row nothing could read. #}
-      <tr><td class="small">{{ f.name }}
+      <tr><td class="small"><a href="/feature/{{ f.name }}"
+            style="color:var(--crimson);text-decoration:none"
+            title="what this feature is, and why it will not resolve">{{ f.name }}</a>
             <div class="text-muted">{{ f.description }}</div></td>
           <td class="small evidence-bad" colspan="5">could not be resolved
             <div class="text-muted" style="font-size:.74rem">{{ f.unresolved }}</div>
           </td></tr>
       {% else %}
-      <tr><td class="small">{{ f.name }}
+      {# The name is the way IN. `/feature/{name}` has always existed and
+         nothing linked to it, so the page that answers "what is this feature,
+         where does it come from and who depends on it" could only be reached
+         by typing the URL. A screen nobody can click to is not built. #}
+      <tr><td class="small"><a href="/feature/{{ f.name }}"
+            style="color:var(--crimson);text-decoration:none"
+            title="what this feature is, and what depends on it">{{ f.name }}</a>
             <div class="text-muted">{{ f.description }}</div></td>
           <td class="small">{{ f.dimensionality.kind }}
             <div class="text-muted">{{ f.dimensionality.detail[:60] }}</div></td>

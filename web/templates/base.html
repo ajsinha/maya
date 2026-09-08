@@ -152,6 +152,15 @@ if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t
   --bs-navbar-brand-color:var(--on-bar);
   --bs-navbar-brand-hover-color:var(--on-bar);
   --bs-navbar-toggler-border-color:var(--on-bar-dim);
+  /* The dropdown panel's own surface and text. Set explicitly so a Bootstrap
+     component that reads these rather than our rules lands on the panel's
+     colours and not the bar's. */
+  --bs-dropdown-bg:var(--surface);
+  --bs-dropdown-color:var(--ink);
+  --bs-dropdown-link-color:var(--ink);
+  --bs-dropdown-link-hover-color:var(--ink);
+  --bs-dropdown-link-hover-bg:var(--parch);
+  --bs-dropdown-border-color:var(--hairline);
   --bs-dropdown-bg:var(--raised); --bs-dropdown-color:var(--ink);
   --bs-dropdown-link-color:var(--ink);
   --bs-dropdown-link-hover-bg:var(--parch);
@@ -401,6 +410,22 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .navbar .dropdown-header{font-family:Georgia,serif;color:var(--crimson);font-weight:700;
                          font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;
                          padding:.5rem .9rem .3rem;}
+/* A DROPDOWN IS NOT THE BAR.
+   `.navbar a{color:var(--on-bar)}` above is right for the bar itself, and the
+   menus hang off the bar in the DOM — so every link inside one took the bar's
+   text colour, which in the light theme is white, on a white panel. The item
+   labels were invisible; only their grey glosses showed, so the menu read as a
+   list of descriptions with nothing to click.
+   It survived because in the dark theme `--on-bar` is a pale pink and the
+   panel is dark, which is legible by accident. Two themes, one of them tested
+   by eye, and the accident is the one that got looked at.
+   Stated as its own rule rather than by narrowing the one above, because the
+   bar rule is correct and this is a genuinely different surface. */
+.navbar .dropdown-menu a,
+.navbar .dropdown-item{color:var(--ink);}
+.navbar .dropdown-menu a:hover,
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus{color:var(--ink);}
 .navbar .dropdown-item{padding:.34rem .9rem;white-space:normal;line-height:1.3;}
 .navbar .dropdown-item .d{display:block;color:var(--muted);font-size:.74rem;
                           line-height:1.35;margin-top:.05rem;}
@@ -603,7 +628,27 @@ table.maya thead th button:focus-visible,
       {% endif %}
       {% endif %}
 
-      <li class="nav-item"><a class="nav-link" href="/help">Help</a></li>
+      {# Help, and the two pages that hung off nothing. `/tutorials` and
+         `/docs` both render and neither was linked from any template or
+         script, so they could be reached only by typing the URL — which for a
+         tutorial is a particularly poor joke. A screen nobody can click to is
+         not built. #}
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false" id="nav-help">Help</a>
+        <div class="dropdown-menu dropdown-menu-end maya-menu" aria-labelledby="nav-help">
+          <a class="dropdown-item" href="/help">Help<span class="d">what each
+            thing is, and why it refuses what it refuses</span></a>
+          <a class="dropdown-item" href="/tutorials">Tutorials<span class="d">walk
+            one job end to end, at your own pace</span></a>
+          <a class="dropdown-item" href="/docs">API reference<span class="d">every
+            endpoint, generated from the running server</span></a>
+        </div>
+      </li>
+      {# About stays in the bar rather than inside Help. It is the page that
+         says what this platform is and what it refuses to be, and a reader
+         looking for that should not have to open a menu to find out. The bar
+         is still four items, which is the shape the count is asserted at. #}
       <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
 
       {# ---- theme ---------------------------------------------------------

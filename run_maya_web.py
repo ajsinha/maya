@@ -38,7 +38,7 @@ from core.evidence import EvidenceEngine
 from core.evidence.anchor import ChainAnchor
 from core.evidence.worm import FilesystemWORM
 from core import log
-from core.log import configure, get_logger
+from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.rules import RuleSetEditor
@@ -576,6 +576,51 @@ def _session_secret(cfg) -> str:
     return secret
 
 
+def _when(epoch: Any, absent: str = "—") -> str:
+    """An epoch second as a date somebody can read, in local time.
+
+    Local rather than UTC because this renders in a browser for a person
+    sitting somewhere, and the alternative — a bare float — is what these
+    pages showed before, which is to say nothing.
+    """
+    if not epoch:
+        return absent
+    try:
+        return time.strftime("%Y-%m-%d %H:%M", time.localtime(float(epoch)))
+    except (TypeError, ValueError, OSError) as exc:
+        swallowed(logger, exc, "rendered a timestamp",
+                  detail=f"{epoch!r} is not an epoch second; shown as-is",
+                  level=logging.INFO)
+        return str(epoch)
+
+
+def _ago(epoch: Any, absent: str = "—") -> str:
+    """How long ago, in the largest unit that is still honest.
+
+    "3 months ago" answers the question a reader is actually asking of a
+    `sealed_at`; the exact instant is on the same line for anybody who needs
+    it.
+    """
+    if not epoch:
+        return absent
+    try:
+        delta = time.time() - float(epoch)
+    except (TypeError, ValueError) as exc:
+        swallowed(logger, exc, "rendered a relative time",
+                  detail=f"{epoch!r} is not an epoch second; shown as '{absent}'",
+                  level=logging.INFO)
+        return absent
+    future = delta < 0
+    delta = abs(delta)
+    for size, unit in ((86400 * 365, "year"), (86400 * 30, "month"),
+                       (86400, "day"), (3600, "hour"), (60, "minute")):
+        if delta >= size:
+            n = int(delta // size)
+            return (f"in {n} {unit}{'s' if n != 1 else ''}" if future
+                    else f"{n} {unit}{'s' if n != 1 else ''} ago")
+    return "just now"
+
+
 def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     cfg = cfg or PropertiesConfigurator(str(ROOT / "config" / "application.yaml"))
     configure(cfg.get("logging.level", "INFO"),
@@ -743,6 +788,13 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     # Vendored assets only: the interface renders with no external network.
     app.mount("/static", StaticFiles(directory=str(ROOT / "web" / "static")), name="static")
     templates = Jinja2Templates(directory=str(ROOT / "web" / "templates"))
+    # Every timestamp in this platform is an epoch second, and until now every
+    # page that wanted to show one computed the arithmetic inline — so most of
+    # them showed nothing at all. `sealed_at`, `expires_at`, `retired_at` and
+    # `created_at` were on no screen anywhere, which made sealing, expiry and
+    # retirement facts the register held and could not tell anybody.
+    templates.env.filters["when"] = _when
+    templates.env.filters["ago"] = _ago
 
     @app.exception_handler(AuthzError)
     async def refused(_request, exc: AuthzError):

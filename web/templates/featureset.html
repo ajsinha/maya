@@ -16,6 +16,75 @@ owned by {{ featureset.ownership.owner }}
 {% if featureset.label_slot %}&middot; label <code>{{ featureset.label_slot }}</code>
   {% if featureset.outcome_window_days %}with a
   {{ featureset.outcome_window_days }}-day outcome window{% endif %}{% endif %}</p>
+{% if featureset.description %}
+<p class="text-muted small" style="max-width:46rem">{{ featureset.description }}</p>
+{% endif %}
+
+{# What DEFINES this featureset, in one place. Six of these were in the
+   register and on no screen anywhere: when it was sealed and with what note,
+   when it expires, when it was created, and whether it has been retired, by
+   whom and why. A platform that records a fact and cannot show it has the
+   fact and not the answer. #}
+<div class="card mb-3"><div class="card-header">What defines it</div>
+  <div class="card-body">
+    <dl class="maya-terms mb-0">
+      <div><dt style="width:10rem">Entity</dt>
+           <dd><code>{{ featureset.entity }}</code> &mdash; one row per
+             {{ featureset.entity }}{% if featureset.grain %},
+             {{ featureset.grain }}{% endif %}</dd></div>
+      <div><dt style="width:10rem">Slots</dt>
+           <dd>{{ (featureset.slots or {})|length }} attribute name(s) the
+             kernel reads. What each resolves to is below, and a slot that
+             resolves to nothing is a refusal rather than a blank.</dd></div>
+      {% if featureset.label_slot %}
+      <div><dt style="width:10rem">Label</dt>
+           <dd><code>{{ featureset.label_slot }}</code>
+             {% if featureset.outcome_window_days %}&mdash; matured after
+             {{ featureset.outcome_window_days }} days, which is what makes a
+             training row honest{% endif %}</dd></div>
+      {% endif %}
+      {% if featureset.composes %}
+      <div><dt style="width:10rem">Composes</dt>
+           <dd class="mono">{{ featureset.composes|join(', ') }}</dd></div>
+      {% endif %}
+      {% if featureset.operations %}
+      <div><dt style="width:10rem">Operations</dt>
+           <dd class="mono">{{ featureset.operations|join(', ') }}</dd></div>
+      {% endif %}
+      {% if featureset.defaults %}
+      <div><dt style="width:10rem">Defaults</dt>
+           <dd class="mono">{{ featureset.defaults }}</dd></div>
+      {% endif %}
+      <div><dt style="width:10rem">Definition</dt>
+           <dd>v{{ featureset.definition_version }}</dd></div>
+      <div><dt style="width:10rem">Created</dt>
+           <dd>{{ featureset.created_at|when }}
+             <span class="text-muted">({{ featureset.created_at|ago }})</span>
+             by {{ featureset.created_by }}</dd></div>
+      <div><dt style="width:10rem">Lifetime</dt>
+           <dd>{{ featureset.lifetime.detail }}
+             {% if featureset.expires_at %}&middot; expires
+               {{ featureset.expires_at|when }}
+               ({{ featureset.expires_at|ago }}){% endif %}</dd></div>
+      {% if featureset.sealed %}
+      <div><dt style="width:10rem">Sealed</dt>
+           <dd>{{ featureset.sealed_at|when }}
+             <span class="text-muted">({{ featureset.sealed_at|ago }})</span>
+             by {{ featureset.sealed_by }}
+             <div class="text-muted">{{ featureset.seal_note or
+               'no note was given' }}</div></dd></div>
+      {% endif %}
+      {% if featureset.retired_at %}
+      <div><dt style="width:10rem">Retired</dt>
+           <dd><span class="evidence-bad">withdrawn</span>
+             {{ featureset.retired_at|when }}
+             <span class="text-muted">({{ featureset.retired_at|ago }})</span>
+             by {{ featureset.retired_by }}
+             <div class="text-muted">{{ featureset.retire_reason or
+               'no reason was given' }}</div></dd></div>
+      {% endif %}
+    </dl>
+  </div></div>
 
 {% if featureset.lineage %}
 <div class="card mb-3"><div class="card-header">Composed from</div>

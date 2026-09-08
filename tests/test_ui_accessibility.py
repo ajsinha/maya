@@ -231,6 +231,35 @@ class TestContrastIsMeasuredRatherThanJudged:
                 failures.append(f".{name}: {ratio:.2f} in {theme}")
         assert failures == [], "badges below AA: " + ", ".join(failures)
 
+    @pytest.mark.parametrize("theme", ["light", "dark"])
+    def test_a_menu_item_contrasts_with_the_menu_and_not_with_the_bar(self, theme):
+        """The Manage and Admin menus hang off the crimson bar in the DOM and
+        are painted on the page's own surface. `.navbar a{color:var(--on-bar)}`
+        is right for the bar and wrong for them: in the light theme `--on-bar`
+        is white, the panel is white, and every item LABEL was invisible —
+        leaving a menu that read as a column of grey descriptions with nothing
+        to click.
+
+        It survived because in the dark theme `--on-bar` is a pale pink on a
+        dark panel, which is legible by accident. Two themes, one of them
+        looked at, and the accident is the one that got looked at.
+        """
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        tokens = self._tokens(css, theme)
+        rule = re.search(
+            r"\.navbar \.dropdown-menu a,\s*\n?\.navbar \.dropdown-item\{color:\s*"
+            r"var\(--([a-z0-9-]+)\)", css)
+        assert rule, ("nothing sets the colour of a link inside a navbar "
+                      "dropdown, so it inherits the BAR's text colour")
+        ink = tokens[rule.group(1)]
+        for surface in ("surface", "parch"):
+            ratio = contrast(ink, tokens[surface])
+            assert ratio >= 4.5, (
+                f"a menu item is {ratio:.2f}:1 on --{surface} in the {theme} "
+                f"theme; the bar's own --on-bar would be "
+                f"{contrast(tokens['on-bar'], tokens[surface]):.2f}:1, which is "
+                f"what it inherited before")
+
     def test_the_measurement_can_fail(self):
         """A contrast check that passes everything is a check nobody can trust."""
         assert contrast("#CCCCCC", "#FFFFFF") < 4.5
