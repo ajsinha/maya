@@ -122,8 +122,14 @@ There is no task table to go stale. What this adds is that the work
           <p class="small fw-bold mt-3 mb-1" style="color:var(--crimson)">
             Escalated to you</p>
           {% for i in preview.escalated %}
+            {# Linked, like the rows above it. An escalated item carries the
+               same `href` — it comes from the same worklist — and it was the
+               only row on this page you could not click through to, which is
+               backwards: it is here BECAUSE it has been overdue and unactioned
+               for a week, so it is the row somebody most needs to act on. #}
             <div class="work-row overdue"><span class="u">overdue</span>
-              <span>{{ i.model }} &mdash; {{ i.title }}</span></div>
+              <span><a href="{{ i.href }}">{{ i.model }}</a>
+                &mdash; {{ i.title }}</span></div>
           {% endfor %}
           <p class="text-muted mt-2 mb-0" style="font-size:.72rem">
             By role, not by hierarchy. MAYA does not know who reports to whom and

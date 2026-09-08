@@ -429,7 +429,18 @@ class SourceRegistry:
         try:
             with engine.connect() as connection:
                 result = connection.execute(sa.text(statement))
-                rows = [dict(r) for r in result.mappings()]
+                if limit:
+                    # `fetchmany` and stop. Reading the whole result and then
+                    # slicing is what this did, which means a PREVIEW of a
+                    # warehouse table drags the warehouse table across the wire
+                    # — and preview is the thing somebody does before they are
+                    # sure the query is right. Driver-agnostic, because
+                    # wrapping the statement in a LIMIT would mean this module
+                    # knowing every dialect's spelling of one.
+                    rows = [dict(r) for r in result.mappings().fetchmany(limit)]
+                    result.close()
+                else:
+                    rows = [dict(r) for r in result.mappings()]
         except Exception as exc:
             logger.warning("a source refused the read for %s: %s",
                            source["view_name"], exc)
@@ -439,7 +450,7 @@ class SourceRegistry:
                             "the message above is the database's own") from exc
         finally:
             engine.dispose()
-        return rows[:limit] if limit else rows
+        return rows
 
     def _read_object(self, source: Dict[str, Any],
                      limit: Optional[int]) -> List[Dict[str, Any]]:

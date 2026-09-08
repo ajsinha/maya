@@ -118,6 +118,21 @@ class TestEveryScreenCanBeClickedTo:
         listing = (TEMPLATES / "featuresets.html").read_text(encoding="utf-8")
         assert 'href="/featureset/{{ s.name }}"' in listing
 
+    def test_an_escalated_item_is_clickable_like_every_other(self):
+        """It was the one row on the notifications page with no link — which is
+        backwards, because an item is escalated precisely BECAUSE it has been
+        overdue and unactioned for a week. The most urgent row was the only one
+        you could not act on.
+
+        Held by counting: both loops render `i.href`, and the escalated one
+        rendering the model as bare text is what this caught.
+        """
+        page = (TEMPLATES / "notifications.html").read_text(encoding="utf-8")
+        assert page.count('<a href="{{ i.href }}">{{ i.model }}</a>') == 2, (
+            "the ordinary items and the escalated ones must both link; an "
+            "escalated item carries the same href because it comes from the "
+            "same worklist")
+
     def test_the_specification_editor_is_offered_from_the_model(self):
         """The LaTeX editor is a page on a model, and a model page is where
         somebody looking for it will be."""
