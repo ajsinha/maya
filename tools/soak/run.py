@@ -53,6 +53,10 @@ def parse() -> argparse.Namespace:
                         "the end, so the committed artefact is whole or absent "
                         "rather than truncated")
     p.add_argument("--writers", type=int, default=4)
+    p.add_argument("--delta-backend", default=None,
+                   help="force `deltalake` or `maya_deltalake` for the run. "
+                        "A soak whose result depends on what happened to be "
+                        "installed is one nobody can repeat")
     return p.parse_args()
 
 
@@ -203,11 +207,12 @@ def main() -> int:
 
     lock.parent.mkdir(parents=True, exist_ok=True)
     lock.write_text(str(os.getpid()))
-    server = Server(work, args.port, journal)
+    server = Server(work, args.port, journal, args.delta_backend)
     client = Client(journal)
 
     journal.event("run_started", hours=args.hours, max_checks=args.max_checks,
                   writers=args.writers, base=base,
+                  delta_backend=args.delta_backend or "the installed default",
                   commit=_commit(), python=sys.version.split()[0])
 
     server.start()
@@ -265,6 +270,7 @@ def main() -> int:
             invariants.resources_are_bounded(server, journal, state)
             invariants.the_log_ring_stays_bounded(client, journal)
             invariants.no_credential_is_visible(client, journal)
+            invariants.the_delta_backend_has_not_changed(client, journal, state)
             invariants.the_warrant_epoch_only_rises(client, journal, state)
             invariants.the_register_only_grows(client, journal, state)
             invariants.latency_has_not_collapsed(client, journal, state)

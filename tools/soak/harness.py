@@ -271,10 +271,12 @@ class Client:
 class Server:
     """The process under test, and the measurements only its owner can take."""
 
-    def __init__(self, workdir: pathlib.Path, port: int, journal: Journal):
+    def __init__(self, workdir: pathlib.Path, port: int, journal: Journal,
+                 delta_backend: Optional[str] = None):
         self.workdir = workdir
         self.port = port
         self.journal = journal
+        self.delta_backend = delta_backend
         self.process: Optional[subprocess.Popen] = None
         self.config = workdir / "application.yaml"
         self.restarts = 0
@@ -287,6 +289,12 @@ class Server:
         raw = raw.replace("${data.dir}", str(self.workdir))
         self.config.write_text(raw)
         log = (self.workdir / "server.log").open("a")
+        environment = {**os.environ, "PYTHONPATH": str(ROOT)}
+        if self.delta_backend:
+            # The soak says which Delta implementation it ran on, and forces
+            # it. A run whose result depends on what happened to be installed
+            # is a run nobody can repeat.
+            environment["MAYA_DELTA_BACKEND"] = self.delta_backend
         self.process = subprocess.Popen(
             [sys.executable, "-c",
              "import uvicorn;"
@@ -297,9 +305,10 @@ class Server:
              f"uvicorn.run(app, host='127.0.0.1', port={self.port},"
              " log_level='warning')"],
             cwd=str(ROOT), stdout=log, stderr=subprocess.STDOUT,
-            env={**os.environ, "PYTHONPATH": str(ROOT)})
+            env=environment)
         self.journal.event("server_started", pid=self.process.pid,
-                           port=self.port, workdir=str(self.workdir))
+                           port=self.port, workdir=str(self.workdir),
+                           delta_backend=self.delta_backend or "whatever is installed")
 
     def wait_until_ready(self, seconds: float = 90.0) -> bool:
         deadline = time.time() + seconds
