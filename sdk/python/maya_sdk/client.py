@@ -39,6 +39,7 @@ from typing import Any, Dict, Optional
 
 from maya_sdk import (artifacts, documents, features, governance, models,
                       parameters, warrants)
+from maya_sdk import principals as principals_module
 from maya_sdk.errors import Refused, Unreachable, refusal
 from maya_sdk.transport import HttpTransport, REQUEST_HEADER, new_request_id
 
@@ -107,6 +108,12 @@ class Maya:
         self.validations = governance.Validations(self)
         self.findings = governance.Findings(self)
         self.monitors = governance.Monitors(self)
+        # Administering people, roles and keys. Reachable before this only by
+        # constructing raw calls, which reads as "the SDK cannot do this"
+        # rather than "nobody wired it up" — the same gap that once left ten
+        # governance subjects unattached.
+        self.principals = principals_module.Principals(self)
+        self.api_keys = principals_module.ApiKeys(self)
 
     # ------------------------------------------------------------- the wire
     def call(self, method: str, path: str, *, json: Any = None,

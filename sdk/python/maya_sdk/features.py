@@ -53,15 +53,28 @@ class Features:
                source_system: str = "", sensitivity: str = "internal",
                pii: bool = False, protected_basis: bool = False,
                shape: Any = None,
-               components: Optional[List[str]] = None) -> Dict[str, Any]:
-        """A feature is an object with an owner and a lineage, not a column."""
+               components: Optional[List[str]] = None,
+               defaults: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """A feature is an object with an owner and a lineage, not a column.
+
+        `defaults` is the RETRIEVAL POLICY — how a missing value is filled, how
+        the values are normalised, how a reading between two timestamps is
+        aligned. It travels with the feature rather than with whoever reads it,
+        because a fill strategy chosen at read time is a different number in
+        every consumer.
+
+        It was missing here while the endpoint took it, so the only way to set
+        one was a raw call — including in this product's own QA cheatsheet,
+        where an example written with the client is the whole point.
+        """
         return self._maya.call("POST", "/features", json={
             "name": name, "entity": entity, "dtype": dtype,
             "description": description, "owner": owner,
             "business_definition": business_definition,
             "source_system": source_system, "sensitivity": sensitivity,
             "pii": pii, "protected_basis": protected_basis,
-            "shape": shape, "components": components})
+            "shape": shape, "components": components,
+            "defaults": defaults or {}})
 
     def derive(self, *, name: str, expression: str, dtype: str,
                description: str, owner: str) -> Dict[str, Any]:

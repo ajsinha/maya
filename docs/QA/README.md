@@ -33,24 +33,37 @@ purpose, and a refusal is usually the feature working.
 ### Start the platform
 
 ```bash
-.venv/bin/python run_maya_web.py
+.venv/bin/python run_maya_web.py          # macOS / Linux
+.venv\Scripts\python run_maya_web.py       # Windows
 ```
 
 It listens on **http://localhost:5006**. Leave it running in its own terminal.
 
 ### Build the example estate
 
-Open a second terminal and run:
+Open a second terminal and run **one** of these:
 
 ```bash
-./docs/QA/qa-setup.sh
+python docs/QA/qa_setup.py                # any platform — this is the one to use
+./docs/QA/qa-setup.sh                     # macOS / Linux, needs bash and curl
 ```
 
-That creates the people, features, data, featureset and model this document
+Both create the same people, features, data, featureset and model this document
 walks through. It takes a few seconds and prints what it made. **Everything
 below assumes you have run it.**
 
-### The two things you need in every command
+The Python one is written with MAYA's own SDK, so it doubles as a worked
+example of the client a bank would build against — and it is idempotent: run it
+twice and it reports what already exists rather than making a second copy.
+
+### Every command in this document, two ways
+
+Each step below gives a **`curl`** version and a **Python** version. They do the
+same thing through the same API; use whichever your machine has. On Windows,
+use the Python one — `curl` is present in recent Windows but the quoting rules
+for JSON differ enough to be a trap.
+
+**For `curl`**, paste these once:
 
 ```bash
 BASE=http://127.0.0.1:5006
@@ -58,7 +71,30 @@ API=$BASE/api/v1
 AUTH=admin:maya-admin-dev
 ```
 
-Paste those three lines into your terminal once. Every `curl` below uses them.
+**For Python**, start a session once and keep it open:
+
+```python
+import sys; sys.path.insert(0, "sdk/python")     # from the repository root
+from maya_sdk import Maya
+
+maya = Maya("http://127.0.0.1:5006", "admin", "maya-admin-dev")
+maya.whoami()
+```
+
+Everything after this uses `maya`. If a call is refused, the SDK raises
+`Refused` carrying the code, the detail and the remediation — the same three
+fields `curl` prints — so:
+
+```python
+from maya_sdk.errors import Refused
+
+try:
+    maya.models.get("maya://model/nothing-here")
+except Refused as refusal:
+    print(refusal.status, refusal.code)
+    print(refusal.detail)
+    print(refusal.remediation)
+```
 
 > **The password is `maya-admin-dev`.** It is not `admin123`. The old default
 > was eight characters, and MAYA requires twelve — so the shipped credential
@@ -103,6 +139,18 @@ curl -s -c /tmp/maya-cookies.txt -X POST $BASE/login \
   -d "username=admin&password=maya-admin-dev&next=/dashboard"
 ```
 
+```python
+# The SDK is the script path: HTTP Basic, no cookie, no CSRF token.
+maya = Maya("http://127.0.0.1:5006", "admin", "maya-admin-dev")
+maya.whoami()
+
+# Or a key, which is how a SERVICE should connect — see section 3.
+service = Maya("http://127.0.0.1:5006", api_key="maya_sk_...")
+```
+
+The browser session with its cookie and CSRF token is for the screens. A script
+uses Basic or a key, and needs neither.
+
 **Use HTTP Basic (`-u $AUTH`) for everything in this document.** It is what the
 `-u` in every command below does. Session cookies are for the browser.
 
@@ -110,6 +158,10 @@ curl -s -c /tmp/maya-cookies.txt -X POST $BASE/login \
 
 ```bash
 curl -s -u $AUTH $API/me
+```
+
+```python
+maya.whoami()
 ```
 
 You should see your username, your roles, and every permission they carry.
@@ -128,6 +180,13 @@ curl -s -u $AUTH -X POST $API/roles -H 'content-type: application/json' -d '{
 }'
 ```
 
+```python
+maya.principals.define_role(
+    name="feature_curator",
+    description="defines and loads features, nothing else",
+    permissions=["feature:read", "feature:define", "feature:materialise"])
+```
+
 A role **needs a description**. A list of permissions is not an explanation of
 who should hold them, and MAYA refuses without one.
 
@@ -140,6 +199,13 @@ curl -s -u $AUTH -X PUT $API/roles/feature_curator \
 }'
 ```
 
+```python
+maya.principals.amend_role(
+    "feature_curator",
+    permissions=["feature:read", "feature:define", "feature:materialise",
+                 "featureset:define"])
+```
+
 ### Create a user and give them the role
 
 ```bash
@@ -149,6 +215,11 @@ curl -s -u $AUTH -X POST $API/principals -H 'content-type: application/json' -d 
   "roles": ["feature_curator"],
   "password": "qa-password-long"
 }'
+```
+
+```python
+maya.principals.create(username="q.tester", display_name="Q Tester",
+                       roles=["feature_curator"], password="qa-password-long")
 ```
 
 Passwords must be **at least 12 characters**.
@@ -166,6 +237,21 @@ curl -s -u q.tester:qa-password-long -X POST $API/models \
   "owner":"person/q","legal_entity":"uk","purpose":"p"}'
 ```
 
+```python
+from maya_sdk import Maya
+from maya_sdk.errors import Refused
+
+tester = Maya("http://127.0.0.1:5006", "q.tester", "qa-password-long")
+tester.whoami()                       # what can this person do?
+
+try:                                  # something they may not do
+    tester.models.register(
+        urn="maya://model/nope", name="nope", model_class="c",
+        domain="credit", owner="person/q", legal_entity="uk", purpose="p")
+except Refused as refusal:
+    print(refusal.status, refusal.code, refusal.detail)
+```
+
 **Expected — this is the feature working:**
 
 ```json
@@ -179,6 +265,14 @@ curl -s -u q.tester:qa-password-long -X POST $API/models \
 ```bash
 curl -s -u $AUTH -X DELETE $API/roles/feature_curator
 ```
+
+```python
+maya.call("DELETE", "/roles/feature_curator")
+```
+
+> The SDK has no `delete_role`, deliberately: a role held by somebody is not
+> deletable, and the refusal is the interesting part. `maya.call` is the escape
+> hatch for anything the SDK does not name.
 
 **Expected while somebody holds it:**
 
@@ -201,12 +295,29 @@ curl -s -u $AUTH -X POST $API/roles -H 'content-type: application/json' -d '{
   "permissions":["model:register","model:submit","version:approve"]}'
 ```
 
+```python
+try:
+    maya.principals.define_role(
+        name="solo", description="one person, the whole lifecycle",
+        permissions=["model:register", "model:submit", "version:approve"])
+except Refused as refusal:
+    print(refusal.code)               # incompatible_permissions
+    print(refusal.detail)             # names the pair, and why
+```
+
 → `409 incompatible_permissions`, naming which pair and why. One person may not
 both propose a model and approve it.
 
 ```bash
 # Suspend yourself
 curl -s -u $AUTH -X POST $API/principals/admin/suspend
+```
+
+```python
+try:
+    maya.principals.suspend("admin", reason="testing")
+except Refused as refusal:
+    print(refusal.detail)
 ```
 
 → `409 self_suspension`. Reinstating needs a permission you would no longer
@@ -250,6 +361,16 @@ curl -s -u $AUTH -X POST $API/api-keys -H 'content-type: application/json' -d '{
 }'
 ```
 
+```python
+maya.principals.create(username="svc/qa-runner", display_name="QA runner",
+                       kind="service", roles=["service"])
+
+issued = maya.api_keys.issue(username="svc/qa-runner", name="qa-nightly",
+                             scopes=["model:read", "warrant:resolve"],
+                             lifetime_days=30)
+secret = issued["secret"]             # the ONLY copy — nowhere else, ever
+```
+
 **The `secret` in that response is shown once and never again.** Copy it now.
 
 ```bash
@@ -264,6 +385,12 @@ curl -s -H "X-API-Key: $SECRET" $API/me
 curl -s -H "Authorization: Bearer $SECRET" $API/models
 ```
 
+```python
+service = Maya("http://127.0.0.1:5006", api_key=secret)
+service.whoami()
+service.models.list()
+```
+
 `/me` reports **the key's** permissions, not the person's — a key scoped to two
 permissions reports two.
 
@@ -271,6 +398,13 @@ permissions reports two.
 
 ```bash
 curl -s -H "X-API-Key: $SECRET" $API/evidence/chain
+```
+
+```python
+try:
+    service.verify_evidence()
+except Refused as refusal:
+    print(refusal.status, refusal.code)      # 403: the key is narrower
 ```
 
 **Expected:**
@@ -287,6 +421,15 @@ curl -s -H "X-API-Key: $SECRET" $API/evidence/chain
 ```bash
 curl -s -u $AUTH -X POST $API/api-keys/<key-id>/revoke \
   -H 'content-type: application/json' -d '{"reason":"QA finished"}'
+```
+
+```python
+maya.api_keys.revoke(issued["id"], reason="QA finished")
+
+try:
+    service.whoami()
+except Refused as refusal:
+    print(refusal.code)               # key_revoked — not a generic 401
 ```
 
 Get `<key-id>` from `curl -s -u $AUTH $API/api-keys`.
@@ -329,6 +472,17 @@ curl -s -u $AUTH -X POST $API/models -H 'content-type: application/json' -d '{
 }'
 ```
 
+```python
+maya.models.register(
+    urn="maya://model/qa.pd.scorecard",
+    name="QA PD scorecard",
+    model_class="credit.pd.scorecard",
+    domain="credit",
+    owner="person/j.okafor",
+    legal_entity="LE-US-01",
+    purpose="12-month probability of default at origination")
+```
+
 Every field is required. `urn` is the model's permanent name.
 
 ### Assess its tier
@@ -345,6 +499,15 @@ curl -s -u $AUTH -X POST $API/models/qa.pd.scorecard/assess \
   "uses_alternative_data": false,
   "interpretable": true
 }'
+```
+
+```python
+maya.models.assess("qa.pd.scorecard",
+                   exposure=250_000_000,
+                   purpose_class="credit_decision",
+                   feature_count=3,
+                   uses_alternative_data=False,
+                   interpretable=True)
 ```
 
 Returns the tier (1 = most material, 4 = least), the required controls, and the
@@ -377,6 +540,28 @@ curl -s -u $AUTH -X POST $API/models/qa.pd.scorecard/versions \
 }'
 ```
 
+```python
+maya.versions.create("qa.pd.scorecard", semver="1.0.0", kernel={
+    "runtime": "formula",
+    "parameter_kind": "estimated_coefficients",
+    "fit_procedure": "estimate",
+    "entry": {"expression": "1 / (1 + exp(-(intercept + beta_dscr * dscr "
+                            "+ beta_ltv * ltv)))",
+              "target": "pd_12m"},
+    "input_schema": [
+        {"name": "dscr", "dtype": "numeric",
+         "symbol": r"\mathrm{DSCR}", "unit": "ratio"},
+        {"name": "ltv", "dtype": "numeric",
+         "symbol": r"\mathrm{LTV}", "unit": "ratio"},
+    ],
+    "output_schema": [{"name": "pd_12m", "dtype": "numeric",
+                       "unit": "probability"}],
+})
+```
+
+> Note the `r"..."` on the LaTeX. In Python a plain `"\mathrm"` is an escape
+> sequence; the raw string is what sends the backslash MAYA needs.
+
 > **Important.** `input_schema` declares the **features** the model reads —
 > *not* its coefficients. `intercept`, `beta_dscr` and `beta_ltv` appear in the
 > expression but are **parameters**, and they arrive later from training
@@ -387,6 +572,11 @@ curl -s -u $AUTH -X POST $API/models/qa.pd.scorecard/versions \
 
 ```bash
 curl -s -u $AUTH "$API/mathematics?urn=maya://model/qa.pd.scorecard&semver=1.0.0"
+```
+
+```python
+maya.call("GET", "/mathematics",
+          params={"urn": "maya://model/qa.pd.scorecard", "semver": "1.0.0"})
 ```
 
 Returns:
@@ -426,11 +616,23 @@ curl -s -u $AUTH -X POST $API/attachments \
   -F "file=@/path/to/your/spec.tex"
 ```
 
+```python
+maya.attachments.attach("maya://model/qa.pd.scorecard",
+                        "path/to/your/spec.tex",
+                        kind="model_development_document",
+                        title="QA PD scorecard specification",
+                        semver="1.0.0")
+```
+
 Note these are **form fields**, not JSON — including `urn`.
 
 ```bash
 # what is filed against this model
 curl -s -u $AUTH "$API/attachments?urn=maya://model/qa.pd.scorecard"
+```
+
+```python
+maya.attachments.list("maya://model/qa.pd.scorecard")
 ```
 
 An attachment lands **awaiting review**. Somebody other than the person who
@@ -477,6 +679,24 @@ curl -s -u $AUTH -X POST $API/features -H 'content-type: application/json' -d '{
   "description": "a 3x3 correlation matrix", "owner": "person/d.raman"}'
 ```
 
+```python
+# a scalar
+maya.features.define(name="dscr", entity="borrower", dtype="numeric",
+                     description="debt service coverage ratio",
+                     owner="person/d.raman")
+
+# an ARRAY — twelve monthly balances
+maya.features.define(name="monthly_balances", entity="borrower",
+                     dtype="numeric", shape=[12],
+                     description="twelve monthly balances",
+                     owner="person/d.raman")
+
+# a MATRIX — a 3x3 correlation matrix
+maya.features.define(name="correlation", entity="borrower", dtype="numeric",
+                     shape=[3, 3], description="a 3x3 correlation matrix",
+                     owner="person/d.raman")
+```
+
 `shape` is what makes a feature an array or a matrix. Omit it for a scalar.
 
 ### Create a view and load data
@@ -500,6 +720,32 @@ curl -s -u $AUTH -X POST $API/feature-views/qa_borrower/materialise \
      "correlation":[[1,0,0],[0,1,0],[0,0,1]]}
   ]}'
 ```
+
+```python
+maya.features.create_view(
+    name="qa_borrower", entity="borrower", owner="person/d.raman",
+    features=["dscr", "ltv", "monthly_balances", "correlation"],
+    description="QA borrower facts")
+
+maya.views.materialise("qa_borrower", rows=[
+    {"entity_id": "C1", "event_ts": 100.0, "ingest_ts": 110.0,
+     "dscr": 1.20, "ltv": 0.62,
+     "monthly_balances": [10, 11, 12, 11, 10, 9, 9, 10, 11, 12, 13, 12],
+     "correlation": [[1, 0.3, 0.1], [0.3, 1, 0.2], [0.1, 0.2, 1]]},
+    {"entity_id": "C2", "event_ts": 100.0, "ingest_ts": 110.0,
+     "dscr": 2.10, "ltv": 0.35,
+     "monthly_balances": [20, 21, 22, 21, 20, 19, 19, 20, 21, 22, 23, 22],
+     "correlation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]]},
+])
+```
+
+For anything of a real size, upload a FILE instead — it streams rather than
+going through a request body, and CSV or JSONL is what a person usually has:
+
+```python
+maya.features.load("qa_borrower", "rows.csv")     # or .jsonl, .parquet, .arrow
+```
+
 
 ### The two clocks — the most important idea here
 
@@ -540,6 +786,15 @@ curl -s -u $AUTH -X POST $API/features -H 'content-type: application/json' -d '{
 }'
 ```
 
+```python
+maya.features.define(
+    name="utilisation", entity="borrower", dtype="numeric",
+    description="credit line utilisation", owner="person/d.raman",
+    defaults={"fill": {"utilisation": "median"},
+              "normalise": {"utilisation": "zscore"},
+              "align": {"rule": "flat_forward"}})
+```
+
 | Section | Values |
 |---|---|
 | `fill` | `zero`, `constant`, `mean`, `median`, `most_frequent`, `keep` |
@@ -559,6 +814,12 @@ curl -s -u $AUTH -X POST $API/features/utilisation/amend \
   "fields": {"description": "credit line utilisation, capped at 1.0"}}'
 ```
 
+```python
+maya.catalogue.amend("utilisation",
+                     fields={"description":
+                             "credit line utilisation, capped at 1.0"})
+```
+
 **Freeze and certify:**
 
 ```bash
@@ -571,11 +832,20 @@ curl -s -u $AUTH -X POST $API/features/dscr/certify \
   -H 'content-type: application/json' -d '{"level":"certified"}'
 ```
 
+```python
+maya.catalogue.seal("dscr", note="agreed with the second line")
+maya.catalogue.certify("dscr", level="certified")
+```
+
 **See everything about a feature — definition, policy, lineage, where it is
 used:**
 
 ```bash
 curl -s -u $AUTH $API/features/dscr/resolved
+```
+
+```python
+maya.catalogue.resolved("dscr")
 ```
 
 (`GET $API/features/dscr` is **not** a route — use `/resolved`, or the list at
@@ -618,6 +888,14 @@ curl -s -u $AUTH -X POST $API/featuresets -H 'content-type: application/json' -d
 }'
 ```
 
+```python
+maya.featuresets.define(
+    name="qa_pd_training", entity="borrower",
+    slots={"dscr": "numeric", "ltv": "numeric", "defaulted": "numeric"},
+    label_slot="defaulted", outcome_window_days=365,
+    description="slot names match the kernel input names")
+```
+
 > **The slot names are the attribute names your model reads.** If your kernel's
 > `input_schema` declares `dscr` and `ltv`, your featureset must have slots
 > called `dscr` and `ltv`. This is checked (law L-W10) when you ask for a
@@ -635,6 +913,11 @@ curl -s -u $AUTH -X POST $API/featuresets/qa_pd_training/versions \
 }'
 ```
 
+```python
+maya.featuresets.fill("qa_pd_training", bindings={
+    "dscr": "dscr", "ltv": "ltv", "defaulted": "defaulted_12m"})
+```
+
 `{"slot": "feature"}`. The response shows each slot pinned to a specific
 **feature view version** — not "the latest", a fixed version. That pin is what
 makes a training set reproducible.
@@ -649,6 +932,11 @@ makes a training set reproducible.
 
 ```bash
 curl -s -u $AUTH $API/featuresets/qa_pd_training
+```
+
+```python
+maya.featuresets.get("qa_pd_training")
+maya.featuresets.resolved("qa_pd_training")     # after composition
 ```
 
 ### In the browser
@@ -679,6 +967,13 @@ curl -s -u $AUTH -X POST $API/derived-features \
 }'
 ```
 
+```python
+maya.features.derive(name="dscr_x_ltv", dtype="numeric",
+                     expression="dscr * ltv",
+                     owner="person/d.raman",
+                     description="the interaction term")
+```
+
 The expression may use the other features by name, plus `log`, `exp`, `sqrt`,
 `abs`, `min`, `max`, `floor`, `ceil`, `round`, and the row's clocks
 (`event_ts`, `ingest_ts`, `event_year`).
@@ -707,6 +1002,10 @@ meaning.
 curl -s -u $AUTH $API/featuresets/qa_pd_extended/resolved
 ```
 
+```python
+maya.featuresets.resolved("qa_pd_extended")
+```
+
 `qa_pd_extended` declares one slot of its own and inherits three:
 
 ```
@@ -721,6 +1020,10 @@ between those two answers is the whole point of composition.
 
 ```bash
 curl -s -u $AUTH "$API/references?kind=feature&id=dscr"
+```
+
+```python
+maya.call("GET", "/references", params={"kind": "feature", "id": "dscr"})
 ```
 
 Tells you everything that refers to a feature and whether it can be deleted.
@@ -749,6 +1052,11 @@ must both complete: the **version** and the **model record**.
 curl -s -u $AUTH $API/version-approval-quorum
 ```
 
+```python
+maya.approvals.quorum()
+maya.approvals.needed(urn="maya://model/qa.pd.scorecard", semver="1.0.0")
+```
+
 ```
 tier 1 -> 2 signature(s): ['model_risk_manager', 'validator']
 tier 2 -> 2 signature(s): ['model_risk_manager', 'validator']
@@ -761,6 +1069,17 @@ For a **tier 3 or 4** model, one authorised person approves:
 ```bash
 curl -s -u s.iqbal:mrm-password-long \
   -X POST $API/models/qa.pd.scorecard/versions/1.0.0/approve
+```
+
+```python
+mrm = Maya("http://127.0.0.1:5006", "s.iqbal", "mrm-password-long")
+mrm.versions.approve("qa.pd.scorecard", "1.0.0")
+
+# As admin, who CREATED it — segregation of duties refuses this:
+try:
+    maya.versions.approve("qa.pd.scorecard", "1.0.0")
+except Refused as refusal:
+    print(refusal.code, refusal.detail)
 ```
 
 > **You cannot approve a version you created.** Try it as `admin` (who created
@@ -789,6 +1108,19 @@ curl -s -u s.iqbal:mrm-password-long \
   -d '{"role":"model_risk_manager","decision":"approve"}'
 ```
 
+```python
+opened = mrm.versions.open_quorum(urn="maya://model/qa.pd.scorecard",
+                                  semver="1.0.0")
+mrm.versions.sign_quorum(opened["id"], role="model_risk_manager",
+                         statement="the coefficients match the fit report")
+
+validator = Maya("http://127.0.0.1:5006", "a.mehta", "val-password-long")
+validator.versions.sign_quorum(opened["id"], role="validator",
+                               statement="effective challenge complete")
+
+maya.approvals.progress(opened["id"])     # who is still outstanding
+```
+
 **One person cannot sign twice under two roles.** A quorum is a number of
 people, not a number of hats.
 
@@ -801,6 +1133,11 @@ curl -s -u $AUTH -X POST $API/models/qa.pd.scorecard/submit \
 curl -s -u s.iqbal:mrm-password-long \
   -X POST $API/models/qa.pd.scorecard/approve \
   -H 'content-type: application/json' -d '{}'
+```
+
+```python
+maya.lifecycle.submit("maya://model/qa.pd.scorecard")
+mrm.lifecycle.approve("maya://model/qa.pd.scorecard")
 ```
 
 ### Step 3 — attest it
@@ -818,6 +1155,13 @@ curl -s -u j.okafor:owner-password-long \
   -X POST $API/models/qa.pd.scorecard/attest \
   -H 'content-type: application/json' \
   -d '{"role":"model_owner","decision":"attest"}'
+```
+
+```python
+mrm.lifecycle.attest("maya://model/qa.pd.scorecard", role="model_risk_manager")
+
+owner = Maya("http://127.0.0.1:5006", "j.okafor", "owner-password-long")
+owner.lifecycle.attest("maya://model/qa.pd.scorecard", role="model_owner")
 ```
 
 After the first signature the response tells you who is still outstanding:
@@ -839,6 +1183,11 @@ After the last one:
 
 ```bash
 curl -s -u $AUTH $API/models/qa.pd.scorecard
+```
+
+```python
+model = maya.models.get("maya://model/qa.pd.scorecard")
+print(model["lifecycle"]["state"], "—", model["lifecycle"]["meaning"])
 ```
 
 Look at `lifecycle.state` and `lifecycle.meaning`.
@@ -888,6 +1237,13 @@ curl -s -u $AUTH -X POST $API/warrants -H 'content-type: application/json' -d '{
 }'
 ```
 
+```python
+owner.warrants.grant(urn="maya://model/qa.pd.scorecard#champion",
+                     principal="svc/qa-runner",
+                     declared_use="origination_decision",
+                     environment="prod")
+```
+
 **Keep the `id` from this response** — it is the *grant id*, and you need it in
 step 5.
 
@@ -905,6 +1261,23 @@ curl -s -u $AUTH -X POST $API/fit-warrants -H 'content-type: application/json' -
   "as_of": 1000.0
 }'
 ```
+
+```python
+fit_warrant = owner.warrants.for_fitting(
+    urn="maya://model/qa.pd.scorecard@2.0.0",
+    environment="lab",
+    principal="svc/qa-runner",
+    declared_use="model_development",
+    featureset="qa_pd_training",
+    featureset_version=1,
+    window={"from": 0.0, "to": 1000.0},
+    as_of=1000.0)
+```
+
+Law **L-W10** is checked here: the featureset must supply what the kernel
+declares it reads. Adding a regressor is a model change, not a data change —
+so a featureset that cannot fill a slot is refused at the warrant rather than
+discovered during the fit.
 
 The warrant tells the engine everything it needs:
 
@@ -940,6 +1313,13 @@ curl -s -u $AUTH -X POST $API/featuresets/qa_pd_training/training-sets \
 }'
 ```
 
+```python
+maya.featuresets.training_set(
+    "qa_pd_training", version=1, as_of=600.0,
+    spine=[{"entity_id": "C1", "label_ts": 500.0},
+           {"entity_id": "C2", "label_ts": 500.0}])
+```
+
 **Keep the `id`** — the snapshot id, needed in step 5.
 
 Then pull the rows:
@@ -947,6 +1327,11 @@ Then pull the rows:
 ```bash
 curl -s -u $AUTH -H 'accept: application/x-ndjson' \
   "$API/featuresets/qa_pd_training/versions/1/data?as_of=1000.0"
+```
+
+```python
+maya.featuresets.data("qa_pd_training", version=1, as_of=600.0,
+                      into="training.parquet", format="parquet")
 ```
 
 ```json
@@ -986,6 +1371,17 @@ curl -s -u $AUTH -X POST $API/parameters -H 'content-type: application/json' -d 
 }'
 ```
 
+```python
+# `warrant_id` is not optional: a fitted set is accepted only against a
+# warrant MAYA issued, because without one "which data produced these
+# numbers" has no answer.
+recorded = maya.parameters.record(
+    urn="maya://model/qa.pd.scorecard", semver="1.0.0",
+    name="qa-fit-2026Q1", kind="estimated_coefficients",
+    warrant_id=fit_warrant["warrant_id"],
+    values={"intercept": -1.8, "beta_dscr": -0.9, "beta_ltv": 2.4})
+```
+
 > **`warrant_id` is the grant id from step 1**, not the `warrant_id` field in
 > the fit warrant. A resolved warrant is a signed descriptor minted per call and
 > is not stored; the grant is the standing authority the register knows about.
@@ -1000,6 +1396,11 @@ curl -s -u s.iqbal:mrm-password-long \
   -X POST $API/parameter-sets/<parameter-set-id>/review \
   -H 'content-type: application/json' \
   -d '{"accept": true, "note": "reviewed against the training record"}'
+```
+
+```python
+mrm.parameters.review(recorded["id"], accept=True,
+                      note="coefficients agree with the fit report")
 ```
 
 The field is **`accept`** (a boolean), not `decision`.
@@ -1018,6 +1419,15 @@ curl -s -u $AUTH -X POST "$API/resolve?verb=score" \
   "declared_use": "model_development",
   "environment": "lab"
 }'
+```
+
+```python
+descriptor = owner.warrants.resolve(
+    urn="maya://model/qa.pd.scorecard#champion",
+    principal="svc/qa-runner",
+    declared_use="origination_decision",
+    environment="prod")
+print(descriptor["signature"][:32], "...")
 ```
 
 **It carries the approved parameters:**
