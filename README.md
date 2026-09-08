@@ -418,7 +418,7 @@ branding — so the ideas can be judged on their own.
 
 | Engineering artefact | Audience |
 |---|---|
-| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 113 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
+| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 114 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file** |
 
 *Ashutosh Sinha, Independent Researcher.*
 

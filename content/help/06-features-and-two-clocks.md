@@ -456,8 +456,10 @@ shapes.
 exported as one would come back as text and both clocks would come back as
 strings. Reading one is worth it because refusing would mean somebody converts by
 hand, and the conversion is where the mistakes live. Writing one would hand back
-something weaker than what went in. Note that the browser upload control is
-narrower still — it offers Parquet, Arrow and NDJSON; CSV goes through the API.
+something weaker than what went in. The browser upload control takes the same
+set: its `accept` attribute is generated from the formats the API reads, rather
+than typed into a template, because the two lists disagreed once and the screen
+refused the file the documentation told you to bring.
 
 Parquet is assembled to a temporary file and streamed from it, because a Parquet
 file's footer holds the row-group index and cannot be written until the last row
@@ -490,6 +492,71 @@ declared content type disagree is refused too, rather than guessed at.
 An engine pulling a large set in parallel should read `/parts` instead, which
 names each namespace and the Delta version it is pinned at, and fetch them itself
 rather than waiting on a join.
+
+## Or don't upload at all: point MAYA at where the data lives
+
+A view can declare a **source** instead — a SQL query, a file on a volume, an
+object in S3 or GCS — and MAYA fetches from it.
+
+**MAYA pulls; it does not read through.** What it fetches is written into MAYA's
+own Delta as a new version, with the same two clocks and the same immutability
+as an upload. That is not a technicality; it is the point-in-time guarantee
+above. The bound is `min(label_ts, as_of)` over rows that are never amended in
+place, and a warehouse table that gets overwritten has no such rows: once the
+August restatement lands, May's row is gone, and no read-time rule recovers what
+the June decision saw. The query would not fail. It would return the restated
+number and say nothing — which is the leak at the top of this page, arriving
+through the back door.
+
+So a pull produces an ordinary version. A second pull is a second **version**,
+not an update, so a warrant pinned to the first does not change meaning because
+somebody refreshed.
+
+```bash
+# declare it — this does NOT pull
+curl -u you:… -X PUT localhost:5006/api/v1/feature-views/sb_credit/source   -H 'content-type: application/json' -d '{
+    "kind": "sql",
+    "locator": "postgresql://reader@warehouse/risk",
+    "statement": "SELECT customer_number, asof, loaded_at, dscr FROM sb_risk",
+    "credential_ref": "warehouse-reader",
+    "options": {"columns": {"customer_number": "entity_id",
+                            "asof": "event_ts", "loaded_at": "ingest_ts"}}}'
+
+# read a few rows and see what comes back. Writes nothing
+curl -u you:… localhost:5006/api/v1/feature-views/sb_credit/source/preview
+
+# fetch everything, as a new version
+curl -u you:… -X POST localhost:5006/api/v1/feature-views/sb_credit/source/pull
+```
+
+Or from the screen: open the feature view and use **Where the values come
+from**.
+
+A few things it will refuse, and why:
+
+- **A statement that is not a read.** Refused when it is *stored*, not when it
+  is run — a statement nobody may run is one nobody should be able to save,
+  because the moment it is saved somebody will schedule it. `SELECT … FROM
+  updates` is fine; only the first keyword is checked.
+- **Two statements.** A semicolon followed by anything. A second statement
+  appended to a read is how a read stops being one.
+- **A second source on the same view.** A view filled from two places at once
+  has a provenance nobody can state. Declare a second view.
+- **A pull that returns nothing.** A version of nothing is not a version.
+
+**MAYA never stores your credential.** A source names one —
+`credential_ref: "warehouse-reader"` — and the deployment resolves that name
+from its configuration or the environment. There is nowhere in the schema to put
+a password, on purpose: this register is meant to be handed to an auditor.
+
+The column mapping exists because a warehouse calls the entity
+`customer_number` and the clock `asof`. Renaming at the boundary beats making
+somebody rewrite their query — and every row still needs `entity_id`,
+`event_ts` and `ingest_ts` by the time MAYA sees it, which `preview` will tell
+you before a version exists rather than after.
+
+**Not built:** nothing pulls on a schedule, and every pull reads the whole
+source. Both are on the list rather than implied.
 
 ## A feature is not always a number
 

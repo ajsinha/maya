@@ -18,7 +18,7 @@ h = code(sl, ML, y, CW * 0.53, [
  "class ParametricKernel:          # a model:  f : P ⊗ X → Y",
  "    parameters: ParameterObject",
  "    input: ObjectSpec ; output: ObjectSpec",
- "    deterministic: int           # 0/1 — law L-3; never BOOLEAN",
+ "    deterministic: bool          # law L-3; typed once, compiled per dialect",
 ], fs=9.5, title="THE DEFINITION, AS A TYPE")
 x = ML + CW * 0.56
 h2 = code(sl, x, y, CW * 0.44, [
