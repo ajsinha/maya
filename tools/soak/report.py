@@ -107,6 +107,11 @@ FAMILY_NOTES = {
     "batch": "The governance batch, run on demand. It is idempotent by design, "
              "so running it every fifth cycle tests that claim rather than "
              "costing anything.",
+    "details": "The pages that answer *what is this thing*, asked about a "
+               "feature and a model this cycle actually created. Here because "
+               "two of them were unreachable and nothing noticed: a detail "
+               "page that renders only when somebody types its URL is a page "
+               "no test and no person ever opens.",
     "evidence": "The chain, read as an auditor would read it.",
     "invariant": "What must be true at every instant, whatever has happened. "
                  "These are the reason a soak is worth six hours rather than "
