@@ -257,6 +257,111 @@ class Database:
                       detail="treated as absent")
             return []
 
+    def declared_columns(self) -> Dict[str, Dict[str, str]]:
+        """Table to {column: its full declaration}, from the shipped DDL.
+
+        `declared_schema` returns names, which is all a drift CHECK needs.
+        Repairing one needs the declaration — the type, the default and the
+        NOT NULL — because that is what an ALTER has to reproduce.
+        """
+        declared: Dict[str, Dict[str, str]] = {}
+        for stmt in self._statements(self.schema_file().read_text()):
+            match = _CREATE_TABLE.match(_without_trailing_comments(stmt))
+            if not match:
+                continue
+            table, body = match.group(1), match.group(2)
+            columns: Dict[str, str] = {}
+            depth, current = 0, ""
+            for ch in body:
+                if ch == "(":
+                    depth += 1
+                elif ch == ")":
+                    depth -= 1
+                if ch == "," and depth == 0:
+                    self._remember_column(columns, current)
+                    current = ""
+                else:
+                    current += ch
+            self._remember_column(columns, current)
+            declared[table] = columns
+        return declared
+
+    @staticmethod
+    def _remember_column(into: Dict[str, str], text: str) -> None:
+        declaration = " ".join(text.split())
+        if not declaration:
+            return
+        name = declaration.split()[0]
+        if name.upper() in _NOT_A_COLUMN:
+            return
+        into[name] = declaration
+
+    def repair(self, dry_run: bool = True) -> Dict[str, Any]:
+        """Add the columns the shipped DDL declares and this database lacks.
+
+        `drift()` reports precisely what is missing and then says "apply the
+        difference by hand", which is a real chore and the reason a stale
+        development database gets deleted rather than fixed. This closes that
+        loop without becoming a migration tool: there is no version history, no
+        ordering and no down-step. The consolidated schema is still the only
+        description of the shape, and this asks it what is missing and adds
+        exactly that.
+
+        `ALTER TABLE ... ADD COLUMN` is non-destructive in both dialects and
+        cannot lose a row. What it cannot do is add a NOT NULL column with no
+        default to a table that already has rows — there is no value to put in
+        the existing ones — so those are REPORTED rather than attempted, with
+        the declaration, so somebody can decide what the existing rows should
+        say. Guessing on their behalf is how a governance register acquires a
+        column full of zeros that nobody chose.
+        """
+        declared = self.declared_columns()
+        planned: List[Dict[str, str]] = []
+        refused: List[Dict[str, str]] = []
+        for table, columns in sorted(declared.items()):
+            live = set(self.columns_of(table))
+            if not live:
+                continue                    # the table itself is absent
+            rows = 0
+            missing = [c for c in columns if c not in live]
+            if missing:
+                found = self.query_one(f"SELECT COUNT(*) AS n FROM {table}")
+                rows = int((found or {}).get("n") or 0)
+            for name in missing:
+                declaration = columns[name]
+                upper = declaration.upper()
+                if "NOT NULL" in upper and "DEFAULT" not in upper and rows:
+                    refused.append({
+                        "table": table, "column": name,
+                        "declaration": declaration,
+                        "why": f"NOT NULL with no default, and {table} already "
+                               f"holds {rows} row(s) — there is no value to put "
+                               f"in them that somebody has chosen"})
+                    continue
+                planned.append({"table": table, "column": name,
+                                "sql": f"ALTER TABLE {table} ADD COLUMN {declaration}"})
+
+        applied = []
+        if not dry_run:
+            for step in planned:
+                try:
+                    self.execute(step["sql"])
+                    applied.append(step)
+                except Exception as exc:
+                    swallowed(logger, exc, f"added {step['table']}.{step['column']}",
+                              detail="left for the operator; the drift report "
+                                     "will still name it")
+                    refused.append({**step, "why": str(exc)})
+            logger.warning("schema repaired: %d column(s) added by ALTER TABLE. "
+                           "This adds what the shipped DDL declares and nothing "
+                           "else.", len(applied))
+        return {
+            "planned": planned, "applied": applied, "refused": refused,
+            "detail": (f"{len(planned)} column(s) can be added"
+                       + (f", {len(refused)} need a decision" if refused else "")
+                       if planned or refused else "nothing to repair"),
+        }
+
     def drift(self) -> Dict[str, List[str]]:
         """Where the live database and the shipped DDL disagree.
 

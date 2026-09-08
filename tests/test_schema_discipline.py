@@ -99,6 +99,47 @@ def test_every_shared_column_has_an_equivalent_type():
         "the dialects:\n    " + "\n    ".join(divergent))
 
 
+def test_no_python_bool_can_reach_a_driver():
+    """The write path coerces EVERY bool, not a named list of columns.
+
+    There are no BOOLEAN columns in either dialect, so a Python `bool` is never
+    the right thing to hand a driver. Naming the columns made the rule depend
+    on a hand-maintained list, and a truth column added to the schema and left
+    off it would take a real bool — which SQLite silently stores as 0/1 and
+    psycopg sends to PostgreSQL as a boolean, where an integer column refuses
+    it. Same shape as the defect the no-BOOLEAN rule exists for: it works on
+    the dialect the tests run against and fails on the one they do not.
+    """
+    from db.repositories import Repository
+
+    repo = Repository.__new__(Repository)
+    repo.JSON = ()
+    encoded = repo._encode({
+        "revoked": True,                      # on the list
+        "some_column_nobody_listed": False,   # not on it, and the point
+        "count": 3, "name": "x", "when": 1.5, "nothing": None})
+    for field, value in encoded.items():
+        assert not isinstance(value, bool), f"{field} is still a bool"
+    assert encoded["revoked"] == 1
+    assert encoded["some_column_nobody_listed"] == 0
+    assert encoded["count"] == 3 and encoded["name"] == "x"
+    assert encoded["when"] == 1.5 and encoded["nothing"] is None
+
+
+def test_every_truth_column_is_read_back_as_a_bool():
+    """The read path still needs the list, and this says why it is the read
+    path that does: which integers mean a truth value is a fact about the
+    column, not about the value — 0 and 1 are also perfectly good counts."""
+    from db.repositories import Repository, _BOOL_COLUMNS
+
+    repo = Repository.__new__(Repository)
+    repo.TABLE, repo.JSON = "t", ()
+    decoded = repo._decode({"revoked": 1, "blocking": 0, "row_count": 1})
+    assert decoded["revoked"] is True and decoded["blocking"] is False
+    assert decoded["row_count"] == 1, "a count is not a truth value"
+    assert "row_count" not in _BOOL_COLUMNS
+
+
 def test_no_relational_table_holds_bulk_values():
     """Feature and featureset DATA lives in Delta. The database holds pointers.
 

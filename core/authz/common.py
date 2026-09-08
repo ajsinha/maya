@@ -78,6 +78,12 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "regime:read", "regime:activate",
     "scheduler:read", "scheduler:run",
     "evidence:read",
+    # The running process's own log. A read and nothing more: the viewer
+    # cannot change the level, cannot clear the buffer and cannot write a
+    # line. The evidence chain records what was DECIDED; the log records what
+    # happened around it, and the two join on the request id — so whoever may
+    # read one has the pair that makes either legible.
+    "log:read",
     # Portfolio reporting. Reading a board pack is a `:read` and therefore in
     # every role's set, which is right — a pack is what the estate is told about
     # itself. Cutting one is not: a recorded pack is the document a committee is

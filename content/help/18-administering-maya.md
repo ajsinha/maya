@@ -4,7 +4,7 @@ slug: administering-maya
 section: Reference
 order: 145
 icon: sliders
-summary: Six screens about the platform rather than about any model in it — who may act, which rulebook is in force, what runs unattended, whether the record is still intact, and what may execute. All read-only, all gated by the same permission their API asks for.
+summary: Seven screens about the platform rather than about any model in it — who may act, which rulebook is in force, what runs unattended, whether the record is still intact, what the process is doing right now, and what may execute. Each gated by the same permission its API asks for.
 audience: Operators, Platform, Model risk
 ---
 
@@ -19,8 +19,8 @@ That is deliberate and it is not tidiness. A menu that lists a screen which then
 answers *403* teaches people that refusals are noise, and this platform's entire
 argument is that a refusal means something.
 
-All six screens are **read-only**. They show you the state and name the endpoint
-that changes it. The acts themselves stay where their evidence and their
+All of them but **People and roles** are **read-only**: they show you the state
+and name the endpoint that changes it. The acts themselves stay where their evidence and their
 segregation checks already live, because an administrative act that skipped
 those would be the one act in MAYA with no record.
 
@@ -202,6 +202,43 @@ the reader believes it answered.
 An anchor is never written for an empty chain. An anchor for sequence zero is a
 permanent claim that nothing can ever satisfy, which would make every fresh
 instance accuse itself.
+
+## Live log
+
+`/admin/logs` — needs `log:read`
+
+The last lines this process wrote, as it writes them. Until this screen existed
+the only way to read MAYA's log was to be the person who started the process,
+which meant the operator asked to explain a refusal, and the tester who wanted
+to know what the server made of their call, both ended up asking a developer to
+read a terminal to them.
+
+**Not the evidence chain.** Evidence records what was *decided*, and is
+immutable, hash-linked and exportable. This is a rolling window of what happened
+around those decisions, and it ages out. Diagnose with it; cite the other one.
+
+**Not a control.** The screen reads. It cannot change the level, clear the
+buffer or write a line — a screen that can quieten the log is a screen that can
+hide what it is showing you. Every endpoint under `/api/v1/logs` is a `GET`.
+
+**Not a file tail.** The lines are kept in the process, so the screen works
+identically whether the deployment writes to a file, to stdout, to a journal or
+to nothing at all — which is the case that matters, because the deployments that
+most need a log viewer are the ones where the file belongs to somebody else.
+
+The thing that makes it worth opening is the **request id**. Every response
+carries one, and every line written while serving that request carries the same
+one, so clicking an id narrows the view to one call end to end across every
+module that touched it. `logging.ring` in the configuration sets how many lines
+are held; when the window has turned over faster than a reader could keep up,
+the screen says so rather than presenting the gap as continuity.
+
+Access lines for stylesheets, fonts and scripts are hidden by default, by a
+switch that says so. One page load is thirty of them.
+
+Anything that names itself a credential — `password:`, `api_key=`,
+`Authorization: Bearer …` — is blanked as the line is captured rather than as it
+is displayed, so the stream, the JSON and the saved file cannot disagree.
 
 ## Runtimes and fibres
 
