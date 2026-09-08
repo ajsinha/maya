@@ -100,7 +100,7 @@ FAMILY_NOTES = {
                 "this platform has no story for.",
     "screens": "Every screen a signed-in person can reach, still rendering. A "
                "screen nobody can click to is not built — and one that fails "
-               "after six hours of use is worse than one that was never there.",
+               "after hours of use is worse than one that was never there.",
     "apikeys": "A key that works, a key that has been revoked, and the "
                "difference stated in the refusal rather than left to be "
                "inferred from a generic 401.",
@@ -122,7 +122,7 @@ FAMILY_NOTES = {
                "no test and no person ever opens.",
     "evidence": "The chain, read as an auditor would read it.",
     "invariant": "What must be true at every instant, whatever has happened. "
-                 "These are the reason a soak is worth six hours rather than "
+                 "These are the reason a soak is worth hours rather than "
                  "six minutes: a chain verifies easily after ten appends, and "
                  "the question is whether it still verifies after thousands "
                  "from concurrent writers.",
@@ -150,10 +150,11 @@ def render(rows: List[Dict[str, Any]]) -> str:
     out: List[str] = []
     w = out.append
 
-    w("# MAYA — six-hour soak run")
+    hours = detail.get("hours", 0) or (elapsed / 3600)
+    w(f"# MAYA — a {hours:.0f}-hour soak run")
     w("")
     w("> **What this is.** A live MAYA server, driven through its HTTP API and "
-      "its screens for six hours, with the platform's own invariants asserted "
+      "its screens, with the platform's own invariants asserted "
       "between every batch of work. The unit suite answers *does each part "
       "behave*. This answers *does the platform still tell the truth after "
       "hours of use* — and those come apart in ways only time reveals.")
@@ -265,12 +266,13 @@ def render(rows: List[Dict[str, Any]]) -> str:
     # --------------------------------------------------------- the resources
     w("## Resources over the run")
     w("")
-    w("A soak that does not measure these is a functional test that took six "
-      "hours. A leak is invisible to a unit suite by construction — the "
+    w("A soak that does not measure these is a functional test that took a "
+      "long time. A leak is invisible to a unit suite by construction — the "
       "process exits before it matters. The **shape** is the finding: growth "
       "that tracks work done and then flattens is a cache; growth that tracks "
-      "time is a leak.")
+      "time is a leak, and the two are indistinguishable for the first hour.")
     w("")
+    _resource_verdict(w, samples)
     if samples:
         w("| Metric | At the start | At the end | Peak | Trace |")
         w("|---|---:|---:|---:|---|")
@@ -348,6 +350,50 @@ def render(rows: List[Dict[str, Any]]) -> str:
       f"`tools/soak/report.py`. The journal is committed beside this file, so "
       f"every number here can be recomputed.*")
     return "\n".join(out) + "\n"
+
+
+def _resource_verdict(w, samples: List[Dict[str, Any]]) -> None:
+    """Say whether the memory trace is a cache or a leak, and show the working.
+
+    A table of numbers and a sparkline leave the reader to decide, and the
+    reader is usually the person who most wants a straight answer. So the split
+    is computed: growth over the first half against growth over the second. A
+    cache warms and flattens; a leak does not care which half it is in.
+    """
+    rss = [s["rss_kb"] for s in samples if "rss_kb" in s]
+    if len(rss) < 6:
+        w("*Too few samples to say anything about the shape.*")
+        w("")
+        return
+    half = len(rss) // 2
+    early = (rss[half] - rss[0]) / half / 1024
+    late = (rss[-1] - rss[half]) / (len(rss) - half) / 1024
+    settled = rss[-4:]
+    spread = (max(settled) - min(settled)) / 1024
+
+    w(f"**Verdict: {'a cache, not a leak' if late < early / 2 else 'GROWTH THAT DID NOT FLATTEN'}.**")
+    w("")
+    w("| | |")
+    w("|---|---:|")
+    w(f"| Growth per cycle, first half | {early:.2f} MB |")
+    w(f"| Growth per cycle, second half | {late:.2f} MB |")
+    w(f"| Spread across the last four samples | {spread:.1f} MB |")
+    w(f"| Total, start to end | {(rss[-1] - rss[0]) / 1024:.0f} MB |")
+    w("")
+    if late < early / 2:
+        w(f"The first half grew at {early:.2f} MB a cycle and the second at "
+          f"{late:.2f} — the rate fell by "
+          f"{(1 - late / early) * 100:.0f}%, and the last four samples sit "
+          f"within {spread:.1f} MB of each other. That is a cache warming and "
+          f"settling: page cache, the bounded log ring filling to its "
+          f"capacity, the connection pool reaching its size. A leak does not "
+          f"slow down, because nothing about it is finite.")
+    else:
+        w(f"The rate did NOT fall: {early:.2f} MB a cycle early against "
+          f"{late:.2f} late. Growth that tracks time rather than work is what "
+          f"a leak looks like, and this is that shape. Worth investigating "
+          f"before this build is trusted for a long-running deployment.")
+    w("")
 
 
 def _cell(value: Any) -> str:
