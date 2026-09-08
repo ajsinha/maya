@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Live log — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT THE PROCESS IS DOING</p>
+<h1>Live log</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:46rem">The last
+<strong>{{ ring.capacity }}</strong> lines this process wrote, as it writes
+them. Use it to see what the server made of a call you just sent, and to read
+the six lines around a refusal. It is a <em>rolling window and not the evidence
+chain</em>: lines age out, nothing here is signed, and no governance claim
+should ever cite it. Reading only — this screen cannot change the level, clear
+the buffer or write a line.</p>
+
+<div class="card mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="f-level">At least</label>
+        <select class="form-select form-select-sm" id="f-level">
+          {% for level in levels %}
+            <option value="{{ level }}" {{ 'selected' if level == 'INFO' }}>{{ level }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="f-logger">Module</label>
+        <select class="form-select form-select-sm" id="f-logger">
+          <option value="">all</option>
+          {% for name in loggers %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-12 col-md-3">
+        <label class="form-label small mb-1" for="f-contains">Containing</label>
+        <input class="form-control form-control-sm" id="f-contains" type="search"
+               placeholder="refused, warrant, ORA-…" autocomplete="off">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="f-request">Request id</label>
+        <input class="form-control form-control-sm font-monospace" id="f-request"
+               type="search" placeholder="all requests" autocomplete="off">
+      </div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="f-principal">Principal</label>
+        <input class="form-control form-control-sm" id="f-principal" type="search"
+               placeholder="anybody" autocomplete="off">
+      </div>
+      <div class="col-12 col-md-1 d-grid">
+        <a class="btn btn-sm btn-outline-secondary" id="download"
+           href="/api/v1/logs/download" download>Save</a>
+      </div>
+    </div>
+    <div class="d-flex align-items-center flex-wrap gap-3 mt-3">
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="follow" checked>
+        <label class="form-check-label small" for="follow">Follow new lines</label>
+      </div>
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="wrap" checked>
+        <label class="form-check-label small" for="wrap">Wrap long lines</label>
+      </div>
+      {# One page load is thirty font, stylesheet and script lines, and thirty
+         of those bury the one line somebody came to read. Hidden by default —
+         and by a switch that says so, because a viewer that drops lines
+         without telling you is one you cannot trust to be complete. #}
+      <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="quiet" checked>
+        <label class="form-check-label small" for="quiet">Hide static assets</label>
+      </div>
+      <span class="chip" id="status" role="status" aria-live="polite">connecting…</span>
+      <span class="small text-muted ms-auto" id="counts"></span>
+    </div>
+  </div>
+</div>
+
+{# The first screenful is server-rendered, and the stream continues from
+   `data-cursor`. A page that is blank until a socket connects looks broken for
+   the moment before it isn't — and this one is opened by somebody who already
+   thinks something is wrong. #}
+<div class="card">
+  <div class="logv" id="logv" tabindex="0" aria-label="log lines"
+       data-cursor="{{ cursor }}">
+    {% for line in initial %}
+      <div class="logl lvl-{{ line.level }}">
+        <span class="lt" title="{{ line.ts }}">{{ line.ts[11:] }}</span>
+        <span class="ll">{{ line.level }}</span>
+        <span class="lm"><span class="lg">{{ line.logger }} </span>{%
+          if line.request_id != "-" %}<span class="lr"
+            data-request="{{ line.request_id }}" title="show only this request"
+            >[{{ line.request_id }}{% if line.principal != "-" %} {{ line.principal }}{% endif %}] </span>{%
+          endif %}{{ line.message }}</span>
+        {% if line.exception %}<pre>{{ line.exception }}</pre>{% endif %}
+      </div>
+    {% else %}
+      <p class="text-muted small p-3 mb-0" id="empty">
+        Nothing in the window yet. Lines appear here as the server writes them —
+        open MAYA in another tab and use it, and you will see what it did.</p>
+    {% endfor %}
+  </div>
+</div>
+<p class="small text-muted mt-2" id="ringnote">
+  Holding {{ ring.held }} line(s) of {{ ring.capacity }}.
+  {% if ring.dropped %}{{ ring.dropped }} have aged out of the window.{% endif %}</p>
+
+<style>
+  .logv{max-height:62vh;overflow:auto;font-family:var(--code);font-size:.78rem;
+        line-height:1.5;background:var(--parch);border-radius:.25rem}
+  .logv:focus-visible{outline:2px solid var(--crimson);outline-offset:-2px}
+  .logl{display:grid;grid-template-columns:8.5rem 5rem 1fr;gap:.6rem;
+        padding:.18rem .7rem;border-left:3px solid transparent;
+        border-bottom:1px solid var(--hairline)}
+  .logv.nowrap .logl{grid-template-columns:8.5rem 5rem max-content;
+                     white-space:pre;min-width:max-content}
+  .logl:hover{background:var(--surface)}
+  .logl .lt{color:var(--muted);font-variant-numeric:tabular-nums}
+  .logl .ll{font-weight:600;letter-spacing:.02em}
+  .logl .lm{color:var(--ink);word-break:break-word}
+  .logl .lg{color:var(--muted)}
+  .logl .lr{color:var(--muted);cursor:pointer;text-decoration:underline dotted}
+  .logl pre{margin:.35rem 0 0;white-space:pre-wrap;color:var(--slate);
+            font-size:.74rem}
+  /* Severity is carried by a rail as well as by the word, so a line that needs
+     attention reads at a glance and does so without relying on colour alone. */
+  .lvl-WARNING{border-left-color:var(--warn);background:var(--warn-soft)}
+  .lvl-WARNING .ll{color:var(--warn)}
+  .lvl-ERROR,.lvl-CRITICAL{border-left-color:var(--bad);background:var(--bad-soft)}
+  .lvl-ERROR .ll,.lvl-CRITICAL .ll{color:var(--bad)}
+  .lvl-DEBUG .ll{color:var(--muted)}
+  .lvl-INFO .ll{color:var(--info)}
+  .loggap{padding:.3rem .7rem;background:var(--warn-soft);color:var(--warn);
+          font-weight:600}
+  /* The connection's own state. Announced in words by `aria-live`, and given a
+     colour as well, because "live" and "disconnected" are the two things
+     somebody glances at without reading. */
+  .chip-ok{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+  .chip-bad{border-color:var(--bad);color:var(--bad);background:var(--bad-soft)}
+  .chip-warn{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+</style>
+{% endblock %}
+{% block scripts %}
+<script src="/static/js/admin-logs.js"></script>
+{% endblock %}

@@ -4,9 +4,9 @@ Everything a tester needs, in the order they will want it.
 
 | File | What it is |
 |---|---|
-| **[README.md](README.md)** | **The cheatsheet.** Start here. Eleven sections, every command verified against a live instance, with screenshots. |
+| **[README.md](README.md)** | **The cheatsheet.** Start here. Twelve sections, every command verified against a live instance, with screenshots. |
 | [qa-setup.sh](qa-setup.sh) | Builds the example estate the cheatsheet walks through. Run once, after starting the platform. |
-| [screenshots/](screenshots/) | The 16 screens referenced by the cheatsheet, captured from a running instance. |
+| [screenshots/](screenshots/) | The 18 screens referenced by the cheatsheet, captured from a running instance. |
 
 ## The short version
 
@@ -19,6 +19,23 @@ Everything a tester needs, in the order they will want it.
 ```
 
 Then open **http://localhost:5006** and sign in as `admin` / `maya-admin-dev`.
+
+If start-up refuses with **SCHEMA DRIFT**, the database predates the schema the
+code ships. Close it in one step rather than deleting the database:
+
+```bash
+.venv/bin/python run_maya_web.py --check-schema     # what is missing
+.venv/bin/python run_maya_web.py --repair-schema    # add exactly that
+```
+
+## Leave the log open in a second tab
+
+**Admin → Live log** (`/admin/logs`) shows what the server is doing as it does
+it. Every response carries a request id and every line written while serving it
+carries the same one, so clicking an id in the log gives you one call end to
+end. Attaching the saved file to a defect report is worth more than a
+description of it. [Section 12](README.md#12-watching-what-the-server-does--the-live-log)
+has the details.
 
 ## One thing to know before you begin
 

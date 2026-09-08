@@ -146,7 +146,7 @@ how a validator in the UK entity ends up approving a US model.
 | Question | Mechanism | §|
 |---|---|---|
 | Who is this? | Password, HTTP Basic, or SSO | 2.1, 2.2 |
-| What may they do? | 8 roles over a closed vocabulary of **75 permissions** | 2.3 |
+| What may they do? | 8 roles over a closed vocabulary of **76 permissions** | 2.3 |
 | What may they do it **to**? | Scope: legal entity × domain | 2.4 |
 | What does their own history forbid? | Segregation of duties, read from the evidence chain | 2.5 |
 

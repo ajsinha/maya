@@ -23,6 +23,7 @@ purpose, and a refusal is usually the feature working.
 | 9 | [Training: fit warrant → data → parameters](#9-training-fit-warrant--data--parameters) |
 | 10 | [Execution: a warrant an outside engine runs](#10-execution-a-warrant-an-outside-engine-runs) |
 | 11 | [Doing it all again at a new version](#11-doing-it-all-again-at-a-new-version) |
+| 12 | [Watching what the server does — the live log](#12-watching-what-the-server-does--the-live-log) |
 | — | [When something is refused](#when-something-is-refused) |
 
 ---
@@ -1148,6 +1149,92 @@ an environment"* — for the same reason you cannot approve your own work.
 
 ---
 
+## 12. Watching what the server does — the live log
+
+**Do this early and leave it open in a second tab.** Every other section of this
+document is easier with it: when something refuses and you cannot tell why, the
+answer is usually in the six lines around the refusal.
+
+**Admin → Live log**, or `/admin/logs` directly.
+
+![The live log](screenshots/18-live-log.png)
+
+It shows the last 2,000 lines this process wrote, as it writes them. It is a
+**rolling window and not the evidence chain** — lines age out, nothing here is
+signed, and nothing here should ever be quoted as a governance record. Use it
+to diagnose; use `/api/v1/evidence` to cite.
+
+### The one thing that makes it useful
+
+Every response MAYA sends carries a **request id**, and every log line written
+while serving that request carries the same id. So:
+
+1. make the call that misbehaved;
+2. find its line in the log;
+3. **click the request id** — the view narrows to that one request, in order,
+   across every module that touched it.
+
+You can also paste an id from a response header:
+
+```bash
+curl -s -D- -u $AUTH $API/models -o /dev/null | grep -i x-request-id
+```
+
+### The controls
+
+| Control | What it does |
+|---|---|
+| **At least** | the level and everything louder — `WARNING` includes `ERROR` |
+| **Module** | one subsystem: `core.execution`, `core.features`, `routes` … |
+| **Containing** | free text, matched against the module, the message and any traceback |
+| **Request id** | one request, end to end |
+| **Principal** | everything one person or service did |
+| **Follow new lines** | sticks to the bottom; scrolling up turns it off, scrolling back down turns it on |
+| **Hide static assets** | on by default — one page load is thirty stylesheet and font lines |
+| **Save** | the current view as a text file, to attach to a defect |
+
+Filters run on the **server**, so narrowing does not throw away lines the
+browser would then be unable to get back.
+
+### From a script
+
+```bash
+# the window as JSON; `cursor` is where to ask from next time
+curl -s -u $AUTH "$API/logs?level=WARNING&limit=50" | jq '.lines[] | .message'
+
+# everything one request did
+curl -s -u $AUTH "$API/logs?request_id=ad274890ec7fcf69" | jq -r '.lines[].message'
+
+# follow it, exactly as the page does
+curl -s -N -u $AUTH "$API/logs/stream?level=WARNING"
+
+# as a text file, for attaching to a defect report
+curl -s -u $AUTH "$API/logs/download?contains=refused" -o refusals.txt
+```
+
+### What to check while you are here
+
+- **The window is honest about gaps.** If lines aged out between two reads, the
+  page says so in a banner rather than showing a continuous stream that is not
+  one. Worth provoking: set the level to `DEBUG`, generate traffic, and watch.
+- **Nothing that names itself a credential appears.** `password:`, `api_key=`,
+  `Authorization: Bearer …` are blanked on the way into the buffer, so the
+  stream, the JSON and the download all agree. **If you ever see a live secret
+  on this page, that is a defect — report it with the exact line.**
+- **It cannot change anything.** There is no control here that sets the level,
+  clears the buffer or writes a line, and every endpoint under `/api/v1/logs`
+  is a `GET`. A screen that could quieten the log could hide what it shows you.
+- **It needs `log:read`.** `admin`, `operator` and `auditor` hold it; a
+  `model_developer` does not, and should get the same refusal from both the
+  page and the API.
+
+```bash
+# should be 403, from both doors
+curl -s -o /dev/null -w '%{http_code}\n' -u d.raman:dev-pw-long-enough $API/logs
+```
+
+---
+
 ## When something is refused
 
 **A refusal is not a bug.** MAYA's design is that a control which permits what
@@ -1203,3 +1290,5 @@ Anything where:
 
 Include the exact command or the page URL, what you expected, and what you got.
 MAYA logs a request id on every response — quoting it makes the trace findable.
+Better still: open **Admin → Live log**, click that request id, and attach the
+saved text file to the report. See [section 12](#12-watching-what-the-server-does--the-live-log).
