@@ -15,6 +15,16 @@
    platform that can be made to fetch from somewhere else is one somebody
    can exfiltrate through. woff2 only: every browser this supports reads
    it, and three formats triples the payload for nothing. #}
+<script>
+/* Inline and first: `data-theme` has to be on <html> before the stylesheet
+   paints, or somebody who chose dark sees a white flash on every navigation.
+   The full picker is /static/js/theme.js; this is only the part that cannot
+   wait for it. */
+(function(){try{var t=localStorage.getItem("maya.theme");
+if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}
+}catch(e){}}());
+</script>
+<link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
 <link href="/static/vendor/katex/katex.min.css" rel="stylesheet">
 <style>
 /* Measured, not chosen by eye. Every pair that carries text clears WCAG AA
@@ -31,33 +41,250 @@
    decoration, and not fine as the edge of an input box: the boundary is what
    tells somebody where to type. So there are now two — `--rule` for dividing
    things and `--edge` for the outline of a control. */
-:root{--crimson:#A51C30;--crimson-d:#761422;--ink:#1C1C1E;--slate:#4A4F57;
-      --muted:#686D75;--rule:#D8D4CF;--edge:#8F8F8F;--parch:#F6F3EF;
-      /* White at 50% over the crimson bar resolves to 2.87:1. At 80% it is
-         5.27:1 and still reads as secondary beside the white brand. */
-      --on-crimson-dim:rgba(255,255,255,.8);}
-body{background:#fff;color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-.navbar{background:var(--crimson)!important;}
-.navbar-brand{font-family:Georgia,serif;letter-spacing:.06em;font-weight:600;}
-.navbar .slogan{color:#F2D8DC;font-style:italic;font-size:.82rem;}
-h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif;}
+/* ------------------------------------------------------------------ tokens
+   Every colour on every screen resolves through one of these, so a theme is a
+   redefinition of this block and nothing else. Hardcoded hex was the thing
+   stopping a dark mode: eighteen distinct values, half of them the same grey
+   written three ways, and each one invisible to a theme switch.
+
+   `--surface` and `--raised` are separated on purpose. A card on a page needs
+   to sit ON something; in light that is white on a warm off-white, in dark it
+   is a lighter panel on a darker ground, and a single "background" cannot
+   express both. */
+:root{
+  /* identity — the crimson is the brand and does not move between themes */
+  --crimson:#A51C30; --crimson-d:#761422; --crimson-l:#C13048;
+  --on-bar:#fff; --on-bar-dim:rgba(255,255,255,.82);
+  --on-crimson:#fff; --on-crimson-dim:rgba(255,255,255,.86);
+
+  /* ground and text */
+  --canvas:#FBFAF9; --surface:#fff; --raised:#fff; --parch:#F6F3EF;
+  --ink:#1C1C1E; --slate:#4A4F57; --muted:#686D75;
+  --rule:#D8D4CF; --edge:#8F8F8F; --hairline:#EDE9E4;
+
+  /* semantic — deliberately NOT the accent. Crimson means "this platform";
+     these mean "this is good / this needs attention / this is wrong", and one
+     colour cannot carry both jobs without the reader learning nothing. */
+  --on-accent:#fff;
+  --ok:#2D5016; --ok-soft:#EAF1E4;
+  --warn:#966C2A; --warn-soft:#F7EFE1;
+  --bad:#A51C30; --bad-soft:#F7E7EA;
+  --info:#2E4057; --info-soft:#E7ECF2;
+
+  /* depth. Two levels and no more: a page where everything floats has no
+     hierarchy, it just has shadows. */
+  --lift:0 1px 2px rgba(28,28,30,.06), 0 1px 3px rgba(28,28,30,.04);
+  --lift-2:0 2px 6px rgba(28,28,30,.08), 0 4px 14px rgba(28,28,30,.06);
+
+  /* the bar. A gradient rather than a flat fill, shallow enough that it reads
+     as depth rather than as decoration — a governance product that looks like
+     a marketing page is one nobody believes. */
+  --bar:linear-gradient(180deg, #B02034 0%, var(--crimson) 55%, #97182B 100%);
+  --tint:linear-gradient(180deg, rgba(165,28,48,.045) 0%, rgba(165,28,48,0) 100%);
+
+  --sans:"Source Sans 3",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --code:"Source Code Pro",Consolas,"SF Mono",Menlo,monospace;
+}
+
+/* Dark. Not an inversion — an inverted crimson is a pink nobody chose, and
+   pure white text on pure black shimmers. The accent lightens just enough to
+   hold 4.5:1 on the dark ground, and the ground itself keeps a trace of the
+   warm hue so the two themes read as one product. */
+:root[data-theme="dark"]{
+  --crimson:#E8879A; --crimson-d:#C86277; --crimson-l:#F2A6B5;
+  --on-bar:#F0E4E7; --on-bar-dim:rgba(240,228,231,.72);
+  --on-crimson:#1A1113; --on-crimson-dim:rgba(26,17,19,.78);
+
+  --canvas:#141114; --surface:#1B171A; --raised:#221D21; --parch:#221D21;
+  --ink:#EDE7E8; --slate:#BFB6B9; --muted:#9E9498;
+  --rule:#332B2F; --edge:#6E6367; --hairline:#282226;
+
+  --on-accent:#1A1113;
+  --ok:#7FC08E; --ok-soft:#18251A;
+  --warn:#E0AC63; --warn-soft:#2B2114;
+  --bad:#E8879A; --bad-soft:#2E1A1F;
+  --info:#8FB0D8; --info-soft:#161E28;
+
+  --lift:0 1px 2px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
+  --lift-2:0 2px 8px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.4);
+
+  --bar:linear-gradient(180deg, #3A1D25 0%, #2E171E 60%, #26131A 100%);
+  --tint:linear-gradient(180deg, rgba(232,135,154,.06) 0%, rgba(232,135,154,0) 100%);
+}
+
+/* And for anybody who has never touched the picker: follow the machine. The
+   toggle writes `data-theme`, which wins over this in both directions. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --crimson:#E8879A; --crimson-d:#C86277; --crimson-l:#F2A6B5;
+    --on-bar:#F0E4E7; --on-bar-dim:rgba(240,228,231,.72);
+    --on-crimson:#1A1113; --on-crimson-dim:rgba(26,17,19,.78);
+    --canvas:#141114; --surface:#1B171A; --raised:#221D21; --parch:#221D21;
+    --ink:#EDE7E8; --slate:#BFB6B9; --muted:#9E9498;
+    --rule:#332B2F; --edge:#6E6367; --hairline:#282226;
+    --on-accent:#1A1113;
+    --ok:#7FC08E; --ok-soft:#18251A;
+    --warn:#E0AC63; --warn-soft:#2B2114;
+    --bad:#E8879A; --bad-soft:#2E1A1F;
+    --info:#8FB0D8; --info-soft:#161E28;
+    --lift:0 1px 2px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.35);
+    --lift-2:0 2px 8px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.4);
+    --bar:linear-gradient(180deg, #3A1D25 0%, #2E171E 60%, #26131A 100%);
+    --tint:linear-gradient(180deg, rgba(232,135,154,.06) 0%, rgba(232,135,154,0) 100%);
+  }
+}
+
+
+/* Bootstrap reads its own `--bs-*` variables. Setting them is how a theme
+   reaches every component at once — a dropdown, a modal, a nav-link and a
+   table all resolve through these, and chasing the utility classes one at a
+   time is how a dark mode ends up 90% done forever. */
+:root{
+  --bs-body-bg:var(--canvas); --bs-body-color:var(--ink);
+  --bs-emphasis-color:var(--ink); --bs-secondary-color:var(--muted);
+  --bs-border-color:var(--hairline); --bs-border-color-translucent:var(--hairline);
+  --bs-link-color:var(--crimson); --bs-link-hover-color:var(--crimson-d);
+  --bs-heading-color:var(--ink);
+  --bs-navbar-color:var(--on-bar-dim);
+  --bs-navbar-hover-color:var(--on-bar);
+  --bs-navbar-active-color:var(--on-bar);
+  --bs-navbar-brand-color:var(--on-bar);
+  --bs-navbar-brand-hover-color:var(--on-bar);
+  --bs-navbar-toggler-border-color:var(--on-bar-dim);
+  --bs-dropdown-bg:var(--raised); --bs-dropdown-color:var(--ink);
+  --bs-dropdown-link-color:var(--ink);
+  --bs-dropdown-link-hover-bg:var(--parch);
+  --bs-dropdown-link-hover-color:var(--ink);
+  --bs-dropdown-border-color:var(--hairline);
+  --bs-table-color:var(--ink); --bs-table-bg:transparent;
+  --bs-table-border-color:var(--hairline);
+  --bs-card-bg:var(--surface); --bs-card-color:var(--ink);
+  --bs-card-border-color:var(--hairline);
+  --bs-tertiary-bg:var(--parch); --bs-secondary-bg:var(--parch);
+}
+html{color-scheme:light dark;}
+body{background:var(--canvas); color:var(--ink); font-family:var(--sans);
+     font-size:15px; line-height:1.6;
+     font-feature-settings:"kern" 1, "liga" 1;
+     -webkit-font-smoothing:antialiased;}
+.navbar{background:var(--bar)!important; box-shadow:var(--lift);}
+.navbar-brand{font-family:var(--serif);letter-spacing:.05em;font-weight:600;}
+.navbar .slogan{color:var(--on-bar-dim);font-style:italic;font-size:.82rem;}
+h1,h2,h3,.serif{font-family:var(--serif); letter-spacing:-.011em;
+                text-wrap:balance;}
+h1{font-weight:600;} h2,h3{font-weight:600;}
+/* Digits that line up. Every table on this platform is numbers in columns, and
+   proportional figures make a column of them look ragged. */
+table.maya td, table.maya th, .stat, .stat-n, .num{font-variant-numeric:tabular-nums;}
+
+/* ---------------------------------------------------------------- surfaces
+   A card sits ON the page rather than being drawn onto it. Hairline borders
+   alone made every screen read as one flat sheet with lines on it, which is
+   why the interface felt like a form and not like a product.
+
+   One level of lift for a card, a second for what is genuinely floating. A
+   page where everything floats has no hierarchy; it just has shadows. */
+.card{background:var(--surface); border:1px solid var(--hairline);
+      border-radius:6px; box-shadow:var(--lift);}
+.card-header{background:var(--tint); border-bottom:1px solid var(--hairline);
+             font-weight:600; letter-spacing:-.005em;}
+.dropdown-menu{box-shadow:var(--lift-2); border:1px solid var(--hairline);
+               background:var(--raised); border-radius:6px;}
+.dropdown-item{color:var(--ink);}
+.dropdown-item:hover,.dropdown-item:focus{background:var(--parch); color:var(--ink);}
+.dropdown-header{color:var(--muted); font-size:.72rem; letter-spacing:.08em;
+                 text-transform:uppercase;}
+.dropdown-item[aria-current="true"]{font-weight:600;}
+
+/* Inputs and controls take the theme too — Bootstrap's defaults are white on
+   white, which in dark mode is a white box on a dark page. */
+.form-control,.form-select,.form-check-input{
+  background:var(--surface); color:var(--ink); border-color:var(--edge);}
+.form-control:focus,.form-select:focus{
+  background:var(--surface); color:var(--ink); border-color:var(--crimson);
+  box-shadow:0 0 0 .15rem rgba(165,28,48,.15);}
+.form-control::placeholder{color:var(--muted); opacity:1;}
+.table{--bs-table-bg:transparent; color:var(--ink);}
+.btn-outline-secondary{color:var(--slate); border-color:var(--edge);}
+.btn-outline-secondary:hover{background:var(--parch); color:var(--ink);
+                             border-color:var(--slate);}
+.btn-danger{background:var(--crimson); border-color:var(--crimson);
+            color:var(--on-accent);}
+.btn-danger:hover{background:var(--crimson-d); border-color:var(--crimson-d);
+                  color:var(--on-accent);}
+hr{border-color:var(--hairline);}
+
+/* Bootstrap 5.3 renders a link from `--bs-link-color-RGB` and an opacity, not
+   from `--bs-link-color` — so setting the colour variable alone leaves every
+   link the framework's blue, which is the one colour this platform does not
+   use. Set on the element instead, where a var can be a var. */
+a{color:var(--crimson); text-decoration-color:color-mix(in srgb, var(--crimson) 40%, transparent);}
+a:hover{color:var(--crimson-d);}
+/* Not `inherit`: the navbar sets no colour of its own, so inheriting reaches
+   the body's ink — which on the crimson bar turned the wordmark black. */
+.navbar a,.navbar .navbar-brand{color:var(--on-bar);}
+.navbar .navbar-brand:hover{color:var(--on-bar);}
+a.text-decoration-none:hover{color:var(--crimson-d);}
+
+/* Bootstrap's own colour utilities. `text-muted` is a fixed #6c757d and
+   `text-white-50` a fixed translucent white: on a dark ground the first is
+   barely legible and on a light one the second is invisible. They are used on
+   every screen in this interface, so the theme has to reach them. */
+.text-muted{color:var(--muted)!important;}
+.text-white-50{color:var(--on-bar-dim)!important;}
+.navbar .nav-link{color:var(--on-bar)!important;}
+.navbar .nav-link:hover,.navbar .nav-link:focus{color:var(--on-bar-dim)!important;}
+.navbar .dropdown-toggle{color:var(--on-bar)!important;}
+.navbar .btn-outline-light{color:var(--on-bar); border-color:var(--on-bar-dim);}
+.navbar .btn-outline-light:hover{background:var(--on-bar); color:var(--crimson-d);}
+.card,.card-body{color:var(--ink);}
+.card-header{color:var(--ink);}
+.bg-white,.bg-light{background:var(--surface)!important;}
+.border{border-color:var(--hairline)!important;}
+.text-dark{color:var(--ink)!important;}
+.list-group-item{background:var(--surface); color:var(--ink);
+                 border-color:var(--hairline);}
+.modal-content,.offcanvas{background:var(--surface); color:var(--ink);}
+.nav-tabs .nav-link{color:var(--slate);}
+.nav-tabs .nav-link.active{background:var(--surface); color:var(--ink);
+                           border-color:var(--hairline) var(--hairline) var(--surface);}
+.badge.bg-secondary{background:var(--muted)!important; color:var(--on-accent);}
+.alert{background:var(--parch); color:var(--ink); border-color:var(--hairline);}
+code,kbd,samp{color:var(--crimson-d);}
+:root[data-theme="dark"] code,:root[data-theme="dark"] kbd{color:var(--crimson);}
+
+/* The numbers people actually read. A stat sitting on bare page had nothing to
+   anchor it; a whisper of the accent gives it a surface without turning the
+   dashboard into a set of coloured boxes. */
+.stat,.stat-n{font-family:var(--serif); font-weight:600; line-height:1.1;}
+.stat-l{color:var(--muted); font-size:.78rem;}
+
+/* Prose measure. 46rem at 15px is about 78 characters, which is past the point
+   where the eye starts losing the line. */
+.prose{max-width:38rem;}
+@media print{
+  .navbar,.dropdown,.btn,footer{display:none!important;}
+  .card{box-shadow:none; border:1px solid #ddd;}
+  body{background:#fff; color:#000;}
+}
 h1{font-size:1.75rem;}
 .rule{height:2px;background:var(--rule);margin:.6rem 0 1.2rem;}
 .accent{width:34px;height:4px;background:var(--crimson);border-radius:2px;}
 .tier{font-weight:700;font-size:.72rem;padding:.16rem .48rem;border-radius:3px;letter-spacing:.04em;}
 /* The tier badge is the most consequential label on any of these screens, and
    two of the four failed the measurement. #B8873D carried white text at 3.20:1
-   and #7A7F87 at 4.03:1, against a 4.5 requirement — and a badge is set small
+   and var(--muted) at 4.03:1, against a 4.5 requirement — and a badge is set small
    and bold, which is exactly where "it looks fine" stops being evidence. The
    hues are unchanged; only the lightness moved. */
-.tier-1{background:#A51C30;color:#fff}.tier-2{background:#966C2A;color:#fff}
-.tier-3{background:#2E4057;color:#fff}.tier-4{background:#686D75;color:#fff}
-.tier-none{background:#E8E4DE;color:#4A4F57}
+.tier-1{background:var(--crimson);color:var(--on-accent)}.tier-2{background:var(--warn);color:var(--on-accent)}
+.tier-3{background:var(--info);color:var(--on-accent)}.tier-4{background:var(--muted);color:var(--on-accent)}
+.tier-none{background:var(--hairline);color:var(--slate)}
 .chip{font-size:.72rem;padding:.14rem .42rem;border:1px solid var(--rule);border-radius:3px;color:var(--slate);}
 .card{border:1px solid var(--rule);border-radius:4px;}
 .card-header{background:var(--parch);border-bottom:1px solid var(--rule);font-weight:600;}
 table.maya{font-size:.88rem}
-table.maya thead th{background:var(--crimson);color:#fff;font-weight:600;font-size:.78rem;
+table.maya thead th{background:var(--crimson);color:var(--on-accent);font-weight:600;font-size:.78rem;
                     letter-spacing:.03em;border:0;}
 table.maya tbody tr:nth-child(even){background:var(--parch);}
 /* Term and definition. Six of these were table markup with no header row,
@@ -74,7 +301,7 @@ dl.maya-terms dd{margin:0;color:var(--muted);font-size:.82rem;}
 .kicker{color:var(--crimson);font-weight:700;font-size:.72rem;letter-spacing:.08em;}
 .mono{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:.82rem;}
 footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padding:1.2rem 0;margin-top:2.5rem;}
-.evidence-ok{color:#2D5016;font-weight:600}.evidence-bad{color:#A51C30;font-weight:600}
+.evidence-ok{color:var(--ok);font-weight:600}.evidence-bad{color:var(--crimson);font-weight:600}
 /* Rendered markdown. Help and about pages are files on disk, not templates. */
 .prose{max-width:46rem;font-size:.95rem;line-height:1.68;color:var(--ink);}
 .prose h1{font-size:1.75rem;margin:0 0 .4rem;}
@@ -83,16 +310,16 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .prose p{margin:0 0 .95rem;}
 .prose ul,.prose ol{margin:0 0 .95rem 1.1rem;padding:0;}
 .prose li{margin:.25rem 0;}
-.prose a{color:var(--crimson);text-decoration:none;border-bottom:1px solid #E4C3C9;}
+.prose a{color:var(--crimson);text-decoration:none;border-bottom:1px solid var(--rule);}
 .prose a:hover{border-bottom-color:var(--crimson);}
 .prose strong{font-weight:660;}
 .prose code{font-family:Consolas,"SF Mono",Menlo,monospace;font-size:.84em;
             background:var(--parch);border:1px solid var(--rule);border-radius:3px;padding:.06rem .28rem;}
-.prose pre{background:#FBF9F7;border:1px solid var(--rule);border-left:3px solid var(--crimson);
+.prose pre{background:var(--parch);border:1px solid var(--rule);border-left:3px solid var(--crimson);
            border-radius:3px;padding:.85rem 1rem;overflow-x:auto;margin:0 0 1.1rem;}
 .prose pre code{background:none;border:0;padding:0;font-size:.8rem;line-height:1.55;}
 .prose table{width:100%;font-size:.86rem;margin:0 0 1.2rem;border-collapse:collapse;display:block;overflow-x:auto;}
-.prose thead th{background:var(--crimson);color:#fff;font-weight:600;font-size:.78rem;
+.prose thead th{background:var(--crimson);color:var(--on-accent);font-weight:600;font-size:.78rem;
                 text-align:left;padding:.42rem .6rem;letter-spacing:.02em;}
 .prose tbody td{border-bottom:1px solid var(--rule);padding:.42rem .6rem;vertical-align:top;}
 .prose tbody tr:nth-child(even){background:var(--parch);}
@@ -118,10 +345,10 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .flow .step.done::before,.flow .step.here::before{background:var(--crimson);}
 .flow .dot{position:relative;z-index:1;width:2.1rem;height:2.1rem;border-radius:50%;
            display:inline-flex;align-items:center;justify-content:center;
-           background:#fff;border:2px solid var(--rule);color:var(--muted);
+           background:var(--surface);border:2px solid var(--rule);color:var(--muted);
            font-size:.82rem;font-weight:700;}
-.flow .step.done .dot{background:var(--crimson);border-color:var(--crimson);color:#fff;}
-.flow .step.here .dot{background:#fff;border-color:var(--crimson);color:var(--crimson);
+.flow .step.done .dot{background:var(--crimson);border-color:var(--crimson);color:var(--on-accent);}
+.flow .step.here .dot{background:var(--surface);border-color:var(--crimson);color:var(--crimson);
                       box-shadow:0 0 0 4px rgba(165,28,48,.12);}
 .flow .lbl{display:block;font-size:.74rem;letter-spacing:.04em;margin-top:.35rem;
            text-transform:uppercase;color:var(--muted);font-weight:600;}
@@ -134,9 +361,13 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .sig:last-child{border-bottom:0;}
 .sig .ic{width:1.4rem;height:1.4rem;border-radius:50%;display:inline-flex;
          align-items:center;justify-content:center;font-size:.72rem;flex:0 0 auto;}
-.sig.signed .ic{background:#2D5016;color:#fff;}
-.sig.declined .ic{background:var(--crimson);color:#fff;}
-.sig.waiting .ic{background:#E8E4DE;color:var(--muted);}
+.sig.signed .ic{background:var(--ok);color:var(--on-accent);}
+.sig.declined .ic{background:var(--crimson);color:var(--on-accent);}
+/* `--muted` on `--hairline` measures 4.31:1 — under AA, and this chip is a
+   1.4rem circle carrying a single small glyph, which is the hardest thing on
+   the page to read. `--slate` on the same ground is 7.4:1. The token exists
+   for exactly this: text that is quiet but still has to be legible. */
+.sig.waiting .ic{background:var(--hairline);color:var(--slate);}
 .sig .who{color:var(--muted);font-size:.78rem;}
 .act{margin:.25rem .35rem .25rem 0;}
 .work-row{display:flex;gap:.7rem;align-items:flex-start;padding:.55rem 0;
@@ -145,16 +376,16 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
 .work-row .u{flex:0 0 auto;width:4.6rem;font-size:.68rem;font-weight:700;
              letter-spacing:.05em;text-transform:uppercase;padding-top:.15rem;}
 .work-row.overdue .u{color:var(--crimson);}
-.work-row.due .u{color:#8A6D1F;}
+.work-row.due .u{color:var(--warn);}
 .work-row.open .u{color:var(--muted);}
 .work-row a{color:var(--ink);text-decoration:none;font-weight:600;}
 .work-row a:hover{color:var(--crimson);}
 .work-row .w{color:var(--muted);font-size:.8rem;line-height:1.45;}
 .stat{font-family:Georgia,serif;font-size:1.55rem;line-height:1.1;}
 .stat-l{font-size:.76rem;color:var(--muted);}
-.frozen-badge{background:#2E4057;color:#fff;font-size:.7rem;font-weight:700;
+.frozen-badge{background:var(--info);color:var(--on-accent);font-size:.7rem;font-weight:700;
               letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
-.open-badge{background:#966C2A;color:#fff;font-size:.7rem;font-weight:700;
+.open-badge{background:var(--warn);color:var(--on-accent);font-size:.7rem;font-weight:700;
             letter-spacing:.05em;padding:.18rem .5rem;border-radius:3px;}
 
 /* ---- the navigation ---------------------------------------------------
@@ -225,7 +456,11 @@ select:focus-visible, textarea:focus-visible, summary:focus-visible,
 table.maya thead th:focus-visible, table.maya thead th a:focus-visible,
 table.maya thead th button:focus-visible,
 .prose thead th:focus-visible, .prose thead th a:focus-visible,
-.skip-link:focus-visible{
+.skip-link:focus-visible,
+/* The primary action on every form is crimson and IS focusable, so its ring
+   was crimson on crimson — the same 1:1 the table headers had. Caught by
+   widening the scan to tokens; it was invisible while the palette was hex. */
+.btn-danger:focus-visible{
   outline:3px solid #fff; outline-offset:2px;}
 
 /* Skip to content. There is a <main> landmark and no way to jump to it: the
@@ -233,7 +468,7 @@ table.maya thead th button:focus-visible,
    tabbed the whole mega-menu on every page load, on every page (WCAG 2.4.1,
    Level A). Visible only when focused, which is the point of it. */
 .skip-link{position:absolute; left:-9999px; top:0; z-index:2000;
-  background:var(--crimson); color:#fff; padding:.6rem 1rem;
+  background:var(--crimson); color:var(--on-accent); padding:.6rem 1rem;
   font-size:.85rem; text-decoration:none; border-radius:0 0 3px 0;}
 .skip-link:focus{left:0;}
 /* A form control's own edge, at 3:1 rather than Bootstrap's 1.30:1. */
@@ -242,7 +477,7 @@ table.maya thead th button:focus-visible,
   border-color:var(--crimson); box-shadow:0 0 0 .18rem rgba(165,28,48,.22);}
 /* Bootstrap's `.text-white-50` is 2.87:1 on this bar. */
 .navbar .text-white-50{color:var(--on-crimson-dim)!important;}
-.navbar .text-white-50:hover, .navbar .text-white-50:focus{color:#fff!important;}
+.navbar .text-white-50:hover, .navbar .text-white-50:focus{color:var(--on-accent)!important;}
 /* Somebody who has asked for less motion gets less motion. */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;
@@ -367,12 +602,32 @@ table.maya thead th button:focus-visible,
       {% endif %}
       {% endif %}
 
-      <li class="nav-item"><a class="nav-link text-white-50" href="/help">Help</a></li>
-      <li class="nav-item"><a class="nav-link text-white-50" href="/about">About</a></li>
+      <li class="nav-item"><a class="nav-link" href="/help">Help</a></li>
+      <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
 
+      {# ---- theme ---------------------------------------------------------
+         Three states, not two. "System" is the default and the one most people
+         want — a platform that ignores the machine's setting is one somebody
+         has to correct twice a day. It is a radio group rather than a toggle
+         because a toggle cannot express "follow the system" as a position. #}
+      <li class="nav-item dropdown ms-lg-2">
+        <a class="nav-link dropdown-toggle" href="#" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false"
+           id="theme-menu" title="Appearance">
+          <i class="bi bi-circle-half"></i><span class="d-lg-none ms-1">Appearance</span></a>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="theme-menu">
+          <li><h6 class="dropdown-header">Appearance</h6></li>
+          <li><button class="dropdown-item theme-pick" data-theme="light" type="button">
+            <i class="bi bi-sun me-2"></i>Light<span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item theme-pick" data-theme="dark" type="button">
+            <i class="bi bi-moon-stars me-2"></i>Dark<span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item theme-pick" data-theme="system" type="button">
+            <i class="bi bi-circle-half me-2"></i>System<span class="tick float-end"></span></button></li>
+        </ul>
+      </li>
       {% if user %}
         <li class="nav-item ms-lg-2">
-          <a class="nav-link text-white-50" href="/notifications" title="Notifications">
+          <a class="nav-link" href="/notifications" title="Notifications">
             <i class="bi bi-bell"></i><span class="d-lg-none ms-1">Notifications</span></a>
         </li>
         <li class="nav-item ms-lg-2">
@@ -398,6 +653,7 @@ table.maya thead th button:focus-visible,
      this platform must run air-gapped, and a table plugin is a hundred lines
      of arithmetic wearing eighty kilobytes. -->
 <script src="/static/js/refusal.js"></script>
+<script src="/static/js/theme.js"></script>
 <script src="/static/js/csrf.js"></script>
 <script src="/static/js/session.js"></script>
 <script src="/static/js/tables.js"></script>

@@ -22,7 +22,7 @@
 <div class="card mb-3">
   <div class="card-header">The operator</div>
   <div class="card-body">
-<pre class="mb-2" style="background:#F4F2EF;padding:.8rem;border-radius:.25rem"><code class="mono">AsOf(R, &#8467;, a) = argmax over ({{ clocks.valid_time }}, {{ clocks.ingest_time }}) of
+<pre class="mb-2" style="background:var(--parch);padding:.8rem;border-radius:.25rem"><code class="mono">AsOf(R, &#8467;, a) = argmax over ({{ clocks.valid_time }}, {{ clocks.ingest_time }}) of
                 { r &isin; R : r.{{ clocks.valid_time }} &le; &#8467;  &and;  r.{{ clocks.ingest_time }} &le; min(&#8467;, a) }</code></pre>
     <p class="small mb-2">
       <code>&#8467;</code> is the moment of the decision &mdash; the label time.

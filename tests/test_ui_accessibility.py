@@ -15,6 +15,8 @@ from __future__ import annotations
 import pathlib
 import re
 
+import pytest
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "web" / "templates"
 
@@ -155,29 +157,79 @@ class TestContrastIsMeasuredRatherThanJudged:
         assert "border-color:var(--edge)" in (
             ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
 
-    def test_every_badge_carries_its_text_at_aa(self):
+    @staticmethod
+    def _tokens(css, theme):
+        """The custom properties in force for one theme, resolved to hex.
+
+        The palette moved into tokens so a theme could swap it, and this scan
+        measured hex — so it silently matched nothing and reported that
+        everything passed. Resolving the tokens first is what keeps the
+        measurement honest, and it buys the dark theme the same scrutiny the
+        light one has always had.
+        """
+        blocks = [re.search(r":root\{(.*?)\}", css, re.S)]
+        if theme == "dark":
+            blocks.append(re.search(r':root\[data-theme="dark"\]\{(.*?)\}',
+                                    css, re.S))
+        values = {}
+        for block in blocks:
+            if block is None:
+                continue
+            for name, value in re.findall(r"--([a-z0-9-]+)\s*:\s*([^;]+);",
+                                          block.group(1)):
+                values[name] = value.strip()
+        # One pass of substitution is enough: no token here points at a token
+        # that points at a third.
+        resolved = {}
+        for name, value in values.items():
+            hit = re.fullmatch(r"var\(--([a-z0-9-]+)\)", value)
+            if hit:
+                value = values.get(hit.group(1), value)
+            if re.fullmatch(r"#[0-9A-Fa-f]{3,6}", value):
+                if len(value) == 4:
+                    value = "#" + "".join(c * 2 for c in value[1:])
+                resolved[name] = value
+        return resolved
+
+    @pytest.mark.parametrize("theme", ["light", "dark"])
+    def test_every_badge_carries_its_text_at_aa(self, theme):
         """The tier badge is the most consequential label on these screens, and
         two of the four failed: amber at 3.20:1 and grey at 4.03:1, both set
-        small and bold — exactly where "it looks fine" stops being evidence."""
+        small and bold — exactly where "it looks fine" stops being evidence.
+
+        Measured in BOTH themes. A dark theme is where this goes wrong most
+        easily: the fills lighten, and white text that was correct on a dark
+        crimson is unreadable on a pale pink one.
+        """
         css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
-        failures = []
-        # Every rule that sets a background AND a colour, however the
-        # declarations after them are punctuated. The first version of this
-        # anchored on `}` and missed `.open-badge`, which was the same amber at
-        # the same 3.20:1 — a scan that matches the cases you remembered is the
-        # defect this file keeps finding one layer down.
-        for name, ground, ink in re.findall(
-                r"\.([a-z0-9-]+)\{background:(#[0-9A-Fa-f]{6});"
-                r"color:(#[0-9A-Fa-f]{3,6})\b",
-                css):
-            colour = ink if len(ink) == 7 else "#" + "".join(c * 2 for c in ink[1:])
-            ratio = contrast(colour, ground)
-            if ratio < 4.5:
-                failures.append(f".{name}: {ratio:.2f}")
-        assert failures == [], "badges below AA: " + ", ".join(failures)
-        assert len(re.findall(
-            r"\.([a-z0-9-]+)\{background:(#[0-9A-Fa-f]{6});color:", css)) >= 6, \
+        tokens = self._tokens(css, theme)
+        assert tokens.get("crimson"), "the token block did not parse"
+
+        def hexof(value):
+            hit = re.fullmatch(r"var\(--([a-z0-9-]+)\)", value.strip())
+            if hit:
+                return tokens.get(hit.group(1))
+            if re.fullmatch(r"#[0-9A-Fa-f]{6}", value.strip()):
+                return value.strip()
+            if re.fullmatch(r"#[0-9A-Fa-f]{3}", value.strip()):
+                return "#" + "".join(c * 2 for c in value.strip()[1:])
+            return None
+
+        pairs = re.findall(
+            r"\.([a-z0-9-]+)\{background:\s*(var\(--[a-z0-9-]+\)|#[0-9A-Fa-f]{3,6});"
+            r"\s*color:\s*(var\(--[a-z0-9-]+\)|#[0-9A-Fa-f]{3,6})", css)
+        assert len(pairs) >= 6, \
             "the scan found almost nothing, which means it is looking wrongly"
+
+        failures = []
+        for name, ground, ink in pairs:
+            back, front = hexof(ground), hexof(ink)
+            if not back or not front:
+                continue
+            ratio = contrast(front, back)
+            if ratio < 4.5:
+                failures.append(f".{name}: {ratio:.2f} in {theme}")
+        assert failures == [], "badges below AA: " + ", ".join(failures)
 
     def test_the_measurement_can_fail(self):
         """A contrast check that passes everything is a check nobody can trust."""
@@ -224,7 +276,11 @@ class TestKeyboardFocusIsVisible:
         #: Crimson surfaces that hold no focusable content — a rule, a dot, a
         #: pseudo-element. Named rather than pattern-matched, so adding one is a
         #: decision somebody writes down.
-        decorative = {".accent", ".flow .step.done .dot", ".sig.declined .ic"}
+        decorative = {".accent", ".flow .step.done .dot", ".sig.declined .ic",
+                      # Tier badges are `<span>`s stating a fact. Nothing on
+                      # them takes focus, and the crimson one is the same fill
+                      # as the table header that IS focusable and IS inverted.
+                      ".tier-1", ".tier-2", ".tier-3", ".tier-4"}
 
         painted = set(re.findall(
             r"([^{}]+)\{[^{}]*background:\s*var\(--crimson\)", css))
@@ -308,3 +364,108 @@ class TestAnOutcomeIsAnnounced:
             f"these containers receive an outcome and announce nothing, so a "
             f"screen-reader user acts and hears silence: {silent}. Add "
             f'role="status" aria-live="polite".')
+
+
+class TestTheThemeIsAThingSomebodyChooses:
+    """Three states, not two.
+
+    "System" is the default and is a POSITION rather than the absence of a
+    choice: somebody whose machine switches at dusk should not have to correct
+    this platform twice a day, and a two-way toggle cannot express that.
+    """
+
+    def _base(self):
+        return (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+
+    def test_all_three_choices_are_offered(self, client):
+        from tests.api_helpers import login
+
+        login(client)
+        body = client.get("/dashboard").text
+        for choice in ("light", "dark", "system"):
+            assert f'data-theme="{choice}"' in body, choice
+
+    def test_the_choice_is_applied_before_the_first_paint(self):
+        """A deferred script shows a white page to somebody who chose dark.
+        A flash of the wrong theme is the most visible bug a theme switch has,
+        so the part that cannot wait is inline in <head>, above the stylesheet.
+        """
+        base = self._base()
+        head = base.split("</head>", 1)[0]
+        assert "maya.theme" in head
+        assert head.index("maya.theme") < head.index("fonts.css")
+
+    def test_every_colour_resolves_through_a_token(self):
+        """The palette moved into custom properties so a theme could swap it.
+        A colour written as hex in a rule is one the theme cannot reach — which
+        is what made the first dark mode legible on some screens and not
+        others."""
+        base = self._base()
+        rules = base.split("html{color-scheme:light dark;}", 1)[1]
+        rules = rules.split("</style>", 1)[0]
+        rules = re.sub(r"/\*.*?\*/", "", rules, flags=re.S)
+        # `@media print` is deliberately literal: paper has one theme, and a
+        # dark page sent to a printer is a black rectangle.
+        rules = re.sub(r"@media print\{.*?\}\s*\}", "", rules, flags=re.S)
+        stray = sorted(set(re.findall(r"#[0-9A-Fa-f]{3,6}\b", rules)))
+        # `#fff` survives only as the inverted focus ring, which must stay
+        # white on both themes because both bars are dark behind it.
+        assert stray in ([], ["#fff"]), f"hardcoded colour in a rule: {stray}"
+
+    def test_no_template_paints_its_own_colour(self):
+        """Same rule, one layer out. Twelve templates carried their own hex and
+        every one of them was a patch of light in the dark theme."""
+        offenders = {}
+        for path in sorted((ROOT / "web" / "templates").glob("*.html")):
+            if path.name == "base.html":
+                continue
+            text = re.sub(r"&#\d+;", "", path.read_text(encoding="utf-8"))
+            found = sorted(set(re.findall(r"#[0-9A-Fa-f]{6}\b", text)))
+            if found:
+                offenders[path.name] = found
+        assert not offenders, f"templates painting their own colours: {offenders}"
+
+    def test_dark_defines_every_token_light_does(self):
+        """A token defined only in `:root` keeps its light value in dark, which
+        is how a dark theme ends up with one white card on it."""
+        base = self._base()
+        light = re.search(r":root\{(.*?)\}", base, re.S).group(1)
+        dark = re.search(r':root\[data-theme="dark"\]\{(.*?)\}', base, re.S).group(1)
+        names = lambda block: set(re.findall(r"--([a-z0-9-]+)\s*:", block))
+        # The brand crimson and the fonts do not move between themes.
+        unchanged = {"sans", "serif", "code"}
+        missing = names(light) - names(dark) - unchanged
+        assert not missing, f"not redefined for dark: {sorted(missing)}"
+
+    def test_the_media_query_and_the_toggle_agree(self):
+        """Three states means the OS preference must be honoured when nobody
+        has chosen, and overridden in BOTH directions when somebody has."""
+        base = self._base()
+        assert "prefers-color-scheme: dark" in base
+        assert ':root:not([data-theme="light"])' in base, \
+            "an explicit light choice must beat a dark OS"
+        assert ':root[data-theme="dark"]' in base, \
+            "an explicit dark choice must beat a light OS"
+
+
+class TestTheTypefacesAreHere:
+    def test_they_are_vendored_and_served(self, client):
+        css = ROOT / "web" / "static" / "vendor" / "fonts" / "fonts.css"
+        assert css.exists()
+        assert client.get("/static/vendor/fonts/fonts.css").status_code == 200
+        files = sorted((css.parent / "files").glob("*.woff2"))
+        assert files, "no font files vendored"
+        assert client.get(
+            f"/static/vendor/fonts/files/{files[0].name}").status_code == 200
+
+    def test_nothing_is_fetched_from_a_font_host(self):
+        """`font-src 'self'`, and the interface has to render air-gapped."""
+        css = (ROOT / "web" / "static" / "vendor" / "fonts"
+               / "fonts.css").read_text(encoding="utf-8")
+        assert "https://" not in css and "//fonts." not in css
+
+    def test_each_role_has_a_face_and_a_fallback(self):
+        base = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        for token in ("--sans", "--serif", "--code"):
+            line = re.search(rf"{token}:([^;]+);", base).group(1)
+            assert "," in line, f"{token} has no fallback stack"
