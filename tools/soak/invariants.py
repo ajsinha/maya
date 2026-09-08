@@ -256,6 +256,35 @@ def latency_has_not_collapsed(client, journal, state: Dict[str, Any]) -> None:
                   f"{recent * 1000:.0f} ms")
 
 
+def the_delta_backend_has_not_changed(client, journal, state) -> None:
+    """Which Delta implementation is underneath, asserted every cycle.
+
+    A soak that silently switched implementations partway through would be a
+    soak proving nothing about either, and it is one import away from doing so.
+    Asked of the RUNNING server rather than of this process, because they are
+    different processes and only one of them is the subject.
+    """
+    # The ROOT path, not one under /api/v1 — which the client prefixes by
+    # default, so the first version of this asked for /api/v1/health, got a
+    # 404, and returned without recording a check. An invariant that silently
+    # checks nothing is the exact defect this file exists to look for, written
+    # into the file that looks for it.
+    from tools.soak import harness
+
+    status, body = client.get(harness.BASE + "/health", auth=None)
+    backend = (body or {}).get("delta", {}).get("backend") \
+        if isinstance(body, dict) else None
+    if not journal.check("invariant", "the running server reports its Delta backend",
+                         status == 200 and backend is not None,
+                         "200 naming a backend", f"{status} {backend}"):
+        return
+    previous = state.get("delta_backend")
+    journal.check("invariant", "the Delta backend has not changed mid-run",
+                  previous is None or backend == previous,
+                  previous or backend, backend)
+    state["delta_backend"] = backend
+
+
 def the_server_is_still_up(server, journal) -> bool:
     alive = server.alive()
     journal.check("invariant", "the server process is still running", alive,

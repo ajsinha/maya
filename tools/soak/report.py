@@ -187,6 +187,7 @@ def render(rows: List[Dict[str, Any]]) -> str:
     w(f"| Background requests between cycles | {background:,} |")
     w(f"| Responses that were 500s | {len(server_errors)} |")
     w(f"| Commit under test | `{detail.get('commit', 'unknown')}` |")
+    w(f"| Delta backend | `{detail.get('delta_backend', 'the installed default')}` |")
     w(f"| Python | {detail.get('python', '—')} |")
     w("")
     if verdict == "PASSED":
