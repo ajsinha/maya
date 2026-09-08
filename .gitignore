@@ -139,3 +139,7 @@ ebitda.md
 fit-note.md
 q2.csv
 my-warrant.json
+
+# The soak run's scratch server and database. The JOURNAL is committed
+# (docs/soak/); the working state it was produced from is not.
+.soak/
