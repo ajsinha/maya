@@ -248,13 +248,32 @@ class TestPmmlWithoutAJvm:
 
 
 # ======================================================================= ONNX
+def _onnx_unavailable() -> bool:
+    """Whether these tests can run, checked against what they actually import.
+
+    Two different packages: `onnxruntime` EXECUTES a graph and is what MAYA
+    needs, and `onnx` AUTHORS one and is what these tests need to build a
+    fixture without carrying a binary file in the repository. Only the first is
+    a MAYA dependency.
+
+    The guard used to ask `OnnxRuntime().available()`, which is the first, while
+    the bodies imported the second — so on any machine with the runtime and not
+    the authoring library the tests did not skip, they ERRORED. That was every
+    CI job installing only `requirements.txt`, and no developer machine, which
+    is the combination that makes a defect invisible where it is looked at.
+    """
+    import importlib.util
+    return (OnnxRuntime().available() is not None
+            or importlib.util.find_spec("onnx") is None)
+
+
 class TestOnnx:
     def test_it_reports_whether_it_is_usable(self):
         assert OnnxRuntime().available() in (None,) or \
             "onnxruntime" in OnnxRuntime().available()
 
-    @pytest.mark.skipif(OnnxRuntime().available() is not None,
-                        reason="onnxruntime is not installed")
+    @pytest.mark.skipif(_onnx_unavailable(),
+                        reason="onnxruntime or onnx is not installed")
     def test_a_graph_scores(self, tmp_path):
         """A real ONNX graph, built here so the test does not need a fixture file."""
         from onnx import TensorProto, helper
@@ -281,8 +300,8 @@ class TestOnnx:
         # 4.0 x 0.5 + 8.0 x -0.25 = 0.0
         assert runtime.invoke(call)["score"] == pytest.approx(0.0, abs=1e-5)
 
-    @pytest.mark.skipif(OnnxRuntime().available() is not None,
-                        reason="onnxruntime is not installed")
+    @pytest.mark.skipif(_onnx_unavailable(),
+                        reason="onnxruntime or onnx is not installed")
     def test_an_input_the_graph_does_not_have_is_refused(self, tmp_path):
         from onnx import TensorProto, helper
         node = helper.make_node("Identity", ["features"], ["score"])

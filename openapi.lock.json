@@ -46,6 +46,15 @@
         ]
       }
     },
+    "/admin/logs": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/admin/principals": {
       "get": {
         "body": [],
@@ -787,6 +796,88 @@
         ]
       }
     },
+    "/api/v1/feature-views/{name}/source": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "put": {
+        "body": [
+          "credential_ref",
+          "format",
+          "kind!",
+          "locator!",
+          "options",
+          "statement"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/source/amend": {
+      "post": {
+        "body": [
+          "fields!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/source/preview": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/source/pull": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-views/{name}/source/retire": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/feature-views/{name}/versions": {
       "get": {
         "body": [],
@@ -1019,6 +1110,20 @@
         ]
       }
     },
+    "/api/v1/features/{name}/retire": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/features/{name}/seal": {
       "post": {
         "body": [
@@ -1132,6 +1237,20 @@
     "/api/v1/featuresets/{name}/resolved": {
       "get": {
         "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/featuresets/{name}/retire": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
         "parameters": [
           "path:name!"
         ],
@@ -1543,8 +1662,8 @@
       "get": {
         "body": [],
         "parameters": [
-          "query:semver!",
-          "query:urn!"
+          "query:semver",
+          "query:urn"
         ],
         "responses": [
           "200",
@@ -1574,6 +1693,60 @@
         ],
         "parameters": [
           "path:limitation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/logs": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:after",
+          "query:contains",
+          "query:level",
+          "query:limit",
+          "query:logger_name",
+          "query:principal",
+          "query:quiet",
+          "query:request_id"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/logs/download": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:contains",
+          "query:level",
+          "query:logger_name",
+          "query:principal",
+          "query:quiet",
+          "query:request_id"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/logs/stream": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:after",
+          "query:contains",
+          "query:level",
+          "query:logger_name",
+          "query:principal",
+          "query:quiet",
+          "query:request_id"
         ],
         "responses": [
           "200",
@@ -1808,6 +1981,7 @@
           "feature_count",
           "interpretable",
           "purpose_class!",
+          "review_note",
           "uses_alternative_data"
         ],
         "parameters": [
@@ -3129,6 +3303,19 @@
       }
     },
     "/api/v1/warrants": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:environment",
+          "query:live",
+          "query:model",
+          "query:principal"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
       "post": {
         "body": [
           "declared_use!",
@@ -3449,6 +3636,15 @@
         ]
       }
     },
+    "/limitations": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/login": {
       "get": {
         "body": [],
@@ -3580,6 +3776,19 @@
         "body": [],
         "parameters": [
           "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/model/{name}/specification": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:semver"
         ],
         "responses": [
           "200",
@@ -3752,6 +3961,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/warrants/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     }
