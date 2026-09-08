@@ -54,7 +54,7 @@ signature.
 |---|---|---|---|
 | ✅ | **Configuration** (`core/config/`) | **Complete** | YAML with git-ignored `.local` overlay, `${...}` resolution, typed accessors, source tracking, auto-reload, precedence CLI > env > files |
 | ✅ | **Domain algebra** (`core/domain/`) | **Complete** | `Para(Stoch)` kernels, derived trainability T0–T8, schema variance (L-12), contract algebra with refinement (L-7), probe-relative equivalence |
-| ✅ | **Persistence** (`db/`) | **Complete** | Two hand-written schemas, no migrations. SQLite default, PostgreSQL switchable by URL alone. Repositories are the only interface; no SQL above this package |
+| ✅ | **Persistence** (`db/`) | **Complete** | One typed schema (`db/schema/tables.py`), DDL generated per dialect, no migrations. SQLite default, PostgreSQL switchable by URL alone. Repositories are the only interface; no SQL above this package |
 | ✅ | **Evidence engine** (`core/evidence/`) | **Complete** | Append-only hash chain with tamper and deletion detection. Verification **re-derives** each node's content hash from its own fields rather than re-linking the stored one — re-linking proves the links are intact and says nothing about whether the thing linked is still what was recorded, so an edited payload left a chain that verified and a record that lied. The scale suite found it, and the unit test that should have was named for payload tampering while actually altering the stored hash: a test passing for a reason other than its name. Six semirings over one traversal; citation verification |
 | ✅ | **Risk tiering** (`core/risk/`) | **Complete** | Separate materiality and complexity lattices, monotone τ (L-4), Galois-adjoint control sets (L-5), derivation stored with every assessment |
 | ✅ | **Registry** (`core/registry/`) | **Complete** | Immutable versions, governed aliases gated on refinement and variance proofs *and* on the findings register, full move history |
@@ -237,7 +237,7 @@ not, and there is no CORS middleware anywhere, which a two-origin deployment cou
 without. So neither the process independence nor the API-only property is demonstrated — and principle
 E3 below is a target rather than a description.
 
-Also absent from the build: `migrations/` (there are none — two hand-written schemas), `seed/`,
+Also absent from the build: `migrations/` (there are none — one typed schema), `seed/`,
 `connectors/`, `workers/`, `deploy/`, and `maya-ext-*`. The tests are one flat package rather than
 `unit/ integration/ contract/ laws/ adversarial/`, and there is no `tests/laws/`.
 
@@ -411,7 +411,7 @@ driver.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 201 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 262 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 202 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 263 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
 | 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |

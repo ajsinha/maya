@@ -151,6 +151,108 @@ class TestItRefusesRatherThanGuesses:
         assert db.repair()["planned"] == []
 
 
+class TestAColumnOfTheWrongTypeIsSeen:
+    """The quietest version of this whole problem.
+
+    A column present under the right name and the wrong type passes every
+    name-based check. The same code writes a Python `bool` into a `BOOLEAN`
+    column and into an `INTEGER` one, SQLite stores 0/1 either way, and
+    PostgreSQL refuses the second — so a database that predates a type change
+    starts cleanly, works on the dialect somebody develops against, and fails
+    on the one they deploy to. That is the failure this codebase has already
+    had once.
+    """
+
+    @staticmethod
+    def _integer_where_boolean_belongs(tmp_path):
+        """The real `role` table, with ONE column reverted to how a database
+        that predates the typed schema would have it.
+
+        Built from the metadata rather than hand-written, so the only thing
+        this fixture differs by is the thing under test — a hand-written CREATE
+        drifts in three other ways and the test then passes or fails for the
+        wrong reason.
+        """
+        import sqlalchemy as sa
+
+        from db.schema.tables import METADATA
+
+        db = Database(f"sqlite:///{tmp_path}/maya.db")
+        db.execute("DROP TABLE role")
+        old = METADATA.tables["role"].to_metadata(sa.MetaData())
+        old.columns["built_in"].type = sa.Integer()
+        old.create(db.engine)
+        return db
+
+    def test_the_drift_report_names_it(self, tmp_path):
+        db = self._integer_where_boolean_belongs(tmp_path)
+        entries = db.drift()["role"]
+        assert any("built_in" in e and "integer" in e and "boolean" in e
+                   for e in entries), entries
+
+    def test_on_sqlite_it_is_reported_as_needing_no_action(self, tmp_path):
+        """Because it needs none, and a warning that overstates is one people
+        learn to scroll past. SQLite's affinities store and return a truth
+        value identically whichever of the two the column says."""
+        db = self._integer_where_boolean_belongs(tmp_path)
+        entry = next(e for e in db.drift()["role"] if "built_in" in e)
+        assert "no effect on SQLite" in entry
+        plan = db.repair()
+        assert not plan["types"], "nothing to run"
+        assert not plan["refused"], "and nothing for anybody to decide"
+        assert any(step["column"] == "built_in" for step in plan["noted"])
+        assert "needing no action here" in plan["detail"]
+
+    def test_and_it_genuinely_needs_none(self, tmp_path):
+        """Asserted by watching it, because this is the claim the wording of
+        the report rests on."""
+        from db.repositories import Repository
+
+        db = self._integer_where_boolean_belongs(tmp_path)
+
+        class Roles(Repository):
+            TABLE, JSON = "role", ("permissions",)
+
+        roles = Roles(db)
+        roles.add({"id": "r1", "name": "r", "description": "d",
+                   "permissions": [], "built_in": True,
+                   "created_at": 1.0, "created_by": "me"})
+        assert roles.one(name="r")["built_in"] is True
+        assert db.query_one("SELECT built_in FROM role")["built_in"] == 1
+        roles.set({"built_in": False}, name="r")
+        assert roles.one(name="r")["built_in"] is False
+
+    def test_on_postgres_it_is_an_alter_that_preserves_the_value(self):
+        """Where it does matter, it is repaired — with an explicit `USING`
+        rather than a hoped-for cast, because PostgreSQL will not cast integer
+        to boolean on its own. That refusal is the original defect."""
+        import sqlalchemy as sa
+
+        db = Database.__new__(Database)
+        db.dialect = "postgresql"
+        db.engine = sa.create_mock_engine("postgresql://", lambda *a, **k: None)
+        db._live_columns = lambda table: (
+            {"built_in": sa.Integer()} if table == "role" else {})
+        db.columns_of = lambda table: list(db._live_columns(table))
+        db.indexes_of = lambda table: []
+        db.table_exists = lambda table: table == "role"
+        db.query_one = lambda *a, **k: {"n": 0}
+
+        types = db.repair()["types"]
+        step = next(s for s in types if s["column"] == "built_in")
+        assert step["sql"] == ("ALTER TABLE role ALTER COLUMN built_in "
+                               "TYPE BOOLEAN USING (built_in <> 0)")
+        assert step["from"] == "integer" and step["to"] == "boolean"
+
+    def test_a_double_is_not_confused_with_an_integer(self, tmp_path):
+        """Compared by family, not by spelling: the same column is `DOUBLE`
+        here and `DOUBLE PRECISION` there, and SQLite reflects a declared
+        `DOUBLE` back as `FLOAT`. A check that flagged those would be a check
+        nobody could leave switched on."""
+        db = Database(f"sqlite:///{tmp_path}/maya.db")
+        assert not db.drift(), "a freshly created database has no type drift"
+
+
 class TestItDoesNotRunByItself:
     def test_starting_the_server_does_not_repair(self):
         """A process that alters the schema every time somebody starts it is
@@ -180,15 +282,34 @@ class TestItDoesNotRunByItself:
         assert "drift after" in inspect.getsource(run_maya_web._repair_schema)
 
 
-class TestTheDeclarationIsParsedWhole:
+class TestTheDeclarationIsCompiledForThisDialect:
     """`declared_schema()` returns column NAMES, which is all a drift check
-    needs. An ALTER has to reproduce the type, the default and the NOT NULL."""
+    needs. An ALTER has to reproduce the type, the default and the NOT NULL —
+    and reproduce them in the dialect actually in front of it."""
 
     def test_the_type_and_default_come_through(self, tmp_path):
         db = Database(f"sqlite:///{tmp_path}/maya.db")
         feature = db.declared_columns()["feature"]
-        assert feature["ephemeral"] == "ephemeral INTEGER NOT NULL DEFAULT 0"
-        assert feature["retired_at"] == "retired_at REAL"
+        assert feature["ephemeral"] == "ephemeral BOOLEAN DEFAULT 0 NOT NULL"
+        assert feature["retired_at"] == "retired_at DOUBLE"
+
+    def test_the_same_column_is_spelled_for_each_dialect(self, tmp_path):
+        """The reason this is compiled rather than read off a file: an ALTER
+        that spelled a type differently from the CREATE that would have made it
+        is a column that does not match its own schema."""
+        import sqlalchemy as sa
+
+        sqlite_db = Database(f"sqlite:///{tmp_path}/maya.db")
+        assert sqlite_db.declared_columns()["feature"]["created_at"] \
+            == "created_at DOUBLE NOT NULL"
+
+        # A mock engine: the DDL compiler is all this needs, and no PostgreSQL
+        # server has to exist for the spelling to be checkable.
+        postgres = Database.__new__(Database)
+        postgres.engine = sa.create_mock_engine("postgresql://",
+                                                lambda *a, **k: None)
+        assert postgres.declared_columns()["feature"]["created_at"] \
+            == "created_at DOUBLE PRECISION NOT NULL"
 
     def test_a_table_constraint_is_not_mistaken_for_a_column(self, tmp_path):
         db = Database(f"sqlite:///{tmp_path}/maya.db")
@@ -198,7 +319,7 @@ class TestTheDeclarationIsParsedWhole:
                                             "CHECK", "CONSTRAINT"}, table
 
     def test_every_declared_column_is_named_by_both_readers(self, tmp_path):
-        """The two parsers must agree, or a drift is reported that a repair
+        """The two readers must agree, or a drift is reported that a repair
         then cannot see."""
         db = Database(f"sqlite:///{tmp_path}/maya.db")
         names = db.declared_schema()
@@ -206,3 +327,51 @@ class TestTheDeclarationIsParsedWhole:
         assert set(names) == set(full)
         for table in names:
             assert set(names[table]) == set(full[table]), table
+
+
+class TestItClosesTheWholeDriftItReports:
+    """Uniqueness now lives in an index. A repair that added the columns and
+    left the indexes would leave a deployment believing it holds a constraint
+    it does not — which is worse than the drift, because the drift was at least
+    reported."""
+
+    def test_a_missing_index_is_planned(self, tmp_path):
+        db = Database(f"sqlite:///{tmp_path}/maya.db")
+        db.execute("DROP INDEX uq_principal_username")
+        plan = db.repair()
+        assert any(step["index"] == "uq_principal_username"
+                   for step in plan["indexes"])
+        assert "index(es) can be created" in plan["detail"]
+
+    def test_and_created(self, tmp_path):
+        db = Database(f"sqlite:///{tmp_path}/maya.db")
+        db.execute("DROP INDEX uq_principal_username")
+        assert db.drift(), "drifted to begin with"
+        db.repair(dry_run=False)
+        assert not db.drift()
+
+    def test_the_uniqueness_it_restores_actually_refuses(self, tmp_path):
+        """A constraint that exists in the catalogue and refuses nothing is the
+        shape of defect this codebase keeps finding."""
+        import sqlalchemy as sa
+
+        db = Database(f"sqlite:///{tmp_path}/maya.db")
+        db.execute("DROP INDEX uq_principal_username")
+        row = ("INSERT INTO principal (id, username, display_name, kind, "
+               "status, created_at) VALUES (:i, 'twice', 'x', 'person', "
+               "'active', 1.0)")
+        db.execute(row, {"i": "p1"})
+        db.execute(row, {"i": "p2"})       # permitted: the index is gone
+        assert db.query_one(
+            "SELECT COUNT(*) AS n FROM principal WHERE username='twice'")["n"] == 2
+
+        # With duplicates already there, the index cannot be created — and that
+        # is a finding about the DATA, reported rather than hidden.
+        db.repair(dry_run=False)
+        assert "principal" in db.drift(), "still missing, and still says so"
+
+        db.execute("DELETE FROM principal WHERE id='p2'")
+        db.repair(dry_run=False)
+        assert not db.drift()
+        with pytest.raises(sa.exc.IntegrityError):
+            db.execute(row, {"i": "p3"})

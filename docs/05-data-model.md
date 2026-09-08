@@ -21,13 +21,14 @@ The second rule follows from the first: **a schema small enough to read is a sch
 by reading it.** That is the reason there are no migrations, and it is why this document describes
 the schema that exists rather than a target.
 
-> **`db/schema/sqlite.sql` and `db/schema/postgres.sql` are authoritative.** They are hand-written,
-> they are the only definition, and they are applied idempotently with `CREATE TABLE IF NOT EXISTS`,
-> so starting against an existing database is a no-op. Where this document and those files disagree,
-> the files are right and this document is a defect.
+> **`db/schema/tables.py` is authoritative.** It is typed SQLAlchemy Core metadata — the only
+> definition — and the DDL for each dialect is generated from it and applied idempotently with
+> `CREATE TABLE IF NOT EXISTS`, so starting against an existing database is a no-op. The `.sql`
+> files beside it are rendered from it as reference and CI fails if they are stale. Where this
+> document and that module disagree, the module is right and this document is a defect.
 
 Six things a reader coming from an ordinary enterprise schema will look for and not find are in §1,
-each with the reason. §2 is the two dialects and the test that keeps them equal. §3 is what may be a
+each with the reason. §2 is the two dialects and how one declaration serves both. §3 is what may be a
 column and what must be a pointer. §4 is the forty-seven tables, grouped by the question each group
 answers. §7 is what the *design* targets and the build does not have, named rather than omitted.
 

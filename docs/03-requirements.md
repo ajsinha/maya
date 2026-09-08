@@ -844,7 +844,7 @@ at all.
 | NFR-USE-003 | Usability | Full keyboard navigation and bulk actions in the register grid | **Partial** — every table is searchable and sortable and every list is paged, with the cap **reported rather than applied silently** |
 | NFR-USE-004 | Usability | The system must never require the same fact to be entered twice | Design rule, not tested |
 | NFR-OPS-001 | Observability | Traces, metrics, structured logs, SLO dashboards, error budgets | **Partial** — one logger, one format, structured JSON offered rather than imposed, one access line per request at a level that follows the outcome. No traces, no metrics endpoint |
-| NFR-OPS-002 | Deployability | Containerised, IaC, blue/green, automated migrations with rollback | **Not built** — there are no migrations at all: two hand-written schemas |
+| NFR-OPS-002 | Deployability | Containerised, IaC, blue/green, automated migrations with rollback | **Not built** — there are no migrations at all: one typed schema, with `--repair-schema` to add what a deployed database lacks |
 | NFR-OPS-003 | Portability | Runs on any cloud or on-premises with object storage | **Partial** — SQLite by default, PostgreSQL by URL alone, everything vendored, no CDN, deployable air-gapped |
 | NFR-DATA-001 | Integrity | Governance writes ACID; Delta writes ACID; cross-store consistency by transactional outbox | **Partial** — both halves are ACID; there is no outbox |
 | NFR-DATA-002 | Integrity | Content-addressed artifacts, hash verified on read, corruption detected and alarmed | **Built** |
@@ -893,7 +893,7 @@ Grouped, with source. `A` = derived by MAYA, `H` = human-entered, `I` = from an 
 
 | Data class | Store | Why |
 |---|---|---|
-| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — two hand-written schemas, 50 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
+| Register, versions, lifecycle, findings, overlays, approvals, policy, entitlements, evidence chain | **SQLite by default, PostgreSQL by URL alone** — one typed schema, 50 tables, **no migrations** | Relational integrity, transactions, complex reads. The default has to work without an operator |
 | Feature values, snapshots, telemetry streams | **Delta** | Columnar scale, ACID, time travel, cheap retention |
 | Artifact bytes | **Content-addressed local store**, two-level fan-out, 8 GiB ceiling | A file's name is its own digest, so an artifact cannot be edited in place and deduplication is free |
 | Attachments | Content-addressed, re-hashed on read | What an approver accepted is what a reader fetches |

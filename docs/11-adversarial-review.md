@@ -273,7 +273,7 @@ today. Nothing does.
 
 `db/repositories.py::Repository` provides generic `set()` and `remove()` with no column whitelist, and
 `VersionRepository` overrides neither. There are no triggers, no `CHECK` constraints and no `FOREIGN KEY`
-constraints in either dialect — the schema files contain zero of each. What `db/schema/sqlite.sql` contains
+constraints in either dialect — the schema contains zero of each. What `db/schema/tables.py` contains
 is a comment: *"Versions are immutable. There is no UPDATE path other than status."* That is a description
 of current callers, written where a reader expects a constraint.
 
