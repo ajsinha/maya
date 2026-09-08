@@ -41,7 +41,6 @@ answers. §7 is what the *design* targets and the build does not have, named rat
 | **Foreign keys** | Referential integrity in two places is integrity that can disagree, and the version that gets believed is the one that produces the friendlier error. It also made the schema uncreatable as written: three reference cycles (finding **H-4**) needed `DEFERRABLE` constraints applied in a post-creation step, which is a migration tool wearing a schema's clothes | the repositories, which are the only interface to a table |
 | **`CHECK` constraints** | An enumeration is a domain fact, and a domain fact enforced by the database is one the domain layer cannot explain. A `CHECK` violation is an opaque `23514`; a refusal from `core/` names the value, the closed set and what to do | closed vocabularies in `core/`, and refusals that carry a remediation |
 | **Triggers** | Finding **C-3**: the obvious immutability rule, `DO INSTEAD NOTHING`, reports success while dropping the write — the worst available failure mode for an integrity control. A trigger that `RAISE`s is correct and is still enforcement a reviewer cannot see from the code | immutability as a refusal in `core/registry/`, and `L-2` asserting that a version's digest never moves |
-| **`BOOLEAN` columns** | This one is not a preference. Fourteen columns were declared `BOOLEAN` on the Postgres side while `db/repositories.py` coerced every boolean to `int` on the way in, and **PostgreSQL does not implicitly cast integer to boolean** — so every insert touching one of those tables failed and the whole dialect was unusable. Nothing raised, because nothing had ever run against Postgres | integer `0`/`1` in both dialects and in Delta, converted to a real `bool` at the repository boundary for thirteen named columns, and `tests/test_schema_discipline.py` refuses the word `BOOLEAN` anywhere |
 | **Migrations** | Expand/contract with a tested down-path is the right answer for a schema nobody can hold in their head. This one fits in two files | two hand-written files, and a diff |
 | **Views, partitions, an ORM, a separate audit database** | A view is a derivation that can go stale (**B7**). A partition is an operational answer to a volume problem the control plane does not have (**B2** moves the volume to Delta). An ORM puts a second model of the data beside the schema. A separate audit database is a second account of who did what (**B6**) | the evidence chain *is* the audit log |
 
@@ -56,23 +55,46 @@ That trade is accepted because the alternative was two layers that disagreed, an
 
 SQLite is the default and PostgreSQL is selected by URL alone. A row written by one must read
 correctly under the other, and that is a strong claim that was resting on whoever edited one file
-remembering to edit the other. It had already failed once.
+remembering to edit the other. It had already failed once: fourteen columns were declared `BOOLEAN`
+on the Postgres side while `db/repositories.py` coerced every boolean to `int` on the way in, and
+**PostgreSQL does not implicitly cast integer to boolean** — so every insert touching one of those
+tables failed and the whole dialect was unusable. Nothing raised, because nothing had ever run
+against Postgres.
 
-**One substitution, and it is the only one:** `REAL` in SQLite is `DOUBLE PRECISION` in Postgres
-(seventy-one columns). Everything else is identical — same table names, same column names, same
-order, same indexes.
+The response then was a rule — *no `BOOLEAN` column anywhere, truth as integer `0`/`1`* — and it
+fixed the symptom. **It was reversed on 2026-09-07**, because the cause was somewhere else: a
+column's type was written twice, in two hand-maintained files, and known to neither the driver nor
+the writing code; and the coercion that rule forced was itself a hand-kept list of column names,
+which covered fourteen of the twenty truth columns then in the schema and silently missed six.
+
+What replaces it is **one declaration**. `db/schema/tables.py` is the schema — typed SQLAlchemy Core
+metadata, fifty-one tables, one entry per column — and `db/schema/sqlite.sql` and `postgres.sql` are
+**generated from it** by `tools/ci/render_schema.py`. Editing them by hand is now the wrong move, and
+`--check` fails the build when they are stale. Truth values are `Boolean`, which compiles to
+`BOOLEAN` in both dialects, and the coercion list is *derived* from the metadata
+(`db/repositories._TRUTH`) rather than typed out — so a truth column added tomorrow is converted
+without anybody remembering to add it anywhere.
+
+**One substitution, and it is the only one:** `DOUBLE` in SQLite is `DOUBLE PRECISION` in Postgres
+(one hundred and twelve columns). Everything else is identical — same table names, same column names,
+same order, same indexes — which is now a consequence of there being one source, rather than a thing
+two files have to keep agreeing about.
 
 | Kind of value | Type | Why |
 |---|---|---|
 | identifiers, enumerations, and **JSON documents** | `TEXT` | JSON stays `TEXT` in both dialects deliberately. The application serialises and parses it, so **one parser reads both dialects** and no query depends on a dialect-specific operator. `jsonb` would buy indexing this schema does not need and cost portability it does |
-| counts, sequence numbers, truth values | `INTEGER` | truth values are `0`/`1` — see §1 |
-| timestamps and scores | `REAL` / `DOUBLE PRECISION` | epoch seconds, because SQLite has no native date type and the two dialects disagree about time zones. A single number cannot be ambiguous about which zone it is in |
+| counts and sequence numbers | `INTEGER` | a count is not a truth value even when it only ever holds `0` and `1`. `use_count`, `epoch` and `row_count` are quantities, and `test_a_count_is_not_a_truth_value` keeps them from drifting into `Boolean` |
+| truth values | `BOOLEAN` | twenty-one columns, the same word in both dialects, handed a real `bool` at the repository boundary and never an integer |
+| timestamps and scores | `DOUBLE` / `DOUBLE PRECISION` | epoch seconds, because SQLite has no native date type and the two dialects disagree about time zones. A single number cannot be ambiguous about which zone it is in |
 
-`tests/test_schema_discipline.py` holds three assertions over the two files: no `BOOLEAN` anywhere,
-the same `(table, column)` set in both, and an equivalent type for every shared column. It parses the
-DDL rather than the database, and it strips a trailing comment *before* the comma — because a
-commented column keeps its comma and reads as a different type from its twin, which is exactly the
-kind of near-miss a hand-written pair of files produces.
+`tests/test_schema_discipline.py` no longer greps the DDL for a forbidden word — with one source
+there is no second file to disagree, so the assertions moved up to the declaration. What it now holds:
+a `Boolean` reaches **both** dialects as `BOOLEAN` and drags no `CHECK` constraint in behind it; no
+count is declared as a truth value; the generated `.sql` still matches `tables.py`; one declaration
+produces the same shape in both dialects; a truth column round-trips as a `bool` and nothing else
+does; the derived `_TRUTH` set matches the declaration, including the six the old hand-kept list
+missed; uniqueness is declared as an `Index` and never inside a `CREATE TABLE`; and every timestamp
+column survives an epoch second at full `float64` precision, which `REAL` would not have.
 
 ### 2.1 Identifiers, timestamps, digests
 
@@ -308,8 +330,9 @@ data/delta/
 **Every feature row carries two clocks**, and a row missing either is refused at the write rather
 than two layers later during assembly, where it stops being fixable. Delta rather than a plain table
 for one reason that decides it: **its table versions are the transaction-time axis**, which is the
-mechanism behind `L-10`. There are **no `BOOLEAN` columns here either** — the rule is absolute across
-all three stores.
+mechanism behind `L-10`. The data plane types itself from the feature catalogue rather than from this
+schema — a feature declared `boolean` is an Arrow `bool` column, a `datetime` is an epoch `double` —
+and `db/delta_store.ARROW_FOR` is the whole of that mapping.
 
 [07 — Feature Platform](07-feature-platform.md) is the whole treatment.
 

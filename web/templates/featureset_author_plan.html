@@ -53,7 +53,7 @@
           <td class="small">{{ s.dtype }}</td>
           <td class="small">{{ s.view }} v{{ s.view_version }}</td>
           <td class="small"><code style="font-size:.72rem">{{ s.namespace }}</code></td>
-          <td class="small" data-sort="{{ s.delta_version }}">delta v{{ s.delta_version }}</td>
+          <td class="small" data-sort="{{ s.delta_version }}" title="{{ s.delta_version }}">{{ s.delta_version|pin }}</td>
           <td class="small">{{ s.certification }}</td></tr>
     {% endfor %}
     </tbody></table>
@@ -72,7 +72,7 @@
       <tr><td class="small">{{ plan.label.slot }}</td>
           <td class="small">{{ plan.label.feature }}</td>
           <td class="small"><code style="font-size:.72rem">{{ plan.label.namespace }}</code></td>
-          <td class="small">delta v{{ plan.label.delta_version }}</td></tr>
+          <td class="small" title="{{ plan.label.delta_version }}">{{ plan.label.delta_version|pin }}</td></tr>
     </tbody></table>
   <div class="card-body py-2 small text-muted border-top">
     A supervised set without a label is not one, so a version that declares a
@@ -83,7 +83,7 @@
 
 <div class="card mb-3"><div class="card-header">The pins, deduplicated &mdash; what an engine opens</div>
   <table class="table maya mb-0">
-    <thead><tr><th>Namespace</th><th>Delta version</th><th>Restated since</th></tr></thead>
+    <thead><tr><th>Namespace</th><th>Storage version</th><th>Restated since</th></tr></thead>
     <tbody>
     {% for pin in plan.pins %}
       <tr><td class="small"><code style="font-size:.72rem">{{ pin[0] }}</code></td>

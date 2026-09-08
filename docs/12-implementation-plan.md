@@ -177,7 +177,7 @@ would otherwise rot:
 |---|---|
 | `test_logging_discipline` | no exception is ignored: every `except` logs, none is bare, none is only `pass` |
 | `test_refusal_discipline` | every coded refusal maps to a status that says who must act, and no code is mapped twice |
-| `test_schema_discipline` | the two dialects agree column for column; no `BOOLEAN` anywhere |
+| `test_schema_discipline` | one typed declaration renders to both dialects identically; the checked-in `.sql` is not stale; a truth value is a `Boolean` and a count is not |
 | `test_size_discipline` | no source file over 1,500 lines |
 | `test_documentation_counts` | every number claimed in prose is recounted from the code |
 | `test_deck_geometry` | no slide has overlapping or escaping content |
@@ -403,7 +403,7 @@ floor, and the dialect-sensitive files a second time against real **PostgreSQL**
 That last one is the gate this section did not think to ask for, and it earned its place immediately.
 `db/schema/postgres.sql` is maintained column-for-column beside the SQLite one and had **never been
 executed** — adversarial review had already found fourteen `BOOLEAN` columns in it that no insert could
-have succeeded against. Running it found something else: the suite itself was not dialect-portable. Every
+have succeeded against — the finding that eventually made the two files generated rather than written. Running it found something else: the suite itself was not dialect-portable. Every
 test had been getting a fresh database from `sqlite:///:memory:` without anybody deciding it should, so
 against one shared PostgreSQL database thirteen assertions failed on accumulated evidence sequences —
 `assert 467 == 1`. Isolation is now the `db` fixture's job, stated there, rather than an accident of the
@@ -411,7 +411,7 @@ driver.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 205 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 266 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 207 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 268 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
 | 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |

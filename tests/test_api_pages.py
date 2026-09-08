@@ -231,7 +231,15 @@ class TestFeatureAndFeaturesetPages:
         _login(registered)
         page = registered.get("/featureset/sb_core").text
         assert "features/borrower_id/sb_credit/v1" in page
-        assert "delta v" in page, "the page shows the pin, not only the path"
+        # The pin, whichever format writes it. "delta v0" is Delta's spelling
+        # and an Iceberg estate pins a snapshot id, so asserting the word
+        # `delta` would be asserting the storage choice rather than the
+        # property — that a namespace on this page is shown WITH its pin,
+        # because a namespace without one is a path and a path is mutable.
+        from db.table_backend import chosen
+
+        assert f"{chosen()} " in page, \
+            "the page shows the pin, not only the path"
 
     def test_a_feature_view_page_offers_the_bulk_formats(self, registered, people):
         dev = people["d.raman"]

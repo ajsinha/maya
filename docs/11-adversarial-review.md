@@ -148,17 +148,27 @@ reads as though all three were.
 
 ### 3.7 A rule held on one side of a boundary
 
-`tests/test_schema_discipline.py` enforces the rule that broke the PostgreSQL dialect once already: **no
-`BOOLEAN` columns, in either dialect**. It reads the two `.sql` files and it is thorough about them —
-identical columns, equivalent types, no bulk data. It does not read `db/repositories.py`, where
-`_BOOL_COLUMNS` is the hand-maintained list of which integer columns get coerced from a Python `bool` on
-the way in.
+**Closed, by deleting the rule rather than by extending the enforcer** — 2026-09-07. Recorded here
+because the shape of the finding was right and the fix it implied was not.
 
-So the invariant has two halves and one enforcer. Today `warrant.revoked` is on the list and
-`warrant_profile.retired` and `risk_appetite.retired` are not — both are written as literal `0` and `1`, so
-nothing is broken. The moment somebody writes `retired=True`, SQLite stores `1` and PostgreSQL raises,
-which is precisely the failure the rule exists to prevent, arriving through the half of the rule nothing
-holds.
+The finding: `tests/test_schema_discipline.py` enforced the rule that broke the PostgreSQL dialect once
+already — **no `BOOLEAN` columns, in either dialect** — by reading the two `.sql` files, thoroughly:
+identical columns, equivalent types, no bulk data. It did not read `db/repositories.py`, where
+`_BOOL_COLUMNS` was the hand-maintained list of which integer columns get coerced from a Python `bool` on
+the way in. So the invariant had two halves and one enforcer. `warrant.revoked` was on the list;
+`warrant_profile.retired` and `risk_appetite.retired` were not, and both were written as literal `0` and
+`1`, so nothing was broken. The moment somebody wrote `retired=True`, SQLite would store `1` and
+PostgreSQL would raise — precisely the failure the rule existed to prevent, arriving through the half of
+the rule nothing held.
+
+The obvious repair is to point the enforcer at the second half too. That would have worked, and it would
+have preserved the thing actually generating the risk: **a column's type written twice**, once in each
+`.sql` file, and a third time as a name in a Python list — with nothing tying the three together. The
+repair taken instead was to remove the second and third copies. `db/schema/tables.py` is now the only
+declaration, the `.sql` files are generated from it, and `_TRUTH` is *derived* from the same metadata, so
+the list cannot disagree with the schema because it is no longer a list anybody writes. Truth values are
+`Boolean` again. The count that made the case: the hand-kept list covered fourteen of the twenty truth
+columns then in the schema, and nothing had noticed the other six.
 
 ---
 
@@ -355,7 +365,7 @@ than a report:
 | **Deck** | Slide geometry, because a deck that overflows its frame is a deck nobody can show |
 | **Suite** | Four shards, each fanned across the runner's cores, over the full 3,070 tests |
 | **Coverage** | Combined across the shards against a floor of 90% — a floor, not a target, set to catch a release that deletes tests |
-| **Postgres** | The same suite against the other dialect, because a `BOOLEAN` column once broke it silently |
+| **Postgres** | The same suite against the other dialect, because a `BOOLEAN` column once broke it silently, and one declaration rendering to two dialects is a claim only the other dialect can check |
 
 A spec-diff gate (`tools/ci/spec_lock.py`) refuses an unannounced change to the public API: the OpenAPI
 document is locked, and a diff has to arrive in the same commit that made it.
@@ -512,7 +522,7 @@ everywhere.
 |---|---|
 | **H-1** · Cache stampede on alias move | **Moot, and the mitigation that shipped is the least important one.** There is no descriptor cache at all — no Redis anywhere in the repository, and every `resolve()` re-reads model, grant and version. So there is nothing to stampede, and also nothing meeting the latency budget the finding was defending. The one control built is **TTL jitter** (`WarrantSigner.jittered`, ±20%), which is the part that matters only once a cache exists. Pre-warm, single-flight and stale-while-revalidate are not built |
 | **H-2** · The warrant plane reads the control-plane schema | **Open.** There is no `warrant_projection` table. `WarrantService.resolve` reads normalised tables one at a time — model, grant, alias, version, findings, and optionally a parameter set — five or more round trips per resolution. Since there is one process and one database, the deployment independence the finding was protecting does not exist either, so the coupling costs nothing *today* and forecloses exactly what it was raised to protect |
-| **H-3** · Immutable evidence versus erasure | **Satisfied in the law, not in the mechanism.** `contains_personal_data` exists as an `INTEGER` — correctly, since a `BOOLEAN` broke the Postgres dialect once and the rule is now absolute — and the append path stores an empty payload and hashes what it stored, so the node verifies against itself. There is no `payload_uri`, no per-subject key and no crypto-shredding. There is also no `CHECK` constraint, because the schema has none at all. See [§3.4](#34-a-mechanism-named-but-not-built) |
+| **H-3** · Immutable evidence versus erasure | **Satisfied in the law, not in the mechanism.** `contains_personal_data` exists as a `Boolean` in `db/schema/tables.py`, rendered to both dialects from that one declaration — and the append path stores an empty payload and hashes what it stored, so the node verifies against itself. There is no `payload_uri`, no per-subject key and no crypto-shredding. There is also no `CHECK` constraint, because the schema has none at all. See [§3.4](#34-a-mechanism-named-but-not-built) |
 | **H-4** · Circular and forward foreign-key references | **Moot for an unintended reason.** There are no foreign-key constraints in either dialect, so there are no cycles and no referential integrity. See [§4.5](#45-immutability-has-no-enforcer) |
 | **H-5** · Row-level security is bypassable by the table owner | **Not built.** Scope is enforced in Python. See [§4.6](#46-scope-is-a-python-call-somebody-has-to-remember) |
 | **H-6** · PIT verification by sampling is presented as proof | **Closed, and the restatement is the part worth keeping.** Three layers exist. Layer 1 rejects rather than samples: `core/features/pit.py::static_check` refuses an assembly missing either bound, and `TrainingSetBuilder` raises `AssemblyRejected` on it. Layer 2 is stratified — strata over label period, entity and *label value*, because a leak confined to a rare high-value segment is where uniform sampling fails and where the damage is greatest — and it recomputes through `DeltaStore.as_of` rather than through the join path, so agreement means something. Layer 3 is adversarial injection in the suite. **The honest qualification the finding demanded is still owed on layer 1:** `static_check` reads two flags off the request rather than analysing a query, and the bound is structurally guaranteed because the assembler builds the join itself — so what it refuses is a caller opting *out*, which is a real refusal and a narrower one than "static analysis of the assembly query" implies |

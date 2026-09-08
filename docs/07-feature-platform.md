@@ -447,6 +447,89 @@ pointed at one rather than appearing to work.
 
 ---
 
+## 9.4 Delta or Iceberg, and why the pin survives the choice
+
+§9.3 is about two *implementations* of one format. This is about two formats.
+
+MAYA asks a table format for six things — open it, say which version is
+current, read at a past version, read the whole thing, stream it in batches,
+write a new version — and Delta and Iceberg both have all six. Nothing above
+`db/` asks for a seventh, which is what makes the substitution possible at all.
+
+**Why offer both.** A bank whose lakehouse is already Iceberg should not have to
+hold its feature data in a second format its Trino, Athena or Snowflake cannot
+read; keeping a second copy is how two answers to the same question start
+existing. A bank with no preference should not have to think about it, so
+**Delta stays the default** — and not by inertia: Delta is what the four-hour
+soak, every worked example in this documentation, and the suite in its ordinary
+configuration have actually run against.
+
+    MAYA_TABLE_FORMAT=iceberg          # environment, wins
+    data.table_format: iceberg         # or configuration
+
+`db/table_backend.py` decides once, at start-up, and `build()` is the only
+place that names either store. The `data.iceberg.catalog` block points at Glue,
+Nessie, Polaris or any REST catalog a bank already runs; left empty, MAYA keeps
+a SQLite catalog inside the warehouse directory, so a laptop needs no external
+service and Linux and Windows behave the same.
+
+**Set it once, at the start.** Switching format on an estate that already holds
+data **does not migrate it**. The old tables are in the old format, the new
+store does not find them, and a feature view whose data is invisible reads as
+*empty* rather than failing — which is the worst available way to learn this.
+So start-up logs it at `WARNING` when Iceberg is in use, naming the root and how
+to go back, rather than leaving it to be discovered by a materialisation that
+returns nothing.
+
+### What actually differs, and what it cost
+
+| | Delta | Iceberg |
+|---|---|---|
+| A version | `0, 1, 2, …` | a **snapshot id**: 19 digits, int64 |
+| Metadata encoding | JSON | Avro manifests |
+| A catalog | none — a directory is the table | a catalog names the table |
+| An all-null column | stored as `null` type | **refused** — v2 has no such type |
+
+Two of those reached the register rather than staying inside `db/`.
+
+`delta_version` is `BigInteger` in `feature_view_version` and
+`dataset_snapshot`. An Iceberg snapshot id does not fit in an `INTEGER` on
+PostgreSQL, and the failure mode of getting this wrong is a pin that cannot be
+written on the dialect a bank actually deploys — so the column is widened for
+both formats rather than conditionally. The column keeps its name: it holds
+*the version this read is pinned at*, the concept the platform is built on, and
+renaming it would have churned the schema, the API and eleven pages to record a
+storage detail. `db/table_backend.describe()` is what answers *which format is
+this*, for `/health` and for a soak report.
+
+The all-null column is the one that forced a real change. A column with no
+values has no type Arrow can infer, and Iceberg v2 refuses to store one — so
+the declared dtype now travels with the write. `core/features/views.py` and
+`core/features/assembly.py` pass the catalogue's dtypes down, keyed by name and
+by slot respectively, and `db/delta_store.typed_arrow` applies them to exactly
+the columns that have nothing to infer from. Delta accepted the untyped case
+and gained the same correctness for free: an empty numeric feature is now a
+`double` column under both formats, rather than a column whose type depends on
+whether anybody happened to have written a row yet.
+
+**The pin survives all of it.** A featureset binding carries `(namespace,
+version)` whichever format wrote it; the point-in-time read is the *same
+function* under both — `tests/test_iceberg_store.py` asserts it is the same
+object and not a copy, because two copies of a bitemporal rule is the defect
+this document exists to prevent. What is *not* claimed: the two formats are
+interchangeable for an estate's existing data, and nothing converts between
+them.
+
+**How it is held equal.** Thirty-two Iceberg-specific tests cover the store,
+the identifier mapping (including Windows path separators), the catalog, and
+the widened columns. But those are not the evidence. The evidence is that
+**CI runs the whole suite a second time with `MAYA_TABLE_FORMAT=iceberg`**, and
+the count must match the ordinary run — the same argument §9.3 makes for the
+fallback writer, for the same reason: a suite written for a component proves the
+component, and the platform's own suite is what proves the substitution.
+
+---
+
 ## 10. What is not built, by name
 
 A gap recorded in one place is a gap somebody has to go looking for, so it is recorded here as well

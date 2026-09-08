@@ -277,6 +277,46 @@ If the anchor root is genuinely lost, do not reconstruct one from the database.
 An anchor derived from the thing it checks proves nothing. Start a new root and
 record that verification before that date rests on the chain alone.
 
+## Where the feature data lives
+
+Governance state is in the database. Feature values, dataset snapshots,
+telemetry and monitoring observations are not — they run to hundreds of
+millions of rows, and they live in a **versioned table format** under
+`data/delta/`, because a table version *is* the transaction-time clock a
+point-in-time read pins to.
+
+Which format is a choice, and there are two:
+
+| | |
+|---|---|
+| **Delta Lake** | The default. It is what the soak run and every worked example ran against |
+| **Apache Iceberg** | For a bank whose lakehouse is already Iceberg, so Trino, Athena or Snowflake can read the feature store directly rather than keeping a second copy of it |
+
+Set it with `MAYA_TABLE_FORMAT=iceberg`, or `data.table_format` in the
+configuration file; the environment wins. On Iceberg, the catalog defaults to a
+SQLite file inside the warehouse directory, so a laptop needs nothing running
+alongside it — `data.iceberg.catalog` points at Glue, Nessie, Polaris or a REST
+catalog where a bank already operates one.
+
+**Choose it once, before there is data.** Switching the format on an estate that
+already holds feature data **does not move that data**. The old tables are in
+the old format, the new store does not see them, and a feature view whose data
+it cannot see reads as **empty rather than failing** — which is the worst way
+to find this out. Start-up logs a warning naming the format and the root
+whenever Iceberg is in use; the live log will show it. Nothing in MAYA converts
+between the two.
+
+One thing you may notice either way: a Delta version is `0, 1, 2, …` and an
+Iceberg version is a nineteen-digit snapshot id. Both appear in the interface as
+the pin a featureset binding carries, and both mean the same thing — *this read
+is fixed to these bytes*.
+
+There is a second and unrelated choice underneath Delta: whether the compiled
+`deltalake` package or MAYA's own pure-Python `maya_deltalake` does the writing,
+for estates that forbid binary wheels. It is chosen automatically, and both
+write the real Delta format, so a table written by either opens in Spark and
+Databricks. `MAYA_DELTA_BACKEND` overrides it if you need to pin one.
+
 ## What is not here
 
 Administration in MAYA is currently *reading* the platform's configuration.

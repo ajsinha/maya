@@ -182,14 +182,13 @@ class FeatureTransfer:
                 columns: Optional[Sequence[str]] = None,
                 limit: Optional[int] = None) -> Iterator[Any]:
         """Arrow record batches, straight off the files. Nothing whole."""
-        from db.delta_backend import DeltaTable
-
         if not self.delta.exists(table):
             return
-        dt = DeltaTable(self.delta.path(table))
-        if delta_version is not None:
-            dt.load_as_version(delta_version)
-        dataset = dt.to_pyarrow_dataset()
+        # Through the STORE, not around it. This opened a `DeltaTable` itself,
+        # which meant the one layer that is supposed to know the table format
+        # had two other modules reaching past it — and a second format would
+        # have had to be added in three places or work in one.
+        dataset = self.delta.dataset(table, delta_version)
         wanted = list(columns) if columns else None
         if wanted:
             present = set(dataset.schema.names)
@@ -223,13 +222,9 @@ class FeatureTransfer:
         """
         if not columns:
             return
-        from db.delta_backend import DeltaTable
         if not self.delta.exists(table):
             return
-        dt = DeltaTable(self.delta.path(table))
-        if delta_version is not None:
-            dt.load_as_version(delta_version)
-        present = set(dt.to_pyarrow_dataset().schema.names)
+        present = self.delta.columns_of(table, delta_version)
         if missing := [c for c in columns if c not in present]:
             raise FeatureError(
                 f"the table does not hold {', '.join(missing)}; asking for a "

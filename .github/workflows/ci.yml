@@ -348,3 +348,41 @@ jobs:
           from db.delta_backend import BACKEND
           assert BACKEND == 'maya_deltalake', f'ran on {BACKEND}, not the fallback'
           print('conformance run used', BACKEND)"
+
+  # ---------------------------------------------------------------------------
+  # Iceberg, run as an estate that chose it will run it.
+  #
+  # Two table formats can differ in a way nothing notices until somebody asks a
+  # question of data written by the other, and the differences here are real:
+  # a version is a 19-digit snapshot id rather than 0, 1, 2; an all-null column
+  # has no type Iceberg v2 will store; the catalog is a thing Delta does not
+  # have.
+  #
+  # The conformance evidence is not the Iceberg-specific tests — it is that the
+  # WHOLE suite passes with the format switched, at the same count as the
+  # ordinary run.
+  iceberg:
+    name: The whole suite, on Iceberg
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt pyiceberg
+      - name: Every test, with the format set to Iceberg
+        env:
+          MAYA_TABLE_FORMAT: iceberg
+        run: pytest -q -n auto --dist loadfile
+      - name: And prove Iceberg is what ran
+        env:
+          MAYA_TABLE_FORMAT: iceberg
+        run: |
+          # A job that silently ran on Delta would prove nothing, and it is one
+          # environment variable away from being exactly that.
+          python -c "
+          from db.table_backend import chosen
+          assert chosen() == 'iceberg', f'ran on {chosen()}, not Iceberg'
+          print('conformance run used', chosen())"

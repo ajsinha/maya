@@ -159,8 +159,8 @@ placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ c
             <td class="small" data-sort="{{ n.row_count }}">{{ "{:,}".format(n.row_count) }}</td>
             <td class="small mono" style="font-size:.72rem">{{ n.valid_time_column }}
               <div>{{ n.ingest_time_column }}</div></td>
-            <td class="small">pinned at v{{ n.delta_version }}
-              <div class="text-muted">now v{{ n.current_delta_version }}</div></td>
+            <td class="small" title="{{ n.delta_version }}">pinned at {{ n.delta_version|pin }}
+              <div class="text-muted">now {{ n.current_delta_version|pin }}</div></td>
             <td class="small">
               {% if n.restated %}<span class="evidence-bad">restated</span>
                 <div class="text-muted">{{ n.detail }}</div>

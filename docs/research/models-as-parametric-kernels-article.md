@@ -582,6 +582,18 @@ conservative control; it's one that teaches whoever reads the report to discount
 for the population it was built to examine. Stating the operator once, and requiring both routes to be it, is
 what removes the possibility.
 
+**A change of storage isn't licence for a second implementation.** The operator is defined over records and
+says nothing about the medium holding them. But a platform that later gains a second storage backend acquires,
+at that moment, the opportunity to write the predicate a second time — and the local pressure is toward doing
+exactly that, because the new backend arrives with its own idioms while the existing function is written
+against the old one. The reference implementation now supports two table formats, and the point-in-time read
+is the *same function object* under both. That's asserted as **identity**, not as agreement of results, which
+is the stronger claim in the way that matters: two implementations agreeing on the cases somebody thought to
+test is entirely compatible with their disagreeing on the case that shows up in production — and that
+disagreement would be invisible, because both sides would be returning a correct-looking answer. The general
+form is the moral of the section above: the number of implementations of a relation is a design variable, and
+every value above one is a standing decision to permit disagreement.
+
 ### Featuresets: schema and filling
 
 The operator reads records; something has to say which records.

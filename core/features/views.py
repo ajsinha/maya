@@ -89,9 +89,11 @@ class ViewManager:
                 "— an earlier materialisation wrote Delta and did not record "
                 "it. Overwriting: nothing can be pinned to a version that was "
                 "never registered.", target)
-            delta_version = self.delta.write(target, rows, mode="overwrite")
+            delta_version = self.delta.write(target, rows, mode="overwrite",
+                                             dtypes=self._dtypes(view))
         else:
-            delta_version = self.delta.write(target, rows)
+            delta_version = self.delta.write(target, rows,
+                                             dtypes=self._dtypes(view))
         names = feature_names or sorted({k for r in rows for k in r} - set(RESERVED))
         row = {"feature_view_id": view["id"], "version": number, "features": names,
                "delta_version": delta_version, "valid_time_column": VALID_TIME,
@@ -155,6 +157,22 @@ class ViewManager:
         return self.view_versions.many(feature_view_id=self.require(view_name)["id"])
 
     # ------------------------------------------------------------- namespacing
+    def _dtypes(self, view: Dict[str, Any]) -> Dict[str, str]:
+        """Each feature's declared dtype, for the columns that arrive empty.
+
+        Arrow infers a type from the values, and cannot when every value in a
+        column is null — which happens legitimately: a feature with nothing in
+        this window, or a restatement that withdraws a figure. MAYA knows the
+        answer and simply was not passing it, so Delta stored a null-typed
+        column that reads back as nothing and Iceberg refused the write.
+        """
+        out: Dict[str, str] = {}
+        for name in (view.get("features") or []):
+            feature = self.catalogue.get(name)
+            if feature and feature.get("dtype"):
+                out[name] = feature["dtype"]
+        return out
+
     @staticmethod
     def _path(view: Dict[str, Any], version: int) -> str:
         return f"{view['delta_table']}/v{version}"
