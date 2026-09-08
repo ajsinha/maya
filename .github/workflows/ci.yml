@@ -103,8 +103,13 @@ jobs:
       # What is actually in the image, in a format a bank's own tooling reads.
       - name: Software bill of materials
         run: |
-          pip install cyclonedx-bom
-          cyclonedx-py environment --output-format json --outfile sbom.json
+          # `--output-file`, not `--outfile`. cyclonedx-bom 4 accepted the
+          # short spelling and 5 renamed it, so this step had been exiting 2 on
+          # an unrecognised argument -- and because the Hygiene job runs the
+          # linter, the type check, pip-audit and the secret scan BEFORE it,
+          # all four of those were passing into a job that failed anyway.
+          # `cyclonedx-bom` is already in requirements-dev.txt, installed above.
+          cyclonedx-py environment --output-format json --output-file sbom.json
       - uses: actions/upload-artifact@v4
         with:
           name: sbom
