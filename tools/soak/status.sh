@@ -6,7 +6,7 @@ alive=$(ps aux | grep -c "[r]un.py --hours")
 .venv/bin/python - "$alive" <<'PY'
 import json, sys
 try:
-    rows = [json.loads(l) for l in open("docs/soak/soak-journal.jsonl")]
+    rows = [json.loads(l) for l in open(".soak/run/journal.jsonl")]
 except Exception as exc:
     print("no journal:", exc); raise SystemExit
 checks = [r for r in rows if r.get("kind") == "check"]
