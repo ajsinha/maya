@@ -107,6 +107,14 @@ FAMILY_NOTES = {
     "batch": "The governance batch, run on demand. It is idempotent by design, "
              "so running it every fifth cycle tests that claim rather than "
              "costing anything.",
+    "sources": "A feature view filled by PULLING from a file rather than by "
+               "upload: declared with a column mapping, previewed, pulled, and "
+               "pulled again. The interesting property is not that one pull "
+               "works — it is that the hundredth still produces a NEW "
+               "immutable version rather than amending the last, on a Delta "
+               "store that has been growing all afternoon. The refusals are "
+               "driven too, because a source that may only read is a claim "
+               "until somebody tries to make it write.",
     "details": "The pages that answer *what is this thing*, asked about a "
                "feature and a model this cycle actually created. Here because "
                "two of them were unreachable and nothing noticed: a detail "

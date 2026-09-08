@@ -396,6 +396,98 @@ def detail_pages(client, journal, cycle: int, model: Dict[str, Any]) -> None:
                       "200 with the maths renderer", status)
 
 
+def feature_sources(client, journal, cycle: int, workdir: str) -> None:
+    """Declare a source, preview it, pull it, and pull it again.
+
+    Driven every cycle against a file this run writes, because the interesting
+    property is not that one pull works — it is that the hundredth pull still
+    produces a NEW immutable version rather than amending the last one, on a
+    Delta store that has been growing all afternoon.
+    """
+    import pathlib
+    import time as clock
+
+    family = "sources"
+    view = f"soak_src_{cycle:05d}"
+    feature = f"soak_src_dscr_{cycle:05d}"
+    status, _ = client.post("/features", {
+        "name": feature, "entity": "borrower", "dtype": "numeric",
+        "description": "pulled from a file", "owner": "person/soak.dev"},
+        auth=creds("soak.dev"))
+    if not journal.check(family, "define a feature to be filled from a source",
+                         status == 201, 201, status):
+        return
+    status, _ = client.post("/feature-views", {
+        "name": view, "entity": "borrower", "owner": "person/soak.dev",
+        "features": [feature], "description": "filled by pulling"},
+        auth=creds("soak.dev"))
+    if not journal.check(family, "create the view it fills",
+                         status == 201, 201, status):
+        return
+
+    # The source's own column names, not MAYA's — the ordinary case, and the
+    # reason a mapping exists at all.
+    now = clock.time()
+    path = pathlib.Path(workdir) / f"source-{cycle:05d}.csv"
+    path.write_text("customer_number,asof,loaded_at," + feature + "\n" + "\n".join(
+        f"b{i},{now - 86400 * i},{now},{1.1 + i / 10:.2f}" for i in range(6)))
+    mapping = {"columns": {"customer_number": "entity_id", "asof": "event_ts",
+                           "loaded_at": "ingest_ts"}}
+    status, body = client.put(f"/feature-views/{view}/source", {
+        "kind": "file", "locator": str(path), "options": mapping,
+        "credential_ref": "soak-reader"}, auth=creds("soak.dev"))
+    if not journal.check(family, "declare a file source with a column mapping",
+                         status == 201, 201, f"{status} {json.dumps(body)[:200]}"):
+        return
+    journal.check(family, "the format is inferred from the suffix",
+                  (body or {}).get("format") == "csv", "csv",
+                  (body or {}).get("format"))
+
+    status, body = client.get(f"/feature-views/{view}/source/preview",
+                              auth=creds("soak.dev"))
+    journal.check(family, "preview reads it and reports it usable",
+                  status == 200 and (body or {}).get("usable") is True,
+                  "usable", f"{status} {(body or {}).get('detail', '')[:120]}")
+
+    status, body = client.post(f"/feature-views/{view}/source/pull", {},
+                               auth=creds("soak.dev"))
+    first = (body or {}).get("version")
+    journal.check(family, "a pull produces a version",
+                  status == 201 and (body or {}).get("rows") == 6,
+                  "201 with 6 rows", f"{status} {json.dumps(body)[:200]}")
+
+    status, body = client.post(f"/feature-views/{view}/source/pull", {},
+                               auth=creds("soak.dev"))
+    journal.check(family, "a second pull is a NEW version, not an update",
+                  status == 201 and (body or {}).get("version") == (first or 0) + 1,
+                  f"version {(first or 0) + 1}", (body or {}).get("version"))
+    journal.check(family, "and says the bytes were unchanged",
+                  (body or {}).get("unchanged") is True, True,
+                  (body or {}).get("unchanged"))
+
+    # The refusals. Every one of these is a control that would be invisible
+    # unless somebody tried it.
+    status, body = client.put(f"/feature-views/{view}/source", {
+        "kind": "sql", "locator": "sqlite:///nowhere.db",
+        "statement": "DROP TABLE risk"}, auth=creds("soak.dev"))
+    journal.check(family, "a statement that writes is refused",
+                  status == 409, 409, f"{status} {refusal_code(body)}")
+
+    status, body = client.put(f"/feature-views/{view}/source", {
+        "kind": "file", "locator": str(path), "options": mapping},
+        auth=creds("soak.dev"))
+    journal.check(family, "a second source on one view is refused",
+                  status == 409, 409, f"{status} {refusal_code(body)}")
+
+    status, body = client.get(f"/feature-views/{view}/source",
+                              auth=creds("soak.audit"))
+    stored = json.dumps((body or {}).get("source") or {})
+    journal.check(family, "no credential is stored, only its name",
+                  "soak-reader" in stored and "password" not in stored.lower(),
+                  "the name and no secret", "held" if "soak-reader" in stored
+                  else "the name is missing")
+
+
 def evidence_and_chain(client, journal) -> Dict[str, Any]:
     """Read the chain. The invariant checks verify it; this reads it as a user."""
     family = "evidence"

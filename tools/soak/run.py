@@ -213,6 +213,7 @@ def main() -> int:
             model = scenarios.governed_lifecycle(client, journal, cycle)
             scenarios.refusals_that_must_hold(client, journal, cycle, model)
             scenarios.features_and_shapes(client, journal, cycle)
+            scenarios.feature_sources(client, journal, cycle, str(work))
             concurrent_evidence(client, journal, cycle, args.writers)
             scenarios.detail_pages(client, journal, cycle, model)
             scenarios.platform_surfaces(client, journal)
