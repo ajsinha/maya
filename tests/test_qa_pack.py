@@ -166,6 +166,56 @@ class TestEveryExampleNamesSomethingReal:
         assert not hasattr(CLIENT.models, "a_method_nobody_wrote")
 
 
+class TestTheSdkDocumentsEverythingItHas:
+    """The README's table listed seven subjects while the client had
+    twenty-five, which is worse than listing none: a reader concludes the SDK
+    cannot do the other eighteen and writes raw calls for things it already
+    had.
+
+    That is not hypothetical — a shipped tutorial fell back to `client.call()`
+    for methods the SDK defined, and ten governance subjects were once written
+    and never attached. The failure is always the same shape: the capability
+    exists and nothing tells anybody.
+    """
+
+    SDK_README = ROOT / "sdk" / "python" / "README.md"
+
+    @staticmethod
+    def _subjects():
+        return sorted(name for name in vars(CLIENT)
+                      if not name.startswith("_")
+                      and name not in ("transport", "api", "last_request_id"))
+
+    def test_every_subject_is_in_the_table(self):
+        table = self.SDK_README.read_text(encoding="utf-8")
+        missing = [s for s in self._subjects() if f"`maya.{s}`" not in table]
+        assert missing == [], (
+            "the SDK has these and its README does not mention them: "
+            + ", ".join(missing))
+
+    def test_the_table_names_nothing_that_does_not_exist(self):
+        """The other direction. A table naming a subject the client dropped
+        sends a reader looking for something that is gone."""
+        import re
+
+        table = self.SDK_README.read_text(encoding="utf-8")
+        named = set(re.findall(r"`maya\.([a-z_]+)`", table))
+        real = set(self._subjects())
+        # `whoami`, `health`, `verify_evidence` and `call` are methods on the
+        # client rather than subjects, and are listed as such.
+        methods = {"whoami", "health", "verify_evidence", "call"}
+        phantom = sorted(named - real - methods)
+        assert phantom == [], (
+            "the README names these and the client does not have them: "
+            + ", ".join(phantom))
+
+    def test_the_check_would_notice_a_new_subject(self):
+        """A guard on the guard: if the client grew a subject tomorrow, the
+        first test must fail rather than pass vacuously."""
+        assert len(self._subjects()) > 20
+        assert "principals" in self._subjects()
+
+
 class TestTheSetupScriptIsCrossPlatform:
     """`qa-setup.sh` needs bash and curl. A Windows tester has neither, and the
     QA pack is given to people outside the organisation."""
