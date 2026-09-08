@@ -53,11 +53,48 @@
                  {% if feature.protected_basis %}&middot; protected basis{% endif %}
                  &middot; proxy risk {{ feature.proxy_risk }}</dd></div>
           <div><dt style="width:9rem">Lifetime</dt>
-               <dd>{{ feature.lifetime.detail }}</dd></div>
+               <dd>{{ feature.lifetime.detail }}
+                 {% if feature.expires_at %}
+                   &middot; expires {{ feature.expires_at|when }}
+                   ({{ feature.expires_at|ago }})
+                 {% endif %}</dd></div>
+          {# Everything below was in the register and on no screen. A platform
+             that records when a feature was sealed, by whom and why, and then
+             cannot show it, has the fact and not the answer. #}
+          <div><dt style="width:9rem">Declared shape</dt>
+               <dd class="mono">{{ feature.shape if feature.shape else 'scalar' }}
+                 <span class="text-muted" style="font-family:var(--sans)">
+                   &mdash; dtype {{ feature.dtype }}</span></dd></div>
+          {% if feature.defaults %}
+          <div><dt style="width:9rem">Defaults</dt>
+               <dd class="mono">{{ feature.defaults }}</dd></div>
+          {% endif %}
+          {% if feature.operations %}
+          <div><dt style="width:9rem">Operations</dt>
+               <dd class="mono">{{ feature.operations|join(', ') }}</dd></div>
+          {% endif %}
+          <div><dt style="width:9rem">Created</dt>
+               <dd>{{ feature.created_at|when }}
+                 <span class="text-muted">({{ feature.created_at|ago }})</span>
+                 by {{ feature.created_by }}</dd></div>
           {% if feature.sealed %}
           <div><dt style="width:9rem">Sealed</dt>
-               <dd>final; it can still be composed from &mdash; that is what
-                 sealing is for</dd></div>
+               <dd>{{ feature.sealed_at|when }}
+                 <span class="text-muted">({{ feature.sealed_at|ago }})</span>
+                 by {{ feature.sealed_by }}
+                 <div class="text-muted">{{ feature.seal_note or
+                   'no note was given' }}</div>
+                 <div class="text-muted">Final. It can still be composed FROM
+                   &mdash; that is what sealing is for.</div></dd></div>
+          {% endif %}
+          {% if feature.retired_at %}
+          <div><dt style="width:9rem">Retired</dt>
+               <dd><span class="evidence-bad">withdrawn</span>
+                 {{ feature.retired_at|when }}
+                 <span class="text-muted">({{ feature.retired_at|ago }})</span>
+                 by {{ feature.retired_by }}
+                 <div class="text-muted">{{ feature.retire_reason or
+                   'no reason was given' }}</div></dd></div>
           {% endif %}
         </dl>
         {% if feature.drift %}

@@ -48,6 +48,78 @@ def parse() -> argparse.Namespace:
     return p.parse_args()
 
 
+class BackgroundLoad:
+    """Steady traffic between cycles, asserting nothing.
+
+    The check budget is capped at three thousand, and if every request had to
+    be a check the server would be idle for thirteen minutes out of every
+    fourteen — which paces the ASSERTIONS across six hours without ever
+    putting the platform under load. The cap is on tests, not on requests.
+
+    So this drives continuous reads and a trickle of writes through the whole
+    rest window and records no checks at all. What it produces is the
+    conditions the invariants are then asserted under: a register that grows,
+    a connection pool in constant use, a log ring that keeps turning over, an
+    evidence chain being appended to while it is read. `nothing_returned_a_500`
+    covers this traffic too, so a fault in it is still caught — as an
+    invariant, which is where it belongs.
+    """
+
+    #: Read paths, hit in rotation. Cheap, and between them they touch the
+    #: registry, the authorisation layer, the evidence chain, the warrant
+    #: grants and the log ring.
+    PATHS = ("/models", "/features", "/featuresets", "/warrants",
+             "/evidence/chain?limit=20", "/policies", "/me", "/roles",
+             "/references?kind=model&id=maya://model/soak.pd.00001",
+             "/logs?limit=50", "/scheduler", "/grammar", "/version-approval-quorum")
+
+    def __init__(self, client, journal, base: str, threads: int = 3):
+        self.client = client
+        self.journal = journal
+        self.base = base
+        self.threads = threads
+        self.stop = threading.Event()
+        self.calls = 0
+        self.lock = threading.Lock()
+        self.workers: list = []
+
+    def _loop(self, index: int) -> None:
+        who = ["soak.audit", "soak.mrm", "soak.ops"][index % 3]
+        auth = scenarios.creds(who)
+        n = index
+        while not self.stop.is_set():
+            path = self.PATHS[n % len(self.PATHS)]
+            n += 1
+            try:
+                self.client.get(path, auth=auth)
+                if n % 7 == 0:
+                    # A screen as well as an endpoint: the templates render on
+                    # every request and are a real share of the work.
+                    self.client.get(self.base + "/dashboard", auth=auth)
+            except Exception as exc:
+                self.journal.event("background_error",
+                                   error=f"{type(exc).__name__}: {exc}")
+            with self.lock:
+                self.calls += 1
+            # Paced rather than flat out: a soak is sustained load, not a
+            # benchmark, and saturating one core would measure the machine.
+            self.stop.wait(0.35)
+
+    def start(self) -> None:
+        self.stop.clear()
+        self.workers = [threading.Thread(target=self._loop, args=(i,),
+                                         daemon=True)
+                        for i in range(self.threads)]
+        for worker in self.workers:
+            worker.start()
+
+    def pause(self) -> None:
+        self.stop.set()
+        for worker in self.workers:
+            worker.join(timeout=5)
+        self.workers = []
+
+
 def concurrent_evidence(client, journal, cycle: int, writers: int) -> None:
     """Several principals writing at once, on purpose.
 
@@ -118,6 +190,7 @@ def main() -> int:
                   "ready", "ready")
 
     scenarios.bootstrap(client, journal)
+    load = BackgroundLoad(client, journal, base)
     state: dict = {}
     deadline = time.time() + args.hours * 3600.0
     cycle = 0
@@ -177,11 +250,20 @@ def main() -> int:
                 break
             # Slept in slices so the run can still notice the clock and a dead
             # server rather than committing to a long sleep it cannot leave.
+            # The rest window is where the load lives. The cycle's own
+            # assertions run against a quiet server so a check never races
+            # traffic it did not expect; everything between them runs against
+            # a busy one, which is the condition the invariants are for.
             end_of_rest = time.time() + rest
+            if rest > 5:
+                load.start()
             while time.time() < min(end_of_rest, deadline):
                 time.sleep(min(15.0, max(0.5, end_of_rest - time.time())))
                 if not server.alive():
                     break
+            load.pause()
+            journal.event("load_window", cycle=cycle, seconds=round(rest, 1),
+                          background_calls=load.calls, total_calls=client.calls)
     except KeyboardInterrupt:
         journal.event("run_interrupted")
     except Exception as exc:                       # the run itself failing
@@ -191,8 +273,13 @@ def main() -> int:
         journal.check("harness", "the soak harness itself did not fail", False,
                       "no harness error", f"{type(exc).__name__}: {exc}")
 
+    try:
+        load.pause()
+    except Exception as exc:                # never started, or already stopped
+        journal.event("load_stop_failed", error=f"{type(exc).__name__}: {exc}")
     journal.event("run_finished", cycles=cycle, checks=journal.checks,
                   failures=journal.failures, calls=client.calls,
+                  background_calls=getattr(load, "calls", 0),
                   server_errors=len(client.server_errors),
                   elapsed=round(time.time() - journal.started, 1))
     server.stop()
