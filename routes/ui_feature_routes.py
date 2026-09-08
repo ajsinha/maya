@@ -836,7 +836,7 @@ def _row_layout(feature: Dict[str, Any]) -> Dict[str, Any]:
     # The cells, in the order a row stores them. Row-major, which is the order
     # the first axis's component names run in — a curve whose tenors came back
     # in a different order would be a different curve.
-    cells: List[Tuple[str, str]] = []
+    cells: List[Tuple[str, Optional[str]]] = []
     def walk(prefix: List[int], axis: int) -> None:
         if axis == len(dims):
             index = "".join(f"[{i}]" for i in prefix)

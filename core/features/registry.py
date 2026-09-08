@@ -24,6 +24,7 @@ from core.features.common import FeatureError
 from core.features.contracts import ContractBinder
 from core.features.derived import DerivedFeatures
 from core.features.sets import FeaturesetRegistry
+from core.features.sources import SourceRegistry
 from core.features.transfer import FeatureTransfer
 from core.features.views import ViewManager
 from db import (ContractRepository, DeltaStore, DerivedFeatureRepository,
@@ -40,7 +41,8 @@ class FeatureRegistry:
                  snapshots: SnapshotRepository, delta: DeltaStore, evidence: EvidenceEngine,
                  derived: Optional[DerivedFeatureRepository] = None,
                  sets: Optional[FeaturesetRepository] = None,
-                 set_versions: Optional[FeaturesetVersionRepository] = None):
+                 set_versions: Optional[FeaturesetVersionRepository] = None,
+                 sources=None, credentials=None):
         self.catalogue = FeatureCatalogue(features, evidence)
         self.views = ViewManager(views, view_versions, self.catalogue, delta, evidence)
         self.contracts = ContractBinder(contracts, view_versions, self.views, evidence)
@@ -61,6 +63,12 @@ class FeatureRegistry:
         # Feature VALUES are the one thing here that is not small, so they move
         # through a layer that never materialises a dataset whole.
         self.transfer = FeatureTransfer(delta, self.views, self.sets)
+        # Where values come from when they are not uploaded. Optional so a
+        # caller that only wants the catalogue is not made to supply one, and
+        # so a deployment that forbids outbound connections can leave it off
+        # entirely rather than configure it into uselessness.
+        self.sources = (SourceRegistry(sources, self.views, evidence, credentials)
+                        if sources is not None else None)
 
     # -------------------------------------------------------------- catalogue
     def define(self, *a, **kw) -> Dict[str, Any]:

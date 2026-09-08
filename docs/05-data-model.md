@@ -11,7 +11,7 @@ Implements the structures of [00 — Mathematical Foundations](00-mathematical-f
 
 **Everything in this database is here because it could not be derived.**
 
-That is the whole design rule, and it is why the schema is forty-seven tables rather than two hundred.
+That is the whole design rule, and it is why the schema is fifty-one tables rather than two hundred.
 A tier is stored *with its derivation* because the facts it was computed from have since moved. A
 board pack is stored because a committee minute referring to "the March pack" needs the March pack.
 Nothing else that can be computed is a column, because a stored derivation is one that can go stale
@@ -29,7 +29,7 @@ the schema that exists rather than a target.
 
 Six things a reader coming from an ordinary enterprise schema will look for and not find are in §1,
 each with the reason. §2 is the two dialects and how one declaration serves both. §3 is what may be a
-column and what must be a pointer. §4 is the forty-seven tables, grouped by the question each group
+column and what must be a pointer. §4 is the fifty-one tables, grouped by the question each group
 answers. §7 is what the *design* targets and the build does not have, named rather than omitted.
 
 ---
@@ -117,7 +117,7 @@ Past the cap it is a file, and a file has an artifact store.
 
 ---
 
-## 4. The forty-seven tables
+## 4. The fifty-one tables
 
 Grouped by the question each group answers. Every table is `id TEXT PRIMARY KEY`, no foreign keys,
 JSON in `TEXT`, `REAL` epoch times. There are thirty-eight indexes and twenty-one `UNIQUE`
@@ -363,7 +363,8 @@ The last two are the whole migration strategy: **two files and a diff.** `CREATE
 EXISTS` makes application idempotent, so a new table appears on the next start and nothing else
 moves. A new *column* on an existing table is the case this does not cover — `IF NOT EXISTS` does not
 add columns to a table that already exists — and the honest statement is that adding one to a
-populated database is a manual `ALTER` in both dialects, which is acceptable at forty-seven tables and
+populated database is `run_maya_web.py --repair-schema`, which issues the `ALTER` the shipped schema
+implies; it is acceptable at fifty-one tables and
 would not be at two hundred.
 
 ---

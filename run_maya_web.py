@@ -17,11 +17,12 @@ the public WarrantService — the same interface an external engine consumes.
 from __future__ import annotations
 
 import logging
+import json
 import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -89,7 +90,8 @@ from db import (ServingAttestationRepository,
                 AttestationRepository, BreachRepository, CapabilityRepository,
                 ContractRepository, Database, DebtRepository, DeltaPaths,
                 DeltaStore, DocumentRepository, EvidenceCheckpointRepository, EvidenceRepository, ModelEdgeRepository,
-                FeatureRepository, FeatureViewRepository,
+                FeatureRepository, FeatureSourceRepository,
+                FeatureViewRepository,
                 FeatureViewVersionRepository, FindingActionRepository,
                 FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
@@ -305,7 +307,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                FeatureViewVersionRepository(db), ContractRepository(db),
                                SnapshotRepository(db), DeltaStore(delta.root), evidence,
                                DerivedFeatureRepository(db), FeaturesetRepository(db),
-                               FeaturesetVersionRepository(db))
+                               FeaturesetVersionRepository(db),
+                               sources=FeatureSourceRepository(db),
+                               credentials=_credential_resolver(cfg))
 
     # Assigned rather than injected: the warrant service is built before the
     # feature registry because a warrant is resolvable without features, but a
@@ -574,6 +578,51 @@ def _session_secret(cfg) -> str:
             "(or MAYA_SESSION_SECRET) before this instance is reachable by "
             "anybody else.")
     return secret
+
+
+def _credential_resolver(cfg: PropertiesConfigurator):
+    """Turn a credential NAME into the keyword arguments a connector needs.
+
+    A feature source names a credential; it never holds one. This is what turns
+    that name into something usable, from `sources.credentials.<name>` in the
+    configuration or from the environment — so a warehouse password lives where
+    the deployment already keeps its secrets and not in a register that is
+    meant to be handed to an auditor.
+
+    An unknown name resolves to nothing rather than raising: the connector then
+    tries the ambient credentials, which is right for the common case of an
+    instance running with an instance profile or a local `~/.aws`.
+    """
+    def resolve(name: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not name:
+            return None
+        configured = cfg.get(f"sources.credentials.{name}", None)
+        if isinstance(configured, dict):
+            return configured
+        # Environment fallback: MAYA_SOURCE_<NAME> holding a JSON object. One
+        # variable per credential rather than one per field, because a
+        # connector's arguments differ by kind and enumerating them here would
+        # be this file knowing what a warehouse driver wants.
+        raw = os.environ.get(f"MAYA_SOURCE_{name.upper().replace('-', '_')}")
+        if not raw:
+            logger.warning(
+                "a feature source names the credential '%s' and nothing in "
+                "this deployment defines it. The connector will fall back to "
+                "ambient credentials, which may be right — set "
+                "sources.credentials.%s, or MAYA_SOURCE_%s, to be explicit.",
+                name, name, name.upper().replace("-", "_"))
+            return None
+        try:
+            parsed = json.loads(raw)
+        except ValueError as exc:
+            swallowed(logger, exc, f"read the credential '{name}'",
+                      detail="the environment variable is not a JSON object; "
+                             "the connector falls back to ambient credentials",
+                      level=logging.ERROR)
+            return None
+        return parsed if isinstance(parsed, dict) else None
+
+    return resolve
 
 
 def _when(epoch: Any, absent: str = "—") -> str:

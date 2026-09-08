@@ -1435,6 +1435,62 @@ ROLE = Table(
 )
 
 
+# ------------------------------------------------------------- feature sources
+# Where a feature view's values come FROM, when they are not uploaded.
+#
+# A source is PULLED, never read through. MAYA fetches from the SQL query, the
+# file or the object store, and writes what it got into its own Delta table as
+# a new version — so integrity, versioning and the two clocks stay MAYA's.
+# Serving a model straight off somebody's warehouse table would give away every
+# guarantee this platform exists to make: a table that has been overwritten
+# cannot answer "what was knowable as of March", and a training set built from
+# a live query is not reproducible.
+#
+# No secret is stored here. `credential_ref` NAMES a credential the deployment
+# has configured; resolving it is the connector's job, and a register that held
+# a warehouse password would be a register nobody could export.
+FEATURE_SOURCE = Table(
+    "feature_source", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("view_name", Text, nullable=False),
+    # sql | file | s3 | gcs — what to talk to, which decides how to read it.
+    Column("kind", Text, nullable=False),
+    # The connection URL, the path, or the s3://bucket/key. Never a secret.
+    Column("locator", Text, nullable=False),
+    # For a SQL source: the statement. Read-only by construction — the
+    # connector refuses anything that is not a SELECT, because a "source" that
+    # can UPDATE is not a source.
+    Column("statement", Text, nullable=False, server_default=text("''")),
+    # csv | jsonl | parquet | arrow, for a file or object source.
+    Column("format", Text, nullable=False, server_default=text("''")),
+    # Column mapping, CSV delimiter, region, and anything else a connector
+    # needs. JSON as text, like every other document in this schema.
+    Column("options", Text, nullable=False, server_default=text("'{}'")),
+    # The NAME of a credential the deployment configured, not the credential.
+    Column("credential_ref", Text),
+    Column("enabled", Boolean, nullable=False, server_default=text("1")),
+    # What the last pull actually did. Kept on the row so the screen can say
+    # "last pulled, how many rows, and whether the bytes were the same" without
+    # walking the evidence chain for it.
+    Column("last_pulled_at", Double),
+    Column("last_pull_rows", Integer),
+    Column("last_pull_digest", Text),
+    Column("last_pull_detail", Text, nullable=False, server_default=text("''")),
+    Column("last_pull_version", Integer),
+    Column("created_by", Text, nullable=False),
+    Column("created_at", Double, nullable=False),
+    Column("retired_at", Double),
+    Column("retired_by", Text),
+    Column("retire_reason", Text),
+    # One live source per view. A view filled from two places at once is a view
+    # whose provenance is a question rather than a record — declare a second
+    # view instead. As an INDEX and not a UNIQUE clause, so it reaches a
+    # database that already exists.
+    Index("uq_feature_source_view", "view_name", unique=True),
+    Index("ix_feature_source_kind", "kind"),
+)
+
+
 #: Sorted, so a reader can find one and a diff stays legible.
 TABLES = tuple(sorted(METADATA.tables))
 
@@ -1461,6 +1517,7 @@ __all__ = [
     "FEATURESET",
     "FEATURESET_VERSION",
     "FEATURE_CONTRACT",
+    "FEATURE_SOURCE",
     "FEATURE_VIEW",
     "FEATURE_VIEW_VERSION",
     "FINDING",

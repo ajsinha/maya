@@ -9,7 +9,9 @@ from typing import Any, Dict, List, Optional
 
 
 from fastapi import Request
+from pydantic import Field
 
+from core.features.common import FeatureError
 from routes.base import Body, Routes
 
 
@@ -72,6 +74,37 @@ class TrainingSetIn(Body):
     transaction_time_bound: bool = True
 
 
+class SourceIn(Body):
+    """Where a feature view's values come from."""
+
+    kind: str = Field(description="sql, file, s3 or gcs")
+    locator: str = Field(description="a connection URL, a path, or an s3:// URI")
+    statement: str = Field(
+        default="", description="for a SQL source: the SELECT that produces "
+                                "the rows. Anything that is not a read is "
+                                "refused before it is stored")
+    format: str = Field(
+        default="", description="csv, jsonl, parquet or arrow. Inferred from "
+                                "the locator's suffix when it has one")
+    options: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="column mapping under `columns`, plus whatever the "
+                    "connector needs — a CSV `delimiter`, an S3 `region`")
+    credential_ref: Optional[str] = Field(
+        default=None, description="the NAME of a credential this deployment "
+                                  "has configured. Never the credential")
+
+
+class SourceAmendIn(Body):
+    fields: Dict[str, Any] = Field(
+        description="locator, statement, format, options, credential_ref "
+                    "or enabled")
+
+
+class RetireSourceIn(Body):
+    reason: str
+
+
 class FeatureRoutes(Routes):
     def register(self) -> None:
         f = self.ctx["features"]
@@ -101,6 +134,22 @@ class FeatureRoutes(Routes):
             self.authorise(request, "feature:certify")
             return self.guard(lambda: f.certify(name, level))
 
+        def _sources():
+            """The source registry, or a refusal naming why there is not one.
+
+            Sources are optional: a deployment that forbids outbound
+            connections leaves them off rather than configuring them into
+            uselessness. Refusing HERE, once, means every route says the same
+            thing instead of five of them raising AttributeError.
+            """
+            if f.sources is None:
+                raise FeatureError(
+                    "this instance does not read feature values from external "
+                    "sources",
+                    remediation="upload the values, or enable sources in the "
+                                "deployment's configuration")
+            return f.sources
+
         @self.app.get(f"{self.api}/feature-views", tags=["features"])
         def list_views(request: Request):
             self.authorise(request, "feature:read")
@@ -119,6 +168,74 @@ class FeatureRoutes(Routes):
         def materialise(request: Request, name: str, body: MaterialiseIn):
             self.authorise(request, "feature:materialise")
             return self.guard(lambda: f.materialise(name, body.rows))
+
+        # ------------------------------------------------ where values come from
+        #
+        # A source is PULLED, never read through. MAYA fetches and writes what
+        # it got into its own Delta as a new version, so integrity, versioning
+        # and the two clocks stay MAYA's. Serving a model off somebody's
+        # warehouse table would give away point-in-time correctness, because a
+        # table overwritten since March cannot say what was knowable in March —
+        # it will answer something, which is worse than refusing.
+
+        @self.app.get(f"{self.api}/feature-views/{{name}}/source", tags=["features"])
+        def read_source(request: Request, name: str):
+            """Where this view reads from, and what its last pull did."""
+            self.authorise(request, "feature:read")
+            return self.guard(lambda: {"source": _sources().get(name)})
+
+        @self.app.put(f"{self.api}/feature-views/{{name}}/source",
+                      status_code=201, tags=["features"])
+        def declare_source(request: Request, name: str, body: SourceIn):
+            """Declare where a view's values come from. Does not pull.
+
+            Declaring and pulling are separate acts: one says where the data
+            lives and is a decision somebody signs for, the other moves bytes
+            and happens on a schedule.
+            """
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: _sources().declare(
+                name, body.kind, body.locator, statement=body.statement,
+                fmt=body.format, options=body.options,
+                credential_ref=body.credential_ref, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/feature-views/{{name}}/source/amend",
+                       tags=["features"])
+        def amend_source(request: Request, name: str, body: SourceAmendIn):
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: _sources().amend(
+                name, body.fields, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/feature-views/{{name}}/source/retire",
+                       tags=["features"])
+        def retire_source(request: Request, name: str, body: RetireSourceIn):
+            """Stop reading from it. The versions it produced stand."""
+            who = self.authorise(request, "feature:define")
+            return self.guard(lambda: _sources().retire(
+                name, body.reason, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/feature-views/{{name}}/source/preview",
+                      tags=["features"])
+        def preview_source(request: Request, name: str, limit: int = 20):
+            """Read a few rows and say what came back. Writes NOTHING.
+
+            The only way to find out that the source calls the clock `asof`
+            without first producing a version that says so.
+            """
+            self.authorise(request, "feature:read")
+            return self.guard(lambda: _sources().preview(name, limit=limit))
+
+        @self.app.post(f"{self.api}/feature-views/{{name}}/source/pull",
+                       status_code=201, tags=["features"])
+        def pull_source(request: Request, name: str):
+            """Fetch everything the source has, as a NEW version.
+
+            A version, not an update: the previous one keeps serving exactly
+            what it served, so a warrant pinned to it does not change meaning
+            because somebody refreshed.
+            """
+            who = self.authorise(request, "feature:materialise")
+            return self.guard(lambda: _sources().pull(name, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/feature-views/{{name}}/versions", tags=["features"])
         def versions(request: Request, name: str):
