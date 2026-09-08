@@ -1180,6 +1180,26 @@ You can also paste an id from a response header:
 curl -s -D- -u $AUTH $API/models -o /dev/null | grep -i x-request-id
 ```
 
+### Who currently holds authority to run what
+
+Not part of the log, but the other thing a tester reaches for and could not
+get before: the estate-wide list of standing warrant grants.
+
+```bash
+# every grant you may see, soonest to lapse first
+curl -s -u $AUTH "$API/warrants" | jq '.warrants[] | {model_urn, principal, environment, lapses_in_days, revoked}'
+
+# only what is actually in force
+curl -s -u $AUTH "$API/warrants?live=true" | jq .count
+
+# one model, one environment, one principal
+curl -s -u $AUTH "$API/warrants?model=maya://model/qa.pd.scorecard&environment=prod"
+```
+
+The screen is **Manage → Who may run what** (`/warrants/estate`), and it reads
+the same call — so if the two ever disagree about who may run what, that is
+worth reporting.
+
 ### The controls
 
 | Control | What it does |

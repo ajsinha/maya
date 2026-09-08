@@ -369,6 +369,7 @@ is not a model store of last resort.
 | `GET` | `/grammar`, `/grammar/schema` | auth | The four vocabularies; the generated JSON Schema |
 | `POST` | `/grammar/validate` | auth | Check a document before you sign anything. Reports **every** problem, not the first |
 | `GET` | `/fibres`, `/fibres/{trainability_class}` | auth | The fibration (`L-15`): for each of the nine trainability classes, the evidence it needs, the lifecycle it may occupy, the monitor kinds that can answer anything about it, and the documents that compile for it — plus, in prose, what conceptual soundness rests on, what outcomes analysis *is*, and what monitoring answers. A class with no fibre is refused `no_fibre` (422) rather than returned empty, because an empty fibre is what the law forbids |
+| `GET` | `/warrants` | `warrant:read` | Every standing grant you may see, soonest to lapse first, each carrying `model_urn`, `lapsed` and `lapses_in_days`. Filters: `model`, `environment`, `principal`, `live=true`. Revoked grants are listed by default — a withdrawn authority is part of the record of who could once do what |
 | `POST` | `/warrants` | `warrant:issue` | Issue a standing entitlement: `urn, principal, declared_use` + `environment`, `flavour` |
 | `POST` | `/resolve?verb=` | `warrant:resolve` | Mint a signed, expiring warrant. The hot path. Resolving for another principal needs `warrant:issue` |
 | `POST` | `/fit-warrants` | `warrant:issue` | A warrant to *fit*: `urn, principal, featureset, featureset_version, window, as_of`. Enforces L-W10 |

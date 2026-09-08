@@ -9,6 +9,8 @@ as one CONSUMER of the same endpoints an external engine uses.
 """
 from __future__ import annotations
 
+import time
+
 from typing import Any, Dict
 
 from fastapi import Request
@@ -126,6 +128,61 @@ class WarrantRoutes(Routes):
                 return {"captive_engine": "not enabled",
                         "detail": "this instance issues warrants and runs nothing"}
             return {"captive_engine": "enabled", **engine.isolation()}
+
+        @self.app.get(f"{self.api}/warrants", tags=["warrants"])
+        def standing(request: Request, model: str = "", environment: str = "",
+                     principal: str = "", live: bool = False):
+            """Who currently holds authority to run what, and until when.
+
+            This existed as a screen and not as an endpoint, which is the wrong
+            way round on a platform whose stated rule is that a screen is a
+            client of the same API. `POST /api/v1/warrants` issues one, and a
+            `GET` on the same path answered **405** — so the estate-wide
+            question a day-to-day administrator asks most often could be seen
+            in a browser and not read by a script, and nothing that watches
+            this platform could tell you what was about to lapse.
+
+            Ordered soonest-to-lapse rather than by model, because the reason
+            to read this list is to find what is about to stop working, or what
+            should have stopped and has not. Revoked grants sort last and are
+            still listed: a withdrawn authority is part of the record of who
+            could once do what, and dropping it from the default view would
+            make the list answer a narrower question than it appears to.
+
+            Scoped like every other listing. A grant says who may run a model,
+            so somebody the API refuses that model to does not see its grants —
+            filtered by `visible()` rather than by a check on each row, which
+            is how a listing and a detail page come to disagree.
+            """
+            who = self.principal(request)
+            self.ctx["authz"].authorise(who, "warrant:read")
+            readable = {m["urn"] for m in
+                        self.ctx["authz"].visible(who, registry.list())}
+            now = time.time()
+            rows = []
+            for grant in warrants.every_grant():
+                if grant.get("model_urn") not in readable:
+                    continue
+                if model and grant.get("model_urn") != model \
+                        and grant.get("model_name") != model:
+                    continue
+                if environment and grant.get("environment") != environment:
+                    continue
+                if principal and grant.get("principal") != principal:
+                    continue
+                expires = grant.get("expires_at")
+                grant["lapsed"] = bool(expires and expires <= now)
+                grant["lapses_in_days"] = (round((expires - now) / 86400.0, 1)
+                                           if expires else None)
+                if live and (grant["lapsed"] or grant.get("revoked")):
+                    continue
+                rows.append(grant)
+            return {"warrants": rows, "count": len(rows),
+                    # The number the caller most often wants next, said once
+                    # here rather than derived differently by each of them.
+                    "live": sum(1 for r in rows
+                                if not r["lapsed"] and not r.get("revoked")),
+                    "epoch": warrants.epoch, "as_at": now}
 
         @self.app.post(f"{self.api}/warrants", status_code=201, tags=["warrants"])
         def issue(request: Request, body: IssueIn):
