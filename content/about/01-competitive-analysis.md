@@ -93,6 +93,16 @@ joins, and that is genuine prior art for what MAYA calls a featureset version.
 What none of them has is an *order* — a relation you can compute with, that
 answers substitutability, admissibility and refinement as one question.
 
+**And every one of them connects where MAYA copies.** A feature store that binds
+a view to a warehouse table serves whatever that table holds at read time. That
+is the right trade for a serving system and the wrong one for a governance
+record: a table overwritten since March cannot say what was knowable in March,
+and the read does not fail — it returns the restated number and says nothing.
+MAYA *pulls*. A SQL query, a file or an object store is read once,
+bitemporalised, and written into storage MAYA controls as an immutable versioned
+snapshot; models read the snapshot. It costs a copy, and it is the only way the
+point-in-time guarantee survives contact with somebody else's warehouse.
+
 **The semantic layers have an algebra and no time.** dbt MetricFlow, Cube,
 Malloy and LookML have real composition semantics, and MetricFlow's measure /
 dimension / entity split is the right decomposition. None of them is bitemporal,

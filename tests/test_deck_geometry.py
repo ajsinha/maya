@@ -39,13 +39,16 @@ DECKS = [
     # Renamed and restructured: the deck is not only a system design, it is
     # the philosophy, the foundations, the concepts and the worked examples
     # as well — five parts, twenty-six chapters.
+    # 114, from 113: chapter 18 gains "values are uploaded, or pulled — never
+    # read through", because a feature view can now name a SQL query, a file or
+    # an object store and MAYA copies from it rather than serving off it.
     # 113, from 110: chapter 3A is the business case a CIO reviewing the deck
     # found missing — no cost figure anywhere, and a build-or-buy argument that
     # never named who it was arguing against. The count is asserted so that a
     # chapter accidentally dropped from the build is caught — `design_slides.py`
     # executes whatever `.py` files it finds, so a rename or a syntax error
     # removes slides silently and the deck still builds.
-    ("MAYA-Model-and-Feature-Management", 113),
+    ("MAYA-Model-and-Feature-Management", 114),
 ]
 
 

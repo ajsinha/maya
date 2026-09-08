@@ -1170,6 +1170,38 @@ Read with two, it gets 1.20 --- and by \Cref{cor:repro} it still gets 1.20 when 
 the restatement was knowable.
 \end{worked}
 
+\subsection{A corollary about where the data may live}\label{sec:pull}
+
+\Cref{cor:repro} is usually read as a statement about how to \emph{query} a store. It is also a
+statement about which stores may be queried at all, and the second reading is the operational one.
+
+The corollary holds because the knowledge bound is $\min(\ell, a)$ over rows that carry both clocks and
+are never amended in place: a restatement is a new row with a later ingest time, so the earlier read
+remains derivable. A source that overwrites --- an ordinary warehouse table, a view maintained by a
+nightly job, a file replaced on a schedule --- carries neither property. Its 20 May row is simply gone
+once the August restatement lands, and no operator applied at read time can recover what the June
+decision saw. The read does not fail; it returns 0.40 and says nothing, which is the failure mode
+\Cref{sec:asof} exists to eliminate.
+
+So a platform that binds a featureset slot directly to an external table has not implemented
+\Cref{prop:asof}; it has implemented a query that usually agrees with it. The two are
+indistinguishable until the first restatement, and then indistinguishable again afterwards, because
+nothing records that they diverged.
+
+\begin{plain}
+The consequence for a build is one line: \emph{copy, do not connect}. An external source is pulled ---
+read once, bitemporalised, and written into storage the platform controls as an immutable, versioned
+snapshot --- and models read the snapshot. Connecting is cheaper and gives up the corollary.
+
+This is not a preference for one storage technology. It is the observation that
+\Cref{prop:asof} constrains its argument as much as its definition: an operator defined over rows that
+can be overwritten is defined over the wrong object, and the guarantee it appears to provide is a
+guarantee about a table that no longer exists.
+\end{plain}
+
+\runs{core/features/sources.py::SourceRegistry.pull;
+       tests/test\_feature\_sources.py::TestAPullProducesAnOrdinaryVersion}
+
 \subsection{Two properties the operator has to carry beyond itself}\label{sec:operatorfound}
 
 \Cref{prop:asof} is a statement about a function. A governance platform does not execute the training

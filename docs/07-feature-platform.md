@@ -331,7 +331,64 @@ would otherwise rot: no relational table may hold bulk values.
 
 ---
 
-## 9. What is not built, by name
+## 9. Where values come from: uploaded, or pulled
+
+Two ways in, and only two.
+
+**Uploaded.** A file arrives at `POST /api/v1/feature-views/{name}/data` or through the screen. CSV,
+JSONL, Parquet or Arrow — CSV and JSONL first because that is what a person has. A CSV is read and
+never written: it cannot carry a type, so a feature exported as one would come back as text with both
+clocks as strings.
+
+**Pulled.** A view declares a *source* — a SQL query, a file on a volume, an object in S3 or GCS — and
+MAYA fetches from it. `sql` goes through SQLAlchemy, so any driver the deployment installs works;
+`file`, `s3` and `gcs` go through pyarrow, which carries its own filesystems, so an object store is the
+same reader with a different prefix.
+
+### 9.1 MAYA pulls; it does not read through
+
+This is the whole design, and it is a consequence of §3 rather than a preference.
+
+The point-in-time guarantee holds because the bound is `min(label_ts, as_of)` over rows that carry both
+clocks and are **never amended in place**: a restatement is a new row with a later ingest time, so the
+earlier read stays derivable. A source that overwrites has neither property. An ordinary warehouse
+table, a view rebuilt nightly, a file replaced on a schedule — once August's restatement lands, May's
+row is gone, and no operator applied at read time recovers what the June decision saw. The read does not
+fail. It returns the restated number and says nothing, which is §2's leak arriving through the back
+door.
+
+So what a pull produces is an **ordinary feature view version**: bitemporal, immutable, pinned by
+contracts, exportable, and MAYA's. A second pull is a second *version* and not an update, so a warrant
+pinned to the first does not change meaning because somebody refreshed. Everything in §5 about a stable
+name whose contents moved applies unchanged, because a pulled version is not a special kind of version.
+
+The same argument is made formally in the research paper, §*A corollary about where the data may live*:
+an operator defined over rows that can be overwritten is defined over the wrong object.
+
+### 9.2 What a source may do, and what it may not
+
+| | |
+|---|---|
+| **Read only** | A SQL source is refused unless its first keyword is a read — checked when it is **stored**, not when it is run, because a statement nobody may run is one nobody should be able to save. Matched on a word boundary at the start, so `SELECT … FROM updates` is still a perfectly good query: a control that refuses correct work is one people route around |
+| **One statement** | A semicolon followed by anything is refused. A second statement appended to a read is how a read stops being one |
+| **One source per view** | A view filled from two places at once has a provenance nobody can state. Declare a second view |
+| **No credential** | A source names a `credential_ref`; the deployment resolves that name from `sources.credentials.<name>` or `MAYA_SOURCE_<NAME>`. The schema has nowhere to put a secret, and a test asserts it — a register holding a warehouse password is one nobody can hand to an auditor |
+| **Column mapping** | A warehouse calls the entity `customer_number` and the clock `asof`. Renaming at the boundary rather than making somebody rewrite their query is the difference between a source people declare and a source people export a CSV to avoid |
+| **Preview before commitment** | `GET …/source/preview` reads and writes nothing, and names the required columns that are missing. A row without both clocks is refused at load; saying so at preview means it is refused before a version exists rather than after |
+| **A pull of nothing is not a version** | An empty result is refused. A version of nothing is not a version |
+
+Every declaration, amendment, retirement and pull is on the evidence chain, carrying what was read, from
+where, how many rows and with what digest — so *where did this number come from* has an answer that
+survives the source being dropped. A pull that returned identical bytes says so: "we refreshed and
+nothing changed" is a fact a reviewer wants, and a silent no-op is not.
+
+**Not built:** no scheduled pull. A source is pulled on demand, by a person or by a script calling the
+API; nothing in the batch refreshes one on a timer. Incremental pull is also absent — every pull reads
+the whole source, which is correct and is not a strategy for a billion rows.
+
+---
+
+## 10. What is not built, by name
 
 A gap recorded in one place is a gap somebody has to go looking for, so it is recorded here as well
 as in [12 §0](12-implementation-plan.md#0-build-status).
@@ -349,9 +406,9 @@ as in [12 §0](12-implementation-plan.md#0-build-status).
 
 ---
 
-## 10. Traceability
+## 11. Traceability
 
-| Section | Satisfies | Not satisfied, and §9 says so |
+| Section | Satisfies | Not satisfied, and §10 says so |
 |---|---|---|
 | §1 the objects | `FR-FEA-001`, `FR-FEA-002`, `FR-FEA-006` | — |
 | §2 two clocks | `FR-FEA-003` | — |
@@ -361,7 +418,7 @@ as in [12 §0](12-implementation-plan.md#0-build-status).
 | §6 transfer | — | `NFR-PERF-006`: correct, not a 1B-row engine |
 | §7 telemetry | `FR-TEL-001` … `FR-TEL-006`, `FR-MON-004` | — |
 | §8 governance | `FR-FEA-013`, `FR-FEA-014`, `FR-FEA-008` | `FR-FEA-011` quarantine on a failing assertion |
-| §9 | — | `FR-FEA-005`, `FR-FEA-007`, `FR-FEA-010`, `FR-FEA-015`, `L-17` |
+| §10 | — | `FR-FEA-005`, `FR-FEA-007`, `FR-FEA-010`, `FR-FEA-015`, `L-17` |
 
 ---
 

@@ -36,6 +36,55 @@ runs(tf, [("Two clocks, and the min is the reproducibility guarantee. ", CRIMSON
            "same operator at a smaller scale and is where a cluster engine would go.", INK, False)],
      size=11.5, first=True, space_after=0, line=1.28)
 
+# ------------------------------------------------- copy, do not connect
+sl, y = content("Values are uploaded, or pulled \u2014 never read through",
+                "Data \u00b7 core/features/sources.py")
+h = code(sl, ML, y, CW * 0.52, [
+ 'PUT  /feature-views/{name}/source',
+ '{"kind": "sql",',
+ ' "locator": "postgresql://reader@warehouse/risk",',
+ ' "statement": "SELECT customer_number, asof,",',
+ '               loaded_at, dscr FROM sb_risk",',
+ ' "credential_ref": "warehouse-reader",',
+ ' "options": {"columns": {',
+ '     "customer_number": "entity_id",',
+ '     "asof": "event_ts",',
+ '     "loaded_at": "ingest_ts"}}}',
+ '',
+ 'POST /feature-views/{name}/source/pull',
+ '  -> a NEW version. Never an update.',
+], fs=9, title="DECLARE, THEN PULL")
+x = ML + CW * 0.55
+data = [["Refused", "Why"],
+        ["a statement that writes",
+         "checked when STORED, not when run \u2014 the moment it is saved, "
+         "somebody will schedule it"],
+        ["two statements",
+         "a second appended to a read is how a read stops being one"],
+        ["a second source on one view",
+         "a view filled from two places has a provenance nobody can state"],
+        ["a pull returning nothing",
+         "a version of nothing is not a version"],
+        ["storing a credential",
+         "a source names one; the deployment resolves it. The schema has "
+         "nowhere to put a secret"]]
+h2 = table(sl, data, x, y, CW * 0.45, col_w=[1.7, 3.6], row_h=0.30,
+           fs=9, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+tf = txt(sl, ML, y + max(h, h2) + 0.28, CW, 1.5)
+runs(tf, [("Copy, do not connect. ", CRIMSON, True),
+          ("The guarantee above holds because rows carry both clocks and are "
+           "never amended in place \u2014 a restatement is a NEW row, so the "
+           "earlier read stays derivable. A warehouse table has neither "
+           "property: once August\u2019s restatement lands, May\u2019s row is "
+           "gone, and no read-time rule recovers what the June decision saw. "
+           "The query would not fail. It would return the restated number and "
+           "say nothing. So MAYA pulls \u2014 SQL through SQLAlchemy, files "
+           "and S3 and GCS through pyarrow \u2014 bitemporalises what it got, "
+           "and writes it into its own Delta as an ordinary, immutable, "
+           "pinnable version. It costs a copy. It is the only way the operator "
+           "survives contact with somebody else\u2019s warehouse.", INK, False)],
+     size=11.5, first=True, space_after=0, line=1.28)
+
 sl, y = content("Three layers, and what each actually proves", "Data · leakage verification")
 data = [["Layer", "What it does", "What it proves"],
         ["1 · Static analysis", "Requires BOTH a valid-time and a transaction-time bound on the assembly. Missing either and it is rejected outright",

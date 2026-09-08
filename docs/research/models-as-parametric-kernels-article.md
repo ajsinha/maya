@@ -525,6 +525,33 @@ That shape is characteristic of this whole area, and it is why the bound belongs
 in whoever writes the query. The mechanism is right, the mechanism is sound, and the thing consulting the
 mechanism asks it a slightly different question than the one it answers.
 
+### Where the data is allowed to live
+
+That guarantee is usually read as a rule about how to *query* a store. It is also a rule about which
+stores may be queried at all, and the second reading is the one that decides an architecture.
+
+The reproducibility holds because the bound is `min(ℓ, a)` over rows that carry both clocks and are
+never amended in place. A restatement is a new row with a later ingest time, so the earlier read stays
+derivable — that is the entire mechanism. A source that *overwrites* has neither property. An ordinary
+warehouse table, a view rebuilt nightly, a file replaced on a schedule: once August's restatement lands,
+May's row is gone, and no operator applied at read time can recover what the June decision saw.
+
+The read doesn't fail. It returns 0.40 and says nothing. Which is the exact failure this section exists
+to remove, arriving through the back door.
+
+So a platform that binds a featureset slot straight to an external table hasn't implemented the operator.
+It has implemented a query that usually agrees with it — indistinguishable until the first restatement,
+and indistinguishable again afterwards, because nothing records that they diverged.
+
+The consequence for a build is one line: **copy, don't connect.** An external source is *pulled* — read
+once, bitemporalised, written into storage the platform controls as an immutable versioned snapshot — and
+models read the snapshot. Connecting is cheaper and gives up the guarantee.
+
+This isn't a preference about storage technology. It's the observation that the operator constrains its
+*argument* as much as its definition. An operator defined over rows that can be overwritten is defined
+over the wrong object, and the guarantee it appears to give is a guarantee about a table that no longer
+exists.
+
 ### The operator has to hold in two other places
 
 The definition above is a statement about one function. But a governance platform doesn't run the training
