@@ -23,6 +23,7 @@ is the thing under test, and it cannot be tested by one caller.
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import shutil
 import sys
@@ -43,7 +44,14 @@ def parse() -> argparse.Namespace:
     p.add_argument("--max-checks", type=int, default=3000)
     p.add_argument("--port", type=int, default=5099)
     p.add_argument("--workdir", default=None)
-    p.add_argument("--journal", default=None)
+    p.add_argument("--journal", default=None,
+                   help="where the live journal is written; defaults to "
+                        "<workdir>/journal.jsonl, which no cleanup script "
+                        "deletes out from under a running soak")
+    p.add_argument("--publish", default=None,
+                   help="where to copy the finished journal. Written ONCE, at "
+                        "the end, so the committed artefact is whole or absent "
+                        "rather than truncated")
     p.add_argument("--writers", type=int, default=4)
     return p.parse_args()
 
@@ -160,10 +168,32 @@ def concurrent_evidence(client, journal, cycle: int, writers: int) -> None:
 def main() -> int:
     args = parse()
     work = pathlib.Path(args.workdir or (ROOT / ".soak" / "run"))
+    # Two runs sharing a workdir is two runs sharing a database and a journal.
+    # Refused rather than resolved: the second would appear to work.
+    lock = work.parent / f"{work.name}.running"
+    if lock.is_file():
+        pid = lock.read_text().strip()
+        if pid.isdigit() and pathlib.Path(f"/proc/{pid}").exists():
+            print(f"a soak is already running in {work} as pid {pid}. "
+                  f"Stop it with tools/soak/stop.sh, or use --workdir.")
+            return 2
+        lock.unlink()
     if work.exists():
         shutil.rmtree(work)
-    journal_path = pathlib.Path(
-        args.journal or (ROOT / "docs" / "soak" / "soak-journal.jsonl"))
+    # The LIVE journal lives beside the run's scratch database, and the
+    # committed artefact is produced from it when the run ends.
+    #
+    # It used to be written straight to `docs/soak/`, which is the path a human
+    # deletes when starting a fresh run — and deleting a file a running process
+    # holds open unlinks the inode rather than closing it, so the previous run
+    # kept writing into nothing. Twenty-four cycles of a twenty-six cycle run
+    # went to a deleted inode and the report was rendered from the two that
+    # survived. A six-hour result whose evidence is missing is worse than no
+    # result: it reads as complete.
+    work.mkdir(parents=True, exist_ok=True)
+    journal_path = pathlib.Path(args.journal) if args.journal \
+        else work / "journal.jsonl"
+    published = pathlib.Path(args.publish) if args.publish else None
     journal = Journal(journal_path)
 
     base = f"http://127.0.0.1:{args.port}"
@@ -171,6 +201,8 @@ def main() -> int:
     harness.BASE = base
     harness.API = base + "/api/v1"
 
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(str(os.getpid()))
     server = Server(work, args.port, journal)
     client = Client(journal)
 
@@ -286,6 +318,11 @@ def main() -> int:
                   elapsed=round(time.time() - journal.started, 1))
     server.stop()
     journal.close()
+    if published:
+        published.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(journal_path, published)
+        print(f"journal published to {published}")
+    lock.unlink(missing_ok=True)
     print(f"cycles {cycle}  checks {journal.checks}  failures {journal.failures}")
     return 1 if journal.failures else 0
 
