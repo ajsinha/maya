@@ -165,6 +165,143 @@ class TestEveryDefiningAttributeIsOnAScreen:
             assert column in page, f"{self.PAGES[table]} omits {column}"
 
 
+class TestNoTemplateEscapesItsOwnMarkup:
+    """An HTML entity inside a `{{ }}` string literal is escaped on the way
+    out, so the page prints its own source.
+
+    `{{ "" if loop.last else "&nbsp;&le;&nbsp;" }}` rendered a literal
+    `&nbsp;&le;&nbsp;` between every certification level, on a page a reader
+    was looking at. Five places had it and only one was noticed, which is why
+    this is a scan and not five assertions: a separator is markup and belongs
+    in the template body, not inside an expression.
+    """
+
+    EXPRESSION = re.compile(r"\{\{(.*?)\}\}|\{%(.*?)%\}", re.S)
+    LITERAL = re.compile(r'"([^"]*)"|\'([^\']*)\'')
+    ENTITY = re.compile(r"&[a-zA-Z#][a-zA-Z0-9]*;")
+
+    def test_no_entity_hides_inside_an_expression(self):
+        offenders = []
+        for path in sorted(TEMPLATES.glob("*.html")):
+            for number, line in enumerate(path.read_text(encoding="utf-8")
+                                          .splitlines(), 1):
+                for expression in self.EXPRESSION.findall(line):
+                    body = expression[0] or expression[1]
+                    for literal in self.LITERAL.findall(body):
+                        text = literal[0] or literal[1]
+                        if self.ENTITY.search(text):
+                            offenders.append(f"{path.name}:{number} {text[:40]}")
+        assert offenders == [], (
+            "these put an HTML entity inside a template expression, where "
+            "Jinja escapes it and the page prints the source: "
+            + "; ".join(offenders))
+
+    def test_the_scan_can_fail(self):
+        """A scan that passes everything is a scan nobody can trust."""
+        assert self.ENTITY.search("&nbsp;&le;&nbsp;")
+        assert self.LITERAL.findall('"" if loop.last else "&nbsp;"')
+
+    def test_a_rendered_page_carries_no_escaped_entity(self, client):
+        """The same rule asserted at the other end: through a real render."""
+        from tests.api_helpers import login
+
+        client.post("/api/v1/features", json={
+            "name": "escape_probe", "entity": "borrower", "dtype": "numeric",
+            "description": "a probe", "owner": "person/admin"})
+        login(client)
+        for path in ("/feature/escape_probe", "/features/new", "/features"):
+            body = client.get(path).text
+            assert "&amp;nbsp;" not in body, f"{path} prints an escaped entity"
+            assert "&amp;mdash;" not in body, f"{path} prints an escaped entity"
+            assert "&amp;middot;" not in body, f"{path} prints an escaped entity"
+
+
+class TestAFeaturesAttributesAreListed:
+    """"What are the attributes and what type is each" is the question a reader
+    arrives at a feature with, and the page answered a different one.
+
+    It said "a vector of 12 — 12 numbers per row", which is the SHAPE. It never
+    named a single column, so somebody who wanted to know what a row of this
+    feature actually contains could not find out from the page that exists to
+    tell them.
+    """
+
+    def _feature(self, client, **spec):
+        body = {"entity": "borrower", "dtype": "numeric",
+                "description": "d", "owner": "person/admin", **spec}
+        assert client.post("/api/v1/features", json=body).status_code == 201
+        from tests.api_helpers import login
+        login(client)
+        return client.get(f"/feature/{spec['name']}").text
+
+    def test_a_scalar_names_its_one_value_column(self, client):
+        page = self._feature(client, name="just_a_number")
+        assert "What one row of this feature contains" in page
+        for column in ("entity_id", "event_ts", "ingest_ts", "just_a_number"):
+            assert column in page
+
+    def test_an_array_names_every_position(self, client):
+        """Twelve numbers per row, and now twelve columns a reader can see."""
+        page = self._feature(client, name="monthly", shape=[12])
+        for index in range(12):
+            assert f"monthly[{index}]" in page
+        assert "numeric" in page
+
+    def test_a_matrix_names_every_cell(self, client):
+        page = self._feature(client, name="corr", shape=[3, 3])
+        for row in range(3):
+            for column in range(3):
+                assert f"corr[{row}][{column}]" in page
+
+    def test_the_key_and_both_clocks_are_always_there(self, client):
+        """They are on every row whatever the feature is, and a row missing
+        either clock is refused at load — so this is the contract, not a
+        convention."""
+        page = self._feature(client, name="clocked")
+        assert "when the fact was true" in page
+        assert "when this platform learned it" in page
+
+    def test_a_large_shape_says_what_it_did_not_list(self):
+        """Five hundred columns is not a table anybody reads, and a listing
+        that stops without saying so is one somebody reads as complete."""
+        from core.features import shapes
+        from routes.ui_feature_routes import MAX_LISTED_CELLS, _row_layout
+
+        layout = _row_layout({
+            "name": "embedding", "entity": "borrower", "dtype": "numeric",
+            "shape": [512], "components": [],
+            "dimensionality": shapes.describe([512], [])})
+        assert layout["cells"] == 512
+        assert layout["omitted"] == 512 - MAX_LISTED_CELLS
+        assert len(layout["columns"]) == MAX_LISTED_CELLS + 3
+
+    def test_a_named_axis_is_read_by_name(self):
+        """Naming an axis is how a curve's `1y` point stops being `curve[0]`.
+        Showing the index instead would be showing the position somebody named
+        their way out of."""
+        from core.features import shapes
+        from routes.ui_feature_routes import _row_layout
+
+        tenors = ["1y", "5y", "10y"]
+        layout = _row_layout({
+            "name": "curve", "entity": "book", "dtype": "numeric",
+            "shape": [3], "components": tenors,
+            "dimensionality": shapes.describe([3], tenors)})
+        named = [c["column"] for c in layout["columns"] if c["role"] == "value"]
+        assert named == tenors
+        assert layout["named"] is True
+
+    def test_an_unnamed_axis_says_it_is_positional(self):
+        from core.features import shapes
+        from routes.ui_feature_routes import _row_layout
+
+        layout = _row_layout({
+            "name": "v", "entity": "b", "dtype": "numeric", "shape": [3],
+            "components": [], "dimensionality": shapes.describe([3], [])})
+        assert layout["named"] is False
+        assert "positional" in layout["note"]
+
+
 class TestTimestampsAreRendered:
     """Every timestamp here is an epoch second, and until there was a filter
     for one, each page that wanted to show a date computed the arithmetic

@@ -293,8 +293,9 @@ placeholder='[{"op": "add", "name": "50y", "value": {"dtype": "numeric"}}, {"op"
       order the meet is taken over, weakest first:
     </p>
     <p class="small mb-2">
-      {% for level in certification_order %}<span class="chip">{{ level }}</span>
-      {{ "" if loop.last else "&nbsp;&le;&nbsp;" }}{% endfor %}
+      {# Markup, written as markup — see feature_author_feature.html. #}
+      {% for level in certification_order %}<span class="chip">{{ level }}</span>{%
+        if not loop.last %}&nbsp;&le;&nbsp;{% endif %}{% endfor %}
     </p>
     <div id="meet"><p class="text-muted small mb-0">
       Write an expression above and the meet is computed here, input by input.
@@ -345,7 +346,7 @@ placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ c
         </dl>
         <p class="small mb-1"><strong>Operators</strong></p>
         <p class="mono mb-2" style="font-size:.76rem">
-          {% for o in language.operators %}{{ o }}{{ "" if loop.last else " &middot; " }}{% endfor %}
+          {% for o in language.operators %}{{ o }}{% if not loop.last %} &middot; {% endif %}{% endfor %}
         </p>
         <p class="small mb-1"><strong>The row&rsquo;s own clock</strong></p>
         <dl class="maya-terms mb-2">
@@ -370,11 +371,11 @@ placeholder='{"{{ clocks.entity }}": "C1", "{{ clocks.valid_time }}": 100, "{{ c
           <thead><tr><th>Section</th><th>What it may name</th></tr></thead>
           <tbody>
             <tr><td><code>fill</code></td>
-                <td>{% for s in preparation.fill %}<code>{{ s.strategy }}</code>{{ "" if loop.last else " &middot; " }}{% endfor %}
+                <td>{% for s in preparation.fill %}<code>{{ s.strategy }}</code>{% if not loop.last %} &middot; {% endif %}{% endfor %}
                   <div class="text-muted">fitted from what was knowable at the
                     stated moment: {% for s in preparation.fitted_strategies %}<code>{{ s }}</code>{{ "" if loop.last else " " }}{% endfor %}</div></td></tr>
             <tr><td><code>normalise</code></td>
-                <td>{% for m in preparation.normalise %}<code>{{ m.method }}</code>{{ "" if loop.last else " &middot; " }}{% endfor %}</td></tr>
+                <td>{% for m in preparation.normalise %}<code>{{ m.method }}</code>{% if not loop.last %} &middot; {% endif %}{% endfor %}</td></tr>
             <tr><td><code>align</code></td>
                 <td class="text-muted">an axis, a grid and a fill rule &mdash;
                   see <a href="/features/point-in-time"

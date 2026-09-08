@@ -38,7 +38,7 @@ real act and the response says so.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
@@ -648,7 +648,8 @@ class FeatureAuthoringRoutes(Routes):
             derived = features.derived.get(name) if features.derived else None
             return self.page(
                 request, "feature_author_feature.html",
-                feature=features.catalogue.resolved(name),
+                feature=(resolved := features.catalogue.resolved(name)),
+                row_layout=_row_layout(resolved),
                 derived=derived,
                 history=features.derived.history(name) if derived else [],
                 rests_on=self._rests_on(features, name),
@@ -788,6 +789,86 @@ class FeatureAuthoringRoutes(Routes):
                             **features.restated(view["name"],
                                                 version["version"])})
         return out
+
+
+#: How many cells to enumerate before saying how many were not listed. A 3×3
+#: matrix is nine rows and worth reading; a 512-element embedding is not, and
+#: silently showing the first twenty would be a listing that looks complete.
+MAX_LISTED_CELLS = 24
+
+
+def _row_layout(feature: Dict[str, Any]) -> Dict[str, Any]:
+    """What one row of this feature actually contains, column by column.
+
+    The page said "a vector of 12 — 12 numbers per row" and never named the
+    twelve, so a reader could see the SHAPE and not the ATTRIBUTES — which is
+    the question somebody arrives with: what are the columns and what type is
+    each. The shape is the answer to a different question.
+
+    Three columns are on every row whatever the feature is, and they are not
+    incidental: `entity_id` says which borrower, and the two clocks say when
+    the fact was true and when we learned it. A row missing either clock is
+    refused at load, so listing them here is describing the contract rather
+    than describing a convention.
+    """
+    dims = list(feature.get("shape") or [])
+    dtype = feature.get("dtype") or "numeric"
+    name = feature["name"]
+    components = list(feature.get("components") or [])
+
+    rows: List[Dict[str, Any]] = [
+        {"column": ENTITY, "dtype": "string", "role": "key",
+         "meaning": f"which {feature.get('entity', 'entity')} the row is about"},
+        {"column": VALID_TIME, "dtype": "epoch seconds", "role": "clock",
+         "meaning": "when the fact was true in the world"},
+        {"column": INGEST_TIME, "dtype": "epoch seconds", "role": "clock",
+         "meaning": "when this platform learned it"},
+    ]
+
+    if not dims:
+        rows.append({"column": name, "dtype": dtype, "role": "value",
+                     "meaning": "the value itself — one number per row"})
+        return {"columns": rows, "omitted": 0, "cells": 1,
+                "named": False,
+                "note": "A scalar: one value column, and the three that carry "
+                        "the key and the two clocks."}
+
+    # The cells, in the order a row stores them. Row-major, which is the order
+    # the first axis's component names run in — a curve whose tenors came back
+    # in a different order would be a different curve.
+    cells: List[Tuple[str, str]] = []
+    def walk(prefix: List[int], axis: int) -> None:
+        if axis == len(dims):
+            index = "".join(f"[{i}]" for i in prefix)
+            label = (components[prefix[0]] if components and len(prefix) == 1
+                     else None)
+            cells.append((f"{name}{index}", label))
+            return
+        for i in range(dims[axis]):
+            walk(prefix + [i], axis + 1)
+    walk([], 0)
+
+    listed = cells[:MAX_LISTED_CELLS]
+    for column, label in listed:
+        # A named component IS the column name. That is what naming an axis is
+        # for: a curve's `1y` point is read by name, and showing `curve[0]`
+        # beside it would be showing the position somebody named their way out
+        # of.
+        rows.append({
+            "column": label or column, "dtype": dtype, "role": "value",
+            "meaning": (f"the component named {label}, at {column}" if label
+                        else "a position on the axis; this feature does not "
+                             "name its components")})
+    named = bool(components)
+    note = (f"A {feature['dimensionality']['kind']} of "
+            + " × ".join(str(d) for d in dims)
+            + f" — {len(cells):,} value column(s) per row"
+            + (", named by this feature's components." if named else
+               ", positional: the axis is not named. Naming it is what "
+               "`components` is for, and a curve whose tenors are unnamed is a "
+               "curve nobody can read a single number out of."))
+    return {"columns": rows, "omitted": max(0, len(cells) - len(listed)),
+            "cells": len(cells), "named": named, "note": note}
 
 
 def _clocks() -> Dict[str, str]:

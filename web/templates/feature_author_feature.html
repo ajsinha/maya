@@ -113,6 +113,49 @@
     </div>
   </div>
 
+  <!-- --------------------------------------------- the columns and types -->
+  {# The question a reader arrives with: what are the attributes and what type
+     is each. The card above answers what SHAPE this feature is, which is a
+     different question — "a vector of 12" tells you there are twelve numbers
+     and does not name one of them. #}
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">What one row of this feature contains</div>
+      <div class="card-body p-0">
+        <table class="table maya mb-0">
+          <thead><tr><th>Attribute</th><th>Data type</th><th>Role</th>
+                     <th>What it is</th></tr></thead>
+          <tbody>
+          {% for column in row_layout.columns %}
+            <tr><td class="small mono">{{ column.column }}</td>
+                <td class="small mono">{{ column.dtype }}</td>
+                <td class="small">
+                  {% if column.role == 'key' %}<span class="chip">key</span>
+                  {% elif column.role == 'clock' %}<span class="chip">clock</span>
+                  {% else %}<span class="chip">value</span>{% endif %}</td>
+                <td class="small text-muted">{{ column.meaning }}</td></tr>
+          {% endfor %}
+          {% if row_layout.omitted %}
+            <tr><td colspan="4" class="small text-muted">
+              &hellip; and {{ "{:,}".format(row_layout.omitted) }} further value
+              column(s), not listed. Said rather than silently truncated: a
+              listing that stops without saying so is one somebody reads as
+              complete.</td></tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-body py-2 small text-muted border-top">
+        {{ row_layout.note }}
+        The key and the two clocks are on every row whatever the feature is, and
+        they are not a convention: a row missing either clock is refused at load,
+        because <code>{{ clocks.valid_time }}</code> is when the fact was true
+        and <code>{{ clocks.ingest_time }}</code> is when we learned it, and a
+        point-in-time answer needs both.
+      </div>
+    </div>
+  </div>
+
   <!-- ---------------------------------------------------------- the lineage -->
   <div class="col-lg-6">
     <div class="card h-100">
@@ -160,7 +203,7 @@
         {% if depended_on_by %}
         <p class="small mb-2">
           {% for d in depended_on_by %}<a href="/feature/{{ d }}"
-             style="color:var(--crimson);text-decoration:none">{{ d }}</a>{{ "" if loop.last else " &middot; " }}{% endfor %}
+             style="color:var(--crimson);text-decoration:none">{{ d }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}
         </p>
         <p class="text-muted mb-0" style="font-size:.72rem">
           A primitive cannot be withdrawn while something derives from it. That
@@ -268,8 +311,11 @@
         </p>
         {% endif %}
         <p class="small mb-2">
-          {% for level in certification_order %}<span class="chip">{{ level }}</span>
-          {{ "" if loop.last else "&nbsp;&le;&nbsp;" }}{% endfor %}
+          {# The separator is MARKUP, written as markup. As a string inside
+             `{{ }}` Jinja escaped the ampersands and the page printed a
+             literal "&nbsp;&le;&nbsp;" between every level. #}
+          {% for level in certification_order %}<span class="chip">{{ level }}</span>{%
+            if not loop.last %}&nbsp;&le;&nbsp;{% endif %}{% endfor %}
         </p>
         <p class="text-muted mb-0" style="font-size:.72rem">
           The levels a feature may be <em>set</em> to are
