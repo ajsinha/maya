@@ -3,35 +3,44 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-The two hand-written schema files have to agree, and nothing checked that they did.
+The schema is declared once, and these hold what that declaration must satisfy.
 
-There are no migrations here on purpose: `db/schema/sqlite.sql` and
-`db/schema/postgres.sql` are the schema, and a row written by one dialect must
-read correctly under the other. That is a strong claim and it was resting on
-whoever edited one file remembering to edit the other.
+It used to be declared twice. `db/schema/sqlite.sql` and `postgres.sql` were
+hand-maintained in parallel, had to say the same thing about fifty tables, and
+this file existed to compare them — a good test of a bad arrangement, because
+comparing two files can only ever report a divergence somebody has already
+shipped. It had already failed once: fourteen columns were declared `BOOLEAN`
+on the PostgreSQL side while `db/repositories.py` coerced every Python bool to
+`int` on the way in, and PostgreSQL does not implicitly cast integer to
+boolean — so every insert touching one of those tables would have failed, and
+the entire dialect was unusable. Nothing raised, because nothing ran against
+PostgreSQL.
 
-It had already failed. Fourteen columns were declared `BOOLEAN` on the Postgres
-side while `db/repositories.py` coerced every boolean to `int` on the way in --
-and PostgreSQL does not implicitly cast integer to boolean, so every insert
-touching one of those tables would have failed and the entire dialect was
-unusable. Nothing raised, because nothing ran against Postgres.
+The response then was a rule: **no BOOLEAN columns anywhere**, truth as integer
+0/1, with the service layer converting at its boundary. That fixed the symptom.
+The cause was that a column's type was written in two places and known to
+neither the driver nor the code writing to it.
 
-So the rule is now absolute and tested: **no BOOLEAN columns anywhere**, in
-either dialect or in Delta. Truth values are integer 0 and 1 everywhere, and the
-service layer converts to a real bool at its boundary so no consumer has to know
-how one is persisted.
+`db/schema/tables.py` removes the cause. One typed declaration per column,
+compiled to each dialect's DDL; `Boolean` becomes `BOOLEAN` in both, and the
+value that reaches the driver is decided by the column rather than by a list of
+column names somebody maintains. So BOOLEAN is now allowed — and what these
+tests hold is the property the old rule was reaching for: **a row written under
+one dialect reads correctly under the other**, plus the things a single
+declaration still cannot guarantee on its own.
 """
 from __future__ import annotations
 
 import pathlib
 import re
 
+import sqlalchemy as sa
+
+from db.schema.tables import METADATA
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 SQLITE = ROOT / "db" / "schema" / "sqlite.sql"
 POSTGRES = ROOT / "db" / "schema" / "postgres.sql"
-
-# The one substitution PostgreSQL requires. Anything else diverging is a defect.
-EQUIVALENT = {frozenset({"REAL", "DOUBLE PRECISION"})}
 
 CONSTRAINTS = ("PRIMARY KEY", "UNIQUE", "FOREIGN KEY", "CHECK", "CONSTRAINT")
 
@@ -59,85 +68,147 @@ def _columns(path: pathlib.Path) -> dict:
     return out
 
 
-def test_no_schema_declares_a_boolean_column():
-    """Integer 0/1, in both dialects. See this module's docstring for what a
-    BOOLEAN did to the Postgres dialect the last time one was declared."""
-    offenders = []
-    for path in (SQLITE, POSTGRES):
-        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-            stripped = line.strip()
-            if stripped.startswith("--"):
-                continue
-            if re.search(r"\bBOOL(EAN)?\b", stripped, re.I):
-                offenders.append(f"{path.name}:{number}  {stripped}")
-    assert not offenders, (
-        "truth values are stored as integer 0 and 1 in every dialect, and these "
-        "declare a boolean type:\n    " + "\n    ".join(offenders)
-        + "\nUse `INTEGER NOT NULL DEFAULT 0` / `integer NOT NULL DEFAULT 0`.")
+def test_boolean_is_a_real_boolean_in_both_dialects():
+    """The type that broke this codebase, now declared once and compiled twice.
+
+    `Boolean` must reach BOTH dialects as `BOOLEAN`, and it must not drag a
+    CHECK constraint along with it: SQLAlchemy can emit `CHECK (col IN (0, 1))`
+    for backends without a native type, MAYA has no CHECK constraints anywhere
+    by design, and one appearing here would be a constraint nobody declared.
+    """
+    from sqlalchemy.dialects import postgresql, sqlite
+    from sqlalchemy.schema import CreateTable
+
+    truth = [(t, c) for t in METADATA.tables.values() for c in t.columns
+             if isinstance(c.type, sa.Boolean)]
+    assert truth, "the truth columns exist"
+    for dialect in (sqlite.dialect(), postgresql.dialect()):
+        for table, column in truth:
+            ddl = str(CreateTable(table).compile(dialect=dialect))
+            line = next(ln.strip() for ln in ddl.splitlines()
+                        if ln.strip().startswith(column.name + " "))
+            assert "BOOLEAN" in line.upper(), f"{table.name}.{column.name}: {line}"
+        for table, _ in truth:
+            # `CHECK (`, not the word: `model_edge.type_checked` contains it.
+            assert "CHECK (" not in str(
+                CreateTable(table).compile(dialect=dialect)).upper(), table.name
 
 
-def test_both_dialects_declare_the_same_columns():
-    sqlite, postgres = _columns(SQLITE), _columns(POSTGRES)
-    only_sqlite = sorted(set(sqlite) - set(postgres))
-    only_postgres = sorted(set(postgres) - set(sqlite))
-    assert not only_sqlite and not only_postgres, (
-        "the two schema files describe different tables. A row written by one "
-        "dialect would not read under the other.\n"
-        f"  only in sqlite.sql:   {only_sqlite}\n"
-        f"  only in postgres.sql: {only_postgres}")
+def test_a_count_is_not_a_truth_value():
+    """The distinction the old hand-maintained list kept getting wrong.
+
+    `use_count`, `epoch`, `row_count`, `size_bytes` and `definition_version`
+    all default to 0 or 1 and are integers. Declaring one Boolean would round
+    every value above one down to `True`.
+    """
+    counts = {"use_count", "epoch", "row_count", "size_bytes", "item_count",
+              "definition_version", "delta_version", "sample_size", "renewals",
+              "consecutive", "specificity", "cardinality", "version",
+              "grace_seconds", "outcome_window_days", "models", "debt_items",
+              "evidence_head"}
+    wrong = [f"{t.name}.{c.name}" for t in METADATA.tables.values()
+             for c in t.columns
+             if c.name in counts and isinstance(c.type, sa.Boolean)]
+    assert not wrong, f"these are counts declared as truth values: {wrong}"
 
 
-def test_every_shared_column_has_an_equivalent_type():
-    sqlite, postgres = _columns(SQLITE), _columns(POSTGRES)
-    divergent = []
-    for key in sorted(set(sqlite) & set(postgres)):
-        left, right = sqlite[key], postgres[key]
-        if left != right and frozenset({left, right}) not in EQUIVALENT:
-            divergent.append(f"{key[0]}.{key[1]}: sqlite {left} vs postgres {right}")
-    assert not divergent, (
-        "these columns are declared with types that are not equivalent across "
-        "the dialects:\n    " + "\n    ".join(divergent))
+def test_the_generated_ddl_still_matches_the_declaration():
+    """`db/schema/*.sql` are generated reference and must not become fiction.
+
+    They are what a DBA reads and what a change-control process is handed. A
+    file that says one thing while the application creates another is worse
+    than no file, because it is believed.
+    """
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "ci" / "render_schema.py"), "--check"],
+        capture_output=True, text=True, cwd=ROOT)
+    assert result.returncode == 0, (
+        result.stdout + result.stderr
+        + "\nrun: python tools/ci/render_schema.py")
 
 
-def test_no_python_bool_can_reach_a_driver():
-    """The write path coerces EVERY bool, not a named list of columns.
+def test_one_declaration_produces_the_same_shape_in_both_dialects():
+    """The property the two-file comparison was reaching for, asserted at the
+    source instead: the same tables, the same columns, in the same order.
 
-    There are no BOOLEAN columns in either dialect, so a Python `bool` is never
-    the right thing to hand a driver. Naming the columns made the rule depend
-    on a hand-maintained list, and a truth column added to the schema and left
-    off it would take a real bool — which SQLite silently stores as 0/1 and
-    psycopg sends to PostgreSQL as a boolean, where an integer column refuses
-    it. Same shape as the defect the no-BOOLEAN rule exists for: it works on
-    the dialect the tests run against and fails on the one they do not.
+    Quoting is stripped before comparing, because the dialects disagree about
+    which identifiers need it — SQLite quotes `plan`, PostgreSQL does not — and
+    getting that right in two hand-written files was one more thing that had to
+    be remembered. It is now one more thing the compiler does."""
+    from sqlalchemy.dialects import postgresql, sqlite
+    from sqlalchemy.schema import CreateTable
+
+    def shape(dialect):
+        out = {}
+        for name, table in METADATA.tables.items():
+            ddl = str(CreateTable(table).compile(dialect=dialect))
+            out[name] = [ln.strip().split()[0].strip('"') for ln in ddl.splitlines()
+                         if ln.startswith(("\t", "    ")) and ln.strip()
+                         and ln.strip().split()[0].upper() not in CONSTRAINTS_FIRST]
+        return out
+
+    assert shape(sqlite.dialect()) == shape(postgresql.dialect())
+
+
+CONSTRAINTS_FIRST = {"PRIMARY", "UNIQUE", "FOREIGN", "CHECK", "CONSTRAINT"}
+
+
+def test_a_truth_column_gets_a_bool_and_nothing_else_does():
+    """Both directions, because PostgreSQL refuses both mistakes.
+
+    An integer in a BOOLEAN column and a boolean in an INTEGER column are each
+    an error there, and each is silently accepted by SQLite — which is exactly
+    why SQLite cannot be the thing that tells you which one you wrote.
     """
     from db.repositories import Repository
 
     repo = Repository.__new__(Repository)
-    repo.JSON = ()
+    repo.TABLE, repo.JSON = "warrant", ()
     encoded = repo._encode({
-        "revoked": True,                      # on the list
-        "some_column_nobody_listed": False,   # not on it, and the point
-        "count": 3, "name": "x", "when": 1.5, "nothing": None})
-    for field, value in encoded.items():
-        assert not isinstance(value, bool), f"{field} is still a bool"
-    assert encoded["revoked"] == 1
-    assert encoded["some_column_nobody_listed"] == 0
-    assert encoded["count"] == 3 and encoded["name"] == "x"
-    assert encoded["when"] == 1.5 and encoded["nothing"] is None
+        "revoked": 0,                # a truth column, given an int
+        "epoch": 3,                  # a count, and must stay one
+        "principal": "svc/x", "expires_at": 1.5, "revoke_reason": None,
+        "declared_use": True})       # not a truth column, given a bool
+    assert encoded["revoked"] is False, "a truth column is handed a real bool"
+    assert encoded["epoch"] == 3 and not isinstance(encoded["epoch"], bool)
+    assert encoded["declared_use"] == 1, "a bool elsewhere is made an integer"
+    assert encoded["revoke_reason"] is None, "and None stays None"
 
 
-def test_every_truth_column_is_read_back_as_a_bool():
-    """The read path still needs the list, and this says why it is the read
-    path that does: which integers mean a truth value is a fact about the
-    column, not about the value — 0 and 1 are also perfectly good counts."""
-    from db.repositories import Repository, _BOOL_COLUMNS
+def test_the_truth_columns_are_read_off_the_schema():
+    """The list used to be maintained by hand, and the list was the defect: it
+    named fourteen of the twenty columns that existed. The six it missed were
+    correct only because every call site happened to write an integer."""
+    from db.repositories import _TRUTH
 
-    repo = Repository.__new__(Repository)
-    repo.TABLE, repo.JSON = "t", ()
-    decoded = repo._decode({"revoked": 1, "blocking": 0, "row_count": 1})
-    assert decoded["revoked"] is True and decoded["blocking"] is False
-    assert decoded["row_count"] == 1, "a count is not a truth value"
-    assert "row_count" not in _BOOL_COLUMNS
+    declared = {(t.name, c.name) for t in METADATA.tables.values()
+                for c in t.columns if isinstance(c.type, sa.Boolean)}
+    derived = {(table, col) for table, cols in _TRUTH.items() for col in cols}
+    assert derived == declared
+    assert ("role", "built_in") in derived, "one of the six the list missed"
+    assert ("api_key", "use_count") not in derived, "a count is not a truth value"
+
+
+def test_a_truth_column_round_trips_as_a_bool(tmp_path):
+    """Written as a bool, read back as a bool, through a real database."""
+    from db.database import Database
+    from db.repositories import Repository
+
+    db = Database(f"sqlite:///{tmp_path}/x.db")
+
+    class Roles(Repository):
+        TABLE, JSON = "role", ("permissions",)
+
+    roles = Roles(db)
+    roles.add({"name": "r", "description": "d", "permissions": [],
+               "built_in": True, "created_at": 1.0, "created_by": "me"})
+    row = roles.one(name="r")
+    assert row["built_in"] is True
+    roles.set({"built_in": False}, name="r")
+    assert roles.one(name="r")["built_in"] is False
 
 
 def test_no_relational_table_holds_bulk_values():

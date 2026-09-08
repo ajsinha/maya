@@ -803,22 +803,29 @@ database:
 ```
 
 That is the entire change; the dialect is chosen from the URL and nothing else
-in the application differs. There are **no migrations**: the schema is two
-hand-written files, `db/schema/sqlite.sql` and `db/schema/postgres.sql`, applied
-idempotently at start-up with `CREATE TABLE IF NOT EXISTS`. The two differ by
-exactly **one** type substitution — `REAL` where PostgreSQL needs `DOUBLE
-PRECISION` — and timestamps are epoch seconds throughout, because SQLite has no
-date type and the two dialects disagree about time zones. JSON documents are
-`TEXT` rather than `JSONB` deliberately, so no query depends on a
-dialect-specific operator.
+in the application differs. There are **no migrations**: the schema is one typed
+declaration, `db/schema/tables.py`, and the DDL for each dialect is generated
+from it and applied idempotently at start-up with `CREATE TABLE IF NOT EXISTS`.
+The dialects differ by exactly **one** type substitution, which SQLAlchemy makes
+— `DOUBLE` where PostgreSQL needs `DOUBLE PRECISION` — and timestamps are epoch
+seconds throughout, because MAYA is bitemporal and the same values live in Delta
+outside the database entirely. JSON documents are `TEXT` rather than `JSONB`
+deliberately, so no query depends on a dialect-specific operator.
 
-There is no `BOOLEAN` column anywhere, in either dialect: integer `0`/`1`, and
-the service layer converts to a real `bool` at its boundary. That is not
-fastidiousness. The PostgreSQL file once declared fourteen columns `BOOLEAN`
-while the repository layer coerced every boolean to `int` on the way in;
-PostgreSQL does not implicitly cast integer to boolean, so every insert touching
-one of those tables failed and the whole dialect was unusable — and nothing
-tested it. A discipline test now walks both schemas column for column.
+An existing table is skipped whole, so a newly declared column never arrives on
+a deployed database. `python run_maya_web.py --check-schema` reports exactly
+what is missing and `--repair-schema` adds it.
+
+Truth values are `BOOLEAN` in both dialects, and which columns those are is a
+fact the repository layer reads off the schema rather than a list somebody
+keeps. That distinction is the whole lesson here. The PostgreSQL file once
+declared fourteen columns `BOOLEAN` while the repository layer coerced every
+boolean to `int` on the way in; PostgreSQL does not implicitly cast integer to
+boolean, so every insert touching one of those tables failed and the whole
+dialect was unusable — and nothing tested it. The rule that followed was *no
+BOOLEAN anywhere*, which fixed the symptom; the cause was that a column's type
+was written in two files and known to neither the driver nor the code writing
+to it. One typed declaration fixes the cause, and a discipline test holds it.
 
 ### Storage layout
 

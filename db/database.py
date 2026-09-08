@@ -12,14 +12,17 @@ import secrets
 import time
 from pathlib import Path
 from contextlib import contextmanager
+import logging
 from contextvars import ContextVar
 from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.schema import CreateTable
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.engine import Engine
 
 from core.log import get_logger, swallowed
+from db.schema.tables import METADATA
 
 logger = get_logger(__name__)
 
@@ -107,6 +110,27 @@ class DeltaPaths:
         return self
 
 
+def _family(sa_type: Any) -> str:
+    """The kind of thing a column holds, as both dialects would see it.
+
+    Compared by FAMILY rather than by class or by spelling, because the same
+    column is legitimately `DOUBLE` here and `DOUBLE PRECISION` there, and
+    SQLAlchemy reflects a SQLite `REAL` back as `REAL` and a declared `DOUBLE`
+    as `FLOAT`. What matters is whether a value written under one description
+    reads correctly under the other, and there are four answers to that.
+    """
+    name = type(sa_type).__name__.upper()
+    text = str(sa_type).upper()
+    if "BOOL" in name or "BOOL" in text:
+        return "boolean"
+    if "INT" in name or "INT" in text:
+        return "integer"
+    if any(k in name or k in text for k in ("FLOAT", "DOUBLE", "REAL", "NUMERIC",
+                                            "DECIMAL")):
+        return "number"
+    return "text"
+
+
 class Database:
     """Owns the engine and applies the schema for the configured dialect."""
 
@@ -185,14 +209,84 @@ class Database:
         return [s.strip() for s in body.split(";") if s.strip()]
 
     def apply_schema(self) -> None:
-        path = self.schema_file()
-        with self.engine.begin() as conn:
-            for stmt in self._statements(path.read_text()):
-                conn.execute(text(stmt))
-        logger.info("schema applied from %s (%s)", path.name, self.dialect)
+        """Create what is missing, from the typed metadata.
+
+        `create_all(checkfirst=True)` is CREATE TABLE IF NOT EXISTS by another
+        name, so starting against an existing database is still a no-op — and
+        an existing table is still SKIPPED rather than altered, which is why
+        `drift()` and `repair()` exist below.
+
+        The DDL is generated for this dialect from one declaration rather than
+        read from one of two files that had to be kept saying the same thing.
+        """
+        METADATA.create_all(self.engine, checkfirst=True)
+        added = self._create_missing_indexes()
+        logger.info("schema applied from db/schema/tables.py — %d tables%s (%s)",
+                    len(METADATA.tables),
+                    f", {added} index(es) added" if added else "", self.dialect)
         self.check_drift()
 
+    def _create_missing_indexes(self) -> int:
+        """Create declared indexes that an EXISTING table does not have.
+
+        `create_all` skips a table that exists, and skipping the table skips
+        its indexes — so on a deployed database a newly declared uniqueness
+        rule would never arrive. That is not a hypothetical: the wave that
+        moved every UNIQUE clause out of the table bodies and into
+        `CREATE UNIQUE INDEX IF NOT EXISTS` did so precisely because an index
+        statement applies to a table that already exists and a table statement
+        does not, and the quorum constraint reached deployed instances by that
+        route.
+
+        An index is additive and cannot lose a row. It CAN fail, on a table
+        whose existing rows already violate the uniqueness it declares — which
+        is a real finding about the data and is reported rather than hidden,
+        because a constraint that could not be applied is one the deployment
+        believes it has.
+        """
+        added = 0
+        for table in METADATA.tables.values():
+            if not self.table_exists(table.name):
+                continue                    # create_all just made it, indexes and all
+            present = set(self.indexes_of(table.name))
+            for index in table.indexes:
+                if index.name in present:
+                    continue
+                try:
+                    index.create(self.engine, checkfirst=True)
+                    added += 1
+                    logger.info("created missing index %s on %s",
+                                index.name, table.name)
+                except Exception as exc:
+                    swallowed(logger, exc, f"created index {index.name} "
+                                           f"on {table.name}",
+                              detail="the drift report will still name it; a "
+                                     "unique index refuses where existing rows "
+                                     "already violate it, which is a finding "
+                                     "about the data",
+                              level=logging.ERROR)
+        return added
+
+    def table_exists(self, table: str) -> bool:
+        try:
+            return inspect(self.engine).has_table(table)
+        except Exception as exc:                          # pragma: no cover
+            swallowed(logger, exc, f"asked whether '{table}' exists",
+                      detail="treated as absent")
+            return False
+
     # --------------------------------------------------------------- drift
+    def _live_columns(self, table: str) -> Dict[str, Any]:
+        """{column: its type}, as the DATABASE describes it rather than as the
+        schema declares it. The difference is the whole point of `drift`."""
+        try:
+            return {c["name"]: c["type"]
+                    for c in inspect(self.engine).get_columns(table)}
+        except Exception as exc:                          # pragma: no cover
+            swallowed(logger, exc, f"inspected columns of '{table}'",
+                      detail="treated as absent")
+            return {}
+
     def columns_of(self, table: str) -> List[str]:
         """The columns a table actually has, from the database itself."""
         try:
@@ -203,45 +297,19 @@ class Database:
             return []
 
     def declared_schema(self) -> Dict[str, Set[str]]:
-        """Table to columns, parsed out of the shipped DDL.
-
-        Deliberately a small parser rather than a dependency: the DDL is
-        hand-written, has no foreign keys, no CHECK and no triggers, and the
-        only thing needed here is which columns each CREATE TABLE declares.
-        """
-        declared: Dict[str, Set[str]] = {}
-        for stmt in self._statements(self.schema_file().read_text()):
-            match = _CREATE_TABLE.match(_without_trailing_comments(stmt))
-            if not match:
-                continue
-            table, body = match.group(1), match.group(2)
-            columns = set()
-            depth = 0
-            current = ""
-            for ch in body:
-                if ch == "(":
-                    depth += 1
-                elif ch == ")":
-                    depth -= 1
-                if ch == "," and depth == 0:
-                    columns.add(current.strip().split()[0] if current.strip() else "")
-                    current = ""
-                else:
-                    current += ch
-            if current.strip():
-                columns.add(current.strip().split()[0])
-            declared[table] = {c for c in columns
-                               if c and c.upper() not in _NOT_A_COLUMN}
-        return declared
+        """Table to its column names, from the typed metadata."""
+        return {name: {c.name for c in table.columns}
+                for name, table in METADATA.tables.items()}
 
     def declared_indexes(self) -> Dict[str, Set[str]]:
-        """Table to the index names the shipped DDL creates."""
-        declared: Dict[str, Set[str]] = {}
-        for stmt in self._statements(self.schema_file().read_text()):
-            match = _CREATE_INDEX.match(_without_trailing_comments(stmt))
-            if match:
-                declared.setdefault(match.group(2), set()).add(match.group(1))
-        return declared
+        """Table to the index names the metadata creates.
+
+        A column-level `unique=True` becomes a UNIQUE CONSTRAINT rather than a
+        named index, and `indexes_of` reads both — so only real Index objects
+        are named here, or drift would report an index nobody declared.
+        """
+        return {name: {ix.name for ix in table.indexes if ix.name}
+                for name, table in METADATA.tables.items()}
 
     def indexes_of(self, table: str) -> List[str]:
         """The index names a table actually has, from the database itself."""
@@ -258,43 +326,28 @@ class Database:
             return []
 
     def declared_columns(self) -> Dict[str, Dict[str, str]]:
-        """Table to {column: its full declaration}, from the shipped DDL.
+        """Table to {column: the DDL fragment this dialect wants for it}.
 
         `declared_schema` returns names, which is all a drift CHECK needs.
         Repairing one needs the declaration — the type, the default and the
-        NOT NULL — because that is what an ALTER has to reproduce.
-        """
-        declared: Dict[str, Dict[str, str]] = {}
-        for stmt in self._statements(self.schema_file().read_text()):
-            match = _CREATE_TABLE.match(_without_trailing_comments(stmt))
-            if not match:
-                continue
-            table, body = match.group(1), match.group(2)
-            columns: Dict[str, str] = {}
-            depth, current = 0, ""
-            for ch in body:
-                if ch == "(":
-                    depth += 1
-                elif ch == ")":
-                    depth -= 1
-                if ch == "," and depth == 0:
-                    self._remember_column(columns, current)
-                    current = ""
-                else:
-                    current += ch
-            self._remember_column(columns, current)
-            declared[table] = columns
-        return declared
+        NOT NULL — because that is what an ALTER has to reproduce, and it must
+        be reproduced in the dialect actually in front of us: the same column
+        is `DOUBLE` here and `DOUBLE PRECISION` there.
 
-    @staticmethod
-    def _remember_column(into: Dict[str, str], text: str) -> None:
-        declaration = " ".join(text.split())
-        if not declaration:
-            return
-        name = declaration.split()[0]
-        if name.upper() in _NOT_A_COLUMN:
-            return
-        into[name] = declaration
+        Compiled by SQLAlchemy rather than assembled by hand, so a repair
+        cannot spell a type differently from the CREATE that would have made
+        it.
+        """
+        dialect = self.engine.dialect
+        declared: Dict[str, Dict[str, str]] = {}
+        for name, table in METADATA.tables.items():
+            # The compiler wants the statement it is compiling, so it is given
+            # the CREATE that would have made this very table — which is the
+            # point: an ALTER must spell a column the way its CREATE would.
+            compiler = dialect.ddl_compiler(dialect, CreateTable(table))
+            declared[name] = {c.name: compiler.get_column_specification(c)
+                              for c in table.columns}
+        return declared
 
     def repair(self, dry_run: bool = True) -> Dict[str, Any]:
         """Add the columns the shipped DDL declares and this database lacks.
@@ -318,6 +371,12 @@ class Database:
         declared = self.declared_columns()
         planned: List[Dict[str, str]] = []
         refused: List[Dict[str, str]] = []
+        # Differences that are REAL and need no action on this dialect. Kept
+        # apart from `refused`, because "somebody must decide what the existing
+        # rows should say" and "the declaration is stale and nothing behaves
+        # differently" are not the same report, and merging them would make an
+        # operator go looking for a decision that does not exist.
+        noted: List[Dict[str, str]] = []
         for table, columns in sorted(declared.items()):
             live = set(self.columns_of(table))
             if not live:
@@ -341,6 +400,69 @@ class Database:
                 planned.append({"table": table, "column": name,
                                 "sql": f"ALTER TABLE {table} ADD COLUMN {declaration}"})
 
+        # TYPES, which `drift()` now reports and a repair had better be able to
+        # close — a check that names a problem nothing can fix is a check
+        # people learn to scroll past.
+        #
+        # The two dialects differ in what is possible and in what is NEEDED,
+        # and both halves matter.
+        #
+        # PostgreSQL can change a column's type in place, and here it must:
+        # an INTEGER column where the schema says BOOLEAN refuses every write
+        # the current code makes. `USING` gives the conversion explicitly
+        # rather than hoping for a cast, and the statement rewrites the column
+        # without touching any other.
+        #
+        # SQLite cannot change a column's type at all, short of rebuilding the
+        # table — and does not need to. Its affinities mean an `INTEGER` column
+        # and a `BOOLEAN` one store a Python bool identically as 0/1 and return
+        # it identically, so the declaration is out of date and the BEHAVIOUR
+        # is correct. Rebuilding fifty tables of a governance register to
+        # change a word in a declaration would be the larger risk by far, so it
+        # is reported as needing no action rather than attempted.
+        types: List[Dict[str, str]] = []
+        postgres = self.dialect.startswith("postgres")
+        for name, declared_table in sorted(METADATA.tables.items()):
+            live_types = self._live_columns(name)
+            for column in declared_table.columns:
+                if column.name not in live_types:
+                    continue
+                want = _family(column.type)
+                have = _family(live_types[column.name])
+                if want == have:
+                    continue
+                spelled = column.type.compile(self.engine.dialect)
+                step = {"table": name, "column": column.name,
+                        "from": have, "to": want}
+                if postgres:
+                    using = (f"({column.name} <> 0)" if want == "boolean"
+                             else f"({column.name}::{spelled})")
+                    step["sql"] = (f"ALTER TABLE {name} ALTER COLUMN "
+                                   f"{column.name} TYPE {spelled} USING {using}")
+                    types.append(step)
+                else:
+                    noted.append({
+                        **step, "declaration": spelled,
+                        "why": f"SQLite cannot change a column's type in place, "
+                               f"and does not need to: an {have} column stores "
+                               f"and returns a {want} identically here. The "
+                               f"declaration is stale; the behaviour is not. "
+                               f"PostgreSQL is where this matters, and there it "
+                               f"is repaired."})
+
+        # Indexes as well as columns, because uniqueness now LIVES in an index
+        # and a repair that closed half the drift it reported would leave a
+        # deployment believing it held a constraint it does not.
+        missing_indexes: List[Dict[str, Any]] = []
+        for name, declared_table in sorted(METADATA.tables.items()):
+            if not self.table_exists(name):
+                continue
+            present = set(self.indexes_of(name))
+            for index in declared_table.indexes:
+                if index.name and index.name not in present:
+                    missing_indexes.append({"table": name, "index": index.name,
+                                            "unique": bool(index.unique)})
+
         applied = []
         if not dry_run:
             for step in planned:
@@ -352,14 +474,37 @@ class Database:
                               detail="left for the operator; the drift report "
                                      "will still name it")
                     refused.append({**step, "why": str(exc)})
-            logger.warning("schema repaired: %d column(s) added by ALTER TABLE. "
-                           "This adds what the shipped DDL declares and nothing "
-                           "else.", len(applied))
+            for step in types:
+                try:
+                    self.execute(step["sql"])
+                    applied.append(step)
+                except Exception as exc:
+                    swallowed(logger, exc,
+                              f"retyped {step['table']}.{step['column']}",
+                              detail="left for the operator; the drift report "
+                                     "will still name it")
+                    refused.append({**step, "why": str(exc)})
+            # After the columns: an index may be ON one of them.
+            added_indexes = self._create_missing_indexes()
+            logger.warning("schema repaired: %d column(s) added by ALTER TABLE "
+                           "and %d index(es) created. This adds what the shipped "
+                           "schema declares and nothing else.",
+                           len(applied), added_indexes)
         return {
+            "indexes": missing_indexes,
+            "types": types,
+            "noted": noted,
             "planned": planned, "applied": applied, "refused": refused,
-            "detail": (f"{len(planned)} column(s) can be added"
-                       + (f", {len(refused)} need a decision" if refused else "")
-                       if planned or refused else "nothing to repair"),
+            "detail": (
+                ", ".join(filter(None, [
+                    f"{len(planned)} column(s) can be added" if planned else "",
+                    f"{len(types)} column(s) can be retyped" if types else "",
+                    f"{len(missing_indexes)} index(es) can be created"
+                    if missing_indexes else "",
+                    f"{len(refused)} need a decision" if refused else "",
+                    f"{len(noted)} stale declaration(s) needing no action here"
+                    if noted else ""]))
+                or "nothing to repair"),
         }
 
     def drift(self) -> Dict[str, List[str]]:
@@ -389,15 +534,47 @@ class Database:
         existing table in both dialects -- so they arrive on a deployed database
         with no migration step. This check is what catches the next one written
         the other way.
+
+        TYPES are checked too, and that is newer. A column present under the
+        right name and the wrong type is the quietest version of this problem:
+        the same code writes a Python `bool` into a column declared `BOOLEAN`
+        and into one declared `INTEGER`, SQLite stores 0/1 either way, and
+        PostgreSQL refuses the second. So a database that predates a type
+        change starts cleanly, works on the dialect somebody develops against,
+        and fails on the one they deploy to — which is precisely the failure
+        this codebase has already had once.
         """
         gaps: Dict[str, List[str]] = {}
+        declared_types = {name: {c.name: c.type for c in table.columns}
+                          for name, table in METADATA.tables.items()}
         for table, columns in self.declared_schema().items():
-            live = set(self.columns_of(table))
+            live_columns = self._live_columns(table)
+            live = set(live_columns)
             if not live:
                 gaps[table] = ["the table is absent"]
                 continue
             if missing := sorted(columns - live):
                 gaps[table] = [f"missing column '{c}'" for c in missing]
+            for name, declared in sorted(declared_types[table].items()):
+                if name not in live_columns:
+                    continue
+                want, have = _family(declared), _family(live_columns[name])
+                if want == have:
+                    continue
+                # Named accurately for the dialect in front of us. On
+                # PostgreSQL an INTEGER column where the schema says BOOLEAN
+                # refuses every write the current code makes; on SQLite the
+                # affinities make the two store and return a truth value
+                # identically, so the declaration is stale and nothing behaves
+                # differently. Saying "queries will fail" in both cases would
+                # be untrue in one of them, and a warning that overstates is
+                # one people learn to scroll past.
+                harmless = (not self.dialect.startswith("postgres")
+                            and {want, have} <= {"boolean", "integer", "number"})
+                gaps.setdefault(table, []).append(
+                    f"column '{name}' is {have} where the schema says {want}"
+                    + (" (stale declaration; no effect on SQLite)" if harmless
+                       else ""))
         indexes = self.declared_indexes()
         for table, names in indexes.items():
             if table in gaps and gaps[table] == ["the table is absent"]:
@@ -413,15 +590,29 @@ class Database:
         be on any path it serves, and an operator who cannot start the platform
         cannot read its logs either."""
         gaps = self.drift()
-        if gaps:
-            detail = "; ".join(f"{t}: {', '.join(why)}" for t, why in sorted(gaps.items()))
+        if not gaps:
+            return gaps
+        detail = "; ".join(f"{t}: {', '.join(why)}"
+                           for t, why in sorted(gaps.items()))
+        # A stale declaration that changes no behaviour is not the same finding
+        # as a column that is not there, and reporting both at ERROR with the
+        # same sentence would teach a reader that this line means nothing.
+        acting = any("no effect on SQLite" not in why
+                     for whys in gaps.values() for why in whys)
+        if acting:
             logger.error(
-                "SCHEMA DRIFT — the database does not match the shipped DDL: %s. "
-                "The schema is applied with CREATE TABLE IF NOT EXISTS, so an "
-                "existing table is skipped and a new column is never added. "
-                "Apply the difference by hand before serving traffic; queries "
-                "touching these columns will fail at the point of use, not here.",
-                detail)
+                "SCHEMA DRIFT — the database does not match the schema: %s. It "
+                "is applied with CREATE TABLE IF NOT EXISTS, so an existing "
+                "table is skipped and a new column is never added. Close it "
+                "with `python run_maya_web.py --repair-schema`; until then, "
+                "queries touching these will fail at the point of use, not "
+                "here.", detail)
+        else:
+            logger.warning(
+                "schema declarations have moved on from this database: %s. "
+                "Nothing behaves differently here — `--check-schema` explains "
+                "each one — and the same database under PostgreSQL would need "
+                "`--repair-schema`.", detail)
         return gaps
 
     # ------------------------------------------------------------- transaction

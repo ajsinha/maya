@@ -836,16 +836,31 @@ def _repair_schema(cfg: PropertiesConfigurator, apply: bool) -> None:
 
     database = Database(cfg.get("database.url", "sqlite:///data/sqlite/maya.db"))
     plan = database.repair(dry_run=not apply)
-    if not plan["planned"] and not plan["refused"]:
+    if not any((plan["planned"], plan["refused"], plan.get("indexes"),
+                plan.get("types"), plan.get("noted"))):
         print("nothing to repair — the database matches the shipped DDL")
         return
     for step in plan["planned"]:
         print(("  applied  " if apply else "  would run  ") + step["sql"])
+    for step in plan.get("types", []):
+        print(("  applied  " if apply else "  would run  ") + step["sql"])
+    for step in plan.get("indexes", []):
+        print(("  created  " if apply else "  would create  ")
+              + ("unique " if step["unique"] else "") + f"index {step['index']} "
+              + f"on {step['table']}")
     for step in plan["refused"]:
         print(f"  REFUSED  {step['table']}.{step['column']}: {step['why']}")
+    if (noted := plan.get("noted")):
+        print(f"\n  {len(noted)} column(s) are declared differently from how "
+              f"this database spells them, and need no action here:")
+        for step in noted:
+            print(f"    {step['table']}.{step['column']}: "
+                  f"{step['from']} in the database, {step['to']} in the schema")
+        print(f"    {noted[0]['why']}")
     print()
     if apply:
-        print(f"{len(plan['applied'])} column(s) added.")
+        print(f"{len(plan['applied'])} column(s) added, "
+              f"{len(plan.get('indexes', []))} index(es) created.")
         remaining = database.drift()
         print("drift after: " + (str(remaining) if remaining else "none"))
     else:

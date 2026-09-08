@@ -18,18 +18,31 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import sqlalchemy as sa
+
 from core.log import get_logger, swallowed
 from db.database import Database, new_id
+from db.schema.tables import METADATA
 
 logger = get_logger(__name__)
 
-#: Integer 0/1 columns that are READ BACK as Python bools, so a caller writing
-#: `if row["revoked"]` gets what it expects. Only the read path needs this list:
-#: which integers mean a truth value is a fact about the column and cannot be
-#: inferred from the value, since 0 and 1 are also perfectly good counts.
-_BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
-                 "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed",
-                 "ephemeral", "type_checked")
+#: {table: {truth columns}}, ASKED OF THE SCHEMA rather than maintained here.
+#:
+#: This was a tuple of fourteen column names, and the list was the defect. It
+#: had to name every integer-0/1 column in the estate, it named fourteen of the
+#: twenty that existed, and the six it missed — `built_in`, `agrees`,
+#: `retired`, `success` among them — were correct only because every call site
+#: happened to write an integer literal. One that wrote `True` would have been
+#: stored as 0/1 by SQLite and refused by PostgreSQL: right on the dialect the
+#: tests run against, wrong on the one they do not.
+#:
+#: Now the columns are declared `Boolean` in `db/schema/tables.py` and this
+#: reads them off. A truth column added to the schema is coerced from the
+#: moment it exists, because the schema is the only place it has to be
+#: mentioned.
+_TRUTH = {name: {c.name for c in table.columns
+                 if isinstance(c.type, sa.Boolean)}
+          for name, table in METADATA.tables.items()}
 
 
 class Repository:
@@ -48,20 +61,19 @@ class Repository:
         for f in self.JSON:
             if f in out and not isinstance(out[f], str):
                 out[f] = json.dumps(out[f], default=str)
-        # EVERY bool, not only the ones on the list above. There are no BOOLEAN
-        # columns in either dialect — truth is integer 0/1 — so a Python bool
-        # is never the right thing to hand a driver, whatever the column is
-        # called.
+        # A truth column gets a real bool; anything else must not get one.
         #
-        # Naming the columns here instead made the rule depend on a
-        # hand-maintained list: a truth column added to the schema and left off
-        # it would take a real `bool`, which SQLite silently stores as 0/1 and
-        # psycopg sends to PostgreSQL as a boolean — where an integer column
-        # refuses it. That is the same shape as the defect the no-BOOLEAN rule
-        # exists for: it works on the dialect the tests run against and fails
-        # on the one they do not.
+        # Both halves matter, and in opposite directions. PostgreSQL refuses an
+        # integer in a BOOLEAN column and refuses a boolean in an INTEGER one;
+        # SQLite accepts either in either and stores 0/1, which is exactly why
+        # it cannot be the thing that tells you which you wrote. The column
+        # decides, and the column is declared once.
+        truth = _TRUTH.get(self.TABLE, frozenset())
         for field, value in out.items():
-            if isinstance(value, bool):
+            if field in truth:
+                if value is not None:
+                    out[field] = bool(value)
+            elif isinstance(value, bool):
                 out[field] = int(value)
         return out
 
@@ -76,7 +88,11 @@ class Repository:
                 except ValueError as exc:
                     swallowed(logger, exc, f"{self.TABLE}.{f} is not valid JSON",
                               detail=f"id={out.get('id')}; left as text")
-        for f in _BOOL_COLUMNS:
+        # SQLite hands back 0 and 1 for a BOOLEAN column — the driver has no
+        # column type to consult, because these are raw statements — so a
+        # caller writing `if row["revoked"]` needs this. PostgreSQL already
+        # returns a bool and `bool(True)` is True.
+        for f in _TRUTH.get(self.TABLE, frozenset()):
             if out.get(f) is not None:
                 out[f] = bool(out[f])
         return out

@@ -119,17 +119,32 @@ name exactly which bytes a read gets. `tests/test_schema_discipline.py` holds bo
 relational table may grow a `rows` or `values` column, and the four tables that own bulk data must name
 their Delta location.
 
-**There are no migrations, on purpose.** `db/schema/sqlite.sql` and `db/schema/postgres.sql` *are* the
-schema — forty-six tables each, declared in the same order, with the same columns and equivalent types, and
-a test that fails if they diverge. The reason there are two hand-written files rather than one generated
-one is that a row written under one dialect must read correctly under the other, and the only way to know
-that is to write both and compare them mechanically.
+**There are no migrations, on purpose.** `db/schema/tables.py` *is* the schema — fifty typed SQLAlchemy
+Core tables, from which the DDL for each dialect is generated. `db/schema/sqlite.sql` and `postgres.sql`
+are rendered from it by `tools/ci/render_schema.py` as reference for a DBA who wants to read the DDL
+without running Python, and CI fails if they are stale.
 
-**There are no `BOOLEAN` columns anywhere, in either dialect or in Delta.** Truth values are integer `0` and
-`1`. This is not fastidiousness: fourteen columns were once declared `BOOLEAN` on the PostgreSQL side while
-`db/repositories.py` coerced every Python `bool` to `int` on the way in, and PostgreSQL does not implicitly
-cast integer to boolean — so every insert touching one of those tables would have failed and the second
-dialect was unusable, silently, because nothing ever ran against it.
+It was two hand-written files until recently, kept in step by a test that compared them. That test was
+sound and the arrangement was not: comparing two files can only report a divergence somebody has already
+shipped, and it had shipped at least twice. One declaration cannot diverge from itself.
+
+**Truth values are `Boolean`, and the column decides what reaches the driver.** For a long time the rule
+was the opposite — no `BOOLEAN` columns anywhere, integer `0` and `1` everywhere — and it was earned:
+fourteen columns were once declared `BOOLEAN` on the PostgreSQL side while `db/repositories.py` coerced
+every Python `bool` to `int` on the way in, and PostgreSQL does not implicitly cast integer to boolean, so
+every insert touching one of those tables would have failed. Silently, because nothing ran against that
+dialect.
+
+The rule fixed the symptom. The cause was that a column's type was written twice, in two files, and known
+to neither the driver nor the code writing to it — and the coercion it forced was itself a hand-maintained
+list of column names, which named fourteen of the twenty truth columns that existed. A typed declaration
+removes both: `Boolean` compiles to `BOOLEAN` in both dialects, `db/repositories.py` reads the truth
+columns off the metadata, and a bool in a non-boolean column is made an integer rather than sent as it is.
+PostgreSQL refuses each of those mistakes and SQLite accepts both, which is exactly why SQLite could never
+be the thing that told you which one you had made.
+
+Delta is unchanged: truth values there are still integer `0` and `1`, because Delta has no schema of MAYA's
+to consult.
 
 **Drift is detected, and now it can be closed.** The schema is applied with `CREATE TABLE IF NOT EXISTS`,
 so an existing table is *skipped* and a column added to the shipped DDL never reaches a deployed database.
@@ -1510,8 +1525,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 201 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 262 modules in one
+the 202 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 263 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
