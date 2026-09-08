@@ -32,9 +32,11 @@ import json
 import logging
 import re
 import secrets
+import threading
 import time
+from collections import deque
 from contextvars import ContextVar
-from typing import Any, Dict, Optional, Union
+from typing import Any, Deque, Dict, List, Optional, Tuple, Union
 
 FORMAT = "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s %(principal)s] | %(message)s"
 DATEFMT = "%Y-%m-%d %H:%M:%S"
@@ -61,6 +63,12 @@ _STATE: ContextVar[Dict[str, str]] = ContextVar("maya_log_state")
 SAFE_ID = re.compile(r"\A[A-Za-z0-9._:-]{1,64}\Z")
 
 REQUEST_HEADER = "x-request-id"
+
+# This module's own logger, for the one thing in here that can fail: capturing
+# a line into the ring. Built directly rather than through `get_logger` because
+# that function is defined below it, and a module cannot be a client of itself
+# at import time.
+logger = logging.getLogger(__name__)
 
 
 def new_request_id() -> str:
@@ -159,7 +167,181 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(out, default=str)
 
 
-def configure(level: str = "INFO", fmt: str = FORMAT, json_lines: bool = False) -> None:
+# A value that must never reach a screen, whatever wrote it. Nothing in this
+# platform logs a credential deliberately — but "deliberately" is the operative
+# word, and a live log viewer turns every accidental one into something a
+# browser renders. The pattern is applied on the way INTO the ring rather than
+# on the way out, so a redaction cannot be skipped by a caller who forgets.
+# The optional scheme in the middle is what makes `Authorization: Bearer eyJ…`
+# work: without it the pattern matched "Bearer" as the value and left the
+# actual token in the line, which is the failure mode a redaction must not
+# have — it looks redacted.
+#
+# Only `name=value` and `name: value`. An earlier version also matched
+# "<name> is <value>", and the first real line it met was the start-up warning
+# "the session cookie is signed with a PUBLISHED secret" — which it rendered as
+# "the session cookie is [redacted] with a PUBLISHED secret", blanking the verb
+# of a security warning and leaving a reader to wonder what had been hidden
+# from them. A redaction that eats prose costs more than the one credential it
+# might have caught, because it teaches people to distrust the whole screen.
+_SECRETISH = re.compile(
+    r"(?i)\b(password|passwd|secret|token|api[_-]?key|authorization|bearer|"
+    r"cookie|session|private[_-]?key)\b"
+    r"(\s*[=:]\s*)((?:bearer|basic|token)\s+)?(\S+)")
+
+
+def redact(text: str) -> str:
+    """Blank anything that names itself a credential. Belt, not braces."""
+    return _SECRETISH.sub(
+        lambda m: f"{m.group(1)}{m.group(2)}{m.group(3) or ''}[redacted]", text)
+
+
+class Ring(logging.Handler):
+    """The last N log lines, in memory, for the live viewer to read.
+
+    A handler rather than a file tail, and the reason is operational rather
+    than aesthetic. This platform is run in places where the process writes to
+    stdout and something else owns the file — a container, a supervisor, a
+    journal — so "read the log file" is a thing the server frequently cannot
+    do, and a viewer built on it shows an empty page on exactly the deployments
+    that most need one. A handler sees every record the moment it is emitted,
+    whatever the process does with it afterwards.
+
+    Bounded, and bounded by construction: a `deque(maxlen=)` drops the oldest
+    line rather than growing, so a process that logs steadily for a month uses
+    the same memory as one that started a minute ago. The viewer says which
+    lines it can no longer show rather than pretending the buffer is the
+    history — a log viewer that silently loses the beginning is one that
+    answers "when did this start" wrongly.
+
+    Each line is rendered to plain data AT CAPTURE. Holding the LogRecord would
+    keep every argument object alive — a whole result set, a database row, an
+    exception's frames — for as long as the line stays in the ring, which turns
+    a diagnostic aid into a leak.
+    """
+
+    def __init__(self, capacity: int = 2000) -> None:
+        super().__init__()
+        self.capacity = max(1, int(capacity))
+        self._lines: Deque[Dict[str, Any]] = deque(maxlen=self.capacity)
+        self._lock = threading.Lock()
+        # Whether THIS thread is already inside emit. Recording a failed
+        # capture is a log call, and this handler sits on the root logger, so
+        # without the guard the report of the failure would re-enter the
+        # handler that just failed — once per frame, until the stack ended.
+        self._inside = threading.local()
+        self._seq = 0
+        self.dropped = 0
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if getattr(self._inside, "flag", False):
+            # Re-entered while reporting an earlier failure. Counted rather
+            # than kept: the report still reaches every other handler, and the
+            # count is what tells a reader this window is incomplete.
+            with self._lock:
+                self.dropped += 1
+            return
+        try:
+            line = {
+                "level": record.levelname,
+                "logger": record.name,
+                "request_id": getattr(record, "request_id", UNBOUND),
+                "principal": getattr(record, "principal", UNBOUND),
+                "message": redact(record.getMessage()),
+                "created": record.created,
+                "ts": time.strftime(DATEFMT, time.localtime(record.created)),
+            }
+            for field in ("method", "path", "status", "duration_ms"):
+                if (value := getattr(record, field, None)) is not None:
+                    line[field] = value
+            if record.exc_info:
+                line["exception"] = redact(self.format_exception(record))
+        except Exception as exc:
+            # A handler that raises is a handler that can take the process down
+            # through logging's own error path, so this recovers. It does not
+            # do so silently: the platform rule is that a handler may decide to
+            # carry on but may never make the decision invisible, and a viewer
+            # quietly missing lines is exactly the kind of incompleteness that
+            # rule exists to prevent.
+            #
+            # `handleError` is logging's own answer here and is not used,
+            # because it writes to stderr — the one place a deployment that
+            # needs this screen may not have. The re-entrancy guard is what
+            # makes the ordinary call safe.
+            with self._lock:
+                self.dropped += 1
+            self._inside.flag = True
+            try:
+                swallowed(logger, exc, f"captured a log line from {record.name}",
+                          detail="the line is counted as dropped and is not in "
+                                 "the window; every other handler still has it")
+            finally:
+                self._inside.flag = False
+            return
+        with self._lock:
+            self._seq += 1
+            line["seq"] = self._seq
+            if len(self._lines) == self.capacity:
+                self.dropped += 1
+            self._lines.append(line)
+
+    def format_exception(self, record: logging.LogRecord) -> str:
+        if record.exc_info is None:
+            return ""
+        return logging.Formatter().formatException(record.exc_info)
+
+    def since(self, cursor: int = 0, limit: int = 500) -> Tuple[List[Dict[str, Any]], int, int]:
+        """Lines after `cursor`, the new cursor, and how many were missed.
+
+        The third value is the honest part. A caller that asks again after the
+        ring has turned over more than `capacity` times cannot be given what it
+        missed, and saying so lets the screen show a gap rather than a
+        continuous stream that silently isn't one.
+        """
+        with self._lock:
+            lines = list(self._lines)
+            latest, oldest = self._seq, (lines[0]["seq"] if lines else self._seq + 1)
+        missed = max(0, oldest - cursor - 1) if cursor else 0
+        fresh = [line for line in lines if line["seq"] > cursor]
+        if len(fresh) > limit:
+            missed += len(fresh) - limit
+            fresh = fresh[-limit:]
+        return fresh, latest, missed
+
+    def snapshot(self) -> Dict[str, Any]:
+        with self._lock:
+            return {"held": len(self._lines), "capacity": self.capacity,
+                    "latest": self._seq, "dropped": self.dropped}
+
+    def resize(self, capacity: int) -> None:
+        """Change how many lines are held, keeping the newest.
+
+        Configuration is read after this module is imported — start-up itself
+        logs — so the ring exists at the default and is resized once the
+        deployment's number is known. Rebuilding the deque rather than mutating
+        `maxlen`, which is read-only, and keeping the tail rather than the head
+        because a shrink should drop the oldest lines, exactly as an overflow
+        does.
+        """
+        capacity = max(1, int(capacity))
+        with self._lock:
+            self.capacity = capacity
+            kept = deque(self._lines, maxlen=capacity)
+            self.dropped += max(0, len(self._lines) - len(kept))
+            self._lines = kept
+
+    def clear(self) -> None:
+        with self._lock:
+            self._lines.clear()
+
+
+#: The one ring the viewer reads. Created here rather than in the app so that a
+#: line logged during start-up — before any route exists — is already in it.
+LIVE = Ring()
+
+
+def configure(level: str = "INFO", fmt: str = FORMAT, json_lines: bool = False,
+              ring: Optional[Ring] = None) -> None:
     """Install the standard format and the context filter. Idempotent.
 
     The filter goes on the HANDLER rather than on a logger, because a filter on
@@ -170,10 +352,18 @@ def configure(level: str = "INFO", fmt: str = FORMAT, json_lines: bool = False) 
     logging.basicConfig(level=str(level).upper(), format=fmt, datefmt=DATEFMT,
                         force=True)
     context = ContextFilter()
-    for handler in logging.getLogger().handlers:
+    root = logging.getLogger()
+    for handler in root.handlers:
         handler.addFilter(context)
         if json_lines:
             handler.setFormatter(JsonFormatter())
+    # The ring goes on last and keeps the filter too, because it reads
+    # `request_id` off the record and `basicConfig(force=True)` has just
+    # removed every handler including this one.
+    live = LIVE if ring is None else ring
+    live.addFilter(context)
+    if live not in root.handlers:
+        root.addHandler(live)
 
 
 def get_logger(name: str) -> logging.Logger:

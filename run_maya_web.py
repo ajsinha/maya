@@ -221,8 +221,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # workstation, and on a deployed instance it tells a stranger where to
     # look while saying nothing about whether there is anything to find. Asked
     # once, at start-up, so the page states a fact rather than a guess.
-    default_credentials_live = bool(
-        principals.authenticate(bootstrap_user, bootstrap_password))
+    default_credentials_live = principals.still_opens_the_door(
+        bootstrap_user, bootstrap_password)
     if default_credentials_live:
         logger.warning(
             "the bootstrap credential from configuration still authenticates "
@@ -581,6 +581,11 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
     configure(cfg.get("logging.level", "INFO"),
               cfg.get("logging.format", log.FORMAT),
               cfg.get_bool("logging.json", False))
+    # How many lines /admin/logs can show. Configurable because the right
+    # number depends on how chatty the deployment is: a quiet instance wants a
+    # long memory, and a busy one wants a bounded footprint more than it wants
+    # an hour of history it will never scroll to.
+    log.LIVE.resize(max(200, cfg.get_int("logging.ring", 2000)))
     ctx = build_context(cfg)
 
     # `docs_url=None` and `redoc_url=None` turn OFF the built-in pages, and
@@ -815,12 +820,53 @@ def config_path() -> str:
     return os.environ.get("MAYA_CONFIG") or str(ROOT / "config" / "application.yaml")
 
 
+def _repair_schema(cfg: PropertiesConfigurator, apply: bool) -> None:
+    """Add the columns the shipped DDL declares and this database lacks.
+
+    `drift()` has always reported precisely what is missing and then said
+    "apply the difference by hand" — which is a real chore, and the reason a
+    database with months of evidence in it gets deleted rather than fixed.
+
+    This is not a migration tool and does not become one: no version history,
+    no ordering, no down-step. The consolidated schema is still the only
+    description of the shape; this asks it what is missing and adds exactly
+    that, with ALTER TABLE, which cannot lose a row.
+    """
+    from db import Database
+
+    database = Database(cfg.get("database.url", "sqlite:///data/sqlite/maya.db"))
+    plan = database.repair(dry_run=not apply)
+    if not plan["planned"] and not plan["refused"]:
+        print("nothing to repair — the database matches the shipped DDL")
+        return
+    for step in plan["planned"]:
+        print(("  applied  " if apply else "  would run  ") + step["sql"])
+    for step in plan["refused"]:
+        print(f"  REFUSED  {step['table']}.{step['column']}: {step['why']}")
+    print()
+    if apply:
+        print(f"{len(plan['applied'])} column(s) added.")
+        remaining = database.drift()
+        print("drift after: " + (str(remaining) if remaining else "none"))
+    else:
+        print(f"{plan['detail']}. Re-run with --repair-schema to apply.")
+
+
 def main() -> None:
     import uvicorn
     path = config_path()
     if not Path(path).is_file():
         raise SystemExit(f"no configuration file at {path}")
     cfg = PropertiesConfigurator(path)
+
+    # Repair, and exit. Deliberately not something start-up does on its own: a
+    # process that alters the schema every time somebody runs it is one nobody
+    # can reason about, and the point of the drift report is that a person
+    # decides.
+    if "--check-schema" in sys.argv or "--repair-schema" in sys.argv:
+        _repair_schema(cfg, apply="--repair-schema" in sys.argv)
+        return
+
     logger.info("starting from %s", path)
     uvicorn.run(create_app(cfg), host=cfg.get("server.host", "0.0.0.0"),
                 port=cfg.get_int("server.port", 5006))

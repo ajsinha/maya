@@ -42,6 +42,7 @@ from routes.regime_routes import RegimeRoutes
 from routes.scheduler_routes import SchedulerRoutes
 from routes.public_routes import PublicRoutes
 from routes.ui_admin_routes import AdminRoutes
+from routes.ui_log_routes import LogRoutes
 from routes.ui_routes import UIRoutes
 from routes.validation_routes import ValidationRoutes
 
@@ -62,7 +63,7 @@ ALL_ROUTES = (PublicRoutes, AuthRoutes, PrincipalRoutes, GrammarRoutes,
               OverlayRoutes, ArtifactRoutes, AssistRoutes, ProfileRoutes,
               BaselineRoutes,
               RegimeRoutes, SchedulerRoutes,
-              AdminRoutes,
+              AdminRoutes, LogRoutes,
               UIRoutes)
 
 __all__ = [
@@ -83,6 +84,7 @@ __all__ = [
               "FindingWorkflowRoutes",
               "GrammarRoutes",
               "LifecycleRoutes",
+              "LogRoutes",
               "ModelAlgebraRoutes",
               "ModelRoutes",
               "MonitoringRoutes",
