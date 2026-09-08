@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% block title %}{{ app_name }} — {{ tagline }}{% endblock %}
 {% block head %}<style>
-.hero{background:linear-gradient(135deg,#761422 0%,#A51C30 55%,#8E1828 100%);color:#fff;
+.hero{background:linear-gradient(135deg,var(--crimson-d) 0%,var(--crimson) 55%,var(--crimson-d) 100%);color:var(--on-accent);
       border-radius:6px;padding:3.2rem 2.6rem;margin-bottom:2.2rem;position:relative;overflow:hidden}
 .hero h1{font-size:2.9rem;line-height:1.14;margin-bottom:.7rem}
-.hero .lede{color:#F4DFE3;font-size:1.06rem;max-width:44rem;line-height:1.55}
+.hero .lede{color:var(--bad-soft);font-size:1.06rem;max-width:44rem;line-height:1.55}
 .hero .mark{position:absolute;right:-28px;bottom:-34px;opacity:.14;width:290px}
-.pill{display:inline-block;background:rgba(255,255,255,.16);color:#fff;font-size:.7rem;
+.pill{display:inline-block;background:rgba(255,255,255,.16);color:var(--on-accent);font-size:.7rem;
       letter-spacing:.10em;font-weight:700;padding:.3rem .7rem;border-radius:3px;margin-bottom:1.1rem}
-.gold{height:4px;background:#B8873D;border-radius:2px;width:76px;margin:1.4rem 0}
+.gold{height:4px;background:var(--warn);border-radius:2px;width:76px;margin:1.4rem 0}
 .tclass{border-left:3px solid var(--crimson);padding-left:.85rem;margin-bottom:1.05rem}
 .tclass .code{font-weight:700;color:var(--crimson);font-size:.82rem;letter-spacing:.04em}
 .pillar{border:1px solid var(--rule);border-radius:4px;padding:1.15rem;height:100%}
@@ -24,7 +24,7 @@
   <p class="lede">Statistical, machine-learned, generative, calibrated, vendor-supplied,
      expert-judgment, rule-based and end-user-computed — governed as one population,
      with evidence bound to the artefact rather than asserted beside it.</p>
-  <p class="serif" style="font-size:1.3rem;color:#fff;margin:1.5rem 0 1.7rem">
+  <p class="serif" style="font-size:1.3rem;color:var(--on-accent);margin:1.5rem 0 1.7rem">
      <em>{{ slogan }}</em></p>
   <a href="/login" class="btn btn-light btn-sm px-3" style="color:var(--crimson);font-weight:600">
      Sign in</a>
@@ -81,6 +81,6 @@
 <div class="card"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
   <div><strong>{{ model_count }}</strong> model{{ '' if model_count == 1 else 's' }} currently
        registered in this instance.</div>
-  <a href="/login" class="btn btn-sm" style="background:var(--crimson);color:#fff">Open the register</a>
+  <a href="/login" class="btn btn-sm" style="background:var(--crimson);color:var(--on-accent)">Open the register</a>
 </div></div>
 {% endblock %}

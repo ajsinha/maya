@@ -61,7 +61,7 @@ only check here that somebody holding the database cannot simply satisfy.</p>
 </div>
 
 <div class="card mb-3" {{ 'style=border-color:var(--crimson)' if drift }}>
-  <div class="card-header" {{ 'style=background:#FBEEF0' if drift }}>Does the database still match the release?</div>
+  <div class="card-header" {{ 'style=background:var(--bad-soft)' if drift }}>Does the database still match the release?</div>
   <div class="card-body py-3 small">
     {% if drift %}
       <p class="evidence-bad mb-2"><strong>No.</strong> The schema is applied

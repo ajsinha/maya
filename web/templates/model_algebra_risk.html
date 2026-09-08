@@ -107,7 +107,7 @@ these controls defend&rdquo; are one definition.</p>
             </tbody>
           </table>
           {% if assessed_before_any_version %}
-            <div class="state-note mt-2 mb-0" style="border-left-color:#B8873D">
+            <div class="state-note mt-2 mb-0" style="border-left-color:var(--warn)">
               <strong>This assessment predates the model's versions.</strong>
               Its complexity term was reached with no version to read, so it
               describes a model with no parameters — while the latest version
@@ -116,7 +116,7 @@ these controls defend&rdquo; are one definition.</p>
               the model now is. Re-assess to make the two agree.
             </div>
           {% elif recorded_class and declared_class and recorded_class != declared_class %}
-            <div class="state-note mt-2 mb-0" style="border-left-color:#B8873D">
+            <div class="state-note mt-2 mb-0" style="border-left-color:var(--warn)">
               <strong>The assessment and the register disagree.</strong> This
               tier was reached on class <span class="mono">{{ recorded_class }}</span>;
               the latest version declares <span class="mono">{{ declared_class }}</span>.

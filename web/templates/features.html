@@ -126,7 +126,7 @@ pinned by the view version that wrote them.</p>
 <!-- ------------------------------------------------------------ catalogue -->
 <div class="card mb-3"><div class="card-header">The catalogue</div>
   {% if unresolved %}
-  <div class="state-note mb-2" style="border-left-color:#B8873D">
+  <div class="state-note mb-2" style="border-left-color:var(--warn)">
     {{ unresolved|length }} feature(s) could not be resolved and are listed below
     with the reason: <span class="mono">{{ unresolved|join(", ") }}</span>.</div>
   {% endif %}
