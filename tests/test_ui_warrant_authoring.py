@@ -570,8 +570,8 @@ class TestTheEstateWideWarrantView:
     most, and it had no answer anywhere.
 
     `/warrants` needs a model chosen before it shows a grant,
-    `GET /api/v1/warrants` is 405 because the path is a POST, and the dashboard
-    has no warrant tile.
+    `GET /api/v1/warrants` answered 405 because the path is a POST, and the
+    dashboard has no warrant tile.
     """
 
     def test_it_lists_grants_without_choosing_a_model_first(self, signed_in):
@@ -601,3 +601,84 @@ class TestTheEstateWideWarrantView:
         body = registered.get("/warrants/estate").text
         assert "svc/origination" not in body
         assert "scoped to the models you" in body
+
+
+class TestTheEstateIsReadableByAScriptToo:
+    """The screen existed and the endpoint did not, which is the wrong way
+    round on a platform whose stated rule is that a screen is a client of the
+    same API. Anything watching this platform for what is about to lapse could
+    only do it by scraping HTML."""
+
+    def test_the_collection_answers_a_get(self, signed_in):
+        r = signed_in.get("/api/v1/warrants")
+        assert r.status_code == 200, "this was 405 — POST only — until now"
+        body = r.json()
+        assert body["count"] >= 1
+        assert any(g["principal"] == "svc/origination" for g in body["warrants"])
+
+    def test_a_grant_names_its_model_by_urn(self, signed_in):
+        """A row carrying only `model_id` is a row nobody can act on."""
+        grant = signed_in.get("/api/v1/warrants").json()["warrants"][0]
+        assert grant["model_urn"] == URN
+        assert grant["model_name"]
+
+    def test_it_says_when_each_grant_lapses(self, signed_in):
+        grant = signed_in.get("/api/v1/warrants").json()["warrants"][0]
+        assert "lapsed" in grant and "lapses_in_days" in grant
+        assert grant["lapsed"] is False
+
+    def test_the_screen_and_the_endpoint_agree(self, signed_in):
+        """Both read `every_grant()`. If they ever disagree about who may run
+        what, one of the two is telling somebody the wrong thing."""
+        listed = {g["principal"] for g
+                  in signed_in.get("/api/v1/warrants").json()["warrants"]}
+        page = signed_in.get("/warrants/estate").text
+        for principal in listed:
+            assert principal in page
+
+    def test_it_filters_by_model_environment_and_principal(self, signed_in):
+        assert signed_in.get(f"/api/v1/warrants?model={URN}").json()["count"] >= 1
+        assert signed_in.get("/api/v1/warrants?model=maya://model/nothing"
+                             ).json()["count"] == 0
+        assert signed_in.get("/api/v1/warrants?environment=prod").json()["count"] >= 1
+        assert signed_in.get("/api/v1/warrants?environment=nowhere"
+                             ).json()["count"] == 0
+        assert signed_in.get("/api/v1/warrants?principal=svc/origination"
+                             ).json()["count"] >= 1
+
+    def test_a_revoked_grant_is_still_listed_by_default(self, signed_in, people,
+                                                        csrf):
+        """A withdrawn authority is part of the record of who could once do
+        what. Dropping it from the default view would make the list answer a
+        narrower question than it appears to — and `live=true` is there for
+        the caller who genuinely wants only what is in force."""
+        revoked = signed_in.post("/api/v1/warrants/revoke", auth=people["j.okafor"],
+                                 headers=csrf, json={"urn": URN, "reason": "test"})
+        assert revoked.status_code == 200, revoked.text
+        everything = signed_in.get("/api/v1/warrants").json()
+        assert any(g["revoked"] for g in everything["warrants"])
+        assert everything["live"] == 0
+        assert signed_in.get("/api/v1/warrants?live=true").json()["count"] == 0
+
+    def test_it_is_scoped_like_the_screen(self, registered, people):
+        """One rule, asked from two places. A listing that showed what the
+        page hides would be the more useful of the two doors to the wrong
+        person."""
+        registered.post("/api/v1/principals", json={
+            "username": "eu.only2", "display_name": "EU only",
+            "roles": ["auditor"], "password": "eu-pw-long-enough",
+            "legal_entities": ["LE-EU-99"]})
+        body = registered.get("/api/v1/warrants",
+                              auth=("eu.only2", "eu-pw-long-enough")).json()
+        assert body["count"] == 0
+
+    def test_it_needs_the_permission(self, client, people):
+        r = client.get("/api/v1/warrants", auth=people["d.raman"])
+        assert r.status_code in (200, 403)
+        if r.status_code == 200:
+            # A developer holds `warrant:read`; what it must not do is show
+            # grants on models outside its scope, which the test above covers.
+            assert "warrants" in r.json()
+
+    def test_an_anonymous_caller_is_refused(self, client):
+        assert client.get("/api/v1/warrants", auth=None).status_code == 401

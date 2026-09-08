@@ -161,10 +161,14 @@ class WarrantAuthoringRoutes(Routes):
         def warrants_estate(request: Request):
             """Who currently holds authority to run what, and until when.
 
-            The question a day-to-day administrator asks most often, and it had
-            no answer anywhere: `/warrants` requires a model to be chosen first,
-            `GET /api/v1/warrants` is 405 because the path is a POST, and the
-            dashboard has no warrant tile.
+            The question a day-to-day administrator asks most often, and it
+            had no answer anywhere: `/warrants` requires a model to be chosen
+            first, `GET /api/v1/warrants` answered 405 because the path is a
+            POST, and the dashboard has no warrant tile.
+
+            This screen is a client of `GET /api/v1/warrants`, which now
+            exists, and both read `every_grant()` — so a script and a browser
+            answer the same question the same way.
 
             Scoped like everything else — a grant says who may run a model, so
             somebody the API refuses that model to does not see its grants.

@@ -329,11 +329,14 @@ class WarrantService:
 
         "Which service principals currently hold authority to run which models,
         and when do those grants lapse?" is the question a day-to-day
-        administrator asks most often, and it had no answer: `/warrants`
-        requires a model to be chosen before it shows anything, and
-        `GET /api/v1/warrants` is 405 because the path is a POST. So the
-        estate-wide view of who may run what did not exist in either the API or
-        the interface.
+        administrator asks most often, and it had no answer anywhere:
+        `/warrants` requires a model to be chosen before it shows anything, and
+        `GET /api/v1/warrants` answered 405 because the path is a POST.
+
+        Both readers exist now — `/warrants/estate` and `GET /api/v1/warrants`
+        — and they call THIS, so the screen and the endpoint cannot come to
+        disagree about who may run what. Scoping is applied by each caller
+        against the principal it has, because this layer has none.
 
         Ordered by expiry rather than by model, because the reason to read this
         list is to find what is about to stop working — or what should have
