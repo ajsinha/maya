@@ -87,6 +87,11 @@ ignore = [
     # the message IS what the test is asserting about.
     "RUF043",
 ]
+# The soak harness drives the platform over HTTP from outside the process, on
+# purpose: a test client would skip uvicorn, the assembled middleware and every
+# question about the process's own resource use, which is most of what a soak
+# is for. `urllib` against a literal `http://127.0.0.1` is the whole point.
+"tools/soak/*.py" = ["S310"]
 # Pydantic gives every instance its own copy of a mutable field default, so
 # `list` and `dict` defaults on a request body are correct here and RUF012
 # cannot tell. Every one of these is a `Body` subclass.
