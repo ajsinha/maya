@@ -260,6 +260,55 @@ class TestContrastIsMeasuredRatherThanJudged:
                 f"{contrast(tokens['on-bar'], tokens[surface]):.2f}:1, which is "
                 f"what it inherited before")
 
+    def test_the_text_size_is_a_choice_somebody_makes(self):
+        """A separate control rather than a reliance on the browser's zoom.
+
+        Zoom scales the LAYOUT — a governance table at 150% is a table nobody
+        can see a row of — where this scales only the type. Five sizes, stored,
+        so the choice survives the next machine.
+        """
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        assert "--text-scale" in css
+        for size in ("small", "large", "larger", "largest"):
+            assert f':root[data-text="{size}"]' in css, f"{size} is not offered"
+        for size in ("small", "normal", "large", "larger", "largest"):
+            assert f'data-text="{size}"' in css, f"{size} has no control"
+
+    def test_the_scale_moves_every_size_and_not_only_body_text(self):
+        """Against the ROOT, so every `rem` on every screen moves together and
+        the proportions somebody designed stay the proportions they see.
+        Scaling `body` would move body text and leave every heading, chip and
+        table where it was."""
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        assert "html{color-scheme:light dark; font-size:calc(16px * var(--text-scale, 1));}" in css
+        assert "font-size:0.9375rem" in css, \
+            "body must be in rem, or it does not move with the scale"
+
+    def test_no_template_pins_a_font_size_in_pixels(self):
+        """A `px` size does not scale, so it grows relatively SMALLER as
+        somebody turns the text up — which is the opposite of what they
+        asked for, in the places they were already struggling to read."""
+        offenders = []
+        for path in sorted((ROOT / "web" / "templates").glob("*.html")):
+            body = path.read_text(encoding="utf-8")
+            for match in re.finditer(r"font-size:\s*(\d+)px", body):
+                # 16px on the root is the BASE the scale multiplies.
+                if "var(--text-scale" in body[max(0, match.start() - 80):match.start()]:
+                    continue
+                offenders.append(f"{path.name}: {match.group(0)}")
+        assert offenders == [], (
+            "these pin a font size in pixels, so it will not scale: "
+            + ", ".join(offenders))
+
+    def test_the_choice_survives_a_reload_without_a_flash(self):
+        """Applied in <head>, before the first paint. Text reflowing after load
+        is the same defect as the theme flashing, and this platform already
+        decided that one."""
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        head = css[:css.index("</head>")]
+        assert 'localStorage.getItem("maya.text")' in head
+        assert 'setAttribute("data-text"' in head
+
     def test_the_measurement_can_fail(self):
         """A contrast check that passes everything is a check nobody can trust."""
         assert contrast("#CCCCCC", "#FFFFFF") < 4.5
@@ -430,7 +479,14 @@ class TestTheThemeIsAThingSomebodyChooses:
         is what made the first dark mode legible on some screens and not
         others."""
         base = self._base()
-        rules = base.split("html{color-scheme:light dark;}", 1)[1]
+        # Anchored on the SELECTOR rather than the whole rule. It was the
+        # literal `html{color-scheme:light dark;}`, so adding a font-size to
+        # that one line made this test raise IndexError — a colour-token check
+        # broken by a typography change, which tells the next reader nothing
+        # about either.
+        marker = "html{color-scheme:light dark;"
+        assert marker in base, "the root rule has moved; this test cannot see it"
+        rules = base.split(marker, 1)[1]
         rules = rules.split("</style>", 1)[0]
         rules = re.sub(r"/\*.*?\*/", "", rules, flags=re.S)
         # `@media print` is deliberately literal: paper has one theme, and a

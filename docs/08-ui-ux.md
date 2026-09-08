@@ -81,7 +81,7 @@ Fifty-two routes render a page. Seven are reachable without a session; forty-fiv
 |---|---|---|
 | `/` | `landing.html` | The argument, and a live count of registered models |
 | `/about` | `about.html` | What this is and what it is not |
-| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 18 help topics, markdown on disk rendered at request time |
+| `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 19 help topics, markdown on disk rendered at request time |
 | `/tutorials`, `/tutorials/{slug}` | same two templates | Six walkthroughs, the same renderer, one dictionary entry apart |
 | `/login` | `login.html` | The only page that establishes a session |
 
@@ -327,7 +327,7 @@ Named, because a reader planning around this deserves the list rather than a dis
 | **No validation workbench** | No replay, no challenger runner, no independent recode, no slice explorer. Validation appears on the model page as a table of episodes |
 | **No charts** | Chart.js is not vendored. Every number is rendered as a number |
 | **No discovery or examiner screen** | Connectors and examiner packs are API-only. Administration is no longer among them — §2.4 |
-| **Accessibility is partial** | Semantic HTML and the description-list fix are real; ARIA is on one template. Full keyboard operation, visible focus and 4.5:1 contrast are stated in `NFR-USE-002` and are not tested anywhere |
+| **Accessibility is partial, and the partition moved** | What `NFR-USE-002` asks for is now largely *tested* rather than intended — `tests/test_ui_accessibility.py`, 31 assertions: every text pair clears AA in both themes, every badge carries its text at AA, a menu item contrasts with its menu rather than with the bar, every focusable kind gets a `:focus-visible` ring that inverts on crimson, there is a skip link, reduced motion is honoured, every colour resolves through a token and no template paints its own. What is still absent is a screen-reader pass, ARIA beyond one template, and any check performed by a person rather than by a contrast calculation — see §12 |
 | **`/models/new` is two forms, not a wizard** | Register a model, or upload a version, side by side, plus a note on registering what already runs in an execution engine. It carries the artifact format list with **`executes_on_load` marked against each format**, so the warning is attached to the choice rather than left in a document somebody read once. The registration form also takes a document, filed at **model** level because at that moment there is no version to file it against — and a failure to file it says so without implying the registration failed, since a conflated message is how somebody comes to register the same model twice |
 
 ---
@@ -451,8 +451,11 @@ second place a colour can be defined, and the two drift.
 | **Empty states** | Every empty state explains why it is empty and what the thing is for. The features card with no contract says how to bind one; the parameters card says what a version with no approved parameters may still do | Convention |
 | **Refusals** | A refused page renders `forbidden.html` and says the record exists and is outside your scope. A refused action renders the API's `detail` and its `remediation`, not "an error occurred" | Convention |
 | **Density** | Compact by default. Banks look at hundreds of rows | Convention |
+| **Theme** | Light, dark, or the system's, chosen in the top bar and applied *before the first paint* so a reload does not flash the other one. Every colour is a token defined for both | **`tests/test_ui_accessibility.py`** |
+| **Text scale** | Five steps, 0.9× to 1.5×, in the same menu. `html { font-size: calc(16px * var(--text-scale, 1)) }` and every size in the interface expressed in `rem` — so one number moves headings, chips, badges and tables *together* and the proportions somebody designed are the proportions they see. Not browser zoom, which scales the layout and turns a portfolio table into two visible columns. Stored per browser, applied before the first paint | **`tests/test_ui_accessibility.py`** — including that no template pins a size in pixels, which is what makes the scale total |
 
-Everything in the "convention" rows is a rule somebody can break without a test failing. That is
+The rows naming a test are held. Everything in the "convention" rows is a rule somebody can break
+without a test failing. That is
 stated rather than implied, for the same reason as the rest of this document.
 
 ---

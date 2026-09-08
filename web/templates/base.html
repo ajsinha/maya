@@ -22,6 +22,8 @@
    wait for it. */
 (function(){try{var t=localStorage.getItem("maya.theme");
 if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}
+var z=localStorage.getItem("maya.text");
+if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
 }catch(e){}}());
 </script>
 <link href="/static/vendor/fonts/fonts.css" rel="stylesheet">
@@ -172,9 +174,24 @@ if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t
   --bs-card-border-color:var(--hairline);
   --bs-tertiary-bg:var(--parch); --bs-secondary-bg:var(--parch);
 }
-html{color-scheme:light dark;}
+/* THE TEXT SCALE.
+   Every size on every screen is in `rem`, which resolves against the ROOT
+   element — so one number here moves all of them together, and the
+   proportions somebody chose stay the proportions they see. Scaling `body`
+   instead would move body text and leave every heading, chip and table where
+   it was.
+   `--text-scale` is set by `data-text` on <html> below, and the default is
+   what the interface has always been: sixteen pixels at the root, fifteen for
+   body text. */
+html{color-scheme:light dark; font-size:calc(16px * var(--text-scale, 1));}
+:root[data-text="small"]{--text-scale:0.9;}
+:root[data-text="large"]{--text-scale:1.15;}
+:root[data-text="larger"]{--text-scale:1.3;}
+:root[data-text="largest"]{--text-scale:1.5;}
 body{background:var(--canvas); color:var(--ink); font-family:var(--sans);
-     font-size:15px; line-height:1.6;
+     /* 15/16 as a ratio rather than 15px, so it moves with the scale. The
+        rendered size at the default is identical to what it replaced. */
+     font-size:0.9375rem; line-height:1.6;
      font-feature-settings:"kern" 1, "liga" 1;
      -webkit-font-smoothing:antialiased;}
 .navbar{background:var(--bar)!important; box-shadow:var(--lift);}
@@ -669,6 +686,23 @@ table.maya thead th button:focus-visible,
             <i class="bi bi-moon-stars me-2"></i>Dark<span class="tick float-end"></span></button></li>
           <li><button class="dropdown-item theme-pick" data-theme="system" type="button">
             <i class="bi bi-circle-half me-2"></i>System<span class="tick float-end"></span></button></li>
+          {# Text size, in the menu that already means "how this looks to me".
+             A separate control rather than relying on the browser's zoom,
+             because zoom scales the LAYOUT — a governance table at 150% zoom
+             becomes a table nobody can see a row of — and because a choice
+             this platform stores is one that survives the next machine. #}
+          <li><hr class="dropdown-divider"></li>
+          <li><h6 class="dropdown-header">Text size</h6></li>
+          <li><button class="dropdown-item text-pick" data-text="small" type="button">
+            <span style="font-size:.8rem">Aa</span><span class="ms-2">Small</span><span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item text-pick" data-text="normal" type="button">
+            <span style="font-size:.95rem">Aa</span><span class="ms-2">Normal</span><span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item text-pick" data-text="large" type="button">
+            <span style="font-size:1.1rem">Aa</span><span class="ms-2">Large</span><span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item text-pick" data-text="larger" type="button">
+            <span style="font-size:1.25rem">Aa</span><span class="ms-2">Larger</span><span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item text-pick" data-text="largest" type="button">
+            <span style="font-size:1.4rem">Aa</span><span class="ms-2">Largest</span><span class="tick float-end"></span></button></li>
         </ul>
       </li>
       {% if user %}
