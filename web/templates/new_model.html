@@ -141,7 +141,7 @@ just finished a fit uses the same two endpoints.</p>
                    placeholder="sha256:… (what should be there)"></div>
 
             <div class="col-12">
-              <div class="border rounded p-2" style="background:#FAF9F7">
+              <div class="border rounded p-2" style="background:var(--parch)">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <span class="fw-semibold" style="font-size:.75rem">Or put the file in MAYA</span>
                   <span class="text-muted" style="font-size:.68rem">stored under its own sha256; up to 8&nbsp;GiB</span>
@@ -199,7 +199,7 @@ just finished a fit uses the same two endpoints.</p>
     <p class="mb-2 text-muted">The same two endpoints. An engine that has just
     fitted a model registers the version and then records the parameters against
     the warrant it fitted under:</p>
-<pre class="small mb-0" style="background:#F4F2EF;padding:.8rem;border-radius:.25rem"><code>POST /api/v1/models                      # once, when the model first exists
+<pre class="small mb-0" style="background:var(--parch);padding:.8rem;border-radius:.25rem"><code>POST /api/v1/models                      # once, when the model first exists
 POST /api/v1/models/{name}/versions      # the kernel that will run
 POST /api/v1/parameters                  # the inhabitant of P it produced
      {"warrant_id": "…", "featureset": "…", "featureset_version": 1, …}</code></pre>

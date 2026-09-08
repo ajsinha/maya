@@ -83,7 +83,7 @@
       <div class="card-body">
         {% if derived %}
         <p class="small mb-1"><strong>It is computed</strong></p>
-        <pre class="mb-2" style="background:#F4F2EF;padding:.6rem;border-radius:.25rem"><code class="mono">{{ derived.expression }}</code></pre>
+        <pre class="mb-2" style="background:var(--parch);padding:.6rem;border-radius:.25rem"><code class="mono">{{ derived.expression }}</code></pre>
         <p class="small text-muted mb-3">
           Evaluator <code>{{ derived.evaluator }}</code>; when the arithmetic has
           no answer it records <code>{{ derived.on_error }}</code>.

@@ -36,7 +36,7 @@
   and a reader used to have to assemble it from four cards. Everything here is
   derived from the version; nothing is typed by hand.
 -->
-<div class="card mb-3" style="background:#FBF9F7">
+<div class="card mb-3" style="background:var(--parch)">
   <div class="card-body py-3">
     <div class="d-flex justify-content-between align-items-baseline mb-2">
       <span class="kicker mb-0">THE MODEL, AS ITS TYPE</span>
@@ -441,6 +441,16 @@
             contain, and has anything changed since the last one?</button></div>
       </div></div>
 
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Specification</span>
+        <a class="btn btn-sm btn-danger py-0 px-2" style="font-size:.72rem"
+           href="/model/{{ model.urn.replace('maya://model/','') }}/specification">Write it</a></div>
+      <div class="card-body small text-muted">The mathematics and the reasoning,
+        in LaTeX, with a live preview &mdash; filed as a document somebody signs
+        for. The equation MAYA derives can be quoted into it, so the two cannot
+        drift apart.</div></div>
+
     <div class="card mb-3"><div class="card-header">Supervisory regimes</div>
       <div class="card-body p-0"><table class="table maya mb-0">
         <thead><tr><th>Regime</th><th class="text-end">Standing</th></tr></thead>
@@ -509,7 +519,7 @@
           <button id="copy-warrant" class="btn btn-sm btn-outline-secondary py-0 px-2"
                   style="font-size:.7rem">Copy</button></div>
         <pre class="mono" style="font-size:.68rem;max-height:22rem;overflow:auto;
-             background:#FBF9F7;border:1px solid var(--rule);border-left:3px solid var(--crimson);
+             background:var(--parch);border:1px solid var(--rule);border-left:3px solid var(--crimson);
              border-radius:3px;padding:.6rem"><code id="warrant-json"></code></pre>
         <div class="small text-muted">This is the whole contract an execution engine
           acts on. Validate it against
