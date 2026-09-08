@@ -259,6 +259,13 @@ class FeatureViewRepository(Repository):
     TABLE, ORDER = "feature_view", "name"
 
 
+class FeatureSourceRepository(Repository):
+    """Where a view's values come from. `options` is a document, like every
+    other document in this schema: JSON held as text."""
+
+    TABLE, JSON, ORDER = "feature_source", ("options",), "view_name"
+
+
 class FeatureViewVersionRepository(Repository):
     TABLE, JSON, ORDER = ("feature_view_version", ("features", "quality_report"), "version")
 

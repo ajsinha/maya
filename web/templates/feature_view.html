@@ -36,6 +36,141 @@
     <div id="upload-result" class="small mt-2"></div>
   </div></div></div>
 
+{# ------------------------------------------------------ where values come from
+   Two ways in, and the screen has to offer both. Somebody uploads a file, or
+   MAYA pulls from where the data already lives — a warehouse query, a file on
+   a volume, an object in a store.
+
+   MAYA PULLS; it does not read through. What it fetches is written into its
+   own Delta as a new version, so integrity, versioning and the two clocks stay
+   MAYA's. Serving a model straight off a warehouse table would give away
+   point-in-time correctness: a table overwritten since March cannot say what
+   was knowable in March, and it would answer something rather than refuse. #}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Where the values come from</span>
+    {% if source and not source.retired_at %}
+      <span class="chip">{{ source.kind }}{% if source.format %} &middot;
+        {{ source.format }}{% endif %}</span>
+    {% else %}
+      <span class="chip">uploaded</span>
+    {% endif %}
+  </div>
+  {% if source and not source.retired_at %}
+  <div class="card-body">
+    <dl class="maya-terms mb-2">
+      <div><dt style="width:8rem">Reads from</dt>
+           <dd class="mono">{{ source.locator }}</dd></div>
+      {% if source.statement %}
+      <div><dt style="width:8rem">Statement</dt>
+           <dd><pre class="mb-0" style="background:var(--parch);padding:.5rem;
+             border-radius:.25rem;white-space:pre-wrap"><code class="mono"
+             >{{ source.statement }}</code></pre>
+             <div class="text-muted" style="font-size:.72rem">A source may only
+               read. Anything that is not a SELECT is refused before it is
+               stored, not before it is run.</div></dd></div>
+      {% endif %}
+      {% if source.options and source.options.columns %}
+      <div><dt style="width:8rem">Column mapping</dt>
+           <dd class="mono">{% for theirs, ours in source.options.columns.items()
+             %}{{ theirs }} &rarr; {{ ours }}{% if not loop.last %}, {% endif %}{%
+             endfor %}</dd></div>
+      {% endif %}
+      {% if source.credential_ref %}
+      <div><dt style="width:8rem">Credential</dt>
+           <dd class="mono">{{ source.credential_ref }}
+             <span class="text-muted" style="font-family:var(--sans)">&mdash; the
+               NAME of one this deployment configures. MAYA never stores the
+               credential itself.</span></dd></div>
+      {% endif %}
+      <div><dt style="width:8rem">Last pull</dt>
+           <dd>{% if source.last_pulled_at %}{{ source.last_pulled_at|when }}
+             <span class="text-muted">({{ source.last_pulled_at|ago }})</span>
+             &mdash; {{ source.last_pull_detail }}
+             {% if source.last_pull_version %}into v{{ source.last_pull_version }}{% endif %}
+           {% else %}<span class="text-muted">never pulled</span>{% endif %}</dd></div>
+      <div><dt style="width:8rem">Declared</dt>
+           <dd>{{ source.created_at|when }} by {{ source.created_by }}
+             {% if not source.enabled %}
+               &middot; <span class="evidence-bad">switched off</span>{% endif %}</dd></div>
+    </dl>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <button class="btn btn-sm btn-outline-secondary py-0 px-3" id="preview-source"
+              style="font-size:.75rem">Preview &mdash; reads, writes nothing</button>
+      {% if may_pull %}
+        <button class="btn btn-sm btn-danger py-0 px-3" id="pull-source"
+                style="font-size:.75rem">Pull now &mdash; makes a new version</button>
+      {% endif %}
+      {% if may_define %}
+        <button class="btn btn-sm btn-outline-secondary py-0 px-3" id="retire-source"
+                style="font-size:.75rem">Stop reading from it</button>
+      {% endif %}
+    </div>
+  </div>
+  {% elif may_define %}
+  <div class="card-body">
+    <p class="text-muted small mb-3" style="max-width:46rem">
+      Nothing declared, so this view is filled by upload. Declare a source and
+      MAYA will fetch from it and write what it got here as a new version
+      &mdash; never serving a model off the source directly, because a table
+      that has been overwritten cannot answer what was knowable last quarter.
+    </p>
+    <div class="row g-2">
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="src-kind">Kind</label>
+        <select class="form-select form-select-sm" id="src-kind">
+          {% for kind in source_kinds %}<option value="{{ kind }}">{{ kind }}</option>{% endfor %}
+        </select></div>
+      <div class="col-12 col-md-5">
+        <label class="form-label small mb-1" for="src-locator">Locator</label>
+        <input class="form-control form-control-sm mono" id="src-locator"
+               placeholder="postgresql://host/db  ·  /data/rows.csv  ·  s3://bucket/key.parquet"></div>
+      <div class="col-6 col-md-2">
+        <label class="form-label small mb-1" for="src-format">Format</label>
+        <select class="form-select form-select-sm" id="src-format">
+          <option value="">from the suffix</option>
+          {% for fmt in source_formats %}<option value="{{ fmt }}">{{ fmt }}</option>{% endfor %}
+        </select></div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small mb-1" for="src-credential">Credential name</label>
+        <input class="form-control form-control-sm mono" id="src-credential"
+               placeholder="optional"></div>
+      <div class="col-12">
+        <label class="form-label small mb-1" for="src-statement">Statement
+          &mdash; for a SQL source</label>
+        <textarea class="form-control form-control-sm mono" id="src-statement"
+                  rows="2" placeholder="SELECT customer_number, asof, loaded_at, dscr FROM risk"></textarea></div>
+      <div class="col-12">
+        <label class="form-label small mb-1" for="src-mapping">Column mapping
+          &mdash; theirs to ours, when they differ</label>
+        <input class="form-control form-control-sm mono" id="src-mapping"
+               placeholder='{"customer_number": "entity_id", "asof": "event_ts", "loaded_at": "ingest_ts"}'>
+        <div class="text-muted" style="font-size:.72rem">Every row needs
+          <code>{{ "entity_id" }}</code>, <code>event_ts</code> and
+          <code>ingest_ts</code>. A warehouse rarely calls them that, and
+          renaming here beats making somebody rewrite their query.</div></div>
+      <div class="col-12">
+        <button class="btn btn-sm btn-danger py-0 px-3" id="declare-source"
+                style="font-size:.75rem">Declare it</button>
+        <div class="text-muted mt-1" style="font-size:.72rem">Declaring does not
+          pull. Preview and pull appear here once it is declared &mdash; and
+          preview reads the stored source, so it cannot run before there is
+          one.</div></div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    Nothing declared, so this view is filled by upload. Declaring a source needs
+    <code>feature:define</code>.
+  </div>
+  {% endif %}
+  {# ONE result area, outside the branches. Two elements sharing an id is
+     invalid whichever branch renders, and `getElementById` takes whichever
+     came first — so the message would have landed in the wrong place. #}
+  <div class="card-body py-2 border-top"><div id="source-result"
+       class="small" role="status" aria-live="polite"></div></div>
+</div>
+
 <div class="card mb-3"><div class="card-header">Versions</div>
   <table class="table maya mb-0">
     <thead><tr><th>Version</th><th>Rows</th><th>Features</th><th>Pinned at</th>
@@ -72,6 +207,71 @@
 var TYPES = {parquet: "application/vnd.apache.parquet",
              arrow: "application/vnd.apache.arrow.stream",
              ndjson: "application/x-ndjson", jsonl: "application/x-ndjson"};
+/* ------------------------------------------------------------- the source
+   Declare, preview, pull, retire. Every one is the same API call a script
+   makes — the screen is a client of it and holds no logic of its own. */
+var VIEW = "{{ view.name }}";
+function say(html, bad) {
+  $("#source-result").html(bad ? '<span class="evidence-bad">' + html + "</span>"
+                               : '<span class="evidence-ok">' + html + "</span>");
+}
+function refused(x) {
+  var e = x.responseJSON || {};
+  /* The refusal's own sentence AND its remediation. Showing only the first
+     leaves somebody knowing they were refused and not what to do instead,
+     which is half of what a refusal is for. */
+  say((e.detail || x.statusText) +
+      (e.remediation ? ' <span class="text-muted">' + e.remediation + "</span>" : ""),
+      true);
+}
+function mapping() {
+  var raw = ($("#src-mapping").val() || "").trim();
+  if (!raw) { return {}; }
+  try { return {columns: JSON.parse(raw)}; }
+  catch (e) { return null; }
+}
+$("#declare-source").on("click", function () {
+  var options = mapping();
+  if (options === null) { say("The column mapping is not valid JSON.", true); return; }
+  $.ajax({url: "/api/v1/feature-views/" + encodeURIComponent(VIEW) + "/source",
+          method: "PUT", contentType: "application/json",
+          data: JSON.stringify({
+            kind: $("#src-kind").val(), locator: $("#src-locator").val(),
+            statement: $("#src-statement").val(), format: $("#src-format").val(),
+            credential_ref: $("#src-credential").val() || null,
+            options: options})})
+    .done(function () { location.reload(); })
+    .fail(refused);
+});
+$("#preview-source").on("click", function () {
+  say("Reading a few rows&hellip;");
+  $.get("/api/v1/feature-views/" + encodeURIComponent(VIEW) + "/source/preview?limit=5")
+    .done(function (r) {
+      var head = r.usable
+        ? "Readable: " + r.row_count + " row(s), columns " + r.columns.join(", ")
+        : r.detail;
+      say(head, !r.usable);
+    })
+    .fail(refused);
+});
+$("#pull-source").on("click", function () {
+  say("Pulling&hellip; this writes a new version.");
+  $.ajax({url: "/api/v1/feature-views/" + encodeURIComponent(VIEW) + "/source/pull",
+          method: "POST", contentType: "application/json", data: "{}"})
+    .done(function () { location.reload(); })
+    .fail(refused);
+});
+$("#retire-source").on("click", function () {
+  var reason = window.prompt("Why is this source no longer read? The versions "
+    + "it already produced stand either way.");
+  if (!reason) { return; }
+  $.ajax({url: "/api/v1/feature-views/" + encodeURIComponent(VIEW) + "/source/retire",
+          method: "POST", contentType: "application/json",
+          data: JSON.stringify({reason: reason})})
+    .done(function () { location.reload(); })
+    .fail(refused);
+});
+
 $("#send").on("click", function () {
   var file = document.getElementById("file").files[0];
   if (!file) { $("#upload-result").text("Choose a file first."); return; }

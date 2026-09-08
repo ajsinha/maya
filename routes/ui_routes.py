@@ -202,11 +202,23 @@ class UIRoutes(Routes):
             if not view:
                 return self.page(request, "not_found.html", http_status=404, name=name)
             versions = f.views.versions_of(name)
+            from core.features.sources import FORMATS, KINDS
+
             return self.page(request, "feature_view.html", view=view,
                              # From the code. The control offered four suffixes
                              # and the API reads six — including CSV, which is
                              # what every worked example in the product uploads.
                              upload_accepts=accept_attribute(),
+                             # Values arrive one of two ways: somebody uploads
+                             # them, or MAYA pulls them from where they live.
+                             # The second existed only as an API, which on a
+                             # platform whose rule is that a screen is a client
+                             # of the same API is the wrong way round.
+                             source=(f.sources.get(name) if f.sources else None),
+                             source_kinds=list(KINDS),
+                             source_formats=list(FORMATS),
+                             may_define=self.may_view(request, "feature:define"),
+                             may_pull=self.may_view(request, "feature:materialise"),
                              versions=[{**v, **f.views.restated(name, v["version"])}
                                        for v in versions])
 

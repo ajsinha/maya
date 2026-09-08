@@ -381,6 +381,31 @@ CREATE TABLE IF NOT EXISTS feature_contract (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_feature_contract_model_version_id ON feature_contract (model_version_id);
 
+CREATE TABLE IF NOT EXISTS feature_source (
+    id TEXT NOT NULL,
+    view_name TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    locator TEXT NOT NULL,
+    statement TEXT DEFAULT '' NOT NULL,
+    format TEXT DEFAULT '' NOT NULL,
+    options TEXT DEFAULT '{}' NOT NULL,
+    credential_ref TEXT,
+    enabled BOOLEAN DEFAULT 1 NOT NULL,
+    last_pulled_at DOUBLE PRECISION,
+    last_pull_rows INTEGER,
+    last_pull_digest TEXT,
+    last_pull_detail TEXT DEFAULT '' NOT NULL,
+    last_pull_version INTEGER,
+    created_by TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL,
+    retired_at DOUBLE PRECISION,
+    retired_by TEXT,
+    retire_reason TEXT,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_feature_source_kind ON feature_source (kind);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_feature_source_view ON feature_source (view_name);
+
 CREATE TABLE IF NOT EXISTS feature_view (
     id TEXT NOT NULL,
     name TEXT NOT NULL,

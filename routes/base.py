@@ -538,9 +538,21 @@ class Routes:
             logger.warning("refused (%s): %s", exc.code, exc)
             raise HTTPException(STATUS.get(exc.code, 400), exc.as_problem()) from exc
         except (RegistryError, FeatureError, AssemblyRejected, ValidationError) as exc:
-            code = {RegistryError: "registry_refused", FeatureError: "feature_refused",
-                    AssemblyRejected: "assembly_rejected",
-                    ValidationError: "validation_refused"}[type(exc)]
+            # Looked up along the MRO rather than by EXACT type. `type(exc)`
+            # was a KeyError the moment anything subclassed one of these, and
+            # a KeyError inside the handler that maps refusals is a refusal
+            # arriving as a 500 — which is precisely the unmapped failure DR-6
+            # forbids, produced by the code that exists to prevent it.
+            #
+            # `SourceError` is a `FeatureError`, and every one of its refusals
+            # 500'd: "a source may only read, and this starts with 'UPDATE'" —
+            # a control working perfectly, reported as a crash.
+            table = {RegistryError: "registry_refused",
+                     FeatureError: "feature_refused",
+                     AssemblyRejected: "assembly_rejected",
+                     ValidationError: "validation_refused"}
+            code = next((table[base] for base in type(exc).__mro__
+                         if base in table), "feature_refused")
             logger.warning("refused (%s): %s", code, exc)
             raise HTTPException(STATUS[code], {
                 # The refusal's OWN remediation when it carries one. The
@@ -551,7 +563,8 @@ class Routes:
                 # retry", an instruction about a different object entirely.
                 "error": code, "detail": str(exc),
                 "remediation": (getattr(exc, "remediation", "")
-                                or REMEDY[type(exc)])}) from exc
+                                or next((REMEDY[base] for base in type(exc).__mro__
+                                         if base in REMEDY), ""))}) from exc
 
     # ---------------------------------------------------------- authorisation
     def principal(self, request: Request) -> Dict[str, Any]:
