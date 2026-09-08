@@ -5,18 +5,23 @@ Everything a tester needs, in the order they will want it.
 | File | What it is |
 |---|---|
 | **[README.md](README.md)** | **The cheatsheet.** Start here. Twelve sections, every command verified against a live instance, with screenshots. |
-| [qa-setup.sh](qa-setup.sh) | Builds the example estate the cheatsheet walks through. Run once, after starting the platform. |
+| **[qa_setup.py](qa_setup.py)** | **Builds the example estate**, on any platform. Written with MAYA's own SDK, so it doubles as a worked example of the client a bank would build against. Idempotent: run it twice and it says what already exists rather than making a second copy. |
+| [qa-setup.sh](qa-setup.sh) | The same estate in bash and curl, for anybody already scripted around it. Needs both, so it does not run on Windows. |
 | [screenshots/](screenshots/) | The 18 screens referenced by the cheatsheet, captured from a running instance. |
 
 ## The short version
 
 ```bash
 # terminal 1 — the platform
-.venv/bin/python run_maya_web.py
+.venv/bin/python run_maya_web.py          # macOS / Linux
+.venv\Scripts\python run_maya_web.py       # Windows
 
 # terminal 2 — the example estate
-./docs/QA/qa-setup.sh
+python docs/QA/qa_setup.py
 ```
+
+Every command in the cheatsheet is given twice: once as `curl`, once as
+Python using the SDK. On Windows use the Python one.
 
 Then open **http://localhost:5006** and sign in as `admin` / `maya-admin-dev`.
 
