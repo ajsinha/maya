@@ -205,7 +205,15 @@ jobs:
           slice=("${files[@]:$start:$per}")
           if [ ${#slice[@]} -eq 0 ]; then echo "no files in this shard"; exit 0; fi
           printf 'running %d of %d files\n' "${#slice[@]}" "$total"
-          pytest "${slice[@]}" -q --cov --cov-report= --cov-context=test
+          # `--cov-fail-under=0` overrides `fail_under = 90` from
+          # pyproject.toml, which pytest-cov applies to EVERY run that measures
+          # coverage. A shard runs a quarter of the files and lands around 60%,
+          # so all four shards failed on a floor meant for the combined number
+          # — while their tests passed. The floor belongs to the `coverage` job
+          # below, which is the only place the whole suite's number exists, and
+          # which says so in its own comment.
+          pytest "${slice[@]}" -q --cov --cov-report= --cov-context=test \
+                 --cov-fail-under=0
           # Named by shard BEFORE upload. Every shard wrote a file called
           # `.coverage`, and the combining job downloads them with
           # `merge-multiple: true`, which extracts all four to the same path --

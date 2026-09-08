@@ -7,3 +7,11 @@ ruff>=0.16
 mypy>=1.11
 pip-audit>=2.7
 cyclonedx-bom>=4.0
+
+# Authors an ONNX graph so `tests/test_runtimes.py` can build its fixture in
+# the test rather than carry a binary file in the repository. NOT the same
+# package as `onnxruntime`, which EXECUTES a graph and is what MAYA needs at
+# runtime -- that one is in requirements.txt. The tests guarded on the runtime
+# and imported this, so any environment with one and not the other errored
+# instead of skipping; the guard now asks about both.
+onnx>=1.17
