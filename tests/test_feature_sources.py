@@ -188,6 +188,29 @@ class TestPreviewWritesNothing:
                                                     "ingest_ts"}
         assert "refused at load" in preview["detail"]
 
+    def test_a_sql_preview_does_not_drag_the_whole_table_across(
+            self, client, a_view, a_warehouse):
+        """Preview is what somebody does BEFORE they are sure the query is
+        right, so it must not be the expensive call. Fetched with `fetchmany`
+        rather than read whole and sliced — driver-agnostic, because wrapping
+        the statement in a LIMIT would mean knowing every dialect's spelling
+        of one."""
+        import inspect
+
+        from core.features.sources import SourceRegistry
+
+        source = inspect.getsource(SourceRegistry._read_sql)
+        assert "fetchmany(limit)" in source
+        assert "rows[:limit]" not in source, \
+            "reading everything and slicing is what this replaced"
+
+        client.put(f"{API}/feature-views/{a_view}/source", json={
+            "kind": "sql", "locator": f"sqlite:///{a_warehouse}",
+            "statement": "SELECT cust, asof, seen, dscr, ltv FROM risk",
+            "options": SQL_MAPPING})
+        assert client.get(f"{API}/feature-views/{a_view}/source/preview?limit=2"
+                          ).json()["row_count"] == 2
+
     def test_it_honours_its_limit(self, client, a_view, a_csv):
         client.put(f"{API}/feature-views/{a_view}/source", json={
             "kind": "file", "locator": str(a_csv), "options": MAPPING})
