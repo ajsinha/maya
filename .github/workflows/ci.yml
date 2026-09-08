@@ -304,3 +304,47 @@ jobs:
                  tests/test_domain.py tests/test_lifecycle.py \
                  tests/test_model_composition.py tests/test_concurrency.py \
                  -q -n 0
+
+  # ---------------------------------------------------------------------------
+  # The Delta fallback, run as the estates that need it will run it.
+  #
+  # `deltalake` is a compiled Rust extension and some estates forbid binary
+  # wheels outright, so `maya_deltalake` implements the six calls MAYA makes in
+  # pure Python. Two implementations of the layer the evidence lives in can
+  # differ in a way nothing notices until an auditor asks a question of a table
+  # written by the other one.
+  #
+  # The conformance evidence is not that the fallback passes tests written for
+  # it — it is that it passes the ones written for the platform. So the whole
+  # suite runs a second time with the fallback forced, and the counts have to
+  # match the ordinary run.
+  #
+  # `tests/test_maya_deltalake.py` additionally writes with each implementation
+  # and reads with the other, which is what makes this a Delta writer rather
+  # than a private format that happens to work.
+  delta-fallback:
+    name: The whole suite, on MAYA's own Delta
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Every test, with the fallback forced
+        env:
+          MAYA_DELTA_BACKEND: maya_deltalake
+        run: pytest -q -n auto --dist loadfile
+      - name: And prove the fallback is what ran
+        env:
+          MAYA_DELTA_BACKEND: maya_deltalake
+        run: |
+          # A job that silently used the real package would be a job that
+          # proves nothing, and it is one environment variable away from being
+          # exactly that.
+          python -c "
+          from db.delta_backend import BACKEND
+          assert BACKEND == 'maya_deltalake', f'ran on {BACKEND}, not the fallback'
+          print('conformance run used', BACKEND)"

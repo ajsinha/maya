@@ -388,6 +388,65 @@ the whole source, which is correct and is not a strategy for a billion rows.
 
 ---
 
+## 9.3 Two Delta implementations, and how they are held equal
+
+`deltalake` ships as a compiled Rust extension, and some estates forbid binary
+wheels outright — no amount of vendoring helps, since there is nothing to
+vendor that is allowed to run. Those estates could not install MAYA at all.
+
+`maya_deltalake/` implements the six calls MAYA makes — `DeltaTable(path)`,
+`.version()`, `.load_as_version(n)`, `.to_pandas()`, `.to_pyarrow_dataset()`
+and `write_deltalake(...)` — in pure Python over pyarrow. That is the whole
+surface, verified by reading the codebase rather than assumed. It is **not** a
+reimplementation of Delta Lake: no merge, no vacuum, no partitioning, no object
+store, no deletion vectors. Everything outside the subset raises by name,
+because a fallback that quietly does less than the thing it stands in for is
+the failure it would be written to avoid.
+
+**It writes the real format.** The transaction log is the actual protocol —
+`_delta_log/NNN….json` carrying `protocol`, `metaData`, `add`, `remove` and
+`commitInfo` — so a table written on a locked-down estate opens in Spark, in
+Databricks and in `deltalake`, and one written by any of those opens here. A
+private format that merely worked would quietly cost the portability that is
+half of what Delta is chosen for.
+
+`db/delta_backend.py` makes the choice once, preferring the reference
+implementation wherever it installs. Three modules imported `deltalake`
+directly and three import sites is three places to get a fallback wrong — the
+usual way being that two fall back and the third raises `ImportError` at the
+moment somebody exports a large table.
+
+**How they are held equal** is the part that matters. Not by a shared type —
+mypy correctly objects that they are different types, and no annotation can
+claim otherwise without lying about the ninety per cent that differs. By
+behaviour:
+
+| | |
+|---|---|
+| One test body, both implementations | Every behavioural test in `tests/test_maya_deltalake.py` is parameterised over both. Two test bodies would be two specifications, and they drift |
+| Each reads the other's tables | Append, overwrite and time travel, in both directions, including a table written alternately by the two — which is what happens when an estate installs the package after running without it |
+| The schemas are compared | Parsed and compared as structures, including for a `shape: [12]` vector and a `[3, 3]` matrix, which Delta describes as an array and an array of arrays. A shape recorded differently is a curve arriving with the wrong number of tenors under the other reader |
+| **The whole platform suite runs twice** | CI runs all 3,548 tests a second time with `MAYA_DELTA_BACKEND=maya_deltalake`, and the counts must match. That the fallback passes tests written for it proves little; that it passes the ones written for the platform is the claim |
+
+**Why this is safe here and would not be everywhere.** Delta guarantees a set
+of rows, not a sequence, and the two implementations return them in different
+orders. MAYA does not depend on that, because the point-in-time read sorts by
+`pit_order_key` — total and content-based — which was built so that two
+point-in-time implementations could not break a tie opposite ways. Its own
+comment says *a Delta rewrite cannot change the answer*; swapping the backend
+is a Delta rewrite by another name. The property that stopped two readers
+disagreeing is the property that makes a second writer safe.
+
+**Single writer.** Commits are created with `O_EXCL`, which is the protocol's
+own concurrency primitive on a POSIX filesystem: two writers racing for version
+*N* means one fails and the loser's Parquet file is removed rather than left
+orphaning bytes no commit references. That suffices because MAYA serialises
+Delta writes above this layer. It does **not** suffice on NFS or an object
+store, where exclusive create is not atomic, and the fallback refuses to be
+pointed at one rather than appearing to work.
+
+---
+
 ## 10. What is not built, by name
 
 A gap recorded in one place is a gap somebody has to go looking for, so it is recorded here as well

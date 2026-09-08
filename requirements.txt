@@ -25,7 +25,23 @@ httpx>=0.27
 hypothesis>=6.100
 
 # feature platform (Delta Lake)
+#
+# `deltalake` is OPTIONAL. It ships as a compiled Rust extension and some
+# estates forbid binary wheels outright — no amount of vendoring helps, because
+# there is nothing to vendor that is allowed to run. Where it is absent MAYA
+# falls back to `maya_deltalake/`, which implements the six calls MAYA makes in
+# pure Python and writes the real Delta transaction log, so tables stay
+# readable by Spark, by Databricks and by this package. `db/delta_backend.py`
+# chooses; CI runs the whole suite both ways and the counts must match.
+#
+# It is listed here because where it CAN be installed it should be: it is the
+# reference implementation, it is faster, and it supports the whole protocol.
 deltalake>=1.0
+#
+# pandas and pyarrow are NOT optional, and an estate that forbids binary wheels
+# entirely cannot run MAYA at all — the feature sources, the transfer layer and
+# the assembly use pyarrow directly. Naming that here is better than
+# discovering it after installing.
 pandas>=2.2
 pyarrow>=17.0
 

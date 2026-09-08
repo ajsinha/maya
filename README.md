@@ -455,7 +455,9 @@ maya/
 │   ├── estate/                      the worklist and the summary, derived not assigned
 │   └── evidence/  risk/  content/   the chain and its semirings; tiering; rendered help
 ├── db/                              the only package that knows about storage
-│   └── schema/                      tables.py — 50 typed tables; the .sql files are generated from it
+│   └── schema/                      tables.py — 51 typed tables; the .sql files are generated from it
+├── maya_deltalake/                  the Delta subset MAYA uses, in pure Python — used where
+│                                    binary wheels are forbidden and `deltalake` cannot install
 ├── routes/  web/                    the HTTP surface and the vendored interface
 ├── sdk/                             clients, one folder per language
 │   ├── python/                      maya_sdk — standard library only, no dependencies
