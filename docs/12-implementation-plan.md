@@ -409,6 +409,36 @@ against one shared PostgreSQL database thirteen assertions failed on accumulated
 `assert 467 == 1`. Isolation is now the `db` fixture's job, stated there, rather than an accident of the
 driver.
 
+### 7.1 "Runs" meant the job fires, and for a while every job that fired was red
+
+Stated plainly because the table above says **Runs** against seven gates, and a reader reasonably
+takes that to mean *runs and passes*. For a stretch of commits it meant only the first half.
+
+Two defects, both of the same shape — something true on the developer's machine and nowhere else:
+
+**`itsdangerous` was never declared.** `starlette.middleware.sessions` imports it at module scope, and
+starlette does not depend on it; it is an optional extra. It was in the developer virtualenv by
+accident. So every job that imports `run_maya_web` — the laws, all four shards, the spec lock, both
+conformance runs — died at import with `ModuleNotFoundError`, while the whole suite passed locally.
+A dependency that is real and undeclared is invisible until the first clean install, which in a bank
+is the deployment rather than a laptop.
+
+**Every `BOOLEAN` column defaulted to an integer.** The columns were declared
+`server_default=text('0')` — a raw SQL literal, passed through to both dialects unchanged. The *type*
+was right, which is what the schema tests checked. PostgreSQL does not implicitly cast integer to
+boolean in a default expression any more than in an insert, so `CREATE TABLE` failed on the first
+truth column and **the entire dialect was uncreatable** — the same failure as the original fourteen
+`BOOLEAN` columns, arriving through the default instead of the value, one milestone after the typed
+declaration was supposed to have ended it. SQLite accepted it, exactly as it accepted the original.
+`false()` and `true()` are compiled *by the dialect* rather than passed through: SQLite still renders
+`0` and `1`, so the checked-in SQLite DDL is byte-identical and a deployed database sees nothing;
+PostgreSQL renders `false` and `true`. `test_a_truth_columns_default_is_a_truth_value_in_both_dialects`
+now asserts the default and not only the type.
+
+The lesson is not about either bug. It is that **a gate nobody reads is a gate that is not running**,
+and this document had no row for *did the last build pass*. Both were found by opening the CI history,
+which is a thing that has to be done rather than assumed.
+
 | | Gate | State |
 |---|---|---|
 | 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 207 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 268 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
