@@ -125,8 +125,17 @@ class GenerationLog:
         if rate <= 0:
             return False
         drawn = len(self.generations.many(capability_id=capability["id"]))
+        # 256, not 255. A byte over 255.0 lands in [0, 1] INCLUSIVE, so the
+        # byte 255 gives exactly 1.0 and `1.0 < 1.0` is false — a capability
+        # set to review EVERY generation skipped roughly one draw in 256, and
+        # the one it skipped was fixed by the capability id, so for some
+        # capabilities the very first draw escaped. A review rate of 1.0 that
+        # is not 1.0 is the failure this whole module exists to prevent, and it
+        # is worse than a wrong number because the configuration reads as
+        # correct. Over 256.0 the byte lands in [0, 1), every rate k/256 draws
+        # exactly k of 256, and 1.0 means all of them.
         seed = hashlib.sha256(
-            f"{capability['id']}:{drawn}".encode()).digest()[0] / 255.0
+            f"{capability['id']}:{drawn}".encode()).digest()[0] / 256.0
         return seed < rate
 
     # --------------------------------------------------------------- attest

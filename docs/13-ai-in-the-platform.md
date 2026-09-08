@@ -250,6 +250,15 @@ that made the docstring false in both halves: the sequence was unrepeatable, so 
 on it, *and* a drafter watching which of their own drafts were sampled could infer the rate and time
 around it.
 
+The seed is a digest byte over **256**, not 255 — which is a detail worth one paragraph because it was
+wrong, and wrong in the direction this document is about. Over 255.0 a byte lands in `[0, 1]`
+*inclusive*, so the byte `0xFF` scores exactly `1.0`, and `1.0 < rate` is false at `rate = 1.0`. A
+capability configured to review **every** generation therefore reviewed all but roughly one draw in
+256 — and because the seed is fixed by the capability id rather than by a clock, it was not a random
+draw that escaped but the same capability's, every time. A stated rate of 1.0 that is not 1.0 is
+precisely the failure mode this section exists to detect, arriving in the control that detects it. Over
+256.0 the byte lands in `[0, 1)`, a rate of `k/256` draws exactly `k`, and 1.0 means all of them.
+
 ---
 
 ## 7. What must never happen, and why a credential beats a policy
