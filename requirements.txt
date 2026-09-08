@@ -7,6 +7,17 @@ sqlalchemy>=2.0
 python-multipart>=0.0.9
 markdown>=3.6              # help and about pages, rendered server-side
 
+# The session cookie is signed with this. `starlette.middleware.sessions`
+# imports it at module scope and starlette does NOT depend on it -- it is an
+# optional extra -- so nothing installed it and nothing declared it. It was
+# present in the developer virtualenv by accident, which is the only reason
+# the suite passed there: every CI job that imports `run_maya_web` had been
+# failing on `ModuleNotFoundError: No module named 'itsdangerous'` since the
+# session middleware was added. A dependency that is real but undeclared is
+# invisible exactly until the first clean install, which in a bank is the
+# deployment.
+itsdangerous>=2.2
+
 # PostgreSQL. The documented production database, and it was in neither this
 # file nor the virtualenv -- so `database.url: postgresql://...` raised
 # ModuleNotFoundError, and the second dialect the schema is written for had

@@ -48,6 +48,7 @@ from __future__ import annotations
 from sqlalchemy import (BigInteger, Boolean, Column, Double, Index, Integer,
                         MetaData,
                         Table, Text, text)
+from sqlalchemy.sql.expression import false, true
 
 #: Every table in MAYA. `Database` applies it and compares against it; nothing
 #: else should build DDL.
@@ -130,7 +131,7 @@ MODEL_EDGE = Table(
     # is to describe. But an unchecked edge that looks exactly like a checked
     # one is a claim nobody made, propagating through blast radius as though
     # somebody had. So the distinction is recorded rather than lost.
-    Column("type_checked", Boolean, nullable=False, server_default=text('0')),
+    Column("type_checked", Boolean, nullable=False, server_default=false()),
     Column("created_by", Text, nullable=False),
     Column("created_at", Double, nullable=False),
     Index("uq_model_edge_from_model_to_model_kind", "from_model", "to_model", "kind", unique=True),
@@ -150,7 +151,7 @@ MODEL_VERSION = Table(
     Column("trainability_class", Text, nullable=False),
     Column("parameter_kind", Text, nullable=False),
     Column("fit_procedure", Text, nullable=False),
-    Column("deterministic", Boolean, nullable=False, server_default=text('1')),
+    Column("deterministic", Boolean, nullable=False, server_default=true()),
     Column("input_schema", Text, nullable=False, server_default=text("'[]'")),
     Column("output_schema", Text, nullable=False, server_default=text("'[]'")),
     Column("contract", Text, nullable=False, server_default=text("'{}'")),
@@ -230,7 +231,7 @@ EVIDENCE_NODE = Table(
     Column("subject_id", Text, nullable=False),
     Column("payload", Text, nullable=False, server_default=text("'{}'")),
     Column("parents", Text, nullable=False, server_default=text("'[]'")),
-    Column("contains_personal_data", Boolean, nullable=False, server_default=text('0')),
+    Column("contains_personal_data", Boolean, nullable=False, server_default=false()),
     Column("content_hash", Text, nullable=False),
     Column("prev_hash", Text, nullable=False),
     Column("chain_hash", Text, nullable=False),
@@ -276,7 +277,7 @@ WARRANT = Table(
     Column("declared_use", Text, nullable=False),
     Column("ttl_seconds", Integer, nullable=False),
     Column("grace_seconds", Integer, nullable=False, server_default=text('0')),
-    Column("revoked", Boolean, nullable=False, server_default=text('0')),
+    Column("revoked", Boolean, nullable=False, server_default=false()),
     Column("revoke_reason", Text),
     Column("epoch", Integer, nullable=False, server_default=text('0')),
     Column("created_at", Double, nullable=False),
@@ -296,8 +297,8 @@ FEATURE = Table(
     Column("owner", Text, nullable=False),
     Column("source_system", Text),
     Column("sensitivity", Text, nullable=False, server_default=text("'internal'")),
-    Column("pii", Boolean, nullable=False, server_default=text('0')),
-    Column("protected_basis", Boolean, nullable=False, server_default=text('0')),
+    Column("pii", Boolean, nullable=False, server_default=false()),
+    Column("protected_basis", Boolean, nullable=False, server_default=false()),
     Column("proxy_risk", Text, nullable=False, server_default=text("'none'")),
     Column("defaults", Text, nullable=False, server_default=text("'{}'")),
     Column("shape", Text, nullable=False, server_default=text("'[]'")),
@@ -308,7 +309,7 @@ FEATURE = Table(
     Column("sealed_at", Double),
     Column("sealed_by", Text),
     Column("seal_note", Text, nullable=False, server_default=text("''")),
-    Column("ephemeral", Boolean, nullable=False, server_default=text('0')),
+    Column("ephemeral", Boolean, nullable=False, server_default=false()),
     Column("expires_at", Double),
     Column("created_by", Text, nullable=False, server_default=text("'system'")),
     Column("certification", Text, nullable=False, server_default=text("'experimental'")),
@@ -418,7 +419,7 @@ SERVING_ATTESTATION = Table(
     Column("pinned", Text, nullable=False, server_default=text("'{}'")),
     # 0/1 rather than BOOLEAN: the two dialects and Delta all take an integer,
     # and a BOOLEAN here once broke the whole PostgreSQL dialect.
-    Column("agrees", Boolean, nullable=False, server_default=text('0')),
+    Column("agrees", Boolean, nullable=False, server_default=false()),
     # The views that disagreed, and how.
     Column("divergence", Text, nullable=False, server_default=text("'[]'")),
     Column("detail", Text, nullable=False, server_default=text("''")),
@@ -485,7 +486,7 @@ WARRANT_PROFILE = Table(
     Column("defaults", Text, nullable=False, server_default=text("'{}'")),
     Column("note", Text, nullable=False, server_default=text("''")),
     Column("specificity", Integer, nullable=False, server_default=text('0')),
-    Column("retired", Boolean, nullable=False, server_default=text('0')),
+    Column("retired", Boolean, nullable=False, server_default=false()),
     Column("digest", Text, nullable=False),
     Column("created_by", Text, nullable=False),
     Column("created_at", Double, nullable=False),
@@ -514,7 +515,7 @@ RISK_APPETITE = Table(
     Column("rationale", Text, nullable=False),
     Column("owner", Text, nullable=False, server_default=text("''")),
     Column("review_at", Double),
-    Column("retired", Boolean, nullable=False, server_default=text('0')),
+    Column("retired", Boolean, nullable=False, server_default=false()),
     Column("digest", Text, nullable=False),
     Column("created_by", Text, nullable=False),
     Column("created_at", Double, nullable=False),
@@ -668,7 +669,7 @@ FEATURESET = Table(
     Column("sealed_at", Double),
     Column("sealed_by", Text),
     Column("seal_note", Text, nullable=False, server_default=text("''")),
-    Column("ephemeral", Boolean, nullable=False, server_default=text('0')),
+    Column("ephemeral", Boolean, nullable=False, server_default=false()),
     Column("expires_at", Double),
     Column("grain", Text, nullable=False, server_default=text("''")),
     Column("created_by", Text, nullable=False),
@@ -765,7 +766,7 @@ DATASET_SNAPSHOT = Table(
     Column("delta_version", BigInteger, nullable=False, server_default=text('0')),
     Column("row_count", Integer, nullable=False, server_default=text('0')),
     Column("as_of", Double, nullable=False),
-    Column("pit_verified", Boolean, nullable=False, server_default=text('0')),
+    Column("pit_verified", Boolean, nullable=False, server_default=false()),
     Column("pit_report", Text, nullable=False, server_default=text("'{}'")),
     # Which featureset version produced this snapshot. Recorded rather than
     # recomputed: a fit warrant pins the snapshot, and 'which schema did
@@ -818,7 +819,7 @@ TEST_RESULT = Table(
     Column("slice", Text, nullable=False, server_default=text("'{}'")),
     Column("value", Double),
     Column("threshold", Text, nullable=False, server_default=text("'{}'")),
-    Column("passed", Boolean, nullable=False, server_default=text('0')),
+    Column("passed", Boolean, nullable=False, server_default=false()),
     Column("detail", Text, nullable=False, server_default=text("''")),
     Column("digest", Text, nullable=False),
     Column("computed_at", Double, nullable=False),
@@ -838,7 +839,7 @@ FINDING = Table(
     Column("title", Text, nullable=False),
     Column("description", Text, nullable=False, server_default=text("''")),
     Column("affected_component", Text),
-    Column("blocking", Boolean, nullable=False, server_default=text('0')),
+    Column("blocking", Boolean, nullable=False, server_default=false()),
     Column("owner", Text, nullable=False),
     Column("raised_at", Double, nullable=False),
     Column("due_at", Double, nullable=False),
@@ -1036,12 +1037,12 @@ OBSERVATION = Table(
     Column("id", Text, primary_key=True),
     Column("monitor_id", Text, nullable=False),
     Column("value", Double),
-    Column("passed", Boolean, nullable=False, server_default=text('0')),
+    Column("passed", Boolean, nullable=False, server_default=false()),
     Column("detail", Text, nullable=False, server_default=text("''")),
     Column("sample_size", Integer, nullable=False, server_default=text('0')),
     Column("window_start", Double),
     Column("window_end", Double),
-    Column("matured", Boolean, nullable=False, server_default=text('1')),
+    Column("matured", Boolean, nullable=False, server_default=true()),
     Column("digest", Text, nullable=False),
     Column("computed_at", Double, nullable=False),
     Index("ix_observation_monitor", "monitor_id", "computed_at"),
@@ -1212,7 +1213,7 @@ AI_GENERATION = Table(
     Column("rejected_claims", Text, nullable=False, server_default=text("'[]'")),
     Column("oracle_verdict", Text, nullable=False, server_default=text("'{}'")),
     Column("state", Text, nullable=False, server_default=text("'drafted'")),
-    Column("sampled", Boolean, nullable=False, server_default=text('0')),
+    Column("sampled", Boolean, nullable=False, server_default=false()),
     Column("attested_by", Text),
     Column("attested_at", Double),
     Column("edit_distance", Double),
@@ -1284,7 +1285,7 @@ SCHEDULED_RUN = Table(
     Column("id", Text, primary_key=True),
     Column("job", Text, nullable=False),
     Column("outcome", Text, nullable=False, server_default=text("'{}'")),
-    Column("ok", Boolean, nullable=False, server_default=text('1')),
+    Column("ok", Boolean, nullable=False, server_default=true()),
     Column("error", Text),
     Column("duration_ms", Double, nullable=False, server_default=text('0')),
     Column("ran_by", Text, nullable=False),
@@ -1327,7 +1328,7 @@ ATTACHMENT = Table(
     Column("media_type", Text, nullable=False, server_default=text("'application/octet-stream'")),
     Column("digest", Text, nullable=False),
     Column("size_bytes", Integer, nullable=False, server_default=text('0')),
-    Column("text_indexed", Boolean, nullable=False, server_default=text('0')),
+    Column("text_indexed", Boolean, nullable=False, server_default=false()),
     Column("state", Text, nullable=False, server_default=text("'attached'")),
     Column("note", Text, nullable=False, server_default=text("''")),
     Column("attached_by", Text, nullable=False),
@@ -1445,7 +1446,7 @@ ROLE = Table(
     Column("permissions", Text, nullable=False, server_default=text("'[]'")),
     # 0 or 1, never BOOLEAN. Whether this is one of the eight the platform
     # ships, which may not be edited.
-    Column("built_in", Boolean, nullable=False, server_default=text('0')),
+    Column("built_in", Boolean, nullable=False, server_default=false()),
     Column("created_at", Double, nullable=False),
     Column("created_by", Text, nullable=False, server_default=text("'system'")),
     Column("updated_at", Double),
@@ -1487,7 +1488,7 @@ FEATURE_SOURCE = Table(
     Column("options", Text, nullable=False, server_default=text("'{}'")),
     # The NAME of a credential the deployment configured, not the credential.
     Column("credential_ref", Text),
-    Column("enabled", Boolean, nullable=False, server_default=text("1")),
+    Column("enabled", Boolean, nullable=False, server_default=true()),
     # What the last pull actually did. Kept on the row so the screen can say
     # "last pulled, how many rows, and whether the bytes were the same" without
     # walking the evidence chain for it.

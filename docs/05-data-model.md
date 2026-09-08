@@ -89,8 +89,11 @@ two files have to keep agreeing about.
 
 `tests/test_schema_discipline.py` no longer greps the DDL for a forbidden word — with one source
 there is no second file to disagree, so the assertions moved up to the declaration. What it now holds:
-a `Boolean` reaches **both** dialects as `BOOLEAN` and drags no `CHECK` constraint in behind it; no
-count is declared as a truth value; the generated `.sql` still matches `tables.py`; one declaration
+a `Boolean` reaches **both** dialects as `BOOLEAN` and drags no `CHECK` constraint in behind it; its
+**default** is a boolean in both and not an integer — the type was right and the default was `0`, which
+made `CREATE TABLE` fail on PostgreSQL and is why `false()`/`true()` are used rather than `text('0')`,
+so that the dialect compiles them and SQLite still gets `0` and `1`; no count is declared as a truth
+value; the generated `.sql` still matches `tables.py`; one declaration
 produces the same shape in both dialects; a truth column round-trips as a `bool` and nothing else
 does; the derived `_TRUTH` set matches the declaration, including the six the old hand-kept list
 missed; uniqueness is declared as an `Index` and never inside a `CREATE TABLE`; and every timestamp

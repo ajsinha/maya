@@ -94,6 +94,45 @@ def test_boolean_is_a_real_boolean_in_both_dialects():
                 CreateTable(table).compile(dialect=dialect)).upper(), table.name
 
 
+def test_a_truth_columns_default_is_a_truth_value_in_both_dialects():
+    """The same bug as the original one, arriving through the DEFAULT.
+
+    Every truth column was declared `server_default=text('0')` — a raw SQL
+    literal, emitted verbatim to both dialects. The type was right and the
+    default was an integer, and PostgreSQL does not implicitly cast integer to
+    boolean *in a default expression* any more than it does in an insert:
+
+        column "type_checked" is of type boolean but default expression is of
+        type integer
+
+    which is a CREATE TABLE that fails, so the whole dialect was uncreatable
+    again. SQLite accepted it, exactly as it accepted the original.
+
+    `false()`/`true()` are compiled by the dialect rather than passed through:
+    SQLite still gets `0`/`1`, so a deployed SQLite database sees no change,
+    and PostgreSQL gets `false`/`true`.
+    """
+    from sqlalchemy.dialects import postgresql, sqlite
+    from sqlalchemy.schema import CreateTable
+
+    truth = [(t, c) for t in METADATA.tables.values() for c in t.columns
+             if isinstance(c.type, sa.Boolean)]
+    assert truth, "the truth columns exist"
+    allowed = {"sqlite": {"0", "1"}, "postgresql": {"FALSE", "TRUE"}}
+    for dialect in (sqlite.dialect(), postgresql.dialect()):
+        for table, column in truth:
+            ddl = str(CreateTable(table).compile(dialect=dialect))
+            line = next(ln.strip() for ln in ddl.splitlines()
+                        if ln.strip().startswith(column.name + " "))
+            if "DEFAULT" not in line.upper():
+                continue
+            rendered = line.upper().split("DEFAULT", 1)[1].split()[0].rstrip(",")
+            assert rendered in allowed[dialect.name], (
+                f"{table.name}.{column.name} defaults to {rendered} under "
+                f"{dialect.name}; a BOOLEAN column takes a boolean default, "
+                f"and PostgreSQL refuses the CREATE TABLE otherwise")
+
+
 def test_a_count_is_not_a_truth_value():
     """The distinction the old hand-maintained list kept getting wrong.
 
