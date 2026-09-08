@@ -30,6 +30,9 @@ it then refuses teaches people to ignore refusals.</p>
       ("/admin/evidence", "Evidence integrity",
        "The hash chain, and separately whether it still agrees with the heads written to WORM storage outside the database. Only the second is worth anything against somebody holding the database.",
        "evidence:read"),
+      ("/admin/logs", "Live log",
+       "What this process is doing, as it does it — filtered by module, request or principal. A rolling window and not the evidence chain: read it to diagnose, never to cite.",
+       "log:read"),
       ("/admin/runtimes", "Runtimes and fibres",
        "What the warrant grammar will admit, and what each trainability class is required to carry. A class the platform cannot describe is one it silently skips.",
        "model:read")] %}

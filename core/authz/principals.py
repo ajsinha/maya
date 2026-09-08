@@ -113,6 +113,26 @@ class PrincipalService:
         self.principals.set({"last_seen_at": now}, id=row["id"])
         return row
 
+    def still_opens_the_door(self, username: str, password: str) -> bool:
+        """Does this exact credential still authenticate? Asked, not attempted.
+
+        The sign-in page wants to state whether the SHIPPED password still
+        works, and start-up asks once. Calling `authenticate` to find out is
+        wrong twice over: it logs "authentication failed for admin: password
+        mismatch" on every boot of an instance whose password was properly
+        changed — training the reader to ignore exactly the line that matters
+        when it is real — and on an instance where it DOES still work it
+        stamps `last_seen_at` and seeds the verification cache, so the
+        register records a sign-in that never happened.
+
+        So: compare, and touch nothing.
+        """
+        row = self.principals.one(username=username)
+        if row is None or not row.get("password_hash"):
+            return False
+        return hmac.compare_digest(
+            self.hash_password(password, row["password_salt"]), row["password_hash"])
+
     def forget(self, username: str) -> None:
         """Drop cached verifications. Called when a credential or status changes."""
         self._verified.clear()

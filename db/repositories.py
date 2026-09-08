@@ -23,6 +23,10 @@ from db.database import Database, new_id
 
 logger = get_logger(__name__)
 
+#: Integer 0/1 columns that are READ BACK as Python bools, so a caller writing
+#: `if row["revoked"]` gets what it expects. Only the read path needs this list:
+#: which integers mean a truth value is a fact about the column and cannot be
+#: inferred from the value, since 0 and 1 are also perfectly good counts.
 _BOOL_COLUMNS = ("deterministic", "contains_personal_data", "revoked", "pii",
                  "protected_basis", "pit_verified", "passed", "blocking", "matured", "sampled", "ok", "text_indexed",
                  "ephemeral", "type_checked")
@@ -44,9 +48,21 @@ class Repository:
         for f in self.JSON:
             if f in out and not isinstance(out[f], str):
                 out[f] = json.dumps(out[f], default=str)
-        for f in _BOOL_COLUMNS:
-            if isinstance(out.get(f), bool):
-                out[f] = int(out[f])
+        # EVERY bool, not only the ones on the list above. There are no BOOLEAN
+        # columns in either dialect — truth is integer 0/1 — so a Python bool
+        # is never the right thing to hand a driver, whatever the column is
+        # called.
+        #
+        # Naming the columns here instead made the rule depend on a
+        # hand-maintained list: a truth column added to the schema and left off
+        # it would take a real `bool`, which SQLite silently stores as 0/1 and
+        # psycopg sends to PostgreSQL as a boolean — where an integer column
+        # refuses it. That is the same shape as the defect the no-BOOLEAN rule
+        # exists for: it works on the dialect the tests run against and fails
+        # on the one they do not.
+        for field, value in out.items():
+            if isinstance(value, bool):
+                out[field] = int(value)
         return out
 
     def _decode(self, row: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:

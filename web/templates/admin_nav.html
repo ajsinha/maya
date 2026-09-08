@@ -12,6 +12,7 @@
       ("/admin/regimes", "Regimes", "regime:read"),
       ("/admin/scheduler", "Scheduled jobs", "scheduler:read"),
       ("/admin/evidence", "Evidence integrity", "evidence:read"),
+      ("/admin/logs", "Live log", "log:read"),
       ("/admin/runtimes", "Runtimes and fibres", "model:read")] %}
     {% if perm in may %}
       <a class="chip text-decoration-none {{ 'bg-light fw-semibold' if here == href }}"

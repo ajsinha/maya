@@ -131,6 +131,23 @@ that is to write both and compare them mechanically.
 cast integer to boolean — so every insert touching one of those tables would have failed and the second
 dialect was unusable, silently, because nothing ever ran against it.
 
+**Drift is detected, and now it can be closed.** The schema is applied with `CREATE TABLE IF NOT EXISTS`,
+so an existing table is *skipped* and a column added to the shipped DDL never reaches a deployed database.
+`Database.drift()` has always reported precisely which columns and indexes are missing — and then said
+"apply the difference by hand", which is a real chore and the reason a development database with months of
+evidence in it got deleted rather than fixed. `Database.repair()` closes that loop, and
+`run_maya_web.py --check-schema` / `--repair-schema` invoke it.
+
+This does not make it a migration framework: there is no version history, no ordering, no down-step, and
+the consolidated schema remains the only description of the shape. Repair asks that schema what is missing
+and issues `ALTER TABLE … ADD COLUMN` for exactly that, which is non-destructive in both dialects and
+cannot lose a row. The one case it will not attempt is a `NOT NULL` column with no default on a table that
+already holds rows — there is no value to put in the existing ones, so it is reported with its declaration
+for somebody to decide. Guessing on their behalf is how a governance register acquires a column full of
+zeros that nobody chose. Repair is never run at start-up: a process that alters the schema every time
+somebody starts it is one nobody can reason about, and the point of the drift report is that a person
+decides.
+
 **There are also no foreign keys, no triggers and no `CHECK` constraints.** Referential integrity and
 immutability are properties of the application, not of the database. That is a real weakness and it is
 [11 §4.5](11-adversarial-review.md#45-immutability-has-no-enforcer) rather than a design choice to be
@@ -1493,8 +1510,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 200 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 261 modules in one
+the 201 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 262 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

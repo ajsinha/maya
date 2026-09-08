@@ -303,6 +303,12 @@ logging:
   level: INFO
   format: "%(asctime)s %(levelname)-7s %(name)s [%(request_id)s %(principal)s] | %(message)s"
   json: false
+  # How many recent lines are kept in memory for /admin/logs to show. A rolling
+  # window and nothing else: it is not the evidence chain, it is not written
+  # anywhere, and it is gone when the process restarts. Raise it on a quiet
+  # instance where an hour of history is useful; lower it on a chatty one where
+  # a bounded footprint matters more than history nobody scrolls to.
+  ring: 2000
 
 # Machine assistance. Which model MAYA may ask for a draft.
 #

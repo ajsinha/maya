@@ -124,7 +124,10 @@ OPERATOR = {"model:read", "warrant:read", "evidence:read",
             "monitor:read", "monitor:evaluate",
             # The operator runs the schedule. Every job is idempotent and derives
             # its own work, so this is an operational act and not a governance one.
-            "scheduler:read", "scheduler:run"}
+            "scheduler:read", "scheduler:run",
+            # Diagnosing the platform is the operator's job, and it is the one
+            # role whose members are woken up to do it.
+            "log:read"}
 SERVICE = {"model:read", "warrant:read", "warrant:resolve", "warrant:execute",
            # The principal that runs the model is the one holding the scores, so
            # it hands them over -- and stops there. Deciding that a monitor has
