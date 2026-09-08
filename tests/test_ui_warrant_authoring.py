@@ -538,10 +538,11 @@ class TestNothingIsFetchedFromTheInternet:
         nine copies of "read the refusal body", all nine of them rendering a
         validation error as the text `[object Object]`."""
         body = signed_in.get(f"/warrants?model={NAME}").text
-        for shared in ("csrf.js", "tables.js", "refusal.js", "session.js"):
+        for shared in ("csrf.js", "tables.js", "refusal.js", "session.js",
+                       "theme.js"):
             assert f"/static/js/{shared}" in body, shared
-        assert body.count("<script src=") == 7, \
-            "jquery, bootstrap, refusal, csrf, session, tables, ours"
+        assert body.count("<script src=") == 8, \
+            "jquery, bootstrap, refusal, csrf, session, theme, tables, ours"
 
 
 class TestTheMarkupIsWhatTheHouseRulesRequire:

@@ -210,9 +210,9 @@ function opRow() {
     removeButton() + '</div>';
 }
 
-$("#add-slot").on("click", function () { $("#slot-rows").append(slotRow()); });
-$("#add-parent").on("click", function () { $("#parent-rows").append(parentRow()); });
-$("#add-op").on("click", function () { $("#op-rows").append(opRow()); });
+$("var(--hairline)-slot").on("click", function () { $("#slot-rows").append(slotRow()); });
+$("var(--hairline)-parent").on("click", function () { $("#parent-rows").append(parentRow()); });
+$("var(--hairline)-op").on("click", function () { $("#op-rows").append(opRow()); });
 $(document).on("click", ".drop-row", function () { $(this).closest(".row").remove(); });
 $("#slot-rows").append(slotRow());          // one row, so the form is not empty
 

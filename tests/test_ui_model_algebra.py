@@ -546,7 +546,11 @@ class TestNothingIsExternal:
     #: a LaTeX engine in the request path. Vendored, woff2 only, because
     #: `script-src 'self'` forbids a CDN and this interface must render
     #: air-gapped.
-    NOT_A_SCREEN_LIBRARY = {"swagger-ui", "katex"}
+    #: And `fonts` is not a library at all — it is three typefaces, vendored
+    #: for the same reason as everything else: `font-src 'self'`, and a
+    #: governance platform that fetches from a font host is one that leaks who
+    #: is reading it and stops rendering when the network does.
+    NOT_A_SCREEN_LIBRARY = {"swagger-ui", "katex", "fonts"}
 
     def test_the_screens_add_no_library(self):
         """The whole client stack is Bootstrap, its icons and jQuery. A screen

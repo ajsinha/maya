@@ -12,5 +12,5 @@
 <p class="text-muted">Nothing is registered under
   <code class="mono">{{ identifier | default("maya://model/" ~ name) }}</code>.</p>
 <a href="{{ back_href | default("/") }}" class="btn btn-sm"
-   style="background:var(--crimson);color:#fff">{{ back_label | default("Back to the inventory") }}</a>
+   style="background:var(--crimson);color:var(--on-accent)">{{ back_label | default("Back to the inventory") }}</a>
 {% endblock %}
