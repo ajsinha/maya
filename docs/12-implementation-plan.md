@@ -395,10 +395,13 @@ malicious-artifact corpus.
 seven as running, which is the shape of drift this document exists to prevent — a number written once
 and not recounted when the rows under it changed.
 
-`.github/workflows/ci.yml` fires on every push and pull request to `main` and `develop`, in **seven
-jobs**: hygiene (linter, types, dependency advisories, secret scan, SBOM, spec lock), the discipline
-walkers, the laws, the deck's geometry and slide count, the suite in four shards, a combined coverage
-floor, and the dialect-sensitive files a second time against real **PostgreSQL**.
+`.github/workflows/ci.yml` fires on every push and pull request to `main` and `develop`, in **nine job
+definitions and twelve runs**: hygiene (linter, types, dependency advisories, secret scan, SBOM, spec
+lock), the discipline walkers, the laws, the deck's geometry and slide count, the suite in four shards,
+a combined coverage floor, the dialect-sensitive files a second time against real **PostgreSQL**, and
+two conformance runs of the whole suite — once with `MAYA_DELTA_BACKEND=maya_deltalake` and once with
+`MAYA_TABLE_FORMAT=iceberg`, each of which then proves that the substitution is what actually ran
+rather than trusting the environment variable.
 
 That last one is the gate this section did not think to ask for, and it earned its place immediately.
 `db/schema/postgres.sql` is maintained column-for-column beside the SQLite one and had **never been
@@ -435,9 +438,40 @@ declaration was supposed to have ended it. SQLite accepted it, exactly as it acc
 PostgreSQL renders `false` and `true`. `test_a_truth_columns_default_is_a_truth_value_in_both_dialects`
 now asserts the default and not only the type.
 
-The lesson is not about either bug. It is that **a gate nobody reads is a gate that is not running**,
-and this document had no row for *did the last build pass*. Both were found by opening the CI history,
-which is a thing that has to be done rather than assumed.
+With the import error gone, four jobs went green and three more failures became visible underneath it.
+None was a test being wrong.
+
+**The spec lock was stale by fourteen paths** — every feature-source endpoint, the three log endpoints,
+three retire endpoints, `/limitations`, `/model/{name}/specification`, `/warrants/estate` and
+`GET /api/v1/warrants`, added across earlier milestones while the gate that reports them was dying at
+import. All fourteen were intended; the one entry that is not an addition, `/api/v1/limitations` losing
+`urn` and `semver` as *required*, is the change that let the estate-wide question be asked at all.
+Locked at 282 paths.
+
+**All four shards failed a coverage floor while their tests passed.** `fail_under = 90` lives in
+`pyproject.toml` and pytest-cov applies it to every run that measures coverage — including a shard,
+which runs a quarter of the files and lands near 60%. The `coverage` job that combines the four already
+enforces it, and already said in its own comment that "a floor computed from one shard of four is worse
+than no floor". The shards now pass `--cov-fail-under=0`.
+
+**Both conformance jobs failed on `onnx`, and the guard was asking about a different package.**
+`onnxruntime` *executes* an ONNX graph and is what MAYA needs; `onnx` *authors* one and is what the
+tests need to build a fixture without committing a binary file. Only the first is in
+`requirements.txt`. The tests skipped on `OnnxRuntime().available()` and their bodies imported `onnx`,
+so an environment with the runtime and not the authoring library did not skip — it errored. That is
+every CI job installing only `requirements.txt`, and no developer machine.
+
+**And the SBOM step had been failing on a renamed flag** — `--outfile` became `--output-file` in
+cyclonedx-bom 5, three major versions ago. That one is worth naming for its shape rather than its
+content: the Hygiene job runs the linter, the type check, `pip-audit` and the secret scan *before*
+building the SBOM. All four were passing. The job was red, so the four green steps inside it reported
+nothing anybody saw. **A gate's result is the job's result**, and a step that fails at the end of a job
+discards the evidence of every step before it.
+
+The lesson is not any of the five. It is that **a gate nobody reads is a gate that is not running**, and
+this document had no row for *did the last build pass*. All five were found by opening the CI history,
+which is a thing that has to be done rather than assumed. As of 2026-09-08 all twelve jobs pass, which
+is the first time this repository has had a green build.
 
 | | Gate | State |
 |---|---|---|
