@@ -182,7 +182,7 @@ class FeatureTransfer:
                 columns: Optional[Sequence[str]] = None,
                 limit: Optional[int] = None) -> Iterator[Any]:
         """Arrow record batches, straight off the files. Nothing whole."""
-        from deltalake import DeltaTable
+        from db.delta_backend import DeltaTable
 
         if not self.delta.exists(table):
             return
@@ -223,7 +223,7 @@ class FeatureTransfer:
         """
         if not columns:
             return
-        from deltalake import DeltaTable
+        from db.delta_backend import DeltaTable
         if not self.delta.exists(table):
             return
         dt = DeltaTable(self.delta.path(table))

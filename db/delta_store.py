@@ -23,7 +23,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
-from deltalake import DeltaTable, write_deltalake
+# Chosen in one place. `deltalake` where it is installed, MAYA's own
+# pure-Python subset where binary wheels are forbidden — see
+# `db/delta_backend.py` for why the choice is made once rather than at
+# each of the three import sites that used to make it.
+from db.delta_backend import DeltaTable, write_deltalake
 
 from core.log import get_logger
 

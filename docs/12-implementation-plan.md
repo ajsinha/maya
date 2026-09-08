@@ -411,7 +411,7 @@ driver.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 203 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 264 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 204 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 265 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
 | 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |
