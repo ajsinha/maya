@@ -539,12 +539,22 @@ class TestNothingIsExternal:
     #: the page was blank on every instance — and it is listed rather than
     #: silently allowed, because "the screens add no library" is the rule this
     #: test exists to hold.
-    NOT_A_SCREEN_LIBRARY = {"swagger-ui"}
+    #: KaTeX is the second, and it is here for the one thing that genuinely
+    #: cannot be done on the server: typesetting mathematics AS SOMEBODY TYPES
+    #: IT. A specification editor whose preview needed a round trip per
+    #: keystroke is one nobody would use, and rendering it server-side would put
+    #: a LaTeX engine in the request path. Vendored, woff2 only, because
+    #: `script-src 'self'` forbids a CDN and this interface must render
+    #: air-gapped.
+    NOT_A_SCREEN_LIBRARY = {"swagger-ui", "katex"}
 
     def test_the_screens_add_no_library(self):
         """The whole client stack is Bootstrap, its icons and jQuery. A screen
         that needed a fourth would be a screen doing something in the browser
-        that belongs on the server."""
+        that belongs on the server.
+
+        The exceptions are NAMED above rather than silently allowed, so a third
+        one is a decision somebody writes down."""
         vendored = {p.name for p in (ROOT / "web" / "static" / "vendor").iterdir()}
         assert vendored - self.NOT_A_SCREEN_LIBRARY == {
             "bootstrap", "bootstrap-icons", "jquery"}, vendored

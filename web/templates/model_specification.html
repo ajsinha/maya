@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Specification — {{ model.name }} — {{ app_name }}{% endblock %}
+{% block content %}
+
+<p class="kicker mt-2 mb-1">MODEL SPECIFICATION</p>
+<h1>{{ model.name }}</h1>
+<div class="rule"></div>
+
+<p class="text-muted small" style="max-width:48rem">Write the mathematics and
+the reasoning here, in LaTeX, and see it as you type. What you save becomes a
+<strong>document filed against this model</strong> — with a digest, an author,
+and somebody else's acceptance — not a second copy of the model. MAYA derives
+the equation the platform actually evaluates; use <em>Insert the derived
+equation</em> so this document quotes that rather than restating it, because
+two descriptions of one model drift and the one nobody executes drifts first.</p>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Source</span>
+        <span class="small text-muted">LaTeX &mdash; <span class="mono">$…$</span>
+          inline, <span class="mono">$$…$$</span> displayed</span>
+      </div>
+      <div class="card-body py-2">
+        <div class="d-flex gap-1 flex-wrap mb-2">
+          {% if derived %}
+          <button type="button" class="btn btn-sm btn-danger py-0 px-2"
+                  style="font-size:.72rem" id="insert-derived"
+                  data-latex="{{ derived.latex }}"
+                  data-expression="{{ derived.expression }}"
+                  data-target="{{ derived.target }}">Insert the derived equation</button>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" data-snippet="section">Section</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" data-snippet="display">Equation</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" data-snippet="align">Aligned</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" data-snippet="table">Table</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2"
+                  style="font-size:.72rem" data-snippet="figure">Figure</button>
+        </div>
+        <label class="visually-hidden" for="tex-source">LaTeX source</label>
+        <textarea id="tex-source" class="form-control mono" rows="26"
+                  spellcheck="false"
+                  style="font-size:.8rem;line-height:1.55">{{ source }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Preview</span>
+        <span id="tex-status" class="small" role="status" aria-live="polite"></span>
+      </div>
+      <div class="card-body">
+        <div id="tex-preview" class="prose" style="font-size:.9rem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">File it</div>
+  <div class="card-body py-3">
+    <form id="spec-form" class="row g-2 align-items-end small">
+      <div class="col-md-4">
+        <label class="form-label mb-1" for="spec-title">Title</label>
+        <input id="spec-title" class="form-control form-control-sm"
+               value="{{ model.name }} — model specification" required></div>
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="spec-semver">Version it describes</label>
+        <select id="spec-semver" class="form-select form-select-sm">
+          {% for v in versions %}
+            <option value="{{ v.semver }}" {{ 'selected' if v.semver == semver }}>{{ v.semver }}</option>
+          {% else %}
+            <option value="">no versions yet</option>
+          {% endfor %}
+        </select></div>
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="spec-kind">Kind</label>
+        <select id="spec-kind" class="form-select form-select-sm">
+          {% for k in kinds %}<option value="{{ k }}"
+            {{ 'selected' if k == 'model_development_document' }}>{{ k.replace('_', ' ') }}</option>{% endfor %}
+        </select></div>
+      <div class="col-md-2">
+        <button class="btn btn-sm btn-danger py-0 px-3 w-100"
+                style="font-size:.78rem">Save as a document</button></div>
+      <div class="col-12 text-muted" style="font-size:.72rem">
+        It is filed awaiting review. Somebody other than you accepts it &mdash; a
+        specification nobody read is a specification nobody agreed to.</div>
+      <div class="col-12" id="spec-result" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">Take it away</div>
+  <div class="card-body py-3 small">
+    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-3"
+            style="font-size:.78rem" id="download-tex">Download the .tex</button>
+    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-3 ms-1"
+            style="font-size:.78rem" id="print-pdf">Print / save as PDF</button>
+    <p class="text-muted mb-0 mt-2" style="font-size:.72rem">The download is the
+    LaTeX source, which any TeX toolchain will build. <em>Print</em> uses the
+    browser, which needs nothing installed and produces the preview as you see
+    it &mdash; MAYA ships no TeX toolchain, and pretending to would put a
+    dependency in the platform that an air-gapped deployment cannot satisfy.</p>
+  </div>
+</div>
+
+{% if filed %}
+<div class="card mt-3">
+  <div class="card-header">Already filed against this model</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr><th>Title</th><th>Kind</th><th>Version</th><th>State</th><th>Filed by</th><th></th></tr></thead>
+    <tbody>
+      {% for a in filed %}
+      <tr>
+        <td class="small">{{ a.title }}</td>
+        <td class="small">{{ a.kind.replace('_', ' ') }}</td>
+        <td class="mono small">{{ a.semver or '&mdash;' }}</td>
+        <td class="small">
+          {% if a.state == 'accepted' %}<span class="evidence-ok">accepted</span>
+          {% elif a.state == 'rejected' %}<span class="evidence-bad">rejected</span>
+          {% else %}<span class="text-muted">awaiting review</span>{% endif %}</td>
+        <td class="small">{{ a.attached_by }}</td>
+        <td class="small text-end">
+          {% if a.filename.endswith('.tex') %}
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 load-spec"
+                  style="font-size:.72rem" data-id="{{ a.id }}">Open in the editor</button>
+          {% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<script id="maya-spec-config" type="application/json">
+  {{ config_json | safe }}
+</script>
+{% endblock %}
+
+{# `scripts`, not the content block: jQuery is loaded at the end of base.html,
+   so a page script in the content block runs before it exists. #}
+{% block scripts %}
+<script src="/static/vendor/katex/katex.min.js"></script>
+<script src="/static/js/model-specification.js"></script>
+{% endblock %}

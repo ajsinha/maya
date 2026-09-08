@@ -11,6 +11,11 @@
 <!-- Vendored locally: no CDN, so the interface renders in an air-gapped deployment. -->
 <link href="/static/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
 <link href="/static/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
+{# KaTeX, vendored. `script-src 'self'` forbids a CDN, and a governance
+   platform that can be made to fetch from somewhere else is one somebody
+   can exfiltrate through. woff2 only: every browser this supports reads
+   it, and three formats triples the payload for nothing. #}
+<link href="/static/vendor/katex/katex.min.css" rel="stylesheet">
 <style>
 /* Measured, not chosen by eye. Every pair that carries text clears WCAG AA
    (4.5:1) against BOTH grounds it appears on — white and the striped

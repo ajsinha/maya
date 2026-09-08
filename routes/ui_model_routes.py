@@ -41,6 +41,7 @@ check and the write, and the write is always the authority.
 """
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any, Dict, List, Optional
@@ -50,6 +51,7 @@ from fastapi.responses import HTMLResponse
 from pydantic import Field
 
 from core.execution.urn import urn_of
+from core.features.rendering import to_latex
 from core.attachments import KIND_MEANING as DOCUMENT_MEANING, KINDS as DOCUMENT_KINDS
 from core.docs.subjects import describe as describe_subjects
 from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
@@ -79,6 +81,42 @@ UNCHECKED = (
     "the create call rather than here",
 )
 
+
+
+#: What the editor opens with when nothing has been filed yet. A blank textarea
+#: is the least useful thing to hand somebody who has to write a specification;
+#: this is the skeleton a model risk function actually asks for, with the
+#: headings named after what they have to contain.
+_SPECIMEN = r"""\section{{{name}}}
+
+{purpose}
+
+\subsection{{What the model does}}
+
+State the question the model answers, for whom, and where its answer is used.
+
+\subsection{{The mathematics}}
+
+% Use "Insert the derived equation" above. MAYA computes it from the expression
+% the platform evaluates, so quoting it here cannot drift from what runs.
+
+\subsection{{Assumptions}}
+
+\begin{{itemize}}
+\item What must be true for this to be valid.
+\item What was assumed because it could not be measured.
+\end{{itemize}}
+
+\subsection{{Limitations}}
+
+Where the model is not valid, and what happens outside that range. Record each
+one in the limitation register as well, so somebody can find it without reading
+this document.
+
+\subsection{{Data}}
+
+Which featureset, which version, and over what window it was fitted.
+"""
 
 class KernelIn(Body):
     """A draft kernel. Nothing here is recorded."""
@@ -224,6 +262,72 @@ class ModelAlgebraRoutes(Routes):
     """Screens for the operations *on* models, and the three checks they need."""
 
     def register(self) -> None:
+        # ------------------------------------------------ specification editor
+        @self.app.get("/model/{name:path}/specification",
+                      response_class=HTMLResponse, tags=["ui"])
+        def specification(request: Request, name: str, semver: str = ""):
+            """Write the model's mathematics, in LaTeX, with a live preview.
+
+            Filed as a DOCUMENT, not stored beside the kernel.
+            `/api/v1/mathematics` derives the equation from the syntax tree the
+            platform evaluates and keeps nothing, exactly so the equation, the
+            code and the answer cannot disagree — and a `latex` field on the
+            version would be the second description that argument is against.
+
+            A specification is a different artifact: prose about the model, with
+            an author and somebody else's acceptance. The way to keep the two
+            honest is for the prose to QUOTE what MAYA derives, which is what
+            "Insert the derived equation" does.
+            """
+            registry = self.ctx["registry"]
+            model = registry.get(urn_of(name))
+            if (r := self._gate(request, model, name,
+                                f"The specification for {name}",
+                                "document:attach")) is not None:
+                return r
+            versions = registry.versions(model["urn"])
+            chosen = semver or (latest_version(versions) or {}).get("semver", "")
+
+            # The derived equation, when this version carries one. A kernel that
+            # names an artifact has no expression to render, and inventing one
+            # would be the invented description this page exists to avoid.
+            derived = None
+            if chosen:
+                try:
+                    version = registry.version(model["urn"], chosen) or {}
+                    kernel = (version.get("manifest") or {}).get("kernel") or {}
+                    entry = kernel.get("entry") or {}
+                    if kernel.get("runtime") == "formula" and entry.get("expression"):
+                        symbols = {f["name"]: f["symbol"]
+                                   for f in (version.get("input_schema") or [])
+                                   if isinstance(f, dict) and f.get("symbol")}
+                        derived = {
+                            "expression": entry["expression"],
+                            "target": entry.get("target") or "value",
+                            "latex": to_latex(entry["expression"], symbols)}
+                except Exception as exc:
+                    swallowed(logger, exc, "derived the equation for the editor",
+                              detail="the page opens without the insert button",
+                              level=logging.INFO)
+
+            filed = []
+            try:
+                filed = self.ctx["attachments"].for_model(model["id"])
+            except Exception as exc:
+                swallowed(logger, exc, "listed documents for the editor",
+                          detail="the page opens with an empty list",
+                          level=logging.INFO)
+
+            return self.page(
+                request, "model_specification.html", model=model,
+                versions=versions, semver=chosen, derived=derived,
+                kinds=list(DOCUMENT_KINDS), filed=filed,
+                source=_SPECIMEN.format(name=model["name"],
+                                        purpose=model.get("purpose") or ""),
+                config_json=json.dumps({"urn": model["urn"],
+                                        "name": model["name"]}))
+
+
         registry = self.ctx["registry"]
         composition, fibres = self.ctx["composition"], self.ctx["fibres"]
 
