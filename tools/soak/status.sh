@@ -16,8 +16,13 @@ windows = [r for r in rows if r.get("what") == "load_window"]
 samples = [r for r in rows if r.get("kind") == "sample"]
 done = [r for r in rows if r.get("what") == "run_finished"]
 elapsed = rows[-1]["at"] / 60 if rows else 0
-print(f"runner alive: {sys.argv[1]}   {'FINISHED' if done else 'running'}")
-print(f"  elapsed   {elapsed:6.1f} min of 360")
+started = next((r["detail"] for r in rows
+                if r.get("what") == "run_started"), {})
+planned = float(started.get("hours", 0)) * 60
+print(f"runner alive: {sys.argv[1]}   {'FINISHED' if done else 'running'}"
+      f"   commit {started.get('commit', '?')}"
+      f"   delta {started.get('delta_backend', '?')}")
+print(f"  elapsed   {elapsed:6.1f} min of {planned:.0f}")
 print(f"  cycles    {len(cycles)}")
 print(f"  checks    {len(checks)} of 3000   failures {len(fails)}")
 if windows:
