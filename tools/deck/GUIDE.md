@@ -9,6 +9,7 @@ python -m venv .venv && .venv/bin/pip install python-pptx
 .venv/bin/python tools/deck/design_slides.py      docs/MAYA-Model-and-Feature-Management.pptx
 .venv/bin/python tools/deck/exec_slides.py       docs/MAYA-Executive-Briefing.pptx
 .venv/bin/python tools/deck/concepts_slides.py   docs/MAYA-Concepts-and-Formalism.pptx
+.venv/bin/python tools/deck/features_slides.py   docs/MAYA-Feature-Platform.pptx
 .venv/bin/python tools/deck/audit.py <deck>       # must report no geometry issues
 ```
 

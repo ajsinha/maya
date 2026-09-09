@@ -81,6 +81,7 @@ ignore = [
 # Python and are deliberately not listed here.
 "tools/deck/exec_body.py" = ["F821"]
 "tools/deck/concepts_body.py" = ["F821"]
+"tools/deck/features_body.py" = ["F821"]
 # Tests name fixtures as arguments and shadow them freely; that is pytest.
 "tests/*.py" = [
     "F811", "B011", "PERF203",

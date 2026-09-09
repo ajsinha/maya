@@ -422,7 +422,9 @@ branding — so the ideas can be judged on their own.
 | [**MAYA — Executive Briefing**](docs/MAYA-Executive-Briefing.pptx) — 20 slides | A CIO and business heads. The exposure in the language of loss, the four failures behind it, what MAYA is in one sentence, what it would cost against buy-and-do-nothing, what is honestly *not* built, the risks including key-person concentration, the first ninety days, and the one policy decision the rest depends on. Every figure is either measured or explicitly marked an estimate |
 | [**MAYA — Concepts and Formalism**](docs/MAYA-Concepts-and-Formalism.pptx) — 20 slides | An architect or a quantitative head of model risk. Only the ideas: the definition `f : P ⊗ X → D(Y)`, the trainability classes it derives, what the definition *forces* before anybody designs anything, the two clocks and the point-in-time operator, the warrant, the shape of the system, the shape of the data — and how to tell if the whole thing is wrong. No roadmap, no business case, no screenshots |
 
-Three decks, three audiences, one source. All are generated from `tools/deck/`
+| [**MAYA — The Feature Platform**](docs/MAYA-Feature-Platform.pptx) — 20 slides | A data or feature-platform engineer, and whoever signs off on what a model was fitted on. What a feature store answers and what a register must; a feature as an object with a retrieval policy; the two clocks and the point-in-time operator; views and view versions; derived features and their lineage; featuresets, **inheritance and composition** as a left-to-right fold with totality; the schema lattice; restatement reported rather than absorbed; training sets as snapshots; **retrieval through the SDK**, write path and read path; bulk transfer; sources pulled rather than read through; and what it deliberately is not |
+
+Four decks, four audiences, one source. All are generated from `tools/deck/`
 rather than edited, so a number in a slide and a number in the code cannot
 drift apart, and a geometry audit fails the build on any slide whose text
 overflows what it is drawn in.
