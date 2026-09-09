@@ -3,7 +3,7 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Chapter 26 — the twelve worked case studies in `case_studies/`.
+Chapter 26 — the thirteen worked case studies in `case_studies/`.
 
 Every number on these slides is printed by a script somebody can run against a
 live MAYA in about a minute. That is the point of the chapter: the rest of the
@@ -11,8 +11,8 @@ deck argues, and this part is checkable.
 """
 # -*- coding: utf-8 -*-
 
-divider("26", "Twelve Worked Case Studies",
-        "Twelve real models across six industries, registered end to end — "
+divider("26", "Thirteen Worked Case Studies",
+        "Thirteen real models across seven industries, registered end to end — "
         "fitted outside MAYA, governed inside it.",
         ["What they are", "The boundary they draw", "Each one, and its point",
          "What the platform refused", "What they do not cover"])
@@ -50,32 +50,36 @@ runs(tf, [("The trainability class is derived, never declared. ", CRIMSON, True)
      size=11.5, first=True, space_after=0, line=1.26)
 
 # ------------------------------------------- the set, beyond banking
-sl, y = content("Six more: the opaque, the generative, the elicited, and "
-                "three other industries", "Case studies · the set (2 of 2)")
+sl, y = content("Seven more: the opaque, the generative, the elicited, the "
+                "trained, and four other industries",
+                "Case studies · the set (2 of 2)")
 h = table(sl, [
     ["#", "Model", "Class", "Domain", "Why this one"],
     ["7", "LLM model documentation", "Tier B", "Model risk (AI)",
-     "An LLM drafting a validation pack. The platform REMOVES the claim citing "
-     "evidence it does not hold, and refuses a self-attestation"],
+     "The platform REMOVES the claim citing evidence it does not hold, and "
+     "refuses a self-attestation"],
     ["8", "Vendor bureau score", "T6", "Retail credit",
-     "Governing a model nobody here can inspect. A fit refused for three "
-     "reasons at once, and reverse-engineered coefficients refused"],
+     "Governing what nobody here can inspect. A fit refused for three reasons "
+     "at once; reverse-engineered coefficients refused"],
     ["9", "Polygenic risk score", "T2", "Genomics",
-     "A clinical model that works far less well in some ancestries — "
-     "QUANTIFIED on the parameter set, read at the same moment as the numbers"],
+     "Works far less well in some ancestries — QUANTIFIED on the parameter "
+     "set, read at the same moment as the numbers"],
     ["10", "SEIR epidemic model", "T1", "Public health",
-     "The same outbreak data on the same day gives R0 = 2.04 or 2.34, "
-     "depending on how a REPORTING DELAY is treated. Both are on the record"],
+     "One reporting delay moves R0 from 2.04 to 2.34 on the same data. Both "
+     "numbers are on the record"],
     ["11", "RAG customer assistant", "T5", "Customer service",
-     "The system prompt is a parameter. Then the vendor reversions, the bank "
-     "changes nothing, and the guardrail pass rate falls from 100% to 57%"],
+     "The prompt is a parameter. The vendor reversions, the bank changes "
+     "nothing, and guardrails fall 100% to 57%"],
     ["12", "Climate transition scorecard", "T7", "Climate risk",
-     "Weights from a PANEL, because the transition has not happened and there "
-     "is nothing to estimate from. The dissent is on the parameter set, priced"],
-], ML, y, CW, col_w=[0.35, 2.5, 0.6, 1.6, 6.55], row_h=0.275, fs=9.5, hfs=9.5)
+     "Weights from a PANEL, because the transition has not happened. The "
+     "dissent is on the parameter set, priced"],
+    ["13", "Hourly load forecast network", "T3", "Energy",
+     "The opacity must be EARNED against a registered incumbent. The digest "
+     "is the identity"],
+], ML, y, CW, col_w=[0.35, 2.5, 0.6, 1.6, 6.55], row_h=0.255, fs=9, hfs=9)
 tf = txt(sl, ML, y + h + 0.22, CW, 0.85)
-runs(tf, [("Twelve case studies now span eight of the nine classes and six "
-           "industries. ", CRIMSON, True),
+runs(tf, [("Thirteen case studies now span eight of the nine classes and "
+           "seven industries. ", CRIMSON, True),
           ("The three outside financial services are the argument that the "
            "controls are not banking controls: change the vocabulary and it is "
            "the same two clocks, the same pinned training set, the same "
@@ -277,6 +281,22 @@ h = table(sl, [
     ["6", "A rule reading a field the version does not declare",
      "refused at check — a rule that never fires still appears in the model "
      "card and nobody reading it can tell"],
+], ML, y + 0.68, CW, col_w=[0.6, 4.9, 6.1], row_h=0.30, fs=10, hfs=10)
+
+# The refusals split across two slides when the case studies reached thirteen.
+# One table of ten rows ran off the bottom, which the geometry walker caught —
+# and trimming the refusal text to fit would have made the refusals shorter
+# than MAYA actually says them, which is the one thing this slide must not do.
+sl, y = content("What the platform refused, on purpose (continued)",
+                "Case studies · the refusals")
+tf = txt(sl, ML, y, CW, 0.5)
+runs(tf, [("The later case studies refuse different things, ", CRIMSON, True),
+          ("because a different class owes different evidence. A T6 cannot "
+           "reach its parameters; a T5 cannot answer a calibration question; a "
+           "T7's parameters were never produced by data at all.", INK, False)],
+     size=12, first=True, space_after=0, line=1.26)
+h = table(sl, [
+    ["Case", "What was attempted", "What MAYA said"],
     ["7", "Registering a Tier C capability; then the requester attesting "
      "their own draft",
      "Tier C is deliberately not registrable; and a self-attestation is not "
@@ -294,7 +314,11 @@ h = table(sl, [
      "'elicited_weights' is not a quantity data produces, so it cannot have "
      "been fitted — record it as 'declared' and put the panel in the "
      "diagnostics"],
-], ML, y + 0.68, CW, col_w=[0.6, 4.9, 6.1], row_h=0.265, fs=9.5, hfs=9.5)
+    ["13", "New weights uploaded without a new version, then the approved "
+     "version resolved again",
+     "not a refusal but a control: the warrant still fetches the digest that "
+     "was approved. A T3's weights cannot be swapped under its approval"],
+], ML, y + 0.68, CW, col_w=[0.6, 4.9, 6.1], row_h=0.30, fs=10, hfs=10)
 
 # ------------------------------------------------------------ honest limits
 sl, y = content("What the case studies do not show", "Case studies · the limits")
@@ -317,7 +341,8 @@ bullets(txt(sl, ML, y + 0.66, CW, 3.5), [
     "so the refusal lives one layer down in the runtime. The control holds "
     "because the fit cannot execute — but the grammar is the layer that should "
     "have said no.",
-    "One class is still uncovered: T3, iteratively trained. T4 — a model that "
-    "adapts in production — is uncovered deliberately, because nothing in "
-    "this repository adapts.",
+    "Eight of the nine classes are covered. T4 — a model that adapts in "
+    "production — is left uncovered deliberately, because nothing in this "
+    "repository adapts and a case study for it would demonstrate the "
+    "documentation rather than the platform.",
 ], size=12, gap=11)
