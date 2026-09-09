@@ -11,21 +11,22 @@
 | **Verdict** | **PASSED** |
 | Duration | 4h 00m 02s |
 | Cycles completed | 26 |
-| Assertions made | 3,071 of a 3,000 budget |
-| Passed | 3,071 |
+| Assertions made | 3,097 of a 3,000 budget |
+| Passed | 3,097 |
 | Failed | 0 |
-| HTTP calls | 135,205 |
-| Background requests between cycles | 115,886 |
+| HTTP calls | 134,936 |
+| Background requests between cycles | 115,648 |
 | Responses that were 500s | 0 |
-| Commit under test | `bf9f558` |
-| Delta backend | `maya_deltalake` |
+| Commit under test | `aaa2180` |
+| Table format | `delta` |
+| Delta backend | `deltalake` |
 | Python | 3.12.3 |
 
 Every assertion held, across 4h 00m 02s and a database that grew throughout. The invariants matter more than the scenarios here: a scenario passing says a path works, and an invariant still holding at the end says the platform is still the thing it claims to be.
 
 ## Failures
 
-None. Every one of the 3,071 assertions held.
+None. Every one of the 3,097 assertions held.
 
 ## What was tested, and why
 
@@ -69,7 +70,7 @@ Every screen a signed-in person can reach, still rendering. A screen nobody can 
 | screen /warrants | 26 |  |
 | screen /warrants/estate | 26 |  |
 
-### invariant — 441 assertions, all passed
+### invariant — 467 assertions, all passed
 
 What must be true at every instant, whatever has happened. These are the reason a soak is worth hours rather than six minutes: a chain verifies easily after ten appends, and the question is whether it still verifies after thousands from concurrent writers.
 
@@ -82,14 +83,15 @@ What must be true at every instant, whatever has happened. These are the reason 
 | no two evidence nodes share a sequence number | 26 |  |
 | open file handles are bounded | 26 |  |
 | resident memory is bounded | 26 |  |
-| the Delta backend has not changed mid-run | 26 |  |
+| the backend has not changed mid-run | 26 |  |
 | the evidence chain still verifies | 26 |  |
 | the evidence sequence has no gaps | 26 |  |
 | the evidence sequence never goes backwards | 26 |  |
 | the log ring never exceeds its capacity | 26 |  |
 | the model register never loses a row | 26 |  |
-| the running server reports its Delta backend | 26 |  |
+| the running server reports what holds its feature data | 26 |  |
 | the server process is still running | 26 |  |
+| the table format has not changed mid-run | 26 |  |
 | the thread count is bounded | 26 |  |
 | the warrant epoch never goes backwards | 26 |  |
 
@@ -265,25 +267,26 @@ A soak that does not measure these is a functional test that took a long time. A
 
 | | |
 |---|---:|
-| Growth per cycle, first half | 3.74 MB |
-| Growth per cycle, second half | 0.77 MB |
-| Spread across the last four samples | 2.1 MB |
-| Total, start to end | 59 MB |
+| Growth per cycle, first half | 4.25 MB |
+| Growth per cycle, second half | 0.93 MB |
+| Spread across the last four steady samples | 2.4 MB |
+| Added while shutting down and publishing | 6.3 MB |
+| Total, start to end | 63 MB |
 
-The first half grew at 3.74 MB a cycle and the second at 0.77 — the rate fell by 79%, and the last four samples sit within 2.1 MB of each other. That is a cache warming and settling: page cache, the bounded log ring filling to its capacity, the connection pool reaching its size. A leak does not slow down, because nothing about it is finite.
+The first half grew at 4.25 MB a cycle and the second at 0.93 — the rate fell by 78%, and the last four samples sit within 2.4 MB of each other. That is a cache warming and settling: page cache, the bounded log ring filling to its capacity, the connection pool reaching its size. A leak does not slow down, because nothing about it is finite.
 
 | Metric | At the start | At the end | Peak | Trace |
 |---|---:|---:|---:|---|
-| Resident memory | 197.7MB | 256.2MB | 256.6MB | `▁▂▂▃▃▄▄▅▆▆▆▆▆▆▆▆▇▇▇▇▇▇▇▇█▇` |
-| Open file handles | 24.0 | 24.0 | 24.0 | `▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁` |
-| Threads | 47.0 | 52.0 | 52.0 | `▁▃▃▃▅▆▆▆▆█████████████████` |
-| Database size | 0.0MB | 1.4MB | 1.4MB | `▁▄▄▅▅▅▅▅▅▅▅▅▆▆▆▆▆▆▆▇▇▇▇▇▇█` |
+| Resident memory | 245.4MB | 314.9MB | 314.9MB | `▁▁▂▃▄▄▄▄▅▅▅▅▆▆▆▆▆▆▆▆▇▇▇▇▇█` |
+| Open file handles | 34.0 | 34.0 | 34.0 | `▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁` |
+| Threads | 99.0 | 106.0 | 106.0 | `▁▂▄▆▇▇▇▇▇▇▇▇▇█▇▇██▇▇▇▇█▇██` |
+| Database size | 0.0MB | 1.4MB | 1.4MB | `▁▄▄▄▅▅▅▅▅▅▅▆▆▆▆▆▆▆▆▆▇▇▇▇▇█` |
 
 ### Latency
 
-Each cycle of work took a median of **1.2s** (fastest 0.6s, slowest 2.9s) across 26 cycles.
+Each cycle of work took a median of **1.4s** (fastest 0.6s, slowest 3.8s) across 26 cycles.
 
-`▄▁▁▂▁▂▁▂▂▁▃▂▂▂▂▄▃▂▃▃▆▃▃▄▄█`
+`▃▁▁▁▁▁▁▁▁▁▂▁▂▂▂▃▃▃▃▃▆▃▅▄▄█`
 
 A cycle does the same work every time. A trace that climbs is the platform getting slower as its register fills, which is a finding even when nothing fails.
 
@@ -293,39 +296,39 @@ One line per cycle: the work done, the assertions made, and how long the runner 
 
 | Cycle | Finished at | Took | Assertions so far | Failures | Rested |
 |---:|---|---:|---:|---:|---:|
-| 1 | 0h 00m 03s | 1.7s | 129 | 0 | 645s |
-| 2 | 0h 10m 49s | 0.6s | 245 | 0 | 611s |
-| 3 | 0h 21m 00s | 0.7s | 361 | 0 | 598s |
-| 4 | 0h 31m 00s | 1.2s | 481 | 0 | 597s |
-| 5 | 0h 40m 58s | 0.7s | 597 | 0 | 593s |
-| 6 | 0h 50m 52s | 1.0s | 715 | 0 | 591s |
-| 7 | 1h 00m 44s | 0.8s | 835 | 0 | 592s |
-| 8 | 1h 10m 36s | 1.0s | 951 | 0 | 589s |
-| 9 | 1h 20m 26s | 1.0s | 1,067 | 0 | 586s |
-| 10 | 1h 30m 13s | 0.9s | 1,187 | 0 | 588s |
-| 11 | 1h 40m 02s | 1.4s | 1,305 | 0 | 586s |
-| 12 | 1h 49m 50s | 1.0s | 1,421 | 0 | 585s |
-| 13 | 1h 59m 36s | 1.1s | 1,541 | 0 | 586s |
-| 14 | 2h 09m 22s | 1.0s | 1,657 | 0 | 584s |
-| 15 | 2h 19m 08s | 1.1s | 1,773 | 0 | 582s |
-| 16 | 2h 28m 51s | 1.8s | 1,895 | 0 | 584s |
-| 17 | 2h 38m 37s | 1.3s | 2,011 | 0 | 583s |
-| 18 | 2h 48m 21s | 1.2s | 2,127 | 0 | 581s |
-| 19 | 2h 58m 03s | 1.4s | 2,247 | 0 | 582s |
-| 20 | 3h 07m 47s | 1.4s | 2,363 | 0 | 580s |
-| 21 | 3h 17m 29s | 2.3s | 2,481 | 0 | 579s |
-| 22 | 3h 27m 09s | 1.5s | 2,601 | 0 | 583s |
-| 23 | 3h 36m 54s | 1.6s | 2,717 | 0 | 578s |
-| 24 | 3h 46m 33s | 1.7s | 2,833 | 0 | 570s |
-| 25 | 3h 56m 04s | 1.7s | 2,953 | 0 | 235s |
-| 26 | 4h 00m 02s | 2.9s | 3,071 | 0 | 0s |
+| 1 | 0h 00m 03s | 1.7s | 130 | 0 | 650s |
+| 2 | 0h 10m 54s | 0.6s | 247 | 0 | 616s |
+| 3 | 0h 21m 10s | 0.7s | 364 | 0 | 604s |
+| 4 | 0h 31m 15s | 0.7s | 485 | 0 | 603s |
+| 5 | 0h 41m 19s | 0.7s | 602 | 0 | 598s |
+| 6 | 0h 51m 18s | 1.0s | 721 | 0 | 596s |
+| 7 | 1h 01m 14s | 0.8s | 842 | 0 | 597s |
+| 8 | 1h 11m 12s | 0.9s | 959 | 0 | 594s |
+| 9 | 1h 21m 07s | 0.9s | 1,076 | 0 | 592s |
+| 10 | 1h 31m 00s | 1.0s | 1,197 | 0 | 593s |
+| 11 | 1h 40m 54s | 1.5s | 1,316 | 0 | 592s |
+| 12 | 1h 50m 46s | 1.0s | 1,433 | 0 | 590s |
+| 13 | 2h 00m 37s | 1.1s | 1,554 | 0 | 591s |
+| 14 | 2h 10m 30s | 1.2s | 1,671 | 0 | 589s |
+| 15 | 2h 20m 20s | 1.2s | 1,788 | 0 | 587s |
+| 16 | 2h 30m 09s | 1.9s | 1,911 | 0 | 589s |
+| 17 | 2h 40m 00s | 1.6s | 2,028 | 0 | 588s |
+| 18 | 2h 49m 49s | 1.6s | 2,145 | 0 | 585s |
+| 19 | 2h 59m 36s | 1.6s | 2,266 | 0 | 587s |
+| 20 | 3h 09m 25s | 1.6s | 2,383 | 0 | 585s |
+| 21 | 3h 19m 13s | 3.0s | 2,502 | 0 | 583s |
+| 22 | 3h 28m 57s | 1.9s | 2,623 | 0 | 587s |
+| 23 | 3h 38m 47s | 2.5s | 2,740 | 0 | 581s |
+| 24 | 3h 48m 30s | 2.0s | 2,857 | 0 | 573s |
+| 25 | 3h 58m 06s | 2.4s | 2,978 | 0 | 113s |
+| 26 | 4h 00m 02s | 3.8s | 3,097 | 0 | 0s |
 
 ## What a passing run does and does not prove
 
 **It proves** that the governed path works end to end, repeatedly, against a register that grows the whole time; that the controls refuse when they should, on the thousandth attempt as on the first; that the evidence chain stays verifiable and its sequence dense and unique under concurrent writers; that the schema does not drift at runtime; that no request produced an unmapped failure; and that memory, file handles and threads stay bounded over hours.
 
-**It does not prove** anything about PostgreSQL — this run is SQLite, which is the shipped default and not what a bank deploys. It does not prove behaviour under real concurrency at scale: four simultaneous writers is enough to make an advisory lock matter and is not a load test. It does not exercise a restart mid-transaction, a disk filling up, or a clock moving. And it cannot prove the absence of a control nobody thought to try — every refusal asserted here is one somebody chose to attempt.
+**It does not prove** anything about PostgreSQL — this run is SQLite, which is the shipped default and not what a bank deploys. It says nothing about **iceberg** either: the table format is a configuration choice and this run made the other one, so four hours of evidence exists for `delta` alone. It does not prove behaviour under real concurrency at scale: four simultaneous writers is enough to make an advisory lock matter and is not a load test. It does not exercise a restart mid-transaction, a disk filling up, or a clock moving. And it cannot prove the absence of a control nobody thought to try — every refusal asserted here is one somebody chose to attempt.
 
 ---
 
-*Rendered from `3,178` journal records by `tools/soak/report.py`. The journal is committed beside this file, so every number here can be recomputed.*
+*Rendered from `3,204` journal records by `tools/soak/report.py`. The journal is committed beside this file, so every number here can be recomputed.*
