@@ -12,6 +12,7 @@ can run in front of an audience and a README written to be talked through.
 | **5** | [IFRS 9 expected credit loss](05_ifrs9_ecl_reuse/) | **T2** — estimated | **Reuse.** Five features it did not define, a *composed* featureset, and an `input_to` edge that makes the blast radius real |
 | **6** | [HELOC origination eligibility](06_heloc_eligibility_rules/) | **T8** — authored | A *policy rulebook* governed as a model: checked, trialled, published, approved by a second person — and every decision carrying the rule that made it |
 | **7** | [LLM model documentation](07_llm_model_documentation/) | **AI Tier B** | An LLM drafting a validation-pack section. The platform **removes** the claim citing evidence it does not hold, refuses a Tier C capability outright, and refuses the requester attesting their own draft |
+| **8** | [Vendor bureau score](08_vendor_bureau_score/) | **T6** — opaque | Governing a model nobody here can inspect. A fit refused for three reasons at once, reverse-engineered coefficients refused, and the three things that *can* still be governed |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
@@ -33,7 +34,7 @@ cover the three classes a bank meets most often, at both ends of the range:
 | **T8** | authoring — a rule set somebody wrote | case study 6 |
 | T3 | iterative training | not yet |
 | T5 / T7 | configured / elicited | not yet |
-| T6 | a vendor's parameters you cannot see | not yet |
+| **T6** | a vendor's parameters you cannot see | case study 8 |
 
 **AI capabilities are governed by a parallel scheme** — tiers A, B and C rather
 than T0…T8 — and case study 7 covers Tier B while noting, honestly, that the
@@ -177,6 +178,7 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/05_ifrs9_ecl_reuse/build.py        # after 4
 .venv/bin/python case_studies/06_heloc_eligibility_rules/build.py # after 2
 .venv/bin/python case_studies/07_llm_model_documentation/build.py # after 4
+.venv/bin/python case_studies/08_vendor_bureau_score/build.py
 ```
 
 Options, on all three:
@@ -241,6 +243,7 @@ should not get, and prints the refusal with its remediation:
 | 5 | An `add` of a featureset slot a parent already has; and an `input_to` edge that would carry nothing |
 | 6 | A rule reading a field the version does not declare — refused at `check`, before anybody can approve it |
 | 7 | Registering a **Tier C** capability — advisory AI, which is deliberately not registrable; and the principal who asked for a draft attesting it themselves |
+| 8 | A fit on an **opaque** model — refused for three independent reasons; and filing reverse-engineered coefficients as that model's parameters |
 
 A control nobody has watched refuse is a control nobody has tested.
 
