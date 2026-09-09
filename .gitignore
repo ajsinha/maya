@@ -58,7 +58,13 @@ MANIFEST
 venv/
 ENV/
 env/
-.python-version
+
+# `.python-version` used to be here, grouped with the environments as a
+# developer-local pyenv marker. It is tracked now, because it is not a local
+# preference: it names the interpreter the linter's `target-version` and CI's
+# `PYTHON_VERSION` are set to agree with, and both `uv` and `pyenv` read it
+# without being told. Ignored, it was a fourth opinion about the Python version
+# that only some machines held.
 
 # ---------------------------------------------------------------- test & tools
 .pytest_cache/
