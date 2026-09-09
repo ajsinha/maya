@@ -270,7 +270,7 @@ def main() -> int:
             invariants.resources_are_bounded(server, journal, state)
             invariants.the_log_ring_stays_bounded(client, journal)
             invariants.no_credential_is_visible(client, journal)
-            invariants.the_delta_backend_has_not_changed(client, journal, state)
+            invariants.the_storage_has_not_changed(client, journal, state)
             invariants.the_warrant_epoch_only_rises(client, journal, state)
             invariants.the_register_only_grows(client, journal, state)
             invariants.latency_has_not_collapsed(client, journal, state)
