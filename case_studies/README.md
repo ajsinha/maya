@@ -17,6 +17,7 @@ can run in front of an audience and a README written to be talked through.
 | **10** | [SEIR epidemic model](10_seir_epidemic/) | **T1** — calibrated | **Epidemiology.** The same outbreak data on the same day gives R₀ = 2.04 or 2.34 depending on how the *reporting delay* is treated. The rejected number is recorded beside the chosen one |
 | **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
 | **12** | [Climate transition scorecard](12_climate_transition_elicited/) | **T7** — elicited | **Climate risk.** Weights from a panel, because the transition has not happened and there is nothing to estimate from. The dissent is on the parameter set, priced — and a judgment claiming to have been *fitted* is refused |
+| **13** | [Load forecast network](13_load_forecast_trained/) | **T3** — trained | **Energy.** The opacity has to be EARNED: the linear incumbent is registered too, and beating it by 85% is the evidence. The artifact's digest is the model's identity — same code, new seed, different model |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
@@ -26,38 +27,55 @@ assumptions, and where it is known to be wrong — before any of the governance.
 
 ### Coverage beyond banking
 
-Case study 9 is the first outside financial services, and it is there to make a
-specific point rather than for variety: **change the vocabulary and every
-control is the same.** Two clocks with a laboratory in the gap instead of a
-servicer; a limitation quantified on the parameter set instead of in a paper; an
-approval that names the population it is approved *for*; and features declared
-as proxies for a protected characteristic nobody collected.
+Case study 9 is the first outside financial services, and the ones after it are
+there to make a specific point rather than for variety: **change the vocabulary
+and every control is the same.**
+
+| Industry | Case | The control, in that vocabulary |
+|---|---|---|
+| Genomics | 9 | two clocks with a laboratory in the gap; a limitation quantified on the parameter set; an approval that names the population it is approved *for* |
+| Public health | 10 | a reporting delay instead of a servicer lag, with a school closure on the other end instead of a prepayment forecast |
+| Climate risk | 12 | parameters that cannot be estimated because the thing has not happened, so a panel — and the dissent travels with the number |
+| Energy | 13 | an opacity that has to be earned against a registered incumbent, and an artifact whose digest is its identity |
+
+The two-clock rule appears in every one of them at a different timescale:
+fifteen minutes for grid telemetry, five days for notifiable disease, twenty
+days for a genotype call, nine months for an emissions disclosure. It is the
+same rule.
 
 ### Coverage of the taxonomy
 
 MAYA derives a model's **trainability class** from how its parameter object is
-inhabited, and the class decides which operations are admissible. These five
-cover the three classes a bank meets most often, at both ends of the range:
+inhabited, and the class decides which operations are admissible. Eight of the
+nine classes are now covered:
 
 | Class | Parameters come from | Covered by |
 |---|---|---|
 | **T0** | theory — there are none | case study 4 |
-| **T1** | calibration to market observables | case study 1 |
-| **T2** | estimation from a sample | case studies 2, 3, 5 |
-| **T8** | authoring — a rule set somebody wrote | case study 6 |
-| T3 | iterative training | not yet |
-| T5 / T7 | configured / elicited | not yet |
+| **T1** | calibration to observables | case studies 1, 10 |
+| **T2** | estimation from a sample | case studies 2, 3, 5, 9, 13 (the incumbent) |
+| **T3** | iterative training — the artifact IS the parameters | case study 13 |
+| T4 | adaptation in production | **deliberately not covered** |
+| **T5** | configuration of a generative assembly | case study 11 |
 | **T6** | a vendor's parameters you cannot see | case study 8 |
+| **T7** | elicitation from a panel | case study 12 |
+| **T8** | authoring — a rule set somebody wrote | case study 6 |
+
+**T4 is left uncovered on purpose.** Nothing in this repository adapts in
+production, and a case study demonstrating a class the platform has never
+carried would be a demonstration of the documentation.
 
 **AI capabilities are governed by a parallel scheme** — tiers A, B and C rather
 than T0…T8 — and case study 7 covers Tier B while noting, honestly, that the
 design says an AI capability *is* a model while the implementation registers it
 beside models rather than as one.
 
-The two ends of that range are the interesting ones to show together: **T0**
-has no parameters at all and refuses a fit as a type error; **T8** has
-parameters that are *written* rather than estimated, and a change to them is a
-new parameter set somebody approves rather than a retraining.
+The ends of the range are the interesting ones to show together. **T0** has no
+parameters at all and refuses a fit as a type error. **T3** has parameters
+nobody can read, so its identity is a digest and its evidence is a benchmark
+against something simpler. **T7** has parameters no data produced, so its
+evidence is a panel and a dissent. Each refuses a different thing, for a
+different reason, in its own words.
 
 ---
 
@@ -196,7 +214,21 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/10_seir_epidemic/build.py
 .venv/bin/python case_studies/11_rag_assistant_config/build.py
 .venv/bin/python case_studies/12_climate_transition_elicited/build.py
+.venv/bin/python case_studies/13_load_forecast_trained/build.py   # needs `onnx`
 ```
+
+**Two of them want something extra.** Case study 2 downloads the Ames housing
+data from its authoritative source on first run (`--offline` skips it), and
+case study 13 builds an ONNX graph, which needs the `onnx` *authoring* library:
+
+```bash
+pip install -r requirements-dev.txt        # brings in `onnx`
+```
+
+Worth knowing which is which: **`onnxruntime` executes a graph and is what MAYA
+needs**, and it is in `requirements.txt`. **`onnx` authors one** and is only
+needed to build the case study's artifact. Nothing about running MAYA requires
+it.
 
 Options, on every script:
 

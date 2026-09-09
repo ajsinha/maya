@@ -53,7 +53,11 @@ DECKS = [
     # against a live instance in a minute and check.
     # 124, from 123: the case studies grew from six to eleven and no longer fit
     # one table — the set slide is now two, banking and everything else.
-    ("MAYA-Model-and-Feature-Management", 124),
+    # 125, from 124: at thirteen the REFUSALS table stopped fitting too. The
+    # geometry walker caught it, and the alternative — trimming the quoted
+    # refusals to fit — would have made them shorter than MAYA actually says
+    # them, which is the one thing that slide must not do.
+    ("MAYA-Model-and-Feature-Management", 125),
     # Three audience-specific decks, built from the same theme. All are capped
     # at twenty slides on purpose: an executive briefing that grows into the
     # design deck stops being read, and a concepts deck that grows becomes the

@@ -19,3 +19,10 @@
 # URL — a copy in here would be exactly the convenient mirror the README argues
 # against.
 02_home_price_regression/data/
+
+# The trained artifact. Case study 13 exports an ONNX graph, and the whole
+# point of that case study is that the bytes are the model — so a copy checked
+# in here would be a second model with no training run behind it, going stale
+# the first time anybody changes a hyperparameter. It is 756 bytes and it
+# regenerates in under a minute.
+*.onnx
