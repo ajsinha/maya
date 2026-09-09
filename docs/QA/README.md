@@ -970,9 +970,14 @@ curl -s -u $AUTH -X POST $API/derived-features \
 ```python
 maya.features.derive(name="dscr_x_ltv", dtype="numeric",
                      expression="dscr * ltv",
-                     owner="person/d.raman",
                      description="the interaction term")
 ```
+
+> **No `owner` argument**, in either spelling. MAYA sets the owner from the
+> principal making the call — a derived feature is owned by whoever declared
+> it, which is a fact the server already has and a caller could otherwise
+> misstate. The SDK sent one anyway until somebody used the method, and the
+> endpoint forbids extra fields, so every call it could make returned 422.
 
 The expression may use the other features by name, plus `log`, `exp`, `sqrt`,
 `abs`, `min`, `max`, `floor`, `ceil`, `round`, and the row's clocks

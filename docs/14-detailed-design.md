@@ -336,7 +336,7 @@ an adaptive model is a sequence of versions with a governed change process.
 ### 4.1 A version is immutable, and what that currently means
 
 `VersionService.create` refuses a semver that already exists for the model, computes the manifest digest,
-and projects `input_schema`, `output_schema`, `contract` and `trainability_class` out of the manifest into
+and projects `input_schema`, `parameter_schema`, `output_schema`, `contract` and `trainability_class` out of the manifest into
 columns so that a query does not have to parse JSON. The digest is over the **manifest**, never over the
 row, because a digest over the row would move whenever a status column did — which `L-2` asserts by
 carrying one version through assessment, approval and an alias move and checking the digest at each step.

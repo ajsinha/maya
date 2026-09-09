@@ -309,7 +309,7 @@ class VersionService:
     #: grammar reads from it.
     KERNEL_KEYS = frozenset({
         "parameter_kind", "fit_procedure", "output_kind", "adaptive",
-        "deterministic", "input_schema", "output_schema",
+        "deterministic", "input_schema", "parameter_schema", "output_schema",
         "artifact_format", "runtime", "entry", "environment", "seed",
         "descriptor_only", "built_from",
     })
@@ -464,6 +464,13 @@ class VersionService:
                "parameter_kind": kernel.parameters.kind.value,
                "fit_procedure": kernel.fit.value, "deterministic": kernel.deterministic,
                "input_schema": kernel_spec.get("input_schema", []),
+               # P, beside X. A kernel is `f : P (x) X -> D(Y)`, and until this
+               # existed it could only declare X — so a parameterised model had
+               # to list its parameters in `input_schema` to get them typeset
+               # and into the generated code, which then made L-W10 demand that
+               # the FEATURESET supply them. A calibrated pricer could not be
+               # both correctly described and correctly warranted.
+               "parameter_schema": kernel_spec.get("parameter_schema", []),
                "output_schema": kernel_spec.get("output_schema", []),
                "contract": contract_spec or {}, "artifact_digest": artifact_digest,
                "artifact_uri": artifact_uri, "artifact_size": artifact_size,

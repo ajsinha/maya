@@ -1,0 +1,15 @@
+# Everything a run produces. These are outputs, not sources: the warrant ids
+# change on every run, and committing them would make each demo a diff.
+warrant-training.json
+warrant-execution.json
+*.tex
+*.pdf
+*.aux
+*.log
+*.out
+
+# The Ames data is third-party and downloaded on first run. It belongs to its
+# publisher, it is a megabyte, and the script fetches it from the authoritative
+# URL — a copy in here would be exactly the convenient mirror the README argues
+# against.
+02_home_price_regression/data/

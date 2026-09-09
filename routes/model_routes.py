@@ -349,11 +349,17 @@ class ModelRoutes(Routes):
                                    "everything else the mathematics belongs in "
                                    "an attached document, where a person signs "
                                    "for it"})
-            symbols = {f["name"]: f["symbol"]
-                       for f in (version.get("input_schema") or [])
-                       if isinstance(f, dict) and f.get("symbol")}
-            reads = sorted({f["name"] for f in (version.get("input_schema") or [])
-                            if isinstance(f, dict) and f.get("name")})
+            # X and P together. The expression reads both — a calibrated
+            # pricer's `sigma` is as much a free name as its `spot` — so a
+            # rendering built from `input_schema` alone typeset the parameters
+            # as \mathrm{plain names} and, worse, generated a `predict()`
+            # whose signature omitted them. That function could not be called
+            # for any model with parameters, which is most of them.
+            fields = [f for f in ((version.get("input_schema") or [])
+                                  + (version.get("parameter_schema") or []))
+                      if isinstance(f, dict) and f.get("name")]
+            symbols = {f["name"]: f["symbol"] for f in fields if f.get("symbol")}
+            reads = sorted({f["name"] for f in fields})
             return {
                 "urn": urn_of(name), "semver": semver,
                 "expression": expression,
@@ -361,6 +367,12 @@ class ModelRoutes(Routes):
                 "latex": to_latex(expression, symbols),
                 "python": to_python(expression, name="predict", inputs=reads),
                 "symbols": symbols,
+                "inputs": sorted({f["name"] for f in
+                                  (version.get("input_schema") or [])
+                                  if isinstance(f, dict) and f.get("name")}),
+                "parameters": sorted({f["name"] for f in
+                                      (version.get("parameter_schema") or [])
+                                      if isinstance(f, dict) and f.get("name")}),
                 "detail": "both are derived from the expression at request "
                           "time and neither is stored, so they cannot disagree "
                           "with what runs",

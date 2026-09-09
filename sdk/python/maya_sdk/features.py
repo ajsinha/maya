@@ -76,8 +76,10 @@ class Features:
             "shape": shape, "components": components,
             "defaults": defaults or {}})
 
-    def derive(self, *, name: str, expression: str, dtype: str,
-               description: str, owner: str) -> Dict[str, Any]:
+    def derive(self, *, name: str, expression: str, dtype: str = "numeric",
+               description: str = "", evaluator: str = "internal",
+               on_error: str = "null", note: str = "",
+               inputs: Optional[List[str]] = None) -> Dict[str, Any]:
         """`Z = f(X, Y)`, computed rather than supplied.
 
         Two things happen without asking. Its ingest clock is the **maximum**
@@ -85,10 +87,23 @@ class Features:
         and its lineage is walked whenever it is used, so a feature derived from
         the label is refused with the derivation chain named rather than with a
         bare no.
+
+        **There is no `owner` argument, and there was one until it was used.**
+        The endpoint sets the owner from the authenticated principal — a derived
+        feature is owned by whoever declared it, which is a fact the server
+        already has and a caller could otherwise misstate. This method sent
+        `owner` anyway, the endpoint forbids extra fields, and so every call it
+        could ever make returned 422. Nothing called it and no test covered it,
+        which is how a method ships unable to work at all.
+
+        `evaluator="external"` is for an expression MAYA cannot parse; only then
+        may `inputs` name the features it reads, so that lineage and the leakage
+        check still have something to work with.
         """
         return self._maya.call("POST", "/derived-features", json={
             "name": name, "expression": expression, "dtype": dtype,
-            "description": description, "owner": owner})
+            "description": description, "evaluator": evaluator,
+            "on_error": on_error, "note": note, "inputs": inputs or []})
 
     def lineage(self, name: str) -> Dict[str, Any]:
         return self._maya.call("GET", f"/derived-features/{name}/lineage")

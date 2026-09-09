@@ -465,6 +465,9 @@ maya/
 │   └── java/                        not built; the contract it must honour, written down
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
+├── case_studies/                    three models registered end to end, with
+│                                    scripts that fit OUTSIDE MAYA and READMEs
+│                                    written to be talked through
 ├── docs/                            18 specification documents + ADRs
 ├── tools/deck/                      the decks, generated from source rather than edited
 └── tests/                           the law suite and the discipline walkers

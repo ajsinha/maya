@@ -153,6 +153,14 @@ MODEL_VERSION = Table(
     Column("fit_procedure", Text, nullable=False),
     Column("deterministic", Boolean, nullable=False, server_default=true()),
     Column("input_schema", Text, nullable=False, server_default=text("'[]'")),
+    # P, beside X. A kernel is `f : P (x) X -> D(Y)` and could declare only X,
+    # so a calibrated or fitted model had to put its parameters in the input
+    # schema to have them typeset and generated into code — which then made
+    # L-W10 require the FEATURESET to supply them, and refuse the fit warrant
+    # for a reason that was not true. Defaults to `[]`, so every version
+    # written before this column existed reads as "declares no parameters",
+    # which is what those versions meant.
+    Column("parameter_schema", Text, nullable=False, server_default=text("'[]'")),
     Column("output_schema", Text, nullable=False, server_default=text("'[]'")),
     Column("contract", Text, nullable=False, server_default=text("'{}'")),
     Column("artifact_digest", Text),
