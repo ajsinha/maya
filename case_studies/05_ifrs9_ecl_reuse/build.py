@@ -246,11 +246,11 @@ def main() -> int:
         owner="person/j.okafor", legal_entity="LE-UK-01",
         purpose="twelve-month expected credit loss for the corporate book "
                 "under IFRS 9 stage 1"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=2_300_000_000, purpose_class="financial_reporting",
         feature_count=8, uses_alternative_data=False, interpretable=True),
             already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')}")
 
     # ---------------------------------------- 5. the edge that propagates

@@ -588,10 +588,6 @@ class TestFittingOverTheApi:
             "urn": self.FIT_URN, "name": "Spend linear", "domain": "credit",
             "model_class": "credit.spend.linear", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "expected spend"})
-        client.post(f"/api/v1/models/{self.FIT_NAME}/assess", auth=owner,
-                    json={"exposure": 2e9, "purpose_class": "regulatory_capital",
-                          "feature_count": 12, "uses_alternative_data": False,
-                          "interpretable": True})
         kernel = {"parameter_kind": "estimated_coefficients",
                   "fit_procedure": "estimate", "runtime": "estimator",
                   "entry": {"family": "ols", "target": "spend",
@@ -602,6 +598,15 @@ class TestFittingOverTheApi:
         r = client.post(f"/api/v1/models/{self.FIT_NAME}/versions", auth=dev,
                         json={"semver": "1.0.0", "kernel": kernel})
         assert r.status_code == 201, r.text
+        # Assessed after the version exists: the tier reads the trainability
+        # class off it, and assessing first read T0.
+        assessed = client.post(f"/api/v1/models/{self.FIT_NAME}/assess", auth=owner,
+                               json={"exposure": 2e9,
+                                     "purpose_class": "regulatory_capital",
+                                     "feature_count": 12,
+                                     "uses_alternative_data": False,
+                                     "interpretable": True})
+        assert assessed.status_code == 200, assessed.text
         _quorum_approve(client, people, "1.0.0", urn=self.FIT_URN)
         moved = client.put(f"/api/v1/models/{self.FIT_NAME}/aliases", auth=mrm,
                            json={"environment": "prod", "alias": "champion",

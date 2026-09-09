@@ -165,7 +165,8 @@ def ensure_filled(maya: Maya, featureset: str,
 
 
 def ensure_version(maya: Maya, short_name: str, *, semver: str,
-                   kernel: Dict[str, Any]) -> Dict[str, Any]:
+                   kernel: Dict[str, Any],
+                   contract: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Create the version, or return the one already there.
 
     Asked before attempted, rather than attempted and forgiven. Once a model
@@ -179,7 +180,11 @@ def ensure_version(maya: Maya, short_name: str, *, semver: str,
         if row.get("semver") == semver:
             print(f"    = version {semver} already exists — not recreating it")
             return row
-    made = maya.versions.create(short_name, semver=semver, kernel=kernel)
+    # `contract` is a sibling of `kernel`, not a key inside it: a kernel
+    # says what the model IS and a contract says what it is ASSERTED to
+    # do, and MAYA refuses the two conflated.
+    made = maya.versions.create(short_name, semver=semver, kernel=kernel,
+                                contract=contract or {})
     print(f"    ✓ MAYA: version {semver}")
     return made
 

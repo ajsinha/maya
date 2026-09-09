@@ -205,11 +205,11 @@ def main() -> int:
         owner="person/j.okafor", legal_entity="LE-UK-01",
         purpose="stratifying screening and preventive therapy for coronary "
                 "artery disease"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=0, purpose_class="clinical_decision",
         feature_count=len(VARIANTS), uses_alternative_data=True,
         interpretable=True), already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')}")
 
     say.step("Approve the version")

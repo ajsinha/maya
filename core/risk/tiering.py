@@ -61,12 +61,36 @@ class TieringEngine:
         return band
 
     def materiality(self, exposure: float, purpose: str) -> str:
-        """Join: the more severe of the quantitative and qualitative readings."""
+        """Join: the more severe of the quantitative and qualitative readings.
+
+        An unrecognised purpose class is **refused**, not defaulted. It used to
+        fall back to rank 1 via `.get(purpose, 1)`, which meant a caller who
+        wrote `credit_decision` or `clinical_decision` --- neither in the
+        configured vocabulary --- got the rank of `commercial`, the lowest
+        there is, and a recorded rationale that read the string back as though
+        it had been understood. Nine case studies declared five such classes
+        between them and every one of them silently tiered as commercially
+        trivial.
+
+        This is the same failure the register already refuses for an unknown
+        kernel key and an unknown contract section: a field MAYA does not read
+        is a constraint that silently does not exist, and here it does not
+        merely fail to constrain --- it lowers the tier.
+        """
         quant = MATERIALITY.index(self.exposure_band(exposure))
+        if purpose not in self._purpose:
+            raise RiskError(
+                "unknown_purpose_class",
+                f"purpose class '{purpose}' is not in the configured "
+                f"vocabulary, so it has no materiality rank",
+                "declare one of " + ", ".join(sorted(self._purpose)) +
+                " — or add this one to risk.purpose_ranks, which is a policy "
+                "decision about how severely the estate reads it rather than "
+                "something a caller may assert in passing")
         # Purpose ranks are 1-based; materiality indices are 0-based. Rank 1
         # (commercial) must map to 'negligible', not 'low', or every model in
         # the estate is inflated by one level before exposure is even read.
-        rank = self._purpose.get(purpose, 1)
+        rank = self._purpose[purpose]
         qual = max(0, min(rank - 1, len(MATERIALITY) - 1))
         return MATERIALITY[max(quant, qual)]
 
@@ -137,9 +161,19 @@ class TieringEngine:
 
     #: The reading of an undeclared complexity fact that assumes the worst.
     #: `feature_count` is 51 because the band it has to cross is "> 50".
+    #:
+    #: `trainability_class` is here because it is not a fact the caller sends —
+    #: it is read off the model's latest version, and a model with no version
+    #: yet has none. That was being read as `T0`, the SIMPLEST class there is,
+    #: which is how every case study in this repository tiered itself: assess
+    #: first, register the version second, and receive a tier computed as
+    #: though the model were an analytic formula. Re-running the same script
+    #: then produced a different tier, which is the visible symptom.
+    #: `T5` is the worst reading: opaque (+1) and generative (+1).
     CONSERVATIVE: ClassVar[Dict[str, Any]] = {"feature_count": 51,
                                               "uses_alternative_data": True,
-                                              "interpretable": False}
+                                              "interpretable": False,
+                                              "trainability_class": "T5"}
 
     def load_bearing(self, facts: Dict[str, Any],
                      declared: Iterable[str]) -> List[str]:

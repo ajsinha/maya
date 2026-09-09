@@ -48,10 +48,12 @@ DECKS = [
     # chapter accidentally dropped from the build is caught — `design_slides.py`
     # executes whatever `.py` files it finds, so a rename or a syntax error
     # removes slides silently and the deck still builds.
-    # 123, from 114: chapter 26 is the six worked case studies in
-    # `case_studies/`. The rest of the deck argues; that chapter is the part
-    # somebody can run against a live instance in a minute and check.
-    ("MAYA-Model-and-Feature-Management", 123),
+    # 123, from 114: chapter 26 is the worked case studies in `case_studies/`.
+    # The rest of the deck argues; that chapter is the part somebody can run
+    # against a live instance in a minute and check.
+    # 124, from 123: the case studies grew from six to eleven and no longer fit
+    # one table — the set slide is now two, banking and everything else.
+    ("MAYA-Model-and-Feature-Management", 124),
     # Three audience-specific decks, built from the same theme. All are capped
     # at twenty slides on purpose: an executive briefing that grows into the
     # design deck stops being read, and a concepts deck that grows becomes the

@@ -124,12 +124,14 @@ def attested(as_person, people):
     owner.models.register(urn=URN, name="SB PD", model_class="credit.pd.scorecard",
                           domain="credit", owner="person/j.okafor",
                           legal_entity="LE-US-01", purpose="12m PD at origination")
-    # Assessed before submission, because the tier decides how deep the control
-    # is and approving before assessing would be choosing your own.
+    # Version, then assess, then submit. The tier decides how deep the control
+    # is, so approving before assessing would be choosing your own — and
+    # assessing before there is a version reads the trainability class as T0,
+    # which is choosing your own by a quieter route.
+    dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
     owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
                         feature_count=12, uses_alternative_data=False,
                         interpretable=True)
-    dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
     owner.lifecycle.submit(URN, note="ready for review")
     mrm.lifecycle.approve(URN, note="challenged and accepted")
     owner.lifecycle.attest(URN, role="model_owner")
@@ -183,10 +185,10 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
+        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
                         feature_count=12, uses_alternative_data=False,
                         interpretable=True)
-        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN, note="please review")
         mrm.lifecycle.approve(URN, note="ok")
         # Approved is not in force. The attestation is still outstanding, and
@@ -201,10 +203,10 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
+        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
                         feature_count=12, uses_alternative_data=False,
                         interpretable=True)
-        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN)
         with pytest.raises(NotPermitted):
             owner.lifecycle.approve(URN)
@@ -221,10 +223,10 @@ class TestARecordMovesThroughItsStates:
         owner.models.register(urn=URN, name="SB PD", model_class="c",
                               domain="credit", owner="person/j.okafor",
                               legal_entity="LE-1", purpose="p")
+        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.models.assess(URN, exposure=2e9, purpose_class="regulatory_capital",
                         feature_count=12, uses_alternative_data=False,
                         interpretable=True)
-        dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         owner.lifecycle.submit(URN)
         mrm.lifecycle.send_back(URN, reason="the benchmark is not stated")
         assert owner.lifecycle.state(URN)["state"] == "draft"
@@ -984,13 +986,13 @@ class TestAFieldTheServerDoesNotKnowIsRefused:
             "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
             "domain": "credit", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                    json={"semver": "3.2.1", "kernel": KERNEL,
+                          "contract": CONTRACT, "artifact_digest": "sha256:" + "a" * 64})
         client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
                     json={"exposure": 2e9, "purpose_class": "regulatory_capital",
                           "feature_count": 12, "uses_alternative_data": False,
                           "interpretable": True})
-        client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
-                    json={"semver": "3.2.1", "kernel": KERNEL,
-                          "contract": CONTRACT, "artifact_digest": "sha256:" + "a" * 64})
         opened = client.post("/api/v1/version-approvals", auth=people["s.iqbal"],
                              json={"urn": URN, "semver": "3.2.1"})
         assert opened.status_code == 201, opened.text

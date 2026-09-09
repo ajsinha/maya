@@ -122,8 +122,6 @@ def author(client):
         "urn": URN, "name": "NJ Valuation", "model_class": "valuation.hedonic",
         "domain": "valuation", "owner": "person/d.raman",
         "legal_entity": "LE-US-01", "purpose": "residential valuation"})
-    client.post("/api/v1/models/nj.valuation/assess", auth=admin,
-                json={"exposure": 1e8, "purpose_class": "commercial"})
     client.post("/api/v1/models/nj.valuation/versions", auth=admin, json={
         "semver": "1.0.0",
         "kernel": {"parameter_kind": "estimated_coefficients",
@@ -135,6 +133,8 @@ def author(client):
         "contract": {"assumptions": [], "guarantees": [],
                      "on_boundary_violation": "reject"},
         "artifact_digest": "sha256:" + "a" * 64})
+    client.post("/api/v1/models/nj.valuation/assess", auth=admin,
+                json={"exposure": 1e8, "purpose_class": "commercial"})
 
     _login(client, "d.raman", "dev-pw-long-enough")
     client.auth = None

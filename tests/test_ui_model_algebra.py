@@ -460,9 +460,15 @@ class TestRiskAndTheFibre:
         assert "T2" in body, "the latest version's class is what is read"
         assert "independent_validation" in body, "the controls a tier requires"
 
-    def test_assessing_before_a_version_exists_tiers_an_empty_model(
-            self, client, people):
-        """Stated on the screen rather than discovered afterwards."""
+    def test_assessing_before_a_version_exists_is_refused(self, client, people):
+        """The page said "has no versions, T0"; the API just tiered it.
+
+        Surfacing the T0 reading on the screen helps somebody looking at the
+        screen. It did nothing for the SDK, a script, or the tier that was then
+        PERSISTED — and because the class is read off the latest version, the
+        same script run again after registering one produced a different tier
+        for the same model. A tier that moves on a re-run is not an assessment.
+        """
         owner = people["j.okafor"]
         client.post("/api/v1/models", auth=owner, json={
             "urn": URN("empty"), "name": "Empty", "model_class": "x",
@@ -471,12 +477,15 @@ class TestRiskAndTheFibre:
         _login(client)
         body = client.get("/model-algebra/risk/empty").text
         assert "has no versions" in body
-        assert "T0" in body
+        assert "T0" in body, "the page still says what it would read"
         r = client.post("/api/v1/models/empty/assess", headers=token(client),
                         json={"exposure": 0, "purpose_class": "commercial",
                               "feature_count": 0, "uses_alternative_data": False,
                               "interpretable": True})
-        assert "class T0" in r.json()["rationale"]
+        assert r.status_code == 422, r.text
+        assert r.json()["error"] == "fact_not_supplied", r.text
+        assert "trainability_class" in r.json()["detail"], r.text
+        assert "register a version" in r.json()["remediation"], r.text
 
     def test_the_index_shows_what_each_class_owes(self, signed_in):
         body = signed_in.get("/model-algebra").text
