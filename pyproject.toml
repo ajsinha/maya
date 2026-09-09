@@ -8,7 +8,7 @@
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 extend-exclude = ["web/static/vendor", ".venv"]
 
 [tool.ruff.lint]
@@ -146,7 +146,7 @@ ignore = [
 "core/execution/runtimes/*.py" = ["F401"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.13"
 files = ["core", "db", "routes", "sdk/python/maya_sdk", "run_maya_web.py"]
 ignore_missing_imports = true
 # Deliberately not strict. A codebase this size adopting `--strict` in one step
