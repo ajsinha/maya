@@ -418,7 +418,7 @@ branding — so the ideas can be judged on their own.
 
 | Engineering artefact | Audience |
 |---|---|
-| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 124 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file**, and **chapter 26: the twelve case studies** in `case_studies/`, each runnable against a live instance in about a minute |
+| [**MAYA — Model and Feature Management: Concepts and System Design**](docs/MAYA-Model-and-Feature-Management.pptx) — 125 slides | Five parts. **I Philosophy** — what a model is, why "is it AI?" separates nothing, the five positions this platform takes, and what the decision costs against each alternative by name. **II Foundations** — the definition, the algebra, two clocks, evidence and its semirings, and the laws with which of them run. **III Concepts** — feature, featureset, warrant, parameters, composition, documentation, and what MAYA refuses. **IV System design** — components, algorithms, transaction boundaries, operations. **V Worked examples** — eight kinds of model one at a time, then a worked example computed from two real FRED series **whose data is embedded in the file**, and **chapter 26: the thirteen case studies** in `case_studies/`, each runnable against a live instance in about a minute |
 | [**MAYA — Executive Briefing**](docs/MAYA-Executive-Briefing.pptx) — 20 slides | A CIO and business heads. The exposure in the language of loss, the four failures behind it, what MAYA is in one sentence, what it would cost against buy-and-do-nothing, what is honestly *not* built, the risks including key-person concentration, the first ninety days, and the one policy decision the rest depends on. Every figure is either measured or explicitly marked an estimate |
 | [**MAYA — Concepts and Formalism**](docs/MAYA-Concepts-and-Formalism.pptx) — 20 slides | An architect or a quantitative head of model risk. Only the ideas: the definition `f : P ⊗ X → D(Y)`, the trainability classes it derives, what the definition *forces* before anybody designs anything, the two clocks and the point-in-time operator, the warrant, the shape of the system, the shape of the data — and how to tell if the whole thing is wrong. No roadmap, no business case, no screenshots |
 
@@ -474,7 +474,7 @@ maya/
 │   └── java/                        not built; the contract it must honour, written down
 ├── content/                         help and tutorials, rendered at request time
 ├── examples/warrants/               thirteen worked warrants across the model estate
-├── case_studies/                    twelve models across six industries,
+├── case_studies/                    thirteen models across seven industries,
 │                                    registered end to end, with scripts that
 │                                    fit OUTSIDE MAYA and READMEs written to
 │                                    be talked through

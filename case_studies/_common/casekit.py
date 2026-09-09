@@ -166,7 +166,9 @@ def ensure_filled(maya: Maya, featureset: str,
 
 def ensure_version(maya: Maya, short_name: str, *, semver: str,
                    kernel: Dict[str, Any],
-                   contract: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                   contract: Optional[Dict[str, Any]] = None,
+                   artifact_digest: Optional[str] = None,
+                   artifact_uri: Optional[str] = None) -> Dict[str, Any]:
     """Create the version, or return the one already there.
 
     Asked before attempted, rather than attempted and forgiven. Once a model
@@ -183,8 +185,13 @@ def ensure_version(maya: Maya, short_name: str, *, semver: str,
     # `contract` is a sibling of `kernel`, not a key inside it: a kernel
     # says what the model IS and a contract says what it is ASSERTED to
     # do, and MAYA refuses the two conflated.
+    # `artifact_uri` is usually left out: when the digest names bytes MAYA
+    # already holds, the store is the authority on its own contents and fills
+    # in where they are, how big they are and what format they are.
     made = maya.versions.create(short_name, semver=semver, kernel=kernel,
-                                contract=contract or {})
+                                contract=contract or {},
+                                artifact_digest=artifact_digest,
+                                artifact_uri=artifact_uri)
     print(f"    ✓ MAYA: version {semver}")
     return made
 
