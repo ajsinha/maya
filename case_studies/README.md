@@ -13,12 +13,22 @@ can run in front of an audience and a README written to be talked through.
 | **6** | [HELOC origination eligibility](06_heloc_eligibility_rules/) | **T8** — authored | A *policy rulebook* governed as a model: checked, trialled, published, approved by a second person — and every decision carrying the rule that made it |
 | **7** | [LLM model documentation](07_llm_model_documentation/) | **AI Tier B** | An LLM drafting a validation-pack section. The platform **removes** the claim citing evidence it does not hold, refuses a Tier C capability outright, and refuses the requester attesting their own draft |
 | **8** | [Vendor bureau score](08_vendor_bureau_score/) | **T6** — opaque | Governing a model nobody here can inspect. A fit refused for three reasons at once, reverse-engineered coefficients refused, and the three things that *can* still be governed |
+| **9** | [Polygenic risk score](09_polygenic_risk_score/) | **T2** — estimated | **Genomics.** A clinical model whose most important fact is that it works far less well in some ancestries — quantified on the parameter set, so it is read at the same moment as the numbers |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
 
 Every README opens with a **theory** section: the mathematics of the model, its
 assumptions, and where it is known to be wrong — before any of the governance.
+
+### Coverage beyond banking
+
+Case study 9 is the first outside financial services, and it is there to make a
+specific point rather than for variety: **change the vocabulary and every
+control is the same.** Two clocks with a laboratory in the gap instead of a
+servicer; a limitation quantified on the parameter set instead of in a paper; an
+approval that names the population it is approved *for*; and features declared
+as proxies for a protected characteristic nobody collected.
 
 ### Coverage of the taxonomy
 
@@ -179,6 +189,7 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/06_heloc_eligibility_rules/build.py # after 2
 .venv/bin/python case_studies/07_llm_model_documentation/build.py # after 4
 .venv/bin/python case_studies/08_vendor_bureau_score/build.py
+.venv/bin/python case_studies/09_polygenic_risk_score/build.py
 ```
 
 Options, on all three:
