@@ -21,7 +21,7 @@
    The full picker is /static/js/theme.js; this is only the part that cannot
    wait for it. */
 (function(){try{var t=localStorage.getItem("maya.theme");
-if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}
+if(t==="light"||t==="dark"||t==="blue"||t==="wallstreet"){document.documentElement.setAttribute("data-theme",t);}
 var z=localStorage.getItem("maya.text");
 if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
 }catch(e){}}());
@@ -54,7 +54,15 @@ if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
    is a lighter panel on a darker ground, and a single "background" cannot
    express both. */
 :root{
-  /* identity — the crimson is the brand and does not move between themes */
+  /* The ACCENT, and the light palette's is the Harvard crimson the product is
+     drawn in. The token keeps its name across the named palettes — it is blue
+     under BMO and amber under Wall Street — because renaming it to `--accent`
+     would touch several hundred call sites to record one fact, and the fact is
+     recorded here instead.
+
+     What does NOT move is the MARK: `maya-mark-64.png` stays crimson on every
+     theme, deliberately. A palette is not a rebrand, and a logo that changes
+     colour to match the page is a logo nobody recognises at a glance. */
   --crimson:#A51C30; --crimson-d:#761422; --crimson-l:#C13048;
   --on-bar:#fff; --on-bar-dim:rgba(255,255,255,.82);
   --on-crimson:#fff; --on-crimson-dim:rgba(255,255,255,.86);
@@ -83,6 +91,8 @@ if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
      a marketing page is one nobody believes. */
   --bar:linear-gradient(180deg, #B02034 0%, var(--crimson) 55%, #97182B 100%);
   --tint:linear-gradient(180deg, rgba(165,28,48,.045) 0%, rgba(165,28,48,0) 100%);
+
+  --focus-glow:rgba(165,28,48,.15);
 
   --sans:"Source Sans 3",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
@@ -113,6 +123,72 @@ if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
 
   --bar:linear-gradient(180deg, #3A1D25 0%, #2E171E 60%, #26131A 100%);
   --tint:linear-gradient(180deg, rgba(232,135,154,.06) 0%, rgba(232,135,154,0) 100%);
+  --focus-glow:rgba(232,135,154,.20);
+}
+
+/* ── BMO BLUE ──────────────────────────────────────────────────────────────
+   A named palette, not a hue swap. Every token the crimson themes declare is
+   redeclared here, because a theme that inherits half of them is the "light
+   island" bug: the missing half falls back to `:root` and a blue page renders
+   crimson chips on it. The coverage test asserts the whole set is present.
+
+   Light family. Deep navy for the bar, BMO blue as the accent, and a text
+   blue dark enough to clear 4.5:1 on white AND on the striped row — #0079C0
+   itself is 3.4 on white and would have failed as body text, which is exactly
+   the trap of taking a brand colour straight from a style guide. */
+:root[data-theme="blue"]{
+  --crimson:#0A5C93; --crimson-d:#083F66; --crimson-l:#1479B8;
+  --on-bar:#fff; --on-bar-dim:rgba(255,255,255,.82);
+  --on-crimson:#fff; --on-crimson-dim:rgba(255,255,255,.86);
+
+  --canvas:#F4F7FA; --surface:#fff; --raised:#fff; --parch:#E9F1F7;
+  --ink:#10233A; --slate:#3A5068; --muted:#5A6E84;
+  --rule:#C9D8E4; --edge:#7F8FA0; --hairline:#DDE7EF;
+
+  --on-accent:#fff;
+  --ok:#1F5130; --ok-soft:#E4F0E8;
+  --warn:#8A5A1F; --warn-soft:#F7EFE0;
+  --bad:#B3202A; --bad-soft:#FAE7E8;
+  --info:#0A4D86; --info-soft:#E4EEF7;
+
+  --lift:0 1px 2px rgba(11,37,69,.07), 0 1px 3px rgba(11,37,69,.05);
+  --lift-2:0 2px 6px rgba(11,37,69,.09), 0 4px 14px rgba(11,37,69,.07);
+
+  --bar:linear-gradient(180deg, #0B2545 0%, #0A4D86 55%, #08447A 100%);
+  --tint:linear-gradient(180deg, rgba(10,92,147,.05) 0%, rgba(10,92,147,0) 100%);
+  --focus-glow:rgba(10,92,147,.18);
+}
+
+/* ── WALL STREET ───────────────────────────────────────────────────────────
+   The terminal look: near-black ground, amber text, cyan for anything that is
+   data rather than prose. Dark family.
+
+   It is the one theme where the ACCENT carries text on the bar rather than
+   white doing so, because a black bar with white text is not the thing being
+   imitated. `--on-crimson` inverts to near-black, since amber is a light fill
+   and white on amber is 1.9:1 — unreadable, and the sort of thing that only
+   shows up when somebody looks at a filled chip. */
+:root[data-theme="wallstreet"]{
+  --crimson:#FFA028; --crimson-d:#D6821C; --crimson-l:#FFC069;
+  --on-bar:#FFB43D; --on-bar-dim:rgba(255,180,61,.74);
+  --on-crimson:#120C04; --on-crimson-dim:rgba(18,12,4,.80);
+
+  --canvas:#0A0A0A; --surface:#141210; --raised:#1B1813; --parch:#17140E;
+  --ink:#FFB43D; --slate:#D6A24E; --muted:#A98D5E;
+  --rule:#332D20; --edge:#7A6A46; --hairline:#221F18;
+
+  --on-accent:#120C04;
+  --ok:#4FD08A; --ok-soft:#10241A;
+  --warn:#FFC24D; --warn-soft:#2A2110;
+  --bad:#FF6B6B; --bad-soft:#2A1414;
+  --info:#3FD0FF; --info-soft:#0E2029;
+
+  --lift:0 1px 2px rgba(0,0,0,.7), 0 1px 3px rgba(0,0,0,.5);
+  --lift-2:0 2px 8px rgba(0,0,0,.75), 0 6px 18px rgba(0,0,0,.6);
+
+  --bar:linear-gradient(180deg, #17140E 0%, #100E0A 60%, #0A0A0A 100%);
+  --tint:linear-gradient(180deg, rgba(255,160,40,.055) 0%, rgba(255,160,40,0) 100%);
+  --focus-glow:rgba(255,160,40,.22);
 }
 
 /* And for anybody who has never touched the picker: follow the machine. The
@@ -134,6 +210,7 @@ if(z&&z!=="normal"){document.documentElement.setAttribute("data-text",z);}
     --lift-2:0 2px 8px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.4);
     --bar:linear-gradient(180deg, #3A1D25 0%, #2E171E 60%, #26131A 100%);
     --tint:linear-gradient(180deg, rgba(232,135,154,.06) 0%, rgba(232,135,154,0) 100%);
+    --focus-glow:rgba(232,135,154,.20);
   }
 }
 
@@ -227,9 +304,15 @@ table.maya td, table.maya th, .stat, .stat-n, .num{font-variant-numeric:tabular-
    white, which in dark mode is a white box on a dark page. */
 .form-control,.form-select,.form-check-input{
   background:var(--surface); color:var(--ink); border-color:var(--edge);}
+/* The glow is a TOKEN. It was `rgba(165,28,48,.15)` — the crimson, written
+   out — beside a border that was already `var(--crimson)`. Nothing was wrong
+   with that until a palette existed that is not crimson: the BMO theme then
+   drew a blue border with a faint red halo, which reads as a validation error
+   on a field that is merely focused. An island survives exactly as long as
+   there is only one island. */
 .form-control:focus,.form-select:focus{
   background:var(--surface); color:var(--ink); border-color:var(--crimson);
-  box-shadow:0 0 0 .15rem rgba(165,28,48,.15);}
+  box-shadow:0 0 0 .15rem var(--focus-glow);}
 .form-control::placeholder{color:var(--muted); opacity:1;}
 .table{--bs-table-bg:transparent; color:var(--ink);}
 .btn-outline-secondary{color:var(--slate); border-color:var(--edge);}
@@ -375,7 +458,7 @@ footer{border-top:1px solid var(--rule);color:var(--muted);font-size:.76rem;padd
            font-size:.82rem;font-weight:700;}
 .flow .step.done .dot{background:var(--crimson);border-color:var(--crimson);color:var(--on-accent);}
 .flow .step.here .dot{background:var(--surface);border-color:var(--crimson);color:var(--crimson);
-                      box-shadow:0 0 0 4px rgba(165,28,48,.12);}
+                      box-shadow:0 0 0 4px var(--focus-glow);}
 .flow .lbl{display:block;font-size:.74rem;letter-spacing:.04em;margin-top:.35rem;
            text-transform:uppercase;color:var(--muted);font-weight:600;}
 .flow .step.done .lbl,.flow .step.here .lbl{color:var(--crimson);}
@@ -515,8 +598,15 @@ table.maya thead th button:focus-visible,
 .skip-link:focus{left:0;}
 /* A form control's own edge, at 3:1 rather than Bootstrap's 1.30:1. */
 .form-control, .form-select{border-color:var(--edge);}
+/* The SECOND `.form-control:focus` rule in this stylesheet, and the one that
+   wins. Tokenising the first one changed nothing visible, because this sat
+   three hundred lines below it with a hardcoded crimson and the same
+   selector — which is how a fix comes to be applied, tested, and dead. The
+   duplicate is kept rather than merged because the two carry different
+   weights (.15rem and .18rem) and merging them is a visual change; what is
+   not kept is a second copy of the colour. */
 .form-control:focus, .form-select:focus{
-  border-color:var(--crimson); box-shadow:0 0 0 .18rem rgba(165,28,48,.22);}
+  border-color:var(--crimson); box-shadow:0 0 0 .18rem var(--focus-glow);}
 /* Bootstrap's `.text-white-50` is 2.87:1 on this bar. */
 .navbar .text-white-50{color:var(--on-crimson-dim)!important;}
 .navbar .text-white-50:hover, .navbar .text-white-50:focus{color:var(--on-accent)!important;}
@@ -686,6 +776,16 @@ table.maya thead th button:focus-visible,
             <i class="bi bi-moon-stars me-2"></i>Dark<span class="tick float-end"></span></button></li>
           <li><button class="dropdown-item theme-pick" data-theme="system" type="button">
             <i class="bi bi-circle-half me-2"></i>System<span class="tick float-end"></span></button></li>
+          {# Named palettes. Separated by a rule from light/dark/system, which
+             are modes rather than palettes — a menu that lists "Dark" beside
+             "Wall Street" as if they were the same kind of choice teaches
+             somebody that picking one excludes the other, and it does. #}
+          <li><hr class="dropdown-divider"></li>
+          <li><h6 class="dropdown-header">Palette</h6></li>
+          <li><button class="dropdown-item theme-pick" data-theme="blue" type="button">
+            <i class="bi bi-bank me-2"></i>BMO blue<span class="tick float-end"></span></button></li>
+          <li><button class="dropdown-item theme-pick" data-theme="wallstreet" type="button">
+            <i class="bi bi-graph-up-arrow me-2"></i>Wall Street<span class="tick float-end"></span></button></li>
           {# Text size, in the menu that already means "how this looks to me".
              A separate control rather than relying on the browser's zoom,
              because zoom scales the LAYOUT — a governance table at 150% zoom
