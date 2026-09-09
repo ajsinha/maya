@@ -565,8 +565,8 @@ for line in ["Adopt MAYA as the register of record",
 tf = txt(sl, ML + CW * 0.58, 3.70, CW * 0.42, 2.4)
 para(tf, "WHERE TO LOOK NEXT", size=10, color=RGBColor(0xE0, 0xA8, 0xB2),
      bold=True, first=True, space_after=10)
-for line in ["The design deck — 123 slides, chapter 26 is the case studies",
-             "case_studies/ — six models, runnable in a minute each",
+for line in ["The design deck — 124 slides, chapter 26 is the case studies",
+             "case_studies/ — eleven models, runnable in a minute each",
              "docs/11 — the adversarial review, written against this platform"]:
     para(tf, line, size=12, color=RGBColor(0xF6, 0xE6, 0xE9), space_after=8,
          line=1.22)

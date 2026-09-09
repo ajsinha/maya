@@ -14,6 +14,8 @@ can run in front of an audience and a README written to be talked through.
 | **7** | [LLM model documentation](07_llm_model_documentation/) | **AI Tier B** | An LLM drafting a validation-pack section. The platform **removes** the claim citing evidence it does not hold, refuses a Tier C capability outright, and refuses the requester attesting their own draft |
 | **8** | [Vendor bureau score](08_vendor_bureau_score/) | **T6** — opaque | Governing a model nobody here can inspect. A fit refused for three reasons at once, reverse-engineered coefficients refused, and the three things that *can* still be governed |
 | **9** | [Polygenic risk score](09_polygenic_risk_score/) | **T2** — estimated | **Genomics.** A clinical model whose most important fact is that it works far less well in some ancestries — quantified on the parameter set, so it is read at the same moment as the numbers |
+| **10** | [SEIR epidemic model](10_seir_epidemic/) | **T1** — calibrated | **Epidemiology.** The same outbreak data on the same day gives R₀ = 2.04 or 2.34 depending on how the *reporting delay* is treated. The rejected number is recorded beside the chosen one |
+| **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
@@ -190,9 +192,11 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/07_llm_model_documentation/build.py # after 4
 .venv/bin/python case_studies/08_vendor_bureau_score/build.py
 .venv/bin/python case_studies/09_polygenic_risk_score/build.py
+.venv/bin/python case_studies/10_seir_epidemic/build.py
+.venv/bin/python case_studies/11_rag_assistant_config/build.py
 ```
 
-Options, on all three:
+Options, on every script:
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -212,7 +216,7 @@ Each writes three files into its own folder:
 cd case_studies/01_black_scholes && pdflatex black-scholes-specification.tex
 ```
 
-**All three are re-runnable.** Run one twice and it will tell you what was
+**Every one of them is re-runnable.** Run one twice and it will tell you what was
 already there rather than failing or silently duplicating.
 
 ---

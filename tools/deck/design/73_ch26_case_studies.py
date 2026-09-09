@@ -3,7 +3,7 @@ MAYA — Model & AI Lifecycle Assurance
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 
-Chapter 26 — the six worked case studies in `case_studies/`.
+Chapter 26 — the eleven worked case studies in `case_studies/`.
 
 Every number on these slides is printed by a script somebody can run against a
 live MAYA in about a minute. That is the point of the chapter: the rest of the
@@ -11,15 +11,15 @@ deck argues, and this part is checkable.
 """
 # -*- coding: utf-8 -*-
 
-divider("26", "Six Worked Case Studies",
-        "Six real banking models, registered end to end — fitted outside MAYA, "
-        "governed inside it.",
+divider("26", "Eleven Worked Case Studies",
+        "Eleven real models across five industries, registered end to end — "
+        "fitted outside MAYA, governed inside it.",
         ["What they are", "The boundary they draw", "Each one, and its point",
          "What the platform refused", "What they do not cover"])
 
 # --------------------------------------------------------------- the set
-sl, y = content("Six models, chosen to cover the taxonomy",
-                "Case studies · the set")
+sl, y = content("Six banking models, chosen to cover the taxonomy",
+                "Case studies · the set (1 of 2)")
 h = table(sl, [
     ["#", "Model", "Class", "Domain", "Why this one"],
     ["1", "Black–Scholes European call", "T1", "Markets",
@@ -46,6 +46,39 @@ runs(tf, [("The trainability class is derived, never declared. ", CRIMSON, True)
           ("These six span T0 (parameters from theory), T1 (calibrated to "
            "market), T2 (estimated from a sample) and T8 (authored as rules) — "
            "and the class decides which operations the platform will admit.",
+           INK, False)],
+     size=11.5, first=True, space_after=0, line=1.26)
+
+# ------------------------------------------- the set, beyond banking
+sl, y = content("Five more: the opaque, the generative, and three other "
+                "industries", "Case studies · the set (2 of 2)")
+h = table(sl, [
+    ["#", "Model", "Class", "Domain", "Why this one"],
+    ["7", "LLM model documentation", "Tier B", "Model risk (AI)",
+     "An LLM drafting a validation pack. The platform REMOVES the claim citing "
+     "evidence it does not hold, and refuses a self-attestation"],
+    ["8", "Vendor bureau score", "T6", "Retail credit",
+     "Governing a model nobody here can inspect. A fit refused for three "
+     "reasons at once, and reverse-engineered coefficients refused"],
+    ["9", "Polygenic risk score", "T2", "Genomics",
+     "A clinical model that works far less well in some ancestries — "
+     "QUANTIFIED on the parameter set, read at the same moment as the numbers"],
+    ["10", "SEIR epidemic model", "T1", "Public health",
+     "The same outbreak data on the same day gives R0 = 2.04 or 2.34, "
+     "depending on how a REPORTING DELAY is treated. Both are on the record"],
+    ["11", "RAG customer assistant", "T5", "Customer service",
+     "The system prompt is a parameter. Then the vendor reversions, the bank "
+     "changes nothing, and the guardrail pass rate falls from 100% to 57%"],
+], ML, y, CW, col_w=[0.35, 2.5, 0.6, 1.6, 6.55], row_h=0.30, fs=10, hfs=10)
+tf = txt(sl, ML, y + h + 0.22, CW, 0.85)
+runs(tf, [("Eleven case studies now span seven of the nine classes and five "
+           "industries. ", CRIMSON, True),
+          ("The three outside financial services are the argument that the "
+           "controls are not banking controls: change the vocabulary and it is "
+           "the same two clocks, the same pinned training set, the same "
+           "parameters somebody delivered and somebody else approved. Case 10 "
+           "is the sharpest — a reporting lag is a reporting lag whether the "
+           "decision is a prepayment forecast or a school closure.",
            INK, False)],
      size=11.5, first=True, space_after=0, line=1.26)
 
@@ -241,7 +274,19 @@ h = table(sl, [
     ["6", "A rule reading a field the version does not declare",
      "refused at check — a rule that never fires still appears in the model "
      "card and nobody reading it can tell"],
-], ML, y + 0.68, CW, col_w=[0.6, 4.9, 6.1], row_h=0.30, fs=10, hfs=10)
+    ["7", "Registering a Tier C capability; then the requester attesting "
+     "their own draft",
+     "Tier C is deliberately not registrable; and a self-attestation is not "
+     "an attestation"],
+    ["8", "A fit on a vendor black box; then filing reverse-engineered "
+     "coefficients as its parameters",
+     "refused for THREE reasons at once; and those coefficients are a "
+     "different model that happens to correlate"],
+    ["11", "A calibration monitor on a generative assembly; then an execution "
+     "warrant against a rejected configuration",
+     "a Brier score over text answers nothing about a T5; and no approved "
+     "parameter set inhabits this version"],
+], ML, y + 0.68, CW, col_w=[0.6, 4.9, 6.1], row_h=0.265, fs=9.5, hfs=9.5)
 
 # ------------------------------------------------------------ honest limits
 sl, y = content("What the case studies do not show", "Case studies · the limits")
@@ -253,9 +298,10 @@ bullets(txt(sl, ML, y + 0.66, CW, 3.5), [
     "No monitoring, validation or findings. These build a model up to its "
     "first approved parameter set; what happens over its life — drift, "
     "breaches, revalidation, the worklist — is a separate demonstration.",
-    "Only case study 2 uses real market data. Cases 1, 3, 4, 5 and 6 are "
-    "synthetic from data-generating processes stated in the scripts, and each "
-    "says so in the first paragraph of its data section.",
+    "Only case study 2 uses real public data. The rest are synthetic from "
+    "data-generating processes stated in the scripts — and each says so in the "
+    "first paragraph of its data section. Case 9 uses REAL published variant "
+    "identifiers with illustrative effect sizes, and says which is which.",
     "Nothing is deployed. A version is approved and a warrant is issued; no "
     "engine is wired to anything.",
     "Case 6 records an honest finding rather than hiding it: MAYA ISSUES a fit "
@@ -263,6 +309,7 @@ bullets(txt(sl, ML, y + 0.66, CW, 3.5), [
     "so the refusal lives one layer down in the runtime. The control holds "
     "because the fit cannot execute — but the grammar is the layer that should "
     "have said no.",
-    "Three classes are still uncovered: T3 (iteratively trained), T6 (a "
-    "vendor's parameters nobody can see) and T5/T7 (configured, elicited).",
+    "Two classes are still uncovered: T3 (iteratively trained) and T7 "
+    "(elicited from experts). T4 — a model that adapts in production — is "
+    "uncovered deliberately, because nothing in this repository adapts.",
 ], size=12, gap=11)

@@ -119,6 +119,10 @@ class TestRegisteringAModel:
         maya.models.register(urn=URN, name="SB PD", model_class="c",
                              domain="credit", owner="person/admin",
                              legal_entity="LE-1", purpose="p")
+        # A version first: the tier reads the trainability class off the latest
+        # one, and assessing without a version is refused rather than read as
+        # T0.
+        maya.versions.create(URN, semver="1.0.0", kernel=KERNEL)
         out = maya.models.assess(URN, exposure=2_000_000_000,
                                  purpose_class="regulatory_capital",
                                  feature_count=12, uses_alternative_data=False,

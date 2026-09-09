@@ -184,13 +184,13 @@ def main() -> int:
         model_class="retail.credit.bureau", domain="retail_credit",
         owner="person/j.okafor", legal_entity="LE-US-01",
         purpose="third-party credit score used in origination decisioning"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=2_800_000_000, purpose_class="credit_decision",
         feature_count=2, uses_alternative_data=True,
         # The one that matters here: it is not interpretable, and saying
         # otherwise to get a friendlier tier would be the lie.
         interpretable=False), already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')} "
              f"— DERIVED from an 'opaque' parameter object")
     say.did(f"the semver is {SEMVER} because that is what the VENDOR calls it. "

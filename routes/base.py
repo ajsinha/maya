@@ -200,6 +200,11 @@ STATUS: Dict[str, int] = {
     "document_corrupt": 500,
     # featuresets and the parameters a fit produces
     "unknown_provenance": 422, "no_such_version": 404,
+    # 422 and not 400: the request is well formed and names a purpose
+    # class the estate has not configured, which is the caller's to
+    # correct or the risk function's to add — a distinction a bare 400
+    # erases.
+    "unknown_purpose_class": 422,
     "nothing_to_fit": 422, "parameters_not_reachable": 422,
     "warrant_required": 422, "unknown_warrant": 404,
     "warrant_revoked": 410, "warrant_names_another_model": 409,

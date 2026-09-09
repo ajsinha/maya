@@ -78,12 +78,13 @@ these controls defend&rdquo; are one definition.</p>
           assessing again is an act somebody has to perform.</p>
         {% else %}
           <p class="mb-1"><span class="evidence-bad">This model has no versions.</span></p>
-          <p class="text-muted mb-0">The assessment will read <span class="mono">T0</span>
-          &mdash; the class of a model with no parameters at all &mdash; because
-          that is the default when there is no version to read. Tiering before a
-          version exists therefore tiers an empty model, and the complexity half
-          of the answer means nothing until one is created. Create a version
-          first on the <a href="/model-algebra/version/{{ name }}">version screen</a>.</p>
+          <p class="text-muted mb-0">The assessment is <strong>refused</strong>
+          until one exists. It used to read <span class="mono">T0</span> &mdash;
+          the class of a model with no parameters at all, and the most
+          favourable reading there is &mdash; which tiered an empty model and
+          then gave a <em>different</em> tier once a version was created for it
+          to read. Create a version first on the
+          <a href="/model-algebra/version/{{ name }}">version screen</a>.</p>
         {% endif %}
         <div class="mt-2">Recorded tier:
           {% if model.tier %}<span class="tier tier-{{ model.tier }}">TIER {{ model.tier }}</span>

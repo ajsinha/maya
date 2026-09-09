@@ -146,14 +146,6 @@ def build(client) -> None:
             "legal_entity": "LE-US-01", "purpose": spec["purpose"]})
         if not _ok(f"  register {spec['key']}", r, (201, 409)):
             continue
-        _ok(f"  tier {spec['key']}",
-            client.post(f"/api/v1/models/{spec['key']}/assess", auth=who["j.okafor"],
-                        json={"exposure": spec["exposure"],
-                              "purpose_class": spec["purpose_class"],
-                              "feature_count": spec["feature_count"],
-                              "uses_alternative_data":
-                                  spec["uses_alternative_data"],
-                              "interpretable": spec["interpretable"]}))
         _ok(f"  version {spec['key']}",
             client.post(f"/api/v1/models/{spec['key']}/versions", auth=who["d.raman"],
                         json={"semver": "1.0.0", "kernel": spec["kernel"],
@@ -166,6 +158,17 @@ def build(client) -> None:
                         "artifact_digest": "sha256:" + hashlib.sha256(
                             spec["key"].encode()).hexdigest()}),
             (201, 409))
+        # Tiered AFTER the version exists. The trainability class is read
+        # off the latest version, so assessing first read T0 — the simplest
+        # class there is — and the seeded estate came out a tier low.
+        _ok(f"  tier {spec['key']}",
+            client.post(f"/api/v1/models/{spec['key']}/assess", auth=who["j.okafor"],
+                        json={"exposure": spec["exposure"],
+                              "purpose_class": spec["purpose_class"],
+                              "feature_count": spec["feature_count"],
+                              "uses_alternative_data":
+                                  spec["uses_alternative_data"],
+                              "interpretable": spec["interpretable"]}))
 
     # A second version of the PD model, so refinement and alias history have
     # something to say. Its contract refines the first: same assumptions, a
@@ -372,8 +375,10 @@ data: {{dir: "{data}", artifacts: "{data}/artifacts",
 risk:
   exposure_bands: {{negligible: 0, low: 1000000, moderate: 50000000,
                    material: 500000000, critical: 5000000000}}
-  purpose_ranks: {{commercial: 1, risk_management: 2, financial_reporting: 3,
-                  regulatory_capital: 4}}
+  purpose_ranks: {{commercial: 1, valuation: 2, risk_management: 2,
+                  customer_facing: 3, credit_decision: 3,
+                  financial_reporting: 3, policy_decision: 4,
+                  clinical_decision: 4, regulatory_capital: 4}}
   review_months: {{1: 12, 2: 18, 3: 24, 4: 36}}
 warrants: {{jitter_pct: 0, signing_key: demo-signing-secret,
          ttl_seconds: {{1: 3600, 2: 3600, 3: 3600, 4: 3600}},

@@ -292,7 +292,7 @@ Every path below is relative to `/api/v1`. The permission column is what
 | `POST` | `/limitations/{id}/withdraw` | `limitation:withdraw` | `reason` required. Withdrawn, never deleted — the version is immutable |
 | `GET` | `/limitation-kinds` | — | The four kinds and what each is for |
 | `GET` | `/mathematics` | `model:read` | `urn` + `semver`. A `formula` version's equation and an importable Python module, both derived from the expression and neither stored. `not_derivable` for every other runtime |
-| `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required; `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. Returns the full derivation and ruleset version |
+| `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required, and the class must be one the estate configured (`unknown_purpose_class` otherwise); `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. **Register a version first** — with none, the trainability class is unknown and the assessment is refused the same way. Returns the full derivation and ruleset version |
 
 ### The dependency graph
 
