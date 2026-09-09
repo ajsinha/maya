@@ -419,7 +419,14 @@ class FindingRepository(Repository):
         params: Dict[str, Any] = {"m": model_id}
         if blocking is not None:
             sql += " AND blocking = :b"
-            params["b"] = int(blocking)
+            # A real bool. `blocking` is a BOOLEAN column and this is a RAW
+            # statement, so it does not pass through `_encode` where every
+            # other truth value is converted -- `int(blocking)` was left from
+            # when the column was an integer, and PostgreSQL answers
+            # `operator does not exist: boolean = smallint` rather than
+            # returning no rows. That is the blocking-findings gate, which
+            # decides whether a model may be approved.
+            params["b"] = bool(blocking)
         return [self._decode(r) for r in self.db.query(sql + " ORDER BY raised_at", params)]
 
     def open_across(self, model_ids: Sequence[str]) -> List[Dict[str, Any]]:

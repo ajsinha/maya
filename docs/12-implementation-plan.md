@@ -468,10 +468,25 @@ building the SBOM. All four were passing. The job was red, so the four green ste
 nothing anybody saw. **A gate's result is the job's result**, and a step that fails at the end of a job
 discards the evidence of every step before it.
 
-The lesson is not any of the five. It is that **a gate nobody reads is a gate that is not running**, and
+**And a sixth, found by asking what the suite skips.** `tests/test_postgres_dialect.py` — six tests
+whose entire subject is the second dialect — had never run anywhere. It skips unless
+`MAYA_TEST_POSTGRES` is set, nothing set it, and it was not in the PostgreSQL job's file list either,
+so it reported *skipped* on every run and nobody read the reason. Its own docstring says "It should run
+in CI." Wired in now, with a step that treats a skip as an error, because a test that skips silently is
+the failure mode that file was written to end. Running it found two more real defects: the
+blocking-findings gate passed `int(blocking)` into `blocking = :b`, and PostgreSQL answers
+`operator does not exist: boolean = smallint` — a third instance of the integer/boolean confusion,
+this time in a *query* rather than the schema or the default, in the control that decides whether a
+model may be approved. And its tamper test still used the repository to edit an evidence row, which is
+now refused outright; the tamper goes around the application through raw SQL, which is what
+[§4.1 of the adversarial review](11-adversarial-review.md) actually describes.
+
+The lesson is not any of the six. It is that **a gate nobody reads is a gate that is not running**, and
 this document had no row for *did the last build pass*. All five were found by opening the CI history,
 which is a thing that has to be done rather than assumed. As of 2026-09-08 all twelve jobs pass, which
-is the first time this repository has had a green build.
+is the first time this repository has had a green build. The neighbouring habit, which found the sixth:
+read what the suite **skips**, because a skip is a test reporting that it did not run and the summary
+line is the only place it says so.
 
 | | Gate | State |
 |---|---|---|

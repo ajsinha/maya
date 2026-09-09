@@ -112,10 +112,31 @@ def test_the_evidence_chain_verifies_on_postgres(wired):
 
 
 def test_a_tampered_payload_breaks_the_chain_on_postgres_too(wired):
-    """The control has to hold on both dialects, not on the one that gets run."""
+    """The control has to hold on both dialects, not on the one that gets run.
+
+    Two controls, in the order somebody would meet them. The repository refuses
+    an UPDATE on an append-only table outright, so the tamper has to go around
+    the application — which is exactly the threat `11 §4.1` describes: not an
+    attacker, but anybody handed production database credentials for an
+    incident. The chain is what answers there, and it has to answer on the
+    dialect a bank actually deploys rather than only on SQLite.
+    """
+    import json
+
     from db import EvidenceRepository
+    from db.repositories import AppendOnlyViolation
+
     model = _a_model(wired)
     node = wired["evidence"].append("risk_assessed", "model", model["id"],
                                     {"tier": 3}, actor="person/s.iqbal")
-    EvidenceRepository(wired["db"]).set({"payload": {"tier": 1}}, seq=node["seq"])
+
+    with pytest.raises(AppendOnlyViolation):
+        EvidenceRepository(wired["db"]).set({"payload": {"tier": 1}},
+                                            seq=node["seq"])
+    assert wired["evidence"].verify_chain()["valid"] is True, \
+        "the refused UPDATE changed nothing"
+
+    wired["db"].execute(
+        "UPDATE evidence_node SET payload = :p WHERE seq = :s",
+        {"p": json.dumps({"tier": 1}), "s": node["seq"]})
     assert wired["evidence"].verify_chain()["valid"] is False
