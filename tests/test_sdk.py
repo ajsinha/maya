@@ -257,6 +257,28 @@ class TestFeaturesAndFeaturesets:
                                 slots={"dscr": "numeric"})
         assert maya.featuresets.get("sb_core")["name"] == "sb_core"
 
+    def test_a_derived_feature_can_actually_be_declared(self, maya):
+        """`derive()` shipped unable to make a single successful call.
+
+        It sent an `owner` field. The endpoint sets the owner from the
+        authenticated principal and forbids extra fields, so every call it could
+        make returned 422 — and nothing in the repository called it and no test
+        covered it, so nothing said so. Found by writing a case study against
+        the SDK, which is the first time the method was used.
+
+        This asserts the round trip rather than the payload: a test that checked
+        the body would have passed against the broken version just as happily.
+        """
+        maya.features.define(name="spot_px", entity="contract", dtype="numeric",
+                             description="underlying price", owner="person/admin")
+        maya.features.define(name="strike_px", entity="contract", dtype="numeric",
+                             description="contract strike", owner="person/admin")
+        made = maya.features.derive(
+            name="moneyness_sdk", expression="strike_px / spot_px",
+            dtype="numeric", description="strike over spot")
+        assert made["name"] == "moneyness_sdk"
+        assert maya.features.lineage("moneyness_sdk")["rests_on"]
+
     def test_a_bad_upload_names_the_file_rather_than_guessing(self, maya, tmp_path):
         odd = tmp_path / "values.dat"
         odd.write_bytes(b"x")

@@ -584,6 +584,7 @@ CREATE TABLE IF NOT EXISTS model_version (
     fit_procedure TEXT NOT NULL,
     deterministic BOOLEAN DEFAULT true NOT NULL,
     input_schema TEXT DEFAULT '[]' NOT NULL,
+    parameter_schema TEXT DEFAULT '[]' NOT NULL,
     output_schema TEXT DEFAULT '[]' NOT NULL,
     contract TEXT DEFAULT '{}' NOT NULL,
     artifact_digest TEXT,

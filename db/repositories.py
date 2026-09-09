@@ -144,7 +144,8 @@ class ModelRepository(Repository):
 
 class VersionRepository(Repository):
     TABLE, ORDER = "model_version", "created_at"
-    JSON = ("manifest", "input_schema", "output_schema", "contract")
+    JSON = ("manifest", "input_schema", "parameter_schema", "output_schema",
+            "contract")
 
 
 class AliasRepository(Repository):
