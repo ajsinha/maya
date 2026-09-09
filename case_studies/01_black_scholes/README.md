@@ -14,7 +14,102 @@ Runs in about ten seconds against a local MAYA. See
 
 ---
 
-## 1. Why start here
+## 1. The theory
+
+### The model
+
+Black and Scholes (1973) and Merton (1973) assume the underlying follows a
+geometric Brownian motion under the physical measure,
+
+    dS = mu*S*dt + sigma*S*dW
+
+and that the option can be **replicated** by continuously rebalancing a
+portfolio of the stock and the risk-free asset. Replication is the whole
+argument: if a portfolio reproduces the option's payoff in every state, then by
+no-arbitrage it must cost what the option costs — and the expected return `mu`
+drops out. That is why the formula does not contain a view on the stock.
+
+Applying Ito's lemma to a claim `C(S,t)` and eliminating the stochastic term by
+holding `dC/dS` units of stock gives the Black-Scholes PDE
+
+    dC/dt + (1/2)*sigma^2*S^2*d2C/dS2 + (r-q)*S*dC/dS - r*C = 0
+
+whose solution for a European call, with the terminal condition
+`C(S,T) = max(S-K, 0)`, is
+
+    C = S*exp(-q*T)*N(d1) - K*exp(-r*T)*N(d2)
+    d1 = [ln(S/K) + (r - q + sigma^2/2)*T] / (sigma*sqrt(T))
+    d2 = d1 - sigma*sqrt(T)
+
+Equivalently, and more usefully for intuition: under the **risk-neutral
+measure** the price is the discounted expected payoff,
+`C = exp(-rT) * E_Q[max(S_T - K, 0)]`. Then `N(d2)` is the risk-neutral
+probability the option finishes in the money, and `S*exp(-qT)*N(d1)` is the
+expected value of the stock received, conditional on exercise, discounted.
+Those two terms are not symmetric and it is worth saying why: `N(d2)` is a
+probability; `N(d1)` is a probability *weighted by the value of the asset in
+those states*.
+
+### The assumptions, and which one this case study attacks
+
+Frictionless trading, no transaction costs, constant `r` and `q`, continuous
+rebalancing, and — the one that matters here — **constant volatility**.
+
+`sigma` is the only input that cannot be observed. Everything else is read off
+a screen. So in practice the formula is run backwards: given a market price,
+solve for the `sigma` that reproduces it. That number is the **implied
+volatility**, and it is not a forecast of anything — it is the market price,
+restated in the units of the model.
+
+If the model were true, every option on one underlying would imply the same
+volatility. They do not. Plotting implied volatility against strike gives the
+**volatility smile** (or, for equities since 1987, a downward *skew*): deep
+out-of-the-money puts trade at higher implied volatilities than at-the-money
+options. The market is pricing fat tails and negative skewness that a lognormal
+does not contain.
+
+**The smile is Black-Scholes telling you where it is wrong.** This case study
+calibrates a single flat volatility to the at-the-money quote and then reprices
+the whole chain at it, so the error you see at the wings is exactly that
+mis-specification, quantified.
+
+### Sensitivities
+
+The partial derivatives are what a desk actually manages:
+
+| Greek | What it is | For a call |
+|---|---|---|
+| Delta | `dC/dS` | `exp(-qT)*N(d1)`, between 0 and 1 |
+| Gamma | `d2C/dS2` | positive, peaks at the money |
+| **Vega** | `dC/dsigma` | `S*exp(-qT)*phi(d1)*sqrt(T)`, always positive |
+| Theta | `dC/dt` | usually negative for a long option |
+| Rho | `dC/dr` | positive for a call |
+
+Vega is used directly in the calibration below: Newton's method solves
+`price(sigma) = market` using vega as the derivative, which converges in a
+handful of steps because the price is monotone in volatility.
+
+### The normal CDF, and why it is approximated here
+
+`N(x)` has no closed form in elementary functions. Implementations use `erf`,
+a rational approximation, or a series. This case study uses **Abramowitz and
+Stegun 7.1.26**, a rational approximation in `t = 1/(1+0.2316419|x|)` with
+maximum absolute error about `7.5e-8` — because MAYA's expression language
+provides arithmetic, `exp`, `sqrt`, `log` and `abs` and deliberately nothing
+else, and that turns out to be exactly enough.
+
+### References
+
+- Black, F. and Scholes, M. (1973). *The Pricing of Options and Corporate
+  Liabilities.* Journal of Political Economy 81(3).
+- Merton, R. C. (1973). *Theory of Rational Option Pricing.* Bell Journal of
+  Economics and Management Science 4(1).
+- Abramowitz, M. and Stegun, I. (1964). *Handbook of Mathematical Functions*,
+  §7.1.26.
+
+---
+
+## 2. Why start here
 
 Most model-governance demos show a scorecard: some data, a fit, a score. That
 skips the question a markets audience asks first — *what about the models we
@@ -31,7 +126,7 @@ MAYA has a name for that shape. It is **T1**, and the platform derives it.
 
 ---
 
-## 2. The taxonomy point (worth two minutes)
+## 3. The taxonomy point (worth two minutes)
 
 MAYA classifies a model by **how its parameter object is inhabited** — never by
 what somebody typed in a field. This kernel says:
@@ -64,7 +159,7 @@ admissible, and this case study gets one.
 
 ---
 
-## 3. The whole model is in the register
+## 4. The whole model is in the register
 
 This is the part people remember.
 
@@ -108,7 +203,7 @@ the whole chain both ways — through MAYA's derived Python and through
 
 ---
 
-## 4. X and P are different things
+## 5. X and P are different things
 
 The kernel declares **two** schemas, and the distinction is load-bearing:
 
@@ -129,7 +224,7 @@ would be refused for a reason that is not true.
 
 ---
 
-## 5. The data
+## 6. The data
 
 **Synthetic, and deliberately so.** There is no free, redistributable, quotable
 option chain. The script generates one from a *stated* volatility smile:
@@ -153,7 +248,7 @@ Both clocks are on every row:
 
 ---
 
-## 6. What the script does, step by step
+## 7. What the script does, step by step
 
 | Step | What happens | Who does it |
 |---|---|---|
@@ -179,7 +274,7 @@ Both clocks are on every row:
 
 ---
 
-## 7. The calibration, and the limitation it exposes
+## 8. The calibration, and the limitation it exposes
 
 Implied volatility is found by Newton's method on vega, bracketed by bisection
 so a bad step cannot run away. It converges on the ATM one-year quote in three
@@ -216,7 +311,7 @@ EQ-CALL-120-12M            120    2.9876    2.7578   0.2298
 
 ---
 
-## 8. What has to be true before a warrant issues
+## 9. What has to be true before a warrant issues
 
 Newcomers usually hit these in this order. The refusals are precise, so let
 them happen in a demo rather than pre-empting them.
@@ -235,7 +330,7 @@ runs, owned by somebody, at a tier. A warrant needs both.
 
 ---
 
-## 9. Grants versus warrants
+## 10. Grants versus warrants
 
 A **grant** says *this principal may ask*. A **warrant** is one signed, expiring
 answer to one asking. Revoking the grant stops the *next* warrant rather than
@@ -252,7 +347,7 @@ seconds rather than in hope.
 
 ---
 
-## 10. Questions this case study answers well
+## 11. Questions this case study answers well
 
 **"We don't train our pricing models. Does this apply to us?"**
 Yes, and this is the case study for it. T1 is a first-class citizen: the
@@ -274,7 +369,7 @@ in the script's own process.
 
 ---
 
-## 11. Files this produces
+## 12. Files this produces
 
 | File | What it is |
 |---|---|

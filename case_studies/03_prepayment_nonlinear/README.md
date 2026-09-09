@@ -14,7 +14,107 @@ the platform and creating users.
 
 ---
 
-## 1. The model
+## 1. The theory
+
+### What prepayment is, and how it is measured
+
+A mortgage borrower may repay early — by moving, refinancing, or paying down.
+For the holder of the loan this is an embedded short call on interest rates:
+when rates fall, the borrower refinances and the holder loses exactly the asset
+they wanted to keep. Prepayment risk is therefore the dominant risk in a
+mortgage book after credit, and it drives everything from MSR valuation to
+IRRBB to the hedging of a pass-through.
+
+The conventional measure is the **conditional prepayment rate** (CPR), the
+annualised fraction of the outstanding pool that prepays. It relates to the
+**single monthly mortality** (SMM) by
+
+    SMM = 1 - (1 - CPR)^(1/12)
+    CPR = 1 - (1 - SMM)^12
+
+CPR is a *hazard rate* conditional on survival, not a share of the original
+balance — which is why a constant CPR still produces a declining absolute
+runoff as the pool amortises.
+
+### The two drivers, and their shapes
+
+**Seasoning.** A newly originated pool barely prepays: nobody has moved yet,
+and refinancing immediately after closing rarely pays for its own costs. As the
+pool ages, prepayment rises and then flattens as the population reaches its
+steady turnover rate. The market convention, the **PSA benchmark**, models this
+as a linear ramp from 0.2% CPR to 6% over 30 months and constant thereafter.
+A ramp with a kink is awkward to differentiate and awkward to fit, so a smooth
+exponential approach to an asymptote is the usual practitioner substitute:
+
+    seasoning(a) = 1 - exp(-a / tau)
+
+with `tau` a time constant — 24 months here — reaching about 63% of full speed
+at `a = tau` and 95% at `a = 3*tau`.
+
+**Refinancing incentive.** The driver is how much lower the market rate is than
+the rate the borrower pays, `i = WAC - market rate`, in percentage points. The
+response is famously **S-shaped**:
+
+- Near zero, little happens: refinancing has fixed costs, so a small saving
+  does not repay them.
+- Through 50-150 basis points the response steepens sharply as the saving
+  clears those costs for most of the pool.
+- Far in the money it **saturates**: everyone who can refinance already has.
+  What is left is the population who cannot — impaired credit, insufficient
+  equity, or simple inertia. This is **burnout**, and it is why a pool that has
+  already been through a refinancing wave prepays more slowly than a fresh pool
+  at the same incentive.
+
+A cubic in `i` captures the first two regions and the beginning of the third.
+It is a local approximation to a sigmoid, and it is not one: extrapolated far
+enough the cubic turns over and predicts *falling* prepayment at very high
+incentive, which is wrong. Within the fitted range it is a good and very
+tractable description; outside it, it is not, which is the standard caveat on
+any polynomial basis.
+
+### Non-linear in the inputs, linear in the parameters
+
+The model is
+
+    CPR = b0 + b_s*(1 - exp(-a/tau)) + b1*i + b2*i^2 + b3*i^3
+
+This is **non-linear in `a` and `i`** and **linear in `b`**. That distinction is
+the point of the case study and it has real consequences:
+
+- The design matrix `X = [1, 1-exp(-a/tau), i, i^2, i^3]` is a fixed **basis
+  expansion** of the inputs, and once formed the problem is ordinary least
+  squares. There is no optimiser, no starting values, no convergence criterion
+  and no random seed.
+- The estimator is therefore **deterministic and reproducible**, which is what
+  makes independent recomputation by a validator possible at all.
+- Every coefficient keeps a standard error and an interpretation.
+
+The price is that `tau` is **not estimated** — it is fixed at 24 months and put
+in the registered expression. Estimating it too would make the model genuinely
+non-linear in the parameters and require iterative optimisation. That is a
+defensible design choice, and it is a choice: `tau` is a modelling assumption
+sitting inside the model definition, where a reviewer can see it and change it
+deliberately.
+
+### What a fuller model would carry
+
+Named because the case study does not: burnout as an explicit state variable
+(cumulative incentive experienced), seasonality (spring moving season), loan
+size and credit as heterogeneity, the media effect, and a term structure of
+rates rather than a scalar incentive. Industry models are dozens of parameters
+and often a Monte Carlo over rate paths.
+
+### References
+
+- Richard, S. and Roll, R. (1989). *Prepayments on Fixed-Rate
+  Mortgage-Backed Securities.* Journal of Portfolio Management 15(3).
+- Schwartz, E. and Torous, W. (1989). *Prepayment and the Valuation of
+  Mortgage-Backed Securities.* Journal of Finance 44(2).
+- PSA/SIFMA standard prepayment model.
+
+---
+
+## 2. The model
 
 The **conditional prepayment rate** of a mortgage pool: the annualised rate at
 which borrowers pay off early. Two drivers, each with a shape:
@@ -38,7 +138,7 @@ where `a` is age in months and `i` is incentive in percentage points.
 
 ---
 
-## 2. The idea worth the whole demo
+## 3. The idea worth the whole demo
 
 **Non-linear in the inputs. Linear in the parameters.**
 
@@ -66,7 +166,7 @@ explained to a supervisor. This shape does both.
 
 ---
 
-## 3. Where the curve lives, and why it matters
+## 4. Where the curve lives, and why it matters
 
 The non-linearity is **inside the registered expression**, not in a feature
 pipeline beside it.
@@ -103,7 +203,7 @@ curl -s -u admin:maya-admin-dev \
 
 ---
 
-## 4. The data
+## 5. The data
 
 **Synthetic, from a data-generating process stated in the script.** There is no
 freely redistributable loan-level prepayment panel — servicer tapes are
@@ -122,7 +222,7 @@ study whose output moves between laptops is one nobody can check against its
 README.
 
 **This buys something a real panel cannot give you:** the fit can be compared
-against the answer. See §6.
+against the answer. See §7.
 
 ### Both clocks, and this time neither is invented
 
@@ -138,7 +238,7 @@ the month that had not been reported yet.
 
 ---
 
-## 5. What the script does
+## 6. What the script does
 
 | Step | What happens | Who does it |
 |---|---|---|
@@ -163,7 +263,7 @@ the month that had not been reported yet.
 
 ---
 
-## 6. The fit recovers the truth
+## 7. The fit recovers the truth
 
 The design matrix is where the non-linearity sits — column 1 is the exponential
 ramp, columns 2–4 are powers of the incentive — and the solve is plain least
@@ -216,7 +316,7 @@ Worst deviation from the generating curve across 15 points: **0.060 CPR**.
 
 ---
 
-## 7. The refusal this one shows: L-W10
+## 8. The refusal this one shows: L-W10
 
 The script asks for a training warrant against case study 1's featureset:
 
@@ -235,7 +335,7 @@ models and one that can tell you when a model became a different model.
 
 ---
 
-## 8. Things to try live
+## 9. Things to try live
 
 **Drop the cubic.** Remove `b_inc3` from the expression and the parameter
 schema, register `1.1.0`. The fit still works; the residual grows; the model is
@@ -257,7 +357,7 @@ model → its version, kernel, parameter sets and warrants.
 
 ---
 
-## 9. Questions this case study answers well
+## 10. Questions this case study answers well
 
 **"Our models aren't linear."**
 Neither is this one. Non-linear in the inputs is the normal case, and it does
@@ -279,7 +379,7 @@ warrant and recorded the result.
 
 ---
 
-## 10. Files this produces
+## 11. Files this produces
 
 | File | What it is |
 |---|---|
