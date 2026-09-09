@@ -1,18 +1,18 @@
 # Everything a run produces. These are outputs, not sources: the warrant ids
 # change on every run, and committing them would make each demo a diff.
-warrant-training.json
-warrant-execution.json
-refusal-*.json
-generation.json
-# Anything else a run drops beside a build script. The list above kept
-# growing one name at a time — a warrant, then a refusal, then a
-# generation — so the rule is now the shape rather than the names.
-*/*-record.json
 *.tex
 *.pdf
 *.aux
 *.log
 *.out
+
+# Every JSON a build script drops beside itself — warrants, refusals,
+# generations, monitoring records. This started as a list of names and grew one
+# at a time as each new case study wrote a new one, which meant three separate
+# commits each had a generated file in it. No case study has a hand-written
+# JSON source, so the rule is the shape: any JSON in a case-study folder is
+# output. Add `!thefile.json` if that ever stops being true.
+*/*.json
 
 # The Ames data is third-party and downloaded on first run. It belongs to its
 # publisher, it is a megabyte, and the script fetches it from the authoritative
