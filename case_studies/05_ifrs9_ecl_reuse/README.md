@@ -16,7 +16,114 @@ The script checks, and stops with instructions if you have not.
 
 ---
 
-## 1. Why this one exists
+## 1. The theory
+
+### What IFRS 9 changed
+
+IAS 39 recognised credit losses only once a **loss event** had occurred — the
+"incurred loss" model. Its failure in 2008 was that provisions rose only after
+the deterioration was undeniable, so accounting lagged reality precisely when
+it mattered. IFRS 9 (effective 2018; CECL is the FASB analogue) replaces it with
+**expected credit loss**: a forward-looking, probability-weighted estimate
+recognised from origination.
+
+### The three stages
+
+| Stage | Condition | Loss allowance | Interest recognised on |
+|---|---|---|---|
+| 1 | performing | **12-month** ECL | gross carrying amount |
+| 2 | significant increase in credit risk (SICR) | **lifetime** ECL | gross carrying amount |
+| 3 | credit-impaired | lifetime ECL | net carrying amount |
+
+The stage-1 to stage-2 transition is the cliff, and **SICR has no quantitative
+definition in the standard**. Banks set their own — a doubling of lifetime PD,
+a rating downgrade of *n* notches, 30 days past due as a backstop. The
+provision roughly triples on transition for a typical corporate exposure, so a
+threshold nobody can defend moves a number that goes on the face of the income
+statement. This case study models **stage 1, twelve-month ECL**.
+
+### The decomposition
+
+    ECL = PD x LGD x EAD, discounted
+
+- **PD** — probability of default over the horizon. Here it is the Merton
+  structural PD from case study 4.
+- **LGD** — loss given default, as a fraction of exposure. One minus the
+  recovery rate, net of workout costs and discounted to the default date.
+- **EAD** — exposure at default. For a drawn term loan this is close to the
+  balance; for a revolving facility it is the balance plus an expected further
+  drawdown, which is where the credit conversion factor lives.
+
+The product form assumes **independence** between the three, and that is known
+to be false: recoveries fall in downturns exactly when default rates rise, so
+`E[PD x LGD] > E[PD] x E[LGD]`. The standard partial fix is the "downturn LGD"
+required for Basel IRB, which sidesteps the correlation by conditioning the LGD
+on a stressed state rather than modelling the dependence.
+
+### Point-in-time, not through-the-cycle
+
+This is the distinction that decides whether an existing PD model can be reused
+for IFRS 9 at all.
+
+- A **through-the-cycle** (TTC) PD is deliberately insensitive to the current
+  state of the economy. Basel Pillar 1 wants this, so that capital requirements
+  do not oscillate procyclically.
+- A **point-in-time** (PIT) PD reflects conditions *now*. IFRS 9 requires this,
+  because the estimate must be forward-looking and current.
+
+So a bank with a perfectly good Basel PD model cannot simply reuse it: it needs
+a PIT conversion, usually a scalar or a Vasicek-style adjustment mapping the TTC
+PD through a systematic factor. A Merton PD, being derived from current market
+inputs, is naturally *closer* to PIT than a rating-based TTC model — which is
+part of why it is an attractive input here, and worth saying out loud in a demo.
+
+### The forward-looking requirement, and what this case study does not do
+
+IFRS 9 asks for a **probability-weighted** estimate over multiple macroeconomic
+scenarios:
+
+    ECL = sum over scenarios s of  w_s * ECL(s)
+
+typically three to five paths (base, upside, downside) with committee-approved
+weights. Because ECL is a **convex** function of the macro driver, the
+probability-weighted ECL exceeds the ECL computed at the weighted-average
+scenario — by Jensen's inequality. Using a single "expected" path therefore
+*understates* the provision, and the size of that understatement is exactly
+what the multi-scenario machinery exists to capture.
+
+**This case study uses a single path.** It computes
+
+    ECL = PD x LGD x EAD x (1 - beta_g * g)
+
+with `g` a GDP growth path and `beta_g` a sensitivity estimated from eight
+quarters of realised loss multiplier. That is a real simplification of a real
+requirement, it is stated on the parameter set as a limitation, and it is in
+the specification document. A demo that quietly presented a single scenario as
+IFRS 9 compliance would be teaching the wrong thing.
+
+### Why the governance question is the interesting one here
+
+ECL is not one model. It is a **composition** of a PD model, an LGD model, an
+EAD model and a macro overlay, each owned by different teams, each with its own
+version and approval — feeding a number that is audited and published. The
+questions that follow are the ones this case study is built around:
+
+- If the PD model changes, what has to be re-approved? (blast radius)
+- Do the PD model and the ECL agree about what an obligor *is*? (shared entity
+  and shared features)
+- Can the ECL be reproduced as it stood at the reporting date? (pinned
+  featureset versions, pinned parameter sets)
+
+### References
+
+- IFRS 9 *Financial Instruments*, sections 5.5 and B5.5.
+- Basel Committee (2015). *Guidance on credit risk and accounting for expected
+  credit losses.*
+- Vasicek, O. (2002). *The Distribution of Loan Portfolio Value.* Risk 15(12).
+
+---
+
+## 2. Why this one exists
 
 Case studies 1–4 each register a model in isolation. Real estates are not like
 that: the same `obligor` is described by features a dozen models read, and the
@@ -27,7 +134,7 @@ This case study is about three kinds of reuse, and they are different things.
 
 ---
 
-## 2. Reuse #1 — features, shared not copied
+## 3. Reuse #1 — features, shared not copied
 
 `asset_value`, `debt_face`, `asset_vol`, `risk_free`, `horizon` already exist.
 Case study 4 registered them against the `obligor` entity. This script does not
@@ -57,7 +164,7 @@ curl -s -u admin:maya-admin-dev \
 
 ---
 
-## 3. Reuse #2 — the featureset is composed, not rewritten
+## 4. Reuse #2 — the featureset is composed, not rewritten
 
 ```python
 maya.featuresets.define(
@@ -103,7 +210,7 @@ reading its own subset.
 
 ---
 
-## 4. Reuse #3 — one model's output is another's input
+## 5. Reuse #3 — one model's output is another's input
 
 The ECL is `PD × LGD × EAD`, scaled by a macro overlay:
 
@@ -161,7 +268,7 @@ appeared in — which is how dependency graphs become the thing nobody trusts.
 
 ---
 
-## 5. The model itself
+## 6. The model itself
 
 One estimated parameter: the macro sensitivity `β_g`, regressed on eight
 quarters of realised loss multiplier against GDP growth, in this script, under
@@ -201,7 +308,7 @@ contributes 23. ECL is a product, and the PD term dominates it.
 
 ---
 
-## 6. What the script does
+## 7. What the script does
 
 | Step | What happens | Who does it |
 |---|---|---|
@@ -222,7 +329,7 @@ contributes 23. ECL is a product, and the PD term dominates it.
 
 ---
 
-## 7. Things to try live
+## 8. Things to try live
 
 **Retire the Merton view and watch MAYA stop you.**
 
@@ -252,7 +359,7 @@ grow without anybody editing a diagram.
 
 ---
 
-## 8. Questions this case study answers well
+## 9. Questions this case study answers well
 
 **"How do we stop the same field being defined five times?"**
 Define it once as a feature. This script shows the second model finding it
@@ -272,7 +379,7 @@ own subset.
 
 ---
 
-## 9. Files this produces
+## 10. Files this produces
 
 | File | What it is |
 |---|---|

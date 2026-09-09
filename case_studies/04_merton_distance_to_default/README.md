@@ -13,7 +13,103 @@ platform and creating users.
 
 ---
 
-## 1. The model
+## 1. The theory
+
+### The structural idea
+
+Merton (1974) observed that the equity of a leveraged firm **is** a call option
+on its assets. If the firm owes `D` at time `T`, then at `T` the shareholders
+either repay and keep the residual, or hand the firm to the creditors:
+
+    equity payoff at T = max(V_T - D, 0)
+
+That is precisely a European call on the asset value `V` with strike `D`. It
+follows that the whole Black-Scholes apparatus applies to the capital structure
+of a firm, and that default is not an event to be predicted statistically but a
+**boundary crossing** to be priced.
+
+This is the *structural* approach, as against the *reduced-form* approach
+(Jarrow-Turnbull, Duffie-Singleton) where default is an exogenous jump process
+calibrated to spreads. Structural models say *why* a firm defaults; reduced-form
+models fit *when* the market thinks it will.
+
+### Distance to default
+
+Assume asset value follows a geometric Brownian motion,
+`dV = mu*V*dt + sigma_V*V*dW`. Then `ln V_T` is normal, and the number of
+standard deviations between today's log asset value and the default point is
+
+    DD = [ln(V/D) + (r - sigma_V^2/2)*T] / (sigma_V*sqrt(T))
+
+and, under the risk-neutral measure,
+
+    PD = N(-DD) = 1 - N(DD)
+
+`DD` is the quantity practitioners actually quote, because it is
+scale-free and comparable across firms and sectors. It has a clean reading:
+**how many standard deviations of asset value the firm is from insolvency at
+the horizon.**
+
+Notice what is in it. Leverage `V/D` enters through a logarithm, and volatility
+enters twice — in the drift adjustment and in the denominator. This is why a
+low-leverage, high-volatility firm can be riskier than a high-leverage, stable
+one, which the output table in §7 shows directly. That insight is the model's
+main contribution and it is unavailable to a leverage ratio.
+
+### The `-sigma^2/2` term
+
+Worth a sentence because it is asked about. Under GBM, `E[V_T] = V*exp(mu*T)`
+but `E[ln V_T] = ln V + (mu - sigma^2/2)*T`. The asset value's *expected log*
+grows more slowly than its *log expectation*, by half the variance. Since
+default is a condition on `ln V_T`, the drift that matters carries the
+correction — the same term that appears in `d1` and `d2` in Black-Scholes, for
+the same reason.
+
+### The unobservability problem
+
+`V` and `sigma_V` are not observable. What trades is equity, not assets. The
+KMV/Moody's approach solves a two-equation system simultaneously:
+
+    E      = V*N(d1) - D*exp(-rT)*N(d2)          (equity is a call on assets)
+    sigma_E = (V/E) * N(d1) * sigma_V             (Ito on that relation)
+
+for the two unknowns `V` and `sigma_V`, given observable equity value `E` and
+equity volatility `sigma_E`. **So a production Merton model has another model
+inside it**, and this case study takes `V` and `sigma_V` as given precisely so
+that the T0 point is not obscured — noting in the specification that a real
+registration would carry the inference as its own model joined by an
+`input_to` edge.
+
+### Where the model is known to be wrong
+
+- **The credit spread puzzle.** Merton PDs and spreads are far too low for
+  short maturities and investment-grade firms. Diffusion cannot produce a
+  default tomorrow for a firm comfortably solvent today, whereas markets price
+  one. Jump-diffusion (Zhou) and first-passage models (Black-Cox, Longstaff-
+  Schwartz) address this by letting default happen before `T`.
+- **A single zero-coupon liability.** Real capital structures have seniority,
+  covenants and rolling maturities. `D` is a fiction — usually short-term debt
+  plus half of long-term, in the KMV convention.
+- **Constant volatility and no jumps**, inherited from Black-Scholes.
+- **The PD is risk-neutral**, not physical. `N(-DD)` prices default; it does not
+  forecast it. Converting between the two requires a risk premium, and KMV's
+  answer was to abandon the mapping altogether and calibrate `DD` to an
+  empirical default frequency instead.
+
+That last point is why this case study registers the model as a **challenger to
+the internal rating** rather than as the rating itself.
+
+### References
+
+- Merton, R. C. (1974). *On the Pricing of Corporate Debt: The Risk Structure
+  of Interest Rates.* Journal of Finance 29(2).
+- Black, F. and Cox, J. (1976). *Valuing Corporate Securities.* Journal of
+  Finance 31(2).
+- Crosbie, P. and Bohn, J. (2003). *Modeling Default Risk.* Moody's KMV.
+
+---
+
+## 2. The model
 
 The Merton (1974) structural model treats a firm's equity as a call option on
 its assets. The firm defaults when asset value falls below the face value of
@@ -30,7 +126,7 @@ that had to be learned from a sample**, and that absence is the whole point.
 
 ---
 
-## 2. T0, and why the class is load-bearing
+## 3. T0, and why the class is load-bearing
 
 ```python
 "parameter_kind": "none",     # P = I, the terminal object
@@ -53,7 +149,7 @@ refuses them for *different reasons*, each named.
 
 ---
 
-## 3. The demonstration: two doors into the same mistake, both shut
+## 4. The demonstration: two doors into the same mistake, both shut
 
 ### Door one — ask for a training warrant
 
@@ -93,7 +189,7 @@ would have returned success.
 
 ---
 
-## 4. What *does* happen: it is governed anyway
+## 5. What *does* happen: it is governed anyway
 
 The absence of parameters does not mean the absence of governance. This model
 still goes through:
@@ -114,7 +210,7 @@ accepts the calibrated volatility.
 
 ---
 
-## 5. The equation is in the register
+## 6. The equation is in the register
 
 As in case study 1, the whole model — including the Abramowitz–Stegun normal
 CDF — is one expression MAYA holds. It is checked against `math.erf` on the way
@@ -129,7 +225,7 @@ both derived from that same syntax tree.
 
 ---
 
-## 6. The output
+## 7. The output
 
 ```
 obligor                 V/D    σ_V      DD     PD %
@@ -157,7 +253,7 @@ for.
 
 ---
 
-## 7. The stated limitation
+## 8. The stated limitation
 
 Asset value and asset volatility **are not observable**. In practice both are
 inferred from equity value and equity volatility by solving the Merton system
@@ -170,7 +266,7 @@ study 5** does with this model's output.
 
 ---
 
-## 8. Things to try live
+## 9. Things to try live
 
 **Make it T1 and watch the refusal disappear.** Change the kernel to
 `parameter_kind: "calibration_set"`, `fit_procedure: "calibrate"`, register it
@@ -188,7 +284,7 @@ looks like when it is real.
 
 ---
 
-## 9. Questions this case study answers well
+## 10. Questions this case study answers well
 
 **"What about our closed-form models?"**
 They are first-class. T0 is a class, not an unsupported case.
@@ -204,7 +300,7 @@ warrant.
 
 ---
 
-## 10. Files this produces
+## 11. Files this produces
 
 | File | What it is |
 |---|---|

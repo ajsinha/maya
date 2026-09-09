@@ -15,7 +15,101 @@ the platform and creating users.
 
 ---
 
-## 1. Why this one exists
+## 1. The theory
+
+### Hedonic pricing
+
+A house is not a homogeneous good; it is a bundle of attributes — floor area,
+condition, age, location — and it has no price of its own. **Hedonic pricing
+theory** (Rosen, 1974) says that in equilibrium the market price of a
+differentiated good is the sum of the implicit prices of its characteristics,
+and that those implicit prices are recoverable by regressing observed
+transaction prices on observed attributes.
+
+That is what the coefficients here are: `b_gr_liv_area` is the market's
+implicit price of a square foot of living area, `b_overall_qual` the implicit
+price of a quality grade. They are *not* engineering costs, and the difference
+matters — the market price of a square foot includes whatever the location and
+the local supply constraint contribute.
+
+### Ordinary least squares
+
+For `y = X*beta + eps`, OLS chooses `beta` to minimise the sum of squared
+residuals, giving `beta_hat = (X'X)^-1 X'y`. Under the **Gauss-Markov**
+conditions — linearity in parameters, exogenous regressors (`E[eps|X] = 0`),
+homoskedastic and uncorrelated errors, and full column rank — `beta_hat` is the
+best linear unbiased estimator: unbiased, and of minimum variance among linear
+unbiased estimators.
+
+Three of those conditions are worth interrogating on this data:
+
+**Exogeneity is the strong one, and it fails here.** Sale price depends on
+neighbourhood, and neighbourhood is correlated with living area and quality. A
+regression that omits it attributes the neighbourhood premium to whatever
+correlates with it, so `b_gr_liv_area` is biased upward. This is **omitted
+variable bias**, with sign `bias = beta_omitted * (correlation of omitted with
+included)`. The Ames data has a `Neighborhood` column; this model does not use
+it, and the honest reading of the coefficients is "descriptive, and inflated by
+whatever they proxy for".
+
+**Homoskedasticity fails too.** Residual variance grows with price — a \$600k
+house misses by more dollars than a \$100k house. The point estimates stay
+unbiased; the standard errors do not, and would need a robust (White) estimator
+or a log transform to be trusted.
+
+**Full rank holds, but only just.** See conditioning below.
+
+### Why the solve is QR and not the normal equations
+
+`beta_hat = (X'X)^-1 X'y` is how the estimator is written and not how it should
+be computed. Forming `X'X` **squares the condition number**:
+
+    kappa(X'X) = kappa(X)^2
+
+so a design matrix with `kappa(X) = 10^5` — entirely ordinary once a regressor
+like `year_built` runs from 1872 to 2010 — gives `kappa(X'X) = 10^10`, and in
+double precision (about 16 significant digits) that leaves six. QR
+factorisation works on `X` directly and keeps the conditioning linear, which is
+why `numpy.linalg.lstsq` is used here rather than a matrix inverse.
+
+### What the condition number tells you
+
+The reported condition number of about 230,000 is a statement about
+**identifiability, not fit**. It says the design matrix is close to
+rank-deficient in some direction, so the coefficients are individually
+imprecise even though the fitted values are fine. Two causes are present:
+
+1. **Scaling.** `year_built` is around 1970 while `garage_cars` is around 2. A
+   column whose values are three orders of magnitude larger dominates the
+   spectrum. Centring and scaling would remove most of the problem — and would
+   also make the intercept interpretable, which it currently is not: −\$700k is
+   the extrapolated price of a house of zero area built in year zero.
+2. **Genuine collinearity.** Bigger houses are also better-quality houses.
+
+A regression can have a respectable `R^2` and coefficients nobody should
+interpret individually. That is why the condition number is reported next to
+`R^2` here, and why it travels with the parameter set to whoever approves it.
+
+### Bitemporality, which is the real subject
+
+The statistical content above is standard. What is not standard, and what this
+case study is actually about, is that a training set must be **point-in-time
+correct**: a model fitted "as of" a date may only see facts that had been
+*recorded* by that date, not merely facts that were *true* by it. The
+distinction requires two clocks, the Ames data has one, and §4 is about who
+supplies the second.
+
+### References
+
+- Rosen, S. (1974). *Hedonic Prices and Implicit Markets.* Journal of Political
+  Economy 82(1).
+- De Cock, D. (2011). *Ames, Iowa: Alternative to the Boston Housing Data.*
+  Journal of Statistics Education 19(3).
+- Golub, G. and Van Loan, C. (2013). *Matrix Computations*, 4th ed., ch. 5.
+
+---
+
+## 2. Why this one exists
 
 Case study 1 is a model with no training data. This is the ordinary case, and
 it is deliberately unglamorous: a linear regression any analyst could fit in a
@@ -24,7 +118,7 @@ real provenance problem**, and MAYA makes somebody answer it.
 
 ---
 
-## 2. The data, and its provenance
+## 3. The data, and its provenance
 
 **Source, verbatim:**
 
@@ -64,7 +158,7 @@ modelling decision that matters most and saying nothing about it.
 
 ---
 
-## 3. The clock that was not in the data
+## 4. The clock that was not in the data
 
 **This is the demo.** Spend the time here.
 
@@ -106,7 +200,7 @@ without one**, which forces the question to a person with a name.
 
 ---
 
-## 4. What the script does
+## 5. What the script does
 
 | Step | What happens | Who does it |
 |---|---|---|
@@ -131,7 +225,7 @@ without one**, which forces the question to a person with a name.
 
 ---
 
-## 5. The fit, and the diagnostic that matters
+## 6. The fit, and the diagnostic that matters
 
 Fitted with `numpy.linalg.lstsq` — QR, **not** the normal equations. Inverting
 XᵀX squares the condition number, and two correlated regressors is exactly
@@ -164,7 +258,7 @@ person accepting the numbers has to read it.
 
 ---
 
-## 6. The refusal this one shows: L-W9
+## 7. The refusal this one shows: L-W9
 
 ```python
 maya.warrants.for_fitting(..., window={"from": WINDOW_FROM})   # no "to"
@@ -185,7 +279,7 @@ and the fit will look fine.
 
 ---
 
-## 7. Scoring locally under the execution warrant
+## 8. Scoring locally under the execution warrant
 
 The last step is the one that makes the boundary concrete. The script:
 
@@ -205,7 +299,7 @@ MAYA is not in that loop. It issued a credential; the arithmetic happened here.
 
 ---
 
-## 8. Things to try live
+## 9. Things to try live
 
 **Change a regressor and watch the model change.** Add `Lot Area` to
 `REGRESSORS`, bump `SEMVER` to `1.1.0`, re-run. You get a new version, a new
@@ -227,7 +321,7 @@ curl -s -u admin:maya-admin-dev \
 
 ---
 
-## 9. Questions this case study answers well
+## 10. Questions this case study answers well
 
 **"Can it take our real data?"**
 This *is* real data, from its authoritative source, downloaded at run time.
@@ -241,7 +335,7 @@ matrix.
 
 ---
 
-## 10. Files this produces
+## 11. Files this produces
 
 | File | What it is |
 |---|---|

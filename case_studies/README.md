@@ -10,9 +10,13 @@ can run in front of an audience and a README written to be talked through.
 | **3** | [Mortgage prepayment curve](03_prepayment_nonlinear/) | **T2** — estimated | *Non-linear* in the inputs, linear in the parameters: an exponential seasoning ramp and a cubic incentive response |
 | **4** | [Merton distance to default](04_merton_distance_to_default/) | **T0** — nothing to fit | A model with *no parameters at all*. Asking to train it is a **type error**, and MAYA refuses it as one |
 | **5** | [IFRS 9 expected credit loss](05_ifrs9_ecl_reuse/) | **T2** — estimated | **Reuse.** Five features it did not define, a *composed* featureset, and an `input_to` edge that makes the blast radius real |
+| **6** | [HELOC origination eligibility](06_heloc_eligibility_rules/) | **T8** — authored | A *policy rulebook* governed as a model: checked, trialled, published, approved by a second person — and every decision carrying the rule that made it |
 
-**Run 4 before 5** — the fifth reuses what the fourth registers. The others are
-independent of each other.
+**Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
+shares features and an `input_to` edge. Everything else is independent.
+
+Every README opens with a **theory** section: the mathematics of the model, its
+assumptions, and where it is known to be wrong — before any of the governance.
 
 ### Coverage of the taxonomy
 
@@ -25,9 +29,15 @@ cover the three classes a bank meets most often, at both ends of the range:
 | **T0** | theory — there are none | case study 4 |
 | **T1** | calibration to market observables | case study 1 |
 | **T2** | estimation from a sample | case studies 2, 3, 5 |
+| **T8** | authoring — a rule set somebody wrote | case study 6 |
 | T3 | iterative training | not yet |
-| T5 / T7 / T8 | configured / elicited / authored rules | not yet |
+| T5 / T7 | configured / elicited | not yet |
 | T6 | a vendor's parameters you cannot see | not yet |
+
+The two ends of that range are the interesting ones to show together: **T0**
+has no parameters at all and refuses a fit as a type error; **T8** has
+parameters that are *written* rather than estimated, and a change to them is a
+new parameter set somebody approves rather than a retraining.
 
 ---
 
@@ -157,6 +167,9 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/01_black_scholes/build.py
 .venv/bin/python case_studies/02_home_price_regression/build.py
 .venv/bin/python case_studies/03_prepayment_nonlinear/build.py
+.venv/bin/python case_studies/04_merton_distance_to_default/build.py
+.venv/bin/python case_studies/05_ifrs9_ecl_reuse/build.py        # after 4
+.venv/bin/python case_studies/06_heloc_eligibility_rules/build.py # after 2
 ```
 
 Options, on all three:
@@ -219,6 +232,7 @@ should not get, and prints the refusal with its remediation:
 | 3 | A training warrant against a featureset that does not carry what the kernel reads (**L-W10**) |
 | 4 | A training warrant for a model with no parameters — a **type error**, refused twice by two independent layers |
 | 5 | An `add` of a featureset slot a parent already has; and an `input_to` edge that would carry nothing |
+| 6 | A rule reading a field the version does not declare — refused at `check`, before anybody can approve it |
 
 A control nobody has watched refuse is a control nobody has tested.
 
