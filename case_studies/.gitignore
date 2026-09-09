@@ -3,6 +3,11 @@
 warrant-training.json
 warrant-execution.json
 refusal-*.json
+generation.json
+# Anything else a run drops beside a build script. The list above kept
+# growing one name at a time — a warrant, then a refusal, then a
+# generation — so the rule is now the shape rather than the names.
+*/*-record.json
 *.tex
 *.pdf
 *.aux
