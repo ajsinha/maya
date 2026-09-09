@@ -75,6 +75,12 @@ ignore = [
 # builds the namespace — and it is why these files are not modules.
 "tools/deck/design/*.py" = ["F821", "F405", "F403"]
 "tools/deck/slides.py" = ["F821"]
+# The same idiom, for the two audience-specific decks: a `*_body.py` is a
+# script the driver executes into the theme's namespace, not a module with
+# imports. The DRIVERS (`exec_slides.py`, `concepts_slides.py`) are ordinary
+# Python and are deliberately not listed here.
+"tools/deck/exec_body.py" = ["F821"]
+"tools/deck/concepts_body.py" = ["F821"]
 # Tests name fixtures as arguments and shadow them freely; that is pytest.
 "tests/*.py" = [
     "F811", "B011", "PERF203",
