@@ -33,7 +33,12 @@ curl -u j.okafor:… -X POST \
 
 Five facts, and that is the whole request. `exposure` and `purpose_class` are
 required outright — a default of "nothing, commercial" would tier a model at the
-bottom of the lattice on nobody's word. The other three have low-risk defaults in
+bottom of the lattice on nobody's word. `purpose_class` must be one the estate
+has **configured**; an unrecognised string is refused with
+`unknown_purpose_class` rather than ranked as `commercial`, which is what it
+used to do. Where a class sits is a policy decision about how severely the
+estate reads everything declared under it, so it belongs in configuration a
+risk function owns and not in whatever string a registering script sends. The other three have low-risk defaults in
 the schema, and MAYA refuses the assessment with `fact_not_supplied` whenever
 taking those defaults would land on a **different tier** from reading them at
 their worst. An omission that cannot change the answer is allowed through; one
@@ -42,8 +47,28 @@ that can is a caller choosing their own tier by staying silent.
 A sixth fact — the **trainability class** —
 is taken from the model's latest version rather than accepted from the caller,
 because it is the single largest driver of complexity and a caller who could set
-it could choose their own tier. A model with no versions yet is assessed as
-though it were `T0`.
+it could choose their own tier.
+
+**A model with no versions yet cannot be assessed**, and the refusal says so:
+
+```
+[fact_not_supplied] this assessment lands on a different tier depending on
+trainability_class, and the request did not say
+→ register a version first — the class is derived from the kernel, and with no
+  version this model's complexity is being read at its most favourable
+```
+
+It used to be read as `T0` — the *simplest* class there is. That is the same
+"choose your own tier by staying silent" the other five facts are guarded
+against, arriving by a quieter route: the tier was computed, persisted, and then
+**changed** the next time the same script ran, once a version existed for it to
+read. A tier that moves on a re-run is not an assessment. The same rule applies
+as to any other undeclared fact — if knowing it would not change the tier, the
+assessment goes through.
+
+The order is therefore: **register a version, assess, then approve the
+version.** Approving before assessing is refused with `no_tier` for the same
+family of reason.
 
 The response is the derivation, not just the number:
 
@@ -100,10 +125,24 @@ risk:
     critical: 5000000000
   purpose_ranks:
     commercial: 1
+    valuation: 2
     risk_management: 2
+    customer_facing: 3          # acts on a person, individually, at scale
+    credit_decision: 3          # ECOA/Reg B and the Consumer Duty attach here
     financial_reporting: 3
+    policy_decision: 4          # advice that sets public policy
+    clinical_decision: 4        # acts on a patient
     regulatory_capital: 4
 ```
+
+The shipped list is longer than the four it started with, and the reason is
+worth stating: the estate is not only financial. A model that acts on a person
+— a customer-facing assistant, a credit decision, a clinical score — carries
+materiality that has nothing to do with a notional. **Purpose is how a model
+with zero exposure reaches Tier 1**, and several do.
+
+Add your own. Adding to this list is a policy decision, and an unrecognised
+class is refused rather than quietly given rank 1.
 
 **Complexity** runs `simple < moderate < complex < advanced` and is a **score
 over declared components, clamped into that chain** — arithmetic, not a meet:

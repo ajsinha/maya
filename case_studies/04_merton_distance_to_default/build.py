@@ -219,11 +219,11 @@ def main() -> int:
         owner="person/j.okafor", legal_entity="LE-UK-01",
         purpose="structural default probability for large corporate obligors, "
                 "as a challenger to the internal rating"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=2_300_000_000, purpose_class="credit_decision",
         feature_count=5, uses_alternative_data=False, interpretable=True),
             already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')} "
              f"— DERIVED from 'none' over 'none'. P is the terminal object")
 

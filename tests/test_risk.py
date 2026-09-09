@@ -31,8 +31,17 @@ class TestMateriality:
     def test_join_takes_the_more_severe_reading(self, tiering):
         assert tiering.materiality(6e7, "commercial") == "moderate"
 
-    def test_unknown_purpose_defaults_to_the_lowest_rank(self, tiering):
-        assert tiering.materiality(0, "not_a_purpose") == "negligible"
+    def test_an_unknown_purpose_is_refused_not_read_as_the_lowest_rank(self, tiering):
+        """This test used to assert the opposite, and the opposite was wrong.
+
+        Defaulting an unrecognised class to rank 1 does not merely fail to
+        constrain: it actively lowers the tier, and does it while printing the
+        unrecognised string into the rationale as though it had been read.
+        """
+        from core.risk.tiering import RiskError
+        with pytest.raises(RiskError) as caught:
+            tiering.materiality(0, "not_a_purpose")
+        assert caught.value.code == "unknown_purpose_class"
 
 
 class TestComplexity:
@@ -180,8 +189,8 @@ class TestAnUndeclaredFactThatWouldChangeTheTier:
         facts = {"exposure": 2e9, "purpose_class": "regulatory_capital",
                  "trainability_class": "T0", "feature_count": 0,
                  "uses_alternative_data": False, "interpretable": True}
-        missing = tiering.load_bearing(facts, declared=["exposure",
-                                                        "purpose_class"])
+        missing = tiering.load_bearing(
+            facts, declared=["exposure", "purpose_class", "trainability_class"])
         assert set(missing) == {"feature_count", "uses_alternative_data",
                                 "interpretable"}
         # And it is load-bearing because the tier really does move.
@@ -222,13 +231,30 @@ class TestTheAssessRouteRefuses:
         for fact in ("feature_count", "uses_alternative_data", "interpretable"):
             assert fact in r.json()["detail"], "name the fact"
 
-        # Saying so is all it takes.
-        ok = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
-                         json={"exposure": 2e9,
-                               "purpose_class": "regulatory_capital",
-                               "feature_count": 12,
-                               "uses_alternative_data": False,
-                               "interpretable": True})
+        # Supplying the three sendable facts is no longer enough on its own:
+        # the class is still unknown, because the model has no version, and it
+        # still moves the tier.
+        facts = {"exposure": 2e9, "purpose_class": "regulatory_capital",
+                 "feature_count": 12, "uses_alternative_data": False,
+                 "interpretable": True}
+        still = client.post(f"/api/v1/models/{NAME}/assess",
+                            auth=people["j.okafor"], json=facts)
+        assert still.status_code == 422, still.text
+        assert "trainability_class" in still.json()["detail"], still.text
+        # And the remediation names a remedy that EXISTS. `trainability_class`
+        # is not a field anybody can send, so "send trainability_class" would
+        # have been a refusal pointing at nothing.
+        assert "register a version" in still.json()["remediation"], still.text
+
+        # Registering a version supplies it, and the assessment goes through.
+        from tests.conftest import CONTRACT, KERNEL
+        v = client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                        json={"semver": "3.2.1", "kernel": KERNEL,
+                              "contract": CONTRACT,
+                              "artifact_digest": "sha256:" + "a" * 64})
+        assert v.status_code in (200, 201), v.text
+        ok = client.post(f"/api/v1/models/{NAME}/assess",
+                         auth=people["j.okafor"], json=facts)
         assert ok.status_code == 200, ok.text
 
     def test_exposure_and_purpose_have_no_default_at_all(self, client, people):
@@ -242,3 +268,73 @@ class TestTheAssessRouteRefuses:
         r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
                         json={"feature_count": 12})
         assert r.status_code == 422, r.text
+
+
+def _model_with_a_version(client, people):
+    """A registered model that has a version, so its class is known.
+
+    Tiering reads the trainability class off the latest version. Without one
+    there is no class, the assessment is refused as under-specified, and these
+    tests would be asserting the wrong refusal.
+    """
+    from tests.conftest import CONTRACT, KERNEL, NAME, URN
+    client.post("/api/v1/models", auth=people["j.okafor"], json={
+        "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
+        "domain": "credit", "owner": "person/j.okafor",
+        "legal_entity": "LE-US-01", "purpose": "12-month PD"})
+    client.post(f"/api/v1/models/{NAME}/versions", auth=people["d.raman"],
+                json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
+                      "artifact_digest": "sha256:" + "a" * 64})
+    return NAME
+
+
+class TestPurposeClassVocabulary:
+    """An unrecognised purpose class used to rank as `commercial`.
+
+    `self._purpose.get(purpose, 1)` gave any unconfigured string the lowest
+    rank there is, and the recorded rationale then printed it back as though it
+    had been understood. Five classes across the case studies --- including
+    `credit_decision` and `clinical_decision` --- were being read that way, so
+    a clinical model and a commercial one with no exposure tiered identically.
+    """
+
+    def test_an_unknown_purpose_class_is_refused_rather_than_defaulted(
+            self, client, people):
+        NAME = _model_with_a_version(client, people)
+        r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                        json={"exposure": 0, "purpose_class": "vibes",
+                              "feature_count": 12, "uses_alternative_data": False,
+                              "interpretable": True})
+        assert r.status_code >= 400, r.text
+        body = r.json()
+        assert body.get("error") == "unknown_purpose_class", body
+        # The refusal has to name the vocabulary, or the caller's next guess is
+        # as blind as the first.
+        assert "regulatory_capital" in body.get("remediation", ""), body
+
+    def test_a_configured_class_beyond_the_original_four_reaches_the_engine(
+            self, client, people):
+        """The loader named four classes in code while the configuration held
+        nine, so a class added to `application.yaml` was refused as unknown ---
+        the configuration and the code disagreeing, configuration losing."""
+        NAME = _model_with_a_version(client, people)
+        r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                        json={"exposure": 0, "purpose_class": "clinical_decision",
+                              "feature_count": 12, "uses_alternative_data": False,
+                              "interpretable": True})
+        assert r.status_code == 200, r.text
+
+    def test_purpose_class_moves_the_tier_at_zero_exposure(self, client, people):
+        """The point of the rank: with no exposure at all, what the model is
+        FOR is the only thing materiality can read."""
+        NAME = _model_with_a_version(client, people)
+        tiers = {}
+        for purpose in ("commercial", "clinical_decision"):
+            r = client.post(f"/api/v1/models/{NAME}/assess", auth=people["j.okafor"],
+                            json={"exposure": 0, "purpose_class": purpose,
+                                  "feature_count": 12,
+                                  "uses_alternative_data": False,
+                                  "interpretable": True})
+            assert r.status_code == 200, r.text
+            tiers[purpose] = r.json()["tier"]
+        assert tiers["clinical_decision"] < tiers["commercial"], tiers

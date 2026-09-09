@@ -600,6 +600,25 @@ both 422, both pointing at `declared` as the honest provenance. That is the T0 a
 T6 case arriving from the other direction, and nobody has to remember which
 models train.
 
+Three more kinds are covered the same way, as `not_obtained_from_data`:
+
+| `parameter_kind` | Filled by | Class |
+|---|---|---|
+| `rule_set` | an author | T8 |
+| `llm_configuration` | somebody assembling a system | T5 |
+| `elicited_weights` | an expert panel | T7 |
+
+None of the three is a quantity a procedure over data produces, so for them
+`declared` is the only admissible provenance — `calibrated` is refused as well
+as `fitted`, because `calibrated` means solved against market data under an
+approved procedure and a panel is not that either.
+
+This matters more than it looks. `fitted` is the strongest claim the register
+offers, and claiming it for a judgment **launders an opinion into a
+measurement**: once the row says the numbers came from data, nobody goes
+looking for the panel, the elicitation protocol or the dissent — which are the
+only evidence a judgment has.
+
 A parameter set is **immutable**, **versioned per model version**, and **does not
 create a new model version** — the kernel did not change; only `P` was
 re-inhabited.

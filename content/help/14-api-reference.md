@@ -292,7 +292,7 @@ Every path below is relative to `/api/v1`. The permission column is what
 | `POST` | `/limitations/{id}/withdraw` | `limitation:withdraw` | `reason` required. Withdrawn, never deleted — the version is immutable |
 | `GET` | `/limitation-kinds` | — | The four kinds and what each is for |
 | `GET` | `/mathematics` | `model:read` | `urn` + `semver`. A `formula` version's equation and an importable Python module, both derived from the expression and neither stored. `not_derivable` for every other runtime |
-| `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required; `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. Returns the full derivation and ruleset version |
+| `POST` | `/models/{name}/assess` | `risk:assess` | `exposure` + `purpose_class` required, and the class must be one the estate configured (`unknown_purpose_class` otherwise); `feature_count`, `uses_alternative_data`, `interpretable` refused as `fact_not_supplied` when omitting them would change the tier. **Register a version first** — with none, the trainability class is unknown and the assessment is refused the same way. Returns the full derivation and ruleset version |
 
 ### The dependency graph
 
@@ -454,7 +454,7 @@ Streamed, so peak memory is one Arrow batch rather than the whole export.
 
 | Method | Path | Permission | Notes |
 |---|---|---|---|
-| `GET` | `/parameter-provenance` | auth | fitted, calibrated, declared |
+| `GET` | `/parameter-provenance` | auth | fitted, calibrated, declared. For `rule_set`, `llm_configuration` and `elicited_weights` only `declared` is admissible (`not_obtained_from_data`); `none` and `opaque` refuse `fitted` with their own sentences |
 | `GET` `POST` | `/parameters?urn=&semver=` | `model:read` / `parameter:record` | Read and record parameter sets. Deliberately **not** nested under `/models/{name}` — that converter is greedy |
 | `POST` | `/parameter-fits` | `parameter:record` | **Run** the fit. Resolves the warrant before reading anything, reads the snapshot at its pinned Delta version, lands `proposed`. 501 where no captive engine is configured |
 | `GET` | `/parameter-sets/{id}` | `model:read` | One set with its lineage |

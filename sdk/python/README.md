@@ -45,6 +45,7 @@ fall behind again.
 | `maya.relations` | what a model derives from and what it feeds, and removing an edge |
 | `maya.artifacts` | put, get, verify a digest, where each is used |
 | `maya.parameters` | fit, record a fitted set, review it, provenance |
+| `maya.assist` | register an AI capability, record or draft a generation, attest one — and a reviewer's automation-bias record. Tier C is refused, and self-attestation is refused |
 | `maya.rules` | the expression vocabulary, check, trial, publish a rule set, explain one |
 
 **Features, and the data under them**

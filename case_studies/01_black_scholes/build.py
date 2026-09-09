@@ -273,11 +273,11 @@ def main() -> int:
         owner="person/a.mehta", legal_entity="LE-UK-01",
         purpose="fair value of listed European equity calls for daily P&L "
                 "and risk"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=1_200_000_000, purpose_class="valuation",
         feature_count=5, uses_alternative_data=False, interpretable=True),
             already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')} "
              f"— DERIVED from calibrate over a calibration_set, not declared")
 

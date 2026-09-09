@@ -407,24 +407,51 @@ class ModelRoutes(Routes):
             m = self.guard(lambda: reg.require(urn(name)))
             who = self.authorise(request, "risk:assess", model=m)
             versions = reg.versions(urn(name))
-            facts = {**body.model_dump(),
-                     "trainability_class": (latest_version(versions) or {})
-                                           .get("trainability_class", "T0")}
-            missing = tiering.load_bearing(facts,
-                                           body.model_dump(exclude_unset=True))
+            # The class is read off the latest version rather than sent. When
+            # there is no version there is no class, and injecting "T0" here
+            # silently assessed an unbuilt model as an analytic formula — the
+            # simplest reading available. It is now left absent so that
+            # `load_bearing` can ask the only question that matters: would
+            # knowing it change the tier?
+            latest_class = (latest_version(versions) or {}).get("trainability_class")
+            facts = {**body.model_dump()}
+            declared = set(body.model_dump(exclude_unset=True))
+            if latest_class:
+                facts["trainability_class"] = latest_class
+                declared.add("trainability_class")
+            # Guarded, because `load_bearing` assesses the facts twice to
+            # see whether the omissions move the tier, and an assessment can
+            # refuse — an unknown purpose class does. Unguarded, that refusal
+            # left as a 500: a control working exactly as intended, reported
+            # as a crash, which is the failure DR-6 forbids.
+            missing = self.guard(lambda: tiering.load_bearing(facts, declared))
             if missing:
+                # `trainability_class` is not a field the caller can send — it
+                # comes from a version — so telling them to send it would be
+                # a refusal naming a remedy that does not exist. It gets its
+                # own sentence, and the sendable facts keep theirs.
+                sendable = sorted(f for f in missing
+                                  if f != "trainability_class")
+                fixes = []
+                if "trainability_class" in missing:
+                    fixes.append(
+                        "register a version first — the class is derived from "
+                        "the kernel, and with no version this model's "
+                        "complexity is being read at its most favourable")
+                if sendable:
+                    fixes.append(
+                        "send " + ", ".join(sendable) + "; the schema's "
+                        "defaults are the low-risk reading, and defaulting to "
+                        "it silently is choosing your own tier")
                 raise HTTPException(422, {
                     "error": "fact_not_supplied",
                     "detail": "this assessment lands on a different tier "
                               "depending on " + ", ".join(sorted(missing))
                               + ", and the request did not say",
-                    "remediation": "send " + ", ".join(sorted(missing))
-                              + "; the schema's defaults are the low-risk "
-                                "reading, and defaulting to it silently is "
-                                "choosing your own tier"})
+                    "remediation": "; ".join(fixes)})
             self.guard(lambda: tiering.refuse_a_review_that_says_nothing(
                 risk_repo, m["id"], facts, body.review_note))
-            a = tiering.assess(facts)
+            a = self.guard(lambda: tiering.assess(facts))
             was = m.get("tier")
             tiering.persist(risk_repo, m["id"], a)
             reg.set_tier(m["id"], a.tier)

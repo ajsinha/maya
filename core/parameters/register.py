@@ -28,8 +28,9 @@ from typing import Any, Dict, List, Optional
 from core.evidence import EvidenceEngine
 from core.authz.common import same_person
 from core.log import get_logger
-from core.parameters.common import (APPROVED, FITTED,
-                                    MAX_INLINE_VALUES, NEEDS_WARRANT, PROPOSED,
+from core.parameters.common import (APPROVED, DECLARED, FITTED,
+                                    MAX_INLINE_VALUES, NEEDS_WARRANT,
+                                    NOT_FROM_DATA, PROPOSED,
                                     PROVENANCE, REJECTED, SUPERSEDED,
                                     ParameterError)
 from db import ParameterSetRepository
@@ -152,6 +153,23 @@ class ParameterRegister:
                 "this version's parameters are inside a vendor black box and "
                 "cannot be reached, so MAYA cannot take delivery of them",
                 "record what the vendor states with provenance 'declared'")
+        # Three more kinds that nothing fits. A rule set is authored, a
+        # generative assembly is configured, and elicited weights come out of
+        # a panel — none of them is a quantity data produced, and `fitted` is
+        # the strongest claim the register offers: estimated from data under a
+        # warrant MAYA issued. Claiming it for a judgment launders an opinion
+        # into a measurement, and the diagnostics that make an elicitation
+        # reviewable — the panel, the questions, the dissent — are exactly what
+        # nobody looks for once the row says `fitted`.
+        if provenance != DECLARED and kind in NOT_FROM_DATA:
+            raise ParameterError(
+                "not_obtained_from_data",
+                f"this version's parameter object is '{kind}', which is not a "
+                f"quantity data produces, so it cannot have been "
+                f"'{provenance}'",
+                "record it with provenance 'declared' — the honest word for "
+                "parameters a person asserted — and put the panel, the "
+                "procedure or the configuration in the diagnostics")
 
     @staticmethod
     def _parameter_kind(version: Dict[str, Any]) -> Optional[str]:

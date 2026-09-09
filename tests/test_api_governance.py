@@ -1021,13 +1021,16 @@ class TestRaisingTheTierReconsidersWhatWasApprovedBeneathIt:
             "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
             "domain": "credit", "owner": "person/j.okafor",
             "legal_entity": "LE-US-01", "purpose": "12-month PD"})
-        low = client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
-                          json=self.LOW)
-        assert low.json()["tier"] == 4, low.text
+        # The version first: the tier reads the trainability class off it, and
+        # an assessment with no version to read is refused rather than tiered
+        # as T0.
         client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
                     json={"semver": "1.0.0", "kernel": KERNEL,
                           "contract": CONTRACT,
                           "artifact_digest": "sha256:" + "a" * 64})
+        low = client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
+                          json=self.LOW)
+        assert low.json()["tier"] == 4, low.text
         # Tier 4 needs no quorum: one authorised person approves it.
         approved = client.post(
             f"/api/v1/models/{NAME}/versions/1.0.0/approve",
@@ -1061,6 +1064,14 @@ class TestRaisingTheTierReconsidersWhatWasApprovedBeneathIt:
     def test_a_tier_that_does_not_rise_raises_nothing(self, client, people):
         """The guard must not fire on a reassessment that changes nothing."""
         self._model_at_tier_four(client, people)
+        # Same facts as the first assessment, so the reassessment has to say
+        # what was examined — re-running the formula on unchanged facts moves
+        # the review date without anything having been reviewed.
         again = client.post(f"/api/v1/models/{NAME}/assess",
-                            auth=people["j.okafor"], json=self.LOW)
+                            auth=people["j.okafor"],
+                            json={**self.LOW,
+                                  "review_note": "periodic review; nothing "
+                                                 "about the model or its "
+                                                 "exposure has moved"})
+        assert again.status_code == 200, again.text
         assert again.json()["approvals_below_quorum"] == []

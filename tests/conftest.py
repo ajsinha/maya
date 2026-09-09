@@ -617,8 +617,10 @@ data: {{dir: "{tmp_path}/data", artifacts: "{tmp_path}/data/artifacts",
 risk:
   exposure_bands: {{negligible: 0, low: 1000000, moderate: 50000000,
                    material: 500000000, critical: 5000000000}}
-  purpose_ranks: {{commercial: 1, risk_management: 2, financial_reporting: 3,
-                  regulatory_capital: 4}}
+  purpose_ranks: {{commercial: 1, valuation: 2, risk_management: 2,
+                  customer_facing: 3, credit_decision: 3,
+                  financial_reporting: 3, policy_decision: 4,
+                  clinical_decision: 4, regulatory_capital: 4}}
   review_months: {{1: 12, 2: 18, 3: 24, 4: 36}}
 warrants: {{jitter_pct: 0, signing_key: test-signing-secret,
          ttl_seconds: {{1: 60, 2: 300, 3: 3600, 4: 3600}},
@@ -656,13 +658,17 @@ def registered(client, people):
         "urn": URN, "name": "SB PD", "model_class": "credit.pd.scorecard",
         "domain": "credit", "owner": "person/j.okafor", "legal_entity": "LE-US-01",
         "purpose": "12-month PD at origination"})
+    # The version comes FIRST. Tiering reads the trainability class off the
+    # latest version, so assessing an unversioned model used to compute the
+    # tier as though it were T0 — the simplest class there is — and the same
+    # script run twice then produced two different tiers.
+    client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
+                json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
+                      "artifact_digest": "sha256:" + "a" * 64})
     client.post(f"/api/v1/models/{NAME}/assess", auth=owner,
                 json={"exposure": 2e9, "purpose_class": "regulatory_capital",
                       "feature_count": 12, "uses_alternative_data": False,
                       "interpretable": True})
-    client.post(f"/api/v1/models/{NAME}/versions", auth=dev,
-                json={"semver": "3.2.1", "kernel": KERNEL, "contract": CONTRACT,
-                      "artifact_digest": "sha256:" + "a" * 64})
     quorum_approve(client, people)
     client.put(f"/api/v1/models/{NAME}/aliases", auth=mrm,
                json={"environment": "prod", "alias": "champion", "semver": "3.2.1"})

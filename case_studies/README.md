@@ -11,12 +11,27 @@ can run in front of an audience and a README written to be talked through.
 | **4** | [Merton distance to default](04_merton_distance_to_default/) | **T0** — nothing to fit | A model with *no parameters at all*. Asking to train it is a **type error**, and MAYA refuses it as one |
 | **5** | [IFRS 9 expected credit loss](05_ifrs9_ecl_reuse/) | **T2** — estimated | **Reuse.** Five features it did not define, a *composed* featureset, and an `input_to` edge that makes the blast radius real |
 | **6** | [HELOC origination eligibility](06_heloc_eligibility_rules/) | **T8** — authored | A *policy rulebook* governed as a model: checked, trialled, published, approved by a second person — and every decision carrying the rule that made it |
+| **7** | [LLM model documentation](07_llm_model_documentation/) | **AI Tier B** | An LLM drafting a validation-pack section. The platform **removes** the claim citing evidence it does not hold, refuses a Tier C capability outright, and refuses the requester attesting their own draft |
+| **8** | [Vendor bureau score](08_vendor_bureau_score/) | **T6** — opaque | Governing a model nobody here can inspect. A fit refused for three reasons at once, reverse-engineered coefficients refused, and the three things that *can* still be governed |
+| **9** | [Polygenic risk score](09_polygenic_risk_score/) | **T2** — estimated | **Genomics.** A clinical model whose most important fact is that it works far less well in some ancestries — quantified on the parameter set, so it is read at the same moment as the numbers |
+| **10** | [SEIR epidemic model](10_seir_epidemic/) | **T1** — calibrated | **Epidemiology.** The same outbreak data on the same day gives R₀ = 2.04 or 2.34 depending on how the *reporting delay* is treated. The rejected number is recorded beside the chosen one |
+| **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
+| **12** | [Climate transition scorecard](12_climate_transition_elicited/) | **T7** — elicited | **Climate risk.** Weights from a panel, because the transition has not happened and there is nothing to estimate from. The dissent is on the parameter set, priced — and a judgment claiming to have been *fitted* is refused |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
 
 Every README opens with a **theory** section: the mathematics of the model, its
 assumptions, and where it is known to be wrong — before any of the governance.
+
+### Coverage beyond banking
+
+Case study 9 is the first outside financial services, and it is there to make a
+specific point rather than for variety: **change the vocabulary and every
+control is the same.** Two clocks with a laboratory in the gap instead of a
+servicer; a limitation quantified on the parameter set instead of in a paper; an
+approval that names the population it is approved *for*; and features declared
+as proxies for a protected characteristic nobody collected.
 
 ### Coverage of the taxonomy
 
@@ -32,7 +47,12 @@ cover the three classes a bank meets most often, at both ends of the range:
 | **T8** | authoring — a rule set somebody wrote | case study 6 |
 | T3 | iterative training | not yet |
 | T5 / T7 | configured / elicited | not yet |
-| T6 | a vendor's parameters you cannot see | not yet |
+| **T6** | a vendor's parameters you cannot see | case study 8 |
+
+**AI capabilities are governed by a parallel scheme** — tiers A, B and C rather
+than T0…T8 — and case study 7 covers Tier B while noting, honestly, that the
+design says an AI capability *is* a model while the implementation registers it
+beside models rather than as one.
 
 The two ends of that range are the interesting ones to show together: **T0**
 has no parameters at all and refuses a fit as a type error; **T8** has
@@ -170,9 +190,15 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/04_merton_distance_to_default/build.py
 .venv/bin/python case_studies/05_ifrs9_ecl_reuse/build.py        # after 4
 .venv/bin/python case_studies/06_heloc_eligibility_rules/build.py # after 2
+.venv/bin/python case_studies/07_llm_model_documentation/build.py # after 4
+.venv/bin/python case_studies/08_vendor_bureau_score/build.py
+.venv/bin/python case_studies/09_polygenic_risk_score/build.py
+.venv/bin/python case_studies/10_seir_epidemic/build.py
+.venv/bin/python case_studies/11_rag_assistant_config/build.py
+.venv/bin/python case_studies/12_climate_transition_elicited/build.py
 ```
 
-Options, on all three:
+Options, on every script:
 
 | Flag | Default | Meaning |
 |---|---|---|
@@ -192,7 +218,7 @@ Each writes three files into its own folder:
 cd case_studies/01_black_scholes && pdflatex black-scholes-specification.tex
 ```
 
-**All three are re-runnable.** Run one twice and it will tell you what was
+**Every one of them is re-runnable.** Run one twice and it will tell you what was
 already there rather than failing or silently duplicating.
 
 ---
@@ -233,6 +259,8 @@ should not get, and prints the refusal with its remediation:
 | 4 | A training warrant for a model with no parameters — a **type error**, refused twice by two independent layers |
 | 5 | An `add` of a featureset slot a parent already has; and an `input_to` edge that would carry nothing |
 | 6 | A rule reading a field the version does not declare — refused at `check`, before anybody can approve it |
+| 7 | Registering a **Tier C** capability — advisory AI, which is deliberately not registrable; and the principal who asked for a draft attesting it themselves |
+| 8 | A fit on an **opaque** model — refused for three independent reasons; and filing reverse-engineered coefficients as that model's parameters |
 
 A control nobody has watched refuse is a control nobody has tested.
 

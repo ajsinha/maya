@@ -165,7 +165,8 @@ def ensure_filled(maya: Maya, featureset: str,
 
 
 def ensure_version(maya: Maya, short_name: str, *, semver: str,
-                   kernel: Dict[str, Any]) -> Dict[str, Any]:
+                   kernel: Dict[str, Any],
+                   contract: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Create the version, or return the one already there.
 
     Asked before attempted, rather than attempted and forgiven. Once a model
@@ -179,7 +180,11 @@ def ensure_version(maya: Maya, short_name: str, *, semver: str,
         if row.get("semver") == semver:
             print(f"    = version {semver} already exists — not recreating it")
             return row
-    made = maya.versions.create(short_name, semver=semver, kernel=kernel)
+    # `contract` is a sibling of `kernel`, not a key inside it: a kernel
+    # says what the model IS and a contract says what it is ASSERTED to
+    # do, and MAYA refuses the two conflated.
+    made = maya.versions.create(short_name, semver=semver, kernel=kernel,
+                                contract=contract or {})
     print(f"    ✓ MAYA: version {semver}")
     return made
 
@@ -300,7 +305,14 @@ def put_record_in_force(maya: Maya, people: Dict[str, Maya], *,
         return was
 
     mrm = people.get("s.iqbal") or maya
-    if was == "draft":
+    # `amending` is `draft` with a reason: an amendment is open, the record is
+    # changeable again, and the only way onward is the same submit-approve-
+    # attest walk. It is handled explicitly because a case study that opens an
+    # amendment and never closes it leaves the record permanently OUT of
+    # force — and the second run of that script then asked MAYA to attest a
+    # record with no attestation open, which is a re-runnability bug wearing
+    # a governance refusal's clothes.
+    if was in ("draft", "amending"):
         attempt("submitted for review",
                 lambda: maya.lifecycle.submit(urn, note=note),
                 already="already submitted")
@@ -400,9 +412,20 @@ def document(*, path: pathlib.Path, title: str, subtitle: str, blocks: List[str]
         r"\usepackage[T1]{fontenc}",
         r"\usepackage[utf8]{inputenc}",
         r"\usepackage{amsmath,amssymb}",
+        # For \resizebox, which is how a display equation wider
+        # than the text block is made to fit instead of running
+        # off the page — see `equation()`.
+        r"\usepackage{graphicx}",
         r"\usepackage[margin=25mm]{geometry}",
         r"\usepackage{longtable}",
         r"\usepackage{booktabs}",
+        # Refusal text is quoted verbatim in a typewriter face, and a
+        # typewriter face does not hyphenate — so a long refusal ran a few
+        # points past the margin and `pdflatex` reported an overfull hbox in a
+        # build that succeeded, which is a warning nobody reads. Letting TeX
+        # stretch a line rather than overflow it is the standard answer, and
+        # it costs a little inter-word space on those paragraphs only.
+        r"\setlength{\emergencystretch}{3em}",
         r"\setlength{\parindent}{0pt}",
         r"\setlength{\parskip}{6pt}",
         r"\title{" + title + "}",
@@ -416,6 +439,11 @@ def document(*, path: pathlib.Path, title: str, subtitle: str, blocks: List[str]
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(f"{head}\n\n{body}\n\n{tail}\n", encoding="utf8")
     return path
+
+
+#: Roughly the number of LaTeX characters that fit on one line of a 25mm-margin
+#: page. Past this an equation is scaled rather than allowed to overflow.
+WIDE = 110
 
 
 def equation(latex: str, expression: str, *, limit: int = 420) -> str:
@@ -435,6 +463,16 @@ def equation(latex: str, expression: str, *, limit: int = 420) -> str:
     deliverable nobody notices is missing.
     """
     if len(latex) <= limit:
+        # An `equation` environment does not wrap, so a formula wider than the
+        # text block simply runs off the page — `pdflatex` reports it as an
+        # overfull hbox, which is a warning nobody reads in a build that
+        # succeeded. Anything past roughly one line is scaled to the text
+        # width instead. `WIDE` is in characters and approximate on purpose:
+        # the exact width depends on the symbols, and scaling something that
+        # would have fitted costs nothing.
+        if len(latex) > WIDE:
+            return ("\\begin{equation}\n\\resizebox{\\linewidth}{!}{$\\displaystyle\n"
+                    + latex + "\n$}\n\\end{equation}")
         return "\\begin{equation}\n" + latex + "\n\\end{equation}"
     wrapped = "\n".join(expression[i:i + 88]
                         for i in range(0, len(expression), 88))
