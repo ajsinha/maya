@@ -11,6 +11,7 @@ can run in front of an audience and a README written to be talked through.
 | **4** | [Merton distance to default](04_merton_distance_to_default/) | **T0** — nothing to fit | A model with *no parameters at all*. Asking to train it is a **type error**, and MAYA refuses it as one |
 | **5** | [IFRS 9 expected credit loss](05_ifrs9_ecl_reuse/) | **T2** — estimated | **Reuse.** Five features it did not define, a *composed* featureset, and an `input_to` edge that makes the blast radius real |
 | **6** | [HELOC origination eligibility](06_heloc_eligibility_rules/) | **T8** — authored | A *policy rulebook* governed as a model: checked, trialled, published, approved by a second person — and every decision carrying the rule that made it |
+| **7** | [LLM model documentation](07_llm_model_documentation/) | **AI Tier B** | An LLM drafting a validation-pack section. The platform **removes** the claim citing evidence it does not hold, refuses a Tier C capability outright, and refuses the requester attesting their own draft |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
@@ -33,6 +34,11 @@ cover the three classes a bank meets most often, at both ends of the range:
 | T3 | iterative training | not yet |
 | T5 / T7 | configured / elicited | not yet |
 | T6 | a vendor's parameters you cannot see | not yet |
+
+**AI capabilities are governed by a parallel scheme** — tiers A, B and C rather
+than T0…T8 — and case study 7 covers Tier B while noting, honestly, that the
+design says an AI capability *is* a model while the implementation registers it
+beside models rather than as one.
 
 The two ends of that range are the interesting ones to show together: **T0**
 has no parameters at all and refuses a fit as a type error; **T8** has
@@ -170,6 +176,7 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/04_merton_distance_to_default/build.py
 .venv/bin/python case_studies/05_ifrs9_ecl_reuse/build.py        # after 4
 .venv/bin/python case_studies/06_heloc_eligibility_rules/build.py # after 2
+.venv/bin/python case_studies/07_llm_model_documentation/build.py # after 4
 ```
 
 Options, on all three:
@@ -233,6 +240,7 @@ should not get, and prints the refusal with its remediation:
 | 4 | A training warrant for a model with no parameters — a **type error**, refused twice by two independent layers |
 | 5 | An `add` of a featureset slot a parent already has; and an `input_to` edge that would carry nothing |
 | 6 | A rule reading a field the version does not declare — refused at `check`, before anybody can approve it |
+| 7 | Registering a **Tier C** capability — advisory AI, which is deliberately not registrable; and the principal who asked for a draft attesting it themselves |
 
 A control nobody has watched refuse is a control nobody has tested.
 
