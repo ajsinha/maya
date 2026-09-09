@@ -105,6 +105,25 @@ def _luminance(colour: str) -> float:
     return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
 
 
+#: Every palette the picker offers, read from the picker itself rather than
+#: listed here — the same single-source-of-truth trick the theme JavaScript
+#: uses. A palette added to the menu is a palette these tests immediately hold
+#: to the same contrast bar; one added to the stylesheet and NOT to the menu is
+#: a palette nobody can select, which `test_every_offered_theme_is_reachable`
+#: catches from the other side.
+def _picker_themes() -> list:
+    body = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+    found = re.findall(r'class="dropdown-item theme-pick" data-theme="([a-z]+)"',
+                       body)
+    assert found, "the theme picker did not parse"
+    # `system` is the absence of a palette: it removes the attribute and lets
+    # the media query choose, so there is no token block to measure.
+    return [t for t in found if t != "system"]
+
+
+THEMES = _picker_themes()
+
+
 def contrast(a: str, b: str) -> float:
     la, lb = _luminance(a), _luminance(b)
     return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
@@ -117,6 +136,60 @@ def _palette() -> dict:
     found = dict(re.findall(r"--([a-z-]+):(#[0-9A-Fa-f]{6})", block))
     assert {"crimson", "ink", "slate", "muted", "rule", "parch", "edge"} <= set(found), found
     return {"white": "#FFFFFF", **found}
+
+
+class TestEveryPaletteIsComplete:
+    """The "unthemed island" bug, guarded from both sides.
+
+    A named palette redeclares tokens in a `:root[data-theme="x"]` block. If it
+    declares SOME of them, the rest fall back to the light `:root` — and a
+    black terminal page renders crimson chips and a pale grey rule on it,
+    because those tokens were never overridden. The page still builds, still
+    passes every functional test, and looks obviously broken to exactly one
+    person: whoever picked that theme.
+
+    The guard is dishtayantra's, adopted here: read the palettes from the
+    picker, and require each to cover the whole set.
+    """
+
+    #: Tokens that legitimately do NOT vary by palette. The type stack is the
+    #: product's, not the theme's, and a theme that changed the typeface would
+    #: be a different product rather than a different colour scheme.
+    SHARED = {"sans", "serif", "code"}
+
+    def _declared(self, block: str) -> set:
+        return set(re.findall(r"--([a-z0-9-]+)\s*:", block))
+
+    def test_every_palette_declares_every_token_the_light_root_does(self):
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        light = self._declared(re.search(r":root\{(.*?)\}", css, re.S).group(1))
+        expected = light - self.SHARED
+        assert len(expected) > 20, "the light root did not parse"
+
+        missing = {}
+        for theme in THEMES:
+            if theme == "light":
+                continue
+            block = re.search(r':root\[data-theme="%s"\]\{(.*?)\}' % theme,
+                              css, re.S)
+            assert block, f"{theme} is offered in the picker with no token block"
+            absent = sorted(expected - self._declared(block.group(1)))
+            if absent:
+                missing[theme] = absent
+        assert missing == {}, (
+            "these palettes inherit light tokens they should override, which is "
+            "how a dark theme grows a light island: "
+            + "; ".join(f"{k}: {', '.join(v)}" for k, v in missing.items()))
+
+    def test_every_offered_theme_is_reachable_and_every_block_is_offered(self):
+        """Both directions. A block nobody can pick is dead CSS; a pick with no
+        block renders the light palette under a different name."""
+        css = (ROOT / "web" / "templates" / "base.html").read_text(encoding="utf-8")
+        blocks = set(re.findall(r':root\[data-theme="([a-z]+)"\]\{', css))
+        offered = set(THEMES) - {"light"}
+        assert blocks == offered, (
+            f"picker offers {sorted(offered)} but the stylesheet defines "
+            f"{sorted(blocks)}")
 
 
 class TestContrastIsMeasuredRatherThanJudged:
@@ -168,9 +241,10 @@ class TestContrastIsMeasuredRatherThanJudged:
         light one has always had.
         """
         blocks = [re.search(r":root\{(.*?)\}", css, re.S)]
-        if theme == "dark":
-            blocks.append(re.search(r':root\[data-theme="dark"\]\{(.*?)\}',
-                                    css, re.S))
+        if theme != "light":
+            blocks.append(re.search(
+                r':root\[data-theme="%s"\]\{(.*?)\}' % re.escape(theme),
+                css, re.S))
         values = {}
         for block in blocks:
             if block is None:
@@ -191,7 +265,7 @@ class TestContrastIsMeasuredRatherThanJudged:
                 resolved[name] = value
         return resolved
 
-    @pytest.mark.parametrize("theme", ["light", "dark"])
+    @pytest.mark.parametrize("theme", THEMES)
     def test_every_badge_carries_its_text_at_aa(self, theme):
         """The tier badge is the most consequential label on these screens, and
         two of the four failed: amber at 3.20:1 and grey at 4.03:1, both set
@@ -231,7 +305,7 @@ class TestContrastIsMeasuredRatherThanJudged:
                 failures.append(f".{name}: {ratio:.2f} in {theme}")
         assert failures == [], "badges below AA: " + ", ".join(failures)
 
-    @pytest.mark.parametrize("theme", ["light", "dark"])
+    @pytest.mark.parametrize("theme", THEMES)
     def test_a_menu_item_contrasts_with_the_menu_and_not_with_the_bar(self, theme):
         """The Manage and Admin menus hang off the crimson bar in the DOM and
         are painted on the page's own surface. `.navbar a{color:var(--on-bar)}`

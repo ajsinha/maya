@@ -28,7 +28,14 @@
   "use strict";
 
   var KEY = "maya.theme";
-  var CHOICES = {light: 1, dark: 1, system: 1};
+  /* The single source of truth for which themes exist. `system` is not a
+     palette — it is the absence of a choice, so it removes the attribute and
+     lets the media query decide between the two crimson grounds.
+
+     `blue` and `wallstreet` are named palettes and therefore always explicit:
+     there is no "system BMO", because the machine has no opinion about which
+     bank you work for. */
+  var CHOICES = {light: 1, dark: 1, blue: 1, wallstreet: 1, system: 1};
   var TEXT_KEY = "maya.text";
   var SIZES = {small: 1, normal: 1, large: 1, larger: 1, largest: 1};
 

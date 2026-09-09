@@ -443,7 +443,7 @@ second place a colour can be defined, and the two drift.
 
 | Element | Standard | Held by |
 |---|---|---|
-| **Palette** | `--crimson #A51C30` · `--ink #1C1C1E` · `--slate #4A4F57` · `--muted #7A7F87` · `--rule #D8D4CF` · `--parch #F6F3EF` | Convention |
+| **Palette** | The token set, not a colour list: `--crimson` (the accent, which is crimson in the default palette, BMO blue under `blue` and amber under `wallstreet`), `--ink`, `--slate`, `--muted`, `--rule`, `--edge`, `--parch`, `--canvas`, `--surface`, the four semantic pairs, `--bar`, `--tint` and `--focus-glow`. **The mark does not move**: `maya-mark-64.png` stays crimson on every palette, because a palette is not a rebrand | **`tests/test_ui_accessibility.py`** |
 | **Type** | Georgia for headings and statistics; the system sans for body; Consolas for anything a machine produced — a digest, a URN, a permission, a warrant | Convention |
 | **Tier badges** | `TIER 1` crimson · `TIER 2` bronze · `TIER 3` slate · `TIER 4` grey · `UNTIERED` parchment. Always with the number | Convention |
 | **Evidence colours** | `.evidence-ok` green, `.evidence-bad` crimson — used for *verdicts*, never for decoration | Convention |
@@ -451,7 +451,7 @@ second place a colour can be defined, and the two drift.
 | **Empty states** | Every empty state explains why it is empty and what the thing is for. The features card with no contract says how to bind one; the parameters card says what a version with no approved parameters may still do | Convention |
 | **Refusals** | A refused page renders `forbidden.html` and says the record exists and is outside your scope. A refused action renders the API's `detail` and its `remediation`, not "an error occurred" | Convention |
 | **Density** | Compact by default. Banks look at hundreds of rows | Convention |
-| **Theme** | Light, dark, or the system's, chosen in the top bar and applied *before the first paint* so a reload does not flash the other one. Every colour is a token defined for both | **`tests/test_ui_accessibility.py`** |
+| **Theme** | Four palettes and a system setting, chosen in the top bar and applied *before the first paint* so a reload does not flash another one. **Light** and **dark** are the Harvard crimson the product is drawn in; **BMO blue** is a navy-and-blue light palette; **Wall Street** is a near-black ground with terminal amber and cyan for data. Every colour resolves through a token that each palette redeclares in full | **`tests/test_ui_accessibility.py`** — every palette is measured for AA on every text pair and every badge, and a completeness guard refuses a palette that redeclares only *some* tokens, which is how a dark theme grows a light island |
 | **Text scale** | Five steps, 0.9× to 1.5×, in the same menu. `html { font-size: calc(16px * var(--text-scale, 1)) }` and every size in the interface expressed in `rem` — so one number moves headings, chips, badges and tables *together* and the proportions somebody designed are the proportions they see. Not browser zoom, which scales the layout and turns a portfolio table into two visible columns. Stored per browser, applied before the first paint | **`tests/test_ui_accessibility.py`** — including that no template pins a size in pixels, which is what makes the scale total |
 
 The rows naming a test are held. Everything in the "convention" rows is a rule somebody can break

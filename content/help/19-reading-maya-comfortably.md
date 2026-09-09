@@ -42,9 +42,32 @@ that actually varies.
 
 ## Theme
 
-**Light**, **Dark**, or **System** — System follows what your operating system
-is set to, including when it changes at dusk. The same menu, above the text
-sizes. It is applied before the first paint for the same reason.
+The same menu, above the text sizes, and applied before the first paint for the
+same reason. There are two kinds of entry in it and the divider between them is
+meaningful.
+
+**Modes** — **Light**, **Dark**, **System**. These are the Harvard crimson MAYA
+is drawn in. *System* follows what your operating system is set to, including
+when it changes at dusk.
+
+**Palettes** — **BMO blue** and **Wall Street**. These are complete alternative
+colour schemes rather than a light/dark switch, so choosing one replaces the
+mode rather than modifying it:
+
+| | What it is |
+|---|---|
+| **BMO blue** | A light palette: deep navy bar, BMO blue accent, cool grey ground |
+| **Wall Street** | A dark palette in the style of a trading terminal: near-black ground, amber text, cyan for anything that is data rather than prose |
+
+**One thing deliberately does not change.** The MAYA mark stays crimson on every
+palette. A palette is not a rebrand, and a logo that changes colour to match the
+page is a logo nobody recognises at a glance.
+
+Every palette is held to the same standard as the default: each redeclares the
+whole token set rather than inheriting part of it, every text pair is measured
+for AA contrast in all four, and a test refuses a palette that covers only some
+of the tokens — which is how a dark theme ends up with one stubbornly pale panel
+on it.
 
 ## What is guaranteed, not just offered
 
