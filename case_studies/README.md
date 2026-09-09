@@ -144,6 +144,13 @@ PORT=5099 .venv/bin/python run_maya_web.py --config /tmp/maya-demo/application.y
 ...where that config is a copy of `config/application.yaml` with `data.dir`
 pointed somewhere disposable.
 
+> **If you restart that instance between runs, wait for the port to actually
+> free.** `/health` will answer from the process you just signalled for a
+> second or two after you signal it, so a script that polls `/health` and then
+> starts work can connect to a server that is on its way out and get
+> `Connection refused` on the next call. Check the port is closed *before*
+> starting the replacement, not that the health endpoint answers after it.
+
 ### 2. Users and roles
 
 **The scripts create the people they need.** You do not have to do this by
