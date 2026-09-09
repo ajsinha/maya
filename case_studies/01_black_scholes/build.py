@@ -567,12 +567,12 @@ def write_document(out: pathlib.Path, maths, version_record, fit_warrant,
         r"before approving rather than discovering it afterwards.",
 
         r"\section{Governance}",
-        table([["Model URN", version_record.get("urn", "—")],
-               ["Version", version_record.get("semver", "—")],
-               ["Trainability class", version_record.get("trainability_class", "—")],
-               ["Manifest digest", str(version_record.get("manifest_digest", "—"))[:32] + "…"],
-               ["Training (calibration) warrant", fit_id],
-               ["Execution warrant", run_id]],
+        table([["Model URN", latex_escape(str(version_record.get("urn", "—")))],
+               ["Version", latex_escape(str(version_record.get("semver", "—")))],
+               ["Trainability class", latex_escape(str(version_record.get("trainability_class", "—")))],
+               ["Manifest digest", latex_escape(str(version_record.get("manifest_digest", "—"))[:32]) + "…"],
+               ["Training (calibration) warrant", latex_escape(str(fit_id))],
+               ["Execution warrant", latex_escape(str(run_id))]],
               header=["Field", "Value"], spec="ll"),
         "The parameter set is recorded as \\textbf{proposed}. It is not usable "
         "until somebody other than whoever produced it accepts it, which is a "

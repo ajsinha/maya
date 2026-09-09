@@ -109,7 +109,15 @@ class FeaturesetRegistry:
                "grain": grain or f"one row per {entity}",
                "composes": self._stamp(composes),
                "definition_version": 1,
-               "operations": list(operations or []),
+               # Normalised through `_slot`, exactly as `slots` above is.
+               # Stored raw, an `add` whose value was the bare string "numeric"
+               # — the spelling `slots=` accepts everywhere else — reached
+               # `_resolve` as a string and raised `TypeError: string indices
+               # must be integers`, which the route turned into a 500. Two
+               # spellings of one thing must not behave differently, and an
+               # unhandled 500 is never the right answer to a malformed request:
+               # `_slot` refuses a definition with no dtype by name.
+               "operations": self._normalise_operations(operations),
                "defaults": policy.check(defaults),
                "ephemeral": int(ephemeral),
                "expires_at": (self.lifecycle.expiry(ttl_days) if ephemeral
@@ -220,6 +228,27 @@ class FeaturesetRegistry:
                 + (f", {inherited} inherited" if inherited else "")
                 + ". the order is the fold: leftmost parent first, rightmost "
                   "wins, then this set's own slots, then its operations")
+
+    @classmethod
+    def _normalise_operations(cls, operations: Any) -> List[Dict[str, Any]]:
+        """Put every `add`/`override` value through the slot normaliser.
+
+        A `drop` carries no value and is passed through untouched. Anything
+        else keeps its shape; only the definition is normalised, so an operation
+        this method does not understand still reaches `composition.apply`,
+        which is where operations are validated and where the refusals live.
+        """
+        out: List[Dict[str, Any]] = []
+        for operation in list(operations or []):
+            if not isinstance(operation, dict):
+                out.append(operation)
+                continue
+            copy = dict(operation)
+            if copy.get("op") in ("add", "override") and copy.get("value") is not None:
+                copy["value"] = cls._slot(str(copy.get("name") or "?"),
+                                          copy["value"])
+            out.append(copy)
+        return out
 
     @staticmethod
     def _slot(name: str, spec: Any) -> Dict[str, Any]:

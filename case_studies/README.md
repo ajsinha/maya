@@ -8,6 +8,26 @@ can run in front of an audience and a README written to be talked through.
 | **1** | [Black--Scholes European call](01_black_scholes/) | **T1** — calibrated | A model with *no training data*. The whole pricer, normal CDF included, lives in the register as an expression |
 | **2** | [Home price regression](02_home_price_regression/) | **T2** — estimated | *Real public data*, from its authoritative source — and the clock the source did not have |
 | **3** | [Mortgage prepayment curve](03_prepayment_nonlinear/) | **T2** — estimated | *Non-linear* in the inputs, linear in the parameters: an exponential seasoning ramp and a cubic incentive response |
+| **4** | [Merton distance to default](04_merton_distance_to_default/) | **T0** — nothing to fit | A model with *no parameters at all*. Asking to train it is a **type error**, and MAYA refuses it as one |
+| **5** | [IFRS 9 expected credit loss](05_ifrs9_ecl_reuse/) | **T2** — estimated | **Reuse.** Five features it did not define, a *composed* featureset, and an `input_to` edge that makes the blast radius real |
+
+**Run 4 before 5** — the fifth reuses what the fourth registers. The others are
+independent of each other.
+
+### Coverage of the taxonomy
+
+MAYA derives a model's **trainability class** from how its parameter object is
+inhabited, and the class decides which operations are admissible. These five
+cover the three classes a bank meets most often, at both ends of the range:
+
+| Class | Parameters come from | Covered by |
+|---|---|---|
+| **T0** | theory — there are none | case study 4 |
+| **T1** | calibration to market observables | case study 1 |
+| **T2** | estimation from a sample | case studies 2, 3, 5 |
+| T3 | iterative training | not yet |
+| T5 / T7 / T8 | configured / elicited / authored rules | not yet |
+| T6 | a vendor's parameters you cannot see | not yet |
 
 ---
 
@@ -194,9 +214,11 @@ should not get, and prints the refusal with its remediation:
 
 | | The refusal shown |
 |---|---|
-| 1 | A calibration warrant naming a featureset that does not exist |
+| 1 | A calibration warrant naming a featureset that does not exist; and the author of a parameter set trying to approve it |
 | 2 | A training warrant whose read is bounded in only one clock (**L-W9**) |
 | 3 | A training warrant against a featureset that does not carry what the kernel reads (**L-W10**) |
+| 4 | A training warrant for a model with no parameters — a **type error**, refused twice by two independent layers |
+| 5 | An `add` of a featureset slot a parent already has; and an `input_to` edge that would carry nothing |
 
 A control nobody has watched refuse is a control nobody has tested.
 
