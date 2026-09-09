@@ -256,13 +256,24 @@ def latency_has_not_collapsed(client, journal, state: Dict[str, Any]) -> None:
                   f"{recent * 1000:.0f} ms")
 
 
-def the_delta_backend_has_not_changed(client, journal, state) -> None:
-    """Which Delta implementation is underneath, asserted every cycle.
+def the_storage_has_not_changed(client, journal, state) -> None:
+    """What holds the feature data, asserted every cycle. Both halves of it.
 
-    A soak that silently switched implementations partway through would be a
-    soak proving nothing about either, and it is one import away from doing so.
-    Asked of the RUNNING server rather than of this process, because they are
-    different processes and only one of them is the subject.
+    A soak that silently switched table format or implementation partway
+    through would be a soak proving nothing about either, and it is one import
+    away from doing so. Asked of the RUNNING server rather than of this
+    process, because they are different processes and only one of them is the
+    subject.
+
+    The key is `storage`, and it was `delta` until the table format became a
+    choice. This invariant read `body["delta"]["backend"]` for one commit after
+    that rename, which resolves to None — so it would have recorded a failure
+    on every cycle of a four-hour run, against a server that was perfectly
+    healthy. Nothing caught it because the soak harness is not exercised by the
+    suite. Hence the shape below: the FIRST check is that the server named a
+    format at all, and it fails loudly rather than the invariant returning
+    quietly, because "the key moved" and "the server is broken" must not look
+    the same in the journal.
     """
     # The ROOT path, not one under /api/v1 — which the client prefixes by
     # default, so the first version of this asked for /api/v1/health, got a
@@ -272,17 +283,22 @@ def the_delta_backend_has_not_changed(client, journal, state) -> None:
     from tools.soak import harness
 
     status, body = client.get(harness.BASE + "/health", auth=None)
-    backend = (body or {}).get("delta", {}).get("backend") \
-        if isinstance(body, dict) else None
-    if not journal.check("invariant", "the running server reports its Delta backend",
-                         status == 200 and backend is not None,
-                         "200 naming a backend", f"{status} {backend}"):
+    storage = (body or {}).get("storage") if isinstance(body, dict) else None
+    fmt = (storage or {}).get("table_format") if isinstance(storage, dict) else None
+    backend = (storage or {}).get("backend") if isinstance(storage, dict) else None
+    if not journal.check(
+            "invariant", "the running server reports what holds its feature data",
+            status == 200 and fmt is not None and backend is not None,
+            "200 naming a table format and a backend",
+            f"{status} format={fmt} backend={backend}"):
         return
-    previous = state.get("delta_backend")
-    journal.check("invariant", "the Delta backend has not changed mid-run",
-                  previous is None or backend == previous,
-                  previous or backend, backend)
-    state["delta_backend"] = backend
+    for label, seen, key in (("table format", fmt, "table_format"),
+                             ("backend", backend, "storage_backend")):
+        previous = state.get(key)
+        journal.check("invariant", f"the {label} has not changed mid-run",
+                      previous is None or seen == previous,
+                      previous or seen, seen)
+        state[key] = seen
 
 
 def the_server_is_still_up(server, journal) -> bool:
