@@ -454,7 +454,7 @@ Streamed, so peak memory is one Arrow batch rather than the whole export.
 
 | Method | Path | Permission | Notes |
 |---|---|---|---|
-| `GET` | `/parameter-provenance` | auth | fitted, calibrated, declared |
+| `GET` | `/parameter-provenance` | auth | fitted, calibrated, declared. For `rule_set`, `llm_configuration` and `elicited_weights` only `declared` is admissible (`not_obtained_from_data`); `none` and `opaque` refuse `fitted` with their own sentences |
 | `GET` `POST` | `/parameters?urn=&semver=` | `model:read` / `parameter:record` | Read and record parameter sets. Deliberately **not** nested under `/models/{name}` — that converter is greedy |
 | `POST` | `/parameter-fits` | `parameter:record` | **Run** the fit. Resolves the warrant before reading anything, reads the snapshot at its pinned Delta version, lands `proposed`. 501 where no captive engine is configured |
 | `GET` | `/parameter-sets/{id}` | `model:read` | One set with its lineage |

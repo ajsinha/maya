@@ -26,6 +26,15 @@ PROVENANCE_MEANING: Dict[str, str] = {
 # warrant, and only the second may arrive without one.
 NEEDS_WARRANT = frozenset({FITTED})
 
+#: Parameter objects no procedure over data can produce, so a set inhabiting
+#: one is `declared` or it is mis-described. A rule set is authored, a
+#: generative assembly is configured, and elicited weights come out of a panel:
+#: none of the three is fitted, and none is calibrated either — `calibrated`
+#: means solved against market data under an approved procedure, and a panel is
+#: not that. `none` and `opaque` are refused separately because each has its
+#: own sentence to say.
+NOT_FROM_DATA = frozenset({"rule_set", "llm_configuration", "elicited_weights"})
+
 PROPOSED, APPROVED, REJECTED, SUPERSEDED = ("proposed", "approved", "rejected",
                                             "superseded")
 STATES: Tuple[str, ...] = (PROPOSED, APPROVED, REJECTED, SUPERSEDED)
