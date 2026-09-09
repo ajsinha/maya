@@ -52,12 +52,13 @@ DECKS = [
     # `case_studies/`. The rest of the deck argues; that chapter is the part
     # somebody can run against a live instance in a minute and check.
     ("MAYA-Model-and-Feature-Management", 123),
-    # Two audience-specific decks, built from the same theme. Both are capped
+    # Three audience-specific decks, built from the same theme. All are capped
     # at twenty slides on purpose: an executive briefing that grows into the
     # design deck stops being read, and a concepts deck that grows becomes the
-    # paper. The count is asserted so that neither can drift past it silently.
+    # paper. The count is asserted so that none can drift past it silently.
     ("MAYA-Executive-Briefing", 20),
     ("MAYA-Concepts-and-Formalism", 20),
+    ("MAYA-Feature-Platform", 20),
 ]
 
 
