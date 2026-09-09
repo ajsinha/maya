@@ -22,6 +22,26 @@ from typing import Any, Dict, List
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
+def _observed_storage(rows):
+    """What `/health` reported during the run: (table_format, backend).
+
+    Read off the invariant's own `got` string — `200 format=delta
+    backend=deltalake` — because that is what the server said rather than what
+    the runner intended, and those are allowed to differ. Returns (None, None)
+    for a journal from before the invariant recorded both.
+    """
+    fmt = backend = None
+    for r in rows:
+        got = r.get("got") if r.get("kind") == "check" else None
+        if isinstance(got, str) and "format=" in got and "backend=" in got:
+            try:
+                fmt = got.split("format=", 1)[1].split()[0]
+                backend = got.split("backend=", 1)[1].split()[0]
+            except IndexError:
+                pass
+    return fmt, backend
+
+
 def load(path: pathlib.Path) -> List[Dict[str, Any]]:
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -188,7 +208,13 @@ def render(rows: List[Dict[str, Any]]) -> str:
     w(f"| Background requests between cycles | {background:,} |")
     w(f"| Responses that were 500s | {len(server_errors)} |")
     w(f"| Commit under test | `{detail.get('commit', 'unknown')}` |")
-    w(f"| Delta backend | `{detail.get('delta_backend', 'the installed default')}` |")
+    # What the RUNNING server said held its feature data, not what the runner
+    # was asked to launch: the invariant reads `/health` every cycle, and that
+    # is the observation rather than the intention. Falls back to the launch
+    # argument for a journal written before the invariant existed.
+    storage = _observed_storage(rows)
+    w(f"| Table format | `{storage[0] or detail.get('table_format', 'delta')}` |")
+    w(f"| Delta backend | `{storage[1] or detail.get('delta_backend', 'the installed default')}` |")
     w(f"| Python | {detail.get('python', '—')} |")
     w("")
     if verdict == "PASSED":
@@ -335,8 +361,17 @@ def render(rows: List[Dict[str, Any]]) -> str:
       "request produced an unmapped failure; and that memory, file handles and "
       "threads stay bounded over hours.")
     w("")
-    w("**It does not prove** anything about PostgreSQL — this run is SQLite, "
-      "which is the shipped default and not what a bank deploys. It does not "
+    # Named rather than left implicit, because the table format is a
+    # configuration choice and a soak report that does not say which one it
+    # ran is a report somebody will read as covering both.
+    ran, other = (_observed_storage(rows)[0] or "delta"), "iceberg"
+    if ran == "iceberg":
+        ran, other = "iceberg", "delta"
+    w(f"**It does not prove** anything about PostgreSQL — this run is SQLite, "
+      f"which is the shipped default and not what a bank deploys. It says "
+      f"nothing about **{other}** either: the table format is a configuration "
+      f"choice and this run made the other one, so four hours of evidence "
+      f"exists for `{ran}` alone. It does not "
       "prove behaviour under real concurrency at scale: four simultaneous "
       "writers is enough to make an advisory lock matter and is not a load "
       "test. It does not exercise a restart mid-transaction, a disk filling "
@@ -365,6 +400,13 @@ def _resource_verdict(w, samples: List[Dict[str, Any]]) -> None:
         w("*Too few samples to say anything about the shape.*")
         w("")
         return
+    # The LAST sample is taken while the run shuts down and publishes the
+    # journal, which is real work and not steady state — it added 6 MB on the
+    # run this comment was written for, and including it in "the last four
+    # samples" inflates the settled spread by more than the spread itself.
+    # Dropped from the shape analysis and reported separately.
+    shutdown = rss[-1]
+    rss = rss[:-1]
     half = len(rss) // 2
     early = (rss[half] - rss[0]) / half / 1024
     late = (rss[-1] - rss[half]) / (len(rss) - half) / 1024
@@ -377,7 +419,8 @@ def _resource_verdict(w, samples: List[Dict[str, Any]]) -> None:
     w("|---|---:|")
     w(f"| Growth per cycle, first half | {early:.2f} MB |")
     w(f"| Growth per cycle, second half | {late:.2f} MB |")
-    w(f"| Spread across the last four samples | {spread:.1f} MB |")
+    w(f"| Spread across the last four steady samples | {spread:.1f} MB |")
+    w(f"| Added while shutting down and publishing | {(shutdown - rss[-1]) / 1024:.1f} MB |")
     w(f"| Total, start to end | {(rss[-1] - rss[0]) / 1024:.0f} MB |")
     w("")
     if late < early / 2:
