@@ -582,6 +582,16 @@ def main() -> int:
     except Exception as exc:
         say.note(f"execution warrant not issued: {exc}")
 
+    say.step("Close the amendment — put the record back in force")
+    say.did("an amendment nobody closes is a record permanently out of force. "
+            "1.1.0 is registered and its configuration is rejected, which is a "
+            "complete answer, and the record says so from a state somebody "
+            "signed for")
+    put_record_in_force(maya, people, urn=URN,
+                        note="Amendment closed. Version 1.1.0 is registered "
+                             "against the 2026.01 provider; its configuration "
+                             "was not accepted, so 1.0.0 continues to serve.")
+
     say.step("Write the LaTeX specification")
     path = write_document(out, v1_record, v2_record, v1_config, first, second,
                           fit_refusal, run_warrant, tier)

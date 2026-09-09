@@ -206,6 +206,7 @@ STATUS: Dict[str, int] = {
     # erases.
     "unknown_purpose_class": 422,
     "nothing_to_fit": 422, "parameters_not_reachable": 422,
+    "not_obtained_from_data": 422,
     "warrant_required": 422, "unknown_warrant": 404,
     "warrant_revoked": 410, "warrant_names_another_model": 409,
     "warrant_names_another_version": 409,

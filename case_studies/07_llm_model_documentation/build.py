@@ -291,8 +291,12 @@ def write_document(out, claims, digest, providers):
         "conversation about data leaving the building.",
 
         r"\section{The draft, and what grounding did to it}",
+        # The claim text is a sentence, so its column has to be a `p{}` like
+        # the citations column. As `l` it was unbounded, and the table ran
+        # 247pt past the margin — reported as an overfull hbox in a build that
+        # succeeded, and visible in the PDF as text off the edge of the page.
         table(claim_rows, header=["Claim", "Text", "Cites", "Outcome"],
-              spec=r"llp{62mm}l"),
+              spec=r"lp{62mm}p{32mm}l"),
         r"Claim \texttt{c5} is the one that matters. It is fluent, specific, "
         r"quantified, and cites an evidence node that does not exist --- the "
         r"exact shape of output these systems produce constantly. The grounding "

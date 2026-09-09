@@ -16,6 +16,7 @@ can run in front of an audience and a README written to be talked through.
 | **9** | [Polygenic risk score](09_polygenic_risk_score/) | **T2** — estimated | **Genomics.** A clinical model whose most important fact is that it works far less well in some ancestries — quantified on the parameter set, so it is read at the same moment as the numbers |
 | **10** | [SEIR epidemic model](10_seir_epidemic/) | **T1** — calibrated | **Epidemiology.** The same outbreak data on the same day gives R₀ = 2.04 or 2.34 depending on how the *reporting delay* is treated. The rejected number is recorded beside the chosen one |
 | **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
+| **12** | [Climate transition scorecard](12_climate_transition_elicited/) | **T7** — elicited | **Climate risk.** Weights from a panel, because the transition has not happened and there is nothing to estimate from. The dissent is on the parameter set, priced — and a judgment claiming to have been *fitted* is refused |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
@@ -194,6 +195,7 @@ curl -s -u admin:maya-admin-dev -X POST \
 .venv/bin/python case_studies/09_polygenic_risk_score/build.py
 .venv/bin/python case_studies/10_seir_epidemic/build.py
 .venv/bin/python case_studies/11_rag_assistant_config/build.py
+.venv/bin/python case_studies/12_climate_transition_elicited/build.py
 ```
 
 Options, on every script:
