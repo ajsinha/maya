@@ -318,6 +318,33 @@ jobs:
                  tests/test_model_composition.py tests/test_concurrency.py \
                  -q -n 0
 
+      # `tests/test_postgres_dialect.py` is the file written FOR this job, and
+      # it had never run anywhere. It skips unless `MAYA_TEST_POSTGRES` is set,
+      # nothing set it, and it was not in the list above either -- so six tests
+      # whose whole purpose is the second dialect reported as skipped on every
+      # run and nobody read the reason. Its own docstring says "It should run
+      # in CI."
+      #
+      # It would have caught the integer default the moment it was introduced:
+      # `test_the_schema_applies_at_all` applies the DDL to a real PostgreSQL.
+      - name: The dialect's own tests, which had never been run
+        env:
+          MAYA_TEST_POSTGRES: postgresql+psycopg://maya:maya@localhost:5432/maya_test
+        run: |
+          # `pipefail` because the runner's shell is `bash -e`, which does NOT
+          # set it: without this the pipeline's status is `tee`'s, and a failing
+          # pytest would report success. That is the defect this file keeps
+          # finding, and it would have been introduced by the step written to
+          # stop it.
+          set -o pipefail
+          # A skip here is the exact failure this step exists to end, so it is
+          # an error rather than a quiet line in the summary that nobody reads.
+          pytest tests/test_postgres_dialect.py -q -n 0 -rs | tee /tmp/pg.txt
+          if grep -qi "skipped" /tmp/pg.txt; then
+            echo "::error::the PostgreSQL dialect tests skipped; they must run here"
+            exit 1
+          fi
+
   # ---------------------------------------------------------------------------
   # The Delta fallback, run as the estates that need it will run it.
   #
