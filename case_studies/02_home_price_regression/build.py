@@ -300,11 +300,11 @@ def main() -> int:
         owner="person/j.okafor", legal_entity="LE-US-01",
         purpose="indicative market value of residential collateral at "
                 "origination and revaluation"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=850_000_000, purpose_class="credit_decision",
         feature_count=len(REGRESSORS), uses_alternative_data=False,
         interpretable=True), already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')} "
              f"— DERIVED from estimate over estimated_coefficients")
 

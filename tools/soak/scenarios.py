@@ -115,14 +115,6 @@ def governed_lifecycle(client, journal, cycle: int) -> Dict[str, Any]:
         return out
     out["reached"] = "registered"
 
-    status, body = client.post(f"/models/{name}/assess", {
-        "exposure": 2.0e9, "purpose_class": "regulatory_capital",
-        "feature_count": 12, "uses_alternative_data": False,
-        "interpretable": True}, auth=creds("soak.owner"))
-    journal.check(family, "tier it from its exposure and purpose",
-                  status == 200 and (body or {}).get("tier") in (1, 2, 3, 4),
-                  "200 with a tier", f"{status} {(body or {}).get('tier')}")
-
     # A DEVELOPER creates the version. The owner may not, and the developer may
     # not then approve it: that is the whole point of the next three checks.
     status, body = client.post(f"/models/{name}/versions", {
@@ -132,6 +124,18 @@ def governed_lifecycle(client, journal, cycle: int) -> Dict[str, Any]:
                          status == 201, 201, status, json.dumps(body)[:300]):
         return out
     out["reached"] = "versioned"
+
+    # Tiered AFTER the version. The trainability class is read off the latest
+    # version, so an assessment with none to read is refused rather than
+    # tiered as T0 — and this ordering is what the case studies and the seed
+    # estate use too.
+    status, body = client.post(f"/models/{name}/assess", {
+        "exposure": 2.0e9, "purpose_class": "regulatory_capital",
+        "feature_count": 12, "uses_alternative_data": False,
+        "interpretable": True}, auth=creds("soak.owner"))
+    journal.check(family, "tier it from its exposure, purpose and class",
+                  status == 200 and (body or {}).get("tier") in (1, 2, 3, 4),
+                  "200 with a tier", f"{status} {(body or {}).get('tier')}")
 
     status, body = client.post(f"/models/{name}/versions/1.0.0/approve",
                                auth=creds("soak.dev"))

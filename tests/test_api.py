@@ -318,15 +318,16 @@ class TestAuthorisationApi:
             "urn": "maya://model/sod.demo", "name": "SoD", "model_class": "c",
             "domain": "credit", "owner": "person/o", "legal_entity": "LE-US-01",
             "purpose": "p"})
+        r = client.post("/api/v1/models/sod.demo/versions", auth=solo,
+                        json={"semver": "1.0.0", "kernel": KERNEL})
+        assert r.status_code == 201, "both roles are held, so creation is permitted"
         # Tier 4, so a single signature is the correct control depth here and
-        # the test stays about segregation rather than about the quorum.
+        # the test stays about segregation rather than about the quorum. After
+        # the version, because the tier reads its trainability class.
         client.post("/api/v1/models/sod.demo/assess", auth=people["j.okafor"],
                     json={"exposure": 1e5, "purpose_class": "commercial",
                           "feature_count": 4, "uses_alternative_data": False,
                           "interpretable": True})
-        r = client.post("/api/v1/models/sod.demo/versions", auth=solo,
-                        json={"semver": "1.0.0", "kernel": KERNEL})
-        assert r.status_code == 201, "both roles are held, so creation is permitted"
 
         r = client.post("/api/v1/models/sod.demo/versions/1.0.0/approve", auth=solo)
         assert r.status_code == 403
@@ -567,13 +568,19 @@ class TestTheUrnMayaPrintsIsOneMayaAnswersTo:
         """Not only the read. A script that holds the urn holds it for writes."""
         from tests.conftest import URN
 
+        # `registered` has already assessed these exact facts, and re-running
+        # the formula on unchanged facts is refused as a review that says
+        # nothing. This test is about addressing by urn, so it says something.
         r = registered.post(f"/api/v1/models/{URN}/assess",
                             auth=people["j.okafor"],
                             json={"exposure": 2e9,
                                   "purpose_class": "regulatory_capital",
                                   "feature_count": 12,
                                   "uses_alternative_data": False,
-                                  "interpretable": True})
+                                  "interpretable": True,
+                                  "review_note": "annual review; the exposure "
+                                                 "and the class are unchanged "
+                                                 "and the tier stands"})
         assert r.status_code == 200, r.text
 
     def test_a_name_that_is_not_a_model_is_still_a_clean_404(

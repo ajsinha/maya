@@ -166,10 +166,25 @@ risk:
     moderate: 50000000
     material: 500000000
     critical: 5000000000
+  # What the model is FOR, ranked by how severely the estate reads it. An
+  # unrecognised class is refused rather than defaulted: a caller who writes a
+  # purpose nobody configured used to receive the rank of `commercial`, which
+  # is the lowest there is, and a rationale that read the string back as
+  # though it had been understood.
+  #
+  # Adding to this list is a policy decision. Where a class sits says how much
+  # scrutiny the estate applies to everything declared under it, so it belongs
+  # in configuration a risk function owns and not in whatever string a
+  # registering script happened to send.
   purpose_ranks:
     commercial: 1
+    valuation: 2
     risk_management: 2
+    customer_facing: 3          # acts on a person, individually, at scale
+    credit_decision: 3          # ECOA/Reg B and the FCA's Consumer Duty attach here
     financial_reporting: 3
+    policy_decision: 4          # advice that sets public policy
+    clinical_decision: 4        # acts on a patient
     regulatory_capital: 4
   review_months:
     1: 12

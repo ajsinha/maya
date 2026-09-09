@@ -292,11 +292,11 @@ def main() -> int:
         owner="person/j.okafor", legal_entity="LE-US-01",
         purpose="prepayment speeds for balance sheet projection, IRRBB and "
                 "MSR valuation"))
+    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     attempt("its risk tier", lambda: maya.models.assess(
         SHORT, exposure=4_500_000_000, purpose_class="valuation",
         feature_count=2, uses_alternative_data=False, interpretable=True),
             already="already tiered")
-    version_record = ensure_version(maya, SHORT, semver=SEMVER, kernel=KERNEL)
     say.maya(f"trainability class {version_record.get('trainability_class')}")
 
     say.step("Approve the version")

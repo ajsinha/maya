@@ -191,8 +191,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     tiering = TieringEngine(
         {b: cfg.get_float(f"risk.exposure_bands.{b}", 0.0)
          for b in ("negligible", "low", "moderate", "material", "critical")},
-        {p: cfg.get_int(f"risk.purpose_ranks.{p}", 1)
-         for p in ("commercial", "risk_management", "financial_reporting", "regulatory_capital")},
+        # Read from the configuration by prefix, not from a list spelled out
+        # here. Naming the four classes in code meant a fifth added to
+        # `application.yaml` never reached the engine, which then refused it as
+        # unknown — the configuration and the code disagreeing about the
+        # vocabulary, with the configuration losing silently. The UI route that
+        # offers these classes already reads them this way.
+        {key[len("risk.purpose_ranks."):]: cfg.get_int(key, 1)
+         for key in cfg.as_dict() if key.startswith("risk.purpose_ranks.")},
         _tier_map(cfg, "risk.review_months", {1: 12, 2: 18, 3: 24, 4: 36}))
     # Authorisation. The segregation policy reads the evidence chain, so the
     # record that proves what happened is the record that decides who may act
