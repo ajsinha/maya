@@ -2,6 +2,7 @@
 # change on every run, and committing them would make each demo a diff.
 warrant-training.json
 warrant-execution.json
+refusal-*.json
 *.tex
 *.pdf
 *.aux

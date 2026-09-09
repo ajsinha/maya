@@ -451,10 +451,22 @@ def equation(latex: str, expression: str, *, limit: int = 420) -> str:
 
 def table(rows: Iterable[Iterable[Any]], *, header: Iterable[str],
           spec: str) -> str:
-    """A booktabs table, escaped."""
-    head = " & ".join(rf"\textbf{{{latex_escape(str(h))}}}" for h in header)
-    body = " \\\\\n".join(
-        " & ".join(latex_escape(str(c)) for c in row) for row in rows)
+    """A booktabs table. **Cells are rendered, not escaped** — see below.
+
+    Escaping here as well as at the call site was double-escaping: a cell
+    already passed through `latex_escape` came out as
+    `merton\\textbackslash{}\\_inputs`, and an author-written header like
+    `$R^2$` or `PD \\%` had its own markup escaped into literal dollars and
+    backslashes. Both rendered as visible rubbish in the PDF, and both compiled
+    cleanly — a document that builds and reads wrong is worse than one that
+    fails.
+
+    So the contract is one-way and explicit: **the caller escapes anything that
+    came from data** (a URN, a feature name, an obligor) with `latex_escape`,
+    and writes LaTeX directly when it means LaTeX.
+    """
+    head = " & ".join(rf"\textbf{{{h}}}" for h in header)
+    body = " \\\\\n".join(" & ".join(str(c) for c in row) for row in rows)
     return "\n".join([
         rf"\begin{{center}}\begin{{tabular}}{{{spec}}}", r"\toprule",
         head + r" \\", r"\midrule", body + r" \\", r"\bottomrule",
