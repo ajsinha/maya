@@ -303,7 +303,9 @@ class ReferenceIndex:
                 ("serving_attestation", "id", "serving_attestation",
                  "an engine's statement of what it served", False),
                 ("model_limitation", "id, reference", "limitation",
-                 "a stated limitation of this version", True)):
+                 "a stated limitation of this version", True),
+                ("model_assumption", "id, reference", "assumption",
+                 "a stated assumption of this version", True)):
             for row in self.db.query(
                     f"SELECT {columns} FROM {table} WHERE model_version_id = :v",
                     {"v": version_id}):

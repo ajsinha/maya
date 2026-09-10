@@ -34,6 +34,7 @@ MODEL_DEVELOPER = {
     # know. Withdrawing a limitation makes the register say less than it did,
     # so it is not theirs.
     "limitation:read", "limitation:record",
+    "assumption:read", "assumption:record",
     "feature:read", "feature:define", "feature:materialise", "feature:assemble",
     "feature:contract", "validation:read", "finding:read", "evidence:read",
     # A finding can be owned by whoever has to fix it, and the first line does
@@ -83,6 +84,7 @@ VALIDATOR = READ_PERMISSIONS | {
     # Withdrawing a limitation makes the register say less than it did about an
     # immutable version, so it is the second line's, not the first's.
     "limitation:withdraw",
+    "assumption:withdraw",
     "feature:seal", "featureset:seal",
     # Writing a gate and putting it in force are different acts, so a validator
     # drafts and the model risk manager publishes. A rule authored and enacted
@@ -102,6 +104,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     # Withdrawing a limitation makes the register say less than it did about an
     # immutable version, so it is the second line's, not the first's.
     "limitation:withdraw",
+    "assumption:withdraw",
     "baseline:import", "baseline:plan", "regime:activate",
     "policy:publish",
     # Cutting the pack a committee is minuted against sits with the second line,

@@ -540,6 +540,30 @@ CREATE INDEX IF NOT EXISTS ix_model_domain ON model (domain);
 CREATE INDEX IF NOT EXISTS ix_model_tier ON model (tier);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_model_urn ON model (urn);
 
+CREATE TABLE IF NOT EXISTS model_assumption (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    statement TEXT NOT NULL,
+    monitor_id TEXT,
+    basis TEXT DEFAULT '' NOT NULL,
+    owner TEXT DEFAULT '' NOT NULL,
+    materiality TEXT DEFAULT 'moderate' NOT NULL,
+    mitigation TEXT DEFAULT '' NOT NULL,
+    review_due DOUBLE,
+    finding_id TEXT,
+    overlay_id TEXT,
+    raised_by TEXT NOT NULL,
+    created_at DOUBLE NOT NULL,
+    withdrawn_at DOUBLE,
+    withdrawn_by TEXT,
+    withdrawal_reason TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_assumption_model_version_id_reference ON model_assumption (model_version_id, reference);
+
 CREATE TABLE IF NOT EXISTS model_edge (
     id TEXT NOT NULL,
     from_model TEXT NOT NULL,
@@ -564,6 +588,12 @@ CREATE TABLE IF NOT EXISTS model_limitation (
     statement TEXT NOT NULL,
     bound_key TEXT,
     basis TEXT DEFAULT '' NOT NULL,
+    owner TEXT DEFAULT '' NOT NULL,
+    materiality TEXT DEFAULT 'moderate' NOT NULL,
+    mitigation TEXT DEFAULT '' NOT NULL,
+    review_due DOUBLE,
+    finding_id TEXT,
+    overlay_id TEXT,
     raised_by TEXT NOT NULL,
     created_at DOUBLE NOT NULL,
     withdrawn_at DOUBLE,

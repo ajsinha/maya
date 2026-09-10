@@ -1376,12 +1376,73 @@ MODEL_LIMITATION = Table(
     # limitation is stated and not enforced, which is a fact worth counting.
     Column("bound_key", Text),
     Column("basis", Text, nullable=False, server_default=text("''")),
+    # SS1/23 1.2(c)(ii) asks for more than the statement. `raised_by` is who
+    # wrote it down; `owner` is who is accountable for it, and they are
+    # routinely not the same person — a validator raises what an owner then
+    # carries. `materiality` is why one of forty limitations is read first.
+    # `mitigation` is what compensates when the limitation bites, and its
+    # emptiness is the interesting value: a material limitation with no
+    # mitigation is a risk nobody has decided about.
+    Column("owner", Text, nullable=False, server_default=text("''")),
+    Column("materiality", Text, nullable=False, server_default=text("'moderate'")),
+    Column("mitigation", Text, nullable=False, server_default=text("''")),
+    # When somebody must look again. A limitation is stated against an
+    # immutable version, but the world it describes moves.
+    Column("review_due", Double),
+    # The finding raised about this, and the overlay compensating for it. Both
+    # null by default: an unlinked limitation is the common case and the links
+    # exist so that "what are we doing about it" is a query rather than an
+    # interview.
+    Column("finding_id", Text),
+    Column("overlay_id", Text),
     Column("raised_by", Text, nullable=False),
     Column("created_at", Double, nullable=False),
     Column("withdrawn_at", Double),
     Column("withdrawn_by", Text),
     Column("withdrawal_reason", Text),
     Index("uq_model_limitation_model_version_id_reference", "model_version_id", "reference", unique=True),
+)
+
+
+# What a model RELIES ON being true, as against what it cannot do.
+#
+# The distinction is not pedantry and it decides where a row belongs. A
+# limitation is a boundary of competence: "LGD is a flat haircut and is not
+# modelled". An assumption is a claim about the world the model reads: "the
+# sector mix is stable". The difference that matters to a supervisor is that an
+# assumption CAN STOP BEING TRUE while the model is running, and a limitation
+# cannot — it is simply what the model is.
+#
+# So the sibling question is different too. The limitation register counts what
+# is enforced against what is only written down. This one counts what is
+# MONITORED against what is merely believed: `monitor_id` names the monitor
+# that tests whether the assumption still holds, and null is the value worth
+# having, because it is the count of things this platform believes on nobody's
+# authority and would not notice becoming false.
+MODEL_ASSUMPTION = Table(
+    "model_assumption", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text, nullable=False),
+    Column("reference", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("statement", Text, nullable=False),
+    # The monitor that TESTS this assumption, if one does. Null means the
+    # assumption is believed and unwatched.
+    Column("monitor_id", Text),
+    Column("basis", Text, nullable=False, server_default=text("''")),
+    Column("owner", Text, nullable=False, server_default=text("''")),
+    Column("materiality", Text, nullable=False, server_default=text("'moderate'")),
+    Column("mitigation", Text, nullable=False, server_default=text("''")),
+    Column("review_due", Double),
+    Column("finding_id", Text),
+    Column("overlay_id", Text),
+    Column("raised_by", Text, nullable=False),
+    Column("created_at", Double, nullable=False),
+    Column("withdrawn_at", Double),
+    Column("withdrawn_by", Text),
+    Column("withdrawal_reason", Text),
+    Index("uq_model_assumption_model_version_id_reference", "model_version_id", "reference", unique=True),
 )
 
 

@@ -73,6 +73,10 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     # first-line act; withdrawing one is not, because it makes the
     # register say less than it did.
     "limitation:read", "limitation:record", "limitation:withdraw",
+    # The assumption register is the sibling of the above and its scopes
+    # split the same way: stating what a model relies on is a first-line
+    # act, and withdrawing it makes the register say less than it did.
+    "assumption:read", "assumption:record", "assumption:withdraw",
     "assist:read", "assist:register", "assist:generate", "assist:attest",
     "baseline:read", "baseline:import", "baseline:plan",
     "regime:read", "regime:activate",
@@ -125,6 +129,7 @@ MODEL_SCOPED: FrozenSet[str] = frozenset({
     "parameter:record", "parameter:approve",
     "overlay:propose", "overlay:approve", "overlay:measure",
     "limitation:record", "limitation:withdraw",
+    "assumption:record", "assumption:withdraw",
 })
 
 # Deliberately NOT in the set above: `assist:generate` and `assist:attest`. A
