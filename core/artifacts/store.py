@@ -35,6 +35,7 @@ import time
 from pathlib import Path
 from typing import Any, BinaryIO, Dict, Iterator, Optional
 
+from core.artifacts.introspect import introspect
 from core.artifacts.common import (CHUNK, EXECUTES_ON_LOAD, FORMAT_MEANING,
                                    FORMATS, MAX_BYTES, ArtifactError)
 from core.artifacts.sniff import HEAD, contradicts, looks_like
@@ -128,13 +129,15 @@ class ArtifactStore:
                 staged.unlink(missing_ok=True)
                 self._remember(path, fmt)
                 return self._describe(resolved, path.stat().st_size, fmt,
-                                      stored=False)
+                                      stored=False,
+                                      facts=introspect(path, fmt))
             path.parent.mkdir(parents=True, exist_ok=True)
             staged.replace(path)
             self._remember(path, fmt)
             logger.info("stored %s artifact %s (%.1f MB)", fmt, resolved[:23],
                         size / 1e6)
-            return self._describe(resolved, size, fmt, stored=True)
+            return self._describe(resolved, size, fmt, stored=True,
+                                  facts=introspect(path, fmt))
         finally:
             staged.unlink(missing_ok=True)
 
@@ -188,8 +191,9 @@ class ArtifactStore:
 
     def describe(self, digest: str) -> Dict[str, Any]:
         path = self.require(digest)
-        return self._describe(digest, path.stat().st_size, self._format_of(path),
-                              stored=False)
+        fmt = self._format_of(path)
+        return self._describe(digest, path.stat().st_size, fmt, stored=False,
+                              facts=introspect(path, fmt or ""))
 
     @staticmethod
     def _remember(path: Path, fmt: str) -> None:
@@ -244,9 +248,16 @@ class ArtifactStore:
 
     @staticmethod
     def _describe(digest: str, size: int, fmt: Optional[str],
-                  stored: bool) -> Dict[str, Any]:
+                  stored: bool, facts: Optional[Dict[str, Any]] = None
+                  ) -> Dict[str, Any]:
         return {
             "digest": digest, "size": size, "format": fmt,
+            # What the bytes say about themselves, as against what the uploader
+            # declared. Read once, here, rather than by the execution engine at
+            # invoke time — a version whose schema disagrees with its graph has
+            # otherwise been approved, aliased and warranted before anything
+            # notices.
+            "introspection": facts or {},
             "uri": f"maya://artifact/{digest}",
             "means": FORMAT_MEANING.get(fmt or "", ""),
             "executes_on_load": fmt in EXECUTES_ON_LOAD,

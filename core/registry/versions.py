@@ -27,6 +27,7 @@ from core.domain import (FitProcedure, OutputKind, ParameterKind, ParameterObjec
 from core.evidence import EvidenceEngine
 from core.ports import LifecycleGate
 from core.registry.catalogue import ModelCatalogue
+from core.artifacts.introspect import disagreement as artifact_disagreement
 from core.registry.common import RegistryError
 from core.registry.specs import schema_of
 from db import VersionRepository
@@ -448,6 +449,22 @@ class VersionService:
                     f"that load path executes code, so the two cannot differ. "
                     f"Declare '{held['format']}', or upload the artifact you "
                     f"meant")
+
+            # And whether the declared INPUT SCHEMA can be true of these bytes.
+            # Checked here, beside the format check and for the same reason:
+            # the store has read the artifact, and the alternative is the
+            # execution engine noticing at invoke time — by which point the
+            # version has been approved, aliased and warranted.
+            problem = artifact_disagreement(
+                kernel_spec.get("input_schema") or [],
+                held.get("introspection") or {})
+            if problem:
+                raise RegistryError(
+                    f"this version's declared input schema cannot be true of "
+                    f"the artifact it names: {problem}. Correct the schema, or "
+                    f"upload the graph you meant — a version whose schema "
+                    f"disagrees with its bytes runs until the first call and "
+                    f"then fails in production")
 
         kernel = self.kernel_of(kernel_spec, artifact_digest)
         self._refuse_unexplained_parameters(kernel)
