@@ -91,7 +91,7 @@ class InferenceLog:
     """Records what a model was asked and answered, at a rate somebody chose."""
 
     def __init__(self, repo, registry, classification=None, key: str = "",
-                 sampler=None):
+                 sampler=None, holds=None):
         self.repo, self.registry = repo, registry
         # Where the retention comes from. Without it every row takes the
         # default, and the estate view says how many are doing so — a retention
@@ -103,6 +103,10 @@ class InferenceLog:
         # personal data under a name that stops anybody worrying about it.
         self.key = key
         self._roll = sampler or random.random
+        # The one control that overrides this one. Checked INSIDE the deletion
+        # rather than beside it, because a hold a retention job can race is not
+        # a hold.
+        self.holds = holds
 
     # ---------------------------------------------------------------- record
     def record(self, urn: str, *, principal: str,
@@ -253,8 +257,19 @@ class InferenceLog:
         moment = now if now is not None else time.time()
         dropped = 0
         by_class: Dict[str, int] = {}
+        withheld: Dict[str, int] = {}
         for row in self.repo.many():
             if (row.get("retain_until") or 0) > moment:
+                continue
+            if self.holds is not None and self.holds.held(
+                    artifact_class="inference", model_id=row.get("model_id")):
+                # A legal hold beats a retention period, and it is the only
+                # thing in this platform that beats anything. Counted rather
+                # than silently skipped: a record kept past its retention
+                # BECAUSE of a hold is a different fact from one nobody
+                # deleted, and only one of them is somebody's decision.
+                key = row.get("classification") or "internal"
+                withheld[key] = withheld.get(key, 0) + 1
                 continue
             self.repo.remove(id=row["id"])
             dropped += 1
@@ -262,13 +277,20 @@ class InferenceLog:
             by_class[key] = by_class.get(key, 0) + 1
         return {
             "dropped": dropped, "by_classification": by_class,
-            "detail": (f"{dropped} inference record(s) reached the end of "
-                       f"their retention and were deleted. Deleted rather than "
-                       f"marked: a retention period enforced by a column "
-                       f"somebody could select around is not a retention period"
-                       if dropped else
-                       "no inference record has reached the end of its "
-                       "retention"),
+            "withheld_under_legal_hold": sum(withheld.values()),
+            "withheld_by_classification": withheld,
+            "detail": (
+                (f"{dropped} inference record(s) reached the end of their "
+                 f"retention and were deleted. Deleted rather than marked: a "
+                 f"retention period enforced by a column somebody could select "
+                 f"around is not a retention period"
+                 if dropped else
+                 "no inference record has reached the end of its retention")
+                + (f". {sum(withheld.values())} were past their retention and "
+                   f"were KEPT, because a legal hold covers them — which is a "
+                   f"different fact from nobody having deleted them, and the "
+                   f"only direction this platform lets a control be overridden"
+                   if withheld else "")),
         }
 
     # --------------------------------------------------------------- posture

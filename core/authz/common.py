@@ -87,6 +87,13 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     "regime:read", "regime:activate",
     "scheduler:read", "scheduler:run",
     "evidence:read",
+    # A legal hold stops things being deleted, and it is the one control here
+    # that overrides another. Its own permission rather than an existing one:
+    # placing it is neither a model act nor an evidence act — it is the firm
+    # answering a matter — and reusing `principal:manage` for it would put
+    # retention policy behind an account-administration gate, where nobody in
+    # legal or compliance would think to look for it.
+    "hold:place",
     # The running process's own log. A read and nothing more: the viewer
     # cannot change the level, cannot clear the buffer and cannot write a
     # line. The evidence chain records what was DECIDED; the log records what

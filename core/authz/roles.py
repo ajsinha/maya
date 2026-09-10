@@ -98,6 +98,9 @@ VALIDATOR = READ_PERMISSIONS | {
     "assist:generate", "assist:attest",
 }
 MODEL_RISK_MANAGER = VALIDATOR | {
+    # The second line owns the interface to legal and compliance,
+    # so it places holds. Reading them needs only `evidence:read`.
+    "hold:place",
     "risk:assess", "version:approve", "alias:move",
     "feature:certify", "warrant:revoke", "model:retire",
     # Approves the record, and signs the second-line half of the attestation.

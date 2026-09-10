@@ -71,6 +71,7 @@ from core.concurrency import IdempotencyStore
 from core.execution.inference import InferenceLog
 from core.execution.quotas import GrantQuotas
 from core.classification import Classification
+from core.retention import LegalHolds, RetentionSchedule
 from core.registry.comparison import VersionComparison
 from core.assist.monitoring import AssistMonitoring
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
@@ -132,6 +133,7 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
+                LegalHoldRepository,
                 ParallelObservationRepository, ParallelRunRepository,
                 VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
@@ -713,6 +715,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     data_classification = Classification(registry, features,
                                          parameters=parameters)
 
+    # A matter that stops things being deleted — the one control here that
+    # overrides the platform's own deletion, which is why the inference log
+    # asks it from inside its own expiry rather than beside it.
+    legal_holds = LegalHolds(LegalHoldRepository(db), evidence, registry)
+    retention = RetentionSchedule(worm=getattr(evidence, "anchors", None),
+                                  holds=legal_holds)
+
     # What a model was asked and answered. The digest is the default and the
     # values are the exception, because content carries personal data — so this
     # table has a sampling rate, a retention period and a classification, and
@@ -720,7 +729,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     inference = InferenceLog(
         InferenceRepository(db), registry,
         classification=data_classification,
-        key=cfg.get("inference.digest_key", ""))
+        key=cfg.get("inference.digest_key", ""),
+        holds=legal_holds)
 
 
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
@@ -918,6 +928,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "version_comparison": version_comparison,
                            "idempotency": idempotency,
                            "inference": inference,
+                           "legal_holds": legal_holds,
+                           "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
