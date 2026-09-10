@@ -69,6 +69,7 @@ class JobContext:
     lifecycle_profiles: Any = None
     canaries: Any = None
     break_glass: Any = None
+    idempotency: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -478,6 +479,21 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def sweep_idempotency(ctx: "JobContext") -> Dict[str, Any]:
+    """Drop idempotency records nobody can still be waiting on.
+
+    The table is a copy of every successful response a caller asked to be able
+    to retry, and without this it becomes a permanent one. The retention window
+    is the honest bound: a client still retrying a day later is retrying
+    something it should be told about rather than quietly handed an old answer
+    to.
+    """
+    if ctx.idempotency is None:
+        return {"dropped": 0,
+                "detail": "no idempotency store is wired into this instance"}
+    return ctx.idempotency.sweep(now=ctx.now)
+
+
 def expire_break_glass(ctx: "JobContext") -> Dict[str, Any]:
     """Close every emergency elevation whose window has ended.
 
@@ -635,6 +651,11 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("idempotency.sweep",
+        "drops idempotency records nobody can still be waiting on",
+        "the table is a copy of every successful response somebody asked to be "
+        "able to retry, and without this it becomes a permanent one",
+        sweep_idempotency),
     Job("break_glass.expire",
         "closes every emergency elevation whose window has ended",
         "expiry is derived on every read so the control does not depend on "
