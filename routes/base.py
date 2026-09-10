@@ -210,6 +210,15 @@ STATUS: Dict[str, int] = {
     # rather than 404 for that reason. (`no_fibre` is mapped already, further
     # down, and mapping it twice would silently keep only the last one.)
     "no_class": 422,
+    # The waiver register. Every one of these is the caller being told what a
+    # waiver has to have before it is one — a bounded window, a reason, and
+    # something being done instead — so they are 422 rather than 400, except
+    # the two that are about the row's state and the one that is a lookup.
+    "unknown_control": 422, "no_rationale": 422,
+    "no_compensating_control": 422, "no_expiry": 422,
+    "no_such_waiver": 404, "no_reason": 422,
+    "proposer_may_not_approve": 409, "role_already_signed": 409,
+    "already_closed": 409,
     "nothing_to_fit": 422, "parameters_not_reachable": 422,
     "not_obtained_from_data": 422,
     "warrant_required": 422, "unknown_warrant": 404,

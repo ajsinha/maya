@@ -82,6 +82,7 @@ class Maya:
         # where nothing could count them.
         self.limitations = models.Limitations(self)
         self.assumptions = models.Assumptions(self)
+        self.waivers = models.Waivers(self)
         self.features = features.Features(self)
         self.featuresets = features.Featuresets(self)
         self.warrants = warrants.Warrants(self)

@@ -62,6 +62,7 @@ class JobContext:
     finding_workflow: Any = None
     evidence: Any = None
     risk: Any = None
+    waivers: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -404,7 +405,32 @@ def anchor_evidence_chain(ctx) -> Dict[str, Any]:
                           else "already anchored at this head")}
 
 
+def expire_waivers(ctx: "JobContext") -> Dict[str, Any]:
+    """Close every waiver whose window has ended.
+
+    Mandatory expiry is only a control if something acts on the date. A waiver
+    that expired and that nothing marked expired is indistinguishable on every
+    screen from one still in force — the date was always there, and nobody read
+    it. That is the exact failure the requirement's phrase *no indefinite
+    exceptions* is about, arriving by the back door.
+    """
+    if ctx.waivers is None:
+        return {"expired": [], "count": 0,
+                "detail": "no waiver register is wired into this instance"}
+    out = ctx.waivers.expire_due(now=ctx.now, actor=ctx.actor)
+    return {**out,
+            "detail": (f"{out['count']} waiver(s) expired: "
+                       f"{', '.join(out['expired'])}" if out["count"]
+                       else "no waiver reached its end date")}
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("waivers.expire",
+        "closes every control waiver whose window has ended",
+        "mandatory expiry is only a control if something acts on the date; a "
+        "waiver that expired and that nothing marked expired reads on every "
+        "screen exactly like one still in force",
+        expire_waivers),
     Job("evidence.anchor",
         "writes the evidence chain head outside the database, and checks the "
         "chain still agrees with every head written before",

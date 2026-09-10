@@ -211,6 +211,18 @@ class ReferenceIndex:
                 row["status"] == "active"))
 
         for row in self.db.query(
+                "SELECT id, reference, control, status FROM control_waiver "
+                "WHERE model_id = :m", {"m": model_id}):
+            active = row["status"] == "active"
+            found.append(Reference(
+                "control_waiver", row["id"], row["reference"],
+                (f"a control this model is deliberately not meeting "
+                 f"({row['control']})" if active
+                 else f"a waiver of {row['control']}, {row['status']} — the "
+                      f"record that the control was relaxed once"),
+                active))
+
+        for row in self.db.query(
                 "SELECT id, name, status FROM overlay WHERE model_id = :m",
                 {"m": model_id}):
             found.append(Reference(

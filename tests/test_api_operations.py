@@ -104,6 +104,10 @@ class TestSchedulerApi:
         body = client.get("/api/v1/scheduler", auth=people["d.raman"]).json()
         keys = {j["job"] for j in body["jobs"]}
         assert {"attestation.lapsed", "monitoring.stalled", "overlays.expire",
+                # A waiver that expired and that nothing marked expired reads
+                # on every screen exactly like one still in force, so
+                # mandatory expiry needs something that acts on the date.
+                "waivers.expire",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
