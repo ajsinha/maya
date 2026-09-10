@@ -39,7 +39,10 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
+from core.docs.review import DocumentReview
 from core.execution.composite import CompositeWarrants
+from core.features.request_time import RequestTimeInputs
+from core.platform.configuration import Configuration
 from core.overlays.disclosure import Disclosure
 from core.parameters.elicitation import Elicitations
 from core.execution.shadow import ShadowTraffic
@@ -174,6 +177,7 @@ from db import (ServingAttestationRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
+                DocumentCommentRepository,
                 ElicitationRepository, ElicitationResponseRepository,
                 RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
@@ -738,6 +742,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     shadow = ShadowTraffic(registry, warrants, warrants.grants, uses=uses,
                            invocations=invocations)
 
+    # Comments on a compiled document, and never an edit. Every sentence cites
+    # a node; editing the prose would break the citation without changing the
+    # record, producing a document that reads correctly and is traceable to
+    # nothing. The fix for a wrong sentence is a fix to the record.
+    document_review = DocumentReview(
+        DocumentCommentRepository(db), DocumentRepository(db), evidence,
+        registry=registry)
+
     # A panel asked a question, and the spread that is the answer. Individual
     # responses are kept per round and never overwritten: a response revised in
     # place erases the movement between rounds, and the movement is the only
@@ -1123,6 +1135,24 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         vendor=vendor_assessments, search=document_search,
         monitoring=monitoring)
 
+    # The inputs the caller brings, and the guarantees that do not reach
+    # them. Point-in-time, bitemporal, replay and skew all stop at a value that
+    # arrived with the question — and the skew check's silence over them reads
+    # exactly like finding no skew, which is why the gap is counted.
+    request_time = RequestTimeInputs(registry, features, skew=skew)
+
+    # What a firm may configure, what it may not, and the line between them.
+    # Applying a configuration is a governance act with a diff and an author,
+    # not a deployment step: one that applied silently would let somebody
+    # change every gate in the estate with a git push and no approval. A plan
+    # that LOOSENS needs a named approver, because the whole risk of
+    # configuration-as-code is that a tightening and a loosening travel in the
+    # same pull request.
+    configuration = Configuration(
+        evidence, policies=policies, profiles=warrant_profiles,
+        monitoring_defaults=monitoring_defaults, appetite=appetite,
+        retraining=retraining, registry=registry, config=cfg)
+
     scheduler = Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
@@ -1193,6 +1223,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "campaigns": campaigns,
                            "runs": runs,
                            "elicitations": elicitations,
+                           "request_time": request_time,
+                           "configuration": configuration,
+                           "document_review": document_review,
                            "disclosure": disclosure,
                            "composite_warrants": composite_warrants,
                            "shadow": shadow,
