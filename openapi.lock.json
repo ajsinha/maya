@@ -862,6 +862,22 @@
         ]
       }
     },
+    "/api/v1/champion-challenger": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:challenger",
+          "query:champion",
+          "query:material",
+          "query:now",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/change-classification": {
       "get": {
         "body": [],
@@ -2551,6 +2567,28 @@
         ]
       }
     },
+    "/api/v1/model-health": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-health/components": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/model-relations": {
       "get": {
         "body": [],
@@ -2969,6 +3007,18 @@
         ]
       }
     },
+    "/api/v1/monitoring-provenance": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:monitor_id"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/monitors": {
       "get": {
         "body": [],
@@ -3031,6 +3081,26 @@
         ],
         "responses": [
           "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/ingest": {
+      "post": {
+        "body": [
+          "computed_by!",
+          "method",
+          "now",
+          "sample_size",
+          "value!",
+          "window_end!",
+          "window_start!"
+        ],
+        "parameters": [
+          "path:monitor_id!"
+        ],
+        "responses": [
+          "201",
           "422"
         ]
       }
@@ -5237,6 +5307,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/model-health": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

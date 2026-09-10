@@ -75,6 +75,7 @@ class JobContext:
     adaptive: Any = None
     discovery: Any = None
     approvals: Any = None
+    health: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -760,6 +761,54 @@ def reconcile_uses(ctx: "JobContext") -> Dict[str, Any]:
     return ctx.uses.sweep(now=ctx.now, actor=ctx.actor)
 
 
+def health_declining(ctx: "JobContext") -> Dict[str, Any]:
+    """Models whose health has fallen into the bottom band.
+
+    Two rules keep this from becoming noise, and both are about what a health
+    score is *for*.
+
+    It does not raise on thin coverage. A model scoring poorly because almost
+    nothing about it is measurable does not need a finding saying its health is
+    poor; it needs monitors, and `monitoring.stalled` already says so. Raising
+    here as well would put two findings on one absence and make the health
+    programme look like it was working.
+
+    And it names the caps rather than the number. A band that is `poor` because
+    the validation lapsed is a different piece of work from one that is `poor`
+    because three monitors are failing, and a finding whose description is a
+    score tells the person who has to fix it nothing they can act on.
+    """
+    if not (ctx.health and ctx.findings):
+        return {"skipped": "health score or findings not available"}
+    report = ctx.health.across_the_estate(now=ctx.now)
+    raised, thin = [], []
+    for row in report["models"]:
+        if row["band"] != "poor":
+            continue
+        if row["coverage"] < 0.5:
+            # Reported, never raised: this is a model nobody has looked at, and
+            # the finding it deserves is about its monitoring rather than its
+            # health.
+            thin.append(row["urn"])
+            continue
+        title = "Model health in the bottom band"
+        model = ctx.registry.require(row["urn"])
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        reasons = "; ".join(c["why"] for c in row["caps"]) or (
+            "the weighted mean over the measured components fell below the "
+            "bottom threshold with nothing capping it")
+        ctx.findings.raise_finding(
+            model["id"], "Medium", title, model.get("owner") or ctx.actor,
+            description=(f"This model scores {row['score']} over "
+                         f"{row['coverage']:.0%} of the weight, and its band is "
+                         f"{row['band']}: {reasons}."),
+            category="model_health", source="self_identified", actor=ctx.actor)
+        raised.append(row["urn"])
+    return {"raised": raised, "count": len(raised), "thin_coverage": thin,
+            "detail": report["detail"]}
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
     Job("immaterial.conditions",
         "checks every immaterial model against the conditions that would mean "
@@ -791,6 +840,14 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "screen exactly like one still in force — and a firm reporting model "
         "use under a permission it no longer holds is not a housekeeping error",
         expire_regulatory_approvals),
+    Job("health.declining",
+        "raises a finding on every model whose health band is poor on at least "
+        "half the weight, and reports the ones too thinly measured to judge",
+        "a health score nobody acts on is a colour on a dashboard; and the two "
+        "cases have to be separated, because a model scoring badly because it "
+        "is badly behaved and one scoring badly because nothing about it is "
+        "measurable need opposite work and print the same",
+        health_declining),
     Job("discovery.backlog",
         "reports discovery candidates nobody has triaged",
         "a sweep that runs and is never triaged is worse than no sweep: the "

@@ -150,6 +150,11 @@ class TestSchedulerApi:
                 # A firm reporting model use under a permission it no longer
                 # holds is not a housekeeping error.
                 "approvals.expire",
+                # A health score nobody acts on is a colour on a dashboard —
+                # and this is the one job that has to distinguish a model
+                # scoring badly because it is behaving badly from one scoring
+                # badly because nothing about it is measurable.
+                "health.declining",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
