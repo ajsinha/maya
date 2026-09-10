@@ -34,6 +34,7 @@ from fastapi.templating import Jinja2Templates
 
 from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
+from core.lifecycle.changes import ChangeClassifier
 from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
@@ -474,6 +475,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         features.views, findings=findings, registry=registry,
         models_using=_models_using_view)
 
+    # Material or not, computed from the two versions rather than asked of
+    # somebody who has an opinion about how much work revalidation is.
+    changes = ChangeClassifier(registry, evidence, validation=validation)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -614,6 +619,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "invocations": invocations,
                            "use_reconciliation": use_reconciliation,
                            "pipeline_health": pipeline_health,
+                           "changes": changes,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
