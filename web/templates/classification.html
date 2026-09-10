@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Data classification — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>What each model is allowed to be seen by</h1>
+<div class="accent"></div>
+
+<p class="lead small">A feature has been able to say it is confidential since the
+catalogue was written. It was free text, it appeared on one screen, and
+<strong>nothing read it</strong> — not the model that consumed it, not the
+document compiled from that model, not one control anywhere. A field that
+describes a legal obligation and reaches no decision is a field that will be
+wrong, because nothing ever depends on it being right.</p>
+
+<p class="small text-muted">A model's class is <strong>derived, never
+declared</strong>. The classes are totally ordered, so propagation is a maximum,
+and a maximum is the one rule about this nobody can argue with: a thing built out
+of parts is not less sensitive than its most sensitive part. Declaring a model
+<em>higher</em> is allowed — an output can be more disclosive than any single
+input, which is most of what re-identification is — and declaring it lower is
+refused, naming the feature that forces the floor.</p>
+
+<div class="row g-3 mb-3">
+  {% for level in levels %}
+  <div class="col"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.by_level.get(level, 0) }}</div>
+    <div class="stat-l">{{ level }}</div>
+    <div class="small text-muted">{{ meaning[level] }}</div>
+  </div></div></div>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.pii else '' }}">{{ report.pii }}</div>
+    <div class="stat-l">read personal data</div>
+    <div class="small text-muted">a separate fact from the level: a confidential
+      model on personal data and one on market data are the same class and
+      different legal objects</div>
+  </div></div></div>
+  {# The number this screen exists for. A class derived from nothing is not a
+     class; it is the default wearing one. #}
+  <div class="col-md-6"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.untraceable else 'evidence-ok' }}">{{ report.untraceable | length }}</div>
+    <div class="stat-l">cannot be traced to any feature</div>
+    <div class="small text-muted">their level is derived from nothing, and
+      reporting the default for them would be reporting an assumption as a
+      finding</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every model, and what forces its class</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.</div>
+  {% if report.models %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Class</th><th>Declared</th><th>Personal</th>
+      <th>Forced by</th><th>Inputs</th>
+    </tr></thead>
+    <tbody>
+      {% for row in report.models %}
+      <tr>
+        <td class="mono small">
+          <a href="/model/{{ row.urn.split('/')[-1] }}">{{ row.urn }}</a></td>
+        <td class="small">
+          <span class="{{ 'evidence-bad' if row.classification == 'restricted' else '' }}">
+            {{ row.classification }}</span></td>
+        <td class="small text-muted">{{ row.declared or '—' }}</td>
+        <td class="small">{% if row.pii %}<span class="evidence-bad">yes</span>
+          {% else %}<span class="text-muted">no</span>{% endif %}</td>
+        <td class="small mono">
+          {% if row.forced_by %}{{ row.forced_by | join(', ') }}
+          {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td class="small text-muted">
+          {% if row.bound %}{{ row.bound | length }} bound{% endif %}
+          {% if row.declared_only %}{{ ', ' if row.bound }}{{ row.declared_only | length }} matched by name{% endif %}
+          {% if row.unresolved_inputs %}
+            <span class="evidence-bad">, {{ row.unresolved_inputs | length }} unresolved</span>
+          {% endif %}
+          {% if not row.bound and not row.declared_only and not row.unresolved_inputs %}—{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">No model is registered.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>Bound</strong> came from a featureset version's resolved bindings,
+    which name the feature — that is exact. <strong>Matched by name</strong> came
+    from a version's declared input fields matching the catalogue, which is a
+    guess and is reported as one. <strong>Unresolved</strong> inputs match nothing
+    at all and are not in the join.
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What a document inherits</div>
+  <div class="card-body small text-muted">
+    A document is at least as sensitive as the most sensitive model it describes,
+    by the same rule. <strong>The surprising answer is the useful one:</strong> a
+    board pack compiled across the estate inherits the join of every model in it,
+    which is nearly always higher than whoever asked for it expected. That is not
+    a fault in the arithmetic — it is what aggregation does, and it is exactly why
+    the classification of a summary is worth computing rather than assuming.
+    {% if report.models %}
+    On this estate that comes to
+    <strong>{{ documents.classification }}</strong>{% if documents.pii %}, and it
+    aggregates personal data{% endif %}.
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
