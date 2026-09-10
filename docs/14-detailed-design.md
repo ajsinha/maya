@@ -979,6 +979,34 @@ And results are **scoped like everything else**. A search that ignored who is as
 the contents of models a reader cannot see, one query at a time — the same leak the model page's scope check
 prevents, arriving through a search box.
 
+### 11.7 Looking at what arrived from outside
+
+The requirement names five checks, and the honest answer is different for each. Three of them need
+something this platform deliberately does not ship, so the port is defined, the platform reports whether one
+is wired, and where none is it **says so rather than showing a tick** — the same stance taken about the WORM
+backing (§21.2) and the toxicity metric (§15.4), and the consistency is the argument.
+
+| Check | What MAYA does |
+|---|---|
+| **opcode analysis** | Answered by **exclusion**, which is stronger. The artifact format vocabulary contains no `pickle`, so there is nothing to opcode-scan. A scanner deciding whether an opcode sequence is malicious is in an arms race; a format that cannot execute is not in one, and that decision was made earlier |
+| **secrets** | Done, offline, completely — the same shapes the CI gate looks for, over the bytes that arrived |
+| **licences** | Done. Declared licences against the firm's allow-list, which is configuration because a platform with an opinion about somebody else's legal position is one nobody's counsel will accept |
+| **malware** | A port. No AV engine ships here and none is pretended |
+| **dependency vulnerabilities** | A port. Matching a manifest against known vulnerabilities needs a feed, which needs egress this platform does not assume |
+
+**One copy of the patterns.** `tools/ci/scan_secrets.py` and the upload scanner both read
+`core/scanning/patterns.py`, and neither owns it. Two copies of a credential pattern list is two answers to
+*is this a secret*, and the copy that goes stale is always the one somebody is relying on.
+
+**Quarantine, not block.** A blocked upload is one somebody retries around — a different filename, a
+different route, next week. A quarantined one is on the record, attached to the thing it is about, with the
+reason a reviewer needs. Nothing is discarded: a scanner that deletes its own evidence leaves nobody able to
+check whether it was right, and the verdict travels on the evidence node.
+
+Two smaller rules. **A finding never quotes the credential it found** — a hit carrying the secret is a second
+copy of it, in a table more people can read than the file it came from. And **a scanner that falls over
+quarantines**: an upload nothing could check is not an upload something checked and cleared.
+
 ## 12. The feature platform
 
 `core/features/` is the largest package here: eighteen modules. This section covers the parts a reader has
@@ -2201,8 +2229,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 257 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 318 modules in one
+the 261 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 322 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
