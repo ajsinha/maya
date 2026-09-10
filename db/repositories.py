@@ -593,6 +593,11 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class LegalHoldRepository(Repository):
+    TABLE, ORDER = "legal_hold", "reference"
+    JSON = ("classes",)
+
+
 class VendorAssessmentRepository(Repository):
     TABLE, ORDER = "vendor_assessment", "reference"
 

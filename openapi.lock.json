@@ -2135,6 +2135,43 @@
         ]
       }
     },
+    "/api/v1/legal-holds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "classes",
+          "matter!",
+          "owner!",
+          "scope_id",
+          "scope_kind"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/legal-holds/{reference}/lift": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/lifecycle": {
       "get": {
         "body": [],
@@ -3500,6 +3537,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/retention": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

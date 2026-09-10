@@ -674,6 +674,25 @@ CREATE TABLE IF NOT EXISTS inference (
 CREATE INDEX IF NOT EXISTS ix_inference_model ON inference (model_id, at);
 CREATE INDEX IF NOT EXISTS ix_inference_retention ON inference (retain_until);
 
+CREATE TABLE IF NOT EXISTS legal_hold (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    matter TEXT NOT NULL,
+    scope_kind TEXT NOT NULL,
+    scope_id TEXT,
+    classes TEXT DEFAULT '[]' NOT NULL,
+    owner TEXT NOT NULL,
+    placed_by TEXT NOT NULL,
+    placed_at DOUBLE PRECISION NOT NULL,
+    state TEXT DEFAULT 'active' NOT NULL,
+    lifted_at DOUBLE PRECISION,
+    lifted_by TEXT,
+    lift_reason TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_legal_hold_state ON legal_hold (state, scope_kind);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_legal_hold_reference ON legal_hold (reference);
+
 CREATE TABLE IF NOT EXISTS model (
     id TEXT NOT NULL,
     urn TEXT NOT NULL,
