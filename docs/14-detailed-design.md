@@ -828,6 +828,40 @@ validation finding stop the model rather than generate an email.
 shared upstream failure raises one finding per consuming model — **M-8**, answered at the notification layer
 instead ([§16](#16-reporting-baseline-and-the-operational-jobs)).
 
+### 10.4 Validating a model you did not build
+
+SR 26-2 VII and SS1/23 2.6 say the same thing and it is the thing firms get wrong: **you cannot validate
+what you cannot see, so what is validated is your use of the model, not the model.** The commonest failure
+is not laziness — it is a bank asking the vendor for a validation report, receiving a thorough one, and
+filing it. That report describes the vendor's development on the vendor's data.
+
+`core/validation/vendor.py` keeps three things strictly apart.
+
+**Due diligence** is what the firm found out, as a closed checklist — closed because one somebody can add a
+line to is one that quietly loses the line nobody wanted to answer. Every item records **who must discharge
+it**:
+
+| Discharged by the vendor | Discharged by the firm |
+|---|---|
+| `conceptual_basis`, `development_data`, `vendor_validation`, `limitations` | `own_outcomes`, `own_population`, `customisation`, `exit` |
+
+**A vendor attestation is evidence that the vendor said something, and nothing else.** It carries the date
+it was stated and the version it covers; it goes stale after a year, and it goes stale immediately if the
+installed version is not the one it covers. It **cannot discharge a `firm` item** — concluding anything but
+`not_fit` while one is open is refused, because that would be validating the vendor's work rather than your
+use of it. `not_fit` needs no such evidence: deciding *not* to use something requires less than deciding to.
+
+**Customisation** is what the firm changed, and *nothing was changed* is a recorded answer distinct from
+nobody having said. A customised vendor model is neither the vendor's model nor the firm's, and both parties
+will say so when it goes wrong.
+
+**And the failure this is really about is the version change.** A vendor upgrades and the firm finds out
+from a release note, or does not. The vendor version string identifies what the vendor calls it; the
+artifact digest identifies what is *running*, and the two part company at every silent upgrade — so a change
+in **either** reopens the assessment and puts every vendor statement outstanding again. What the firm
+established about its own book survives, because that did not stop being true when the vendor shipped. An
+assessment of a model that has since been replaced is an assessment of nothing.
+
 ## 11. Documentation
 
 Three separate things, deliberately not one thing with a flag.
@@ -2099,8 +2133,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 251 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 312 modules in one
+the 252 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 313 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

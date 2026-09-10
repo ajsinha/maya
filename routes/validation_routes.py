@@ -16,6 +16,7 @@ from pydantic import Field
 
 from core.validation.common import TIER_VERDICT_MEANING, TIER_VERDICTS
 from core.authz.common import same_person
+from core.validation.vendor import VendorAssessments
 from routes.base import Body, Routes
 
 
@@ -49,6 +50,32 @@ class RecodeIn(Body):
     tolerance: float = 1e-9
     model_source: str = "unstated"
     recode_source: str = "unstated"
+
+
+class VendorIn(Body):
+    urn: str
+    vendor: str
+    product: str
+    version: str
+    artifact_digest: Optional[str] = None
+
+
+class VendorItemIn(Body):
+    item: str
+    answer: str
+    evidence: List[str] = Field(default_factory=list)
+    stated_at: Optional[float] = None
+    covers_version: Optional[str] = None
+
+
+class VendorVersionIn(Body):
+    version: str
+    artifact_digest: Optional[str] = None
+
+
+class VendorConcludeIn(Body):
+    conclusion: str
+    note: str
 
 
 class ConcludeIn(Body):
@@ -149,6 +176,98 @@ class ValidationRoutes(Routes):
                 validation_id, body.outcome, body.conditions,
                 tier_verdict=body.tier_verdict, tier_note=body.tier_note,
                 actor=self.actor(who)))
+
+        @self.app.get(f"{api}/vendor-checklist", tags=["validation"])
+        def vendor_checklist(request: Request):
+            """The due-diligence items, and who must establish each.
+
+            Read `must_be_established_by_the_firm`. Those are the items no
+            vendor statement can discharge, and they are the whole of SR 26-2
+            VII: you cannot validate what you cannot see, so what is validated
+            is your **use** of the model. A vendor's validation report describes
+            the vendor's development on the vendor's data, and filing it
+            validates somebody else's work.
+            """
+            self.principal(request)
+            return VendorAssessments.checklist()
+
+        @self.app.get(f"{api}/vendor-assessments", tags=["validation"])
+        def vendor_assessments(request: Request, reference: str = ""):
+            """Vendor assessments across the estate, or one in detail."""
+            self.authorise(request, "validation:read")
+            vendors = self.ctx["vendor_assessments"]
+            if not reference:
+                return self.guard(lambda: vendors.across_the_estate())
+            return self.guard(lambda: vendors.status(reference))
+
+        @self.app.post(f"{api}/vendor-assessments", status_code=201,
+                       tags=["validation"])
+        def open_vendor_assessment(request: Request, body: VendorIn):
+            """Start a due-diligence assessment, every item outstanding."""
+            model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "validation:open", model=model)
+            return self.guard(lambda: self.ctx["vendor_assessments"].open(
+                body.urn, vendor=body.vendor, product=body.product,
+                version=body.version, artifact_digest=body.artifact_digest,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/vendor-assessments/{{reference}}/items",
+                       tags=["validation"])
+        def answer_vendor_item(request: Request, reference: str,
+                               body: VendorItemIn):
+            """Record what was found out, or what the vendor said.
+
+            A vendor item needs the date the vendor stated it: a statement with
+            no date is one nobody can tell is current.
+            """
+            vendors = self.ctx["vendor_assessments"]
+            assessment = self.guard(lambda: vendors.require(reference))
+            model = self.ctx["registry"].by_id(assessment["model_id"])
+            who = self.authorise(request, "validation:record", model=model)
+            return self.guard(lambda: vendors.answer(
+                reference, body.item, body.answer, evidence=body.evidence,
+                stated_at=body.stated_at, covers_version=body.covers_version,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/vendor-assessments/{{reference}}/version",
+                       tags=["validation"])
+        def observe_vendor_version(request: Request, reference: str,
+                                   body: VendorVersionIn):
+            """What is installed now, against what was assessed.
+
+            A change in the version string **or** the artifact digest reopens
+            the assessment and puts every vendor statement outstanding again:
+            they were made about a release that is no longer installed, and an
+            assessment of a model that has since been replaced is an assessment
+            of nothing.
+            """
+            vendors = self.ctx["vendor_assessments"]
+            assessment = self.guard(lambda: vendors.require(reference))
+            model = self.ctx["registry"].by_id(assessment["model_id"])
+            who = self.authorise(request, "validation:record", model=model)
+            return self.guard(
+                lambda: vendors.observe_version(
+                    reference, version=body.version,
+                    artifact_digest=body.artifact_digest,
+                    actor=self.actor(who)))
+
+        @self.app.post(f"{api}/vendor-assessments/{{reference}}/conclude",
+                       tags=["validation"])
+        def conclude_vendor_assessment(request: Request, reference: str,
+                                       body: VendorConcludeIn):
+            """End the assessment.
+
+            Concluding anything but `not_fit` while the firm's own items are
+            open is refused — that would be validating the vendor's work rather
+            than your use of it. Deciding *not* to use something requires less
+            than deciding to.
+            """
+            vendors = self.ctx["vendor_assessments"]
+            assessment = self.guard(lambda: vendors.require(reference))
+            model = self.ctx["registry"].by_id(assessment["model_id"])
+            who = self.authorise(request, "validation:conclude", model=model)
+            return self.guard(lambda: vendors.conclude(
+                reference, body.conclusion, body.note, actor=self.actor(who)))
 
         @self.app.get(f"{api}/validation-plans", tags=["validation"])
         def validation_plan(request: Request, urn: str, semver: str,
