@@ -136,6 +136,10 @@ STATUS: Dict[str, int] = {
     # else, the other a request still running. Mapped HERE and not beside the
     # middleware, because a second status map is the drift this table exists to
     # prevent.
+    # Per-grant limits. 429 for all three: the caller did nothing wrong and
+    # the answer is *later*, which is what 429 means and what 403 does not.
+    "rate_limit_reached": 429, "quota_limit_reached": 429,
+    "cost_limit_reached": 429, "limit_not_positive": 422,
     "idempotency_key_reused": 409, "idempotency_in_flight": 409,
     "idempotency_key_too_long": 422,
     "precondition_failed": 412, "precondition_unevaluable": 428,

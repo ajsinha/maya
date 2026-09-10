@@ -62,6 +62,7 @@ from core.authz.breakglass import BreakGlass
 from core import concurrency
 from core.concurrency import IdempotencyStore
 from core.execution.inference import InferenceLog
+from core.execution.quotas import GrantQuotas
 from core.classification import Classification
 from core.registry.comparison import VersionComparison
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
@@ -643,6 +644,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
+    # What one grant may spend: a rate that protects the downstream system, a
+    # quota that protects the authorisation, a cost budget that protects the
+    # invoice. Checked before a descriptor is signed.
+    grant_quotas = GrantQuotas(warrants, invocations, evidence)
+    warrants.quotas = grant_quotas
+
     # What changed between two versions, as a diff a person reads. L-7 and
     # L-12 decide whether an alias MAY move; that is a different question.
     version_comparison = VersionComparison(
@@ -846,6 +853,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "version_comparison": version_comparison,
                            "idempotency": idempotency,
                            "inference": inference,
+                           "grant_quotas": grant_quotas,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
