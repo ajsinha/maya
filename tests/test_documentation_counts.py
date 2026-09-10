@@ -159,13 +159,33 @@ CLAIMS = {
         r"(\w+) execute; \w+ do not",
         r"(\w+) of twenty-one is the honest number",
         r"of which (\w+) are executable",
-        r"(\w+) are executable and enforcing"],
+        r"(\w+) are executable and enforcing",
+        # The paper's spellings. Every one of these was in the .tex while the
+        # .tex was unread.
+        r"(\w+) of the twenty-one stated laws execute",
+        r"implementation states twenty-one laws\. (\w+) execute",
+        # And the README's, which said sixteen against eighteen and was read
+        # by this test on every push without matching anything.
+        r"\*\*(\w+) run in the test suite\*\*"],
     # The other half of the same sentence, and it drifted with it: five became
     # three when `L-14` and `L-17` started running, in the same documents.
     "inert laws": [r"\*\*\w+ execute\. (\w+) do not\*\*",
                    r"\w+ execute; (\w+) do not",
                    r"the (\w+) that do not are named",
-                   r"twenty-one run; (\w+) do not"],
+                   r"twenty-one run; (\w+) do not",
+                   # The paper's four spellings of the same fact, which
+                   # disagreed with each other as well as with the code.
+                   r"for (\w+) of the twenty-one laws",
+                   r"while (\w+) are not, is the exact",
+                   r"(\w+) of twenty-one laws do not execute",
+                   r"(\w+) that do not run are named",
+                   # A sixth spelling, in the article's closing footer, which
+                   # said six while the article's own table said three.
+                   r"laws with the (\w+) that don't execute",
+                   # A seventh, mid-argument: "one of the five laws I list as
+                   # not executable further down" — which also named the wrong
+                   # law, since L-14 runs.
+                   r"one of the (\w+) laws I list as not executable"],
     "warrant laws": [r"all (\w+) warrant[- ]admissibility laws",
                      r"(\w+) warrant laws"],
     "gated modules": [r"gates on(?: the)? (\d+) modules",
@@ -192,6 +212,24 @@ CLAIMS = {
 # of itself. A docstring is documentation; there is no reason to exempt it.
 DOCUMENTS = (list((ROOT / "docs").rglob("*.md"))
              + list((ROOT / "content").rglob("*.md"))
+             # The LaTeX source of the research paper. It was NOT read for two
+             # milestones, and the comment above this list claimed it was —
+             # "across the documents, the research paper and two decks" — which
+             # was true of the markdown article and false of the .tex, because
+             # the glob is `*.md`.
+             #
+             # It is the document that then drifted, and it drifted on the one
+             # number whose whole point is not drifting: the paper gave the
+             # count of non-executing laws as five in its abstract, five in its
+             # reading guide and six three lines later, while its own table and
+             # tests/test_laws.py both said three. A paper arguing that a
+             # document implying every law is checked, when some are not, is
+             # THE failure the discipline prevents — and committing that failure
+             # about itself.
+             #
+             # A reviewer read the paper closely enough to find eight other
+             # things and did not find this. A glob would have.
+             + list((ROOT / "docs" / "research").rglob("*.tex"))
              + [ROOT / "README.md", ROOT / "config" / "application.yaml"]
              + [p for d in ("core", "routes", "db", "sdk", "tools")
                 for p in (ROOT / d).rglob("*.py")])
