@@ -245,6 +245,21 @@ class ReferenceIndex:
                     False))
 
         for row in self.db.query(
+                "SELECT id, reference, kind, enforcement, state "
+                "FROM approval_condition WHERE model_id = :m",
+                {"m": model_id}):
+            active = row["state"] == "active"
+            found.append(Reference(
+                "approval_condition", row["id"], row["reference"],
+                (f"a {row['enforcement']} condition on this model's approval "
+                 f"({row['kind']}) — deleting the model would remove the "
+                 f"control without anybody deciding to"
+                 if active else
+                 f"a discharged {row['kind']} condition, and the record that "
+                 f"this model was once approved only on terms"),
+                active))
+
+        for row in self.db.query(
                 "SELECT COUNT(*) AS n, SUM(CASE WHEN features IS NOT NULL "
                 "THEN 1 ELSE 0 END) AS held FROM inference "
                 "WHERE model_id = :m", {"m": model_id}):

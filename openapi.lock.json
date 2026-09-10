@@ -143,6 +143,62 @@
         ]
       }
     },
+    "/api/v1/approval-conditions": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "confirm_every_days",
+          "days!",
+          "kind!",
+          "parameters",
+          "rationale!",
+          "semver",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/approval-conditions/{reference}/confirm": {
+      "post": {
+        "body": [
+          "note"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/approval-conditions/{reference}/discharge": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/artifact-formats": {
       "get": {
         "body": [],
@@ -810,6 +866,15 @@
       }
     },
     "/api/v1/classifications": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/condition-kinds": {
       "get": {
         "body": [],
         "parameters": [],
