@@ -112,7 +112,7 @@ what the model was fitted on, which is a different event with a different contro
 | **It does not run models.** | It issues a signed, expiring, entitlement-bound **warrant**, and an execution engine acts on it. Governance is therefore never in the serving path, and a governed version move requires no consumer to redeploy. |
 | **Evidence, not assertion.** | Every governance claim is bound to the artefact it rests on, in an append-only hash-chained record. There is no separate audit log: two records of who did what are two records that can disagree, and segregation of duties is decided by reading the chain. |
 | **Refusals are the product.** | Every refusal names what was violated and what to do about it. The interesting behaviour of this platform is what it *will not* do. |
-| **Laws, not conventions.** | Twenty-one foundational laws are stated; **sixteen run in the test suite** and a failing one fails the build. The five that do not run are named, with the reason. |
+| **Laws, not conventions.** | Twenty-one foundational laws are stated; **eighteen run in the test suite** and a failing one fails the build. The three that do not run are named, with the reason. |
 | **Derived, not entered.** | The tier, the worklist, the estate summary, the documentation, the board pack: computed from the register. Nothing that can be derived is stored, because a stored derivation is one that can go stale. |
 
 ---

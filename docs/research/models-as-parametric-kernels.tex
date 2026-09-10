@@ -134,9 +134,17 @@ same boundary that decides where machine generation is admissible, which we rega
 consequence of the account.
 
 Each claim is marked with where it is enforced. Eighteen of the twenty-one stated laws execute against
-generated inputs; five do not, and are named with the reason in the place a reader would look for the
+generated inputs; three do not, and are named with the reason in the place a reader would look for the
 executable one. That marking is itself part of the argument: a law that is stated and not executed
 prevents nothing, and a document implying otherwise is the failure the discipline exists to prevent.
+
+The account has a reference implementation, and this revision names it. \textsc{Maya} is an open
+governance register of some 307 modules and 5{,}174 tests --- \url{https://github.com/ajsinha/maya} ---
+in which each of the four derivations is a
+module rather than a proposal, the twenty-one laws are a test file that fails a build, and the three that
+do not execute are listed in that file with their reasons. \Cref{sec:implementation} gives the numbers,
+the map from proposition to module, and --- more usefully --- the four places where building the thing
+changed what the paper says.
 \end{abstract}
 
 \section{Introduction}
@@ -151,6 +159,31 @@ weekly on transaction streams; an adaptive threshold that updates itself continu
 retrieval-augmented language model drafting regulatory narratives; a third-party credit score whose
 internals are contractually unavailable; a country-risk rating scheme whose weights are set by a
 committee; and several thousand rule sets and spreadsheets.
+
+\begin{remark}[On the supervisory sources, and how much this paper leans on them]\label{rem:sources}
+We cite two supervisory texts throughout: the United Kingdom's SS1/23 \cite{ss123}, in force since 2024,
+and a 2026 United States revision of the model risk management guidance, cited as SR~26-2 / OCC Bulletin
+2026-13 \cite{sr262}. A reader should treat the second differently from the first. It is recent, its
+status and final text may not yet be settled in the reader's jurisdiction or at the reader's date, and an
+earlier draft of this paper narrated it as the settled successor to SR~11-7 \cite{sr117} without saying
+so. That was an overreach and it is corrected here.
+
+It matters less to the argument than it may appear. The four declared-fact pathologies below are readable
+off SR~11-7 and SS1/23 alone: SR~11-7 has carried the aggregate-risk expectation, the
+independent-challenge requirement and the inventory obligation since 2011. And the definitional narrowing
+we use to motivate plural scope is a \emph{recurring} feature of model-risk definitions rather than a
+property of one revision --- SR~11-7's own ``quantitative method \ldots that applies statistical,
+economic, financial, or mathematical theories'' already sits awkwardly against a deterministic rule set
+that a firm nonetheless has to govern, and against a language model that governs nothing and drafts
+everything.
+
+Where a claim here depends specifically on the 2026 revision it is doing \emph{illustrative} and not
+load-bearing work, and where the reader's jurisdiction has a different text the substitution is
+mechanical. That it is mechanical is the point of \Cref{sec:declared}: a regime is an institution, and
+swapping one for another is a change of signature and sentences rather than a change of platform. A
+formalism whose argument collapsed when a supervisor revised a definition would be evidence against
+itself.
+\end{remark}
 
 These artefacts have essentially nothing in common at the level of implementation. Yet they are subject
 to a single normative obligation. Supervisory guidance requires an institution to maintain an inventory
@@ -264,7 +297,14 @@ adequacy and composability, together with the informative partiality of its meet
 reproducibility guarantee (\Cref{prop:asof,cor:repro}) --- the point-in-time \emph{condition} is
 folklore, and what appears not to be stated anywhere is that the correct ingest bound is
 $\min(\ell,a)$ and that this is what makes the read stable;
-(iv) \Cref{thm:noncomp} and its diagnosis of the copy map as the obstruction;
+(iv) the diagnosis in \Cref{thm:noncomp} of the copy map as the obstruction to compositional risk. We
+should be careful about what is new here and what is not. That aggregate model risk is not additive, that
+shared data, shared assumptions and shared methodology create concentration, and that model
+interdependency needs its own analysis are all established in practice and in the supervisory literature
+\cite{sr262,ss123}, and dependency-aware aggregation has a substantial quantitative-risk history. What we
+claim is the \emph{diagnosis}: that the obstruction is not a modelling difficulty to be approximated away
+but the comonoid copy map, that it is therefore structural, and that this yields a sharp statement of what
+a correct aggregate cannot be;
 (v) the application of semiring provenance to assurance evidence and, one layer across, to derived
 features, so that a data-engineering rule becomes a homomorphism (\Cref{prop:clockhom});
 (vi) \Cref{prop:freshness}, an elementary negative result that we record because the corresponding
@@ -283,10 +323,18 @@ it earns one, a worked example from banking. A reader who wants the argument wit
 follow the shaded material alone and lose nothing essential.
 
 Every formal claim carries a marker saying where it is enforced in the reference implementation. The
-marker names a test, a module, or --- for five of the twenty-one laws --- says plainly that the claim is
+marker names a test, a module, or --- for three of the twenty-one laws --- says plainly that the claim is
 stated and not executed. We regard the second kind of marker as the more important one, for the reason
-\Cref{sec:laws} gives: a document implying that every law is checked, while six are not, is the exact
+\Cref{sec:laws} gives: a document implying that every law is checked, while three are not, is the exact
 failure that section exists to prevent.
+
+We should record that an earlier draft of this paper failed that test about itself. It gave the number of
+non-executing laws as five in the abstract, five here and six three lines below, while the table in
+\Cref{sec:laws} and the test file both said three. A reviewer did not catch it; a count check over the
+paper now does, and it runs beside the law suite. We leave the episode in because the alternative --- a
+silent correction --- is precisely the class of repair this paper argues against, and because a foundation
+whose own document drifts from its own tests is making the argument for the discipline more effectively
+than the section that states it.
 
 \section{The kernel, and what the parameter object decides}\label{sec:kernel}
 
@@ -1812,6 +1860,104 @@ is that the dependency is mediated by an oracle which is itself not machine-prod
 condition is a property of institutions, and it is evaluated mechanically. \emph{Generation may cross the
 strata; acceptance may not.}
 
+\section{The implementation}\label{sec:implementation}
+
+An earlier draft described a ``reference implementation'' and named neither it nor its size, and a reviewer
+read the paper as having none. That was a fair reading of what was written, and this section is the repair.
+
+\subsection{What exists}
+
+\textsc{Maya} is an open model and AI lifecycle assurance register, at
+\url{https://github.com/ajsinha/maya}. It is not a companion artefact built to illustrate the paper; the paper
+is the account of what building it required. At the revision this text describes it is 307 Python modules
+that type-check cleanly, 80 tables in one typed schema from which both dialects' DDL is generated, 466
+locked HTTP paths, and 5{,}174 tests that run on every push.
+
+Each of the four derivations is a module rather than a proposal.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{0.30\linewidth}p{0.30\linewidth}p{0.34\linewidth}@{}}
+\toprule
+\textbf{Proposition} & \textbf{Module} & \textbf{What it refuses} \\
+\midrule
+\Cref{prop:classification}, trainability from the inhabitation of $P$ &
+\texttt{core/fibres/}, \texttt{core/domain/algebra.py} &
+a declared class. The class is computed at registration and a version whose declaration disagrees is
+refused, not corrected \\
+\Cref{prop:onerelation}, one schema order &
+\texttt{core/features/composition.py}, \texttt{core/registry/composition.py} &
+an alias move whose contract narrows an output, and a featureset slot whose candidates have no meet ---
+naming the slot \\
+\Cref{prop:asof}, the point-in-time read as an operator &
+\texttt{core/features/pit.py} &
+a training assembly reading $a$ rather than $\min(\ell,a)$; the bound is applied in one place and the
+saturation law is a property test over it \\
+\Cref{prop:universal}, provenance over $\Nat[X]$ &
+\texttt{core/evidence/semirings.py}, \texttt{core/evidence/engine.py} &
+nothing directly --- it is the traversal six governance questions are pushforwards along \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The twenty-one laws are \texttt{tests/test\_laws.py}. Eighteen execute against generated inputs; three do
+not and are listed \emph{in that file} with their reasons, and a test asserts that the list of
+non-executing laws in the file matches the set of laws with no runner. That is the arrangement
+\Cref{sec:laws} argues for, and it is why the count defect this revision corrects was a defect of the
+paper and not of the system.
+
+\subsection{Four things building it changed}
+
+The more useful report is not that the propositions are implemented but that four of them came back
+altered, and in each case the alteration is in the paper above.
+
+\paragraph{The $\min$ was wrong first.} \Cref{cor:repro} says the ingest bound is $\min(\ell,a)$. The
+implementation read $a$, which is the natural thing to write and produces a training assembly that is
+correct on the day and different a year later. It was not found by review; it was found by the saturation
+property test, which is the argument of \Cref{sec:laws} in one line.
+
+\paragraph{The meet had no caller for a year.} \Cref{prop:nomeet} presents the partiality of the meet as
+an informative refusal. In the implementation the order is called from three production paths and the meet
+from the law suite only. \Cref{sec:limits} records this, and it is worth restating here because it is the
+commonest way a formalisation flatters itself: an operation that exists is not an operation in use.
+
+\paragraph{The fibration forced its own base to be computed.} \Cref{prop:derivedbase} is the one result in
+this paper that we did not go looking for. It arrived as a start-up failure --- a class with no fibre ---
+and the choice was to make the family partial or to compute the index. The mathematics is unremarkable;
+that the constraint is invisible in the mathematics and decisive in the application is the paper's own
+thesis applied to its own machinery.
+
+\paragraph{The interaction premium is still not computed.} \Cref{thm:noncomp} and \Cref{cor:lax} say what
+a correct aggregate cannot be. The implementation now composes a \emph{chain} and authorises it as one
+unit, and its tier is the \emph{join} of its nodes' --- which is exactly what the theorem permits and no
+more. What composes is the order, not the number. A composite warrant can say \emph{this chain is at least
+tier 1 and every link resolves}; it cannot say \emph{this chain is 0.83 risky}, and the reason it cannot is
+the theorem rather than a backlog item. We regard this as the honest state and not as a partial result.
+
+\subsection{What the implementation does not establish}
+
+It shows the derivations are computable, that they refuse real inputs, and that the laws can be executed
+rather than asserted. It does not show that a system built this way is easier to construct, extend or
+operate than one built without it. There is no comparative study, no user evaluation, and no deployment at
+a supervised institution. \Cref{sec:limits} states this as the principal missing evidence and the
+implementation does not change it --- a large test suite is evidence that a thing is internally consistent,
+not that it is useful.
+
+Two further cautions. The system is written by the author of the paper, so it is a demonstration of
+sufficiency and not an independent replication. And its refusals are calibrated against a fictional but
+realistic estate rather than a real one; whether a refusal naming a slot with no meet is actionable to a
+model owner under time pressure is the fourth falsification criterion in \Cref{sec:limits}, and it remains
+open.
+
+\subsection{For the practitioner}
+
+The mathematical audience and the model-risk audience are close to disjoint, and a paper that serves both
+usually serves neither. The implementation carries a second register of the same content written for the
+second audience: nineteen help pages and eight walkthroughs that state each derivation in operational terms
+with no notation, and one --- \emph{What \textsc{Maya} refuses to do} --- that is the boundary of
+\Cref{sec:automation} written as nine refusals and what each protects. A reader who wants the argument and
+not the algebra should start there.
+
 \section{Related work}\label{sec:related}
 
 \paragraph{Categorical foundations for learning and probability.} The $\Para$ construction and its use in
@@ -1864,9 +2010,12 @@ both totality and free extension. The constraint is invisible in the mathematics
 application, which is the general shape of what this paper is trying to do.
 
 \paragraph{Specification over multiple logics, contracts, abstraction, lenses.} Institution theory is due to
-Goguen and Burstall \cite{goguen1992,diaconescu2008}; we are not aware of prior application to overlapping
-normative regimes over a shared asset inventory, nor of the use of the satisfaction condition as a
-consistency test for regulatory encodings. Assume--guarantee contracts are due to Benveniste and
+Goguen and Burstall \cite{goguen1992,diaconescu2008}. We have not found prior application to overlapping
+normative regimes over a shared asset inventory, nor use of the satisfaction condition as a consistency
+test for regulatory encodings --- but we hold that weakly. Multi-jurisdictional compliance, legal knowledge
+representation and normative-systems modelling are large literatures with their own institutional and
+deontic apparatus, and a reader who knows of the corresponding construction there should read our claim as
+\emph{we did not find it} rather than \emph{it is not there}. Assume--guarantee contracts are due to Benveniste and
 collaborators \cite{benveniste2018,incer2022}; we import the algebra unchanged and observe that operating
 boundaries and performance envelopes are exactly assumptions and guarantees. Sound abstraction
 \cite{cousot1977} supplies the criterion for when a summary document is trustworthy, and well-behaved lenses
@@ -1879,12 +2028,47 @@ reference implementation, which \Cref{sec:laws} records.
 subset of this territory but assume a homogeneous population of learned artefacts, which is the assumption
 \Cref{prop:classification} removes.
 
+\paragraph{Model inventory and model risk platforms.} The commercial category this paper is about is real
+and we should say what it does. Enterprise model risk platforms maintain an inventory, a tiering
+questionnaire, an approval workflow, a validation record and a findings register; ML platforms maintain
+experiments, a model registry, lineage, deployment and monitoring. Both are mature. The division is
+consistently the same one: the first family holds materiality, approved use, independent challenge and
+remediation but cannot see the artefact, and the second holds the artefact but has no representation of any
+of the four. Neither family is deficient at what it does, and the point of \Cref{prop:classification} is not
+that they should merge but that the merged thing needs a definition of ``model'' that neither currently has
+--- one under which a closed-form pricer, an elicited weight scheme and a foundation-model application are
+instances rather than exceptions. We are not aware of a platform in either family that derives the kind of
+an artefact rather than recording it.
+
+\paragraph{Dependency-aware risk aggregation.} \Cref{thm:noncomp} should be read against an existing
+literature and not as a discovery. Concentration risk, common-factor exposure and model interdependency
+analysis are standard in quantitative risk, and supervisory texts have asked for aggregate assessment
+accounting for shared assumptions, data and methodology since 2011 \cite{sr117,sr262,ss123}. Practitioners
+know aggregate model risk is not additive. What is contributed here is the reason: the obstruction is the
+comonoid copy map, so it is structural rather than a modelling difficulty that a better correlation
+assumption removes --- and consequently a sharp statement of the shape any correct aggregate must have,
+which is a constraint on candidate measures rather than a measure. Whether that constraint is worth its
+formalism against the existing concentration analyses is an empirical question we have not settled, and
+\Cref{sec:limits} says so.
+
+\paragraph{Multi-jurisdictional compliance and normative systems.} Overlapping regulatory scope over one
+population is not an unstudied problem. Deontic logic, normative multi-agent systems, legal knowledge
+representation and regulatory-technology work on cross-border obligation all address versions of it, with
+their own apparatus for conflict, derogation and jurisdiction. Our claim is narrower than it may read: we
+use institutions \cite{goguen1992} because the \emph{satisfaction condition} gives a falsifiability test
+for an encoding --- truth must be invariant under translation, so an encoding that fails it produces
+determinations nobody can defend --- and we have not found that particular use elsewhere. A reader who
+knows of it should read \Cref{sec:declared} as one construction among several rather than as the first.
+
 \section{Limitations and falsification}\label{sec:limits}
 
-\paragraph{No implementation study.} There is a reference implementation and its law suite runs, which is
-more than a conceptual paper usually has and much less than evidence. We have not shown that a system built
-on this foundation is easier to construct, extend or operate than one built without it. That is the principal
-missing evidence.
+\paragraph{No implementation \emph{study}.} \Cref{sec:implementation} describes the implementation, which
+is substantial and is not evidence of the claim that matters. A large test suite shows a thing is internally
+consistent; it does not show that a system built on this foundation is easier to construct, extend or
+operate than one built without it. There is no comparative study, no user evaluation and no deployment at a
+supervised institution, and the implementation is written by the author of the paper --- so it demonstrates
+sufficiency and not independent replication. That remains the principal missing evidence, and adding modules
+does not reduce it.
 
 \paragraph{The derivations still read declarations.} \Cref{sec:stilldeclared} states this for the trainability
 class, and the point generalises: the order compares declared schemas, the operator reads declared clocks,
@@ -1924,7 +2108,9 @@ prefer humans to retain them. We believe the argument is sound --- a rule that c
 be checked against that standard --- but note that it is exactly the sort of argument whose conclusion should
 be scrutinised in proportion to how much one likes it.
 
-\paragraph{What would falsify the account.} Five things. First, an artefact class in the domain that cannot be
+\paragraph{What would falsify the account.} Five things, and \Cref{sec:implementation} moves none of them
+--- which is worth stating, because an implementation is easily mistaken for an answer to criticism it does
+not address. First, an artefact class in the domain that cannot be
 presented as a $(P, \varphi)$ pair without distortion. Second, a governance question about fit that is
 genuinely not an instance of $\sqsubseteq$ --- which would show \Cref{prop:onerelation} to be a coincidence of
 four cases rather than a unification. Third, a fragility-sensitive aggregate risk measure that is nonetheless
@@ -1953,7 +2139,7 @@ homomorphism that has no exceptions.
 
 We have been equally concerned to say what does not derive. Aggregate risk cannot be compositional, and the
 obstruction is the copy map. Currency is not a semiring valuation, and no choice of constants makes it one.
-Five of twenty-one laws do not execute. And some facts --- the tiering rule, the regime encoding, the
+Three of twenty-one laws do not execute. And some facts --- the tiering rule, the regime encoding, the
 approval --- constitute the standard they would be checked against, and are therefore irreducibly
 declarations made by somebody accountable.
 
@@ -2066,6 +2252,10 @@ K.~Crawford. Datasheets for datasets. \emph{Communications of the ACM}, 64(12):8
 \bibitem{cube} Cube: a semantic layer for data applications. \url{https://cube.dev}.
 
 \bibitem{malloy} Malloy: an experimental language for data. \url{https://www.malloydata.dev}.
+
+\bibitem{sr117} Board of Governors of the Federal Reserve System and Office of the Comptroller of the
+Currency. \emph{Supervisory Guidance on Model Risk Management}. SR 11-7 / OCC Bulletin 2011-12,
+4 April 2011. The long-standing United States guidance; see \Cref{rem:sources}.
 
 \bibitem{sr262} Board of Governors of the Federal Reserve System, Federal Deposit Insurance
 Corporation, Office of the Comptroller of the Currency. \emph{Supervisory Guidance on Model Risk
