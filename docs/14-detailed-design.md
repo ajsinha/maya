@@ -1274,6 +1274,35 @@ across the estate inherits the join of every model in it, which is nearly always
 for it expected. That is not a fault in the arithmetic — it is what aggregation does, and it is precisely
 why the classification of a summary is worth computing rather than assuming.
 
+### 12.10 The value it was trained on, and the value it was given
+
+`core/features/serving.py` already holds engines to `L-17` at the level of **namespaces**. This is the level
+below — one value, one entity, one moment — and it is where the damaging kind of skew lives.
+
+**MAYA does not hold the online store**, and building one to satisfy this requirement would put the platform
+on the serving path, which `docs/10 §7` says in as many words it must never be. So the shape is the one used
+everywhere: the engine says what it served, the offline history comes from the register, and nothing is taken
+on the engine's word except the one thing only the engine knows.
+
+**Skew is almost never *the two stores disagree*.** It is that the two stores were asked different questions
+— the online one answered *what is the value now*, and training asked *what was knowable at the moment of the
+decision*. Those agree on most rows and diverge exactly on the ones where something arrived late, which is to
+say on the interesting ones. Having **two clocks** is what makes them separable:
+
+| Verdict | What happened | Severity |
+|---|---|---|
+| `agrees` | the served value is what was knowable then | — |
+| `future_value` | it describes a state of the world **after** the decision — it was not true yet. The classic point-in-time bug, and the most damaging kind because every backtest looked fine | high |
+| `late_arrival` | it **was** true then and did not *arrive* until afterwards, so the decision path could not legitimately have had it. The subtler leak, and the one an event-time-only store cannot tell from a correct answer | high |
+| `stale` | it matches an older offline value; the online store missed the update. The ordinary kind everybody already looks for | medium |
+| `unmatched` | it matches nothing the offline store holds. The two are computing different things | high |
+| `unknown` | the offline store has no row at all — a different fact from agreement | — |
+
+**A freshness SLA is not skew detection**, and conflating them is the common error. Freshness answers *how
+old is the online value*; only this comparison answers *is it the value the model was trained to expect*, and
+a perfectly fresh online store computing a subtly different feature passes every freshness check ever
+written.
+
 ## 13. Monitoring and telemetry
 
 ### 13.1 Telemetry is two streams, not one
@@ -2349,8 +2378,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 267 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 328 modules in one
+the 268 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 329 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

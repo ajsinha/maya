@@ -76,6 +76,7 @@ from core.classification import Classification
 from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
 from core.scanning.upload import DEFAULT_LICENCES
+from core.features.skew import SkewDetector
 from core.plugins import ExtensionPoints
 from core.retention import LegalHolds, RetentionSchedule
 from core.registry.comparison import VersionComparison
@@ -745,6 +746,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # to read models a reader cannot see, one query at a time.
     document_search = DocumentSearch(attachments, registry, authz=authz)
 
+    # The value the model was trained on against the value it was given. MAYA
+    # does not hold the online store — building one would put the platform on
+    # the serving path, which its own design says it must never be — so the
+    # engine says what it served and this compares it against BOTH offline
+    # clocks, which is what separates a stale value from a leaked one.
+    skew = SkewDetector(evidence)
+
     # Which parts of this platform a deployment may extend. Four axes are
     # open; four are closed because a plugin there would be a removal rather
     # than an extension, and each refusal names what the closure protects.
@@ -967,6 +975,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "document_search": document_search,
                            "upload_scanner": upload_scanner,
                            "extensions": extensions,
+                           "skew": skew,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
