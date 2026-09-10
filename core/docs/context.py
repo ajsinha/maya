@@ -34,13 +34,21 @@ class ContextBuilder:
 
     def __init__(self, registry, evidence, risk_repo=None, features=None,
                  validation=None, findings=None, monitoring=None, lifecycle=None,
-                 warrants=None, overlays=None, regimes=None, attachments=None):
+                 warrants=None, overlays=None, regimes=None, attachments=None,
+                 limitations=None, assumptions=None):
         self.registry, self.evidence = registry, evidence
         self.risk_repo, self.features = risk_repo, features
         self.validation, self.findings = validation, findings
         self.monitoring, self.lifecycle, self.warrants = monitoring, lifecycle, warrants
         self.overlays, self.regimes = overlays, regimes
         self.attachments = attachments
+        # The two registers the Assumptions lens is named after. It read only
+        # the version contract's numeric bounds, so for a model with no numeric
+        # contract — a vendor score, a generative assembly, an elicited
+        # scorecard — the section rendered NOTHING, and the structured
+        # statements a person had taken the trouble to record sat in a register
+        # the document could not see.
+        self.limitations, self.assumptions = limitations, assumptions
 
     def __call__(self, urn: str) -> Dict[str, Any]:
         # Which sections could not be READ, as distinct from which had nothing
@@ -88,6 +96,15 @@ class ContextBuilder:
             lambda: self.warrants.grants_for(urn), "warrants", default=[])
         ctx["overlays"] = self._optional(
             lambda: self.overlays.status(model["id"]), "overlays", default={})
+        semver = (version or {}).get("semver")
+        ctx["limitations"] = self._optional(
+            lambda: (self.limitations.for_version(urn, semver)
+                     if self.limitations and semver else None),
+            "limitations")
+        ctx["assumptions"] = self._optional(
+            lambda: (self.assumptions.for_version(urn, semver)
+                     if self.assumptions and semver else None),
+            "assumptions")
         ctx["attachments"] = self._optional(
             lambda: self.attachments.for_model(model["id"]), "attachments", default=[])
         ctx["attachment_status"] = self._optional(

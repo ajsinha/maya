@@ -194,3 +194,109 @@ class Versions:
         return self._maya.call("PUT", f"/models/{short(urn)}/aliases", json={
             "semver": semver, "environment": environment, "alias": alias,
             "justification": justification})
+
+
+class Limitations:
+    """What a version cannot do, stated where it can be counted.
+
+    The register had no client surface at all, so every case study in this
+    repository wrote its limitations into a free-text `diagnostics` blob on a
+    parameter set — where nothing can count them, compare them between two
+    versions, or answer the question the register exists for: *which of these
+    are enforced, and which are only written down?*
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def kinds(self) -> Dict[str, Any]:
+        """The four kinds and what each is for. Closed on purpose."""
+        return self._maya.call("GET", "/limitation-kinds")
+
+    def record(self, *, urn: str, semver: str, kind: str, statement: str,
+               basis: str = "", bound_key: Optional[str] = None,
+               owner: str = "", materiality: str = "moderate",
+               mitigation: str = "",
+               review_due: Optional[float] = None) -> Dict[str, Any]:
+        """State one against a version.
+
+        `bound_key` names the contract clause that enforces it, and is checked
+        against that version's own contract rather than accepted — a limitation
+        claiming an enforcement that does not exist reads as the safe case and
+        is not.
+        """
+        return self._maya.call("POST", "/limitations", json={
+            "urn": urn, "semver": semver, "kind": kind,
+            "statement": statement, "basis": basis, "bound_key": bound_key})
+
+    def for_version(self, urn: str, semver: str) -> Dict[str, Any]:
+        return self._maya.call("GET", "/limitations",
+                               params={"urn": urn, "semver": semver})
+
+    def across_the_estate(self) -> Dict[str, Any]:
+        """Every standing limitation on every model. No urn, on purpose: the
+        question this register exists for is an estate question."""
+        return self._maya.call("GET", "/limitations")
+
+    def withdraw(self, limitation_id: str, *, reason: str) -> Dict[str, Any]:
+        """Withdrawn, never deleted. The version is immutable, so what it was
+        understood to be is part of the record."""
+        return self._maya.call("POST", f"/limitations/{limitation_id}/withdraw",
+                               json={"reason": reason})
+
+
+class Assumptions:
+    """What a version relies on being true — the sibling of `Limitations`.
+
+    The distinction decides which register a statement belongs in, and it is
+    not a matter of taste. A limitation is a boundary of competence and cannot
+    stop being true. An assumption is a claim about the world the model reads
+    and **can stop being true while the model runs** — which is why this
+    register counts what is *monitored* rather than what is *enforced*.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def kinds(self) -> Dict[str, Any]:
+        """The five kinds and the four materialities."""
+        return self._maya.call("GET", "/assumption-kinds")
+
+    def record(self, *, urn: str, semver: str, kind: str, statement: str,
+               basis: str = "", monitor_id: Optional[str] = None,
+               owner: str = "", materiality: str = "moderate",
+               mitigation: str = "", review_due: Optional[float] = None,
+               finding_id: Optional[str] = None,
+               overlay_id: Optional[str] = None) -> Dict[str, Any]:
+        """State one against a version.
+
+        Send `monitor_id` where something actually tests the assumption. It is
+        checked against the monitors that exist AND against the model they are
+        on: an assumption watched by another model's monitor is unwatched, and
+        reads as watched.
+
+        `materiality` and `mitigation` are what make the register sortable. A
+        `material` assumption with no monitor and no mitigation is the row the
+        estate screen puts at the top, and it is not a documentation gap — it
+        is a decision nobody has taken.
+        """
+        return self._maya.call("POST", "/assumptions", json={
+            "urn": urn, "semver": semver, "kind": kind,
+            "statement": statement, "basis": basis, "monitor_id": monitor_id,
+            "owner": owner, "materiality": materiality,
+            "mitigation": mitigation, "review_due": review_due,
+            "finding_id": finding_id, "overlay_id": overlay_id})
+
+    def for_version(self, urn: str, semver: str) -> Dict[str, Any]:
+        return self._maya.call("GET", "/assumptions",
+                               params={"urn": urn, "semver": semver})
+
+    def across_the_estate(self) -> Dict[str, Any]:
+        """Every standing assumption on every model, worst read first."""
+        return self._maya.call("GET", "/assumptions")
+
+    def withdraw(self, assumption_id: str, *, reason: str) -> Dict[str, Any]:
+        """Withdrawn, never deleted — *we used to believe the sector mix was
+        stable* is exactly the sentence a post-mortem needs to find."""
+        return self._maya.call("POST", f"/assumptions/{assumption_id}/withdraw",
+                               json={"reason": reason})

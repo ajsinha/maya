@@ -45,6 +45,8 @@ fall behind again.
 | `maya.relations` | what a model derives from and what it feeds, and removing an edge |
 | `maya.artifacts` | put, get, verify a digest, where each is used |
 | `maya.parameters` | fit, record a fitted set, review it, provenance |
+| `maya.limitations` | what a version **cannot do**, and which of those a contract clause enforces rather than a person remembering |
+| `maya.assumptions` | what a version **relies on being true**, and which of those a monitor tests rather than the platform simply believing. The sibling of the above, and the difference is that an assumption can stop being true while the model runs |
 | `maya.assist` | register an AI capability, record or draft a generation, attest one — and a reviewer's automation-bias record. Tier C is refused, and self-attestation is refused |
 | `maya.rules` | the expression vocabulary, check, trial, publish a rule set, explain one |
 

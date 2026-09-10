@@ -483,6 +483,24 @@ class UIRoutes(Routes):
             return self.page(request, "limitations.html",
                              report=self.ctx["limitations"].across_the_estate())
 
+        # ----------------------------------------------------- assumptions
+        @self.app.get("/assumptions", response_class=HTMLResponse, tags=["ui"])
+        def assumptions_page(request: Request):
+            """Everything the estate is relying on being true.
+
+            The sibling of `/limitations`, and it answers the question that
+            register cannot: a limitation does not stop being true, and an
+            assumption does. So this screen counts what is WATCHED against what
+            is merely believed, and sorts the material-and-unwatched first —
+            because "most assumptions" is not "worst read".
+            """
+            if (r := self.page_gate(request, "assumption:read")) is not None:
+                return r
+            from core.assumptions import KIND_MEANING
+            return self.page(request, "assumptions.html",
+                             report=self.ctx["assumptions"].across_the_estate(),
+                             kinds=KIND_MEANING)
+
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
         def notifications_page(request: Request):

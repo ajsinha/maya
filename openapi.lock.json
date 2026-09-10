@@ -317,6 +317,63 @@
         ]
       }
     },
+    "/api/v1/assumption-kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/assumptions": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "basis",
+          "finding_id",
+          "kind!",
+          "materiality",
+          "mitigation",
+          "monitor_id",
+          "overlay_id",
+          "owner",
+          "review_due",
+          "semver!",
+          "statement!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/assumptions/{assumption_id}/withdraw": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:assumption_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/attachment-kinds": {
       "get": {
         "body": [],
@@ -3341,6 +3398,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/assumptions": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
