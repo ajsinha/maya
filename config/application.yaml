@@ -360,6 +360,20 @@ logging:
 # questions that are not code: whether this instance may reach the internet at
 # all, what of the register may leave the institution, how a non-deterministic
 # model's output is made reproducible, and who pays. See core/assist/providers.
+# Who built an artifact. MAYA verifies attestations and does not mint them:
+# signing belongs in a build system with keys a build system holds, and a
+# platform that signed artifacts would hold the key that could forge one.
+artifacts:
+  # Builder identities this firm trusts. Empty means any identity a wired
+  # verifier accepts — and with no verifier wired, every attestation reads as
+  # UNVERIFIED rather than as verified, which is the honest resting state.
+  trusted_builders: []
+  # Whether an artifact with unverified provenance may resolve. OFF by default
+  # and deliberately: a firm that has not wired a verifier in would otherwise
+  # find every model refusing on the day this shipped, which is how a security
+  # control gets turned off permanently in its first week.
+  require_provenance: false
+
 # Where a fit on sensitive data may run. Empty by default, and that is the
 # strict setting rather than the permissive one: an unlisted zone is treated as
 # handling no more than `internal`, so a confidential or restricted fit into an
