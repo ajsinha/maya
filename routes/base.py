@@ -399,6 +399,13 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # the semantic layer, saved views and the extracts taken from them
+    "unknown_entity": 422, "operator_not_admissible": 422,
+    "value_not_a_list": 422, "view_already_saved": 409,
+    "not_your_view": 403, "view_not_shared": 403, "unknown_view": 404,
+    # A format MAYA declines on purpose, separated from one that does not
+    # exist: the first is a decision with a reason and the second is a typo.
+    "format_refused": 422, "unknown_return": 404,
     # champion against challenger, and numbers computed elsewhere
     "no_shared_monitor": 409, "unknown_version": 404,
     "two_versions_required": 422, "computed_by_required": 422,

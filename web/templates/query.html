@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Query the register — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Query the register</h1>
+<div class="accent"></div>
+
+<p class="lead small">Every governance platform is eventually asked for database
+access so the BI team can build their own dashboards. Granting it is the fastest
+way to lose the register — and it never looks like a failure while it is
+happening.</p>
+
+<div class="card mb-3">
+  <div class="card-body small text-muted">
+    A tool pointed at the physical schema has to decide for itself what
+    <em>in force</em> means. <code>status = 'approved'</code> is the obvious
+    answer and it is wrong: a model can be approved and carry a blocking
+    finding, an expired attestation, a lapsed warrant. So a second definition of
+    the most important word in the register comes into existence, lives in a
+    dashboard nobody governs, disagrees with the platform — and is the one on
+    the slide. <strong>Handing out SQL is not a semantic layer; it is a database
+    credential with a nicer name.</strong>
+    <div class="mt-2">This layer publishes <strong>entities and fields</strong>,
+    never tables and columns. Every field marked <em>derived</em> is computed by
+    the same code the screens use. There is no box on this page that takes query
+    text, and there is no parameter for one.</div>
+  </div>
+</div>
+
+<form method="get" action="/query" class="card mb-3">
+  <div class="card-header">Ask</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label small" for="q-entity">Entity</label>
+        <select id="q-entity" name="entity" class="form-select form-select-sm" onchange="this.form.submit()">
+          {% for e in catalogue.entities %}
+            <option value="{{ e.entity }}" {{ 'selected' if e.entity == entity }}>{{ e.entity }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small" for="q-field">Field</label>
+        <select id="q-field" name="field" class="form-select form-select-sm">
+          <option value="">— no filter —</option>
+          {% for f in fields %}
+            <option value="{{ f.name }}" {{ 'selected' if f.name == field }}>{{ f.name }} ({{ f.type }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="q-operator">Is</label>
+        <select id="q-operator" name="operator" class="form-select form-select-sm">
+          {% for op, means in operators %}
+            <option value="{{ op }}" {{ 'selected' if op == operator }}>{{ means }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="q-value">Value</label>
+        <input id="q-value" name="value" value="{{ value }}" class="form-control form-control-sm">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-sm btn-primary w-100">Run</button>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if refusal %}
+<div class="alert alert-warning small">
+  <strong>{{ refusal.error }}</strong> — {{ refusal.detail }}.
+  {% if refusal.remediation %}<div class="mt-1">{{ refusal.remediation }}</div>{% endif %}
+</div>
+{% endif %}
+
+{% if result %}
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between">
+    <span>{{ result.returned }} row(s)</span>
+    <span class="small">
+      <a href="/api/v1/export-formats" class="text-muted">export formats</a>
+    </span>
+  </div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ result.detail }}.</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>{% for f in result.fields %}<th>{{ f }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in result.rows %}
+      <tr>{% for f in result.fields %}
+        <td class="small">{% if row[f] is none %}<span class="text-muted">—</span>{% elif row[f] is sameas true %}yes{% elif row[f] is sameas false %}no{% else %}{{ row[f] }}{% endif %}</td>
+      {% endfor %}</tr>
+    {% else %}
+      <tr><td colspan="{{ result.fields | length }}" class="text-muted">Nothing matched.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header">{{ selected.entity }} — {{ selected.grain }}</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ selected.describes }}</div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Field</th><th>Type</th><th>What it is</th><th>Where it comes from</th></tr></thead>
+    <tbody>
+    {% for f in selected.fields %}
+      <tr>
+        <td>{{ f.name }}</td>
+        <td class="small text-muted">{{ f.type }}</td>
+        <td class="small">{{ f.describes }}</td>
+        <td class="small text-muted">
+          {% if f.derived %}<span class="badge bg-secondary">derived</span> computed the way the screens compute it{% else %}stored{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Saved views</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    A saved view holds the <strong>query</strong> and never the rows. An author
+    whose scope reaches four legal entities shares a view; a reader scoped to
+    one opens it — and if the rows had been stored, that reader would now hold
+    three entities' worth of models because somebody clicked <em>share</em>.
+    Storing the query means the view re-runs under whoever opens it, so two
+    people running the same view legitimately see different numbers.
+  </div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Name</th><th>Entity</th><th>Owner</th><th>Shared</th><th>Last run</th></tr></thead>
+    <tbody>
+    {% for v in views.mine + views.shared %}
+      <tr>
+        <td><a href="/api/v1/saved-views/{{ v.id }}">{{ v.name }}</a>
+          <div class="small text-muted">{{ v.description }}</div></td>
+        <td class="small">{{ v.entity }}</td>
+        <td class="small text-muted">{{ v.owner }}</td>
+        <td class="small">{{ 'shared' if v.shared else 'private' }}</td>
+        <td class="small text-muted">{{ v.last_run_at | when if v.last_run_at else 'never' }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="text-muted">No saved views yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

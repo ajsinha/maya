@@ -39,6 +39,9 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.monitoring.adaptive import AdaptiveChange
+from core.reporting.returns import RegulatoryReturns
+from core.reporting.semantics import SemanticLayer
+from core.reporting.views import SavedViews
 from core.monitoring.challengers import ChampionChallenger
 from core.monitoring.external import ExternalObservations
 from core.monitoring.health import ModelHealth
@@ -154,7 +157,8 @@ from db import (ServingAttestationRepository,
                 VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
-                ScheduledRunRepository, SignatureRepository, SnapshotRepository,
+                SavedViewRepository, ScheduledRunRepository, SignatureRepository,
+                SnapshotRepository,
                 SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
@@ -950,6 +954,30 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                      lifecycle),
         appetite, registry, evidence)
 
+    # A read layer for the bank's own BI tools, and the one thing it must not
+    # be. Handing out SQL is not a semantic layer, it is a database credential
+    # with a nicer name: the first thing a dashboard does with table access is
+    # invent its own definition of "in force", which lives ungoverned and is
+    # the one on the slide. So this publishes entities and fields, computes
+    # every derived field with the same code the screens use, accepts no query
+    # text anywhere, and filters ROWS by the reader's scope rather than
+    # refusing the call.
+    semantics = SemanticLayer(db, registry, findings=findings,
+                              monitoring=monitoring, lifecycle=lifecycle)
+
+    # A saved view holds the QUERY and never the rows. Storing a result set
+    # would make sharing a view a disclosure nobody realised they were making:
+    # the author's scope reaches models the reader's does not.
+    saved_views = SavedViews(SavedViewRepository(db), semantics, evidence)
+
+    # Extracts for supervisory returns. MAYA extracts and does not file, and a
+    # field the register cannot answer is emitted empty and named — a plausible
+    # value in a box nobody knew the answer to is the one output here that gets
+    # sent to a supervisor.
+    regulatory_returns = RegulatoryReturns(
+        registry, validation=validation, findings=findings,
+        monitoring=monitoring, vendor=vendor_assessments)
+
     scheduler = Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
@@ -1055,6 +1083,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
                            "adaptive_change": adaptive_change,
+                           "semantics": semantics,
+                           "saved_views": saved_views,
+                           "regulatory_returns": regulatory_returns,
                            "model_health": model_health,
                            "challengers": challengers,
                            "external_monitoring": external_monitoring,
