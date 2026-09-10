@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  10 SEP 2026 12:43
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  10 SEP 2026 13:15
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1233,19 +1233,19 @@ Overfull \hbox (4.07509pt too wide) in paragraph at lines 1897--1897
 []|\T1/cmtt/m/n/10 core/evidence/semirings.py\T1/cmr/m/n/10 (-20) ,
  []
 
-[29] [30]
+[29] [30] [31]
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 1957.
+(Font)              using `T1/cmr/m/scsl' instead on input line 2007.
 
-[31] [32] [33] [34] [35] [36]
-Overfull \hbox (55.50258pt too wide) in paragraph at lines 2273--2280
+[32] [33] [34] [35] [36] [37]
+Overfull \hbox (55.50258pt too wide) in paragraph at lines 2329--2336
 \TS1/cmr/m/n/9 (-20) © \T1/cmr/m/n/9 (-20) 2026 Ashutosh Sinha \T1/cmtt/m/n/9 <
 ajsinha@gmail.com>\T1/cmr/m/n/9 (-20) . Li-censed un-der Cre-ative Com-mons At-
 tri-bu-tion^^UNonCommercial^^UNoDerivatives
  []
 
-[37{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+[38{/usr/share/texmf/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 (./models-as-parametric-kernels.aux)
  ***********
 LaTeX2e <2025-11-01>
@@ -1253,13 +1253,13 @@ L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `models-as-parametric-kernels.out' has not ch
 anged.
-(rerunfilecheck)             Checksum: 4737304D057F6B99879FE819E650EF23;11560.
+(rerunfilecheck)             Checksum: B05FC0403B3F34FA2642D218EFB75621;11859.
  ) 
 Here is how much of TeX's memory you used:
- 33529 strings out of 467533
- 661008 string characters out of 5422139
+ 33538 strings out of 467533
+ 661129 string characters out of 5422139
  1140710 words of memory out of 5000000
- 61065 multiletter control sequences out of 15000+600000
+ 61068 multiletter control sequences out of 15000+600000
  695707 words of font info for 444 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  116i,16n,121p,1025b,1036s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -1295,10 +1295,10 @@ super/sfti0900.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb><
 /usr/share/texmf/fonts/type1/public/cm-super/sfti1095.pfb></usr/share/texmf/fon
 ts/type1/public/cm-super/sftt0900.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sftt1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1095.pfb>
-Output written on models-as-parametric-kernels.pdf (37 pages, 829047 bytes).
+Output written on models-as-parametric-kernels.pdf (38 pages, 835937 bytes).
 PDF statistics:
- 1109 PDF objects out of 1200 (max. 8388607)
- 957 compressed objects within 10 object streams
- 237 named destinations out of 1000 (max. 500000)
- 129125 words of extra memory for PDF output out of 154059 (max. 10000000)
+ 1124 PDF objects out of 1200 (max. 8388607)
+ 971 compressed objects within 10 object streams
+ 243 named destinations out of 1000 (max. 500000)
+ 129133 words of extra memory for PDF output out of 154059 (max. 10000000)
 
