@@ -44,6 +44,9 @@ class FeatureIn(Body):
     composes: Optional[List[Any]] = None
     operations: Optional[List[Dict[str, Any]]] = None
     defaults: Optional[Dict[str, Any]] = None
+    #: What must be true of the values, checked on every
+    #: materialisation. A load that fails one is quarantined.
+    assertions: List[Dict[str, Any]] = Field(default_factory=list)
     ephemeral: bool = False
     ttl_days: Optional[float] = None
 

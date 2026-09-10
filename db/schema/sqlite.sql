@@ -373,6 +373,7 @@ CREATE TABLE IF NOT EXISTS feature (
     pii BOOLEAN DEFAULT 0 NOT NULL,
     protected_basis BOOLEAN DEFAULT 0 NOT NULL,
     proxy_risk TEXT DEFAULT 'none' NOT NULL,
+    assertions TEXT DEFAULT '[]' NOT NULL,
     defaults TEXT DEFAULT '{}' NOT NULL,
     shape TEXT DEFAULT '[]' NOT NULL,
     components TEXT DEFAULT '[]' NOT NULL,
@@ -451,6 +452,8 @@ CREATE TABLE IF NOT EXISTS feature_view_version (
     valid_time_column TEXT DEFAULT 'event_ts' NOT NULL,
     ingest_time_column TEXT DEFAULT 'ingest_ts' NOT NULL,
     row_count INTEGER DEFAULT 0 NOT NULL,
+    quarantined BOOLEAN DEFAULT 0 NOT NULL,
+    assertion_report TEXT DEFAULT '{}' NOT NULL,
     quality_report TEXT DEFAULT '{}' NOT NULL,
     materialised_at DOUBLE NOT NULL,
     PRIMARY KEY (id)

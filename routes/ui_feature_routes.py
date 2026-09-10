@@ -119,6 +119,11 @@ class DefinitionCheckIn(Body):
     shape: Any = None
     components: Optional[List[str]] = None
     defaults: Optional[Dict[str, Any]] = None
+    # What must be true of the values. Checkable here for the same reason
+    # `defaults` is: an impossible range or an empty set is refused at
+    # definition, and a draft that declares one should learn that before it is
+    # saved rather than after.
+    assertions: List[Dict[str, Any]] = Field(default_factory=list)
     # Composed only: the parents, in fold order, and this feature's own edits.
     composes: Optional[List[Any]] = None
     operations: Optional[List[Dict[str, Any]]] = None

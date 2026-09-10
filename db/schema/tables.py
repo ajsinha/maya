@@ -314,6 +314,13 @@ FEATURE = Table(
     Column("pii", Boolean, nullable=False, server_default=false()),
     Column("protected_basis", Boolean, nullable=False, server_default=false()),
     Column("proxy_risk", Text, nullable=False, server_default=text("'none'")),
+    # What must be TRUE of this feature's values, checked on every
+    # materialisation. A claim about the feature rather than about one view,
+    # because a null rate that is unacceptable in one table is unacceptable in
+    # the next — and an assertion attached to a view would have to be restated
+    # every time somebody built another one, which is how they stop being
+    # restated.
+    Column("assertions", Text, nullable=False, server_default=text("'[]'")),
     Column("defaults", Text, nullable=False, server_default=text("'{}'")),
     Column("shape", Text, nullable=False, server_default=text("'[]'")),
     Column("components", Text, nullable=False, server_default=text("'[]'")),
@@ -386,6 +393,13 @@ FEATURE_VIEW_VERSION = Table(
     Column("valid_time_column", Text, nullable=False, server_default=text("'event_ts'")),
     Column("ingest_time_column", Text, nullable=False, server_default=text("'ingest_ts'")),
     Column("row_count", Integer, nullable=False, server_default=text('0')),
+    # Whether every declared assertion held, and which did not. A version that
+    # failed one is QUARANTINED: it is written, recorded and readable — because
+    # deleting the evidence of a bad load is how nobody finds out what arrived
+    # — but nothing may pin it. A featureset that could bind a quarantined
+    # version would make the assertion advisory.
+    Column("quarantined", Boolean, nullable=False, server_default=false()),
+    Column("assertion_report", Text, nullable=False, server_default=text("'{}'")),
     Column("quality_report", Text, nullable=False, server_default=text("'{}'")),
     Column("materialised_at", Double, nullable=False),
     Index("uq_feature_view_version_feature_view_id_version", "feature_view_id", "version", unique=True),

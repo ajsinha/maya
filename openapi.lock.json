@@ -1016,6 +1016,7 @@
       },
       "post": {
         "body": [
+          "assertions",
           "business_definition",
           "components",
           "composes",
@@ -1066,6 +1067,7 @@
     "/api/v1/features/check": {
       "post": {
         "body": [
+          "assertions",
           "business_definition",
           "components",
           "composes",

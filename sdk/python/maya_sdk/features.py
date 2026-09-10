@@ -54,8 +54,22 @@ class Features:
                pii: bool = False, protected_basis: bool = False,
                shape: Any = None,
                components: Optional[List[str]] = None,
-               defaults: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+               defaults: Optional[Dict[str, Any]] = None,
+               assertions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         """A feature is an object with an owner and a lineage, not a column.
+
+        `assertions` are what must be TRUE of the values, checked on every
+        materialisation. Four kinds — `not_null`, `in_range`, `in_set`,
+        `unique` — each checkable against a column without knowing what the
+        feature means. The one worth declaring first is usually `in_range`,
+        because it is the one that catches a unit change: a rate arriving in
+        basis points instead of percent is still a number and every other check
+        the platform has passes it.
+
+        A load that fails an assertion is **quarantined** rather than rejected:
+        the rows are written and readable, because deleting the evidence of a
+        bad load is how nobody finds out what arrived — but nothing may pin
+        that version.
 
         `defaults` is the RETRIEVAL POLICY — how a missing value is filled, how
         the values are normalised, how a reading between two timestamps is
@@ -74,7 +88,8 @@ class Features:
             "source_system": source_system, "sensitivity": sensitivity,
             "pii": pii, "protected_basis": protected_basis,
             "shape": shape, "components": components,
-            "defaults": defaults or {}})
+            "defaults": defaults or {},
+            "assertions": assertions or []})
 
     def derive(self, *, name: str, expression: str, dtype: str = "numeric",
                description: str = "", evaluator: str = "internal",

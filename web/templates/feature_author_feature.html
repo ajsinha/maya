@@ -69,6 +69,30 @@
           <div><dt style="width:9rem">Defaults</dt>
                <dd class="mono">{{ feature.defaults }}</dd></div>
           {% endif %}
+          {# Shown whether or not there are any, because "no assertion is made
+             about this feature's values" is a fact about the feature and a
+             blank row would read as though the screen had nothing to say. #}
+          <div><dt style="width:9rem">Assertions</dt>
+               <dd>
+                 {% if feature.assertions %}
+                   {% for a in feature.assertions %}
+                     <div class="small"><span class="mono">{{ a.kind }}</span>
+                       {%- if a.kind == 'not_null' %} &middot; at most {{ '%.1f'|format(a.max_null_rate * 100) }}% null
+                       {%- elif a.kind == 'in_range' %} &middot; between {{ a.minimum }} and {{ a.maximum }}
+                       {%- elif a.kind == 'in_set' %} &middot; one of {{ a.allowed|join(', ') }}
+                       {%- elif a.kind == 'unique' %} &middot; at most {{ '%.1f'|format(a.max_duplicate_rate * 100) }}% duplicate
+                       {%- endif %}
+                       {% if a.note %}<span class="text-muted">&mdash; {{ a.note }}</span>{% endif %}
+                     </div>
+                   {% endfor %}
+                   <div class="small text-muted">Checked on every
+                     materialisation. A load that fails one is quarantined:
+                     recorded and readable, but nothing may pin it.</div>
+                 {% else %}
+                   <span class="text-muted">none declared &mdash; every load of
+                   this feature is accepted whatever arrives</span>
+                 {% endif %}
+               </dd></div>
           {% if feature.operations %}
           <div><dt style="width:9rem">Operations</dt>
                <dd class="mono">{{ feature.operations|join(', ') }}</dd></div>
