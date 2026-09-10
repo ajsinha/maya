@@ -221,6 +221,15 @@
         ]
       }
     },
+    "/api/v1/artifact-provenance": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/artifact-usage": {
       "get": {
         "body": [],
@@ -696,6 +705,20 @@
       "post": {
         "body": [],
         "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/bill-of-materials": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:fmt",
+          "query:semver!",
           "query:urn!"
         ],
         "responses": [
