@@ -3432,6 +3432,24 @@
         ]
       }
     },
+    "/api/v1/validations/{validation_id}/recode": {
+      "post": {
+        "body": [
+          "model!",
+          "model_source",
+          "recode!",
+          "recode_source",
+          "tolerance"
+        ],
+        "parameters": [
+          "path:validation_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validations/{validation_id}/replay": {
       "post": {
         "body": [
