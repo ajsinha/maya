@@ -663,3 +663,84 @@ AI_SPEND = Table(
     # and without this it is a full scan of every call ever made.
     Index("ix_ai_spend_capability", "capability_id", "spent_at"),
 )
+
+
+# A periodic activity, its population and the moment that population was fixed.
+#
+# The population is DERIVED at launch and then FROZEN, and the derivation is
+# kept beside it. A campaign whose population is a live query silently changes
+# size: a model retired mid-campaign turns 47 of 50 into 47 of 49 and the
+# completion figure goes UP without anybody doing anything, which is the one
+# number a campaign exists to produce. So completion is measured against the
+# frozen population, coverage against re-running the derivation, and the drift
+# between them is reported rather than resolved.
+CAMPAIGN = Table(
+    "campaign", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("title", Text, nullable=False),
+    Column("instruction", Text, nullable=False, server_default=text("''")),
+    # The structured query the population came from, kept so it can be re-run.
+    Column("derivation", Text, nullable=False, server_default=text("'{}'")),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    Column("due_at", Double),
+    Column("status", Text, nullable=False, server_default=text("'open'")),
+    Column("closed_at", Double),
+    Column("closed_by", Text),
+    Index("uq_campaign_reference", "reference", unique=True),
+)
+
+
+# One model's place in one campaign, and who it fell to.
+#
+# The assignee is derived from the register at launch — the model's own owner —
+# and never typed. A campaign with typed assignees is one that ends up assigned
+# to people who left, and the reassignment is recorded as an act rather than an
+# edit, because "who was this originally for" is the question asked when it was
+# not done.
+CAMPAIGN_ITEM = Table(
+    "campaign_item", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("campaign_id", Text, nullable=False),
+    Column("model_id", Text, nullable=False),
+    Column("urn", Text, nullable=False),
+    Column("assignee", Text, nullable=False),
+    Column("assigned_at", Double, nullable=False),
+    Column("state", Text, nullable=False, server_default=text("'outstanding'")),
+    Column("response", Text, nullable=False, server_default=text("''")),
+    Column("responded_by", Text),
+    Column("responded_at", Double),
+    Index("uq_campaign_item", "campaign_id", "model_id", unique=True),
+)
+
+
+# A proposal, which is not a model.
+#
+# It has no version, no artifact and nothing that can resolve it, and keeping it
+# in the model table would be the fastest way to turn a register into an
+# inventory of ideas. Triage answers three questions and the most valuable
+# answer is "this is not a model at all" — a register that admits everything is
+# one nobody can read.
+INTAKE_PROPOSAL = Table(
+    "intake_proposal", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("title", Text, nullable=False),
+    Column("description", Text, nullable=False, server_default=text("''")),
+    Column("proposed_by", Text, nullable=False),
+    Column("business_area", Text, nullable=False, server_default=text("''")),
+    Column("proposed_at", Double, nullable=False),
+    # What triage concluded, and on what facts. Held even when the answer is
+    # "not a model": a proposal declined and forgotten comes back next year.
+    Column("in_scope", Boolean),
+    Column("sourcing", Text),
+    Column("generative", Boolean),
+    Column("rationale", Text, nullable=False, server_default=text("'{}'")),
+    Column("state", Text, nullable=False, server_default=text("'proposed'")),
+    Column("triaged_by", Text),
+    Column("triaged_at", Double),
+    Column("registered_urn", Text),
+    Index("uq_intake_reference", "reference", unique=True),
+)

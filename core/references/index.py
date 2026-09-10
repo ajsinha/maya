@@ -261,6 +261,23 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT i.id, i.state, c.reference, c.kind, c.status "
+                "FROM campaign_item i JOIN campaign c "
+                "ON c.id = i.campaign_id WHERE i.model_id = :m",
+                {"m": model_id}):
+            live = row["status"] == "open" and row["state"] == "outstanding"
+            found.append(Reference(
+                "campaign_item", row["id"], row["reference"],
+                (f"an outstanding item in the open {row['kind']} round — "
+                 f"deleting the model would shrink a population that was "
+                 f"deliberately frozen, and the round's completion figure "
+                 f"would rise without anybody having answered anything"
+                 if live else
+                 f"this model's place in the {row['kind']} round "
+                 f"{row['reference']}, and the answer given in it"),
+                live))
+
+        for row in self.db.query(
                 "SELECT id, reference, vendor, product, state "
                 "FROM vendor_assessment WHERE model_id = :m",
                 {"m": model_id}):

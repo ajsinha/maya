@@ -79,6 +79,8 @@ fall behind again.
 | `maya.migrations` | judge an equivalence claim about two artifacts |
 | `maya.supervisory` | matters a regulator raised, their scope and the committed date |
 | `maya.backlog` | validator workload, declared capacity, forecast, queue |
+| `maya.campaigns` | open a round over a frozen population, respond, close |
+| `maya.intake` | record a proposal, read the assessment, triage, register |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**
