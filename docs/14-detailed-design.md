@@ -1982,6 +1982,38 @@ directory exactly as it does to a local principal, *before* provisioning, so the
 the greater. Provisioning on first login is off by default, because it hands everybody in the directory a
 foothold in the model register.
 
+### 18.2 The same authorisation, in the data layer
+
+`Scope` already decides which models a principal may act on, and every route applies it. The requirement asks
+for the same rule **in the data layer as well** — and the reason a firm asks is not distrust of the
+application: it is that an analyst with a read-only credential, a reporting tool, a backup restored into a
+test environment and a support engineer running a query are four ways to read rows the API would have
+refused.
+
+**Two enforcement points written twice will disagree.** So the row-level policies are **generated from
+`Scope`**: the SQL a database enforces and the check a route applies are one rule expressed twice rather than
+two rules that happen to look alike. The first time somebody adds a scope dimension both move; hand-written
+policies would leave one behind, and it would be the one silently permitting more. They are **emitted, not
+executed** — applying them is a migration, and turning on row-level security against a running database is an
+availability decision this platform does not get to make for somebody else. Only tables carrying the scope
+directly are policied, because a join inside a security policy is a performance cliff that gets the policy
+disabled.
+
+**Field-level authorisation is redaction, not omission.** A redacted field is replaced by a marker naming the
+permission that would reveal it — *there is something here, and this is what it would take*. A response that
+quietly drops a field is one the reader cannot tell from a response where the field is empty, and concluding
+that a model has no exposure recorded when what you lack is `report:read` is exactly the wrong conclusion to
+let somebody reach in silence. A null is left null: marking it would tell a reader something is there when
+nothing is, which is the same misleading silence in the other direction.
+
+**And encryption is delegated out loud.** MAYA does not encrypt the database and does not pretend to; what it
+will not do is imply otherwise, so `/health/encryption` reports plain HTTP, an insecure cookie, a database
+URL that does not require TLS and the published signing secret, each with what it actually costs. Findings
+are reported rather than refused at boot, because an instance somebody is trying on a laptop is legitimate
+and refusing it would teach people to set the flags without meaning them. Field-level encryption in the
+feature store is deliberately absent: encryption with no key rotation is worse than none, because it reads as
+solved.
+
 ### 18.1 Break-glass, and the number that actually finds abuse
 
 The starting point is the honest one. The `admin` role is *described* as break-glass and is exempt from the
@@ -2317,8 +2349,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 266 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 327 modules in one
+the 267 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 328 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

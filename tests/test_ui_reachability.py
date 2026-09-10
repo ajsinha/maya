@@ -40,7 +40,13 @@ SCRIPTS = ROOT / "web" / "static" / "js"
 #: The only pages that may hang off nothing, and why. Probes for a load
 #: balancer, a container's readiness check and a monitoring system — none of
 #: which reads a navbar. Anything else needs a way in.
-UNLINKED_ON_PURPOSE = {"/health", "/health/live", "/health/ready"}
+#:
+#: `/health/encryption` joins them for the same reason and one more: what it
+#: reports is the deployment's transport configuration, which is a question an
+#: operator's monitoring asks and a governance reader cannot act on. Putting it
+#: in the navbar would suggest somebody inside the register can fix it.
+UNLINKED_ON_PURPOSE = {"/health", "/health/live", "/health/ready",
+                       "/health/encryption"}
 
 
 def _blob() -> str:

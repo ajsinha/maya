@@ -941,6 +941,15 @@
         ]
       }
     },
+    "/api/v1/data-layer-authorisation": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/derived-features": {
       "get": {
         "body": [],
@@ -4903,6 +4912,15 @@
       }
     },
     "/health": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/health/encryption": {
       "get": {
         "body": [],
         "parameters": [],
