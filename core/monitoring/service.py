@@ -208,6 +208,16 @@ class MonitoringService:
                                   "sample_size": computed["sample"]}, actor=actor)
         return self.observations.one(id=row["id"])
 
+    def react_to(self, monitor: Dict[str, Any], observation: Dict[str, Any],
+                 actor: str = "system") -> Dict[str, Any]:
+        """Open or resolve breaches for an observation recorded elsewhere.
+
+        An observation ingested from an external system is reacted to exactly
+        as one MAYA computed. Taking the number and not acting on it would be
+        filing it rather than monitoring with it.
+        """
+        return self._react(monitor, observation, actor)
+
     def _react(self, monitor: Dict[str, Any], observation: Dict[str, Any],
                actor: str) -> Dict[str, Any]:
         """Open a breach, or resolve the standing ones."""

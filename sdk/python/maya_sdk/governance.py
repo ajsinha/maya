@@ -1206,6 +1206,92 @@ class Monitors:
         """The history and any breaches raised from it."""
         return self._maya.call("GET", f"/monitors/{monitor_id}/observations")
 
+    def ingest(self, monitor_id: str, *, value: Optional[float],
+               computed_by: str, window_start: float, window_end: float,
+               method: str = "", sample_size: int = 0,
+               now: Optional[float] = None) -> Dict[str, Any]:
+        """Hand MAYA a number computed somewhere else.
+
+        There is deliberately no `passed` parameter and there will not be one.
+        MAYA takes the value and refuses the verdict: the threshold is the one
+        this firm's second line set on the monitor, and the comparison happens
+        in the platform. A system that could push its own metric *and* its own
+        pass mark would be marking its own homework, which is the failure mode
+        every "send us your metrics" API has.
+
+        `computed_by` is required, because a number of unknown origin sitting in
+        the system of record is worse than no number — it looks like one MAYA
+        stands behind. And the window is required, because an observation that
+        does not say what it covers cannot be paired, trended or read as-at a
+        date.
+        """
+        return self._maya.call("POST", f"/monitors/{monitor_id}/ingest", json={
+            "value": value, "computed_by": computed_by, "method": method,
+            "sample_size": sample_size, "window_start": window_start,
+            "window_end": window_end, "now": now})
+
+    def provenance(self, monitor_id: Optional[str] = None) -> Dict[str, Any]:
+        """How much of this monitoring MAYA could reproduce, and how much it could not.
+
+        An external observation cannot be replayed: the platform does not hold
+        the population it was computed over. That is a real loss of assurance
+        and the price of not mandating the compute — an estate where most of
+        the numbers cannot be re-derived is a finding about the programme, and
+        an invisible one if both kinds print the same.
+        """
+        params = {"monitor_id": monitor_id} if monitor_id else {}
+        return self._maya.call("GET", "/monitoring-provenance", params=params)
+
+    def health(self, urn: Optional[str] = None,
+               now: Optional[float] = None) -> Dict[str, Any]:
+        """One model's health, or the estate's, with the derivation attached.
+
+        Read `coverage` before `score`. Absent components are excluded from the
+        denominator rather than scored well, so a high score over a small share
+        of the weight is a model nobody has looked at rather than a healthy one,
+        and the two would otherwise print the same.
+
+        And read `band` rather than `score`. The band is the mean capped by
+        conditions no amount of good news elsewhere may outweigh — a lapsed
+        validation, an overdue Critical finding, an overlay nobody has measured.
+        Where `band` is worse than `arithmetic_band`, the gap is the finding.
+        """
+        # Sent as they arrive. The transport drops what is None, so an absent
+        # urn asks the estate question and a present one asks about a model —
+        # and this package never decides which of those the caller meant.
+        return self._maya.call("GET", "/model-health",
+                               params={"urn": urn, "now": now})
+
+    def health_components(self) -> Dict[str, Any]:
+        """The weights, published before anything is scored."""
+        return self._maya.call("GET", "/model-health/components")
+
+    def compare(self, urn: str, *, champion: str, challenger: str,
+                material: Optional[float] = None,
+                now: Optional[float] = None) -> Dict[str, Any]:
+        """Champion against challenger, paired window by window.
+
+        `significant` and `material` are separate answers and both are returned.
+        With enough windows any difference becomes significant, including one
+        nobody would act on — so materiality is asked separately, in the units
+        of the test itself, and defaults to something small enough to argue
+        with rather than large enough to hide behind.
+
+        The recommendation is never to promote. MAYA does not decide which model
+        the bank uses, and promotion is a second-line approval this must not
+        pre-empt; the strongest thing here is that the evidence for opening a
+        validation is strong.
+        """
+        return self._maya.call("GET", "/champion-challenger",
+                               params={"urn": urn, "champion": champion,
+                                       "challenger": challenger,
+                                       "material": material, "now": now})
+
+    def challengers(self, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every version being run beside the one production serves."""
+        params = {"now": now} if now is not None else {}
+        return self._maya.call("GET", "/champion-challenger", params=params)
+
     def set_status(self, monitor_id: str, *, status: str) -> Dict[str, Any]:
         """Suspend or resume a monitor. A suspended monitor is still on the record.
 
