@@ -169,6 +169,17 @@ class WithdrawLimitationIn(Body):
     reason: str
 
 
+class SweepIn(Body):
+    scanner: str
+    candidates: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class TriageIn(Body):
+    outcome: str
+    note: str
+    urn: str = ""
+
+
 class HoldIn(Body):
     matter: str
     owner: str
@@ -802,6 +813,55 @@ class ModelRoutes(Routes):
             return self.guard(lambda: reg.move_alias(
                 urn(name), body.environment, body.alias, body.semver,
                 actor=self.actor(who), justification=body.justification))
+
+        @self.app.get(f"{self.api}/discovery", tags=["registry"])
+        def discovery(request: Request):
+            """Candidates a scanner found, the triage, and the scanner's grade.
+
+            MAYA does not crawl the bank's drives: a discovery agent needs the
+            broadest read access anybody in the firm holds, granted to the
+            system whose whole argument is that it holds no standing power. It
+            takes delivery instead.
+
+            Read `precision` before scaling any scanner up. It is computed from
+            the **dismissals** as much as from the registrations, which is why
+            it exists at all — a programme that records only what it found can
+            never grade the thing that found it, and a scanner running at thirty
+            percent creates more work than it finds risk.
+            """
+            self.authorise(request, "model:read")
+            return self.guard(
+                lambda: self.ctx["discovery"].across_the_estate())
+
+        @self.app.post(f"{self.api}/discovery", status_code=201,
+                       tags=["registry"])
+        def ingest_discovery(request: Request, body: SweepIn):
+            """Take delivery of a sweep. Idempotent on the fingerprint.
+
+            The same artifact found again is the same candidate, not a new one —
+            which is what stops a monthly sweep re-raising the four thousand
+            spreadsheets nobody had time to look at last month.
+            """
+            who = self.authorise(request, "model:register")
+            return self.guard(lambda: self.ctx["discovery"].ingest(
+                body.scanner, body.candidates, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/discovery/{{reference}}/triage",
+                       tags=["registry"])
+        def triage_discovery(request: Request, reference: str,
+                             body: TriageIn):
+            """Decide what this is.
+
+            `not_a_model` is a real outcome: a firm needs somewhere to put a
+            decision it has already made, or it will make it again every month.
+            `euc` is a destination and not a lesser one — sending a spreadsheet
+            into the model register puts a tier-4 obligation set on something
+            that needs an owner and a review date.
+            """
+            who = self.authorise(request, "model:register")
+            return self.guard(lambda: self.ctx["discovery"].triage(
+                reference, body.outcome, body.note, urn=body.urn or None,
+                actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/experiments", tags=["registry"])
         def experiments(request: Request, urn: str = "", semver: str = ""):

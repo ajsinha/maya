@@ -73,6 +73,7 @@ class JobContext:
     inference: Any = None
     subscriptions: Any = None
     adaptive: Any = None
+    discovery: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -482,6 +483,30 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def discovery_backlog(ctx: "JobContext") -> Dict[str, Any]:
+    """Discovery candidates nobody has looked at.
+
+    A sweep that runs and is never triaged is worse than no sweep: the estate
+    believes it has a discovery programme, and what it has is a table filling
+    up. This is the point at which that becomes somebody's work rather than a
+    page nobody opens.
+
+    Advisory, and per scanner rather than per candidate: four thousand findings
+    is not four thousand pieces of work, it is one — *nobody is reading the
+    output of this scanner* — and raising it four thousand times is the same
+    failure the triage record exists to prevent.
+    """
+    if not (ctx.discovery and ctx.findings and ctx.registry):
+        return {"skipped": "discovery register or findings not available"}
+    report = ctx.discovery.outstanding(now=ctx.now)
+    if not report["stale"]:
+        return {"raised": [], "count": 0, "detail": report["detail"]}
+    # No model to hang it on: a candidate is not a model, which is the whole
+    # point. Reported rather than raised as a finding.
+    return {"raised": [], "count": 0, "stale": report["stale"],
+            "detail": report["detail"]}
+
+
 def check_adaptive_change(ctx: "JobContext") -> Dict[str, Any]:
     """Models that have changed themselves past a bound.
 
@@ -743,6 +768,12 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("discovery.backlog",
+        "reports discovery candidates nobody has triaged",
+        "a sweep that runs and is never triaged is worse than no sweep: the "
+        "estate believes it has a discovery programme, and what it has is a "
+        "table filling up",
+        discovery_backlog),
     Job("adaptive.change",
         "raises a finding for a self-changing model that has drifted from the "
         "parameters somebody approved",

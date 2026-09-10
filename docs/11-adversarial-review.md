@@ -610,7 +610,7 @@ exists to find.
 **It cannot see a control that is inert for a reason outside the repository.** Every check here is a grep,
 a read and a test. A control that is correct in the source and disabled by configuration, unreachable
 behind a load balancer, or never invoked because the deployment does not run the scheduler is invisible to
-all three. The scheduler is the concrete case: 22 idempotent jobs turn computed conditions into recorded
+all three. The scheduler is the concrete case: 23 idempotent jobs turn computed conditions into recorded
 consequences, the in-process loop is **off by default**, and an instance whose operator never wired a cron
 entry has a governance platform in which no attestation ever lapses, no monitor is ever recorded as
 stalled, no overlay expires, no debt reconciles, and the evidence chain is never fully verified. Nothing in
