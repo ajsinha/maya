@@ -63,6 +63,10 @@ class WarrantService:
         # limits still issues warrants, and inventing one would refuse work
         # nobody agreed to refuse.
         self.quotas = None
+        # The terms a conditional approval carries. Set at wiring time, and
+        # optional: a register where nothing was approved conditionally still
+        # issues warrants.
+        self.conditions = None
         # As everywhere: consulted after the checks above, and only
         # ever to refuse.
         self.policy = None
@@ -92,6 +96,19 @@ class WarrantService:
         # it use, which is exactly the confusion the warrant design removes.
         if self.quotas is not None:
             self.quotas.check(grant["id"])
+        # A conditional approval's terms bite HERE, not at the moment somebody
+        # signed. Approval is a moment and use is continuous, and a condition
+        # checked only at approval is a sentence in a minute.
+        if self.conditions is not None:
+            verdict = self.conditions.evaluate(m["urn"], environment)
+            if not verdict["holds"]:
+                first = verdict["broken"][0]
+                raise WarrantError(
+                    "approval_condition_broken",
+                    f"this model is approved on conditions and "
+                    f"{first['reference']} no longer holds: {first['why']}",
+                    f"the condition was imposed because: {first['rationale']}. "
+                    f"Discharge it, renew it, or approve the model outright")
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
         if self.policy is not None:

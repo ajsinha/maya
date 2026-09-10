@@ -59,6 +59,57 @@ doing](/help/estate-and-worklist).
 model registered in error does not have to be attested before it can be
 withdrawn.
 
+### Approving something on terms
+
+SR 26-2 V lets you use a model before it is validated, **with compensating
+controls**. Every firm already does this. What varies is whether the controls are
+enforced or promised, and a conditional approval written into a committee minute
+is a promise — the register cannot tell one that is being honoured from one
+everybody has forgotten.
+
+MAYA closes the list of conditions to ones it can actually do something about,
+and refuses free text naming them. *The model will only be used for low-value
+cases* is not a control; it is a hope with a date on it.
+
+| Condition | MAYA... | How |
+|---|---|---|
+| `expires` | **enforces** | the approval lapses on the date and the model stops resolving |
+| `environments` | **enforces** | resolution outside the listed environments is refused |
+| `usage_cap` | **enforces** | becomes a quota on every grant for the model |
+| `validated_by` | **enforces** | checked against the validation register |
+| `exposure_cap` | **cannot check** | somebody named confirms it periodically |
+| `human_review` | **cannot check** | somebody named confirms it periodically |
+
+Read the middle column before anything else. The last two are **attested**: MAYA
+does not see the exposure behind a call, and it does not see what happens to an
+output after it is returned. The control is that a person confirms the condition
+still holds, and an unconfirmed one goes stale and is reported.
+
+That is a real control and it is not the same one. **If you believe your exposure
+cap is machine-enforced you are worse off than if you know it is a diary entry**,
+because you have stopped checking. MAYA says which is which on every condition
+rather than letting you assume.
+
+```
+POST /api/v1/approval-conditions
+{"urn": "...", "kind": "environments", "rationale": "not yet validated",
+ "days": 60, "parameters": {"environments": ["uat"]}}
+```
+
+The window is mandatory and capped at six months. A conditional approval with no
+end date is an unconditional approval that has not noticed yet — the same way a
+temporary waiver reaches its fourth year. A longer exception is **renewed**,
+which is a decision somebody takes again.
+
+The terms are checked **when the model is used**, not when somebody signed.
+Approval is a moment and use is continuous. A broken condition refuses resolution
+with `approval_condition_broken`, and the refusal quotes the rationale the
+condition was imposed under, because that is where the decision to lift it
+actually sits.
+
+Lift a condition with `/discharge` and a reason — usually the validation it was
+waiting for. See [Lifecycle profiles](/lifecycle-profiles).
+
 ### One machine, and what each move costs
 
 Every model in the register is on the state graph above. That is deliberate.

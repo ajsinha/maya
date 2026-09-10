@@ -85,6 +85,60 @@ class Lifecycle:
         """
         return self._maya.call("GET", f"/models/{short(urn)}").get("lifecycle", {})
 
+    # ------------------------------------------------------ approved on terms
+    def condition_kinds(self) -> Dict[str, Any]:
+        """The conditions an approval may carry, and which are enforced.
+
+        Read `enforcement` on every one. **Enforced** means something in the
+        platform refuses when the condition is broken. **Attested** means MAYA
+        cannot see the thing the condition is about, so the control is that a
+        named person periodically confirms it — a real control, and not the same
+        one. A firm that believes its exposure cap is machine-enforced is worse
+        off than one that knows it is a diary entry, because the first has
+        stopped checking.
+        """
+        return self._maya.call("GET", "/condition-kinds")
+
+    def conditions(self, urn: str = "") -> Dict[str, Any]:
+        """A model's approval conditions and whether they hold, or the estate's."""
+        params = {"urn": urn} if urn else None
+        return self._maya.call("GET", "/approval-conditions", params=params)
+
+    def approve_on_terms(self, urn: str, *, kind: str, rationale: str,
+                         days: float,
+                         parameters: Optional[Dict[str, Any]] = None,
+                         semver: str = "",
+                         confirm_every_days: float = 30.0) -> Dict[str, Any]:
+        """Impose a condition on this model's approval.
+
+        SR 26-2 V permits use before validation with compensating controls, and
+        this is what makes them enforced rather than promised. The window is
+        mandatory and bounded: a conditional approval with no end date is an
+        unconditional approval that has not noticed yet.
+        """
+        return self._maya.call("POST", "/approval-conditions", json={
+            "urn": urn, "kind": kind, "rationale": rationale, "days": days,
+            "parameters": parameters or {}, "semver": semver,
+            "confirm_every_days": confirm_every_days})
+
+    def confirm_condition(self, reference: str, *,
+                          note: str = "") -> Dict[str, Any]:
+        """State that an attested condition still holds.
+
+        Only the attested ones take this. Confirming something the platform
+        already checks would record an opinion about a fact.
+        """
+        return self._maya.call(
+            "POST", f"/approval-conditions/{reference}/confirm",
+            json={"note": note})
+
+    def discharge_condition(self, reference: str, *,
+                            reason: str) -> Dict[str, Any]:
+        """Lift a condition, because what it stood in for has been done."""
+        return self._maya.call(
+            "POST", f"/approval-conditions/{reference}/discharge",
+            json={"reason": reason})
+
     # -------------------------------------------------------- what a move costs
     def profiles(self) -> Dict[str, Any]:
         """The reference lifecycle for every trainability class.

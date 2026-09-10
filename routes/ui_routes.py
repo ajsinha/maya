@@ -597,7 +597,12 @@ class UIRoutes(Routes):
                              reference=profiles.reference(),
                              stalled=profiles.stalled(),
                              signatures=SIGNATURES, sla=SLA_DAYS,
-                             sla_states=list(SLA_DAYS))
+                             sla_states=list(SLA_DAYS),
+                             # Approving on terms belongs beside what each move
+                             # costs: both are answers to "what does this
+                             # record owe before it may be relied on".
+                             conditions=self.ctx[
+                                 "approval_conditions"].across_the_estate())
 
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
