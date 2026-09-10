@@ -243,7 +243,7 @@ class DiscoveryRegister:
                                   and judged >= MIN_FOR_PRECISION
                                   and precision >= USEFUL_PRECISION),
             })
-        out.sort(key=lambda r: -(r["precision"] or 0.0))
+        out.sort(key=lambda r: -float(r["precision"] or 0.0))
         return {
             "scanners": out, "threshold": USEFUL_PRECISION,
             "minimum_judged": MIN_FOR_PRECISION,
