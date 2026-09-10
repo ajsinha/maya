@@ -62,7 +62,8 @@ from core.config import PropertiesConfigurator
 from core.docs import (ContextBuilder, DocumentCompiler, Dossier,
                        TrainingRecordCompiler)
 from core.content import ContentLibrary, MarkdownRenderer
-from core.monitoring import BreachRegister, MonitorRegistry, MonitoringService
+from core.monitoring import (BreachRegister, MonitoringDefaults,
+                             MonitorRegistry, MonitoringService)
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
@@ -319,6 +320,23 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         BreachRegister(BreachRepository(db), findings, evidence),
         catalogue, evidence, telemetry, registry)
 
+    def _class_of_urn(urn: str):
+        """The same lookup, addressed the way the defaults helper is called.
+
+        `_class_of` above takes a model id because the monitor registry has one
+        in hand; a caller asking "what should this model be watched for" has a
+        urn. Two spellings of one lookup rather than two implementations.
+        """
+        versions = registry.versions(urn)
+        return versions[-1]["trainability_class"] if versions else None
+
+    def _tier_of_urn(urn: str):
+        model = registry.get(urn)
+        return (model or {}).get("tier")
+
+    monitoring_defaults = MonitoringDefaults(
+        monitoring.registry, fibres, _class_of_urn, _tier_of_urn)
+
     features = FeatureRegistry(FeatureRepository(db), FeatureViewRepository(db),
                                FeatureViewVersionRepository(db), ContractRepository(db),
                                SnapshotRepository(db), table_store, evidence,
@@ -547,6 +565,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "test_catalogue": catalogue,
                            "principals": principals, "authz": authz,
                            "lifecycle": lifecycle, "monitoring": monitoring,
+                           "monitoring_defaults": monitoring_defaults,
                            "documents": documents, "attachments": attachments,
                            "parameters": parameters, "replayer": replayer,
                            "approvals": approvals, "telemetry": telemetry,

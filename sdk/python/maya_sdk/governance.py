@@ -988,6 +988,31 @@ class Monitors:
             "breach_severity": breach_severity,
             "escalate_after": escalate_after})
 
+    def defaults(self, urn: str) -> Dict[str, Any]:
+        """What this model's class and tier say it should be watched for.
+
+        And what it should NOT be. A model with no performance monitor because
+        its class cannot answer that question, and one with no performance
+        monitor because nobody got round to it, look identical on every
+        coverage screen ever built — so the answer separates them.
+        """
+        return self._maya.call("GET", "/monitor-defaults", params={"urn": urn})
+
+    def seed_defaults(self, urn: str, *,
+                      owner: Optional[str] = None) -> Dict[str, Any]:
+        """Create the proposed monitors that are not already there.
+
+        An explicit act rather than something registration does for you: an
+        estate that acquires monitors nobody asked for is one whose coverage
+        nobody understands. Idempotent by kind and test.
+        """
+        # `owner` is sent as it arrives, empty or not. Branching on it here
+        # would be this package deciding what an absent owner means, and the
+        # server already has a better answer than the SDK could invent: the
+        # model's own owner, then the actor.
+        return self._maya.call("POST", "/monitor-defaults",
+                               params={"urn": urn, "owner": owner or ""})
+
     def evaluate(self, monitor_id: str, *,
                  rows: Optional[List[Dict[str, Any]]] = None,
                  reference: Optional[List[float]] = None,

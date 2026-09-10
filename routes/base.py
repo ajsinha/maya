@@ -205,6 +205,11 @@ STATUS: Dict[str, int] = {
     # correct or the risk function's to add — a distinction a bare 400
     # erases.
     "unknown_purpose_class": 422,
+    # Not the caller's mistake: the model was found and what is missing is
+    # something it has not got yet — a version, and therefore a class. 422
+    # rather than 404 for that reason. (`no_fibre` is mapped already, further
+    # down, and mapping it twice would silently keep only the last one.)
+    "no_class": 422,
     "nothing_to_fit": 422, "parameters_not_reachable": 422,
     "not_obtained_from_data": 422,
     "warrant_required": 422, "unknown_warrant": 404,
