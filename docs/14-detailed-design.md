@@ -1587,6 +1587,37 @@ makes** — two views of one derivation, not two derivations.
 
 # Part IV — Interfaces
 
+### 16.4 Portfolio views
+
+SR 26-2 VI asks for an inventory sufficient to understand individual **and aggregate** risk, and filters on
+a list only ever answer the first. *How many models does credit own* is a question a list answers by making
+somebody count.
+
+**A heatmap is a cross-tabulation with an opinion about what is bad, and the opinion has to come from
+somewhere real.** A grid coloured by count tells you where the models are, which nobody needed a grid to
+learn. Every cell here carries its count *and* what is **owed** on it, and the shading is the second — a
+cell with forty healthy tier 4 models and a cell with one tier 1 model missing its validation are not the
+same cell, and a count-coloured grid draws them identically.
+
+**The trend is a series of as-at folds, and this is the part worth stealing.** Every register gets trend
+wrong the same way: a snapshot table written nightly, which starts on the day somebody remembered to add it
+and is wrong for every day before that. `core/registry/asat.py` already folds the evidence chain into the
+register as it stood at a moment, so a trend is a series of those folds — true for every date the chain
+covers, back to the first act, with nothing new stored and nothing that can drift. Each point carries the
+**chain hash** at its own sequence, which is what makes it evidence rather than an assertion.
+
+**The aggregate headline is weighted, and says what it covers.** SR 26-2 VI is about how much rides on the
+models that are not right, so the figure is exposure-weighted where the register knows the exposure —
+read out of the risk assessment's own `facts` rather than a column of its own, since those facts *are* the
+record of what the tier was decided on. `exposure_coverage` is returned beside it, because a weighted answer
+over a third of an estate presented as *the* answer would be worse than the count it replaced. A model with
+no recorded exposure returns `None` rather than zero: no exposure recorded and no exposure are different
+facts, and only one of them should shrink a weighted average.
+
+One operational note. A worklist source that raises does not take the view with it — the model counts as
+nothing owed, which **understates rather than overstates**, and the failure is logged. A governance
+dashboard that goes blank when one model is malformed is a dashboard nobody trusts.
+
 ## 17. The HTTP surface
 
 One FastAPI application, 232 route registrations across thirty modules in `routes/`. Two hundred and three sit
@@ -1936,8 +1967,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 242 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 303 modules in one
+the 244 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 305 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
