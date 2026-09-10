@@ -95,6 +95,44 @@ class AssistRoutes(Routes):
                 body.prompt_digest, body.owner, body.oracle_key, body.autonomy,
                 body.review_sample, actor=self.actor(who)))
 
+        @self.app.get(f"{api}/assist/metrics", tags=["assistance"])
+        def assist_metrics(request: Request):
+            """The metrics, where each comes from, and the two not measured.
+
+            **Toxicity and personal-data leakage are reported as not
+            measured**, not as zero. MAYA has no classifier for either and will
+            not ship a keyword list dressed up as one — a dashboard showing no
+            toxicity because nothing looked is worse than a blank, because a
+            blank prompts somebody to ask.
+            """
+            self.principal(request)
+            from core.assist.monitoring import AssistMonitoring
+            return AssistMonitoring.vocabulary()
+
+        @self.app.get(f"{api}/assist/monitoring", tags=["assistance"])
+        def assist_monitoring(request: Request, capability_key: str = "",
+                              window_days: float = 30.0):
+            """What the platform's own generative assistance is doing.
+
+            Read `citation_accuracy` with its `means`: it is 1.0 by
+            construction, because the grounding gate drops an unsupported claim
+            before a reader sees it — so it measures the gate and not the
+            model, and the number carrying the information is the hallucination
+            rate.
+
+            Read `override_rate` the same way. A falling rate reads two ways
+            and they look identical: the capability improving, or a reviewer
+            who has stopped reading.
+            """
+            self.authorise(request, "assist:read")
+            watching = self.ctx["assist_monitoring"]
+            if capability_key:
+                return self.guard(
+                    lambda: watching.of(capability_key,
+                                        window_days=window_days))
+            return self.guard(
+                lambda: watching.across_the_estate(window_days=window_days))
+
         @self.app.get(f"{api}/assist/canaries", tags=["assistance"])
         def canaries_estate(request: Request):
             """Whether the model under each capability's version string moved.

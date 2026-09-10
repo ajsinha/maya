@@ -599,7 +599,10 @@ class UIRoutes(Routes):
                 capabilities=self.ctx["capabilities"].list(),
                 providers=assist_providers.describe(),
                 injection=injection.sweep(self.ctx["evidence"]),
-                canaries=self.ctx["canaries"].across_the_estate())
+                canaries=self.ctx["canaries"].across_the_estate(),
+                # What it is actually doing, joined from the generation log,
+                # the spend ledger and the injection scan.
+                metrics=self.ctx["assist_monitoring"].across_the_estate())
 
         # ----------------------------------------------- lifecycle profiles
         @self.app.get("/lifecycle-profiles", response_class=HTMLResponse,
