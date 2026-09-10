@@ -360,3 +360,42 @@ class ReportingRoutes(Routes):
             self.authorise(request, "report:read")
             return self.guard(
                 lambda: self.ctx["nl_query"].translate(body.question))
+
+        # --------------------------------------------------- concentration
+        @self.app.get(f"{api}/concentration", tags=["reporting"])
+        def concentration(request: Request, urn: Optional[str] = None,
+                          now: Optional[float] = None):
+            """What several models depend on at once.
+
+            `aggregate_score` is always None and always will be. A network that
+            *copies* a dependency and one that *duplicates* it produce
+            identical component ratings, so any figure computed from those
+            ratings is blind to exactly the thing this exists to find. What
+            composes is the order — the worst tier at stake — and not a
+            magnitude.
+            """
+            engine = self.ctx["concentration"]
+            if urn is None:
+                self.authorise(request, "report:read",
+                               estate_wide="scanning the estate for shared "
+                                           "dependencies")
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "report:read", model=model)
+            return self.guard(lambda: engine.of_model(urn, now=now))
+
+        @self.app.get(f"{api}/concentration/single-points", tags=["reporting"])
+        def single_points(request: Request, now: Optional[float] = None):
+            """What the estate would lose if one thing stopped working.
+
+            Named as a **dependency** rather than asserted as a failure point:
+            whether it can fail is a fact about a pipeline, a cluster and an
+            on-call rota, and MAYA holds none of the three. Half of the
+            judgement is here and the answer says which half.
+            """
+            self.authorise(request, "report:read",
+                           estate_wide="reading the estate's single points of "
+                                       "dependency")
+            return self.guard(
+                lambda: self.ctx["concentration"].single_points_of_failure(
+                    now=now))

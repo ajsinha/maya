@@ -90,6 +90,8 @@ fall behind again.
 | `maya.configuration` | export, plan and apply the platform's own configuration |
 | `maya.document_review` | comment on a compiled document; never edit one |
 | `maya.request_time` | the inputs the caller brings, and what cannot be promised |
+| `maya.concentration` | what several models depend on at once; never a score |
+| `maya.feature_impact` | who is downstream of a feature, to the declared use |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**
