@@ -1147,6 +1147,22 @@ CREATE TABLE IF NOT EXISTS regulatory_approval (
 CREATE INDEX IF NOT EXISTS ix_regulatory_approval_model ON regulatory_approval (model_id, state);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_regulatory_approval_reference ON regulatory_approval (reference);
 
+CREATE TABLE IF NOT EXISTS retrain_policy (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    triggers TEXT DEFAULT '[]' NOT NULL,
+    tolerance TEXT DEFAULT '{}' NOT NULL,
+    auto_accept BOOLEAN DEFAULT 0 NOT NULL,
+    rationale TEXT DEFAULT '' NOT NULL,
+    declared_by TEXT NOT NULL,
+    approved_by TEXT,
+    declared_at DOUBLE NOT NULL,
+    expires_at DOUBLE,
+    status TEXT DEFAULT 'active' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_retrain_policy_model ON retrain_policy (model_id);
+
 CREATE TABLE IF NOT EXISTS risk_appetite (
     id TEXT NOT NULL,
     metric TEXT NOT NULL,
@@ -1200,6 +1216,36 @@ CREATE TABLE IF NOT EXISTS role (
     PRIMARY KEY (id)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_role_name ON role (name);
+
+CREATE TABLE IF NOT EXISTS run (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    model_id TEXT,
+    model_version_id TEXT,
+    verb TEXT NOT NULL,
+    warrant_id TEXT,
+    parent_id TEXT,
+    purpose TEXT DEFAULT '' NOT NULL,
+    resource_profile TEXT DEFAULT '{}' NOT NULL,
+    environment TEXT DEFAULT '{}' NOT NULL,
+    inputs TEXT DEFAULT '{}' NOT NULL,
+    hyperparameters TEXT DEFAULT '{}' NOT NULL,
+    seeds TEXT DEFAULT '{}' NOT NULL,
+    log_uri TEXT DEFAULT '' NOT NULL,
+    metrics TEXT DEFAULT '{}' NOT NULL,
+    parameter_set_id TEXT,
+    state TEXT DEFAULT 'open' NOT NULL,
+    outcome_note TEXT DEFAULT '' NOT NULL,
+    expected_seconds DOUBLE,
+    cost DOUBLE,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE NOT NULL,
+    closed_at DOUBLE,
+    closed_by TEXT,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_run_parent ON run (parent_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_run_reference ON run (reference);
 
 CREATE TABLE IF NOT EXISTS saved_view (
     id TEXT NOT NULL,

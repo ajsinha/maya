@@ -4202,6 +4202,69 @@
         ]
       }
     },
+    "/api/v1/retraining": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "auto_accept",
+          "expires_at",
+          "rationale!",
+          "tolerance",
+          "triggers"
+        ],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retraining/approve": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retraining/revoke": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:reason",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retraining/triggers": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/retrieval": {
       "get": {
         "body": [],
@@ -4376,6 +4439,82 @@
         "body": [],
         "parameters": [
           "path:parameter_set_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/runs": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "environment",
+          "expected_seconds",
+          "hyperparameters",
+          "inputs",
+          "log_uri",
+          "parent",
+          "purpose",
+          "reference!",
+          "resource_profile",
+          "seeds",
+          "semver",
+          "urn",
+          "verb!",
+          "warrant_id"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/runs/vocabulary": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/runs/{reference}/close": {
+      "post": {
+        "body": [
+          "cost",
+          "metrics",
+          "note",
+          "parameter_set_id",
+          "state!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/runs/{reference}/search": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!",
+          "query:now"
         ],
         "responses": [
           "200",
