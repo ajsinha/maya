@@ -426,7 +426,7 @@ behaviour:
 | One test body, both implementations | Every behavioural test in `tests/test_maya_deltalake.py` is parameterised over both. Two test bodies would be two specifications, and they drift |
 | Each reads the other's tables | Append, overwrite and time travel, in both directions, including a table written alternately by the two — which is what happens when an estate installs the package after running without it |
 | The schemas are compared | Parsed and compared as structures, including for a `shape: [12]` vector and a `[3, 3]` matrix, which Delta describes as an array and an array of arrays. A shape recorded differently is a curve arriving with the wrong number of tenors under the other reader |
-| **The whole platform suite runs twice** | CI runs all 3,548 tests a second time with `MAYA_DELTA_BACKEND=maya_deltalake`, and the counts must match. That the fallback passes tests written for it proves little; that it passes the ones written for the platform is the claim |
+| **The whole platform suite runs twice** | CI runs all 3,914 tests a second time with `MAYA_DELTA_BACKEND=maya_deltalake`, and the counts must match. That the fallback passes tests written for it proves little; that it passes the ones written for the platform is the claim |
 
 **Why this is safe here and would not be everywhere.** Delta guarantees a set
 of rows, not a sequence, and the two implementations return them in different
