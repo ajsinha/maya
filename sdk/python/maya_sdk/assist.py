@@ -113,6 +113,44 @@ class Assist:
             "subject_id": subject_id, "instruction": instruction,
             "oracle_payload": oracle_payload or {}})
 
+    # ---------------------------------------------------------------- budgets
+    def budgets(self) -> Dict[str, Any]:
+        """Every capability, what it may spend and what it has spent.
+
+        Two columns repay reading. `on_default` names the capabilities running
+        on a number this platform chose rather than one anybody decided — a
+        default reported as a decision is how a default becomes permanent. And
+        `calls_that_produced_nothing` is the spend that bought nothing: a draft
+        the grounding gate refused leaves no generation at all, and it cost
+        exactly as much to produce as one that survived.
+        """
+        return self._maya.call("GET", "/assist/budgets")
+
+    def budget(self, capability_key: str) -> Dict[str, Any]:
+        """What this capability may spend, and how much of it is left."""
+        return self._maya.call("GET", f"/assist/budgets/{capability_key}")
+
+    def set_budget(self, capability_key: str, *,
+                   tokens: Optional[float] = None,
+                   cost: Optional[float] = None,
+                   steps: Optional[float] = None,
+                   window_days: Optional[float] = None) -> Dict[str, Any]:
+        """Declare what this capability may spend per rolling window.
+
+        `steps` is the one worth setting deliberately. Tokens bound a prompt
+        that grew and cost bounds the invoice, but a runaway agent is a large
+        number of *small* calls — it passes both for a long time before either
+        notices, and a step budget is the bound that matches its shape.
+
+        The window is rolling rather than a lifetime cap, because a lifetime cap
+        is reached once and then the capability is dead forever, which is how
+        budgets end up raised to a number that means nothing.
+        """
+        return self._maya.call("PUT", f"/assist/budgets/{capability_key}",
+                               json={"tokens": tokens, "cost": cost,
+                                     "steps": steps,
+                                     "window_days": window_days})
+
     def get(self, generation_id: str) -> Dict[str, Any]:
         return self._maya.call("GET", f"/assist/generations/{generation_id}")
 

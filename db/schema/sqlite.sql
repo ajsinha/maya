@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS ai_capability (
     base_model TEXT NOT NULL,
     prompt_digest TEXT NOT NULL,
     review_sample DOUBLE DEFAULT (0.1) NOT NULL,
+    token_budget INTEGER,
+    cost_budget DOUBLE,
+    step_budget INTEGER,
+    budget_window_days DOUBLE DEFAULT (30.0) NOT NULL,
     status TEXT DEFAULT 'active' NOT NULL,
     owner TEXT NOT NULL,
     created_at DOUBLE NOT NULL,
@@ -64,6 +68,20 @@ CREATE TABLE IF NOT EXISTS ai_generation (
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_generation_capability ON ai_generation (capability_id, state);
+
+CREATE TABLE IF NOT EXISTS ai_spend (
+    id TEXT NOT NULL,
+    capability_id TEXT NOT NULL,
+    generation_id TEXT,
+    tokens INTEGER DEFAULT 0 NOT NULL,
+    cost DOUBLE DEFAULT (0.0) NOT NULL,
+    steps INTEGER DEFAULT 1 NOT NULL,
+    outcome TEXT DEFAULT 'recorded' NOT NULL,
+    spent_at DOUBLE NOT NULL,
+    spent_by TEXT NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_ai_spend_capability ON ai_spend (capability_id, spent_at);
 
 CREATE TABLE IF NOT EXISTS alias (
     id TEXT NOT NULL,

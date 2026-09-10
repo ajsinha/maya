@@ -211,6 +211,42 @@
         ]
       }
     },
+    "/api/v1/assist/budgets": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/assist/budgets/{capability_key}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:capability_key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "put": {
+        "body": [
+          "cost",
+          "steps",
+          "tokens",
+          "window_days"
+        ],
+        "parameters": [
+          "path:capability_key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/assist/capabilities": {
       "get": {
         "body": [],
@@ -3809,6 +3845,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/assist": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
