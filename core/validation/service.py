@@ -33,7 +33,8 @@ from core.ports import BlockingSource
 from core.registry import ModelRegistry
 from core.validation.catalogue import TestCatalogue
 from core.authz.common import bare_name, same_person
-from core.validation.common import KINDS, OUTCOMES, ValidationError
+from core.validation.common import (KINDS, OUTCOMES, TIER_VERDICTS,
+                                    ValidationError)
 from db import TestResultRepository, ValidationRepository
 
 TERMINAL = ("completed",)
@@ -52,6 +53,11 @@ class ValidationService:
         # the service can be built before it exists; when absent, `_resolve`
         # cannot run and says so rather than passing silently.
         self.principals: Any = None
+        # The finding register, so a verdict that the tier is too low becomes
+        # something somebody has to close rather than a sentence in an episode.
+        # Optional for the same reason, and absent means no finding rather than
+        # a crash — the verdict is still recorded either way.
+        self.findings: Any = None
 
     # ------------------------------------------------------------------- open
     def open(self, urn: str, semver: str, kind: str = "initial",
@@ -85,7 +91,14 @@ class ValidationService:
         row = {"model_id": m["id"], "model_version_id": version["id"], "kind": kind,
                "scope": scope or [], "plan": plan or {}, "validators": validators,
                "independence": independence, "status": "in_progress", "outcome": None,
-               "conditions": [], "snapshot_id": snapshot_id, "started_at": time.time(),
+               "conditions": [], "snapshot_id": snapshot_id,
+               # Stamped at OPEN, not read at conclude. The tier can move
+               # while an episode is running — a re-assessment, a tier rise
+               # from an approval reconsidered — and a verdict of "remains
+               # appropriate" is unreadable without knowing which tier the
+               # validator was looking at when they formed it.
+               "tier_at_open": m.get("tier"), "tier_verdict": None,
+               "tier_note": "", "started_at": time.time(),
                "completed_at": None, "due_at": due_at}
         with self.evidence.recording():
             self.validations.add(row)
@@ -164,10 +177,34 @@ class ValidationService:
     # ---------------------------------------------------------------- conclude
     def conclude(self, validation_id: str, outcome: str,
                  conditions: Optional[List[str]] = None,
+                 tier_verdict: Optional[str] = None, tier_note: str = "",
                  actor: str = "system") -> Dict[str, Any]:
+        """Conclude an episode, including what it found about the TIER.
+
+        `tier_verdict` is required, and that is the whole of `FR-VAL-013`.
+        SS1/23 1.3(e) asks that the tier be re-assessed during validation, and
+        an episode concluded without a verdict is indistinguishable from one
+        where the validator looked and agreed — which are the two answers a
+        supervisor most needs told apart. So there is no default: not looking
+        is not a verdict.
+        """
         if outcome not in OUTCOMES:
             raise ValidationError(f"unknown outcome '{outcome}'; "
                                   f"expected one of {', '.join(OUTCOMES)}")
+        if tier_verdict not in TIER_VERDICTS:
+            raise ValidationError(
+                f"concluding a validation requires a verdict on the model's "
+                f"risk tier, and '{tier_verdict}' is not one; the three are "
+                f"{', '.join(TIER_VERDICTS)}. SS1/23 1.3(e) asks that the tier "
+                f"be re-assessed during validation, and an episode with no "
+                f"verdict reads exactly like one where the validator looked "
+                f"and agreed")
+        if tier_verdict != "remains_appropriate" and not (tier_note or "").strip():
+            raise ValidationError(
+                f"a verdict of '{tier_verdict}' needs a note. Saying the tier "
+                f"is wrong without saying why is not something anybody can "
+                f"act on, and this one is going to be read by whoever decides "
+                f"whether to re-assess")
         v = self.require(validation_id)
         if v["status"] in TERMINAL:
             raise ValidationError(f"validation {validation_id} is already concluded "
@@ -180,13 +217,45 @@ class ValidationService:
 
         with self.evidence.recording():
             self.validations.set({"status": "completed", "outcome": outcome,
-                                  "conditions": conditions, "completed_at": time.time()},
+                                  "conditions": conditions,
+                                  "tier_verdict": tier_verdict,
+                                  "tier_note": tier_note,
+                                  "completed_at": time.time()},
                                  id=validation_id)
             self.evidence.append("validation_concluded", "version", v["model_version_id"],
                                  {"validation_id": validation_id, "outcome": outcome,
                                   "failed_tests": [r["test_key"] for r in failed],
+                                  "tier_verdict": tier_verdict,
+                                  "tier_at_open": v.get("tier_at_open"),
                                   "conditions": conditions}, actor=actor)
+            self._raise_if_the_tier_should_be_higher(v, tier_verdict, tier_note,
+                                                     actor)
         return self.validations.one(id=validation_id)
+
+    def _raise_if_the_tier_should_be_higher(self, v: Dict[str, Any],
+                                            verdict: str, note: str,
+                                            actor: str) -> None:
+        """One direction raises a finding and the other does not.
+
+        A validator saying a model is riskier than the register says it is, and
+        nothing happening, is the failure this verdict exists to prevent — so
+        it goes into the queue of things somebody has to close. The opposite
+        verdict is a request to *reduce* control, and that belongs in a
+        re-assessment somebody signs rather than in a backlog.
+        """
+        if verdict != "should_be_higher" or self.findings is None:
+            return
+        was = v.get("tier_at_open")
+        self.findings.raise_finding(
+            v["model_id"], "High",
+            title="Validation found the risk tier too low",
+            owner=v.get("validators", [None])[0] or actor,
+            description=(f"The validation episode concluded that this model's "
+                         f"tier{f' (tier {was} when the episode opened)' if was else ''} "
+                         f"understates its risk. {note}"),
+            category="tiering", source="validation",
+            model_version_id=v.get("model_version_id"),
+            validation_id=v["id"], blocking=False, actor=actor)
 
     def _check_approvable(self, v: Dict[str, Any], failed: List[Dict[str, Any]],
                           conditions: List[str]) -> None:

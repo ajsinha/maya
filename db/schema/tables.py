@@ -812,6 +812,15 @@ VALIDATION = Table(
     Column("outcome", Text),
     Column("conditions", Text, nullable=False, server_default=text("'[]'")),
     Column("snapshot_id", Text),
+    # SS1/23 1.3(e) asks that the tier be re-assessed during validation and
+    # that the answer be recorded. Both halves are here, and they are two
+    # columns rather than one because *what the tier was when the validator
+    # started* and *what the validator thinks of it* are different facts —
+    # without the first, a verdict of "remains appropriate" cannot be checked
+    # against a tier that moved underneath the episode.
+    Column("tier_at_open", Integer),
+    Column("tier_verdict", Text),
+    Column("tier_note", Text, nullable=False, server_default=text("''")),
     Column("started_at", Double, nullable=False),
     Column("completed_at", Double),
     Column("due_at", Double),

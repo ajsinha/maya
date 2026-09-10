@@ -21,6 +21,27 @@ DAY = 86400.0
 # Worst first. Index doubles as the ordering.
 SEVERITIES = ("Critical", "High", "Medium", "Low", "Observation")
 OUTCOMES = ("approved", "approved_with_conditions", "rejected", "deferred")
+
+#: What a validator concludes about the model's RISK TIER, which SS1/23 1.3(e)
+#: asks be re-assessed during validation rather than only at registration.
+#:
+#: Three values and no fourth, because "did not look" is not a verdict — an
+#: episode that concluded without one used to be indistinguishable from one
+#: that looked and agreed, and those are the two answers a supervisor most
+#: needs told apart. So concluding requires one.
+TIER_VERDICTS = ("remains_appropriate", "should_be_higher", "should_be_lower")
+
+TIER_VERDICT_MEANING = {
+    "remains_appropriate": "the validator looked at the tier and agrees with it",
+    "should_be_higher": "the validator believes the model is riskier than the "
+                        "register says. This raises a finding: a validator "
+                        "saying so and nothing happening is the failure this "
+                        "verdict exists to prevent",
+    "should_be_lower": "the validator believes the controls are heavier than "
+                       "the model warrants. No finding — a request to reduce "
+                       "control belongs in a re-assessment somebody signs, "
+                       "not in a queue of things to fix",
+}
 KINDS = ("initial", "periodic", "targeted", "change", "vendor",
          "annual_review", "tier_review")
 SOURCES = ("validation", "monitoring", "audit", "regulator", "self_identified")

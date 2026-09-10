@@ -100,7 +100,7 @@ class TestRecordingResults:
     def test_results_are_immutable_once_the_episode_concludes(self, validation, opened,
                                                               scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.3})
-        validation.conclude(opened["id"], "approved")
+        validation.conclude(opened["id"], "approved", tier_verdict="remains_appropriate")
         with pytest.raises(ValidationError, match="immutable"):
             validation.record(opened["id"], "discrimination.ks", *scored)
 
@@ -109,14 +109,14 @@ class TestRecordingResults:
 class TestConcluding:
     def test_a_clean_validation_can_be_approved(self, validation, opened, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.3})
-        v = validation.conclude(opened["id"], "approved")
+        v = validation.conclude(opened["id"], "approved", tier_verdict="remains_appropriate")
         assert v["outcome"] == "approved" and v["status"] == "completed"
         assert v["completed_at"] is not None
 
     def test_approval_is_refused_when_a_test_failed(self, validation, opened, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.99})
         with pytest.raises(ValidationError) as exc:
-            validation.conclude(opened["id"], "approved")
+            validation.conclude(opened["id"], "approved", tier_verdict="remains_appropriate")
         assert "cannot approve" in str(exc.value)
         assert "discrimination.gini" in str(exc.value), "name the test that failed"
         assert "approved_with_conditions" in str(exc.value), "offer the legitimate route"
@@ -125,20 +125,21 @@ class TestConcluding:
                                                               scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.99})
         v = validation.conclude(opened["id"], "approved_with_conditions",
-                                ["retrain before 2027Q1", "monthly Gini reporting"])
+                                ["retrain before 2027Q1", "monthly Gini reporting"],
+                                tier_verdict="remains_appropriate")
         assert v["outcome"] == "approved_with_conditions"
         assert len(v["conditions"]) == 2
 
     def test_a_failed_validation_may_be_rejected(self, validation, opened, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.99})
-        assert validation.conclude(opened["id"], "rejected")["outcome"] == "rejected"
+        assert validation.conclude(opened["id"], "rejected", tier_verdict="remains_appropriate")["outcome"] == "rejected"
 
     def test_approval_is_refused_while_a_blocking_finding_is_open(
             self, validation, findings, opened, a_model, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.3})
         findings.raise_finding(a_model["id"], "Critical", "Leakage", "person/j.okafor")
         with pytest.raises(ValidationError) as exc:
-            validation.conclude(opened["id"], "approved")
+            validation.conclude(opened["id"], "approved", tier_verdict="remains_appropriate")
         assert "blocking finding" in str(exc.value) and "Leakage" in str(exc.value)
 
     def test_an_unknown_outcome_is_refused(self, validation, opened):
@@ -146,9 +147,9 @@ class TestConcluding:
             validation.conclude(opened["id"], "probably_fine")
 
     def test_concluding_twice_is_refused(self, validation, opened):
-        validation.conclude(opened["id"], "deferred")
+        validation.conclude(opened["id"], "deferred", tier_verdict="remains_appropriate")
         with pytest.raises(ValidationError, match="already concluded"):
-            validation.conclude(opened["id"], "approved")
+            validation.conclude(opened["id"], "approved", tier_verdict="remains_appropriate")
 
     def test_summary_reports_what_ran_and_what_failed(self, validation, opened, scored):
         validation.record(opened["id"], "discrimination.gini", *scored, threshold={"min": 0.3})
@@ -202,3 +203,88 @@ class TestReproducibilityReplay:
         report = replayer.replay(opened["id"], lambda key, sl: None)
         assert report["reproducible"] is False and report["total"] == 0
         assert report["detail"] == "no results to replay"
+
+
+class TestTheTierIsReAssessedDuringValidation:
+    """SS1/23 1.3(e). An episode that concluded without a verdict on the tier
+    was indistinguishable from one where the validator looked and agreed —
+    which are the two answers a supervisor most needs told apart."""
+
+    def test_concluding_without_a_verdict_is_refused(self, validation, opened):
+        with pytest.raises(ValidationError) as exc:
+            validation.conclude(opened["id"], "approved")
+        assert "requires a verdict on the model's risk tier" in str(exc.value)
+        assert "looked and agreed" in str(exc.value), "say why it is required"
+
+    def test_a_verdict_outside_the_three_is_refused(self, validation, opened):
+        with pytest.raises(ValidationError) as exc:
+            validation.conclude(opened["id"], "approved", tier_verdict="fine")
+        assert "the three are" in str(exc.value)
+
+    def test_saying_the_tier_is_wrong_needs_a_reason(self, validation, opened):
+        for verdict in ("should_be_higher", "should_be_lower"):
+            with pytest.raises(ValidationError) as exc:
+                validation.conclude(opened["id"], "approved",
+                                    tier_verdict=verdict)
+            assert "needs a note" in str(exc.value)
+
+    def test_agreeing_needs_no_note(self, validation, opened):
+        # `rejected` rather than `approved`: approving with no test result is
+        # refused by a different control, and a test that tripped over it
+        # would be passing for the wrong reason.
+        v = validation.conclude(opened["id"], "rejected",
+                                tier_verdict="remains_appropriate")
+        assert v["tier_verdict"] == "remains_appropriate"
+
+    def test_the_tier_at_open_is_stamped_not_read_at_conclude(self, opened):
+        """The tier can move while an episode runs, and 'remains appropriate'
+        is unreadable without knowing which tier was being looked at."""
+        assert "tier_at_open" in opened
+
+    def test_the_verdict_is_on_the_evidence_chain(self, validation, opened,
+                                                  evidence):
+        """A verdict recorded only in a column is one an amended row can lose."""
+        validation.conclude(opened["id"], "rejected",
+                            tier_verdict="remains_appropriate")
+        entries = [e for e in evidence.for_subjects([opened["model_version_id"]])
+                   if e["kind"] == "validation_concluded"]
+        assert entries, "the conclusion is recorded"
+        assert entries[-1]["payload"]["tier_verdict"] == "remains_appropriate"
+
+
+class TestOneDirectionRaisesAFinding:
+    """A validator saying a model is riskier than the register says, and
+    nothing happening, is the failure this verdict exists to prevent. The
+    opposite verdict is a request to *reduce* control and belongs in a
+    re-assessment somebody signs, not in a backlog of things to fix."""
+
+    def test_should_be_higher_raises_one(self, validation, opened, findings):
+        validation.findings = findings
+        validation.conclude(opened["id"], "rejected",
+                            tier_verdict="should_be_higher",
+                            tier_note="the book it scores has trebled and the "
+                                      "exposure band no longer reflects it")
+        raised = findings.open_for(opened["model_id"])
+        assert any(f["category"] == "tiering" for f in raised), \
+            "a verdict nobody has to close is a verdict nobody acts on"
+        found = next(f for f in raised if f["category"] == "tiering")
+        assert "trebled" in found["description"], "carry the validator's reason"
+
+    def test_should_be_lower_raises_nothing(self, validation, opened, findings):
+        validation.findings = findings
+        validation.conclude(opened["id"], "rejected",
+                            tier_verdict="should_be_lower",
+                            tier_note="the model was retired from the book "
+                                      "that drove its exposure")
+        assert not [f for f in findings.open_for(opened["model_id"])
+                    if f["category"] == "tiering"]
+
+    def test_with_no_finding_register_the_verdict_is_still_recorded(
+            self, validation, opened):
+        """Absent is not broken: the verdict is the record, and the finding is
+        what makes somebody act on it."""
+        validation.findings = None
+        v = validation.conclude(opened["id"], "rejected",
+                                tier_verdict="should_be_higher",
+                                tier_note="the exposure band is stale")
+        assert v["tier_verdict"] == "should_be_higher"

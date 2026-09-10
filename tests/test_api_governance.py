@@ -46,7 +46,8 @@ class TestValidationApi:
         assert r.status_code == 201 and r.json()["passed"] is True
 
         done = registered.post(f"/api/v1/validations/{vid}/conclude",
-                               json={"outcome": "approved"})
+                               json={"outcome": "approved",
+                                     "tier_verdict": "remains_appropriate"})
         assert done.status_code == 200 and done.json()["outcome"] == "approved"
 
     def test_the_builder_cannot_validate_their_own_version(self, registered, people):
@@ -64,7 +65,8 @@ class TestValidationApi:
                         json={"test_key": "discrimination.gini",
                               "threshold": {"min": 0.99}, **SCORED})
         r = registered.post(f"/api/v1/validations/{vid}/conclude",
-                            json={"outcome": "approved"})
+                            json={"outcome": "approved",
+                                     "tier_verdict": "remains_appropriate"})
         assert r.status_code == 409
         assert "approved_with_conditions" in r.json()["detail"]
 
