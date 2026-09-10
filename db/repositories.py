@@ -593,6 +593,10 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class BreakGlassRepository(Repository):
+    TABLE, ORDER = "break_glass", "reference"
+
+
 class SpendRepository(Repository):
     TABLE, ORDER = "ai_spend", "spent_at"
 

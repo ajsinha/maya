@@ -68,6 +68,7 @@ class JobContext:
     immaterial: Any = None
     lifecycle_profiles: Any = None
     canaries: Any = None
+    break_glass: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -477,6 +478,25 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def expire_break_glass(ctx: "JobContext") -> Dict[str, Any]:
+    """Close every emergency elevation whose window has ended.
+
+    Housekeeping rather than the control, and the distinction matters. Expiry
+    is derived from the window on every read, so a grant is closed to the
+    platform the instant its window ends whether or not this has run — a grant
+    that is only closed when a batch runs is open whenever the batch is not,
+    which is exactly when it would matter.
+
+    What this adds is the *record*: a row that still says `open` three weeks
+    later reads, to anybody looking at the table rather than calling the API,
+    like an elevation somebody left running.
+    """
+    if ctx.break_glass is None:
+        return {"expired": [], "count": 0,
+                "detail": "no break-glass register is wired into this instance"}
+    return ctx.break_glass.expire_due(now=ctx.now, actor=ctx.actor)
+
+
 def check_base_models(ctx: "JobContext") -> Dict[str, Any]:
     """Whether the model under each capability's version string has moved.
 
@@ -615,6 +635,12 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("break_glass.expire",
+        "closes every emergency elevation whose window has ended",
+        "expiry is derived on every read so the control does not depend on "
+        "this running, but a row that still says open three weeks later reads "
+        "to anybody looking at the table like an elevation somebody left on",
+        expire_break_glass),
     Job("assist.canaries",
         "checks whether the model under each capability's version string moved",
         "a hosted model is re-trained, quantised and rolled forward while the "

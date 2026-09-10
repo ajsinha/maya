@@ -1408,7 +1408,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Seventeen idempotent jobs
+### 16.3 Eighteen idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1503,7 +1503,7 @@ against.
 ## 18. Authorisation
 
 `core/authz/` — eight roles across three lines of defence, seventy-two permissions, refused incompatible
-pairs, and entity and domain scope.
+pairs, entity and domain scope, and emergency elevation with a second signature.
 
 Three properties are worth the space.
 
@@ -1535,6 +1535,34 @@ never obeyed** — a group with no mapping grants nothing — and the incompatib
 directory exactly as it does to a local principal, *before* provisioning, so the lesser problem cannot hide
 the greater. Provisioning on first login is off by default, because it hands everybody in the directory a
 foothold in the model register.
+
+### 18.1 Break-glass, and the number that actually finds abuse
+
+The starting point is the honest one. The `admin` role is *described* as break-glass and is exempt from the
+incompatible-roles check — and that is not break-glass. It is a standing account that happens to be
+powerful, which is precisely the thing break-glass exists to replace. Break-glass is defined by being
+**closed by default**: asked for, agreed to by somebody else, ending on its own, and read afterwards by
+somebody who was not in the incident.
+
+`core/authz/breakglass.py` is a grant with a reason, a second signature, a window and a review. It carries
+no `permissions` column, deliberately: a grant does not hand out rights, the role does. What it establishes
+is a **window with a name and a reason attached**, and *what was done under it* is a fold of the evidence
+chain over that window by that principal — derived rather than kept in a second log that could disagree with
+the first.
+
+| Decision | Why |
+|---|---|
+| A **unilateral** grant is allowed and flagged, with a shorter window | Dual authorisation means the second person cannot be the first, and at three in the morning there may be only one person awake. Refusing outright is how an institution ends up with a shared password in a safe — no name, no reason, no window and no review. The weaker form should cost more to keep using, so it expires sooner |
+| Expiry is **derived from the window on every read** | A grant only closed when a batch runs is open whenever the batch is not, which is exactly when it would matter. `break_glass.expire` is housekeeping so the table reads correctly, not the control |
+| An unreviewed grant **refuses that principal's next request** | Otherwise "mandatory post-hoc review" is a to-do list, and a to-do list is what every unread break-glass log in the world already is. The check runs at *request* time so the answer arrives before somebody is mid-incident |
+| Requesting and closing need **authentication only** | Asking for elevation grants nothing, and a platform that refuses people the ability to ask is one where the answer is somebody else's password. Authorising and reviewing are the administrator's act |
+| The review outcomes are **closed** | *Looked at it* is not a conclusion, and a review with no verdict reads exactly like one nobody did |
+
+**And the figure worth reading first is `unglassed`.** You cannot find break-glass abuse by watching
+break-glass: anybody misusing emergency access would simply not open a grant for it, so the abuse is never
+in the break-glass log — it is in what is missing from it. `unglassed` counts privileged acts by an
+administrator that fell inside no open window, folded from the evidence chain rather than reported by the
+people it is about. It is the one number on that screen an examiner should read before any of the others.
 
 ## 19. The interface and the SDK
 
@@ -1730,8 +1758,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 234 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 295 modules in one
+the 235 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 296 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

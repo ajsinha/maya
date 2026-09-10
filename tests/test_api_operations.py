@@ -129,6 +129,9 @@ class TestSchedulerApi:
                 # A hosted model is rolled forward while the string it answers
                 # to stays the same, and nobody is told.
                 "assist.canaries",
+                # Expiry is derived on every read, but a row still saying open
+                # three weeks later reads like an elevation somebody left on.
+                "break_glass.expire",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
