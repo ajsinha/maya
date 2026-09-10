@@ -37,6 +37,7 @@ from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
+from core.lifecycle.parallel import ParallelRuns
 from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
@@ -129,6 +130,7 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
+                ParallelObservationRepository, ParallelRunRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -656,6 +658,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
+    # A challenger running beside the champion. MAYA runs neither: it takes
+    # delivery of what both produced and reports the shape of the
+    # disagreement — apart from the outcomes analysis, which needs labels that
+    # arrive months later.
+    parallel_runs = ParallelRuns(
+        ParallelRunRepository(db), ParallelObservationRepository(db),
+        registry, evidence, recode=recode)
+
     # Approving on terms, where the terms are checked by something. SR 26-2 V
     # permits use before validation with compensating controls; this is what
     # makes those controls enforced rather than promised.
@@ -895,6 +905,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "inference": inference,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
+                           "parallel_runs": parallel_runs,
                            "portfolio": portfolio,
                            "event_stream": event_stream,
                            "subscriptions": subscriptions,

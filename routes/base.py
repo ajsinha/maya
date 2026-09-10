@@ -146,6 +146,12 @@ STATUS: Dict[str, int] = {
     "approval_condition_broken": 409, "unknown_condition": 422,
     "condition_incomplete": 422, "window_out_of_range": 422,
     "not_attested": 409, "no_condition": 404, "no_version": 404,
+    # parallel runs
+    "same_version": 422, "purpose_required": 422,
+    "run_already_open": 409, "run_concluded": 409,
+    "input_key_required": 422, "no_observation": 404,
+    "unknown_conclusion": 422, "not_conclusive": 409,
+    "no_run": 404,
     # portfolio views
     "unknown_dimension": 422, "same_dimension": 422,
     # the event stream and its subscribers

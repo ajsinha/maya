@@ -245,6 +245,23 @@ class ReferenceIndex:
                     False))
 
         for row in self.db.query(
+                "SELECT id, reference, state, champion_semver, "
+                "challenger_semver FROM parallel_run WHERE model_id = :m",
+                {"m": model_id}):
+            running = row["state"] == "running"
+            found.append(Reference(
+                "parallel_run", row["id"], row["reference"],
+                (f"a parallel run of {row['challenger_semver']} against "
+                 f"{row['champion_semver']} that is still open — deleting the "
+                 f"model would end it with no verdict, and the observations "
+                 f"gathered so far would answer nothing"
+                 if running else
+                 f"a concluded parallel run, and the record of how "
+                 f"{row['challenger_semver']} compared before somebody decided "
+                 f"about it"),
+                running))
+
+        for row in self.db.query(
                 "SELECT id, reference, kind, enforcement, state "
                 "FROM approval_condition WHERE model_id = :m",
                 {"m": model_id}):
