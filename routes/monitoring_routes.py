@@ -57,6 +57,30 @@ class MonitoringRoutes(Routes):
         monitors = monitoring.registry
         api = self.api
 
+        @self.app.get(f"{api}/adaptive-change", tags=["monitoring"])
+        def adaptive_change(request: Request, urn: str = "", semver: str = ""):
+            """Models that change themselves, and whether they have wandered.
+
+            **A T4 has no version bump for anything to notice**, which is the
+            whole problem: every other control here fires on a version, and an
+            adaptive model changes underneath one nobody re-approved.
+
+            Read `since_last_decision` rather than the individual steps. A model
+            re-fitting nightly and moving a tenth of a percent each time has
+            moved three percent in a month, and every single step passed a
+            per-change threshold comfortably — which is how an adaptive model
+            ends up somewhere nobody approved without any individual act being
+            wrong.
+            """
+            self.authorise(request, "monitor:read")
+            watching = self.ctx["adaptive_change"]
+            if urn and semver:
+                model = self.guard(
+                    lambda: self.ctx["registry"].require(urn))
+                self.authorise(request, "monitor:read", model=model)
+                return self.guard(lambda: watching.trajectory(urn, semver))
+            return self.guard(lambda: watching.sweep())
+
         @self.app.get(f"{api}/inference-posture", tags=["monitoring"])
         def inference_posture(request: Request):
             """What this instance is holding, and what it is not saying.

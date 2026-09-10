@@ -1185,6 +1185,35 @@ reporting one. Every other lapse the scheduler records is derived, so a dead sch
 clean; here a dead scheduler means the instance is quietly holding personal data past the point it decided
 it could, which is why `posture` reports `past_retention` and the classification screen leads with it.
 
+### 13.5 Watching a model that changes itself
+
+**A T4 model has no version bump for anything to notice, and that is the whole problem.** Every other
+control in this platform fires on a version: a new version is reviewed, approved, aliased, compared against
+its predecessor (§9.2). An adaptive model changes underneath a version nobody re-approved, so none of that
+machinery sees it. What moves is the **parameter set** — a new point in `P` under the same kernel — and the
+trajectory of those points is the only place the change is visible at all.
+
+**The alarm that matters is cumulative drift since somebody last looked, not the size of any one step.** A
+model that re-fits nightly and moves a tenth of a percent each time has moved three percent in a month, and
+every single step passed a per-change threshold comfortably. That is how an adaptive model ends up somewhere
+nobody approved without any individual act being wrong — and it is invisible to exactly the check most firms
+write. The cumulative figure is measured from the **last approved** parameter set, because that is the last
+moment a person looked at where the model was: measuring from the first point ever would make an old model
+permanently in excursion, and measuring from the previous point is the per-step check that misses the slow
+walk.
+
+| Choice | Why |
+|---|---|
+| Magnitude is the **largest single coefficient move**, not a norm | One coefficient doubling is the thing somebody needs to know about, and an average over four hundred stable ones buries it. A norm answers *how much did the model move overall*; this answers *did anything move a lot*, which is the question an excursion alarm asks |
+| A step with parameters outside the register is **`opaque`** | It can say that they changed and not how far. Reporting that as a magnitude of 1.0 would be a number pretending to be a measurement — the trajectory then reports how **often** without pretending to know how far |
+| **Frequency is its own excursion** | A model re-fitting faster than anybody can review it is a governance problem whatever the size of each move |
+| The adaptive classes come from the **fibres** | A second list here would disagree with `L-15` the first time either moved, and the disagreement would be silent |
+| The trajectory is **retained, never compacted** | The question asked after an adaptive model goes wrong is *when did it start moving*, and a current-state view cannot answer it |
+
+The `adaptive.change` job raises a **blocking** finding at tiers 1 and 2. Cumulative drift past the bound
+means the model is materially not the one that was approved, and a warning nobody has to act on is how it
+stays that way.
+
 ## 14. Warrants
 
 `core/execution/` — `grammar/`, `builder`, `signing`, `grants`, `warrants`, `profiles`, `engine`,
@@ -1612,7 +1641,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 21 idempotent jobs
+### 16.3 22 idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -2070,8 +2099,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 250 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 311 modules in one
+the 251 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 312 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
