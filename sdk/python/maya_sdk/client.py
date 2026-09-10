@@ -97,6 +97,8 @@ class Maya:
         self.configuration = governance.Configuration(self)
         self.document_review = governance.DocumentReview(self)
         self.request_time = governance.RequestTimeInputs(self)
+        self.concentration = governance.Concentration(self)
+        self.feature_impact = governance.FeatureImpact(self)
         self.assist = assist_module.Assist(self)
         # Filled in by the SDK completion pass. Attached here rather than
         # discovered, because a client that grows subjects dynamically is one
