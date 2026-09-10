@@ -35,6 +35,7 @@ from fastapi.templating import Jinja2Templates
 from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
+from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
@@ -486,6 +487,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # somebody who has an opinion about how much work revalidation is.
     changes = ChangeClassifier(registry, evidence, validation=validation)
 
+    # Proportionality is not a discount: it is what makes the expensive
+    # controls affordable where they are needed. This path says what an
+    # immaterial model owes, what it explicitly does not, and watches for the
+    # condition that would mean it is no longer immaterial.
+    immaterial = ImmaterialPath(
+        registry, tiering, invocations=invocations, composition=composition,
+        risk_repo=RiskRepository(db), findings=findings)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -586,7 +595,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    evidence=evidence, risk=RiskRepository(db),
                    waivers=waivers,
                    uses=use_reconciliation,
-                   pipeline=pipeline_health),
+                   pipeline=pipeline_health,
+                   immaterial=immaterial),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -627,6 +637,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "use_reconciliation": use_reconciliation,
                            "pipeline_health": pipeline_health,
                            "changes": changes,
+                           "immaterial": immaterial,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
