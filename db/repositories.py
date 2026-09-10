@@ -541,6 +541,14 @@ class LimitationRepository(Repository):
     TABLE, ORDER = "model_limitation", "created_at"
 
 
+class WaiverRepository(Repository):
+    #: `approvals` is JSON: a waiver's signatures accumulate on the row, so a
+    #: half-signed tier 1 waiver is visibly half-signed rather than looking
+    #: either approved or absent.
+    TABLE, ORDER = "control_waiver", "created_at"
+    JSON = ("approvals",)
+
+
 class AssumptionRepository(Repository):
     #: The sibling of the above, and deliberately the same shape: what a model
     #: relies on being true, as against what it cannot do. `basis` is prose for

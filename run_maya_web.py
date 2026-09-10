@@ -99,7 +99,7 @@ from db import (ServingAttestationRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 ApiKeyRepository, AssumptionRepository,
-                LimitationRepository, RoleRepository,
+                LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -108,6 +108,7 @@ from db import (ServingAttestationRepository,
 from fastapi.openapi.docs import get_swagger_ui_html
 
 from core.assumptions import AssumptionRegister
+from core.waivers import WaiverRegister
 from core.limitations import LimitationRegister
 from core.apikeys import ApiKeyRegister
 from core.authz.rolestore import RoleStore
@@ -430,6 +431,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                      findings=FindingRepository(db),
                                      overlays=OverlayRepository(db))
 
+    # Controls this estate is not meeting, and who said so. Given the finding
+    # register because a waiver renewed past its limit stops being a temporary
+    # exception and becomes the framework the model is actually governed under.
+    waivers = WaiverRegister(
+        WaiverRepository(db), evidence, registry, findings=findings,
+        max_days=cfg.get_int("waivers.max_days", 90),
+        renewal_limit=cfg.get_int("waivers.renewal_limit", 3))
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -527,7 +536,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    debts=debts, documents=documents,
                    notifications=notifications,
                    finding_workflow=finding_workflow,
-                   evidence=evidence, risk=RiskRepository(db)),
+                   evidence=evidence, risk=RiskRepository(db),
+                   waivers=waivers),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -563,6 +573,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "references": ReferenceIndex(db, registry, features),
                            "limitations": limitations,
                            "assumptions": assumptions,
+                           "waivers": waivers,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,

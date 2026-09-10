@@ -251,6 +251,30 @@ CREATE TABLE IF NOT EXISTS compliance_debt (
 );
 CREATE INDEX IF NOT EXISTS ix_debt_model ON compliance_debt (model_id, status);
 
+CREATE TABLE IF NOT EXISTS control_waiver (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    reference TEXT NOT NULL,
+    control TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    compensating_control TEXT NOT NULL,
+    tier_at_grant INTEGER,
+    status TEXT DEFAULT 'proposed' NOT NULL,
+    proposed_by TEXT NOT NULL,
+    approved_by TEXT,
+    approvals TEXT DEFAULT '[]' NOT NULL,
+    granted_at DOUBLE,
+    expires_at DOUBLE NOT NULL,
+    renewals INTEGER DEFAULT 0 NOT NULL,
+    finding_id TEXT,
+    created_at DOUBLE NOT NULL,
+    closed_at DOUBLE,
+    closure_reason TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_control_waiver_model_id_reference ON control_waiver (model_id, reference);
+
 CREATE TABLE IF NOT EXISTS dataset_snapshot (
     id TEXT NOT NULL,
     name TEXT NOT NULL,

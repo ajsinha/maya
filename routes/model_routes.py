@@ -18,6 +18,9 @@ from core.assumptions import KIND_MEANING as ASSUMPTION_KIND_MEANING
 from core.assumptions import KINDS as ASSUMPTION_KINDS
 from core.assumptions import MATERIALITIES
 from core.limitations import KIND_MEANING, KINDS
+from core.waivers import QUORUM_BY_TIER, WAIVABLE
+from core.waivers import STATUS_MEANING as WAIVER_STATUS_MEANING
+from core.waivers import STATUSES as WAIVER_STATUSES
 from core.registry.versions import latest_version
 
 
@@ -96,6 +99,27 @@ class AssumptionIn(Body):
     review_due: Optional[float] = None
     finding_id: Optional[str] = None
     overlay_id: Optional[str] = None
+
+
+class WaiverIn(Body):
+    urn: str
+    #: Which control. Closed, and drawn from what the tiering engine requires.
+    control: str
+    rationale: str
+    #: Mandatory. A waiver with nothing compensating records the gap and not
+    #: the containment.
+    compensating_control: str
+    #: Mandatory, and bounded. No indefinite exceptions.
+    days: float
+    model_version_id: Optional[str] = None
+
+
+class ApproveWaiverIn(Body):
+    role: str
+
+
+class RenewWaiverIn(Body):
+    days: float
 
 
 class WithdrawLimitationIn(Body):
@@ -404,6 +428,84 @@ class ModelRoutes(Routes):
                                  model=self.model_of(row["model_id"]))
             return self.guard(lambda: self.ctx["assumptions"].withdraw(
                 assumption_id, body.reason, actor=self.actor(who)))
+
+        # ---------------------------------------------------------- waivers
+        @self.app.get(f"{self.api}/waivable-controls", tags=["models"])
+        def waivable_controls(request: Request):
+            """What may be waived, and how many signatures each tier takes."""
+            self.principal(request)
+            return {"controls": list(WAIVABLE),
+                    "quorum_by_tier": QUORUM_BY_TIER,
+                    "statuses": [{"status": s, "means": WAIVER_STATUS_MEANING[s]}
+                                 for s in WAIVER_STATUSES],
+                    "detail": "a waiver names a control some tier actually "
+                              "requires; waiving anything else would relax "
+                              "nothing while reading on a report as though it "
+                              "had. Approval scales with the tier, because "
+                              "relaxing a control on the estate's most "
+                              "material model on one person's say-so is what "
+                              "'scaled to risk' is about"}
+
+        @self.app.get(f"{self.api}/waivers", tags=["models"])
+        def waivers(request: Request,
+                    urn_: Optional[str] = Query(None, alias="urn")):
+            """What a model is not doing — or, with no urn, the whole estate."""
+            if urn_ is None:
+                self.authorise(request, "waiver:read",
+                               estate_wide="reading every control the estate "
+                                           "is currently not meeting")
+                return self.guard(
+                    lambda: self.ctx["waivers"].across_the_estate())
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "waiver:read", model=m)
+            return self.guard(
+                lambda: self.ctx["waivers"].for_model(urn_of(urn_)))
+
+        @self.app.post(f"{self.api}/waivers", status_code=201, tags=["models"])
+        def propose_waiver(request: Request, body: WaiverIn):
+            """Ask for a control to be relaxed, for a bounded time."""
+            m = self.guard(lambda: reg.require(urn_of(body.urn)))
+            who = self.authorise(request, "waiver:propose", model=m)
+            return self.guard(lambda: self.ctx["waivers"].propose(
+                urn_of(body.urn), body.control, body.rationale,
+                body.compensating_control, body.days,
+                model_version_id=body.model_version_id,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/waivers/{{waiver_id}}/approve",
+                       tags=["models"])
+        def approve_waiver(request: Request, waiver_id: str,
+                           body: ApproveWaiverIn):
+            """Sign one. The proposer may not, and a tier 1 waiver takes two."""
+            row = self.guard(lambda: self.ctx["waivers"].require(waiver_id))
+            who = self.authorise(request, "waiver:approve",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["waivers"].approve(
+                waiver_id, body.role, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/waivers/{{waiver_id}}/renew",
+                       tags=["models"])
+        def renew_waiver(request: Request, waiver_id: str, body: RenewWaiverIn):
+            """Extend one, and count that it happened. Past the limit, a
+            finding: a control relaxed four times running is not a temporary
+            exception, it is the framework the model is governed under."""
+            row = self.guard(lambda: self.ctx["waivers"].require(waiver_id))
+            who = self.authorise(request, "waiver:approve",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["waivers"].renew(
+                waiver_id, body.days, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/waivers/{{waiver_id}}/revoke",
+                       tags=["models"])
+        def revoke_waiver(request: Request, waiver_id: str,
+                          body: WithdrawLimitationIn):
+            """End one early. Never deleted: what was relaxed, and when, is
+            part of what this model's governance actually was."""
+            row = self.guard(lambda: self.ctx["waivers"].require(waiver_id))
+            who = self.authorise(request, "waiver:revoke",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["waivers"].revoke(
+                waiver_id, body.reason, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/mathematics", tags=["models"])
         def mathematics(request: Request, name: str = Query(..., alias="urn"),
