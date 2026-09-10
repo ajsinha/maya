@@ -1241,6 +1241,18 @@ AI_CAPABILITY = Table(
     # then the capability is dead forever, which is how budgets end up raised to
     # a number that means nothing.
     Column("budget_window_days", Double, nullable=False, server_default=text('30.0')),
+    # The canary fingerprint: what a fixed set of trivial probes produced when
+    # this capability was last evaluated. A base model moves underneath its own
+    # version string, and nothing else here would notice.
+    #
+    # Null means never taken. `canary_probes` holds the probes that proved
+    # STABLE at baseline — a probe the model disagrees with itself about is
+    # excluded by name, and a capability where none survive is recorded as
+    # unfingerprintable, which is a better answer than a digest that changes
+    # every time and teaches everybody to ignore the alarm.
+    Column("canary_digest", Text),
+    Column("canary_probes", Text, nullable=False, server_default=text("'[]'")),
+    Column("canary_taken_at", Double),
     Column("status", Text, nullable=False, server_default=text("'active'")),
     Column("owner", Text, nullable=False),
     Column("created_at", Double, nullable=False),

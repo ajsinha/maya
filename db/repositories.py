@@ -585,6 +585,7 @@ class MeasurementRepository(Repository):
 
 class CapabilityRepository(Repository):
     TABLE, ORDER = "ai_capability", "created_at"
+    JSON = ("canary_probes",)
 
 
 class GenerationRepository(Repository):

@@ -247,6 +247,37 @@
         ]
       }
     },
+    "/api/v1/assist/canaries": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/assist/canaries/{capability_key}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:capability_key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:capability_key!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/assist/capabilities": {
       "get": {
         "body": [],

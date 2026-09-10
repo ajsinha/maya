@@ -57,8 +57,8 @@ from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,
                             IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
-from core.assist import (BudgetRegister, CapabilityRegistry, DraftingService,
-                         GenerationLog)
+from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
+                         DraftingService, GenerationLog)
 from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
 from core.parameters import FittingService, ParameterRegister
@@ -421,6 +421,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         assist_providers.build(cfg.get("assist.provider", "mock")),
         budgets=assist_budgets)
 
+    # A base model moves underneath its own version string, and nothing else
+    # here would notice. Fixed trivial probes, digested; a change puts the
+    # review sample back to 1.0 rather than suspending anything.
+    canaries = CanaryRegister(capabilities, drafting.provider, evidence)
+
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
         max_days=cfg.get_int("overlays.max_days", 180),
@@ -649,7 +654,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    uses=use_reconciliation,
                    pipeline=pipeline_health,
                    immaterial=immaterial,
-                   lifecycle_profiles=lifecycle_profiles),
+                   lifecycle_profiles=lifecycle_profiles,
+                   canaries=canaries),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -712,6 +718,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "capabilities": capabilities, "generations": generations,
                            "drafting": drafting,
                            "assist_budgets": assist_budgets,
+                           "canaries": canaries,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
