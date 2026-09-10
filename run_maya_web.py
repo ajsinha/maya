@@ -72,6 +72,8 @@ from core.execution.inference import InferenceLog
 from core.execution.quotas import GrantQuotas
 from core.classification import Classification
 from core.docs.search import DocumentSearch
+from core.scanning import UploadScanner
+from core.scanning.upload import DEFAULT_LICENCES
 from core.retention import LegalHolds, RetentionSchedule
 from core.registry.comparison import VersionComparison
 from core.assist.monitoring import AssistMonitoring
@@ -547,11 +549,18 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     for key in cfg.get_list("regimes.active", ["sr-26-2"]):
         regimes.activate(key)
 
+    # What arrived from outside, looked at before it is trusted. Two of the
+    # five checks the requirement names need an engine this platform does not
+    # ship, and an unwired port is REPORTED rather than passed.
+    upload_scanner = UploadScanner(
+        licences=tuple(cfg.get("scanning.allowed_licences",
+                               list(DEFAULT_LICENCES))))
+
     attachments = AttachmentRegister(
         AttachmentRepository(db),
         DocumentStore(Path(cfg.get("data.attachments",
                                    str(ROOT / "data" / "attachments")))),
-        registry, evidence)
+        registry, evidence, scanner=upload_scanner)
 
     # Built here rather than in the context dict below, because the document
     # context builder needs them too and two instances would be two registers.
@@ -936,6 +945,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "inference": inference,
                            "legal_holds": legal_holds,
                            "document_search": document_search,
+                           "upload_scanner": upload_scanner,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,

@@ -28,6 +28,24 @@ class AttachmentRoutes(Routes):
         attachments, registry = self.ctx["attachments"], self.ctx["registry"]
         api = self.api
 
+        @self.app.get(f"{api}/upload-scanning", tags=["documents"])
+        def upload_scanning(request: Request):
+            """Which of the five checks this instance can actually perform.
+
+            Read `unavailable` first. Malware and dependency scanning need an
+            engine this platform does not ship, and they are reported as
+            unavailable rather than as clean — a clean result from nothing
+            having looked is worse than no result, because the tick is what
+            stops anybody asking.
+
+            Opcode analysis is **answered by exclusion**: the artifact format
+            vocabulary contains no `pickle`, so there is nothing to scan. A
+            format that cannot execute beats a scanner that has to decide
+            whether an opcode sequence is malicious.
+            """
+            self.authorise(request, "document:read")
+            return self.guard(lambda: self.ctx["upload_scanner"].posture())
+
         @self.app.get(f"{api}/attachment-kinds", tags=["attachments"])
         def kinds(request: Request):
             self.principal(request)
