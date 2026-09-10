@@ -517,6 +517,21 @@ class UIRoutes(Routes):
                              report=self.ctx["waivers"].across_the_estate(),
                              controls=list(WAIVABLE), quorum=QUORUM_BY_TIER)
 
+        # -------------------------------------------------- break-glass
+        @self.app.get("/break-glass", response_class=HTMLResponse, tags=["ui"])
+        def break_glass_page(request: Request):
+            """Emergency elevation, and the number that actually finds abuse.
+
+            Which is not the grants: anybody misusing emergency access would
+            simply not open one. It is the privileged acts that happened under
+            no grant at all.
+            """
+            if (r := self.page_gate(request, "principal:read")) is not None:
+                return r
+            return self.page(
+                request, "break_glass.html",
+                report=self.ctx["break_glass"].across_the_estate())
+
         # ------------------------------------------------ classification
         @self.app.get("/classification", response_class=HTMLResponse,
                       tags=["ui"])

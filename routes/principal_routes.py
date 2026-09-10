@@ -21,6 +21,24 @@ from core.authz import INCOMPATIBLE_ROLES
 from routes.base import Body, Routes
 
 
+
+class BreakGlassIn(Body):
+    reason: str
+    principal: str = ""
+
+
+class AuthoriseIn(Body):
+    unilateral: bool = False
+
+
+class CloseIn(Body):
+    reason: str = ""
+
+
+class ReviewIn(Body):
+    outcome: str
+    note: str
+
 class PrincipalIn(Body):
     username: str
     display_name: str
@@ -269,6 +287,87 @@ class PrincipalRoutes(Routes):
         def list_principals(request: Request):
             self.authorise(request, "principal:read")
             return {"principals": people.list()}
+
+        # ------------------------------------------------------ break-glass
+        @self.app.get(f"{api}/break-glass", tags=["authorisation"])
+        def break_glass_estate(request: Request):
+            """Every emergency elevation, and the number that matters.
+
+            Read `unglassed` first. You cannot find break-glass abuse by
+            watching break-glass — anybody misusing emergency access would
+            simply not open a grant for it — so the figure worth reading is
+            privileged acts that happened under **no** grant, derived from the
+            evidence chain rather than reported by the people it is about.
+            """
+            self.authorise(request, "principal:read")
+            return self.guard(
+                lambda: self.ctx["break_glass"].across_the_estate())
+
+        @self.app.post(f"{api}/break-glass", status_code=201,
+                       tags=["authorisation"])
+        def request_break_glass(request: Request, body: BreakGlassIn):
+            """Ask for elevation. Nothing is granted by asking.
+
+            Refused outright if this principal has a closed grant nobody has
+            reviewed: a review that can be skipped is a to-do list.
+
+            Authentication only, deliberately. Asking for elevation grants
+            nothing, and a platform that refuses people the ability to *ask* is
+            one where the answer is somebody else's password.
+            """
+            who = self.principal(request)
+            return self.guard(lambda: self.ctx["break_glass"].request(
+                body.principal or self.actor(who), body.reason,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/break-glass/{{reference}}/authorise",
+                       tags=["authorisation"])
+        def authorise_break_glass(request: Request, reference: str,
+                                  body: AuthoriseIn):
+            """The second signature, which cannot be the first.
+
+            `unilateral` opens it anyway with a shorter window and a flag. Not a
+            loophole: refusing outright at three in the morning is how an
+            institution ends up with a shared password in a safe, which has no
+            name, no reason, no window and no review.
+            """
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: self.ctx["break_glass"].authorise(
+                reference, self.actor(who), unilateral=body.unilateral))
+
+        @self.app.post(f"{api}/break-glass/{{reference}}/close",
+                       tags=["authorisation"])
+        def close_break_glass(request: Request, reference: str,
+                              body: CloseIn):
+            """End it early. It would have ended anyway.
+
+            Authentication only, for the same reason: nobody should have to
+            find an administrator in order to give a privilege back.
+            """
+            who = self.principal(request)
+            return self.guard(lambda: self.ctx["break_glass"].close(
+                reference, body.reason, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/break-glass/{{reference}}/under",
+                      tags=["authorisation"])
+        def under_break_glass(request: Request, reference: str):
+            """What was done under it, folded from the evidence chain.
+
+            Derived and never logged twice: the chain already records every act
+            with its actor and its time, and a second log would be a second
+            thing to keep in step.
+            """
+            self.authorise(request, "principal:read")
+            return self.guard(lambda: self.ctx["break_glass"].under(reference))
+
+        @self.app.post(f"{api}/break-glass/{{reference}}/review",
+                       tags=["authorisation"])
+        def review_break_glass(request: Request, reference: str,
+                               body: ReviewIn):
+            """Somebody reads what was done. Not the person who used it."""
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: self.ctx["break_glass"].review(
+                reference, body.outcome, body.note, self.actor(who)))
 
         @self.app.post(f"{api}/principals", status_code=201, tags=["authorisation"])
         def create_principal(request: Request, body: PrincipalIn):

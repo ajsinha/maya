@@ -252,6 +252,30 @@ CREATE TABLE IF NOT EXISTS breach (
 );
 CREATE INDEX IF NOT EXISTS ix_breach_model ON breach (model_id, status);
 
+CREATE TABLE IF NOT EXISTS break_glass (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    principal TEXT NOT NULL,
+    requested_by TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    authorised_by TEXT,
+    unilateral BOOLEAN DEFAULT false NOT NULL,
+    opened_at DOUBLE PRECISION,
+    expires_at DOUBLE PRECISION,
+    closed_at DOUBLE PRECISION,
+    closed_by TEXT,
+    close_reason TEXT DEFAULT '' NOT NULL,
+    review_due DOUBLE PRECISION,
+    reviewed_at DOUBLE PRECISION,
+    reviewed_by TEXT,
+    review_outcome TEXT,
+    review_note TEXT DEFAULT '' NOT NULL,
+    state TEXT DEFAULT 'requested' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_break_glass_principal ON break_glass (principal, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_break_glass_reference ON break_glass (reference);
+
 CREATE TABLE IF NOT EXISTS compliance_debt (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,

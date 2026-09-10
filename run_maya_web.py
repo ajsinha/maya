@@ -57,6 +57,7 @@ from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,
                             IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
+from core.authz.breakglass import BreakGlass
 from core.classification import Classification
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
                          DraftingService, GenerationLog)
@@ -116,6 +117,7 @@ from db import (ServingAttestationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
+                BreakGlassRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
@@ -553,6 +555,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     lifecycle_profiles = LifecycleProfiles(
         registry, fibres, attachments=attachments, evidence=evidence)
 
+    # Emergency elevation with a second signature, an end, and a mandatory
+    # review — as opposed to the standing admin account, which is not
+    # break-glass however it is described.
+    break_glass = BreakGlass(BreakGlassRepository(db), principals, evidence,
+                             findings=findings)
+
     # A feature has carried a sensitivity since the catalogue was written and
     # nothing ever read it. The join propagates it: a model is at least as
     # sensitive as the most sensitive thing it reads.
@@ -662,7 +670,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    pipeline=pipeline_health,
                    immaterial=immaterial,
                    lifecycle_profiles=lifecycle_profiles,
-                   canaries=canaries),
+                   canaries=canaries,
+                   break_glass=break_glass),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -727,6 +736,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "assist_budgets": assist_budgets,
                            "canaries": canaries,
                            "classification": data_classification,
+                           "break_glass": break_glass,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
