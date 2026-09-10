@@ -607,6 +607,29 @@ CREATE TABLE IF NOT EXISTS idempotency (
 CREATE INDEX IF NOT EXISTS ix_idempotency_started ON idempotency (started_at);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_idempotency ON idempotency (idempotency_key, principal);
 
+CREATE TABLE IF NOT EXISTS inference (
+    id TEXT NOT NULL,
+    invocation_id TEXT,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    request_id TEXT,
+    principal TEXT NOT NULL,
+    feature_digest TEXT NOT NULL,
+    prediction_digest TEXT NOT NULL,
+    features TEXT,
+    prediction TEXT,
+    explanation TEXT,
+    latency_ms DOUBLE PRECISION,
+    outcome TEXT DEFAULT 'ok' NOT NULL,
+    reason TEXT DEFAULT 'sampled' NOT NULL,
+    classification TEXT DEFAULT 'internal' NOT NULL,
+    retain_until DOUBLE PRECISION,
+    at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_inference_model ON inference (model_id, at);
+CREATE INDEX IF NOT EXISTS ix_inference_retention ON inference (retain_until);
+
 CREATE TABLE IF NOT EXISTS model (
     id TEXT NOT NULL,
     urn TEXT NOT NULL,

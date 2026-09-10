@@ -135,6 +135,9 @@ class TestSchedulerApi:
                 # Otherwise the table becomes a permanent copy of every
                 # successful response somebody asked to be able to retry.
                 "idempotency.sweep",
+                # The one place where deleting is correct: this table holds
+                # somebody else's personal data.
+                "inference.expire",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
