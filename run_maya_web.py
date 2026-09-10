@@ -77,6 +77,8 @@ from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
 from core.scanning.upload import DEFAULT_LICENCES
 from core.discovery import DiscoveryRegister
+from core.risk.approvals import RegulatoryApprovals
+from core.risk.whatif import TieringWhatIf
 from core.features.skew import SkewDetector
 from core.plugins import ExtensionPoints
 from core.retention import LegalHolds, RetentionSchedule
@@ -142,6 +144,7 @@ from db import (ServingAttestationRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
                 DiscoveryRepository, LegalHoldRepository,
+                RegulatoryApprovalRepository,
                 ParallelObservationRepository, ParallelRunRepository,
                 VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
@@ -754,6 +757,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # clocks, which is what separates a stale value from a leaked one.
     skew = SkewDetector(evidence)
 
+    # A permission a supervisor gave, with what it covers and when it lapses.
+    # Recorded BESIDE the tier and never folded into it.
+    regulatory_approvals = RegulatoryApprovals(
+        RegulatoryApprovalRepository(db), registry, evidence)
+
+    # What a change to the tiering rules would do to the estate you have. The
+    # tiering approach is itself a model (SS1/23 1.3(d)), and the change to it
+    # is the interesting act.
+    tiering_whatif = TieringWhatIf(tiering, registry, RiskRepository(db),
+                                   approvals=regulatory_approvals)
+
     # Things a scanner found that might be models. MAYA does not crawl the
     # bank's drives — that needs the broadest read access anybody in the firm
     # holds — so it takes delivery, records the triage, and grades the scanner
@@ -910,7 +924,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    inference=inference,
                    subscriptions=subscriptions,
                    adaptive=adaptive_change,
-                   discovery=discovery),
+                   discovery=discovery,
+                   approvals=regulatory_approvals),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -986,6 +1001,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "extensions": extensions,
                            "skew": skew,
                            "discovery": discovery,
+                           "regulatory_approvals": regulatory_approvals,
+                           "tiering_whatif": tiering_whatif,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,

@@ -593,6 +593,10 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class RegulatoryApprovalRepository(Repository):
+    TABLE, ORDER = "regulatory_approval", "reference"
+
+
 class DiscoveryRepository(Repository):
     TABLE, ORDER = "discovery_candidate", "reference"
     JSON = ("evidence",)
