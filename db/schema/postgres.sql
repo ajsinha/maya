@@ -919,6 +919,42 @@ CREATE TABLE IF NOT EXISTS overlay_measurement (
 );
 CREATE INDEX IF NOT EXISTS ix_measurement_overlay ON overlay_measurement (overlay_id, period);
 
+CREATE TABLE IF NOT EXISTS parallel_observation (
+    id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    input_key TEXT NOT NULL,
+    champion DOUBLE PRECISION,
+    challenger DOUBLE PRECISION,
+    outcome DOUBLE PRECISION,
+    outcome_at DOUBLE PRECISION,
+    at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_parallel_observation_run ON parallel_observation (run_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_parallel_observation ON parallel_observation (run_id, input_key);
+
+CREATE TABLE IF NOT EXISTS parallel_run (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    champion_version_id TEXT NOT NULL,
+    challenger_version_id TEXT NOT NULL,
+    champion_semver TEXT NOT NULL,
+    challenger_semver TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    tolerance DOUBLE PRECISION DEFAULT 1e-9 NOT NULL,
+    state TEXT DEFAULT 'running' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE PRECISION NOT NULL,
+    closed_at DOUBLE PRECISION,
+    closed_by TEXT,
+    conclusion TEXT,
+    close_note TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_parallel_run_model ON parallel_run (model_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_parallel_run_reference ON parallel_run (reference);
+
 CREATE TABLE IF NOT EXISTS parameter_set (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,

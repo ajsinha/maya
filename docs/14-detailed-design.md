@@ -709,6 +709,38 @@ exists to prevent, arriving through a different door. And the terms are evaluate
 at approval**: approval is a moment and use is continuous, so a condition checked only when somebody signed
 is a sentence in a minute.
 
+### 9.1d Running a challenger beside the champion
+
+SS1/23 3.3(c) asks for parallel outcomes analysis when a dynamic model changes, and the reason is sound: the
+only way to know what a new version does to real decisions is to let it see the real decisions without acting
+on them. MAYA runs neither model — it registers that a run is happening, takes delivery of what both
+produced, and does the arithmetic.
+
+**The distinction the whole thing turns on: agreement is knowable now, and correctness is not.** Two models
+disagreeing on ten thousand cases is a fact available the moment both have answered. Which of them was
+*right* needs the outcome — the default, the claim, the loss — and that arrives months later or never.
+Nearly every shadow-mode dashboard conflates them, reports a disagreement rate, and lets a reader conclude
+something about quality the data cannot support. So two readings are returned and never mixed:
+
+| Reading | Available | Says |
+|---|---|---|
+| **divergence** | the moment both have answered | how often and how far they differ. Nothing about quality |
+| **outcomes analysis** | only for observations whose label has arrived | which was closer to what happened — with its **coverage**, because an analysis over 4% of a run is not a result with a caveat, it is not a result |
+
+**Observations are keyed on the input.** A parallel run whose champion and challenger were not asked the
+same question is two unrelated series printed side by side. Either side may arrive first and separately,
+because in a real shadow deployment they do — the champion answers in the request path and the challenger
+answers out of band — and an observation with only one side is **reported as unpaired rather than dropped**,
+since a challenger that silently failed on the hard cases would otherwise look like the better model.
+
+**Promoting on divergence alone is refused.** A shadow run is expensive and the pressure at the end of one is
+to conclude *something* rather than nothing; `promote` therefore requires a conclusive outcomes analysis, and
+`inconclusive` is offered as an honest end and a common one.
+
+The shape of a disagreement is read by `core/validation/recode.py` (§9.2's neighbour) rather than
+reimplemented — a handful of wild outliers is a branch nobody tested, a uniform smear is arithmetic done
+differently, and two implementations of one judgement eventually disagree.
+
 ### 9.2 Comparing two versions
 
 `L-7` and `L-12` decide whether an alias **may** move: contracts refine, inputs are contravariant, outputs
@@ -2038,8 +2070,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 249 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 310 modules in one
+the 250 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 311 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

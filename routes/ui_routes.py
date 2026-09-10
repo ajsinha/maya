@@ -627,7 +627,11 @@ class UIRoutes(Routes):
                              # costs: both are answers to "what does this
                              # record owe before it may be relied on".
                              conditions=self.ctx[
-                                 "approval_conditions"].across_the_estate())
+                                 "approval_conditions"].across_the_estate(),
+                             # A challenger beside the champion is the other
+                             # answer to "may this be relied on yet".
+                             parallel=self.ctx[
+                                 "parallel_runs"].across_the_estate())
 
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
