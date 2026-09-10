@@ -65,6 +65,7 @@ class JobContext:
     waivers: Any = None
     uses: Any = None
     pipeline: Any = None
+    immaterial: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -426,6 +427,19 @@ def expire_waivers(ctx: "JobContext") -> Dict[str, Any]:
                        else "no waiver reached its end date")}
 
 
+def check_immaterial(ctx: "JobContext") -> Dict[str, Any]:
+    """Every immaterial model, against the conditions that would escalate it.
+
+    Nothing is re-tiered. Materiality is a judgement and the register's job is
+    to make sure somebody makes it, not to make it — a platform that silently
+    re-tiered a model would be one whose tiers nobody could account for.
+    """
+    if ctx.immaterial is None:
+        return {"count": 0,
+                "detail": "no immaterial path is wired into this instance"}
+    return ctx.immaterial.sweep(now=ctx.now, actor=ctx.actor)
+
+
 def check_pipelines(ctx: "JobContext") -> Dict[str, Any]:
     """Every feature view, against its own history.
 
@@ -453,6 +467,15 @@ def reconcile_uses(ctx: "JobContext") -> Dict[str, Any]:
 
 
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("immaterial.conditions",
+        "checks every immaterial model against the conditions that would mean "
+        "it is no longer immaterial — usage, dependence and the age of its "
+        "assessment",
+        "proportionality is what makes the expensive controls affordable where "
+        "they are needed, and it only works if something notices when a small "
+        "model has stopped being small; materiality was declared once and the "
+        "declaration goes stale quietly",
+        check_immaterial),
     Job("pipelines.check",
         "checks every feature view against its own loading history — "
         "freshness, volume, schema and null rates",
