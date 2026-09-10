@@ -2565,6 +2565,18 @@
         ]
       }
     },
+    "/api/v1/pipeline-health": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:view!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "body": [],
