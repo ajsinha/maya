@@ -584,6 +584,34 @@
         ]
       }
     },
+    "/api/v1/change-classification": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:from_semver!",
+          "query:to_semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "from_semver!",
+          "reason!",
+          "to_semver!",
+          "urn!",
+          "verdict!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/derived-features": {
       "get": {
         "body": [],
