@@ -15,6 +15,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, ClassVar, Dict, Iterable, List, Optional, Tuple
 
+from core.risk.designations import extra_controls
 from core.risk.lattices import (COMPLEXITY, CONTROLS, MATERIALITY, RULESET_VERSION,
                                 _OPAQUE_CLASSES)
 from db import RiskRepository
@@ -129,12 +130,32 @@ class TieringEngine:
         return 4
 
     @staticmethod
-    def required_controls(tier: int) -> Tuple[str, ...]:
-        return tuple(CONTROLS[tier])
+    def required_controls(tier: int,
+                          designations: Optional[Iterable[str]] = None
+                          ) -> Tuple[str, ...]:
+        """What this model owes: its tier's controls, plus its designations'.
+
+        Additive and orthogonal. A designation does not move a model up or down
+        the lattice — two models at the same tier can owe different things
+        because one of them feeds a regulatory submission, and no amount of
+        re-tiering produces a reconciliation requirement.
+        """
+        out = list(CONTROLS[tier])
+        for control in extra_controls(designations or ()):
+            if control not in out:
+                out.append(control)
+        return tuple(out)
 
     @staticmethod
     def supports_tier(applied: List[str]) -> int:
-        """The Galois adjoint: the strictest tier the applied controls can defend."""
+        """The Galois adjoint: the strictest tier the applied controls can defend.
+
+        Reads TIER controls and only tier controls, deliberately. An adjoint
+        that also read designation controls would answer *which tier do these
+        defend* with a number depending on facts the tier lattice does not
+        contain, and `L-5` — which is the pair of these two being adjoint —
+        would stop holding without anything obviously breaking.
+        """
         got = set(applied)
         for tier in (1, 2, 3, 4):
             if set(CONTROLS[tier]).issubset(got):
@@ -156,7 +177,8 @@ class TieringEngine:
                      f"complexity={c} (class {facts.get('trainability_class', 'T0')}); "
                      f"tau({m},{c})=Tier {tier} under ruleset {RULESET_VERSION}")
         return Assessment(tier=tier, materiality=m, complexity=c,
-                          required_controls=self.required_controls(tier),
+                          required_controls=self.required_controls(
+                              tier, facts.get("designations")),
                           rationale=rationale, facts=dict(facts))
 
     #: The reading of an undeclared complexity fact that assumes the worst.

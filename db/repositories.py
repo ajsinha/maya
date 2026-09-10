@@ -139,7 +139,7 @@ class Repository:
 
 
 class ModelRepository(Repository):
-    TABLE, JSON, ORDER = "model", ("attributes",), "urn"
+    TABLE, JSON, ORDER = "model", ("attributes", "designations"), "urn"
 
 
 class VersionRepository(Repository):

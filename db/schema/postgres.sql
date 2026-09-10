@@ -555,6 +555,7 @@ CREATE TABLE IF NOT EXISTS model (
     origin TEXT DEFAULT 'internal' NOT NULL,
     status TEXT DEFAULT 'draft' NOT NULL,
     tier INTEGER,
+    designations TEXT DEFAULT '[]' NOT NULL,
     attributes TEXT DEFAULT '{}' NOT NULL,
     created_at DOUBLE PRECISION NOT NULL,
     created_by TEXT NOT NULL,

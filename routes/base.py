@@ -49,7 +49,9 @@ from core.docs import DocumentError
 from core.lifecycle import LifecycleError
 from core.fibres import FibreError
 from core.apikeys import ApiKeyError
+from core.risk.designations import DesignationError
 from core.risk.tiering import RiskError
+from core.waivers import WaiverError
 from core.references.index import ReferencedError
 from core.rules.common import RuleError
 from core.monitoring import MonitorError
@@ -214,6 +216,7 @@ STATUS: Dict[str, int] = {
     # waiver has to have before it is one — a bounded window, a reason, and
     # something being done instead — so they are 422 rather than 400, except
     # the two that are about the row's state and the one that is a lookup.
+    "unknown_designation": 422,
     "unknown_control": 422, "no_rationale": 422,
     "no_compensating_control": 422, "no_expiry": 422,
     "no_such_waiver": 404, "no_reason": 422,
@@ -551,7 +554,7 @@ class Routes:
         # with the uncoded validation refusals would flatten eleven refusals
         # that each name a different thing to do into one 409.
         except (WarrantError, LifecycleError, MonitorError, DocumentError,
-                RiskError,
+                RiskError, DesignationError, WaiverError,
                 OverlayError, AssistError, BaselineError,
                 RegimeError, SchedulerError, AttachmentError,
                 ParameterError, TelemetryError, NotifyError,

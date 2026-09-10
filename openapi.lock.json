@@ -622,6 +622,15 @@
         ]
       }
     },
+    "/api/v1/designations": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/document-kinds": {
       "get": {
         "body": [],
@@ -2056,6 +2065,20 @@
           "decision",
           "role!",
           "statement"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/designations": {
+      "put": {
+        "body": [
+          "designations"
         ],
         "parameters": [
           "path:name!"

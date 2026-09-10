@@ -18,6 +18,8 @@ from core.assumptions import KIND_MEANING as ASSUMPTION_KIND_MEANING
 from core.assumptions import KINDS as ASSUMPTION_KINDS
 from core.assumptions import MATERIALITIES
 from core.limitations import KIND_MEANING, KINDS
+from core.risk.designations import DESIGNATIONS, extra_controls
+from core.risk.designations import explain as explain_designations
 from core.waivers import QUORUM_BY_TIER, WAIVABLE
 from core.waivers import STATUS_MEANING as WAIVER_STATUS_MEANING
 from core.waivers import STATUSES as WAIVER_STATUSES
@@ -99,6 +101,12 @@ class AssumptionIn(Body):
     review_due: Optional[float] = None
     finding_id: Optional[str] = None
     overlay_id: Optional[str] = None
+
+
+class DesignateIn(Body):
+    #: The complete set, not an addition. A designation being removed is a
+    #: decision worth as much as one being applied.
+    designations: List[str] = Field(default_factory=list)
 
 
 class WaiverIn(Body):
@@ -429,6 +437,35 @@ class ModelRoutes(Routes):
             return self.guard(lambda: self.ctx["assumptions"].withdraw(
                 assumption_id, body.reason, actor=self.actor(who)))
 
+        # ----------------------------------------------------- designations
+        @self.app.get(f"{self.api}/designations", tags=["models"])
+        def designations(request: Request):
+            """The four, what each means, and what each one ADDS."""
+            self.principal(request)
+            return {"designations": explain_designations(DESIGNATIONS),
+                    "detail": "orthogonal to the tier and additive to it. A "
+                              "designation does not move a model up or down "
+                              "the lattice — two models at the same tier can "
+                              "owe different things because one of them feeds "
+                              "a regulatory submission, and no amount of "
+                              "re-tiering produces a reconciliation "
+                              "requirement. A tag that changes nothing is a "
+                              "label"}
+
+        @self.app.put(f"{self.api}/models/{{name:path}}/designations",
+                      tags=["models"])
+        def designate(request: Request, name: str, body: DesignateIn):
+            """Say what this model is also subject to. Replaces the set."""
+            m = self.guard(lambda: reg.require(urn_of(name)))
+            who = self.authorise(request, "risk:assess", model=m)
+            updated = self.guard(lambda: reg.designate(
+                urn_of(name), body.designations, actor=self.actor(who)))
+            return {**updated,
+                    "adds_controls": extra_controls(
+                        updated.get("designations") or []),
+                    "why": explain_designations(
+                        updated.get("designations") or [])}
+
         # ---------------------------------------------------------- waivers
         @self.app.get(f"{self.api}/waivable-controls", tags=["models"])
         def waivable_controls(request: Request):
@@ -608,7 +645,12 @@ class ModelRoutes(Routes):
             # `load_bearing` can ask the only question that matters: would
             # knowing it change the tier?
             latest_class = (latest_version(versions) or {}).get("trainability_class")
-            facts = {**body.model_dump()}
+            # The designations are read off the model rather than sent, for the
+            # same reason the class is: they are a property of the model, and a
+            # caller who could set them in an assessment could choose which
+            # controls it owes.
+            facts = {**body.model_dump(),
+                     "designations": list(m.get("designations") or [])}
             declared = set(body.model_dump(exclude_unset=True))
             if latest_class:
                 facts["trainability_class"] = latest_class
