@@ -76,6 +76,7 @@ from core.classification import Classification
 from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
 from core.scanning.upload import DEFAULT_LICENCES
+from core.discovery import DiscoveryRegister
 from core.features.skew import SkewDetector
 from core.plugins import ExtensionPoints
 from core.retention import LegalHolds, RetentionSchedule
@@ -140,7 +141,7 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
-                LegalHoldRepository,
+                DiscoveryRepository, LegalHoldRepository,
                 ParallelObservationRepository, ParallelRunRepository,
                 VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
@@ -753,6 +754,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # clocks, which is what separates a stale value from a leaked one.
     skew = SkewDetector(evidence)
 
+    # Things a scanner found that might be models. MAYA does not crawl the
+    # bank's drives — that needs the broadest read access anybody in the firm
+    # holds — so it takes delivery, records the triage, and grades the scanner
+    # from the dismissals as much as from the registrations.
+    discovery = DiscoveryRegister(DiscoveryRepository(db), registry, evidence,
+                                  findings=findings)
+
     # Which parts of this platform a deployment may extend. Four axes are
     # open; four are closed because a plugin there would be a removal rather
     # than an extension, and each refusal names what the closure protects.
@@ -901,7 +909,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    idempotency=idempotency,
                    inference=inference,
                    subscriptions=subscriptions,
-                   adaptive=adaptive_change),
+                   adaptive=adaptive_change,
+                   discovery=discovery),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -976,6 +985,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "upload_scanner": upload_scanner,
                            "extensions": extensions,
                            "skew": skew,
+                           "discovery": discovery,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
