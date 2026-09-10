@@ -10,6 +10,7 @@ grants), scope (which models it reaches), and segregation of duties (what the
 same person already did, read from the evidence chain rather than a second
 record that could disagree with it).
 """
+from core.authz.breakglass import BreakGlass
 from core.authz.common import PERMISSIONS, READ_PERMISSIONS, AuthzError
 from core.authz.policy import AuthorizationPolicy
 from core.authz.principals import PrincipalService
@@ -27,6 +28,7 @@ __all__ = [
                               "RULES",
                               "AuthorizationPolicy",
                               "AuthzError",
+                              "BreakGlass",
                               "Incompatibility",
                               "PrincipalService",
                               "Scope",

@@ -84,6 +84,65 @@ class Principals:
         return self._maya.call("POST", f"/principals/{username}/password",
                                json={"password": password})
 
+    # ----------------------------------------------------------- break-glass
+    def break_glass(self) -> Dict[str, Any]:
+        """Every emergency elevation, and the number that matters.
+
+        Read `unglassed` first. You cannot find break-glass abuse by watching
+        break-glass — anybody misusing emergency access would simply not open a
+        grant for it — so the figure worth reading is privileged acts that
+        happened under **no** grant, derived from the evidence chain rather than
+        reported by the people it is about.
+        """
+        return self._maya.call("GET", "/break-glass")
+
+    def request_break_glass(self, *, reason: str,
+                            principal: str = "") -> Dict[str, Any]:
+        """Ask for elevation. Nothing is granted by asking.
+
+        Refused with `review_outstanding` if this principal has a closed grant
+        nobody has reviewed, which is what makes the mandatory review mandatory:
+        a review that can be skipped is a to-do list.
+        """
+        return self._maya.call("POST", "/break-glass",
+                               json={"reason": reason,
+                                     "principal": principal})
+
+    def authorise_break_glass(self, reference: str, *,
+                              unilateral: bool = False) -> Dict[str, Any]:
+        """The second signature, which cannot be the first.
+
+        `unilateral=True` opens it anyway with a shorter window and a flag. Not
+        a loophole: refusing outright at three in the morning is how an
+        institution ends up with a shared password in a safe, which has no name,
+        no reason, no window and no review.
+        """
+        return self._maya.call("POST",
+                               f"/break-glass/{reference}/authorise",
+                               json={"unilateral": unilateral})
+
+    def close_break_glass(self, reference: str, *,
+                          reason: str = "") -> Dict[str, Any]:
+        """End it early. It would have ended anyway."""
+        return self._maya.call("POST", f"/break-glass/{reference}/close",
+                               json={"reason": reason})
+
+    def under_break_glass(self, reference: str) -> Dict[str, Any]:
+        """What was done under it, folded from the evidence chain rather than
+        kept in a second log that could disagree with the first."""
+        return self._maya.call("GET", f"/break-glass/{reference}/under")
+
+    def review_break_glass(self, reference: str, *, outcome: str,
+                           note: str) -> Dict[str, Any]:
+        """Somebody reads what was done. Never the person who used it.
+
+        `outcome` is one of `appropriate`, `excessive` or `unwarranted`. The
+        list is closed because *looked at it* is not a conclusion, and a review
+        with no verdict reads exactly like one nobody did.
+        """
+        return self._maya.call("POST", f"/break-glass/{reference}/review",
+                               json={"outcome": outcome, "note": note})
+
     def suspend(self, username: str, *, reason: str = "") -> Dict[str, Any]:
         """Switch somebody off. Refused for the last administrator, and for
         yourself — reinstating needs a permission a suspended account no longer

@@ -134,6 +134,43 @@ Creating a principal, changing roles and suspending an account need
 `POST /api/v1/principals/{username}/suspend`. Each is recorded on the evidence
 chain like any other governed act.
 
+## Break-glass
+
+The `admin` role is described as break-glass and is exempt from the
+incompatible-roles check. That is not break-glass. It is a standing account that
+happens to be powerful, and a standing powerful account is exactly the thing
+break-glass exists to replace.
+
+A break-glass **grant** is the audited path: it is asked for with a reason, it is
+agreed to by somebody who is not the requester, it ends on its own, and somebody
+who was not the user reads afterwards what was done under it.
+
+| Step | Who | Note |
+|---|---|---|
+| Request | anybody signed in | asking grants nothing, and a platform that refuses people the ability to ask is one where the answer is somebody else's password |
+| Authorise | an administrator | cannot be the requester |
+| Use | the principal named | four hours, or one hour if it was opened unilaterally |
+| Close | anybody signed in | optional; it ends on its own either way |
+| Review | an administrator | never the person who used it, and the next request from that person is refused until it happens |
+
+**A unilateral grant is allowed.** At three in the morning there may be only one
+person awake, and refusing outright is how an institution ends up with a shared
+password in a safe — no name, no reason, no window and no review. A unilateral
+grant opens, gets a one-hour window instead of four, is flagged, and its review
+is not optional.
+
+**Expiry does not depend on the batch.** A grant is closed to MAYA the instant its
+window ends, whether or not `break_glass.expire` has run. The job exists so the
+table reads correctly, not to enforce anything.
+
+**Read `unglassed` before anything else on that screen.** You cannot find
+break-glass abuse by watching break-glass — anybody misusing emergency access
+would simply not open a grant for it. The number that finds it is privileged acts
+by an administrator that happened under **no** grant, which MAYA folds out of the
+evidence chain rather than taking anybody's word for.
+
+See [Break-glass](/break-glass).
+
 ## Policy gates
 
 `/policies` — needs `policy:read`
