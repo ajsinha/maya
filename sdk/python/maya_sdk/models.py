@@ -61,6 +61,40 @@ class Models:
             "domain": domain, "tier": tier, "q": q,
             "limit": limit, "offset": offset})
 
+    # ----------------------------------------------------------- comparison
+    def compare_versions(self, urn: str, left: str,
+                         right: str) -> Dict[str, Any]:
+        """What changed between two versions, as a diff a person reads.
+
+        `L-7` and `L-12` already decide whether an alias *may* move — a yes with
+        a reason, and the right thing to gate a promotion on. *Is this legal*
+        and *what changed* are different questions.
+
+        Read `shape` first: `rebuild`, `refit`, `respecification`,
+        `reclassification` or `identical`. Those arrive at a reviewer looking
+        the same — a new semver, a new digest, an approval request — and they
+        ask completely different questions. Then read
+        `contract.direction`, because a tightened clause and a loosened one are
+        both *changed* to a text diff and are opposite governance facts.
+
+        `measurements` compares what each version was **measured** to do, on the
+        tests they have in common. MAYA runs neither version; where they share
+        no test the answer says so, because a delta across different test sets
+        would look like an answer.
+        """
+        return self._maya.call("GET", "/version-comparison",
+                               params={"urn": urn, "left": left,
+                                       "right": right})
+
+    def version_history(self, urn: str) -> Dict[str, Any]:
+        """Every consecutive pair, so the shape of the series is visible.
+
+        A model whose last six versions were all rebuilds is telling a different
+        story from one with six re-specifications, and neither is visible from a
+        list of semvers.
+        """
+        return self._maya.call("GET", "/version-history", params={"urn": urn})
+
     # -------------------------------------------------------- classification
     def classification(self, urn: str) -> Dict[str, Any]:
         """What this model's inputs force, and what it declares.

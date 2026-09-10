@@ -59,6 +59,7 @@ from core.reporting import (AppetiteRegister, BoardPackBuilder,
 from core.execution.profiles import WarrantProfileRegister
 from core.authz.breakglass import BreakGlass
 from core.classification import Classification
+from core.registry.comparison import VersionComparison
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
                          DraftingService, GenerationLog)
 from core.assist import providers as assist_providers
@@ -555,6 +556,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     lifecycle_profiles = LifecycleProfiles(
         registry, fibres, attachments=attachments, evidence=evidence)
 
+    # What changed between two versions, as a diff a person reads. L-7 and
+    # L-12 decide whether an alias MAY move; that is a different question.
+    version_comparison = VersionComparison(
+        registry, validation=validation, parameters=parameters,
+        attachments=attachments)
+
     # Emergency elevation with a second signature, an end, and a mandatory
     # review — as opposed to the standing admin account, which is not
     # break-glass however it is described.
@@ -737,6 +744,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "canaries": canaries,
                            "classification": data_classification,
                            "break_glass": break_glass,
+                           "version_comparison": version_comparison,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

@@ -791,6 +791,40 @@ class ModelRoutes(Routes):
                 urn(name), body.environment, body.alias, body.semver,
                 actor=self.actor(who), justification=body.justification))
 
+        @self.app.get(f"{self.api}/version-comparison", tags=["registry"])
+        def version_comparison(request: Request, urn: str, left: str,
+                               right: str):
+            """What changed between two versions, as a diff a person reads.
+
+            `L-7` and `L-12` already decide whether an alias *may* move — a yes
+            with a reason, and the right thing to gate a promotion on. *Is this
+            legal* and *what changed* are different questions, and a boolean
+            cannot be turned back into the second one.
+
+            Read `shape` first. A rebuild, a re-fit and a re-specification
+            arrive at a reviewer looking identical — a new semver, a new digest,
+            an approval request — and they ask completely different questions.
+            """
+            model = self.guard(lambda: reg.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["version_comparison"].compare(
+                    urn, left, right))
+
+        @self.app.get(f"{self.api}/version-history", tags=["registry"])
+        def version_history(request: Request, urn: str):
+            """Every consecutive pair, so a reader can see the shape of the
+            series.
+
+            A model whose last six versions were all rebuilds is telling a
+            different story from one with six re-specifications, and neither is
+            visible from a list of semvers.
+            """
+            model = self.guard(lambda: reg.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["version_comparison"].history(urn))
+
         @self.app.get(f"{self.api}/classification", tags=["risk"])
         def classification_of(request: Request, urn: str):
             """What this model's inputs force, and what it declares.

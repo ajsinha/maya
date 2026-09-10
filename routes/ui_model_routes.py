@@ -397,7 +397,12 @@ class ModelAlgebraRoutes(Routes):
                 # decides whether to say so before the form is filled in rather
                 # than after, and it does not include segregation — which is
                 # checked against the evidence chain at the act itself.
-                may_create=self.may_view(request, "version:create", model))
+                may_create=self.may_view(request, "version:create", model),
+                # What changed from one version to the next, as a diff a person
+                # reads. The alias gate answers "may this move"; a reviewer
+                # approving the change needs "what moved", and a boolean cannot
+                # be turned back into that.
+                series=self.ctx["version_comparison"].history(model["urn"]))
 
         # ------------------------------------------------------- composition
         @self.app.get("/model-algebra/composition", response_class=HTMLResponse,
