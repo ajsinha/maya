@@ -371,6 +371,34 @@ refines( output_schema(source), input_schema(target) )
 And the composite's schema is **derived**: the source's inputs, the target's outputs. Not declared — because a
 composite whose signature somebody wrote down is a composite that can disagree with its parts.
 
+**And a composite can now be *authorised* as one unit**, which is where the theory stops being decoration.
+One call over `curve → valuation → provision` resolves every node or refuses the whole chain — because a
+chain is as governed as its least governed link, and an authorisation that ignored the upstream state would
+be routing around the only control that knows the upstream reaches downstream.
+
+Three details are the interesting ones, and each is the theory arriving at an interface.
+
+**The composite's tier is the *join* of its nodes', not the terminal's.** That is the lattice doing exactly
+what the lax-monoidality result says it may: a tier is an assessment on a totally ordered set, joins compose,
+and a chain is at least as risky as its riskiest part. Note what it is *not* doing — it is not producing a
+risk magnitude, which two sections above is proved to be the thing that cannot compose. The join is
+order-theoretic and the premium is arithmetic, and only one of those survives composition.
+
+**Every refusing node is named, not the first.** A caller told about one fixes it, retries, discovers the
+second; a chain with three problems then takes three round trips and each looks like a new failure. That is
+a usability observation and also a soundness one: a refusal that reveals one obstacle at a time is a refusal
+whose author has not actually computed the obstruction set.
+
+**And there is no single signed descriptor, deliberately.** Signing one would be the register asserting that
+the chain *as a whole* is authorised — and nothing established that. Three people approved three models for
+three purposes, and none of them approved the composition. What comes back is the nodes in topological
+order, each with its own descriptor and its own limitations, and the caller executes a chain it can account
+for rather than a black box the register vouched for.
+
+This is the same shape as the `L-14` position and it is worth saying so explicitly: **what composes is the
+order, not the number.** A composite warrant can say *this chain is at least tier 1 and every link resolves*.
+It cannot say *this chain is 0.83 risky*, and the reason it cannot is a theorem rather than a backlog item.
+
 **A concrete one.** An ECL stack records that a PD model feeds a provisioning engine. Both entries have
 existed for two years; the edge is on the diagram in every committee pack. The PD model produces `pd_12m`.
 The provisioning engine reads `pd_lifetime`. Nobody ever wired them — an adapter in between computes one from
