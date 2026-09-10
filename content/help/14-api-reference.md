@@ -272,6 +272,73 @@ long enough for a pager to be worth the space. That is served from
 to run air-gapped and a table plugin is a hundred lines of arithmetic wearing
 eighty kilobytes.
 
+## Retrying safely, and not overwriting somebody
+
+Two headers, and both of them refuse rather than guess.
+
+### `Idempotency-Key` on anything that changes something
+
+Your connection drops mid-POST. You do not know whether the model was
+registered, the waiver granted, the record attested. Retry with the same
+`Idempotency-Key` and you get the first request's answer back, with
+`Idempotency-Replayed: true`, and nothing happens a second time.
+
+```
+POST /api/v1/models
+Idempotency-Key: 5f2c-…-9b1
+```
+
+Three things worth knowing about how MAYA implements it.
+
+**A key is bound to the request body.** Reuse a key with a *different* body and
+you get `409 idempotency_key_reused`, not a replay. This is deliberate: if you
+retried because you had corrected the payload, replaying the old answer would
+tell you the correction succeeded when what you got back was the answer to the
+mistake.
+
+**A retry that races the original gets `409 idempotency_in_flight`.** The key is
+claimed before the work rather than after, so a concurrent duplicate is told the
+first one has not finished — which is true — rather than being told it
+succeeded. Ask again shortly.
+
+**A failed request releases the key.** If your request was refused or errored,
+the key is free and your retry is a real retry. MAYA only keeps the answer to a
+request that *worked*; keeping failures would make your retry replay the failure
+forever.
+
+Records are kept for a day. A client still retrying after that is retrying
+something it should be told about rather than quietly handed an old answer to.
+
+### `ETag` and `If-Match`, for the update you did not mean to lose
+
+Every JSON `GET` carries a weak `ETag`. Send it back as `If-None-Match` and you
+get `304` if nothing changed — worth doing on the estate-wide views, which fold a
+lot of chain to answer.
+
+Send it as `If-Match` on a `PATCH`, `PUT`, `POST` or `DELETE` and the write
+happens only if the resource is still what you read:
+
+```
+PATCH /api/v1/models/credit.pd.smallbiz
+If-Match: W/"sha256:8f14b6b3f330591c"
+```
+
+`412 precondition_failed` means somebody changed it since you read it. Read
+again, reconcile, retry. The failure this prevents is the quietest one there is:
+two people open a record, both edit, both save, and the second write silently
+discards the first — nothing refused, nothing logged, and the only trace is a
+field saying something nobody typed.
+
+`428 precondition_unevaluable` means the path you addressed has no
+representation to compare against. MAYA refuses rather than ignoring the header,
+because a server that quietly drops `If-Match` gives you optimistic concurrency
+you do not have — and you have stopped checking for yourself.
+
+The tag is derived from the representation, not from a stored version number, so
+it cannot say *unchanged* about something that changed. It is weak (`W/`) because
+it identifies the same *answer* rather than the same bytes: narration is
+excluded, so a tag does not move when only the wording did.
+
 ## The endpoints
 
 Every path below is relative to `/api/v1`. The permission column is what

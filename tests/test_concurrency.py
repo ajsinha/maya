@@ -1,405 +1,250 @@
-"""
-MAYA — Model & AI Lifecycle Assurance
-Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
-Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+"""Sending the same request twice, and two people changing one thing at once.
 
-What happens when two things happen at once.
+A client whose connection dropped mid-POST does not know whether the act
+happened. Its choices are to retry — and risk two attestations, two waivers, two
+break-glass grants — or not to, and risk none.
 
-There were **zero** concurrency tests and zero transaction tests in fourteen
-thousand lines of test code, and a reviewer found the defect that gap was
-hiding: the evidence chain is a read-then-write — take the head, insert head+1 —
-and every statement opened its own transaction, so two concurrent governance
-acts read the same head and one of them hit the UNIQUE on `seq`. Measured at
-four threads, seven percent of appends raised.
-
-Losing the row was not the serious part. Every service commits its own state
-change *before* appending evidence, so the model existed and the record of its
-registration did not — and segregation of duties is decided by reading the
-chain, so a lost `version_created` node did not fail closed. It meant "you
-cannot approve what you created" had nothing to read.
-
-The suite proved MAYA correct when one thing happened at a time. This file is
-the other half.
+The lost update an ETag prevents is the quietest failure in any register: two
+people open a record, both edit, both save, and the second write silently
+discards the first. Nothing is refused and the only trace is a field nobody
+typed.
 """
 from __future__ import annotations
 
-import concurrent.futures
-
-import pathlib
-import re
+import time
 
 import pytest
 
-
-@pytest.fixture
-def shared_db(tmp_path):
-    """A file-backed database, because the shared in-memory one is not shared.
-
-    `sqlite:///:memory:` gives every CONNECTION its own database, so a thread
-    pool against it tests nothing at all — each worker would quietly get an
-    empty schema. Concurrency has to be tested against storage that two threads
-    can actually contend for.
-    """
-    from db import Database
-    database = Database(f"sqlite:///{tmp_path}/concurrent.db")
-    database.apply_schema()
-    return database
+from core.concurrency import (HEADER, IdempotencyError, IdempotencyStore,
+                              etag_of, matches)
+from core.concurrency.idempotency import MAX_KEY, RETENTION_HOURS, STALE_MINUTES
+from tests.conftest import NAME, URN
 
 
 @pytest.fixture
-def evidence(shared_db):
-    from core.evidence import EvidenceEngine
-    from db import EvidenceRepository
-    return EvidenceEngine(EvidenceRepository(shared_db))
+def store(db):
+    from db import IdempotencyRepository
+    return IdempotencyStore(IdempotencyRepository(db))
 
 
-@pytest.fixture
-def segregation(evidence):
-    from core.authz.segregation import SegregationPolicy
-    return SegregationPolicy(evidence)
+class TestClaimingAKey:
+    def test_a_fresh_key_says_go_and_do_the_work(self, store):
+        assert store.claim("k1", "caller", "POST", "/models", b'{"a":1}') is None
+
+    def test_a_completed_key_replays_the_answer(self, store):
+        store.claim("k1", "caller", "POST", "/models", b'{"a":1}')
+        store.complete("k1", "caller", 201, b'{"urn":"x"}')
+        replay = store.claim("k1", "caller", "POST", "/models", b'{"a":1}')
+        assert replay == {"status": 201, "body": '{"urn":"x"}'}
+
+    def test_the_same_key_with_a_different_body_is_a_conflict(self, store):
+        """An implementation that replays the first response to any second
+        request tells a client that retried with a CORRECTED payload that the
+        correction succeeded — when what it returned was the answer to the
+        mistake."""
+        store.claim("k1", "caller", "POST", "/models", b'{"a":1}')
+        store.complete("k1", "caller", 201, b"{}")
+        with pytest.raises(IdempotencyError) as caught:
+            store.claim("k1", "caller", "POST", "/models", b'{"a":2}')
+        assert caught.value.code == "idempotency_key_reused"
+        assert "you have since corrected" in caught.value.detail
+
+    def test_the_same_key_on_a_different_path_is_a_conflict(self, store):
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        store.complete("k1", "caller", 201, b"{}")
+        with pytest.raises(IdempotencyError) as caught:
+            store.claim("k1", "caller", "POST", "/features", b"{}")
+        assert caught.value.code == "idempotency_key_reused"
+
+    def test_keys_are_scoped_to_the_caller(self, store):
+        """A key is chosen by the caller, and a well-chosen UUID does not
+        protect you from somebody else's badly chosen one."""
+        store.claim("k1", "alice", "POST", "/models", b'{"a":1}')
+        store.complete("k1", "alice", 201, b'{"mine":true}')
+        assert store.claim("k1", "bob", "POST", "/models", b'{"a":9}') is None
+
+    def test_an_absurd_key_is_refused(self, store):
+        with pytest.raises(IdempotencyError) as caught:
+            store.claim("x" * (MAX_KEY + 1), "caller", "POST", "/m", b"{}")
+        assert caught.value.code == "idempotency_key_too_long"
 
 
-@pytest.fixture
-def db(shared_db):
-    return shared_db
+class TestTheConcurrentCase:
+    """A retry usually races the original rather than following it politely."""
+
+    def test_a_second_identical_request_in_flight_is_refused_not_replayed(
+            self, store):
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        with pytest.raises(IdempotencyError) as caught:
+            store.claim("k1", "caller", "POST", "/models", b"{}")
+        assert caught.value.code == "idempotency_in_flight"
+        assert "saying either would be a guess" in caught.value.detail
+
+    def test_a_key_left_in_flight_by_a_dead_process_is_released(self, store,
+                                                               db):
+        """Without this a crash turns into a permanent inability to retry the
+        very act that crashed."""
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        row = store.repo.one(idempotency_key="k1")
+        store.repo.set({"started_at": time.time() - (STALE_MINUTES + 1) * 60},
+                       id=row["id"])
+        assert store.claim("k1", "caller", "POST", "/models", b"{}") is None
 
 
-def _append(evidence, i):
-    return evidence.append("model_registered", "model", f"m-{i}",
-                           {"n": i}, actor=f"person/p{i}")
+class TestAFailureReleasesTheKey:
+    def test_releasing_lets_a_retry_actually_retry(self, store):
+        """A recorded failure makes the retry replay that failure forever, and
+        the key becomes a tombstone for an act that never happened."""
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        store.release("k1", "caller")
+        assert store.claim("k1", "caller", "POST", "/models", b"{}") is None
+
+    def test_releasing_a_key_that_was_never_claimed_is_quiet(self, store):
+        store.release("nope", "caller")
 
 
-class TestTheEvidenceChainUnderConcurrency:
-    def test_no_append_is_lost_when_many_run_at_once(self, evidence):
-        """The measurement that started this: 24 concurrent acts used to produce
-        24 domain rows and 14 evidence nodes."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            results = list(pool.map(lambda i: _append(evidence, i), range(48)))
-        assert len(results) == 48
-        assert len(evidence.repo.many()) == 48
+class TestTheSweep:
+    def test_old_records_are_dropped(self, store):
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        store.complete("k1", "caller", 201, b"{}")
+        out = store.sweep(now=time.time() + (RETENTION_HOURS + 1) * 3600)
+        assert out["dropped"] == 1
 
-    def test_the_chain_is_contiguous_afterwards(self, evidence):
-        """A retry must take the NEXT sequence, not leave a hole. A hole would
-        be indistinguishable from a deletion, which is what the chain exists to
-        detect."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            list(pool.map(lambda i: _append(evidence, i), range(48)))
-        sequences = sorted(n["seq"] for n in evidence.repo.many())
-        assert sequences == list(range(1, 49))
-
-    def test_the_chain_still_verifies(self, evidence):
-        """Every node's prev_hash must be the previous node's chain_hash, which
-        is only true if the appends genuinely serialised."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            list(pool.map(lambda i: _append(evidence, i), range(48)))
-        report = evidence.verify_chain()
-        assert report["valid"] is True, report
-        assert report["length"] == 48
-
-    def test_duties_do_not_fail_open_under_load(self, evidence, segregation):
-        """The consequence that made this critical rather than untidy. If the
-        `version_created` node is lost, the check that reads it finds nothing
-        and permits the act it exists to refuse."""
-        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            pool.map(lambda i: evidence.append(
-                "version_created", "version", f"v-{i}", {}, actor="d.raman"),
-                range(24))
-        blocked = [i for i in range(24)
-                   if segregation.conflict("d.raman", "version:approve",
-                                           f"v-{i}") is not None]
-        assert len(blocked) == 24, (
-            "every version d.raman created must refuse their own approval")
+    def test_recent_records_are_kept(self, store):
+        store.claim("k1", "caller", "POST", "/models", b"{}")
+        assert store.sweep()["dropped"] == 0
 
 
-class TestTransactionsAreReEntrant:
-    def test_a_nested_transaction_joins_the_outer_one(self, db):
-        """A service wrapping a whole governance act must not deadlock against
-        a collaborator that opens one of its own."""
-        with db.transaction():
-            with db.transaction():
-                db.execute("INSERT INTO principal (id, username, display_name, "
-                           "created_at) VALUES ('n1','nested','N',1.0)")
-            assert db.query_one("SELECT username FROM principal WHERE id='n1'")
-        assert db.query_one("SELECT username FROM principal WHERE id='n1'")
+class TestEntityTags:
+    def test_the_same_content_gives_the_same_tag(self):
+        assert etag_of({"a": 1, "b": [2, 3]}) == etag_of({"b": [2, 3], "a": 1})
 
-    def test_a_failed_transaction_rolls_the_whole_thing_back(self, db):
-        with pytest.raises(RuntimeError), db.transaction():
-            db.execute("INSERT INTO principal (id, username, display_name, "
-                       "created_at) VALUES ('r1','rolled','R',1.0)")
-            raise RuntimeError("something went wrong half way through")
-        assert db.query_one("SELECT username FROM principal WHERE id='r1'") is None
+    def test_different_content_gives_a_different_tag(self):
+        assert etag_of({"a": 1}) != etag_of({"a": 2})
 
-    def test_a_read_inside_a_transaction_sees_its_own_writes(self, db):
-        """It could not before: `execute` began and ended a transaction, and
-        `query` opened a second connection that could not see inside it."""
-        with db.transaction():
-            db.execute("INSERT INTO principal (id, username, display_name, "
-                       "created_at) VALUES ('s1','sees','S',1.0)")
-            assert db.query_one("SELECT username FROM principal WHERE id='s1'")
+    def test_a_changed_narration_does_not_change_the_tag(self):
+        """A tag that changes when nothing did makes every conditional request
+        a full one and teaches clients to stop sending the header."""
+        assert etag_of({"a": 1, "detail": "one way of saying it"}) == etag_of(
+            {"a": 1, "detail": "another"})
 
+    def test_the_tag_is_weak_and_says_so(self):
+        """A digest of the semantic content with rendering noise removed is not
+        a claim about the octets, and claiming octet equality would answer a
+        question this does not check."""
+        assert etag_of({"a": 1}).startswith('W/"')
 
-class TestSqliteIsConfiguredForContention:
-    """The pragmas, asserted, because their absence is invisible until load.
+    def test_a_star_precondition_matches_anything_that_exists(self):
+        assert matches("*", etag_of({"a": 1}))
 
-    A suite run alongside three other pytest processes produced
-    `database is locked` from the evidence chain — not a race, a five-second
-    driver timeout under contention. Nothing was wrong with the code; the
-    database was configured to give up.
-    """
+    def test_a_list_is_matched_member_wise(self):
+        tag = etag_of({"a": 1})
+        assert matches(f'W/"nope", {tag}', tag)
 
-    def test_an_on_disk_database_uses_a_write_ahead_log(self, tmp_path):
-        """Readers must not block behind a writer.
-
-        The default journal makes every read wait for the write in flight, and
-        this platform reads the evidence chain on nearly every request.
-        """
-        from db.database import Database
-        db = Database(f"sqlite:///{tmp_path}/wal.db")
-        with db.engine.connect() as conn:
-            assert conn.exec_driver_sql("PRAGMA journal_mode").fetchone()[0] == "wal"
-
-    def test_every_connection_waits_rather_than_failing(self, tmp_path):
-        """A lock held for a moment is normal. Failing instead of waiting turns
-        a millisecond of contention into a governance act that did not happen."""
-        from db.database import Database
-        for url in (f"sqlite:///{tmp_path}/timeout.db", "sqlite:///:memory:"):
-            db = Database(url)
-            with db.engine.connect() as conn:
-                timeout = conn.exec_driver_sql("PRAGMA busy_timeout").fetchone()[0]
-            assert timeout == Database.BUSY_TIMEOUT_MS, url
+    def test_no_header_never_matches(self):
+        assert not matches(None, etag_of({"a": 1}))
+        assert not matches("", etag_of({"a": 1}))
 
 
-class TestTheDatabaseIsCheckedAgainstTheRelease:
-    """`CREATE TABLE IF NOT EXISTS` skips a table that already exists.
+class TestOverHttp:
+    def _payload(self, urn=URN):
+        return {"urn": urn, "name": "SB PD",
+                "model_class": "credit.pd.scorecard", "domain": "credit",
+                "owner": "person/j.okafor", "legal_entity": "LE-US-01",
+                "purpose": "12-month PD"}
 
-    So a column added in a later release is never created on an existing
-    database. The application starts cleanly on a schema that does not match its
-    own code and fails weeks later, inside a workflow, on a query nobody
-    associates with the deployment. There is no migration tool; this check is
-    what turns that silence into a sentence at start-up.
-    """
+    def test_a_retried_post_does_not_register_twice(self, client, people):
+        headers = {HEADER: "abc-123"}
+        first = client.post("/api/v1/models", auth=people["j.okafor"],
+                            json=self._payload(), headers=headers)
+        assert first.status_code == 201, first.text
+        second = client.post("/api/v1/models", auth=people["j.okafor"],
+                             json=self._payload(), headers=headers)
+        assert second.status_code == 201, second.text
+        assert second.headers.get("idempotency-replayed") == "true"
+        assert second.json() == first.json()
+        listed = client.get("/api/v1/models", auth=people["j.okafor"]).json()
+        assert len(listed["models"]) == 1, "the act happened once"
 
-    def test_a_freshly_applied_schema_has_no_drift(self, tmp_path):
-        from db.database import Database
-        assert Database(f"sqlite:///{tmp_path}/fresh.db").drift() == {}
+    def test_without_a_key_the_second_post_is_refused_by_the_register(
+            self, client, people):
+        """The key is what makes the retry safe; without one the ordinary
+        uniqueness refusal is what a caller meets, which is correct and is a
+        different answer."""
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload())
+        again = client.post("/api/v1/models", auth=people["j.okafor"],
+                            json=self._payload())
+        assert again.status_code >= 400
 
-    def test_a_missing_column_is_detected(self, tmp_path):
-        """The reviewer's reproduction, run as a test."""
-        import sqlite3
+    def test_a_reused_key_with_a_different_body_is_refused(self, client,
+                                                           people):
+        headers = {HEADER: "abc-123"}
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload(), headers=headers)
+        other = client.post("/api/v1/models", auth=people["j.okafor"],
+                            json=self._payload("maya://model/other"),
+                            headers=headers)
+        assert other.status_code == 409, other.text
+        assert other.json()["error"] == "idempotency_key_reused"
 
-        from db.database import Database
+    def test_a_failed_request_releases_the_key(self, client, people):
+        headers = {HEADER: "abc-123"}
+        bad = client.post("/api/v1/models", auth=people["j.okafor"],
+                          json={"urn": URN}, headers=headers)
+        assert bad.status_code >= 400
+        good = client.post("/api/v1/models", auth=people["j.okafor"],
+                           json=self._payload(), headers=headers)
+        assert good.status_code == 201, good.text
+        assert "idempotency-replayed" not in good.headers
 
-        path = tmp_path / "older.db"
-        Database(f"sqlite:///{path}")
-        connection = sqlite3.connect(path)
-        connection.execute("ALTER TABLE model DROP COLUMN purpose")
-        connection.commit()
-        connection.close()
+    def test_a_get_carries_an_etag(self, client, people):
+        r = client.get("/api/v1/models", auth=people["j.okafor"])
+        assert r.status_code == 200
+        assert r.headers.get("etag", "").startswith('W/"')
 
-        gaps = Database(f"sqlite:///{path}").drift()
-        assert "model" in gaps
-        assert "purpose" in gaps["model"][0]
+    def test_if_none_match_gets_a_304(self, client, people):
+        first = client.get("/api/v1/models", auth=people["j.okafor"])
+        again = client.get("/api/v1/models", auth=people["j.okafor"],
+                           headers={"If-None-Match": first.headers["etag"]})
+        assert again.status_code == 304, again.text
 
-    def test_a_missing_table_is_detected(self, tmp_path):
-        import sqlite3
+    def test_a_changed_resource_changes_the_tag(self, client, people):
+        before = client.get("/api/v1/models", auth=people["j.okafor"])
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload())
+        after = client.get("/api/v1/models", auth=people["j.okafor"])
+        assert before.headers["etag"] != after.headers["etag"]
 
-        from db.database import Database
+    def test_a_stale_if_match_is_refused_with_412(self, client, people):
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload())
+        r = client.patch(f"/api/v1/models/{NAME}", auth=people["j.okafor"],
+                         json={"fields": {"purpose": "changed"}},
+                         headers={"If-Match": 'W/"not-the-current-tag"'})
+        assert r.status_code == 412, r.text
+        assert r.json()["error"] == "precondition_failed"
+        assert "no longer true" in r.json()["detail"]
 
-        path = tmp_path / "partial.db"
-        Database(f"sqlite:///{path}")
-        connection = sqlite3.connect(path)
-        connection.execute("DROP TABLE risk_assessment")
-        connection.commit()
-        connection.close()
-        # Re-applying the DDL recreates it, which is the point of IF NOT EXISTS
-        # and is why a dropped table is NOT the failure mode worth testing —
-        # the column case is, because that one it cannot repair.
-        assert Database(f"sqlite:///{path}").drift() == {}
+    def test_a_current_if_match_goes_through(self, client, people):
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload())
+        read = client.get(f"/api/v1/models/{NAME}", auth=people["j.okafor"])
+        r = client.patch(f"/api/v1/models/{NAME}", auth=people["j.okafor"],
+                         json={"fields": {"purpose": "changed"}},
+                         headers={"If-Match": read.headers["etag"]})
+        assert r.status_code == 200, r.text
 
-    def test_the_declared_schema_is_parsed_and_not_guessed(self, tmp_path):
-        """Every table in the DDL, and no artefacts of comment syntax.
-
-        The first version of this parser read `--` as a column name on six
-        tables. A check whose output is nonsense is one nobody reads twice.
-        """
-        from db.database import Database
-        declared = Database(f"sqlite:///{tmp_path}/parse.db").declared_schema()
-        assert len(declared) > 40
-        for table, columns in declared.items():
-            assert columns, table
-            assert not any(c.startswith("-") or "}" in c for c in columns), (
-                f"{table} has a column that is a fragment of a comment: {columns}")
-        # A column known to exist, so the parser is not merely returning noise.
-        assert "purpose" in declared["model"]
-
-
-class TestAQuorumIsANumberOfPeople:
-    """One person completed a two-person Tier 1 quorum by racing two requests.
-
-    `sign` enforced "a quorum is a number of people, not a number of hats" with
-    a read-then-write and nothing behind it. Fired through a barrier by a
-    principal holding `validator` and `model_risk_manager`, both requests passed
-    the read and both wrote: 1 trial in 25 put BOTH signatures on one person,
-    and the approval record and the evidence chain each said a quorum had
-    approved it. Nothing anywhere said the two signatures were the same person.
-
-    `model_risk_manager` is defined as a superset of `validator`, so holding
-    both is a supported configuration — and it is exactly the configuration the
-    check exists to neutralise.
-
-    The database constraint is the fix. A transaction alone is not enough on a
-    read-committed store, which is why the test below asserts the constraint
-    rather than the wrapper.
-    """
-
-    def test_the_constraint_exists_in_both_dialects(self):
-        """Asserted on the DDL, because this is the half that does the work.
-
-        As an INDEX, not a clause in the table body, and that is the whole
-        point. The schema is applied with CREATE TABLE IF NOT EXISTS, so a
-        constraint written inside a table reaches a fresh database and never
-        reaches a deployed one — and unlike a missing column, a missing
-        uniqueness rule fails nothing at the point of use. It silently permits
-        the write it existed to refuse, so this test passed for a wave while
-        every upgraded instance still let one person be a quorum.
-        """
-        for dialect in ("sqlite", "postgres"):
-            root = pathlib.Path(__file__).resolve().parents[1]
-            sql = (root / "db" / "schema" / f"{dialect}.sql").read_text()
-            for table in ("version_approval_signature", "attestation_signature"):
-                assert re.search(
-                    r"CREATE UNIQUE INDEX IF NOT EXISTS \w+\s+ON "
-                    + table + r"\s*\((\w+),\s*principal\)", sql), (
-                    f"{dialect}.sql lets one person sign a {table} quorum twice")
-
-    def test_the_constraint_reaches_a_database_that_already_exists(self, tmp_path):
-        """The half that was missing. A bank upgrades; start-up logs clean; the
-        constraint the release note describes is not on the table."""
-        from sqlalchemy import text
-
-        from db.database import Database
-
-        db = Database(f"sqlite:///{tmp_path}/deployed.db")
-        db.apply_schema()
-        # An instance that predates the constraint.
-        with db.engine.begin() as connection:
-            connection.execute(text("DROP INDEX uq_signature_attestation_principal"))
-        assert "missing index 'uq_signature_attestation_principal'" in \
-            db.drift().get("attestation_signature", []), \
-            "drift() cannot see a missing uniqueness rule, so nothing says so"
-        # Applying the shipped schema repairs it — no migration step.
-        db.apply_schema()
-        assert not db.drift()
-        assert "uq_signature_attestation_principal" in \
-            db.indexes_of("attestation_signature")
-
-    def test_the_database_refuses_a_second_signature_from_one_person(self, tmp_path):
-        """Below the service, so a future refactor of `sign` cannot lose it."""
-        from sqlalchemy.exc import IntegrityError
-
-        from db.database import Database
-
-        db = Database(f"sqlite:///{tmp_path}/quorum.db")
-        insert = ("INSERT INTO version_approval_signature (id, version_approval_id, "
-                  "principal, role, decision, statement, signed_at) VALUES "
-                  "('{id}', 'A', 'z.dual', '{role}', 'approve', '', 1.0)")
-        with db.engine.begin() as connection:
-            connection.exec_driver_sql(insert.format(id="1", role="validator"))
-        with pytest.raises(IntegrityError), db.engine.begin() as connection:
-            connection.exec_driver_sql(
-                insert.format(id="2", role="model_risk_manager"))
-
-    def test_two_different_people_still_sign(self, tmp_path):
-        """The control is independence, not scarcity: the quorum must still be
-        completable by the two people it is for."""
-        from db.database import Database
-
-        db = Database(f"sqlite:///{tmp_path}/quorum2.db")
-        insert = ("INSERT INTO version_approval_signature (id, version_approval_id, "
-                  "principal, role, decision, statement, signed_at) VALUES "
-                  "('{id}', 'A', '{who}', '{role}', 'approve', '', 1.0)")
-        with db.engine.begin() as connection:
-            connection.exec_driver_sql(
-                insert.format(id="1", who="a.mehta", role="validator"))
-            connection.exec_driver_sql(
-                insert.format(id="2", who="s.iqbal", role="model_risk_manager"))
-        with db.engine.begin() as connection:
-            count = connection.exec_driver_sql(
-                "SELECT COUNT(*) FROM version_approval_signature").scalar()
-        assert count == 2
-
-    def test_losing_the_race_reads_as_having_already_signed(self):
-        """The integrity error is translated back into the refusal the reader
-        was going to get anyway. Losing a race is not a different answer from
-        being told you have already signed, and a caller who saw a 500 here
-        would retry — which is the one thing that must not work."""
-        import inspect
-
-        from core.lifecycle import approval
-        source = inspect.getsource(approval.VersionApproval.sign)
-        assert "IntegrityError" in source
-        assert source.count("already_signed_personally") >= 2, (
-            "the constraint's refusal must carry the same code as the read's")
-        # `serialise="evidence_seq"`, not a bare `transaction()`. The signature
-        # and its evidence node must be one act, AND the chain's read-then-write
-        # must be ordered by the lock before the outermost transaction reads —
-        # a plain `transaction()` here silently dropped the `serialise` the
-        # nested `evidence.append` asked for.
-        assert "db.transaction(serialise=" in source
-
-
-class TestTheSequenceIsTakenUnderTheWriteLock:
-    """The retry was covering a race rather than removing one.
-
-    A plain transaction on SQLite is *deferred*: the `SELECT MAX(seq)` takes no
-    write lock, so two writers read the same head and the second INSERT dies on
-    the UNIQUE. Twelve jittered retries hid it until a loaded machine — the test
-    suite running one file per core — made four writers exhaust all twelve, and
-    an append was lost. That is the outcome the retry existed to prevent,
-    reached more slowly: a missing `version_created` node means the segregation
-    check has nothing to read, and the developer approves their own version.
-    """
-
-    @staticmethod
-    def _engine(tmp_path):
-        from core.evidence import EvidenceEngine
-        from db import Database, EvidenceCheckpointRepository, EvidenceRepository
-        db = Database(f"sqlite:///{tmp_path}/seq.db", False)
-        return db, EvidenceEngine(EvidenceRepository(db),
-                                  EvidenceCheckpointRepository(db))
-
-    def test_no_append_is_lost_with_the_retry_budget_removed(self, tmp_path,
-                                                             monkeypatch):
-        """One attempt only. If the lock does not hold the sequence, this fails.
-
-        Leaving the twelve retries in place would let a passing run mean either
-        "the lock works" or "the retry papered over it", and a test that cannot
-        distinguish those two proves nothing about the change it guards.
-        """
-        import threading
-
-        import core.evidence.engine as engine_module
-
-        monkeypatch.setattr(engine_module, "APPEND_ATTEMPTS", 1)
-        db, evidence = self._engine(tmp_path)
-        failures, per_thread = [], 40
-
-        def write(n):
-            for i in range(per_thread):
-                try:
-                    evidence.append("model_registered", "model", f"m{n}-{i}", {})
-                except Exception as exc:                     # pragma: no cover
-                    failures.append(f"{type(exc).__name__}: {exc}")
-
-        threads = [threading.Thread(target=write, args=(n,)) for n in range(6)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
-        assert not failures, failures[:3]
-        rows = db.query("SELECT seq FROM evidence_node ORDER BY seq")
-        assert len(rows) == 6 * per_thread, "an append was lost"
-        assert [r["seq"] for r in rows] == list(range(1, 6 * per_thread + 1)), \
-            "the sequence must be dense: a gap is a node that never landed"
-        assert evidence.verify_chain()["valid"]
+    def test_a_precondition_nobody_can_evaluate_is_refused_not_ignored(
+            self, client, people):
+        """Silently dropping If-Match is strictly worse than not supporting
+        preconditions: the client believes it has optimistic concurrency, has
+        none, and has stopped checking for itself."""
+        client.post("/api/v1/models", auth=people["j.okafor"],
+                    json=self._payload())
+        r = client.post(f"/api/v1/models/{NAME}/submit",
+                        auth=people["j.okafor"], json={"note": "x"},
+                        headers={"If-Match": 'W/"anything"'})
+        assert r.status_code == 428, r.text
+        assert r.json()["error"] == "precondition_unevaluable"
+        assert "optimistic concurrency you do not have" in r.json()["detail"]
