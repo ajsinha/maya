@@ -1301,3 +1301,105 @@ class Monitors:
         """
         return self._maya.call("POST", f"/monitors/{monitor_id}/status",
                                params={"status": status})
+
+
+class Reports:
+    """Structured queries over the register, saved views, and extracts.
+
+    There is no method here that takes query text, and there will not be one. A
+    read layer that accepted SQL could promise nothing about what a query can
+    reach — and the first thing a BI tool does with table access is invent its
+    own definition of *in force*, which then lives in a dashboard nobody
+    governs and is the one that reaches the committee.
+
+    Read `catalogue()` first. A field marked `derived` is computed by the same
+    code the screens use, so `in_force` here is the platform's `in_force`.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def catalogue(self) -> Dict[str, Any]:
+        """Every entity, field and operator, with the derived fields marked."""
+        return self._maya.call("GET", "/semantic-layer")
+
+    def query(self, entity: str, *,
+              select: Optional[List[str]] = None,
+              where: Optional[List[Dict[str, Any]]] = None,
+              order_by: str = "", descending: bool = False,
+              limit: int = 1000) -> Dict[str, Any]:
+        """Run one structured query under your own scope.
+
+        Scope filters ROWS rather than refusing the call, and `outside_scope`
+        says how many it removed. Read it: a total that is silently short gets
+        reconciled against somebody else's total, and the difference is
+        attributed to a bug rather than to a permission.
+        """
+        return self._maya.call("POST", "/query", json={
+            "entity": entity, "select": select, "where": where or [],
+            "order_by": order_by, "descending": descending, "limit": limit})
+
+    def views(self) -> Dict[str, Any]:
+        """Your saved views, and everything shared with you."""
+        return self._maya.call("GET", "/saved-views")
+
+    def save_view(self, name: str, *, entity: str, query: Dict[str, Any],
+                  description: str = "", shared: bool = False) -> Dict[str, Any]:
+        """Keep a query.
+
+        A view stores the **query** and never the rows. Sharing one therefore
+        discloses nothing: it re-runs under whoever opens it, and two readers
+        legitimately see different numbers. Had the rows been stored, sharing
+        would carry the author's scope to the reader — a disclosure nobody
+        realised they were making.
+        """
+        return self._maya.call("POST", "/saved-views", json={
+            "name": name, "entity": entity, "query": query,
+            "description": description, "shared": shared})
+
+    def run_view(self, view_id: str, *,
+                 limit: Optional[int] = None) -> Dict[str, Any]:
+        """Run a saved view under your scope, not its author's."""
+        return self._maya.call("GET", f"/saved-views/{view_id}",
+                               params={"limit": limit})
+
+    def delete_view(self, view_id: str) -> Dict[str, Any]:
+        """Remove one of your own views."""
+        return self._maya.call("DELETE", f"/saved-views/{view_id}")
+
+    def export_formats(self) -> Dict[str, Any]:
+        """The three offered, and the ones refused with the reason.
+
+        `xlsx` is refused rather than absent: a binary workbook cannot be
+        diffed, carries formatting and formulas that are not in the register,
+        and invites the edit-then-circulate cycle that turns an extract into a
+        second source of truth nobody versions. CSV opens in Excel.
+        """
+        return self._maya.call("GET", "/export-formats")
+
+    def returns(self) -> Dict[str, Any]:
+        """Every supervisory return, and the fields the register cannot answer.
+
+        Published before anybody runs one. The gaps are a property of the
+        platform and are worth knowing in advance rather than finding in the
+        output.
+        """
+        return self._maya.call("GET", "/regulatory-returns")
+
+    def extract(self, name: str, *,
+                now: Optional[float] = None) -> Dict[str, Any]:
+        """Produce one return.
+
+        **MAYA extracts and does not file.** A field the register cannot answer
+        comes back empty and named in `not_held`, and the header says the
+        extract is incomplete. That is deliberate: unlike every other output in
+        this platform, this one gets sent to a supervisor, and a plausible value
+        in a box nobody knew the answer to is a misstatement rather than a
+        convenience.
+
+        `excluded` lists the models the population left out and why. A
+        regulator's first question about a population of eleven is what happened
+        to the twelfth.
+        """
+        return self._maya.call("GET", f"/regulatory-returns/{name}",
+                               params={"now": now})
