@@ -1095,6 +1095,29 @@ wrong having been addressed.
 **What this does not do.** Monitors evaluate in process. Nothing sweeps the estate nightly, and there is no
 distributed compute anywhere in this repository.
 
+### 13.4 Inference logging, and why it is a second table
+
+`warrant_invocation` records the **shape** of every call — who, what for, which version, how long, how it
+ended — and deliberately holds no content. That table can be kept for years without anybody having to think
+about it, which is what makes *when was this grant last exercised* answerable at all. `inference` holds the
+content, and content carries personal data, so everything about it is arranged so that the retention problem
+is one somebody **did** decide to take on.
+
+| Decision | Why |
+|---|---|
+| The **digest is the default**, the values the exception | A digest proves what was asked and what was answered without holding either, which is what AI Act Art. 12 traceability is actually about. Retaining values is a decision taken per model, with an end date |
+| The digest is **keyed** (HMAC, key in configuration) | An unkeyed digest of a small feature vector — an age, a postcode, a risk band — is a lookup table anybody with the same hash function can enumerate. A "digest instead of the data" that reverses in an afternoon is worse than storing the data, because it is stored under a name that stops anybody worrying about it. A salt on the *row* would not help: it makes the row self-contained and therefore enumerable by whoever has the row |
+| An unkeyed instance is **reported, not refused** | Refusing would mean an unconfigured instance silently logs nothing, which is a worse failure and a quieter one. `posture` names it instead |
+| Sampling is **by tier**, and refusals, errors and boundary violations are kept **whatever the rate** | The sample exists to make the rare thing visible, and sampling out the rare thing is exactly backwards. The interesting reasons are checked *before* the sampler, so a refusal the sampler happened to select is not recorded as `sampled` — a reader counting refusals would otherwise be counting a coincidence |
+| Every row records **why it is there** | A sample nobody can explain is a sample nobody trusts, and the interesting rows are kept for a different reason from the ordinary ones |
+| Retention is **by classification**, derived from §12.9 | The instinct is that important data should be kept longer; the obligation is that data you should not be holding should be held for **less** time. `restricted` is the shortest retention in the table, not the longest |
+| `inference.expire` **deletes** | The one place in this platform where deleting is correct. Everything else is append-only because its content *is* the record; this table's content is somebody else's personal data, and a retention period enforced by a column a query could select around is not a retention period |
+
+The consequence worth naming: this makes the **batch not running** a data-protection problem rather than a
+reporting one. Every other lapse the scheduler records is derived, so a dead scheduler makes the estate look
+clean; here a dead scheduler means the instance is quietly holding personal data past the point it decided
+it could, which is why `posture` reports `past_retention` and the classification screen leads with it.
+
 ## 14. Warrants
 
 `core/execution/` — `grammar/`, `builder`, `signing`, `grants`, `warrants`, `profiles`, `engine`,
@@ -1445,7 +1468,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Nineteen idempotent jobs
+### 16.3 Twenty idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1837,8 +1860,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 239 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 300 modules in one
+the 240 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 301 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

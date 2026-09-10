@@ -70,6 +70,7 @@ class JobContext:
     canaries: Any = None
     break_glass: Any = None
     idempotency: Any = None
+    inference: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -479,6 +480,26 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def expire_inference(ctx: "JobContext") -> Dict[str, Any]:
+    """Delete inference records nobody may keep any longer.
+
+    The one place in this platform where deleting is the correct behaviour.
+    Everything else is append-only because its content *is* the record; this
+    table's content is somebody else's personal data, and a retention period
+    enforced by a column that a query could select around is not a retention
+    period.
+
+    Which makes this the job whose *absence* is the finding. A register that
+    stops running its batch quietly starts holding personal data past the point
+    it decided it could — and nothing else here would notice, because every
+    other lapse this scheduler records is derived rather than stored.
+    """
+    if ctx.inference is None:
+        return {"dropped": 0,
+                "detail": "no inference log is wired into this instance"}
+    return ctx.inference.expire_due(now=ctx.now)
+
+
 def sweep_idempotency(ctx: "JobContext") -> Dict[str, Any]:
     """Drop idempotency records nobody can still be waiting on.
 
@@ -651,6 +672,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("inference.expire",
+        "deletes inference records past the retention their classification set",
+        "this table holds somebody else's personal data, and a retention "
+        "period enforced by a column a query could select around is not a "
+        "retention period; an instance whose batch stops quietly starts "
+        "holding it past the point it decided it could",
+        expire_inference),
     Job("idempotency.sweep",
         "drops idempotency records nobody can still be waiting on",
         "the table is a copy of every successful response somebody asked to be "
