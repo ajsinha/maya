@@ -29,6 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
 from core.classification import ClassificationError
+from core.estate.common import EstateError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
@@ -144,6 +145,8 @@ STATUS: Dict[str, int] = {
     "approval_condition_broken": 409, "unknown_condition": 422,
     "condition_incomplete": 422, "window_out_of_range": 422,
     "not_attested": 409, "no_condition": 404, "no_version": 404,
+    # portfolio views
+    "unknown_dimension": 422, "same_dimension": 422,
     "rate_limit_reached": 429, "quota_limit_reached": 429,
     "cost_limit_reached": 429, "limit_not_positive": 422,
     "idempotency_key_reused": 409, "idempotency_in_flight": 409,
@@ -605,7 +608,7 @@ class Routes:
                 ArtifactError, ProfileError, ExportError,
                 ReportingError, FibreError, RuleError,
                 ReferencedError, ApiKeyError,
-                ClassificationError) as exc:
+                ClassificationError, EstateError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

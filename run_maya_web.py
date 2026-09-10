@@ -42,6 +42,7 @@ from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
+from core.estate.portfolio import Portfolio
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.evidence.anchor import ChainAnchor
@@ -737,6 +738,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                         # all along and nobody was told: a pull where a change
                         # process needs a push.
                         composition=composition)
+
+    # The register cut by the dimensions somebody asks about, and the trend —
+    # which is a series of as-at folds rather than a snapshot table that would
+    # be wrong for every date before somebody added it.
+    portfolio = Portfolio(registry, worklist=worklist, as_at=as_at,
+                          risk=RiskRepository(db))
+
     # Delivery, not a queue: the work is derived, and this makes it arrive
     # somewhere rather than waiting to be looked at.
     # None unless an issuer is configured: local credentials only is the
@@ -866,6 +874,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "inference": inference,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
+                           "portfolio": portfolio,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

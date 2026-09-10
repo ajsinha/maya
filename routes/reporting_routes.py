@@ -49,6 +49,66 @@ class ReportingRoutes(Routes):
         packs = self.ctx["board_packs"]
 
         # ------------------------------------------------------- appetite
+        @self.app.get(f"{api}/portfolio/dimensions", tags=["reporting"])
+        def portfolio_dimensions(request: Request):
+            """The dimensions the register can be cut by, and what each means."""
+            self.principal(request)
+            from core.estate.portfolio import DIMENSIONS
+            return {"dimensions": [{"dimension": k, "means": v}
+                                  for k, v in DIMENSIONS.items()]}
+
+        @self.app.get(f"{api}/portfolio", tags=["reporting"])
+        def portfolio_cut(request: Request, dimension: str = "tier"):
+            """The register grouped by one dimension, with what is owed in each.
+
+            Ordered by outstanding work rather than alphabetically, because a
+            cut sorted by name buries whatever needs doing.
+            """
+            self.authorise(request, "report:read")
+            return self.guard(
+                lambda: self.ctx["portfolio"].by(dimension))
+
+        @self.app.get(f"{api}/portfolio/heatmap", tags=["reporting"])
+        def portfolio_heatmap(request: Request, rows: str = "domain",
+                              columns: str = "tier"):
+            """A cross-tabulation, shaded by what is owed rather than by count.
+
+            A grid coloured by count tells you where the models are, which
+            nobody needed a grid to learn. A cell with forty healthy models and
+            a cell with one that is missing its validation are not the same
+            cell, and a count-coloured grid draws them identically.
+            """
+            self.authorise(request, "report:read")
+            return self.guard(
+                lambda: self.ctx["portfolio"].heatmap(rows, columns))
+
+        @self.app.get(f"{api}/portfolio/trend", tags=["reporting"])
+        def portfolio_trend(request: Request, points: int = 12,
+                            span_days: float = 365.0):
+            """The register as it stood, at intervals, folded from the chain.
+
+            Not a snapshot table. A nightly snapshot starts on the day somebody
+            remembered to add it and is wrong for every day before that; this
+            is a series of as-at projections, true for every date the chain
+            covers, and each point carries the chain hash that makes it
+            verifiable rather than asserted.
+            """
+            self.authorise(request, "report:read")
+            return self.guard(
+                lambda: self.ctx["portfolio"].trend(points, span_days))
+
+        @self.app.get(f"{api}/portfolio/aggregate", tags=["reporting"])
+        def portfolio_aggregate(request: Request):
+            """How much rides on the models that are not right.
+
+            SR 26-2 VI is about aggregate risk, and the aggregate question is
+            not *how many*. Read `exposure_coverage` alongside the figure: a
+            weighted answer over a third of an estate presented as *the* answer
+            would be worse than the count it replaced.
+            """
+            self.authorise(request, "report:read")
+            return self.guard(lambda: self.ctx["portfolio"].aggregate())
+
         @self.app.get(f"{api}/risk-appetite/metrics", tags=["reporting"])
         def metrics(request: Request):
             """What may be held to a limit, and what each indicator is for."""

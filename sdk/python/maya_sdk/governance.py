@@ -85,6 +85,48 @@ class Lifecycle:
         """
         return self._maya.call("GET", f"/models/{short(urn)}").get("lifecycle", {})
 
+    # ------------------------------------------------------------- portfolio
+    def portfolio(self, dimension: str = "tier") -> Dict[str, Any]:
+        """The register grouped by one dimension, with what is owed in each.
+
+        Ordered by outstanding work rather than alphabetically, because a cut
+        sorted by name buries whatever needs doing.
+        """
+        return self._maya.call("GET", "/portfolio",
+                               params={"dimension": dimension})
+
+    def heatmap(self, rows: str = "domain",
+                columns: str = "tier") -> Dict[str, Any]:
+        """A cross-tabulation shaded by what is owed rather than by count.
+
+        A grid coloured by count tells you where the models are, which nobody
+        needed a grid to learn. A cell with forty healthy models and a cell with
+        one that is missing its validation are not the same cell.
+        """
+        return self._maya.call("GET", "/portfolio/heatmap",
+                               params={"rows": rows, "columns": columns})
+
+    def portfolio_trend(self, *, points: int = 12,
+                        span_days: float = 365.0) -> Dict[str, Any]:
+        """The register as it stood, at intervals, folded from the chain.
+
+        Not a snapshot table — a nightly snapshot starts on the day somebody
+        remembered it and is wrong for every day before. Each point carries the
+        chain hash that makes it verifiable rather than asserted.
+        """
+        return self._maya.call("GET", "/portfolio/trend",
+                               params={"points": points,
+                                       "span_days": span_days})
+
+    def aggregate_risk(self) -> Dict[str, Any]:
+        """How much rides on the models that are not right.
+
+        Read `exposure_coverage` alongside the figure: a weighted answer over a
+        third of an estate presented as *the* answer would be worse than the
+        count it replaced.
+        """
+        return self._maya.call("GET", "/portfolio/aggregate")
+
     # ------------------------------------------------------ approved on terms
     def condition_kinds(self) -> Dict[str, Any]:
         """The conditions an approval may carry, and which are enforced.
