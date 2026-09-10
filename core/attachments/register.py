@@ -40,9 +40,13 @@ class AttachmentRegister:
     """Attaches, reviews and supersedes documents against models and versions."""
 
     def __init__(self, attachments: AttachmentRepository, store: DocumentStore,
-                 registry, evidence: EvidenceEngine):
+                 registry, evidence: EvidenceEngine, scanner=None):
         self.attachments, self.store = attachments, store
         self.registry, self.evidence = registry, evidence
+        # What arrived from outside, looked at before it is trusted. Optional:
+        # without one nothing is scanned, and the register says so rather than
+        # marking everything clean.
+        self.scanner = scanner
 
     # ----------------------------------------------------------------- attach
     def attach(self, urn: str, kind: str, title: str, filename: str, data: bytes,
@@ -105,6 +109,22 @@ class AttachmentRegister:
                "state": "attached", "note": note, "attached_by": actor,
                "attached_at": time.time(), "reviewed_by": None, "reviewed_at": None,
                "review_note": "", "supersedes": superseded, "superseded_by": None}
+
+        # Scanned before the row is written, and QUARANTINED rather than
+        # blocked: a blocked upload is one somebody retries around — a
+        # different filename, a different route, next week — and a quarantined
+        # one is on the record, attached to the thing it is about, with the
+        # reason a reviewer needs. Nothing is discarded: a scanner that deletes
+        # its own evidence leaves nobody able to check whether it was right.
+        if self.scanner is not None:
+            scan = self.scanner.scan(data, filename=filename,
+                                     media_type=media_type)
+            if scan["state"] == "quarantined":
+                row["state"] = "quarantined"
+                row["review_note"] = scan["detail"]
+                logger.warning("attachment '%s' to %s quarantined: %s",
+                               filename, urn, scan["detail"])
+
         self.attachments.add(row)
         if superseded:
             self.attachments.set({"state": "superseded", "superseded_by": row["id"]},
@@ -115,7 +135,8 @@ class AttachmentRegister:
                               "model_version_id": version_id,
                               "subject_type": subject_type,
                               "subject_id": row["subject_id"],
-                              "supersedes": superseded}, actor=actor)
+                              "supersedes": superseded,
+                              "state": row["state"]}, actor=actor)
         logger.info("attached %s '%s' to %s", kind, title, urn)
         return self.attachments.one(id=row["id"])
 
