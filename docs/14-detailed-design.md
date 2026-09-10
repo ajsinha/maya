@@ -1445,7 +1445,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Eighteen idempotent jobs
+### 16.3 Nineteen idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1684,6 +1684,48 @@ eventually consistent with.
 There is no `Idempotency-Key`, no replay window, no advisory lock and no optimistic-concurrency header. With
 one process those are cheap to add and currently absent.
 
+### 21.1 Idempotency keys and entity tags
+
+`core/concurrency/`, both halves as middleware for the reason the CSRF guard is: there are over a hundred
+and fifty mutating endpoints, and a control that many places have to remember is one that will be missing
+from the next one.
+
+**Idempotency.** A client whose connection dropped mid-POST does not know whether the act happened. Its
+choices are to retry — risking two attestations, two waivers, two break-glass grants — or not to, and risk
+none. Four decisions make the key safe rather than dangerous:
+
+| Decision | Why |
+|---|---|
+| The record carries a **digest of the request** | A store that ignores the body replays the first answer to *any* second request with that key, so a client that retried with a **corrected** payload is told the correction succeeded when what it got was the answer to the mistake. A key reused with a different body is a conflict |
+| Keys are scoped **by credential** | The middleware runs before authentication, so it knows what was presented rather than who presented it — and hashing that is a stable per-caller scope storing nothing sensitive. A key is chosen by the caller, and a well-chosen UUID does not protect you from somebody else's badly chosen one |
+| The record is written **before the work** | A retry usually races the original rather than following it politely. The first insert wins; the second sees `in_flight` and is told *ask again shortly*, which is true, rather than being told the act succeeded when it has not finished |
+| **A failure releases the key** | The half implementations get wrong. A recorded failure makes the client's retry replay that failure forever, and the key becomes a tombstone for an act that never happened. Only a success is retained |
+
+An `in_flight` record left by a killed process is released after fifteen minutes, because without that a
+crash becomes a permanent inability to retry the very act that crashed. And what is made idempotent is the
+**response**: effects it does not describe — an evidence node, a notification already sent — happened once
+and are not undone, which is the point. An act that half-succeeded before the process died leaves no
+completed record and the retry runs again; a platform that cannot distinguish *partly done* from *not done*
+should re-run rather than skip, because every act here has its own refusals in front of it.
+
+**Entity tags.** The lost update an ETag prevents is the quietest failure in any register: two people open a
+record, both edit, both save, the second write silently discards the first. Nothing is refused, nothing is
+logged as wrong, and the only trace is a field that says something nobody typed.
+
+The tag is **derived from the representation and never stored**. A version column is a second thing to keep
+in step, and the first time somebody writes a row without bumping it the tag says *unchanged* about
+something that changed. It is **weak** and correctly so — a digest of the semantic content with rendering
+noise stripped, which is what *is this still what I read* means; claiming octet equality would be a claim
+this does not check.
+
+**A precondition is never silently ignored**, and that is the rule the design turns on. A client sending
+`If-Match` believes it has optimistic concurrency; a server that drops the header gives it none and says
+nothing, which is strictly worse than not supporting preconditions at all, because the client has stopped
+checking for itself. The middleware evaluates the header against the current representation of the same
+path — obtained by dispatching a GET through the whole app, so the comparison is against exactly what the
+caller read — and where no representation exists the request is refused with 428 rather than allowed
+through.
+
 ## 22. Refusals
 
 The interesting behaviour of this platform is what it will not do, so the refusal path is designed rather
@@ -1795,8 +1837,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 236 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 297 modules in one
+the 239 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 300 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

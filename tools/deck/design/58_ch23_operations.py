@@ -76,7 +76,7 @@ para(tf, "Built", size=12, color=INK, bold=True, font=SERIF, first=True, space_a
 data = [["Surface", "What it does"],
         ["/health, /health/live", "Trivial liveness"],
         ["/health/ready", "Includes the evidence chain and its anchors — a chain that does not verify returns 503, because the assurance claims cannot be trusted"],
-        ["Eighteen scheduler jobs", "Each idempotent, each re-deriving its own condition; anchoring and full chain verification are two of them"],
+        ["Nineteen scheduler jobs", "Each idempotent, each re-deriving its own condition; anchoring and full chain verification are two of them"],
         ["One logger, one format", "Request id and acting principal on every line; a refusal is logged at WARNING because it is a governance decision"],
         ["The scale suite", "19 tests, marked scale and excluded by default. It asserts COMPLEXITY, not milliseconds — doubling the estate must not more than double the work"],
         ["test_laws.py", "Eighteen of the twenty-one foundational laws are executable and run as tests; the three that do not are named with the reason. All fourteen warrant laws run before a signature"]]

@@ -132,6 +132,9 @@ class TestSchedulerApi:
                 # Expiry is derived on every read, but a row still saying open
                 # three weeks later reads like an elevation somebody left on.
                 "break_glass.expire",
+                # Otherwise the table becomes a permanent copy of every
+                # successful response somebody asked to be able to retry.
+                "idempotency.sweep",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

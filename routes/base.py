@@ -131,6 +131,14 @@ STATUS: Dict[str, int] = {
     # just stated a value the lattice does not admit or one below the floor
     # their own model's inputs force.
     "unknown_classification": 422, "below_the_derived_floor": 422,
+    # Idempotency and preconditions. 409 for both idempotency conflicts because
+    # neither is a malformed request: one is a key already spent on something
+    # else, the other a request still running. Mapped HERE and not beside the
+    # middleware, because a second status map is the drift this table exists to
+    # prevent.
+    "idempotency_key_reused": 409, "idempotency_in_flight": 409,
+    "idempotency_key_too_long": 422,
+    "precondition_failed": 412, "precondition_unevaluable": 428,
     # break-glass. `same_person` and `reviewed_by_the_user` are 403 because
     # they are refusals of *authority*: this person may not do this act,
     # whoever they are. The rest are 409 — a grant in the wrong state — or 422.

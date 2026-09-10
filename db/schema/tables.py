@@ -851,6 +851,37 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# A mutating request somebody may send twice.
+#
+# Scoped to the **principal as well as the key**, because a key is chosen by the
+# caller and a well-chosen UUID does not protect you from somebody else's badly
+# chosen one.
+#
+# `request_digest` is the part that makes this safe rather than dangerous. An
+# idempotency store that ignores the body will happily replay the first
+# response to a *different* second request — so a client that retried with a
+# corrected payload is told the correction succeeded when it was never applied.
+# A key reused with a different body is a conflict, not a replay.
+IDEMPOTENCY = Table(
+    "idempotency", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("idempotency_key", Text, nullable=False),
+    Column("principal", Text, nullable=False),
+    Column("method", Text, nullable=False),
+    Column("path", Text, nullable=False),
+    Column("request_digest", Text, nullable=False),
+    # `in_flight` while the work is running. A second request arriving
+    # concurrently must not run it again, and must not be told the first one
+    # succeeded either — it has not finished.
+    Column("state", Text, nullable=False, server_default=text("'in_flight'")),
+    Column("status", Integer),
+    Column("body", Text),
+    Column("started_at", Double, nullable=False),
+    Column("completed_at", Double),
+    Index("uq_idempotency", "idempotency_key", "principal", unique=True),
+    Index("ix_idempotency_started", "started_at"),
+)
+
 # --------------------------------------------------------------------------
 # Validation, test results and findings
 # --------------------------------------------------------------------------
