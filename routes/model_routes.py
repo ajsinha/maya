@@ -803,6 +803,44 @@ class ModelRoutes(Routes):
                 urn(name), body.environment, body.alias, body.semver,
                 actor=self.actor(who), justification=body.justification))
 
+        @self.app.get(f"{self.api}/experiments", tags=["registry"])
+        def experiments(request: Request, urn: str = "", semver: str = ""):
+            """Every run under a version, side by side — or the estate's
+            reproducibility.
+
+            A parameter set under one version **is** an experiment; nothing new
+            is stored to compare them. Read `differ_only_in_parameters` before
+            the metric table: runs over the same inputs differ because of the
+            procedure, and runs over different inputs differ for reasons nobody
+            has separated.
+
+            `promotion` explains why a run is not promoted to a version — a
+            parameter set is a point in `P` and a version is a kernel — and
+            points at the act that is actually meant.
+            """
+            self.authorise(request, "model:read")
+            service = self.ctx["experiments"]
+            if not (urn and semver):
+                return self.guard(lambda: service.across_the_estate())
+            model = self.guard(lambda: reg.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: service.compare(urn, semver))
+
+        @self.app.get(f"{self.api}/reproducibility", tags=["registry"])
+        def reproducibility(request: Request, parameter_set_id: str):
+            """What a re-run of this fit would need, and what is missing.
+
+            **Reproducible is a property of a claim, not of a wish.** The
+            missing facts are ranked by how much they threaten the reproduction:
+            not knowing which rows were read is fatal, and a patch-level library
+            difference usually is not. MAYA did not run the training and cannot
+            reconstruct an environment it never had, so what the fitter did not
+            supply is stated rather than assumed away.
+            """
+            self.authorise(request, "model:read")
+            return self.guard(
+                lambda: self.ctx["experiments"].bundle_for(parameter_set_id))
+
         @self.app.get(f"{self.api}/version-comparison", tags=["registry"])
         def version_comparison(request: Request, urn: str, left: str,
                                right: str):

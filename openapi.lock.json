@@ -909,6 +909,29 @@
         ]
       }
     },
+    "/api/v1/compute-zones": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/compute-zones/attest": {
+      "post": {
+        "body": [
+          "authorised!",
+          "ran_in!",
+          "warrant_id!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/condition-kinds": {
       "get": {
         "body": [],
@@ -1117,6 +1140,19 @@
           "urn!"
         ],
         "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/experiments": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver",
+          "query:urn"
+        ],
         "responses": [
           "200",
           "422"
@@ -3540,6 +3576,18 @@
         "body": [],
         "parameters": [
           "path:key!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/reproducibility": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:parameter_set_id!"
         ],
         "responses": [
           "200",
