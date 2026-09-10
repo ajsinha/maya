@@ -17,37 +17,19 @@ check because it also reports success.
 """
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 ROOT = Path(__file__).resolve().parents[2]
 
-#: Each pattern, and what it is. The name is printed with the hit, because
-#: "line 41 matches a regex" is not something anybody can act on.
-PATTERNS: Tuple[Tuple[str, str, "re.Pattern[str]"], ...] = (
-    ("private key", "a PEM private key block",
-     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----")),
-    ("aws access key", "an AWS access key id",
-     re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
-    ("aws secret", "an AWS secret access key assignment",
-     re.compile(r"aws_secret_access_key\s*[=:]\s*['\"][A-Za-z0-9/+=]{40}['\"]",
-                re.IGNORECASE)),
-    ("github token", "a GitHub token",
-     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b")),
-    ("slack token", "a Slack token",
-     re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b")),
-    ("google api key", "a Google API key",
-     re.compile(r"\bAIza[0-9A-Za-z_\-]{35}\b")),
-    ("credentials in a url", "a username and password inside a URL",
-     re.compile(r"\b[a-z][a-z0-9+.\-]*://[^/\s:@]+:[^/\s:@]+@")),
-    ("jwt", "a signed JSON Web Token",
-     re.compile(r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b")),
-    ("bearer literal", "a hard-coded bearer token",
-     re.compile(r"Authorization\s*[=:]\s*['\"]Bearer\s+[A-Za-z0-9._\-]{20,}['\"]")),
-)
+#: The patterns, imported rather than restated. Two copies of a credential
+#: pattern list is two answers to *is this a secret*, and the copy that goes
+#: stale is always the one somebody is relying on — so this and the upload
+#: scanner read the same tuple and neither owns it.
+sys.path.insert(0, str(ROOT))
+from core.scanning.patterns import PATTERNS
 
 #: Files that legitimately contain something shaped like a credential.
 #:

@@ -3996,6 +3996,15 @@
         ]
       }
     },
+    "/api/v1/upload-scanning": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/use-reconciliation": {
       "get": {
         "body": [],
