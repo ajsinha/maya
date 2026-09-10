@@ -3904,6 +3904,20 @@
         ]
       }
     },
+    "/api/v1/skew": {
+      "post": {
+        "body": [
+          "column",
+          "observations",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/sso": {
       "get": {
         "body": [],
