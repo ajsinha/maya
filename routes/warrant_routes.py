@@ -226,6 +226,44 @@ class WarrantRoutes(Routes):
             return {"revoked": n, "urn": body.urn, "reason": body.reason,
                     "epoch": warrants.epoch}
 
+        @self.app.get(f"{self.api}/warrant-catalogue", tags=["execution"])
+        def warrant_catalogue(request: Request):
+            """Every standing grant, and whether anybody uses it.
+
+            The first three columns — what exists, who holds it, what it points
+            at — were always answerable per model and never across the estate.
+            The last three could not be answered at all until invocations were
+            recorded, and the one that matters is the third: a grant nobody has
+            exercised is an authorisation the estate is carrying for no reason.
+            """
+            self.authorise(request, "warrant:read",
+                           estate_wide="reading every standing grant and how "
+                                       "much each one is used")
+            return self.guard(lambda: self.ctx["invocations"].catalogue())
+
+        @self.app.get(f"{self.api}/invocations", tags=["execution"])
+        def invocations(request: Request, urn: str):
+            """How much this model is actually used, and how it goes."""
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "warrant:read", model=model)
+            return {"model": urn,
+                    **self.guard(lambda: self.ctx["invocations"].for_model(
+                        model["id"]))}
+
+        @self.app.get(f"{self.api}/use-reconciliation", tags=["execution"])
+        def use_reconciliation(request: Request, urn: str):
+            """What this model was approved for, against what it is used for.
+
+            Every individual call is already legitimate: a declared use is
+            checked at resolution against the grant that carries it. Off-label
+            use is not a bad call — it is a pattern of good ones, and this is
+            the only thing that looks at the pattern.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "warrant:read", model=model)
+            return self.guard(
+                lambda: self.ctx["use_reconciliation"].for_model(urn))
+
         @self.app.post(f"{self.api}/execute", tags=["execution"])
         def execute(request: Request, body: ExecuteIn):
             model = self.guard(lambda: registry.get(strip_qualifier(body.urn)))

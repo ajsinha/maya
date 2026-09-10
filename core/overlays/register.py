@@ -33,7 +33,9 @@ from core.evidence import EvidenceEngine
 from core.overlays import analysis
 from core.overlays.common import (DAY, DEFAULT_MAX_DAYS, DEFAULT_RENEWAL_LIMIT,
                                   DIRECTIONS, KINDS, OverlayError)
-from core.log import get_logger
+import logging
+
+from core.log import get_logger, swallowed
 from db import MeasurementRepository, OverlayRepository
 
 logger = get_logger(__name__)
@@ -45,10 +47,17 @@ class OverlayRegister:
     def __init__(self, overlays: OverlayRepository,
                  measurements: MeasurementRepository, evidence: EvidenceEngine,
                  findings=None, max_days: int = DEFAULT_MAX_DAYS,
-                 renewal_limit: int = DEFAULT_RENEWAL_LIMIT):
+                 renewal_limit: int = DEFAULT_RENEWAL_LIMIT,
+                 composition=None, notifications=None):
         self.overlays, self.measurements = overlays, measurements
         self.evidence, self.findings = evidence, findings
         self.max_days, self.renewal_limit = max_days, renewal_limit
+        # The typed dependency graph, and the way to reach a person. Both
+        # optional and both absent means the propagation is skipped rather
+        # than the approval failing — an overlay approved without its
+        # notification is a governed decision plus a delivery problem, and an
+        # approval that failed because a mailbox was down is a governance one.
+        self.composition, self.notifications = composition, notifications
 
     # -------------------------------------------------------------- propose
     def lineage(self, overlay: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -146,7 +155,71 @@ class OverlayRegister:
             self.evidence.append("overlay_approved", "model", row["model_id"],
                                  {"overlay_id": overlay_id, "reference": row["reference"],
                                   "days": window}, actor=actor)
-        return self.overlays.one(id=overlay_id)
+            downstream = self._propagate(row, window, actor)
+        return {**self.overlays.one(id=overlay_id), "downstream": downstream}
+
+    def _propagate(self, row: Dict[str, Any], window: float,
+                   actor: str) -> Dict[str, Any]:
+        """Tell the models downstream of this one that its output just moved.
+
+        An overlay is an adjustment to a model's OUTPUT, and a model's output
+        is another model's input. SS1/23 3.4(d) asks for this and the reason is
+        concrete: a downstream owner whose PD feed quietly gained a 12% uplift
+        did not change anything, will not see it in their own monitoring for a
+        quarter, and will spend that quarter looking for it in their own model.
+
+        The graph is already there and typed. Only PROPAGATING edges are
+        followed — a challenger is not downstream of the model it argues with,
+        and telling its owner would train them to ignore these.
+
+        This never fails the approval. An overlay that was approved and whose
+        notification did not send is a governed decision plus a delivery
+        problem; an approval that failed because a mailbox was down is a
+        governance problem.
+        """
+        if self.composition is None:
+            return {"notified": [], "detail": "no dependency graph is wired"}
+        try:
+            radius = self.composition.blast_radius(
+                self.composition.catalogue.by_id(row["model_id"])["urn"])
+        except Exception as exc:
+            swallowed(logger, exc, "did not walk the dependency graph",
+                      detail="the overlay is approved either way",
+                      level=logging.WARNING)
+            return {"notified": [], "detail": "the graph could not be walked"}
+
+        reached = radius.get("reaches") or []
+        notified = []
+        for entry in reached:
+            urn = entry.get("urn") if isinstance(entry, dict) else entry
+            if not urn:
+                continue
+            notified.append({"urn": urn, "name": entry.get("name"),
+                             "tier": entry.get("tier"),
+                             "distance": entry.get("distance")})
+            self.evidence.append(
+                "overlay_propagated", "model", row["model_id"],
+                {"overlay_id": row["id"], "reference": row["reference"],
+                 "downstream_urn": urn,
+                 "impact": (f"{row['reference']} adjusts this model's output "
+                            f"{row.get('direction', 'in some direction')} for "
+                            f"{window:g} days. Anything reading it reads the "
+                            f"adjusted number, and the change is not visible "
+                            f"in the downstream model's own monitoring until "
+                            f"its outcomes arrive")}, actor=actor)
+        if self.notifications is not None and notified:
+            try:
+                self.notifications.overlay_downstream(row, notified, actor=actor)
+            except Exception as exc:
+                swallowed(logger, exc, "did not notify downstream owners",
+                          detail="the propagation is on the evidence chain "
+                                 "either way, so the record survives a failed "
+                                 "delivery",
+                          level=logging.WARNING)
+        return {"notified": notified, "count": len(notified),
+                "detail": (f"{len(notified)} model(s) downstream were told"
+                           if notified else
+                           "nothing reads this model's output")}
 
     # -------------------------------------------------------------- measure
     def measure(self, overlay_id: str, period: str, base_value: float,

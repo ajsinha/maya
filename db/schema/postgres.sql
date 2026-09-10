@@ -373,6 +373,7 @@ CREATE TABLE IF NOT EXISTS feature (
     pii BOOLEAN DEFAULT false NOT NULL,
     protected_basis BOOLEAN DEFAULT false NOT NULL,
     proxy_risk TEXT DEFAULT 'none' NOT NULL,
+    assertions TEXT DEFAULT '[]' NOT NULL,
     defaults TEXT DEFAULT '{}' NOT NULL,
     shape TEXT DEFAULT '[]' NOT NULL,
     components TEXT DEFAULT '[]' NOT NULL,
@@ -451,6 +452,8 @@ CREATE TABLE IF NOT EXISTS feature_view_version (
     valid_time_column TEXT DEFAULT 'event_ts' NOT NULL,
     ingest_time_column TEXT DEFAULT 'ingest_ts' NOT NULL,
     row_count INTEGER DEFAULT 0 NOT NULL,
+    quarantined BOOLEAN DEFAULT false NOT NULL,
+    assertion_report TEXT DEFAULT '{}' NOT NULL,
     quality_report TEXT DEFAULT '{}' NOT NULL,
     materialised_at DOUBLE PRECISION NOT NULL,
     PRIMARY KEY (id)
@@ -998,6 +1001,27 @@ CREATE TABLE IF NOT EXISTS warrant (
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_model ON warrant (model_id);
+
+CREATE TABLE IF NOT EXISTS warrant_invocation (
+    id TEXT NOT NULL,
+    warrant_id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    semver TEXT,
+    principal TEXT NOT NULL,
+    declared_use TEXT NOT NULL,
+    environment TEXT NOT NULL,
+    verb TEXT DEFAULT 'score' NOT NULL,
+    outcome TEXT NOT NULL,
+    refusal_code TEXT,
+    latency_ms DOUBLE PRECISION,
+    boundary_ok BOOLEAN,
+    request_id TEXT,
+    at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_warrant_invocation_model_id_at ON warrant_invocation (model_id, at);
+CREATE INDEX IF NOT EXISTS ix_warrant_invocation_warrant_id ON warrant_invocation (warrant_id);
 
 CREATE TABLE IF NOT EXISTS warrant_profile (
     id TEXT NOT NULL,

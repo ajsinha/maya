@@ -4,7 +4,7 @@ slug: estate-and-worklist
 section: Assurance
 order: 130
 icon: list-check
-summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, eleven idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
+summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, thirteen idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
 audience: Everyone, Model risk, Programme, Operators
 ---
 
@@ -279,7 +279,7 @@ the platform *already* computes and turns them into things that are
 **recorded** — a finding, a state change, an evidence entry. After this, a
 lapsed attestation raises a finding, and a finding can block.
 
-### The eleven jobs
+### The thirteen jobs
 
 | Job | Records |
 |---|---|

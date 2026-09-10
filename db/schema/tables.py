@@ -314,6 +314,13 @@ FEATURE = Table(
     Column("pii", Boolean, nullable=False, server_default=false()),
     Column("protected_basis", Boolean, nullable=False, server_default=false()),
     Column("proxy_risk", Text, nullable=False, server_default=text("'none'")),
+    # What must be TRUE of this feature's values, checked on every
+    # materialisation. A claim about the feature rather than about one view,
+    # because a null rate that is unacceptable in one table is unacceptable in
+    # the next — and an assertion attached to a view would have to be restated
+    # every time somebody built another one, which is how they stop being
+    # restated.
+    Column("assertions", Text, nullable=False, server_default=text("'[]'")),
     Column("defaults", Text, nullable=False, server_default=text("'{}'")),
     Column("shape", Text, nullable=False, server_default=text("'[]'")),
     Column("components", Text, nullable=False, server_default=text("'[]'")),
@@ -386,6 +393,13 @@ FEATURE_VIEW_VERSION = Table(
     Column("valid_time_column", Text, nullable=False, server_default=text("'event_ts'")),
     Column("ingest_time_column", Text, nullable=False, server_default=text("'ingest_ts'")),
     Column("row_count", Integer, nullable=False, server_default=text('0')),
+    # Whether every declared assertion held, and which did not. A version that
+    # failed one is QUARANTINED: it is written, recorded and readable — because
+    # deleting the evidence of a bad load is how nobody finds out what arrived
+    # — but nothing may pin it. A featureset that could bind a quarantined
+    # version would make the assertion advisory.
+    Column("quarantined", Boolean, nullable=False, server_default=false()),
+    Column("assertion_report", Text, nullable=False, server_default=text("'{}'")),
     Column("quality_report", Text, nullable=False, server_default=text("'{}'")),
     Column("materialised_at", Double, nullable=False),
     Index("uq_feature_view_version_feature_view_id_version", "feature_view_id", "version", unique=True),
@@ -1461,6 +1475,46 @@ MODEL_ASSUMPTION = Table(
 )
 
 
+
+
+# Every time a warrant was actually USED, and how it went.
+#
+# Resolutions were evidence nodes and invocations were not recorded at all, so
+# the register could say who was ENTITLED to run a model and never who did.
+# Three questions had no answer: how much is this model actually used, when was
+# this standing authorisation last exercised, and which grants has nobody used
+# at all. The last one is a security question rather than a reporting one — a
+# grant nobody has exercised in a year is an authorisation the estate is
+# carrying for no reason, and least privilege says to withdraw it.
+#
+# What is recorded is deliberately the SHAPE of the call and not its content.
+# No feature values, no prediction: those are `FR-MON-008`'s business, they
+# carry personal data, and a table that quietly accumulated them would be a
+# retention problem nobody decided to take on. What is here is who called,
+# under what use, against which version, how long it took and how it ended.
+WARRANT_INVOCATION = Table(
+    "warrant_invocation", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("warrant_id", Text, nullable=False),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text),
+    Column("semver", Text),
+    Column("principal", Text, nullable=False),
+    Column("declared_use", Text, nullable=False),
+    Column("environment", Text, nullable=False),
+    Column("verb", Text, nullable=False, server_default=text("'score'")),
+    # `ok`, `refused` or `error`. A refusal is a normal outcome and is recorded
+    # as one — a log that only held successes would make a model look healthier
+    # the more often it was refused.
+    Column("outcome", Text, nullable=False),
+    Column("refusal_code", Text),
+    Column("latency_ms", Double),
+    Column("boundary_ok", Boolean),
+    Column("request_id", Text),
+    Column("at", Double, nullable=False),
+    Index("ix_warrant_invocation_warrant_id", "warrant_id"),
+    Index("ix_warrant_invocation_model_id_at", "model_id", "at"),
+)
 
 # A control this model is NOT meeting, and who said that was acceptable.
 #

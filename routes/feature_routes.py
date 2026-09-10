@@ -44,6 +44,9 @@ class FeatureIn(Body):
     composes: Optional[List[Any]] = None
     operations: Optional[List[Dict[str, Any]]] = None
     defaults: Optional[Dict[str, Any]] = None
+    #: What must be true of the values, checked on every
+    #: materialisation. A load that fails one is quarantined.
+    assertions: List[Dict[str, Any]] = Field(default_factory=list)
     ephemeral: bool = False
     ttl_days: Optional[float] = None
 
@@ -108,6 +111,18 @@ class RetireSourceIn(Body):
 class FeatureRoutes(Routes):
     def register(self) -> None:
         f = self.ctx["features"]
+
+        @self.app.get(f"{self.api}/pipeline-health", tags=["features"])
+        def pipeline_health(request: Request, view: str):
+            """What this feed is doing, against what it normally does.
+
+            Judged against the view's own history rather than a declared SLA:
+            an SLA somebody sets at onboarding is one nobody revisits, and it
+            either never fires or fires until somebody switches it off.
+            """
+            self.authorise(request, "feature:read")
+            return self.guard(
+                lambda: self.ctx["pipeline_health"].for_view(view))
 
         @self.app.get(f"{self.api}/features", tags=["features"])
         def list_features(request: Request, entity: Optional[str] = None):
