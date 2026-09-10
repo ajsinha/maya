@@ -363,7 +363,7 @@ than a report:
 | **Discipline** | The counts in this documentation against the code, refusal codes against their HTTP statuses, logging, imports, schema and file size — each its own suite |
 | **Laws** | `tests/test_laws.py` and `tests/test_grammar.py` on their own, so a failing law is legible in the run list rather than buried among three thousand others |
 | **Deck** | Slide geometry, because a deck that overflows its frame is a deck nobody can show |
-| **Suite** | Four shards, each fanned across the runner's cores, over the full 3,070 tests |
+| **Suite** | Four shards, each fanned across the runner's cores, over the full 3,914 tests |
 | **Coverage** | Combined across the shards against a floor of 90% — a floor, not a target, set to catch a release that deletes tests |
 | **Postgres** | The same suite against the other dialect, because a `BOOLEAN` column once broke it silently, and one declaration rendering to two dialects is a claim only the other dialect can check |
 

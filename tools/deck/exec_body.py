@@ -453,7 +453,7 @@ h = table(sl, [
     ["Key-person concentration",
      "One author. That is a genuine single point of failure and no slide should "
      "pretend otherwise",
-     "The source, the schema and 3,635 tests are the bank's. The design "
+     "The source, the schema and 3,914 tests are the bank's. The design "
      "documents explain WHY, not only what"],
     ["Adoption resistance",
      "The platform makes people answer questions previously answered by nobody, "
