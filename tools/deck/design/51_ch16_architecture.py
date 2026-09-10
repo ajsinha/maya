@@ -71,7 +71,7 @@ sl, y = content("Process model — one process today, five units by design",
                 "Overview · deployment")
 data = [["Unit", "Status", "Why it is separate", "Fails independently?"],
         ["Flask app (routes/)", "Built — one process", "UI and REST API v1 are served by the same app; the API is the only interface", "—"],
-        ["Scheduler loop", "Built — in-process thread", "Eleven jobs on a timer, off by default and enabled in config", "No — shares the process"],
+        ["Scheduler loop", "Built — in-process thread", "Twelve jobs on a timer, off by default and enabled in config", "No — shares the process"],
         ["Sandbox child", "Built — fork + rlimits", "An artifact's bugs must not become the platform's; CPU and address space bounded", "Yes"],
         ["maya-warrants", "Designed, not built", "10× tighter SLA; would read only the warrant projection", "By design, once split"],
         ["Cluster data plane", "Designed, not built", "PIT joins and materialisation run in-process on pandas + deltalake today", "—"]]

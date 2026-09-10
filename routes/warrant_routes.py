@@ -250,6 +250,20 @@ class WarrantRoutes(Routes):
                     **self.guard(lambda: self.ctx["invocations"].for_model(
                         model["id"]))}
 
+        @self.app.get(f"{self.api}/use-reconciliation", tags=["execution"])
+        def use_reconciliation(request: Request, urn: str):
+            """What this model was approved for, against what it is used for.
+
+            Every individual call is already legitimate: a declared use is
+            checked at resolution against the grant that carries it. Off-label
+            use is not a bad call — it is a pattern of good ones, and this is
+            the only thing that looks at the pattern.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "warrant:read", model=model)
+            return self.guard(
+                lambda: self.ctx["use_reconciliation"].for_model(urn))
+
         @self.app.post(f"{self.api}/execute", tags=["execution"])
         def execute(request: Request, body: ExecuteIn):
             model = self.guard(lambda: registry.get(strip_qualifier(body.urn)))
