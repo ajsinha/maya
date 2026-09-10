@@ -1942,6 +1942,42 @@
         ]
       }
     },
+    "/api/v1/grant-limits": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/grant-limits/{warrant_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:warrant_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "put": {
+        "body": [
+          "cost",
+          "quota",
+          "rate",
+          "window_hours"
+        ],
+        "parameters": [
+          "path:warrant_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/inference": {
       "get": {
         "body": [],

@@ -26,6 +26,55 @@ It does that by differing per kind of model as **refusals over one document**
 rather than as different documents. Fourteen admissibility laws, each keyed on a
 fact the platform *derives*, decide what is coherent to ask.
 
+## What a grant may spend
+
+A grant says *who may run what, for what*. It can also say *how much*, and the
+three limits are not three sizes of the same thing.
+
+| Limit | Unit | Protects |
+|---|---|---|
+| Rate | calls per minute | the downstream system, from a loop |
+| Quota | calls per window | the authorisation, from being used more than anybody intended |
+| Cost | money per window | the invoice |
+
+The quota is the one people skip and the one worth setting. A grant issued for a
+nightly batch and exercised forty thousand times a day is being used for
+something nobody approved — and **no rate limit would notice**, because none of
+it is fast.
+
+The cost budget is the only one whose unit is not calls, which is exactly why it
+matters for a token-metered model: ten calls can cost more than ten thousand.
+
+```
+PUT /api/v1/grant-limits/{warrant_id}
+{"rate": 60, "quota": 20000, "cost": 250.0, "window_hours": 24}
+```
+
+Exceeding one gives `429` — `rate_limit_reached`, `quota_limit_reached` or
+`cost_limit_reached` — because the caller did nothing wrong and the answer is
+*later*.
+
+Three things about how MAYA enforces it.
+
+**The limit is on the grant, not the caller.** A service account holding four
+grants should not have one runaway use exhaust the other three. A limit on the
+principal turns an incident in one product into an outage in three unrelated
+ones.
+
+**A refused call does not count against the quota.** Otherwise a retry loop
+consumes the allowance it is waiting for and the grant stays dead until the
+window rolls, despite never having been used successfully. The refusals are
+still recorded — that is what makes *who is hammering this* answerable.
+
+**The rate window slides.** A fixed one-minute bucket would let sixty calls
+through at 11:59:59 and sixty more at 12:00:01. The burst is the whole point of a
+rate limit.
+
+A grant with no limits is unlimited on every axis, and
+[Who may run what](/warrants/estate) counts those — because that is a decision
+nobody has taken rather than one they have.
+
+
 ## Why the boundary exists
 
 **MAYA does not execute models.** It issues warrants; an execution engine acts on

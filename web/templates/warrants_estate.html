@@ -72,4 +72,88 @@ could not be asked.</p>
   {% endif %}
 </div>
 
+<div class="card mb-3">
+  <div class="card-header">What each grant may spend</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Three limits, and they are not three sizes of the same thing. The
+    <strong>rate</strong> bounds calls per minute and protects the downstream
+    system from a loop. The <strong>quota</strong> bounds calls per window and
+    protects the <em>authorisation</em> from being used more than anybody
+    intended — a grant issued for a nightly batch and exercised forty thousand
+    times a day is being used for something nobody approved, and no rate limit
+    would notice, because none of it is fast. The <strong>cost</strong> budget is
+    the only one whose unit is not calls, which is exactly why it is the one that
+    matters for a token-metered generative model: ten calls can cost more than
+    ten thousand.
+    <br><br>
+    The limit is on the <strong>grant</strong>, not on the caller. A service
+    account holding four grants should not have one runaway use exhaust the other
+    three — a limit on the principal turns an incident in one product into an
+    outage in three unrelated ones.
+  </div>
+  <div class="row g-3 p-3">
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if limits.exhausted else 'evidence-ok' }}">{{ limits.exhausted }}</div>
+      <div class="stat-l">at a limit now</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if limits.unlimited else '' }}">{{ limits.unlimited }}</div>
+      <div class="stat-l">with no limit of any kind</div>
+      <div class="small text-muted">a decision nobody has taken, not one they have</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n">{{ limits.refused_in_window | round | int }}</div>
+      <div class="stat-l">refused in the window</div>
+      <div class="small text-muted">recorded, and not counted against anything</div>
+    </div></div></div>
+  </div>
+  {% if limits.grants %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Principal</th><th>Use</th>
+      <th class="text-end">Rate</th><th class="text-end">Quota</th>
+      <th class="text-end">Cost</th><th>State</th>
+    </tr></thead>
+    <tbody>
+      {% for row in limits.grants %}
+      <tr>
+        <td class="mono small">{{ row.principal }}</td>
+        <td class="small">{{ row.declared_use }}</td>
+        {% for line in row.limits %}
+        <td class="small text-end">
+          {% if not line.set %}<span class="text-muted">—</span>
+          {% else %}
+            <span class="{{ 'evidence-bad' if line.exhausted else ('text-warning' if line.near else '') }}">
+              {{ '%.0f' | format(line.spent) }}/{{ '%.0f' | format(line.ceiling) }}</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+        <td class="small">
+          {% if row.exhausted %}
+            <span class="evidence-bad">{{ row.exhausted | join(', ') }} reached</span>
+          {% elif row.unlimited | length == 3 %}
+            <span class="text-muted">unlimited</span>
+          {% else %}<span class="evidence-ok">within limits</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>A refused call does not count against the quota.</strong> Otherwise a
+    caller in a retry loop could never recover: the retries would consume the
+    allowance the retries are waiting for, and the grant would be dead until the
+    window rolled despite never having been used successfully. The refusals are
+    still recorded — that is what makes <em>who is hammering this</em>
+    answerable.
+    <br><br>
+    <strong>The rate window slides.</strong> A fixed one-minute bucket permits
+    twice the limit across a boundary: sixty calls at 11:59:59 and sixty more at
+    12:00:01. The whole point of a rate limit is the burst, so measuring it in a
+    way that misses the burst measures nothing.
+  </div>
+</div>
+
 {% endblock %}

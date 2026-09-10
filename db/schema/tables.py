@@ -291,6 +291,24 @@ WARRANT = Table(
     Column("declared_use", Text, nullable=False),
     Column("ttl_seconds", Integer, nullable=False),
     Column("grace_seconds", Integer, nullable=False, server_default=text('0')),
+    # What this grant may spend, and the three are different things.
+    #
+    # `rate_per_minute` protects the DOWNSTREAM SYSTEM from a loop. `quota` per
+    # window protects the AUTHORISATION from being used more than anybody
+    # intended. `cost_budget` protects the INVOICE, which is the one that
+    # matters for a token-metered generative model and the only one whose unit
+    # is not calls.
+    #
+    # On the GRANT rather than on the principal, which is what "per grant"
+    # means and is the right unit: a service account holding four grants should
+    # not have one runaway use exhaust the other three.
+    #
+    # Null means unlimited on that axis, and the estate view reports how many
+    # grants are unlimited rather than treating it as normal.
+    Column("rate_per_minute", Integer),
+    Column("quota", Integer),
+    Column("quota_window_hours", Double, nullable=False, server_default=text('24.0')),
+    Column("cost_budget", Double),
     Column("revoked", Boolean, nullable=False, server_default=false()),
     Column("revoke_reason", Text),
     Column("epoch", Integer, nullable=False, server_default=text('0')),
@@ -1775,6 +1793,11 @@ WARRANT_INVOCATION = Table(
     Column("outcome", Text, nullable=False),
     Column("refusal_code", Text),
     Column("latency_ms", Double),
+    # What this call cost, where the caller can say. Nullable, and null means
+    # "not reported" rather than "free" — a cost budget over a column that
+    # silently reads zero would never be reached, which is the failure mode
+    # worth designing against for a token-metered model.
+    Column("cost", Double),
     Column("boundary_ok", Boolean),
     Column("request_id", Text),
     Column("at", Double, nullable=False),
