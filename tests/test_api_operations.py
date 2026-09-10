@@ -141,6 +141,9 @@ class TestSchedulerApi:
                 # A governance act must not fail because somebody's webhook
                 # receiver is down.
                 "events.deliver",
+                # A T4 has no version bump, so every other control here — all
+                # of which fire on a version — is blind to it moving.
+                "adaptive.change",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

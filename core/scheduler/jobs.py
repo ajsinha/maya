@@ -72,6 +72,7 @@ class JobContext:
     idempotency: Any = None
     inference: Any = None
     subscriptions: Any = None
+    adaptive: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -481,6 +482,57 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def check_adaptive_change(ctx: "JobContext") -> Dict[str, Any]:
+    """Models that have changed themselves past a bound.
+
+    A T4 model has no version bump for anything to notice, so nothing in the
+    register's ordinary machinery sees it move. Without this the trajectory is
+    computed only when somebody opens a page, and an adaptive model that
+    wandered between two people looking at it wandered unobserved.
+
+    The finding is BLOCKING at tier 1 and 2. Cumulative drift past the bound
+    means the model is materially not the one that was approved, and a warning
+    nobody has to act on is how it stays that way.
+    """
+    if not (ctx.adaptive and ctx.findings):
+        return {"skipped": "adaptive monitoring or findings not available"}
+    report = ctx.adaptive.sweep(now=ctx.now)
+    raised = []
+    for row in report["models"]:
+        if not row["excursion"]:
+            continue
+        model = ctx.registry.get(row["urn"])
+        if not model:
+            continue
+        title = f"Adaptive model has drifted from what was approved ({row['semver']})"
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        drift = (f"{row['cumulative']:.1%} away from the last approved "
+                 f"parameters" if row.get("cumulative") is not None
+                 else f"{row['changes']} autonomous change(s), magnitude "
+                      f"unmeasurable because the parameters are not in the "
+                      f"register")
+        ctx.findings.raise_finding(
+            model["id"], "High" if (row.get("tier") or 4) <= 2 else "Medium",
+            title, row.get("owner") or "unassigned",
+            description=(
+                f"This version has changed its own parameters "
+                f"{row['changes']} time(s) and is {drift}. No version was "
+                f"created and nothing was re-approved, which is why no other "
+                f"control here saw it: every one of them fires on a version. "
+                f"The figure that matters is the cumulative one — a model "
+                f"moving a tenth of a percent a night moves three percent in a "
+                f"month, and every single step passes a per-change threshold "
+                f"comfortably. Re-approve the current parameters, or roll back "
+                f"to the ones somebody agreed to."),
+            blocking=(row.get("tier") or 4) <= 2,
+            category="adaptive_drift", source="self_identified",
+            actor=ctx.actor)
+        raised.append(row["urn"])
+    return {"raised": raised, "count": len(raised),
+            "excursions": report["excursions"], "detail": report["detail"]}
+
+
 def deliver_events(ctx: "JobContext") -> Dict[str, Any]:
     """Push each subscriber's backlog, from its own cursor.
 
@@ -691,6 +743,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("adaptive.change",
+        "raises a finding for a self-changing model that has drifted from the "
+        "parameters somebody approved",
+        "an adaptive model has no version bump for anything to notice, so "
+        "every other control here — all of which fire on a version — is blind "
+        "to it moving",
+        check_adaptive_change),
     Job("events.deliver",
         "pushes each subscriber's backlog of domain events",
         "delivery on the batch rather than at the act, because a governance "

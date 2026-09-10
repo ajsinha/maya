@@ -38,6 +38,7 @@ from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
+from core.monitoring.adaptive import AdaptiveChange
 from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
@@ -658,6 +659,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
+    # A model that changes itself has no version bump for anything to notice,
+    # and the parameter trajectory is the only place the change is visible.
+    adaptive_change = AdaptiveChange(parameters, registry, fibres=fibres,
+                                     findings=findings)
+
     # A challenger running beside the champion. MAYA runs neither: it takes
     # delivery of what both produced and reports the shape of the
     # disagreement — apart from the outcomes analysis, which needs labels that
@@ -833,7 +839,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    break_glass=break_glass,
                    idempotency=idempotency,
                    inference=inference,
-                   subscriptions=subscriptions),
+                   subscriptions=subscriptions,
+                   adaptive=adaptive_change),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -906,6 +913,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
+                           "adaptive_change": adaptive_change,
                            "portfolio": portfolio,
                            "event_stream": event_stream,
                            "subscriptions": subscriptions,
