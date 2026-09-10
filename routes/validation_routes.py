@@ -138,6 +138,43 @@ class ValidationRoutes(Routes):
                 tier_verdict=body.tier_verdict, tier_note=body.tier_note,
                 actor=self.actor(who)))
 
+        @self.app.get(f"{api}/validation-plans", tags=["validation"])
+        def validation_plan(request: Request, urn: str, semver: str,
+                            scope: Optional[str] = None):
+            """What a validation of this version must cover, and how deeply.
+
+            Derived: the class says what the questions are — `L-15` already
+            makes each one declare its conceptual soundness, outcomes and
+            monitoring — and the tier says how much independence answering them
+            takes. A catalogue of plans keyed by class would be a second copy
+            of the fibres, and the two would disagree the first time either
+            moved.
+
+            With `scope`, a comma-separated list, this reports what that scope
+            leaves out. A targeted revalidation is a real thing and this is not
+            a refusal, but the omission has to be visible.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "validation:read", model=model)
+            plans = self.ctx["validation_plans"]
+            if scope is None:
+                return self.guard(lambda: plans.propose(urn, semver))
+            declared = [s.strip() for s in scope.split(",") if s.strip()]
+            return self.guard(lambda: plans.check(urn, semver, declared))
+
+        @self.app.get(f"{api}/validation-due", tags=["validation"])
+        def validation_due(request: Request, urn: str):
+            """Why this model is due for validation, if it is.
+
+            Triggers rather than a calendar. A tier 4 model has no elapsed-time
+            trigger at all — it is revalidated when something happens to it and
+            not otherwise, which is the proportionality clause being used
+            rather than quietly discarded.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "validation:read", model=model)
+            return self.guard(lambda: self.ctx["validation_plans"].due(urn))
+
         @self.app.get(f"{api}/tier-verdicts", tags=["validation"])
         def tier_verdicts(request: Request):
             """The three a validator may reach about a model's tier, and what

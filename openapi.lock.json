@@ -3358,6 +3358,32 @@
         ]
       }
     },
+    "/api/v1/validation-due": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validation-plans": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:scope",
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validations": {
       "post": {
         "body": [

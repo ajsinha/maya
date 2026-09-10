@@ -75,6 +75,7 @@ from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
 from core.registry.asat import AsAtProjection
 from core.registry.uses import ModelUses
+from core.validation.plans import ValidationPlans
 from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
@@ -519,6 +520,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     uses = ModelUses(ModelUseRepository(db), registry, evidence,
                      warrants=warrants)
 
+    # What a validation must cover, derived from what the class owes and how
+    # deeply the tier requires it answered; and when the next one is due, from
+    # triggers rather than from a calendar.
+    validation_plans = ValidationPlans(
+        registry, fibres, validation=validation, monitoring=monitoring,
+        changes=changes)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -665,6 +673,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "monitoring_plans": monitoring_plans,
                            "as_at": as_at,
                            "uses": uses,
+                           "validation_plans": validation_plans,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
