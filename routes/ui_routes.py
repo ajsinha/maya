@@ -517,6 +517,25 @@ class UIRoutes(Routes):
                              report=self.ctx["waivers"].across_the_estate(),
                              controls=list(WAIVABLE), quorum=QUORUM_BY_TIER)
 
+        # -------------------------------------------- machine assistance
+        @self.app.get("/assist", response_class=HTMLResponse, tags=["ui"])
+        def assist_page(request: Request):
+            """The platform's own AI: what it may do, and what it may spend.
+
+            The budget half is the one nothing could see. A capability's spend
+            was recorded generation by generation and never summed, and a draft
+            the grounding gate refused left no generation row at all — so the
+            capability failing most often was the one with no measurable cost.
+            """
+            if (r := self.page_gate(request, "assist:read")) is not None:
+                return r
+            from core.assist import providers as assist_providers
+            return self.page(
+                request, "assist.html",
+                budgets=self.ctx["assist_budgets"].across_the_estate(),
+                capabilities=self.ctx["capabilities"].list(),
+                providers=assist_providers.describe())
+
         # ----------------------------------------------- lifecycle profiles
         @self.app.get("/lifecycle-profiles", response_class=HTMLResponse,
                       tags=["ui"])

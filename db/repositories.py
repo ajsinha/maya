@@ -592,6 +592,10 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class SpendRepository(Repository):
+    TABLE, ORDER = "ai_spend", "spent_at"
+
+
 class ImportRepository(Repository):
     TABLE, ORDER = "baseline_import", "imported_at"
 

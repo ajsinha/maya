@@ -123,6 +123,10 @@ STATUS: Dict[str, int] = {
     # no wrong state — the caller named a transition this machine does not
     # have, and the refusal names the ones it does.
     "unknown_transition": 422,
+    # machine assistance budgets. All 422: the request named a number that is
+    # not a budget, and the caller can fix it by naming a different one.
+    "budget_not_positive": 422, "window_not_positive": 422,
+    "nothing_to_set": 422, "budget_exhausted": 429,
     # A reassessment that re-runs the formula on last year's facts and
     # calls it a review. 422: the request is incomplete, not refused.
     "review_says_nothing": 422, "amendment_open": 409, "attestation_open": 409,

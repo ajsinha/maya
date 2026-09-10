@@ -52,6 +52,13 @@ class GenerateIn(Body):
     output: Dict[str, Any] = Field(default_factory=dict)
 
 
+class BudgetIn(Body):
+    tokens: Optional[float] = None
+    cost: Optional[float] = None
+    steps: Optional[float] = None
+    window_days: Optional[float] = None
+
+
 class AttestIn(Body):
     accept: bool = True
     final_text: str = ""
@@ -87,6 +94,50 @@ class AssistRoutes(Routes):
                 body.capability_key, body.description, body.tier, body.base_model,
                 body.prompt_digest, body.owner, body.oracle_key, body.autonomy,
                 body.review_sample, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/assist/budgets", tags=["assistance"])
+        def budgets_estate(request: Request):
+            """Every capability, what it may spend and what it has spent.
+
+            The column worth reading is `on_default`. A capability nobody set a
+            budget for is not unbudgeted — it runs on a number this platform
+            chose, and reporting that as though somebody decided it is how a
+            default becomes permanent. The other is
+            `calls_that_produced_nothing`: spend that bought nothing is the
+            number that says a capability is not working rather than busy.
+            """
+            self.authorise(request, "assist:read")
+            return self.guard(
+                lambda: self.ctx["assist_budgets"].across_the_estate())
+
+        @self.app.get(f"{api}/assist/budgets/{{capability_key}}",
+                      tags=["assistance"])
+        def budget_of(request: Request, capability_key: str):
+            """What this capability may spend, and how much is left."""
+            self.authorise(request, "assist:read")
+            return self.guard(
+                lambda: self.ctx["assist_budgets"].of(capability_key))
+
+        @self.app.put(f"{api}/assist/budgets/{{capability_key}}",
+                      tags=["assistance"])
+        def set_budget(request: Request, capability_key: str, body: BudgetIn):
+            """Declare what this capability may spend per rolling window.
+
+            Three numbers, because they bound three different failures. Tokens
+            bound a prompt that grew, cost bounds the invoice, and **steps bound
+            a loop** — a runaway agent is a large number of small calls, and it
+            passes a token budget and a cost budget for a long time before
+            either notices.
+
+            A window rather than a lifetime cap: a lifetime cap is reached once
+            and then the capability is dead forever, which is how budgets end up
+            raised to a number that means nothing.
+            """
+            who = self.authorise(request, "assist:register")
+            return self.guard(lambda: self.ctx["assist_budgets"].set(
+                capability_key, tokens=body.tokens, cost=body.cost,
+                steps=body.steps, window_days=body.window_days,
+                actor=self.actor(who)))
 
         @self.app.post(f"{api}/assist/generations", status_code=201,
                        tags=["assistance"])

@@ -1226,6 +1226,21 @@ AI_CAPABILITY = Table(
     Column("base_model", Text, nullable=False),
     Column("prompt_digest", Text, nullable=False),
     Column("review_sample", Double, nullable=False, server_default=text('0.1')),
+    # What this capability may spend, per rolling window. Three numbers rather
+    # than one, because they bound different failures: tokens bound a prompt
+    # that grew, cost bounds the invoice, and STEPS bound a loop — a runaway
+    # agent is a large number of small calls, which passes a token budget and a
+    # cost budget for a long time before either notices.
+    #
+    # Nullable, and null means "the default applies" rather than "unlimited".
+    # A capability running on a number nobody chose is reported as such.
+    Column("token_budget", Integer),
+    Column("cost_budget", Double),
+    Column("step_budget", Integer),
+    # A rolling window, never a lifetime cap. A lifetime cap is reached once and
+    # then the capability is dead forever, which is how budgets end up raised to
+    # a number that means nothing.
+    Column("budget_window_days", Double, nullable=False, server_default=text('30.0')),
     Column("status", Text, nullable=False, server_default=text("'active'")),
     Column("owner", Text, nullable=False),
     Column("created_at", Double, nullable=False),
@@ -1257,6 +1272,38 @@ AI_GENERATION = Table(
     Column("created_at", Double, nullable=False),
     Column("created_by", Text, nullable=False),
     Index("ix_generation_capability", "capability_id", "state"),
+)
+
+
+# What a capability actually consumed, one row per provider call.
+#
+# **Separate from the generation log, and the separation is the point.** A
+# generation whose claims ground nothing is never recorded at all — the gate
+# refuses it and no row is written. The provider was still called and the tokens
+# were still spent. Counting spend from generation rows would therefore mean a
+# capability whose output never grounds has no measurable cost, which is exactly
+# backwards: the capability failing most often is the one burning the most.
+#
+# `generation_id` is null for precisely those calls, and that null is the useful
+# column — it is the spend that bought nothing.
+AI_SPEND = Table(
+    "ai_spend", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("capability_id", Text, nullable=False),
+    Column("generation_id", Text),
+    Column("tokens", Integer, nullable=False, server_default=text('0')),
+    Column("cost", Double, nullable=False, server_default=text('0.0')),
+    Column("steps", Integer, nullable=False, server_default=text('1')),
+    # Why the call produced nothing, when it produced nothing. A refusal code
+    # rather than prose, so the estate view can group by it: a capability
+    # burning its budget on `oracle_failed` is a different problem from one
+    # burning it on `nothing_grounded`.
+    Column("outcome", Text, nullable=False, server_default=text("'recorded'")),
+    Column("spent_at", Double, nullable=False),
+    Column("spent_by", Text, nullable=False),
+    # The budget question is "what has this capability spent since a moment",
+    # and without this it is a full scan of every call ever made.
+    Index("ix_ai_spend_capability", "capability_id", "spent_at"),
 )
 
 
