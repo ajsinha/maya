@@ -109,3 +109,32 @@ class OverlayRoutes(Routes):
                     self.guard(lambda: overlays.require(overlay_id))))
             return self.guard(lambda: overlays.close(overlay_id, body.status,
                                                      body.reason, self.actor(who)))
+
+        # ------------------------------------------------------- disclosure
+        @self.app.get(f"{api}/overlay-disclosure", tags=["overlays"])
+        def disclosure(request: Request, period: str, prior: str = "",
+                       now: Optional[float] = None):
+            """The judgement component of the number, for one reporting period.
+
+            MAYA produces an extract and not a disclosure note: the figures are
+            the register's, and the words, the materiality judgement and the
+            decision to file are the firm's.
+            """
+            self.authorise(request, "report:read",
+                           estate_wide="extracting every post-model adjustment")
+            return self.guard(lambda: self.ctx["disclosure"].extract(
+                period, prior=prior, now=now))
+
+        @self.app.get(f"{api}/overlay-disclosure/trend", tags=["overlays"])
+        def disclosure_trend(request: Request, periods: str):
+            """The judgement component across periods, oldest first.
+
+            A rising overlay total across four quarters is the disclosure a
+            reader actually wants and the one a period-at-a-time extract cannot
+            give: each quarter's adjustment is defensible on its own, and the
+            series is the finding.
+            """
+            self.authorise(request, "report:read",
+                           estate_wide="trending post-model adjustments")
+            wanted = [p.strip() for p in periods.split(",") if p.strip()]
+            return self.guard(lambda: self.ctx["disclosure"].trend(wanted))

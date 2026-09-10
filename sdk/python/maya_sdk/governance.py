@@ -1950,3 +1950,51 @@ class Intake:
             "urn": urn, "name": name, "model_class": model_class,
             "domain": domain, "owner": owner, "legal_entity": legal_entity,
             "purpose": purpose})
+
+
+class OverlayDisclosure:
+    """The part of the number that is not the model, for the accounts.
+
+    IFRS 9 requires disclosure of the significant judgements applied in
+    measuring expected credit losses, and the figure is almost always assembled
+    in a spreadsheet at period end from a list somebody keeps.
+
+    Three things about this extract are decisions rather than arithmetic.
+
+    **An unmeasured overlay cannot be disclosed and is named.** It is active, it
+    is changing the number, and nobody recorded by how much. Leaving it out
+    understates the judgement component; putting it in at zero is worse, because
+    zero is a measurement. It appears as a hole, and `complete` is False.
+
+    **New and grown are reported separately.** One is a judgement somebody newly
+    formed, the other is a judgement that got bigger, and the second is the one
+    an auditor asks about — a single "change in overlays" figure collapses them.
+
+    **An overlay renewed past its limit is reported as structural.** An
+    adjustment continued five times is not a temporary judgement about an
+    unusual period; it is a permanent correction to a model nobody has fixed.
+
+    MAYA produces an extract, not a disclosure note: the figures are the
+    register's, and the words, the materiality judgement and the decision to
+    file are the firm's.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def extract(self, period: str, *, prior: str = "",
+                now: Optional[float] = None) -> Dict[str, Any]:
+        """The judgement component for one reporting period."""
+        return self._maya.call("GET", "/overlay-disclosure",
+                               params={"period": period, "prior": prior,
+                                       "now": now})
+
+    def trend(self, periods: List[str]) -> Dict[str, Any]:
+        """The judgement component across periods, oldest first.
+
+        `monotonically_rising` is the shape a model that needs fixing makes:
+        each quarter's adjustment is defensible on its own, and the series is
+        the finding.
+        """
+        return self._maya.call("GET", "/overlay-disclosure/trend",
+                               params={"periods": ",".join(periods)})
