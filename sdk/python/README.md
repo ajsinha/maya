@@ -73,6 +73,8 @@ fall behind again.
 | `maya.monitors` | define, evaluate, evaluate from telemetry, observations |
 | `maya.reports` | query the semantic layer, save and run views, export, regulatory returns |
 | `maya.validation_aid` | vendor document coverage, challenge questions, untested assumptions |
+| `maya.regime_encoding` | propose an encoding from regulatory text; never activates |
+| `maya.probes` | derive a probe set from a declared domain, grade one |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**

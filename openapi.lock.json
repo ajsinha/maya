@@ -3732,6 +3732,42 @@
         ]
       }
     },
+    "/api/v1/probe-sets": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/probe-sets/grade": {
+      "post": {
+        "body": [
+          "probes",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/probe-sets/propose": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/query": {
       "post": {
         "body": [
@@ -3775,6 +3811,27 @@
           "query:id!",
           "query:kind!"
         ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regime-encoding": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "citation",
+          "name!",
+          "text!"
+        ],
+        "parameters": [],
         "responses": [
           "200",
           "422"

@@ -118,6 +118,19 @@ class ReplayIn(Body):
         description="test_key -> [left, right]; omit a key to report it as skipped")
 
 
+class ProbeGradeIn(Body):
+    """A probe set somebody else holds, to be graded against the declaration.
+
+    The probes come in and no results do. MAYA does not run them and has no
+    field for what they returned: an equivalence claim is somebody else's
+    measurement, and the register holds it to a standard rather than producing
+    it.
+    """
+    urn: str
+    semver: str
+    probes: List[Dict[str, Any]] = Field(default_factory=list)
+
+
 class ValidationRoutes(Routes):
     def register(self) -> None:
         service = self.ctx["validation"]
@@ -501,3 +514,39 @@ class ValidationRoutes(Routes):
             self.authorise(request, "validation:read", model=model)
             return self.guard(
                 lambda: self.ctx["validation_aid"].untested_assumptions(urn))
+
+        # ------------------------------------------------------------ probes
+        @self.app.get(f"{api}/probe-sets", tags=["validation"])
+        def probe_kinds(request: Request):
+            """What a probe is for, and why the interior is the wrong sample."""
+            self.authorise(request, "validation:read")
+            from core.assist.probes import ProbeSets
+            return ProbeSets.describe()
+
+        @self.app.get(f"{api}/probe-sets/propose", tags=["validation"])
+        def propose_probes(request: Request, urn: str, semver: str):
+            """The probe set this version's own declaration implies.
+
+            Derived from the contract, never sampled from data — and MAYA does
+            not run them. Running a probe means running the model, and a
+            platform producing both the test and the result would be the only
+            witness to its own model's behaviour.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "validation:read", model=model)
+            return self.guard(
+                lambda: self.ctx["probe_sets"].propose(urn, semver))
+
+        @self.app.post(f"{api}/probe-sets/grade", tags=["validation"])
+        def grade_probes(request: Request, body: ProbeGradeIn):
+            """Which declared constraints a probe set exercises, and which not.
+
+            Coverage is over the declaration and never over the probes: "we
+            have four thousand probes" is not an answer to "does anything test
+            the lower bound of this input", and the two get confused because
+            only the first is easy to count.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            self.authorise(request, "validation:read", model=model)
+            return self.guard(lambda: self.ctx["probe_sets"].grade(
+                body.urn, body.semver, body.probes))
