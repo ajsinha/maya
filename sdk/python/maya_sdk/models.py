@@ -86,6 +86,43 @@ class Models:
                                params={"urn": urn, "left": left,
                                        "right": right})
 
+    def change_classification(self, urn: str, *, from_semver: str,
+                              to_semver: str) -> Dict[str, Any]:
+        """Material or non-material, computed from what actually changed.
+
+        Not asked of a person who is looking at a pull request and has an
+        opinion about how much work revalidation is — that answer drifts toward
+        non-material over a career.
+
+        There are **three** verdicts and not two. `material` and
+        `non_material` are the requirement's; `class_change` is the one it does
+        not have and needs, because a version whose parameter object changes
+        *kind* is not a material change to a model — it is a different model at
+        the same urn, and the answer is a separate registration rather than a
+        heavier review of the wrong thing.
+
+        Read `reasons` rather than `verdict`. The argument a person is about to
+        have is never about the verdict; it is about which of the differences
+        counts.
+        """
+        return self._maya.call("GET", "/change-classification",
+                               params={"urn": urn, "from_semver": from_semver,
+                                       "to_semver": to_semver})
+
+    def record_change_verdict(self, urn: str, *, from_semver: str,
+                              to_semver: str, verdict: str,
+                              reason: str) -> Dict[str, Any]:
+        """A person's answer, recorded beside the computed one.
+
+        Both are kept. *This was computed non-material and a person called it
+        material* is a much better sentence for a supervisor than a bare
+        classification, and it is only available because the computed answer
+        was not overwritten.
+        """
+        return self._maya.call("POST", "/change-classification", json={
+            "urn": urn, "from_semver": from_semver, "to_semver": to_semver,
+            "verdict": verdict, "reason": reason})
+
     def version_history(self, urn: str) -> Dict[str, Any]:
         """Every consecutive pair, so the shape of the series is visible.
 

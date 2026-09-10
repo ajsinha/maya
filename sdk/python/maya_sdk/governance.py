@@ -943,6 +943,29 @@ class Validations:
                 "threshold": threshold or {}, "parameters": parameters or {},
                 "slice": slice or {}})
 
+    def recode(self, validation_id: str, *, model: Dict[str, float],
+               recode: Dict[str, float], tolerance: float = 1e-9,
+               model_source: str = "unstated",
+               recode_source: str = "unstated") -> Dict[str, Any]:
+        """Compare an independent implementation against the model's.
+
+        Both sides are **outputs keyed by the input each was given**, not code:
+        MAYA does not execute the validator's implementation, because running
+        arbitrary code in the control plane is not a thing a register should do
+        — and where each side came from is recorded rather than assumed.
+
+        **The distribution is the point.** A recode agreeing to twelve decimal
+        places on 9,997 rows and disagreeing wildly on three is a completely
+        different finding from one off by 1e-9 everywhere, and a pass rate
+        reports them identically. The first is a branch nobody tested, and it is
+        exactly what independent recode exists to find.
+        """
+        return self._maya.call("POST", f"/validations/{validation_id}/recode",
+                               json={"model": model, "recode": recode,
+                                     "tolerance": tolerance,
+                                     "model_source": model_source,
+                                     "recode_source": recode_source})
+
     def conclude(self, validation_id: str, *, outcome: str,
                  tier_verdict: str,
                  conditions: Optional[List[str]] = None,

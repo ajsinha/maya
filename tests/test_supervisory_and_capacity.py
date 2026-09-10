@@ -94,13 +94,41 @@ class TestAMatterIsNotAFinding:
 
 
 class TestTheTwoDates:
-    def test_a_plan_landing_after_the_commitment_is_at_risk(self, supervisory,
-                                                            a_model):
-        """Arithmetic available months before the letter is due."""
+    def test_a_plan_landing_after_the_commitment_says_so_in_its_own_words(
+            self, supervisory, a_model):
+        """A five-month overrun is not a near miss, and must not read as one.
+
+        This test used to assert the headroom sentence for a scenario whose
+        plan lands 228 days past the commitment, and it passed — the general
+        branch reported it as `-228 day(s) apart, inside the 14 days closure
+        verification needs`, which is arithmetically true and reads as a near
+        miss. Case study 14 produced exactly that line against a real
+        reconstruction, which is how it was found.
+        """
         out = supervisory.raise_matter(
             "MRA-5", kind="mra", supervisor="PRA", title="t", scope=[URN],
             owner="person/s.iqbal", severity="Low",
             committed_at=NOW + 10.0 * DAY, now=NOW)
+        assert out["at_risk"] is True
+        assert "does not meet the commitment at all" in out["detail"]
+        assert "day(s) AFTER" in out["detail"]
+
+    def test_a_plan_landing_just_inside_the_commitment_is_the_near_miss(
+            self, supervisory, a_model, findings):
+        """The case the headroom sentence is actually for.
+
+        The plan finishes BEFORE the committed date and inside the fortnight
+        closure verification needs — which is the reading the other branch must
+        not be allowed to swallow.
+        """
+        supervisory.raise_matter(
+            "MRA-5b", kind="mra", supervisor="PRA", title="t", scope=[URN],
+            owner="person/s.iqbal", severity="Low", now=NOW)
+        due = max(f["due_at"] for f
+                  in findings.open_for(a_model["id"]))
+        supervisory.matters.set({"committed_at": due + 3.0 * DAY},
+                                reference="MRA-5b")
+        out = supervisory.status("MRA-5b", now=NOW)
         assert out["at_risk"] is True
         assert "no room for the firm's own process" in out["detail"]
 
