@@ -532,6 +532,28 @@ class UIRoutes(Routes):
                 request, "break_glass.html",
                 report=self.ctx["break_glass"].across_the_estate())
 
+        # --------------------------------------------------- portfolio
+        @self.app.get("/portfolio", response_class=HTMLResponse, tags=["ui"])
+        def portfolio_page(request: Request, dimension: str = "tier"):
+            """The estate cut by dimension, with a heatmap and a trend.
+
+            The heatmap is shaded by what is OWED rather than by count, and the
+            trend is a series of as-at folds rather than a snapshot table that
+            would be wrong for every date before somebody added it.
+            """
+            if (r := self.page_gate(request, "report:read")) is not None:
+                return r
+            from core.estate.portfolio import DIMENSIONS
+            portfolio = self.ctx["portfolio"]
+            if dimension not in DIMENSIONS:
+                dimension = "tier"
+            return self.page(
+                request, "portfolio.html", dimensions=list(DIMENSIONS),
+                cut=portfolio.by(dimension),
+                heatmap=portfolio.heatmap("domain", "tier"),
+                trend=portfolio.trend(points=8, span_days=365),
+                aggregate=portfolio.aggregate())
+
         # ------------------------------------------------ classification
         @self.app.get("/classification", response_class=HTMLResponse,
                       tags=["ui"])

@@ -3162,6 +3162,62 @@
         ]
       }
     },
+    "/api/v1/portfolio": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:dimension"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/portfolio/aggregate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/portfolio/dimensions": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/portfolio/heatmap": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:columns",
+          "query:rows"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/portfolio/trend": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:points",
+          "query:span_days"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/principals": {
       "get": {
         "body": [],
@@ -4735,6 +4791,18 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/portfolio": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:dimension"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
