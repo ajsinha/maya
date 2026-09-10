@@ -1832,6 +1832,70 @@ until somebody intervenes. And the probe calls are **not charged to the capabili
 control that consumed the resource it protects would refuse to run at exactly the moment you would want it
 to.
 
+### 15.3a What is still owed, computed rather than proposed
+
+*What do I still have to do* is the question every model owner asks, and every register answers it with a
+checklist. A checklist is a **conjunction**, and the real structure is a **disjunction of conjunctions**:
+there is usually more than one route to a model being in force, and the routes cost different amounts.
+
+That makes it a shortest-path problem, and the semirings have been able to solve it since the evidence
+engine was written — nothing used them for it. `COST`, the tropical semiring (min, +), evaluated over the
+published derivation *is* the cheapest total; `WHY` over the same DAG gives the minimal sets of facts
+that would establish the claim, and the plan is the set that total belongs to. **The plan is computed,
+not proposed.** Nothing asks a language model what to do next and nothing could: the answer is
+arithmetic, and an arithmetic answer produced by a model is a worse version of the same number.
+
+**The cheapest path is very often the wrong advice, and that is the finding.**
+
+| | Cost | Makes the claim true | Makes the model safer |
+|---|---|---|---|
+| Conclude the validation | 40 | ✅ | ✅ |
+| Waive the validation requirement | 3 | ✅ | ❌ |
+| Retire the model | 1 | vacuously | ❌ |
+
+A shortest-path solver with no opinion about *kind* recommends the waiver every time — correctly, and
+disastrously. So each act is typed `produces_evidence` or `removes_the_requirement`, the plan is computed
+over the first kind only, and **the cheap routes are computed too and reported beside it**, so a firm can
+take one deliberately rather than find it by accident.
+
+They are excluded **by kind and not by price**. Pricing a waiver at 400 units would make the arithmetic
+come out right and would be a lie about what a waiver costs — and the next person to read the cost table
+would correct it, silently restoring the bug.
+
+Two further honesties. **The defaulted share of a total is reported**: a shortest path over guessed
+weights is a confident answer to a question nobody asked, and the confidence is the dangerous part. And
+`approve_version` establishes `signed_off`, not `approved` — collapsing the two made the signature
+invisible to the solver, because `approved` had a derivation, so it was never a leaf, so nothing ever
+costed it and the plan omitted the one step that cannot be delegated.
+
+**Nothing is executed.** The requirement asks for an agent that executes the plan; each step names the
+route a person calls. No capability in this platform holds a credential permitting a governance
+transition (`FR-AI-002`), and an assistant that could conclude a validation to close out its own plan
+would defeat the whole control structure in one method.
+
+### 15.3b An artifact converted, and the claim that it is the same model
+
+Format migration is real work a bank has to do — a pickle no supported runtime will load, a vendor
+artifact in a format the grammar does not admit, a framework going out of support. The requirement asks
+for an agent that converts and verifies.
+
+**MAYA does not convert it.** Converting means loading and running a model, and this platform does
+neither. A register that converted artifacts would be producing the thing it exists to make claims about,
+and *this artifact is equivalent to that one* would then rest on the word of the party that produced
+both. What MAYA does is the half a register is for: it holds the equivalence claim to a standard and
+refuses.
+
+| Refusal | The report it catches |
+|---|---|
+| A probe with **no result** fails, and is never skipped | A report over 40 of 50 probes looks exactly like a report over 50 at the bottom of the page |
+| A **thin probe set** yields `unsubstantiated`, never `passed` | Two implementations agree in the interior by construction; this set never reached the boundary |
+| **Tolerance has no default** and must arrive with the claim | A tolerance chosen after the divergences are known is a description of them, and will be exactly wide enough |
+| **Categories compare by equality**, not by distance | A NaN gap compares as agreement — every comparison with NaN is false, so `nan > tolerance` reads as *within tolerance* |
+
+One case is worth stating because it looks like a failure and is not: **both artifacts refusing is
+agreement**, and about the most informative kind — the boundary behaves the same way in both, which is
+precisely what a migration needs to establish and precisely what an interior-only probe set cannot show.
+
 ### 15.4a Proposing an encoding, and stopping short of one
 
 `L-8` already checks that a regime encoding is sound once written. Nothing proposed one, so every regime
@@ -2688,8 +2752,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 285 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 346 modules in one
+the 287 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 348 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

@@ -399,6 +399,9 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # an equivalence claim about two artifacts, measured elsewhere
+    "same_artifact": 422, "ran_by_required": 422,
+    "tolerance_required": 422,
     # proposing an encoding, and probes over a declared domain
     "text_too_short": 422, "no_declared_domain": 409,
     # asking in English, and the three things a validator is offered

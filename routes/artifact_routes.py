@@ -12,13 +12,32 @@ view of.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import Request
+from pydantic import Field
 from fastapi.responses import StreamingResponse
 
 from core.artifacts import FORMAT_MEANING, FORMATS
-from routes.base import Routes
+from routes.base import Body, Routes
+
+
+class MigrationIn(Body):
+    """An equivalence claim about two artifacts, measured elsewhere.
+
+    `tolerance` has no default on purpose. A tolerance chosen after the
+    divergences are known is not a tolerance, it is a description of them, and
+    it will be exactly wide enough.
+    """
+    urn: str
+    semver: str
+    from_digest: str
+    to_digest: str
+    to_format: str
+    probes: List[Dict[str, Any]] = Field(default_factory=list)
+    results: List[Dict[str, Any]] = Field(default_factory=list)
+    tolerance: Optional[float] = None
+    ran_by: str = ""
 
 
 class ArtifactRoutes(Routes):
@@ -134,3 +153,31 @@ class ArtifactRoutes(Routes):
             """What the store is holding. Somebody has to be able to ask."""
             self.authorise(request, "evidence:read")
             return store.usage()
+
+        # -------------------------------------------------- format migration
+        @self.app.get(f"{api}/migrations", tags=["artifacts"])
+        def migration_outcomes(request: Request):
+            """The three outcomes, and what MAYA does not do."""
+            self.authorise(request, "model:read")
+            from core.artifacts.migration import FormatMigration
+            return FormatMigration.describe()
+
+        @self.app.post(f"{api}/migrations/verify", tags=["artifacts"])
+        def verify_migration(request: Request, body: MigrationIn):
+            """Judge an equivalence claim somebody else measured.
+
+            MAYA did not convert the artifact and did not run the probes.
+            There is no field here for a converted file, and there will not be
+            one: converting means loading and running a model, and a register
+            producing both the artifact and the claim about it would be the
+            only witness to its own work.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "version:sign", model=model)
+            return self.guard(lambda: self.ctx["migration"].verify(
+                body.urn, body.semver, from_digest=body.from_digest,
+                to_digest=body.to_digest, to_format=body.to_format,
+                probes=body.probes, results=body.results,
+                tolerance=body.tolerance, ran_by=body.ran_by,
+                actor=self.actor(who)))

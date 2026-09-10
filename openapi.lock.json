@@ -2565,6 +2565,35 @@
         ]
       }
     },
+    "/api/v1/migrations": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/migrations/verify": {
+      "post": {
+        "body": [
+          "from_digest!",
+          "probes",
+          "ran_by",
+          "results",
+          "semver!",
+          "to_digest!",
+          "to_format!",
+          "tolerance",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/model-algebra/composite": {
       "get": {
         "body": [],
@@ -2899,6 +2928,19 @@
         "body": [],
         "parameters": [
           "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/models/{name}/remediation": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:now"
         ],
         "responses": [
           "200",
@@ -3944,6 +3986,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/remediation": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
