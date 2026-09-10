@@ -295,6 +295,30 @@ defaults.
 engineer reading the column; the other is the definition a validator or an
 examiner will hold you to.
 
+**sensitivity** is one of four values — `public`, `internal`, `confidential`,
+`restricted` — and the list is closed. It used to be free text, which meant
+`Confidential`, `confidential` and `CONF` were three classes to a computer and
+one to a person, and nothing can propagate a class until the class is a value.
+
+It propagates, which is the part that matters. A model is **at least as
+sensitive as the most sensitive feature it reads**, a document is at least as
+sensitive as the most sensitive model it describes, and a model's class is
+therefore *derived* rather than declared. You may declare a model higher — an
+output can be more disclosive than any single input, which is most of what
+re-identification is — and you may not declare it lower. The refusal names the
+feature that forces the floor, because that is where the decision actually is.
+
+**pii** is deliberately not a fifth level. A confidential model built on personal
+data and a confidential model built on market data are the same class and
+different legal objects, and folding one into the other would lose exactly the
+distinction that carries a statutory duty. It propagates as its own flag, by the
+same rule.
+
+See [Data classification](/classification) for the estate, and read the
+`untraceable` count first: a model whose inputs match no catalogued feature has a
+class derived from nothing, and showing the default for it would be showing an
+assumption as a finding.
+
 **protected_basis** and **proxy_risk** are how fair-lending exposure becomes
 queryable. `zip3` is not a protected basis, but its proxy risk is high, and being
 able to ask *"which models read a high-proxy-risk feature"* is the difference

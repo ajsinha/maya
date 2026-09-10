@@ -169,6 +169,10 @@ class WithdrawLimitationIn(Body):
     reason: str
 
 
+class ClassifyIn(Body):
+    classification: str
+
+
 class AssessIn(Body):
     # No defaults on these two. Exposure and purpose are the whole materiality
     # axis, and a default of "nothing, commercial" tiers an unassessed model at
@@ -786,6 +790,61 @@ class ModelRoutes(Routes):
             return self.guard(lambda: reg.move_alias(
                 urn(name), body.environment, body.alias, body.semver,
                 actor=self.actor(who), justification=body.justification))
+
+        @self.app.get(f"{self.api}/classification", tags=["risk"])
+        def classification_of(request: Request, urn: str):
+            """What this model's inputs force, and what it declares.
+
+            A top-level path with a `urn` query rather than a suffix under
+            `/models/{name}`, whose path converter is greedy.
+            """
+            model = self.guard(lambda: reg.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["classification"].of_model(urn))
+
+        @self.app.put(f"{self.api}/classification", tags=["risk"])
+        def declare_classification(request: Request, urn: str,
+                                   body: ClassifyIn):
+            """State a model's class. Refused if it is below the derived floor.
+
+            Higher is allowed: an output can be more disclosive than any single
+            input, which is most of what re-identification is. Lower is refused,
+            and the refusal names the feature that forces the floor — somebody
+            told *why* can go and deal with it.
+            """
+            model = self.guard(lambda: reg.require(urn))
+            who = self.authorise(request, "model:register", model=model)
+            return self.guard(lambda: self.ctx["classification"].declare(
+                urn, body.classification, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/classifications", tags=["risk"])
+        def classifications(request: Request):
+            """Every model's data classification, derived from what it reads.
+
+            Read `untraceable` first. A model whose inputs match no catalogued
+            feature has a classification derived from nothing, and reporting the
+            default for it would be reporting an assumption as a finding.
+            """
+            self.authorise(request, "model:read")
+            return self.guard(
+                lambda: self.ctx["classification"].across_the_estate())
+
+        @self.app.get(f"{self.api}/classification-levels", tags=["risk"])
+        def classification_levels(request: Request):
+            """The lattice, and what each class means.
+
+            Closed on purpose. A join over free text means nothing:
+            'Confidential', 'confidential' and 'CONF' are three classes to a
+            computer and one to a person.
+            """
+            self.principal(request)
+            from core.classification import LEVELS, MEANING
+            return {"levels": [{"level": level, "means": MEANING[level]}
+                               for level in LEVELS],
+                    "detail": "totally ordered, so propagation is a maximum — "
+                              "a thing built out of parts is not less "
+                              "sensitive than its most sensitive part"}
 
         @self.app.post(f"{self.api}/models/{{name:path}}/assess", tags=["risk"])
         def assess(request: Request, name: str, body: AssessIn):

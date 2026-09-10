@@ -517,6 +517,28 @@ class UIRoutes(Routes):
                              report=self.ctx["waivers"].across_the_estate(),
                              controls=list(WAIVABLE), quorum=QUORUM_BY_TIER)
 
+        # ------------------------------------------------ classification
+        @self.app.get("/classification", response_class=HTMLResponse,
+                      tags=["ui"])
+        def classification_page(request: Request):
+            """What each model is allowed to be seen by, derived from what it
+            reads.
+
+            A feature has carried a sensitivity since the catalogue was written
+            and nothing ever read it — not the model that consumed it, not the
+            document compiled from that model, not one control anywhere.
+            """
+            if (r := self.page_gate(request, "model:read")) is not None:
+                return r
+            from core.classification import LEVELS, MEANING
+            service = self.ctx["classification"]
+            report = service.across_the_estate()
+            return self.page(
+                request, "classification.html", report=report,
+                levels=list(LEVELS), meaning=MEANING,
+                documents=service.of_documents(
+                    [row["urn"] for row in report["models"]]))
+
         # -------------------------------------------- machine assistance
         @self.app.get("/assist", response_class=HTMLResponse, tags=["ui"])
         def assist_page(request: Request):
