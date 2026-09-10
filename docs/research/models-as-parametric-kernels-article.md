@@ -22,6 +22,20 @@ Typed-in facts are true at the moment they are typed and never again checked. An
 the most consequential ones don't have to be typed in at all — they fall out of structure you already have,
 if you write the structure down.
 
+> **One caveat before we start, because a reviewer caught me on it.** I cite two supervisory texts: the UK's
+> SS1/23, in force since 2024, and a 2026 US revision of the model risk guidance. Treat the second more
+> carefully than I originally did — it's recent, its status may not be settled wherever and whenever you're
+> reading, and an earlier draft narrated it as the settled successor to SR 11-7 without saying so.
+>
+> It matters less than it looks. Everything below is readable off SR 11-7 and SS1/23 alone: SR 11-7 has
+> carried the aggregate-risk expectation, the independent-challenge requirement and the inventory obligation
+> since 2011. And the definitional narrowness I use to motivate "one estate, several scopes" is a *recurring*
+> feature of model-risk definitions, not a property of one revision — SR 11-7's own "quantitative method
+> applying statistical, economic, financial, or mathematical theories" already sits awkwardly against a
+> deterministic rule set you nonetheless have to govern, and against a language model that governs nothing
+> and drafts everything. Where your jurisdiction's text differs, the substitution is mechanical, and the
+> section on regimes exists precisely because it should be.
+
 That's the paper. A definition, an order, an operator and a polynomial. And then, at the end, something I
 didn't go looking for: the line between *derived* and *declared* turns out to be exactly the line between
 where you can safely let a machine do the work and where you can't.
@@ -461,11 +475,22 @@ literally cannot see the difference between the two networks in the algebra. In 
 an explicit piece of structure you have to draw. Choosing the setting where probability lives naturally
 *also* gives you the setting where concentration risk becomes visible.
 
-**And I have to be straight with you about this one:** the theorem is proved, the derived composite signature
-now exists for it to quantify over, and the shared-dependency computation exists. The interaction premium
-itself is **not built**. There is no aggregate risk function in the system. The theorem says what a correct
-one cannot be; it does not construct one. That's one of the five laws I list as not executable further down,
-and it is the one I'm least comfortable about, because it's the result I most want to be true in practice.
+**Two things I have to be straight with you about here.**
+
+The first is what's new and what isn't. That aggregate model risk isn't additive, that shared data and shared
+assumptions create concentration, and that model interdependency needs its own analysis — all of that is
+established practice and established supervisory language, and dependency-aware risk aggregation has a long
+quantitative history. What I'm claiming is the **diagnosis**: that the obstruction isn't a modelling
+difficulty you approximate away with a better correlation assumption, it's the copy map, so it's structural —
+and that this gives you a sharp statement of what a correct aggregate *cannot be*. That's a constraint on
+candidate measures, not a measure. Whether it earns its formalism against the concentration analyses that
+already exist is an open question and I haven't settled it.
+
+The second is what's built. The theorem is proved and the interaction premium itself is **not computed**.
+There is no aggregate risk function in the system, and I've stopped calling that a gap — see the
+implementation section below for why. What the system does now is compose a *chain* and authorise it as one
+unit, with the chain's tier as the **join** of its nodes'. That's what the theorem permits and no more: what
+composes is the order, not the number.
 
 ---
 
@@ -979,11 +1004,71 @@ a property of institutions, and it's evaluated mechanically.
 
 ---
 
+## The system this came out of
+
+I should have led with this, and a reviewer of the paper reasonably concluded there was no implementation at
+all, because the paper said "reference implementation" four times and never named it.
+
+It's called **MAYA**, and it's at **[github.com/ajsinha/maya](https://github.com/ajsinha/maya)**.
+
+It isn't a demo built to illustrate the argument. The argument is the account of what building it required.
+At the revision this article describes: 307 Python modules that type-check clean, 80 tables in one typed
+schema that generates both dialects' DDL, 466 locked HTTP paths, and 5,174 tests that run on every push.
+
+Each of the four derivations is a module, not a proposal:
+
+| The claim | Where it lives | What it refuses |
+|---|---|---|
+| Trainability from how `P` is inhabited | `core/fibres/`, `core/domain/algebra.py` | a declared class — it's computed at registration, and a version whose declaration disagrees is refused rather than corrected |
+| One schema order for four questions | `core/features/composition.py`, `core/registry/composition.py` | an alias move whose contract narrows an output; a featureset slot whose candidates have no meet, **naming the slot** |
+| The point-in-time read as an operator | `core/features/pit.py` | a training assembly reading `a` instead of `min(ℓ, a)` — the bound is applied in exactly one place and the saturation law is a property test over it |
+| Provenance over ℕ[X] | `core/evidence/semirings.py`, `core/evidence/engine.py` | nothing directly. It's the one traversal that six governance questions are pushforwards along |
+
+The twenty-one laws are `tests/test_laws.py`. Eighteen run against generated inputs; three don't and are
+listed *in that file* with their reasons, and a test asserts the list in the file matches the set of laws
+with no runner.
+
+### Four things building it changed
+
+The useful report isn't that the propositions are implemented. It's that four of them came back altered.
+
+**The `min` was wrong first.** The operator says the ingest bound is `min(ℓ, a)`. The implementation read
+`a`, which is the natural thing to write and gives you a training assembly that's correct today and
+different next year. Nobody found it in review. The saturation property test found it.
+
+**The meet had no caller for a year.** I present the partiality of the meet as an informative refusal. In
+the system the order is called from three production paths and the meet only from the law suite. That's the
+commonest way a formalisation flatters itself: an operation that *exists* is not an operation in *use*.
+
+**The fibration forced its own base to be computed.** The one result I didn't go looking for. It arrived as
+a start-up failure — a class with no fibre — and the choice was to make the family partial or compute the
+index. The mathematics is unremarkable; that the constraint is invisible in the mathematics and decisive in
+the application is this article's own thesis applied to its own machinery.
+
+**The interaction premium is still not computed**, and I've stopped calling that a gap. The system now
+composes a *chain* and authorises it as one unit, and the chain's tier is the **join** of its nodes' —
+exactly what the impossibility theorem permits and no more. What composes is the order, not the number. It
+can say *this chain is at least tier 1 and every link resolves*. It cannot say *this chain is 0.83 risky*,
+and the reason it can't is a theorem, not a backlog item.
+
+### And the part that's for practitioners
+
+The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
+serves neither. The system carries a second register of the same content with no notation in it — nineteen
+help pages and eight walkthroughs — including one called *What MAYA refuses to do*, which is the
+derive/declare boundary written as nine refusals and what each one protects. If you want the argument
+without the algebra, start there.
+
+---
+
 ## The part where I try to talk you out of it
 
-**There's no adoption study.** There's a reference implementation and its law suite runs, which is more than
-a conceptual paper usually has and much less than evidence. I have not shown that a system built this way is
-easier to build, extend or operate than one built without it.
+**There's no adoption study.** There's an implementation and its law suite runs — see the section above —
+which is more than a conceptual paper usually has and much less than evidence. A large test suite shows a
+thing is internally consistent, not that it is useful. I have not shown that a system built this way is
+easier to build, extend or operate than one built without it, there's no comparative study and no
+deployment at a supervised institution, and I wrote both the paper and the system, so it demonstrates
+sufficiency rather than independent replication.
 
 **The derivations still read declarations.** The class reads a declared fit procedure. The order compares
 declared schemas. The operator reads declared clocks. The polynomial is built over declared derivation edges.
@@ -996,10 +1081,13 @@ version-substitution check judges outputs on name and type alone, so narrowing i
 are defensible. Holding both is not, and this is exactly the kind of divergence that "write the relation
 once" was supposed to prevent.
 
-**Three laws don't execute**, and one of them is the interaction premium — which is the result I've been
-most enthusiastic about in this article. The theorem is proved. The number is not computed anywhere. Two of
-the five that were on this list have since come off it, and the way they came off is worth more than the
-count: `L-17` was recorded as blocked on an online feature store, and it was blocked on the wrong thing. A
+**Three laws don't execute** — summary soundness, the lens laws, and evidence gluing. An earlier version of
+this paragraph said one of the three was the interaction premium, and that was wrong twice over: `L-14` runs,
+and it runs *because* it stopped trying to be a number. The theorem is still proved and the premium is still
+not computed; that's an honest end state rather than an inert law.
+
+Two of the five that were once on this list have since come off it, and the way they came off is worth more
+than the count: `L-17` was recorded as blocked on an online feature store, and it was blocked on the wrong thing. A
 store sits on the serving path, and the design says the platform does not go there — so the engine attests
 what it read and the platform compares. The law was not waiting on a component; it was waiting on somebody
 noticing that the claim could be made the other way round.
@@ -1060,7 +1148,7 @@ for it.
 *The technical treatment — the lattice theorem and the partiality of the meet, the four properties of the
 point-in-time operator with the saturation proof, the universality of the provenance polynomial and the proof
 that `(max, max)` cannot be a semiring, the impossibility result for aggregate risk, the citation-soundness
-proposition, the full register of laws with the six that don't execute, and what I deliberately didn't adopt
+proposition, the full register of laws with the three that don't execute, and what I deliberately didn't adopt
 and why — is in the accompanying paper,* **Models as Parametric Kernels: An Order, an Operator and a
 Polynomial.**
 
