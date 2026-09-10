@@ -17,6 +17,7 @@ plausible prose into a governance register is worse than no provider at all.
 BEFORE it is asked, so a fabricated citation has nowhere to land.
 """
 from core.assist import grounding, oracles
+from core.assist.budgets import BudgetRegister
 from core.assist.capabilities import CapabilityRegistry
 from core.assist.common import (AUTONOMY, TIER_A, TIER_B, TIER_MEANING, TIERS,
                                 AssistError)
@@ -33,7 +34,7 @@ __all__ = [
                                 "TIER_B",
                                 "TIER_MEANING",
                                 "AssistError",
-                                "CapabilityRegistry",
+                                "BudgetRegister", "CapabilityRegistry",
                                 "DraftingService",
                                 "GenerationLog",
                                 "Oracle",

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Machine assistance — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>The platform's own AI, and what it may spend</h1>
+<div class="accent"></div>
+
+<p class="lead small">Everything a model drafts here is a <strong>candidate</strong>
+until a person attests it, and what it may cite is fixed from the register before
+it is asked. This screen is about the other half: what each capability is allowed
+to consume, checked <em>before</em> the provider is called. A budget checked
+afterwards is an invoice.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ budgets.count }}</div>
+    <div class="stat-l">registered capabilities</div>
+    <div class="small text-muted">Tier C cannot be registered at all</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if budgets.exhausted else 'evidence-ok' }}">{{ budgets.exhausted }}</div>
+    <div class="stat-l">out of budget</div>
+    <div class="small text-muted">refused, not suspended — the window refills</div>
+  </div></div></div>
+  {# A default reported as a decision is how a default becomes permanent. #}
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if budgets.on_default else '' }}">{{ budgets.on_default }}</div>
+    <div class="stat-l">on a number nobody chose</div>
+    <div class="small text-muted">running on the default, not a decision</div>
+  </div></div></div>
+  {# The number that says a capability is not working rather than busy. #}
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if budgets.calls_that_produced_nothing else '' }}">{{ budgets.calls_that_produced_nothing }}</div>
+    <div class="stat-l">calls that bought nothing</div>
+    <div class="small text-muted">charged all the same</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What each capability may spend, per rolling window</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Three numbers, because they bound three different failures. <strong>Tokens</strong>
+    bound a prompt that grew — a grounding set that quietly went from forty nodes
+    to four thousand. <strong>Cost</strong> bounds the invoice, which is the
+    number somebody signs for. <strong>Steps</strong> bound a loop, and that is
+    the one worth setting deliberately: a runaway agent is not one enormous call,
+    it is a large number of small ones, and it passes a token budget and a cost
+    budget for a long time before either notices.
+  </div>
+  {% if budgets.capabilities %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Capability</th><th>Window</th><th>Bound</th>
+      <th class="text-end">Spent</th><th class="text-end">Limit</th>
+      <th class="text-end">Used</th><th>Source</th>
+    </tr></thead>
+    <tbody>
+      {% for cap in budgets.capabilities %}
+        {% for line in cap.budgets %}
+        <tr>
+          <td class="mono small">{% if loop.first %}{{ cap.capability_key }}{% endif %}</td>
+          <td class="small text-muted">
+            {% if loop.first %}{{ '%.0f' | format(cap.window_days) }} days{% endif %}</td>
+          <td class="small mono">{{ line.budget }}</td>
+          <td class="small text-end">{{ '%.2f' | format(line.spent) }}</td>
+          <td class="small text-end text-muted">{{ '%.2f' | format(line.limit) }}</td>
+          <td class="small text-end">
+            <span class="{{ 'evidence-bad' if line.exhausted else ('text-warning' if line.near else '') }}">
+              {{ '%.0f' | format(100 * line.share) }}%</span></td>
+          <td class="small">
+            {% if line.declared %}<span class="text-muted">declared</span>
+            {% else %}<span class="evidence-bad">default</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No capability is registered. Nothing here can ask a model for anything until
+    one is, which is the intended resting state for an instance that has not
+    decided it wants machine assistance.
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Registered capabilities</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    <strong>Tier A</strong> output is mechanically checkable and must name the
+    oracle that checks it — <em>we validate the output</em> without naming the
+    check is the sentence that precedes every AI incident. <strong>Tier B</strong>
+    output cites evidence the register already holds, and any claim citing
+    something it does not is dropped before a reader sees it. <strong>Tier C</strong>
+    cannot be registered: output that can be neither checked nor grounded is a
+    person using a chat window, not something the platform runs.
+  </div>
+  {% if capabilities %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Key</th><th>Tier</th><th>Oracle</th><th>Base model</th>
+      <th>Autonomy</th><th>Review sample</th><th>Owner</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+      {% for cap in capabilities %}
+      <tr>
+        <td class="mono small">{{ cap.capability_key }}</td>
+        <td class="small">{{ cap.tier }}</td>
+        <td class="small mono">{{ cap.oracle_key or '—' }}</td>
+        <td class="small mono">{{ cap.base_model }}</td>
+        <td class="small">{{ cap.autonomy.replace('_', ' ') }}</td>
+        <td class="small text-end">{{ '%.0f' | format(100 * cap.review_sample) }}%</td>
+        <td class="mono small">{{ cap.owner }}</td>
+        <td class="small">
+          <span class="{{ 'evidence-ok' if cap.status == 'active' else 'evidence-bad' }}">
+            {{ cap.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    The <strong>review sample</strong> is the fraction of accepted drafts pulled
+    for independent review regardless of how good they looked. A reviewer who has
+    approved forty correct drafts is not reviewing the forty-first.
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Providers</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Every provider but the mock <em>refuses by name</em> rather than returning
+    something plausible. A stub writing fabricated prose into a governance
+    register is a machine writing into the record with nothing behind it, and the
+    first person to read it would have no way to tell.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr><th>Provider</th><th>Usable</th><th>Why not</th></tr></thead>
+    <tbody>
+      {% for p in providers %}
+      <tr>
+        <td class="mono small">{{ p.provider }}</td>
+        <td class="small">
+          {% if p.usable %}<span class="evidence-ok">yes</span>
+          {% else %}<span class="text-muted">no</span>{% endif %}</td>
+        <td class="small text-muted">{{ p.why_not or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endblock %}
