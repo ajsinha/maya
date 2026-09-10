@@ -174,3 +174,129 @@ class Warrants:
         return self._maya.call("POST", "/warrant-profiles/preview", json={
             "urn": urn, "environment": environment, "semver": semver,
             "request": request or {}})
+
+
+class Composites:
+    """One call over a chain of models, and the refusal that makes it worth having.
+
+    A discount curve feeds a valuation feeds a provision. The caller wants one
+    authorisation; the register holds three models, three approvals and three
+    tiers.
+
+    **A chain is as governed as its least governed link.** A composite resolves
+    only if every node resolves — one blocked finding anywhere, one revoked
+    grant, one unapproved version, and the whole thing is refused, naming
+    *every* failing node rather than the first. A caller told only about the
+    first fixes it, retries, and discovers the second; a chain with three
+    problems then takes three round trips and each looks like a new failure.
+
+    **The composite's tier is the join of its nodes'.** A chain is at least as
+    risky as its riskiest part, derived and not declarable, because the only
+    direction anybody ever wants to move it is down.
+
+    **There is no composite descriptor.** `composite_descriptor` is always None
+    and that is the design: signing one would be MAYA asserting the chain as a
+    whole is authorised, and nothing established that — three people approved
+    three models for three purposes and none of them approved the composition.
+    What you get back is the nodes in call order, each with its own descriptor
+    and its own limitations.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def list(self) -> Dict[str, Any]:
+        """Every model that reads another model's output.
+
+        `tier_raised_by_the_chain` is the number a feeder graph exists to
+        produce: models that are riskier as part of a chain than the register
+        records them individually.
+        """
+        return self._maya.call("GET", "/composites")
+
+    def chain(self, terminal: str) -> Dict[str, Any]:
+        """The models feeding a terminal, in the order they must be called."""
+        return self._maya.call("GET", "/composites", params={"urn": terminal})
+
+    def resolve(self, terminal: str, *, environment: str, declared_use: str,
+                principal: str = "", verb: str = "score") -> Dict[str, Any]:
+        """Resolve every node, or refuse the whole chain."""
+        return self._maya.call("POST", "/composites/resolve", json={
+            "terminal": terminal, "environment": environment,
+            "declared_use": declared_use, "principal": principal,
+            "verb": verb})
+
+    def check(self, terminal: str, *, environment: str, declared_use: str,
+              principal: str = "") -> Dict[str, Any]:
+        """Would this chain resolve? Without minting anything.
+
+        Its own call because *can this chain run* is asked far more often than
+        the chain is run, and answering by resolving would mint descriptors
+        nobody intends to use.
+        """
+        return self._maya.call("POST", "/composites/check", json={
+            "terminal": terminal, "environment": environment,
+            "declared_use": declared_use, "principal": principal})
+
+
+class Shadow:
+    """An answer that must not be used, and what a register can do about it.
+
+    **MAYA is not in the serving path.** It does not mirror traffic, does not
+    sample, and cannot observe the share — a platform claiming to enforce a
+    canary percentage by *watching* would be claiming something it has no way
+    to check. The `share` you declare is an attestation, and it is labelled one.
+
+    Three things it does do, and each is a real control. It authorises the
+    mirror as **advisory**, so every answer under it is non-authoritative and
+    every invocation is recorded as such — a firm that never marked its shadow
+    traffic has a challenger's answers in the same log as its champion's, and
+    *did this number reach a decision* becomes unanswerable a year later.
+
+    It **refuses a shadow grant whose `declared_use` is an approved production
+    use**. That is exactly how a shadow answer reaches a decision: not by
+    somebody deciding to use it, but by a grant nothing can tell apart from a
+    production one at the point of use.
+
+    And it notices a shadow that never ends. Shadow mode exists to decide
+    something; one running past ninety days is a second production model nobody
+    approved, on production traffic, with no owner and no monitoring plan.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def posture(self) -> Dict[str, Any]:
+        """What MAYA does and does not do about mirrored traffic."""
+        return self._maya.call("GET", "/shadow/posture")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every advisory grant in the estate.
+
+        An empty answer is ambiguous and says so: either the firm does no
+        shadow testing, or it does it unmarked, and the register cannot tell
+        the two apart.
+        """
+        return self._maya.call("GET", "/shadow", params={"now": now})
+
+    def status(self, urn: str, *, environment: str = "",
+               now: Optional[float] = None) -> Dict[str, Any]:
+        """Advisory grants on one model, and whether any has outstayed itself."""
+        return self._maya.call("GET", "/shadow",
+                               params={"urn": urn,
+                                       "environment": environment,
+                                       "now": now})
+
+    def authorise(self, urn: str, *, environment: str, principal: str,
+                  declared_use: str, mirrors: str, share: float,
+                  until: Optional[float] = None) -> Dict[str, Any]:
+        """Issue an advisory grant for a challenger beside a champion.
+
+        `declared_use` must be the shadow's own and not a production one.
+        `mirrors` names the production use whose traffic is being copied, so
+        something can tell whether this is shadowing anything at all.
+        """
+        return self._maya.call("POST", "/shadow", json={
+            "urn": urn, "environment": environment, "principal": principal,
+            "declared_use": declared_use, "mirrors": mirrors, "share": share,
+            "until": until})

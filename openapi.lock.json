@@ -1064,6 +1064,50 @@
         ]
       }
     },
+    "/api/v1/composites": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/composites/check": {
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment!",
+          "principal",
+          "terminal!",
+          "verb"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/composites/resolve": {
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment!",
+          "principal",
+          "terminal!",
+          "verb"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/compute-zones": {
       "get": {
         "body": [],
@@ -4632,6 +4676,45 @@
         "responses": [
           "201",
           "422"
+        ]
+      }
+    },
+    "/api/v1/shadow": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:environment",
+          "query:now",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "declared_use!",
+          "environment!",
+          "mirrors!",
+          "principal!",
+          "share!",
+          "until",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/shadow/posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
