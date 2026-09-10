@@ -1420,6 +1420,69 @@ old is the online value*; only this comparison answers *is it the value the mode
 a perfectly fresh online store computing a subtly different feature passes every freshness check ever
 written.
 
+### 12.10a A panel's disagreement is the answer
+
+T7 parameters come out of expert judgement — a scenario weight, a climate transition probability, an
+operational-risk severity. `elicit` has been a verb and `elicited_weights` a parameter kind since the
+algebra was written, and what the register held was **the number the panel arrived at**, which is the
+least interesting thing an elicitation produces.
+
+*How much did they disagree* is the first question a validator asks about a judgemental parameter, and a
+process that stores only the final weight has destroyed the evidence that they disagreed at all.
+
+| Rule | Why |
+|---|---|
+| Responses recorded **per round, per panellist, never overwritten** | A response revised in place erases the movement between rounds, and the movement is the only thing convergence can be measured from |
+| An empty round **cannot be advanced** | The convergence series would carry a gap nothing explains |
+| A panel of **fewer than three is refused** | One expert's judgement is an assumption, and the assumption register is where an assumption belongs — with a materiality, an owner and something watching it |
+| The **facilitator may not answer** | They set the question and see the responses before the panel does; somebody in both roles can shape the spread they are about to report |
+| The panel is **fixed at opening** | Adding a member mid-round changes the denominator of a spread already partly formed |
+
+**Convergence is measured and explicitly not explained.** The spread narrowing is arithmetic; *why* it
+narrowed is not, because a panel that converged on the evidence and one that converged because the most
+senior person answered first are indistinguishable in the numbers. Two things are recorded so the reader
+is not left to assume: the **method**, from a closed list, so that a workshop's spread is not read like a
+Delphi's — and how far apart within a round the answers arrived, which is the one structural fact about
+anchoring a register can hold.
+
+**Dissent is part of the number.** It attaches to the conclusion and travels on the evidence chain: a
+final weight whose dissent nobody can find is a weight that looks unanimous, and the firm relying on it
+does not know it is relying on a majority.
+
+**Independence is recorded rather than required.** In a small firm the only person who genuinely
+understands the model is often the person who built it, and refusing their participation would push the
+elicitation off the platform entirely. So a conflicted panellist is named, and the share of the answer
+they account for is visible rather than invisible.
+
+### 12.10b The part of the number that is not the model
+
+IFRS 9 requires disclosure of the significant judgements applied in measuring expected credit losses. The
+overlay register holds the parts — magnitude against base, direction, rationale, basis, renewals, expiry
+— and the figure is nevertheless assembled in a spreadsheet at period end, from a list somebody keeps.
+
+Three things about the extract are decisions rather than arithmetic.
+
+**An unmeasured overlay cannot be disclosed and is named.** It is active, it is changing the number, and
+nobody recorded by how much. Leaving it out understates the judgement component; putting it in at zero is
+worse, because **zero is a measurement**. So it appears as an explicit hole with the models it sits on,
+and the extract reports itself incomplete.
+
+**New and grown are separated.** One is a judgement somebody newly formed and the other is a judgement
+that got bigger; the second is the one an auditor asks about, and a single "change in overlays" figure
+collapses them.
+
+**An overlay renewed past its own limit is reported as structural.** An adjustment continued five times
+is not a temporary judgement about an unusual period — it is a permanent correction to a model nobody has
+fixed, and disclosing it beside genuine period judgements makes both harder to read. That is the overlay
+register's central rule, *a permanent adjustment is a model defect*, arriving in the accounts.
+
+A trend across periods sits beside the single-period extract, because **a monotonically rising judgement
+component is the shape a model that needs fixing makes**: each quarter's adjustment is defensible on its
+own, and the series is the finding.
+
+MAYA produces an extract and **not a disclosure note**. The figures are the register's; the words, the
+materiality judgement and the decision to file are the firm's, and the extract says so in itself.
+
 ### 12.11 A run is opened before it happens
 
 Every experiment tracker records a run **when it finishes**, and that produces a register of successes. A
@@ -2999,8 +3062,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 301 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 362 modules in one
+the 303 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 364 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

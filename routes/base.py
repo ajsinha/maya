@@ -399,6 +399,13 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # a panel asked a question, and the judgement component of a number
+    "period_required": 422, "unknown_method": 422,
+    "panel_too_small": 422, "facilitator_is_a_panellist": 409,
+    "elicitation_already_open": 409, "elicitation_closed": 409,
+    "not_on_the_panel": 403, "already_answered": 409,
+    "round_is_empty": 409, "nothing_to_conclude": 409,
+    "unknown_elicitation": 404,
     # a chain resolved as one unit, and an answer that must not be used
     "cyclic_composition": 409, "composition_too_deep": 422,
     # 409 and not 403: every node is individually authorised and the

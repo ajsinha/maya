@@ -455,6 +455,42 @@ CREATE TABLE IF NOT EXISTS document (
 );
 CREATE INDEX IF NOT EXISTS ix_document_model ON document (model_id, kind);
 
+CREATE TABLE IF NOT EXISTS elicitation (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    question TEXT NOT NULL,
+    units TEXT DEFAULT '' NOT NULL,
+    panel TEXT DEFAULT '[]' NOT NULL,
+    facilitator TEXT NOT NULL,
+    method TEXT DEFAULT 'delphi' NOT NULL,
+    round INTEGER DEFAULT 1 NOT NULL,
+    state TEXT DEFAULT 'open' NOT NULL,
+    final_value DOUBLE PRECISION,
+    final_note TEXT DEFAULT '' NOT NULL,
+    concluded_by TEXT,
+    opened_at DOUBLE PRECISION NOT NULL,
+    concluded_at DOUBLE PRECISION,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_elicitation_reference ON elicitation (reference);
+
+CREATE TABLE IF NOT EXISTS elicitation_response (
+    id TEXT NOT NULL,
+    elicitation_id TEXT NOT NULL,
+    round INTEGER NOT NULL,
+    panellist TEXT NOT NULL,
+    value DOUBLE PRECISION,
+    confidence TEXT DEFAULT '' NOT NULL,
+    reasoning TEXT DEFAULT '' NOT NULL,
+    independent BOOLEAN DEFAULT true NOT NULL,
+    dissented BOOLEAN DEFAULT false NOT NULL,
+    recorded_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_elicitation_response ON elicitation_response (elicitation_id, round, panellist);
+
 CREATE TABLE IF NOT EXISTS event_subscription (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,

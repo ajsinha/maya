@@ -643,3 +643,57 @@ COMPLIANCE_DEBT = Table(
     Column("closed_by", Text),
     Index("ix_debt_model", "model_id", "status"),
 )
+
+
+# A panel asked a question, and the spread that is the answer.
+#
+# T7 parameters come out of expert judgement, and the value of an elicitation is
+# not the number it produced — it is the DISAGREEMENT it recorded on the way.
+# A process that stores only the final weights has destroyed the evidence that
+# the panel disagreed, and *how much did they disagree* is the first question a
+# validator asks about a judgemental parameter.
+ELICITATION = Table(
+    "elicitation", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text),
+    Column("question", Text, nullable=False),
+    Column("units", Text, nullable=False, server_default=text("''")),
+    Column("panel", Text, nullable=False, server_default=text("'[]'")),
+    Column("facilitator", Text, nullable=False),
+    Column("method", Text, nullable=False, server_default=text("'delphi'")),
+    Column("round", Integer, nullable=False, server_default=text('1')),
+    Column("state", Text, nullable=False, server_default=text("'open'")),
+    # The number the panel arrived at, and the dissent attached to it. A final
+    # weight whose dissent nobody can find is a weight that looks unanimous.
+    Column("final_value", Double),
+    Column("final_note", Text, nullable=False, server_default=text("''")),
+    Column("concluded_by", Text),
+    Column("opened_at", Double, nullable=False),
+    Column("concluded_at", Double),
+    Index("uq_elicitation_reference", "reference", unique=True),
+)
+
+
+# One panellist's answer in one round. Append-only in practice: a response
+# revised in place would erase the movement between rounds, which is the only
+# thing convergence can be measured from.
+ELICITATION_RESPONSE = Table(
+    "elicitation_response", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("elicitation_id", Text, nullable=False),
+    Column("round", Integer, nullable=False),
+    Column("panellist", Text, nullable=False),
+    Column("value", Double),
+    Column("confidence", Text, nullable=False, server_default=text("''")),
+    Column("reasoning", Text, nullable=False, server_default=text("''")),
+    # Recorded rather than refused. In a small firm the only person who
+    # understands the model is its developer, and refusing would push the
+    # elicitation off the platform entirely — so the conflict is named.
+    Column("independent", Boolean, nullable=False, server_default=true()),
+    Column("dissented", Boolean, nullable=False, server_default=false()),
+    Column("recorded_at", Double, nullable=False),
+    Index("uq_elicitation_response", "elicitation_id", "round", "panellist",
+          unique=True),
+)
