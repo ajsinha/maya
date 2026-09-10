@@ -31,6 +31,28 @@ from core.registry.versions import latest_version
 
 logger = get_logger(__name__)
 
+
+def _typed(value: str, type_: str):
+    """A form field is a string. The entity says what it should have been.
+
+    Coerced here rather than in the layer, because a query builder that sent
+    `"1"` where a number was declared would silently match nothing and look
+    like an empty result rather than like a form filled in wrongly.
+    """
+    if type_ == "number":
+        # Tested rather than caught. A handler here would fire on every
+        # keystroke somebody typed into a numeric box and drown the log in the
+        # ordinary case of a half-finished form.
+        text = str(value).strip()
+        negative = text.startswith("-")
+        digits = text[1:] if negative else text
+        if digits.replace(".", "", 1).isdigit():
+            return float(text)
+        return value
+    if type_ == "boolean":
+        return str(value).strip().lower() in ("true", "yes", "1", "y")
+    return value
+
 # Worst first, and stated once. A list of findings sorted by when they were
 # raised buries the Critical one under three Observations.
 _SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3,
@@ -579,6 +601,53 @@ class UIRoutes(Routes):
                 request, "vendor_models.html",
                 report=self.ctx["vendor_assessments"].across_the_estate(),
                 checklist=VendorAssessments.checklist())
+
+        # --------------------------------------------------------- query
+        @self.app.get("/query", response_class=HTMLResponse, tags=["ui"])
+        def query_page(request: Request, entity: str = "model",
+                       field: str = "", operator: str = "eq",
+                       value: str = ""):
+            """The query builder, over entities rather than over tables.
+
+            There is no box on this page that takes query text. The form can
+            only produce what the semantic layer already admits, which is the
+            whole point: the layer's promise about what a query can reach is
+            worth nothing if a screen above it can bypass the vocabulary.
+            """
+            if (r := self.page_gate(request, "report:read")) is not None:
+                return r
+            from core.authz.scope import Scope
+            from core.reporting.semantics import (ADMISSIBLE, ENTITIES,
+                                                  OPERATORS, QueryError)
+            who = self.principal(request)
+            semantics, views = self.ctx["semantics"], self.ctx["saved_views"]
+            spec = ENTITIES.get(entity) or ENTITIES["model"]
+            catalogue = semantics.describe()
+            selected = spec.as_dict()
+            chosen = next((f for f in selected["fields"] if f["name"] == field),
+                          None)
+            admissible = (ADMISSIBLE[chosen["type"]] if chosen
+                          else tuple(OPERATORS))
+            where = ([{"field": field, "operator": operator,
+                       "value": _typed(value, chosen["type"])}]
+                     if chosen and operator in admissible else [])
+            result, refusal = None, None
+            try:
+                result = semantics.query(spec.name, where=where, limit=200,
+                                         scope=Scope.of(who))
+            except QueryError as exc:
+                # Shown on the page rather than as a 422 the browser renders as
+                # a blank screen: the person filling in a form is the person
+                # who can fix it.
+                logger.info("query refused on %s: %s", spec.name, exc.code)
+                refusal = exc.as_problem()
+            return self.page(
+                request, "query.html", entity=spec.name, catalogue=catalogue,
+                selected=selected, fields=selected["fields"],
+                operators=[(op, OPERATORS[op]) for op in admissible],
+                field=field, operator=operator, value=value,
+                result=result, refusal=refusal,
+                views=views.list(self.actor(who)))
 
         # ------------------------------------------------- model health
         @self.app.get("/model-health", response_class=HTMLResponse, tags=["ui"])
