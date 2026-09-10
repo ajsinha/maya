@@ -1333,6 +1333,103 @@
         ]
       }
     },
+    "/api/v1/elicitations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "facilitator!",
+          "method",
+          "panel",
+          "question!",
+          "reference!",
+          "semver",
+          "units",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/elicitations/methods": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/elicitations/{reference}/conclude": {
+      "post": {
+        "body": [
+          "note!",
+          "value!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/elicitations/{reference}/convergence": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/elicitations/{reference}/next-round": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/elicitations/{reference}/respond": {
+      "post": {
+        "body": [
+          "confidence",
+          "dissented",
+          "independent",
+          "panellist!",
+          "reasoning",
+          "value!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/engine": {
       "get": {
         "body": [],
@@ -3476,6 +3573,32 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/api/v1/overlay-disclosure": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:period!",
+          "query:prior"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/overlay-disclosure/trend": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:periods!"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },

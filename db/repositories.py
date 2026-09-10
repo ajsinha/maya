@@ -602,6 +602,15 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class ElicitationRepository(Repository):
+    TABLE, ORDER = "elicitation", "opened_at"
+    JSON = ("panel",)
+
+
+class ElicitationResponseRepository(Repository):
+    TABLE, ORDER = "elicitation_response", "recorded_at"
+
+
 class RunRepository(Repository):
     TABLE, ORDER = "run", "opened_at"
     JSON = ("resource_profile", "environment", "inputs", "hyperparameters",

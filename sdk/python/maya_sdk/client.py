@@ -92,6 +92,8 @@ class Maya:
         self.retraining = parameters.Retraining(self)
         self.composites = warrants.Composites(self)
         self.shadow = warrants.Shadow(self)
+        self.elicitations = parameters.Elicitations(self)
+        self.overlay_disclosure = governance.OverlayDisclosure(self)
         self.assist = assist_module.Assist(self)
         # Filled in by the SDK completion pass. Attached here rather than
         # discovered, because a client that grows subjects dynamically is one

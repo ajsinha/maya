@@ -85,6 +85,8 @@ fall behind again.
 | `maya.retraining` | when a re-fit is due, and the standing approval for one |
 | `maya.composites` | resolve a chain of models as one unit, or refuse it as one |
 | `maya.shadow` | authorise an advisory grant for mirrored traffic |
+| `maya.elicitations` | convene a panel, record responses per round, conclude with dissent |
+| `maya.overlay_disclosure` | the judgement component of the number, by period |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**

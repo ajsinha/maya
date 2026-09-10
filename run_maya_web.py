@@ -40,6 +40,8 @@ from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
 from core.execution.composite import CompositeWarrants
+from core.overlays.disclosure import Disclosure
+from core.parameters.elicitation import Elicitations
 from core.execution.shadow import ShadowTraffic
 from core.lifecycle.campaigns import Campaigns
 from core.parameters.retraining import Retraining
@@ -172,6 +174,7 @@ from db import (ServingAttestationRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
+                ElicitationRepository, ElicitationResponseRepository,
                 RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
                 SavedViewRepository, ScheduledRunRepository, SignatureRepository,
@@ -735,6 +738,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     shadow = ShadowTraffic(registry, warrants, warrants.grants, uses=uses,
                            invocations=invocations)
 
+    # A panel asked a question, and the spread that is the answer. Individual
+    # responses are kept per round and never overwritten: a response revised in
+    # place erases the movement between rounds, and the movement is the only
+    # thing convergence can be measured from. Dissent travels with the number.
+    elicitations = Elicitations(
+        ElicitationRepository(db), ElicitationResponseRepository(db),
+        registry, evidence, parameters=parameters)
+
+    # The judgement component of the number, for the accounts. An unmeasured
+    # overlay cannot be disclosed and is named: omitting it understates the
+    # judgement, and including it at zero would be worse, because zero is a
+    # measurement.
+    disclosure = Disclosure(overlays, registry)
+
     # An activity somebody else executed, declared BEFORE it runs. MAYA
     # submits no jobs and never reads `log_uri`: a register that submitted
     # would be on the failure path of the thing it exists to observe, and
@@ -1175,6 +1192,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "supervisory": supervisory,
                            "campaigns": campaigns,
                            "runs": runs,
+                           "elicitations": elicitations,
+                           "disclosure": disclosure,
                            "composite_warrants": composite_warrants,
                            "shadow": shadow,
                            "retraining": retraining,
