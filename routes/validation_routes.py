@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, Request
 from pydantic import Field
 
+from core.validation.common import TIER_VERDICT_MEANING, TIER_VERDICTS
 from core.authz.common import same_person
 from routes.base import Body, Routes
 
@@ -41,6 +42,14 @@ class RecordTestIn(Body):
 class ConcludeIn(Body):
     outcome: str
     conditions: List[str] = Field(default_factory=list)
+    #: What the episode found about the model's RISK TIER. Required, and with
+    #: no default: SS1/23 1.3(e) asks that the tier be re-assessed during
+    #: validation, and an episode concluded without a verdict reads exactly
+    #: like one where the validator looked and agreed.
+    tier_verdict: Optional[str] = None
+    #: Mandatory when the verdict is not `remains_appropriate`. Saying the tier
+    #: is wrong without saying why is not something anybody can act on.
+    tier_note: str = ""
 
 
 class FindingIn(Body):
@@ -125,7 +134,22 @@ class ValidationRoutes(Routes):
                                  model=self.model_behind(episode),
                                  subject_id=episode["model_version_id"])
             return self.guard(lambda: service.conclude(
-                validation_id, body.outcome, body.conditions, actor=self.actor(who)))
+                validation_id, body.outcome, body.conditions,
+                tier_verdict=body.tier_verdict, tier_note=body.tier_note,
+                actor=self.actor(who)))
+
+        @self.app.get(f"{api}/tier-verdicts", tags=["validation"])
+        def tier_verdicts(request: Request):
+            """The three a validator may reach about a model's tier, and what
+            each one causes. Closed: not looking is not a verdict."""
+            self.principal(request)
+            return {"verdicts": [{"verdict": v, "means": TIER_VERDICT_MEANING[v]}
+                                 for v in TIER_VERDICTS],
+                    "detail": "concluding a validation requires one. SS1/23 "
+                              "1.3(e) asks that the tier be re-assessed during "
+                              "validation, and an episode with no verdict "
+                              "reads exactly like one where the validator "
+                              "looked and agreed"}
 
         @self.app.post(f"{api}/validations/{{validation_id}}/replay", tags=["validation"])
         def replay(request: Request, validation_id: str, body: ReplayIn):

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Waivers — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>What the estate is not doing, on purpose</h1>
+<div class="accent"></div>
+
+<p class="lead small">A waiver records a control this model is <em>not</em>
+meeting, who agreed to that, what is being done instead, and — the part that
+matters — <strong>when it ends</strong>. Every estate has these and most keep
+them in a spreadsheet, which is how a temporary exception reaches its fourth
+year. There are no indefinite waivers here: a window is mandatory and bounded,
+and a longer exception is <em>renewed</em>, which is a decision somebody takes
+again rather than one that lapses into permanence.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.active }}</div>
+    <div class="stat-l">controls currently waived</div>
+    <div class="small text-muted">across {{ report.models | length }} model{{ '' if report.models | length == 1 else 's' }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.proposed }}</div>
+    <div class="stat-l">proposed, not yet granted</div>
+    <div class="small text-muted">awaiting the signatures the tier requires</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.overdue else '' }}">{{ report.overdue }}</div>
+    <div class="stat-l">past their end date</div>
+    <div class="small text-muted">
+      {% if report.overdue %}the batch has not run — these are not in force{% else %}expiry is up to date{% endif %}
+    </div>
+  </div></div></div>
+  {# The number this screen exists for: a control relaxed four times running is
+     not a temporary exception, it is the framework the model is governed under. #}
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.renewed_past_limit else 'evidence-ok' }}">{{ report.renewed_past_limit }}</div>
+    <div class="stat-l">renewed past the limit</div>
+    <div class="small text-muted">temporary in name only</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every control currently waived</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.
+    Sorted by <strong>tier</strong>, because the same control relaxed on a tier 1
+    model and on a tier 4 one are different sentences, and a list sorted by date
+    buries the first.</div>
+  {% if report.models %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Tier</th><th>Ref</th><th>Control</th>
+      <th>Instead of it</th><th>Renewals</th><th>Granted by</th>
+    </tr></thead>
+    <tbody>
+      {% for m in report.models %}
+        {% for w in m.waivers %}
+        <tr>
+          <td class="mono small">
+            {% if loop.first %}
+              {% if m.urn %}<a href="/model/{{ m.urn.split('/')[-1] }}">{{ m.urn }}</a>
+              {% else %}<span class="text-muted">{{ m.model_id }}</span>{% endif %}
+            {% endif %}</td>
+          <td class="small">{% if loop.first %}
+            <span class="{{ 'evidence-bad' if m.tier == 1 else '' }}">{{ m.tier or '—' }}</span>
+          {% endif %}</td>
+          <td class="mono small">{{ w.reference }}</td>
+          <td class="small mono">{{ w.control }}</td>
+          <td class="small">{{ w.compensating_control }}</td>
+          <td class="small">
+            <span class="{{ 'evidence-bad' if w.renewals > 3 else '' }}">{{ w.renewals }}</span></td>
+          <td class="mono small">{{ w.approved_by or '—' }}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No control is currently waived anywhere on the estate. That is worth
+    reading as a claim rather than as an empty table: every model is being
+    governed the way its tier says it should be.
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">What may be waived, and by how many people</div>
+  <div class="card-body small">
+    <p class="text-muted">A waiver names a control some tier actually requires.
+    Waiving anything else would relax nothing while reading on a report as
+    though it had.</p>
+    <p class="mb-2"><strong>Approval scales with the tier:</strong>
+      {% for tier, n in quorum.items() %}
+        tier {{ tier }} needs {{ n }} signature{{ '' if n == 1 else 's' }}{{ '; ' if not loop.last else '.' }}
+      {% endfor %}
+      Relaxing a control on the estate's most material model on one person's
+      say-so is exactly what <em>scaled to risk</em> is about.</p>
+    <p class="mb-0 small mono text-muted">{{ controls | join(' · ') }}</p>
+  </div>
+</div>
+
+{% endblock %}

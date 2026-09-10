@@ -72,6 +72,38 @@ class MonitoringRoutes(Routes):
                 breach_severity=body.breach_severity, escalate_after=body.escalate_after,
                 actor=self.actor(who)))
 
+        @self.app.get(f"{api}/monitor-defaults", tags=["monitoring"])
+        def monitor_defaults(request: Request, urn: str):
+            """What this model's class and tier say it should be watched for.
+
+            And, as importantly, what it should NOT be: a model with no
+            performance monitor because its class cannot answer that question,
+            and one with no performance monitor because nobody got round to it,
+            look identical on every coverage screen ever built.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            return self.guard(lambda: self.ctx["monitoring_defaults"].propose(
+                urn, model["id"]))
+
+        @self.app.post(f"{api}/monitor-defaults", status_code=201,
+                       tags=["monitoring"])
+        def seed_monitor_defaults(request: Request, urn: str,
+                                  owner: str = ""):
+            """Create the proposed monitors that are not already there.
+
+            Seeding is an explicit act rather than something registration does
+            for you: an estate that acquires monitors nobody asked for is an
+            estate whose coverage nobody understands. Idempotent by kind and
+            test, so running it twice is safe and says so.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            who = self.authorise(request, "monitor:define", model=model)
+            actor = self.actor(who)
+            return self.guard(lambda: self.ctx["monitoring_defaults"].seed(
+                urn, model["id"], owner=owner or model.get("owner") or actor,
+                actor=actor))
+
         @self.app.post(f"{api}/monitors/{{monitor_id}}/evaluate", tags=["monitoring"])
         def evaluate(request: Request, monitor_id: str, body: EvaluateIn):
             """Compute one observation. Refused over an immature cohort."""

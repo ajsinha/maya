@@ -686,7 +686,8 @@ class TestValidationEpisodes:
                          threshold={"min": 0.4})
         read = validator.get(episode["id"])
         assert read["results"] and read["summary"]
-        concluded = validator.conclude(episode["id"], outcome="approved")
+        concluded = validator.conclude(episode["id"], outcome="approved",
+                                   tier_verdict="remains_appropriate")
         assert concluded["outcome"] == "approved"
 
     def test_an_episode_that_pins_nothing_says_why_it_cannot_be_replayed(

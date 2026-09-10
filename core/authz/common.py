@@ -77,6 +77,11 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     # split the same way: stating what a model relies on is a first-line
     # act, and withdrawing it makes the register say less than it did.
     "assumption:read", "assumption:record", "assumption:withdraw",
+    # Asking for a control to be relaxed and granting it are
+    # deliberately different scopes: one person holding both is the
+    # thing the register refuses at the row level, and giving them one
+    # scope would make that refusal the only line of defence.
+    "waiver:read", "waiver:propose", "waiver:approve", "waiver:revoke",
     "assist:read", "assist:register", "assist:generate", "assist:attest",
     "baseline:read", "baseline:import", "baseline:plan",
     "regime:read", "regime:activate",
@@ -130,6 +135,7 @@ MODEL_SCOPED: FrozenSet[str] = frozenset({
     "overlay:propose", "overlay:approve", "overlay:measure",
     "limitation:record", "limitation:withdraw",
     "assumption:record", "assumption:withdraw",
+    "waiver:approve", "waiver:revoke",
 })
 
 # Deliberately NOT in the set above: `assist:generate` and `assist:attest`. A

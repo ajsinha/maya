@@ -139,7 +139,7 @@ class Repository:
 
 
 class ModelRepository(Repository):
-    TABLE, JSON, ORDER = "model", ("attributes",), "urn"
+    TABLE, JSON, ORDER = "model", ("attributes", "designations"), "urn"
 
 
 class VersionRepository(Repository):
@@ -539,6 +539,14 @@ class LimitationRepository(Repository):
     #: `basis` is prose here rather than JSON — a limitation's basis is a
     #: sentence somebody wrote, not a structure.
     TABLE, ORDER = "model_limitation", "created_at"
+
+
+class WaiverRepository(Repository):
+    #: `approvals` is JSON: a waiver's signatures accumulate on the row, so a
+    #: half-signed tier 1 waiver is visibly half-signed rather than looking
+    #: either approved or absent.
+    TABLE, ORDER = "control_waiver", "created_at"
+    JSON = ("approvals",)
 
 
 class AssumptionRepository(Repository):
