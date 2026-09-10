@@ -2536,6 +2536,68 @@ review screen is worse than none, because somebody stops reading the diff.
 Export reads **the registers in force**, never the last file applied: the difference between a
 description of the platform and a description of somebody's intentions.
 
+### 16.2b What several models depend on at once
+
+The supervisory sentence is *interactions and dependencies among models; reliance on common assumptions,
+data, or methodologies*. The register answered the first clause and not the rest — and the rest is what a
+firm is least likely to know about itself.
+
+| Kind | Why it matters | Why nobody has it |
+|---|---|---|
+| Upstream model | A change there propagates | Already computed by the blast radius |
+| Feature view | Two models share its outage, its schema change and its restatement | Requires walking parameter-set bindings, not the model record |
+| **Dataset** | Two parameter sets fitted from one snapshot share whatever was wrong with it | A pin is **invisible in ordinary operation**. Nothing surfaces it until somebody asks |
+| **Vendor** | Four models from one bureau are one commercial relationship and four risk positions that move together | The vendor's name is on the **assessment**, not on the model. Nothing joins them |
+| Methodology | A methodology that is wrong is wrong everywhere it was used | Weak signal, and the 2007 correlation models were a methodological concentration long before anyone called them one |
+
+**There is no aggregate score, and that is a result rather than a gap.**
+`aggregate_score` is always null. §5's impossibility theorem says a network that *copies* a dependency and
+one that *duplicates* it produce identical component ratings — so any figure computed from those ratings
+is blind to precisely the thing this report exists to find. What composes is the **order**: the worst tier
+at stake. A magnitude does not compose and is not offered.
+
+**A concentration is not a count.** Twelve models on one view is a number; twelve *tier 1* models on it is
+a finding. Every shared thing carries the worst tier riding on it and the share of the estate it reaches,
+and the sort is by what is at stake.
+
+And a **single point of failure is named as a dependency rather than asserted as one**. A view eleven
+models read is a single point of failure *if it can fail*, and whether it can is a fact about a pipeline, a
+cluster and an on-call rota. MAYA holds none of the three, so it reports the half it has and says which
+half that is.
+
+### 16.2c A count of models is not an impact assessment
+
+Before a feature changes or is deprecated, somebody has to know what it reaches. The reference index
+answered a version of that and stopped at the model — *eleven versions and two featuresets refer to this*
+— which looks complete and cannot be acted on.
+
+The chain that matters runs further:
+
+```
+feature → view → featureset version → parameter set → model version → grant → DECLARED USE
+```
+
+*This feature feeds the origination decision for retail mortgages, under three live grants held by two
+services, one of which is tier 1* names who has to be told, what will stop working, and how urgent it is.
+*Eleven models* names none of that.
+
+**Live and revoked grants are reported apart**, because a version referring to a feature is a *migration*
+and a live grant is an *outage*.
+
+**Restatement is the same traversal entered from the other end.** Detection already existed — `restated()`
+compares the pin against current, `restatements()` names which slots moved — and what did not exist was
+the walk forward. A restatement whose blast radius nobody computed is a correction that quietly
+invalidates a year of output, which is what BCBS 239 asks for under another name. It answers for a view
+that has *not* moved yet, because the question is worth asking before the correction.
+
+**MAYA does not perform the backfill.** Rewriting somebody's feature data is a data-plane act on a store
+the platform is deliberately not on the write path of, and a register that restated data would be
+producing the thing it exists to make claims about.
+
+**And the walk states its own limit.** `reaches_decisions` is false. It reaches the *authority* to decide
+and stops there: whether the model was called is invocation telemetry, and whether an answer reached a
+customer is outside the register. A count of affected decisions would be a number MAYA does not have.
+
 ### 16.3a A read layer, and the one thing it must not be
 
 Every governance platform is eventually asked for database access so the BI team can build their own
@@ -3152,8 +3214,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 307 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 368 modules in one
+the 309 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 370 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

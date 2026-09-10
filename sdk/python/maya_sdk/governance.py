@@ -2215,3 +2215,121 @@ class RequestTimeInputs:
         """
         return self._maya.call("POST", "/request-time/check", json={
             "urn": urn, "semver": semver, "payload": payload})
+
+
+class Concentration:
+    """What several models depend on at once, and why there is no score.
+
+    Supervisors ask about "reliance on common assumptions, data, or
+    methodologies". The register already found shared *upstream models*; the
+    rest of that sentence — the data, the vendor, the methodology — was not
+    computed, and those are the ones a firm is least likely to know.
+
+    **`aggregate_score` is always None, and that is a result rather than a
+    gap.** A network that *copies* a dependency and one that *duplicates* it
+    produce identical component ratings, so any figure computed from those
+    ratings is blind to exactly the thing this exists to find. What composes is
+    the **order** — the worst tier at stake — and not a magnitude.
+
+    **A concentration is not a count.** Twelve models on one feature view is a
+    number; twelve *tier 1* models on it is a finding. Every shared thing
+    carries the worst tier riding on it, and the sort is by what is at stake.
+
+    The two kinds nobody usually has are `vendor` — because the vendor's name is
+    on an *assessment* and not on the model, so nothing joins four models from
+    one bureau — and `dataset`, because a pinned snapshot is invisible in
+    ordinary operation and two parameter sets fitted from one share whatever was
+    wrong with it, silently.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def across_the_estate(self, *,
+                          now: Optional[float] = None) -> Dict[str, Any]:
+        """Every shared dependency, worst tier at stake first."""
+        return self._maya.call("GET", "/concentration", params={"now": now})
+
+    def of_model(self, urn: str, *,
+                 now: Optional[float] = None) -> Dict[str, Any]:
+        """What this model shares with anything else, and with what.
+
+        The reverse of a blast radius: that reads outward from a change, this
+        reads inward to what a change elsewhere would reach.
+        """
+        return self._maya.call("GET", "/concentration",
+                               params={"urn": urn, "now": now})
+
+    def single_points(self, *,
+                      now: Optional[float] = None) -> Dict[str, Any]:
+        """What the estate would lose if one thing stopped working.
+
+        Read `resilience_is_known`, which is False. These are named as
+        **dependencies** and not asserted as failure points: whether a thing can
+        fail is a fact about a pipeline, a cluster and an on-call rota, and MAYA
+        holds none of the three. Half of the judgement is here, and the answer
+        says which half.
+        """
+        return self._maya.call("GET", "/concentration/single-points",
+                               params={"now": now})
+
+
+class FeatureImpact:
+    """Who is downstream of a feature, walked forward to the declared use.
+
+    **A count of models is not an impact assessment.** *Eleven models* tells a
+    feature owner nothing they can take to anybody. The chain that matters runs
+    further:
+
+        feature → view → featureset version → parameter set → model version
+                → grant → **declared use**
+
+    *This feature feeds the origination decision for retail mortgages, under
+    three live grants held by two services, one of which is tier 1* names who has
+    to be told, what will stop working, and how urgent it is.
+
+    Live and historical grants are reported apart, because a version referring
+    to a feature is a migration and a live grant is an outage.
+
+    Read `reaches_decisions`, which is False. The walk reaches the **authority**
+    to decide and stops there — whether the model was called is invocation
+    telemetry, and whether an answer reached a customer is outside the register.
+    A count of affected decisions would be a number MAYA does not have.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def of_feature(self, name: str, *,
+                   now: Optional[float] = None) -> Dict[str, Any]:
+        """Everything downstream of one feature."""
+        return self._maya.call("GET", "/feature-impact",
+                               params={"feature": name, "now": now})
+
+    def of_view(self, view: str, *,
+                now: Optional[float] = None) -> Dict[str, Any]:
+        """Everything downstream of one materialised view."""
+        return self._maya.call("GET", "/feature-impact",
+                               params={"view": view, "now": now})
+
+    def across_the_estate(self, *,
+                          now: Optional[float] = None) -> Dict[str, Any]:
+        """Every feature with a model bound to it, most exposed first."""
+        return self._maya.call("GET", "/feature-impact", params={"now": now})
+
+    def of_restatement(self, view: str, *, version: int,
+                       now: Optional[float] = None) -> Dict[str, Any]:
+        """What a restatement of this view version reaches.
+
+        The detection half already existed — `restated()` compares the pin
+        against current. This is the walk forward that did not: a correction to
+        a stale row is a legitimate act, and a correction nobody traced is one
+        that quietly invalidates every parameter set fitted from it and every
+        authority resting on those.
+
+        Worth calling **before** the correction rather than after, which is why
+        it answers for a view that has not moved yet.
+        """
+        return self._maya.call("GET", "/feature-impact/restatement",
+                               params={"view": view, "version": version,
+                                       "now": now})
