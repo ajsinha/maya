@@ -532,6 +532,36 @@ class UIRoutes(Routes):
                 request, "break_glass.html",
                 report=self.ctx["break_glass"].across_the_estate())
 
+        # -------------------------------------------- document search
+        @self.app.get("/documents/search", response_class=HTMLResponse,
+                      tags=["ui"])
+        def document_search_page(request: Request, q: str = "",
+                                 kind: str = ""):
+            """Search the text of everything filed against the models you can
+            see.
+
+            Scoped, because a search that ignored who is asking would be a way
+            to read models a reader cannot see, one query at a time.
+            """
+            if (r := self.page_gate(request, "document:read")) is not None:
+                return r
+            who = self.page_principal(request)
+            searching = self.ctx["document_search"]
+            results = None
+            if q.strip():
+                try:
+                    results = searching.search(q, principal=who, kind=kind)
+                except Exception:
+                    # A query that refuses is not an error page: the commonest
+                    # one is a search of only common words, and telling
+                    # somebody their query was empty belongs beside the box
+                    # they typed it into.
+                    logger.info("document search refused for %r", q)
+                    results = None
+            return self.page(
+                request, "document_search.html", q=q, kind=kind,
+                results=results, coverage=searching.coverage(principal=who))
+
         # ------------------------------------------------ vendor models
         @self.app.get("/vendor-models", response_class=HTMLResponse,
                       tags=["ui"])
