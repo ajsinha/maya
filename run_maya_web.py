@@ -38,7 +38,9 @@ from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
+from core.assist.encoding import RegimeEncodingAssistant
 from core.assist.nlquery import NaturalLanguageQuery
+from core.assist.probes import ProbeSets
 from core.assist.validation_aid import ValidationAssistant
 from core.monitoring.adaptive import AdaptiveChange
 from core.reporting.returns import RegulatoryReturns
@@ -987,6 +989,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # is one where nobody can tell a misread question from a wrong number.
     nl_query = NaturalLanguageQuery(semantics, provider=None)
 
+    # Reads obligations out of regulatory prose and PROPOSES an encoding —
+    # a form name and some term names, never a predicate: a language model
+    # emitting code that decides what a regulation obliges is where a
+    # governance platform starts making up the law. Nothing it produces is
+    # activated: the check passing says the draft is self-consistent, which is
+    # a far weaker claim than that it reads the regulation correctly.
+    regime_encoding = RegimeEncodingAssistant()
+
+    # Probes derived from a version's declared domain and never sampled from
+    # data. The interior is where two implementations agree; they come apart at
+    # the boundary. MAYA proposes them and does not run them — running a probe
+    # means running the model.
+    probe_sets = ProbeSets(registry)
+
     # Three pieces of a validator's work, and not one of them a conclusion:
     # retrieval over filed vendor documents, questions derived from findings on
     # comparable models, and an exact filter over the assumption register —
@@ -1104,6 +1120,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "adaptive_change": adaptive_change,
                            "semantics": semantics,
                            "nl_query": nl_query,
+                           "regime_encoding": regime_encoding,
+                           "probe_sets": probe_sets,
                            "validation_aid": validation_aid,
                            "saved_views": saved_views,
                            "regulatory_returns": regulatory_returns,

@@ -1498,3 +1498,92 @@ class ValidationAssistance:
         return self._maya.call(
             "GET", "/validation-assistance/untested-assumptions",
             params={"urn": urn})
+
+
+class RegimeEncoding:
+    """Proposes an encoding from regulatory prose, and stops short of one.
+
+    **Nothing here activates a regime.** What comes back is a candidate: a
+    signature, some sentences and a translation, already run through the same
+    satisfaction condition (`L-8`) and deontic-conflict check (`L-16`) that
+    activation uses. A person reads it, argues with it and writes it into the
+    library themselves — a regime that entered force because a machine proposed
+    it and a check passed would mean the institution's obligations were set by
+    something with no standing to set them.
+
+    And note what the check means when it passes: the draft is *self-consistent*.
+    That is a far weaker claim than that it reads the regulation correctly, and
+    nothing in this package can make the stronger one.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def forms(self) -> Dict[str, Any]:
+        """The forms, the modal cues and the core vocabulary.
+
+        A proposal names a form — `requires`, `forbids`, `implies` — and the
+        terms it applies to. MAYA builds the sentence from its own constructors,
+        so no predicate ever crosses the boundary: a language model emitting
+        code that decides what a regulation obliges is the point at which a
+        governance platform starts making up the law.
+        """
+        return self._maya.call("GET", "/regime-encoding")
+
+    def propose(self, name: str, *, text: str,
+                citation: str = "") -> Dict[str, Any]:
+        """Read obligations out of regulatory text.
+
+        Read three things in the result before the sentences. `uncertain` on a
+        sentence says the reading may be backwards — "must not X without Y" is a
+        conditional obligation, and read as a prohibition it forbids the thing
+        the regulation requires. `terms_dropped` says an obligation named more
+        than the form carries. And `unread_sentences` is the most important line
+        in a gap analysis: a passage carrying a duty about something the
+        platform holds no term for.
+        """
+        return self._maya.call("POST", "/regime-encoding", json={
+            "name": name, "text": text, "citation": citation})
+
+
+class Probes:
+    """Probe sets derived from a declared domain, and graded against it.
+
+    A probe set written from rows that were lying around samples the **interior**
+    of the input domain, and the interior is where two implementations agree.
+    They come apart at the boundary: the value one clamps and the other rejects,
+    the missing field one reads as zero, the category neither was fitted on.
+
+    **MAYA proposes probes and does not run them.** Running a probe means running
+    the model, and the register does not run models — a platform producing both
+    the test and the result would be the only witness to its own model's
+    behaviour.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def kinds(self) -> Dict[str, Any]:
+        """What each kind of probe is for."""
+        return self._maya.call("GET", "/probe-sets")
+
+    def propose(self, urn: str, *, semver: str) -> Dict[str, Any]:
+        """The probe set this version's own declaration implies."""
+        return self._maya.call("GET", "/probe-sets/propose",
+                               params={"urn": urn, "semver": semver})
+
+    def grade(self, urn: str, *, semver: str,
+              probes: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Which declared constraints your probe set exercises.
+
+        Coverage is over the **declaration**, never over the probes. "We have
+        four thousand probes" is not an answer to "does anything test the lower
+        bound of this input", and the two get confused because only the first is
+        easy to count.
+
+        A thin set comes back as a `deficiency` in the probe set rather than as
+        a result about the model — the two are indistinguishable in every
+        equivalence report ever written.
+        """
+        return self._maya.call("POST", "/probe-sets/grade", json={
+            "urn": urn, "semver": semver, "probes": probes})
