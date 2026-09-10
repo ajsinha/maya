@@ -65,6 +65,17 @@ class SaveViewIn(Body):
     shared: bool = False
 
 
+class AskIn(Body):
+    """A question in English, and a limit on the rows it may return.
+
+    Notably absent: anything that would let the caller supply the structured
+    query directly. That is `/query`. Keeping the two apart means an answer
+    from this endpoint always carries a translation somebody can read.
+    """
+    question: str
+    limit: int = 100
+
+
 class PackIn(Body):
     period: str = ""
     scope: Dict[str, Any] = Field(default_factory=dict)
@@ -321,3 +332,31 @@ class ReportingRoutes(Routes):
                 estate_wide=f"extracting the {name} return over the estate")
             return self.guard(lambda: self.ctx["regulatory_returns"].extract(
                 name, now=now, scope=Scope.of(who)))
+
+        # ------------------------------------------------ asking in English
+        @self.app.get(f"{api}/ask/vocabulary", tags=["reporting"])
+        def ask_vocabulary(request: Request):
+            """What a question may be built from, published before anybody asks."""
+            self.authorise(request, "report:read")
+            return self.ctx["nl_query"].vocabulary()
+
+        @self.app.post(f"{api}/ask", tags=["reporting"])
+        def ask(request: Request, body: AskIn):
+            """Translate a question, show the query, and run it if it stands.
+
+            The answer always carries `proposed`. An interface that showed only
+            the rows would be one where nobody could tell a misread question
+            from a wrong number — and the misread question is far commoner.
+            """
+            who = self.authorise(request, "report:read",
+                                 estate_wide="asking a question of the estate")
+            return self.guard(lambda: self.ctx["nl_query"].ask(
+                body.question, scope=Scope.of(who), limit=body.limit,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/ask/translate", tags=["reporting"])
+        def translate(request: Request, body: AskIn):
+            """The query a question becomes, without running it."""
+            self.authorise(request, "report:read")
+            return self.guard(
+                lambda: self.ctx["nl_query"].translate(body.question))

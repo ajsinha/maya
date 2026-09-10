@@ -1832,6 +1832,69 @@ until somebody intervenes. And the probe calls are **not charged to the capabili
 control that consumed the resource it protects would refuse to run at exactly the moment you would want it
 to.
 
+### 15.5 Asking in English, and the boundary that makes it safe
+
+"Ask your data a question" is the demo every vendor gives and the feature every model risk function is
+right to distrust — because in the usual construction the language model sees the rows and produces the
+answer, which means a number on a committee slide was written by something that cannot be asked where it
+got it.
+
+The construction here inverts that: **the model produces a query and never a number.**
+
+| Step | What happens | Why it is there |
+|---|---|---|
+| The catalogue is handed over, and nothing else | Entities, fields, operators — the same document `/semantic-layer` publishes | The model is never shown a row, so no output of it can be a value from the register |
+| A structured object comes back | `entity`, `select`, `where`, `order_by` | There is no path by which text becomes a database query |
+| The proposal is **validated against the catalogue** | The layer runs it for one row before anything else | A field that does not exist is refused by name rather than reaching anything |
+| The rows come from the register, under the **reader's** scope | Same code the screens use | The assistant has no principal (`FR-AI-002`) and cannot widen anybody's reach |
+| The **query is shown beside the rows, always** | Not on request, not behind a triangle | An interface showing only the answer is one where nobody can tell a misread question from a wrong number |
+
+That last row is the one people argue with, and it is the one that matters. Somebody asks *how many
+models are unmonitored*, is handed **4**, and has no way to know the query counted retired models — unless
+the query is in front of them. The misread question is far commoner than the wrong number, and it is
+invisible by construction unless the translation is published.
+
+**A refused proposal is reported, never retried.** Falling back to a query that *does* parse would answer
+a different question in a form indistinguishable from answering the right one.
+
+Where no provider is wired, MAYA translates by matching the published vocabulary — deterministic,
+explainable, weaker — and **the answer says which of the two produced it**, because how far a reader
+should trust a translation depends entirely on that. Two details of the matcher are worth recording,
+because both were wrong first:
+
+* **Both sides of a field name are read.** *The credit domain* puts the value before the field and *more
+  than two open findings* puts the operator before it. A matcher reading only forwards turns a *greater
+  than* into an *equals* — producing a query that runs, returns a plausible number and answers nothing
+  anybody asked.
+* **The first entity named wins, not the longest.** *How many models have more than two open findings*
+  names both; the thing being counted is the one the question opens with. Longest-first answered about
+  findings, which is a different number and looks exactly as authoritative. Every other entity named is
+  reported, so an ambiguous question reads as ambiguous rather than being silently resolved.
+
+### 15.6 Three pieces of a validator's work, and where each stops
+
+Effective challenge is a judgement made by a person who can be held to it. Every control in this platform
+keeps that judgement with the second line, and assistance that produced a **conclusion** would be the one
+place the arrangement leaked. So `core/assist/validation_aid.py` has no method that concludes, no
+parameter that takes an outcome, and a test asserting both — the absence is the control, and an absence
+nothing checks is one somebody eventually adds a method to.
+
+| Offering | Basis | Why it is built that way |
+|---|---|---|
+| Vendor documents against the checklist | `retrieved` | A summary of a vendor document is a **second document** saying something the vendor did not; the validator relying on it cannot cite it when the vendor disagrees. What comes back is which attachment mentions the item, and on what terms |
+| Challenge questions | `derived` | Each carries the finding it came from and the model it was raised against. A challenge with no provenance is one an owner can dismiss, and *the tool suggested it* is not an answer. Comparability is the register's own — same domain, same trainability class — because *this failed on a model like yours* has force that a generic checklist does not |
+| Assumptions nothing tests | `exact` | The register already records whether a monitor watches each one, so this is a filter. Routing it through a language model would add a source of error to an answer that had none |
+
+**The `basis` is on every result, and that is not decoration.** A validator reading a page that mixed
+retrieval, derivation and generation without distinguishing them will apply one level of trust to all
+three — which is too much for two of them, or too little.
+
+Two empty answers are given their meaning rather than left blank. A model with **no comparable peers**
+has no questions derivable, and the answer says that is a model whose failure modes nobody else has met
+yet rather than a clean bill. An estate where **every assumption has a monitor** is reported as rarer
+than it sounds and worth checking, since an assumption pointed at a monitor that does not test it reads
+here exactly like one that does.
+
 ### 15.4 What the assistance is actually doing
 
 Almost none of this is new measurement. The generation log already records what each draft claimed and what
@@ -2542,8 +2605,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 281 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 342 modules in one
+the 283 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 344 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
