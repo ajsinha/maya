@@ -117,8 +117,8 @@ listbox(sl, x, y, CW * 0.35, "Not built, and why each one is not",
           "a platform that signed would hold the key that could forge"),
          ("CONVERSION — the equivalence claim is held to a standard",
           CRIMSON, "converting means loading and running a model")],
-        sub="store.py hashes and stores. provenance.py verifies attestations "
-            "in three states — verified, unverified, absent — and mints none",
+        sub="store.py hashes and stores. provenance.py verifies in three "
+            "states — verified, unverified, absent — and mints none",
         row=0.30)
 note(sl, ML, y + 2.10, CW * 0.62, 1.55,
      "There is no outbox. ",

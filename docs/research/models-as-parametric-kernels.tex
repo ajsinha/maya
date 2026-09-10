@@ -139,7 +139,7 @@ executable one. That marking is itself part of the argument: a law that is state
 prevents nothing, and a document implying otherwise is the failure the discipline exists to prevent.
 
 The account has a reference implementation, and this revision names it. \textsc{Maya} is an open
-governance register of some 309 modules and 5{,}196 tests --- \url{https://github.com/ajsinha/maya} ---
+governance register of some 316 modules and 5{,}279 tests --- \url{https://github.com/ajsinha/maya} ---
 in which each of the four derivations is a
 module rather than a proposal, the twenty-one laws are a test file that fails a build, and the three that
 do not execute are listed in that file with their reasons. \Cref{sec:implementation} gives the numbers,
@@ -1869,9 +1869,9 @@ read the paper as having none. That was a fair reading of what was written, and 
 
 \textsc{Maya} is an open model and AI lifecycle assurance register, at
 \url{https://github.com/ajsinha/maya}. It is not a companion artefact built to illustrate the paper; the paper
-is the account of what building it required. At the revision this text describes it is 309 Python modules
-that type-check cleanly, 80 tables in one typed schema from which both dialects' DDL is generated, 466
-locked HTTP paths, and 5{,}196 tests that run on every push.
+is the account of what building it required. At the revision this text describes it is 316 Python modules
+that type-check cleanly, 82 tables in one typed schema from which both dialects' DDL is generated, 487
+locked HTTP paths, and 5{,}279 tests that run on every push.
 
 Each of the four derivations is a module rather than a proposal.
 
@@ -1933,6 +1933,34 @@ unit, and its tier is the \emph{join} of its nodes' --- which is exactly what th
 more. What composes is the order, not the number. A composite warrant can say \emph{this chain is at least
 tier 1 and every link resolves}; it cannot say \emph{this chain is 0.83 risky}, and the reason it cannot is
 the theorem rather than a backlog item. We regard this as the honest state and not as a partial result.
+
+\paragraph{A fifth alteration: the boundary needed a type, not a caveat.} None of the four propositions
+says anything about what happens where the register stops --- where it must rely on a party it does not
+control. In the implementation there turned out to be five such places: an external timestamping
+authority over the evidence chain, a third-party extension package, an export from another model
+registry, a sweep run by somebody else's scanner, and an evidence pack handed to a supervisor who has no
+account. Each one presented the same failure mode, and it is a failure mode this paper's apparatus does
+not by itself prevent: at a boundary, the natural report is the answer one wishes one had, and the
+overstatement is invisible precisely because nobody can see past the boundary to check it.
+
+The corrective in each case was to widen a type rather than to add a warning. The clearest instance is
+the timestamp. A held \textsc{rfc}~3161 token that nothing has verified is not the same object as a
+verified one, and it is not the same object as no token; collapsing it into either --- and both collapses
+are convenient --- produces a system that reports either a verification it did not perform or an absence
+of evidence it in fact holds. So the state is three-valued and the third value is inhabited. The
+analogous moves elsewhere: a connector produces \emph{candidates} rather than registrations, because the
+five governance facts that make a registration meaningful appear in no model registry and inferring them
+would manufacture exactly what the register exists to hold; a discovery sweep is admitted whole or
+refused whole, because a partial admission yields a precision figure that grades the subset the register
+chose to keep rather than the scanner; and an installed extension and an enabled one are distinct states,
+because a control that is switched on by a dependency resolution is a control nobody turned on.
+
+We record this because it is the one place where the implementation demanded something the theory does
+not supply. The propositions constrain what the register may \emph{conclude} from what it holds; they say
+nothing about the epistemic status of what it holds, and at a boundary that status is exactly what is at
+issue. A discipline of making the unknown state \emph{representable} --- rather than reporting it as its
+nearest convenient neighbour --- is not a consequence of anything proved here. It is an obligation the
+practice added.
 
 \subsection{One case study that was not designed to fit}
 
@@ -2005,7 +2033,7 @@ The mathematical audience and the model-risk audience are close to disjoint, and
 usually serves neither. The implementation carries a second register of the same content written for the
 second audience: nineteen help pages and eight walkthroughs that state each derivation in operational terms
 with no notation, and one --- \emph{What \textsc{Maya} refuses to do} --- that is the boundary of
-\Cref{sec:automation} written as nine refusals and what each protects. A reader who wants the argument and
+\Cref{sec:automation} written as thirteen refusals and what each protects. A reader who wants the argument and
 not the algebra should start there.
 
 \section{Related work}\label{sec:related}

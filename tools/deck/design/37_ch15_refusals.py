@@ -53,3 +53,36 @@ note(sl, ML, y + 2.82, CW, 0.94,
      "would be believed about the parts it does badly. Stating the boundary "
      "is what makes ",
      "the rest of it worth relying on.")
+
+# ------------------------------------------------- refusing at the boundary
+sl, y = content("Refusing at the edge of what it can see",
+                "What MAYA refuses, and why")
+data = [["At this boundary", "The convenient answer", "What it reports instead"],
+        ["a timestamp token nobody has verified",
+         "“verified” — or “no token”",
+         "a third state. Checking one means holding a certificate chain and "
+         "choosing which roots to trust, which the firm's security function "
+         "decided once"],
+        ["an export from another model registry",
+         "registrations, at import scale",
+         "candidates for triage. Owner, purpose, entity, materiality and "
+         "‘is it a model at all’ are in no ML platform anywhere"],
+        ["a discovery sweep with malformed rows",
+         "keep the good ones",
+         "refused whole. A partial ingest grades the rows MAYA kept, not the "
+         "scanner"],
+        ["an extension that is installed",
+         "load it",
+         "seen, not enabled. A control switched on by a dependency bump is a "
+         "control nobody turned on"],
+        ["a pack sent to a supervisor",
+         "an examiner portal",
+         "a time-boxed link to a content digest. It establishes no identity, "
+         "and says so"]]
+h = table(sl, data, ML, y, CW, col_w=[3.4, 3.0, 5.2], row_h=0.30, fs=9.5,
+          hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + h + 0.22, CW, 0.98,
+     "At a boundary the natural report is the answer you wish you had — ",
+     "and the overstatement is invisible precisely because nobody can see "
+     "past the boundary to check it. ",
+     "Each of these widens a type rather than adding a warning.")

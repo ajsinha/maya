@@ -7,6 +7,7 @@ Proprietary and confidential. See LICENSE and NOTICE at the repository root.
 """MAYA — Detailed System Design deck. Harvard-Crimson theme (see theme.py)."""
 # theme.py is executed by the driver before this file, into the same namespace,
 # so everything it defines is already here.
+import math
 
 MONO = "Consolas"
 
@@ -105,7 +106,15 @@ def listbox(sl, x, y, w, title, items, sub="", accent=CRIMSON, fill=WHITE,
     thing about a composed object is never the list, it is which entries somebody
     here decided.
     """
-    h = 0.44 + len(items) * row + (0.20 if sub else 0.0)
+    # The sub-line wraps, and this used to reserve one line for it whatever
+    # its length — so a sub that ran to two lines put its second line through
+    # the first member of the list, and the geometry audit reported the
+    # collision on a slide nobody had touched. The estimate is deliberately
+    # crude and deliberately generous: at 7.8pt italic in a box `w` wide, a
+    # line holds roughly `(w - 0.28) * 22` characters.
+    sub_lines = (max(1, math.ceil(len(sub) / max(20.0, (w - 0.28) * 22.0)))
+                 if sub else 0)
+    h = 0.44 + len(items) * row + sub_lines * 0.20
     rect(sl, x, y, w, h, fill=fill, line=RULE)
     rect(sl, x, y, w, 0.05, fill=accent)
     tf = txt(sl, x + 0.14, y + 0.13, w - 0.28, 0.26)
@@ -113,10 +122,10 @@ def listbox(sl, x, y, w, title, items, sub="", accent=CRIMSON, fill=WHITE,
          first=True, space_after=0)
     yy = y + 0.40
     if sub:
-        tf = txt(sl, x + 0.14, yy, w - 0.28, 0.20)
+        tf = txt(sl, x + 0.14, yy, w - 0.28, sub_lines * 0.20)
         para(tf, sub, size=7.8, color=SLATE, italic=True, first=True,
              space_after=0)
-        yy += 0.20
+        yy += sub_lines * 0.20
     for text, colour, marker in items:
         tf = txt(sl, x + 0.14, yy, w - 0.28, row)
         parts = [(text, colour, colour is not SLATE)]
