@@ -13,7 +13,7 @@ with neither preference should not have to think about it, so Delta stays the
 default.
 
 **Delta is still the default**, and not by inertia: it is what four hours of
-soak, 3,548 tests twice over and every worked example in the documentation have
+soak, 3,914 tests twice over and every worked example in the documentation have
 actually run against. Iceberg is offered, not assumed.
 
     MAYA_TABLE_FORMAT=iceberg          # environment
