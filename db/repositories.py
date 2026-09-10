@@ -593,6 +593,11 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class SubscriptionRepository(Repository):
+    TABLE, ORDER = "event_subscription", "reference"
+    JSON = ("kinds",)
+
+
 class ApprovalConditionRepository(Repository):
     TABLE, ORDER = "approval_condition", "reference"
     JSON = ("parameters",)

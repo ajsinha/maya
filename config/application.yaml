@@ -360,6 +360,17 @@ logging:
 # questions that are not code: whether this instance may reach the internet at
 # all, what of the register may leave the institution, how a non-deterministic
 # model's output is made reproducible, and who pays. See core/assist/providers.
+# Telling other systems what happened. A webhook is the first thing here that
+# deliberately reaches outward, and this platform is meant to be deployable
+# air-gapped — so nothing is sent until somebody creates a subscription, and a
+# subscription must name the event kinds it receives.
+events:
+  # False stops delivery entirely while still computing each subscriber's
+  # backlog, which is what an air-gapped or a dry-run deployment wants: the
+  # numbers are visible and nothing leaves the process.
+  deliver: true
+  timeout_seconds: 10.0
+
 # What a model was asked and answered. The invocation log holds the SHAPE of
 # every call and needs no configuration; this holds the CONTENT, and content
 # carries personal data.

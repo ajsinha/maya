@@ -400,6 +400,26 @@ CREATE TABLE IF NOT EXISTS document (
 );
 CREATE INDEX IF NOT EXISTS ix_document_model ON document (model_id, kind);
 
+CREATE TABLE IF NOT EXISTS event_subscription (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    kinds TEXT DEFAULT '[]' NOT NULL,
+    secret TEXT NOT NULL,
+    cursor INTEGER DEFAULT 0 NOT NULL,
+    state TEXT DEFAULT 'active' NOT NULL,
+    failures INTEGER DEFAULT 0 NOT NULL,
+    last_delivery_at DOUBLE PRECISION,
+    last_failure_at DOUBLE PRECISION,
+    last_failure TEXT DEFAULT '' NOT NULL,
+    owner TEXT NOT NULL,
+    created_at DOUBLE PRECISION NOT NULL,
+    created_by TEXT NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_event_subscription_reference ON event_subscription (reference);
+
 CREATE TABLE IF NOT EXISTS evidence_checkpoint (
     id TEXT NOT NULL,
     seq INTEGER NOT NULL,

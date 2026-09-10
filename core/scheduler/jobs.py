@@ -71,6 +71,7 @@ class JobContext:
     break_glass: Any = None
     idempotency: Any = None
     inference: Any = None
+    subscriptions: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -480,6 +481,24 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def deliver_events(ctx: "JobContext") -> Dict[str, Any]:
+    """Push each subscriber's backlog, from its own cursor.
+
+    On the batch rather than at the moment of the act, and that is deliberate:
+    a governance act must not fail because somebody's webhook receiver is down.
+    An act that could be rolled back by a failed notification would make an
+    outside system's availability part of this register's integrity.
+
+    Each subscriber has its own cursor, so one that is failing falls behind
+    alone rather than holding up the rest or being silently skipped past.
+    """
+    if ctx.subscriptions is None:
+        return {"delivered": 0,
+                "detail": "no subscription register is wired into this "
+                          "instance"}
+    return ctx.subscriptions.deliver_all(now=ctx.now)
+
+
 def expire_inference(ctx: "JobContext") -> Dict[str, Any]:
     """Delete inference records nobody may keep any longer.
 
@@ -672,6 +691,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("events.deliver",
+        "pushes each subscriber's backlog of domain events",
+        "delivery on the batch rather than at the act, because a governance "
+        "act must not fail because somebody's webhook receiver is down — that "
+        "would make an outside system's availability part of this register's "
+        "integrity",
+        deliver_events),
     Job("inference.expire",
         "deletes inference records past the retention their classification set",
         "this table holds somebody else's personal data, and a retention "
