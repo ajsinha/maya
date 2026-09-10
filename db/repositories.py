@@ -606,6 +606,14 @@ class DocumentCommentRepository(Repository):
     TABLE, ORDER = "document_comment", "raised_at"
 
 
+class ExportShareRepository(Repository):
+    TABLE, ORDER = "export_share", "created_at"
+
+
+class ExportShareReadRepository(Repository):
+    TABLE, ORDER = "export_share_read", "at"
+
+
 class ElicitationRepository(Repository):
     TABLE, ORDER = "elicitation", "opened_at"
     JSON = ("panel",)

@@ -21,7 +21,25 @@ from fastapi.responses import Response
 from core.docs import KINDS
 from core.execution.urn import model_urn as urn
 from core.export import CONTENTS, DEFAULT_DOCUMENTS, PACK_VERSION
-from routes.base import Routes
+from routes.base import Body, Routes
+
+
+class ShareIn(Body):
+    """A link to one sealed pack, for one recipient, until one date.
+
+    `content_digest` is required and there is no field for a path. A share
+    pointing at a location would serve whatever is at that location later,
+    which is how a document a firm handed over becomes one nobody can
+    reproduce.
+    """
+    urn: str
+    recipient: str
+    purpose: str
+    content_digest: str
+    pack_digest: str = ""
+    filename: str = ""
+    days: float = 30.0
+    max_reads: Optional[int] = None
 
 
 class ExportRoutes(Routes):
@@ -102,3 +120,73 @@ class ExportRoutes(Routes):
                 actor=self.actor(who)))
             return {**pack["manifest"], "pack_digest": pack["digest"],
                     "filename": pack["filename"], "detail": pack["detail"]}
+
+        # ------------------------------------------------- sharing a pack
+        @self.app.get(f"{api}/export-shares/posture", tags=["documents"])
+        def share_posture(request: Request):
+            """What a share is, and the portal it deliberately is not."""
+            self.authorise(request, "document:read")
+            from core.export.sharing import ExportSharing
+            return ExportSharing.posture()
+
+        @self.app.get(f"{api}/export-shares", tags=["documents"])
+        def shares(request: Request, reference: Optional[str] = None):
+            """Every share, live ones first — or the status of one."""
+            self.authorise(request, "document:read",
+                           estate_wide="reading who packs were shared with")
+            engine = self.ctx["export_sharing"]
+            if reference is None:
+                return self.guard(lambda: engine.across_the_estate())
+            return self.guard(lambda: engine.status(reference))
+
+        @self.app.post(f"{api}/export-shares", status_code=201,
+                       tags=["documents"])
+        def create_share(request: Request, body: ShareIn):
+            """Create a time-boxed link to one sealed pack.
+
+            It points at a **content digest**, never a path: a share pointing
+            at a location would serve whatever is at that location later.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "document:read", model=model)
+            return self.guard(lambda: self.ctx["export_sharing"].share(
+                body.urn, recipient=body.recipient, purpose=body.purpose,
+                days=body.days, max_reads=body.max_reads,
+                content_digest=body.content_digest,
+                pack_digest=body.pack_digest, filename=body.filename,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/export-shares/{{reference}}/revoke",
+                       tags=["documents"])
+        def revoke_share(request: Request, reference: str, reason: str = ""):
+            """Stop it serving. Keeps everything it served."""
+            who = self.authorise(request, "document:read",
+                                 estate_wide="revoking an export share")
+            return self.guard(lambda: self.ctx["export_sharing"].revoke(
+                reference, reason, actor=self.actor(who)))
+
+        # ------------------------------------------------ rendering a document
+        @self.app.get(f"{api}/document-rendering/formats", tags=["documents"])
+        def rendering_formats(request: Request):
+            """What is emitted, and what is refused with the reason."""
+            self.authorise(request, "document:read")
+            from core.docs.rendering import DocumentRendering
+            return DocumentRendering.formats()
+
+        @self.app.get(f"{api}/document-rendering/{{document_id}}",
+                      tags=["documents"])
+        def render_document(request: Request, document_id: str,
+                            format: str = "latex"):
+            """Emit a typesetting source with the citations intact.
+
+            MAYA does not render it. Rendering needs a toolchain and a house
+            template, and a firm's document standard is not a register's
+            decision — but the citations survive typesetting, which is the
+            property that matters.
+            """
+            self.authorise(request, "document:read",
+                           estate_wide="rendering a compiled document")
+            return self.guard(
+                lambda: self.ctx["document_rendering"].render(document_id,
+                                                              format))

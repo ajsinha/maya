@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  10 SEP 2026 13:36
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  10 SEP 2026 19:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1236,10 +1236,10 @@ Overfull \hbox (4.07509pt too wide) in paragraph at lines 1897--1897
 [29] [30] [31]
 
 LaTeX Font Warning: Font shape `T1/cmr/m/scit' undefined
-(Font)              using `T1/cmr/m/scsl' instead on input line 2007.
+(Font)              using `T1/cmr/m/scsl' instead on input line 2035.
 
 [32] [33] [34] [35] [36] [37]
-Overfull \hbox (55.50258pt too wide) in paragraph at lines 2329--2336
+Overfull \hbox (55.50258pt too wide) in paragraph at lines 2357--2364
 \TS1/cmr/m/n/9 (-20) © \T1/cmr/m/n/9 (-20) 2026 Ashutosh Sinha \T1/cmtt/m/n/9 <
 ajsinha@gmail.com>\T1/cmr/m/n/9 (-20) . Li-censed un-der Cre-ative Com-mons At-
 tri-bu-tion^^UNonCommercial^^UNoDerivatives
@@ -1256,8 +1256,8 @@ anged.
 (rerunfilecheck)             Checksum: B05FC0403B3F34FA2642D218EFB75621;11859.
  ) 
 Here is how much of TeX's memory you used:
- 33538 strings out of 467533
- 661129 string characters out of 5422139
+ 33539 strings out of 467533
+ 661140 string characters out of 5422139
  1140710 words of memory out of 5000000
  61068 multiletter control sequences out of 15000+600000
  695707 words of font info for 444 fonts, out of 8000000 for 9000
@@ -1295,10 +1295,10 @@ super/sfti0900.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb><
 /usr/share/texmf/fonts/type1/public/cm-super/sfti1095.pfb></usr/share/texmf/fon
 ts/type1/public/cm-super/sftt0900.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sftt1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1095.pfb>
-Output written on models-as-parametric-kernels.pdf (38 pages, 835937 bytes).
+Output written on models-as-parametric-kernels.pdf (38 pages, 838058 bytes).
 PDF statistics:
- 1124 PDF objects out of 1200 (max. 8388607)
- 971 compressed objects within 10 object streams
- 243 named destinations out of 1000 (max. 500000)
+ 1125 PDF objects out of 1200 (max. 8388607)
+ 972 compressed objects within 10 object streams
+ 244 named destinations out of 1000 (max. 500000)
  129133 words of extra memory for PDF output out of 154059 (max. 10000000)
 

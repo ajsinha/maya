@@ -31,6 +31,7 @@ from core.assist import AssistError
 from core.classification import ClassificationError
 from core.estate.common import EstateError
 from core.events.common import EventError
+from core.evidence.timestamps import TimestampError
 from core.discovery.common import DiscoveryError
 from core.plugins.common import PluginError
 from core.retention.common import RetentionError
@@ -399,6 +400,24 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # the roadmap five: a time somebody else attests to, what is
+    # installed, what a source exported, what a scanner swept, and a
+    # pack handed to somebody with no login
+    # 501 rather than 500: nothing is broken, the authority was never wired.
+    "no_timestamp_authority": 501, "nothing_anchored": 409,
+    # `not_enabled` is 403 and `not_installed` is 404 deliberately: the
+    # first is a decision this firm has not taken and the second is a
+    # package that is not there, and they need different fixes.
+    "not_enabled": 403, "not_installed": 404,
+    "fibre_narrows_obligations": 409,
+    "unknown_source": 422, "unreadable_export": 422,
+    "sweep_does_not_meet_the_contract": 422,
+    "recipient_required": 422, "content_digest_required": 422,
+    # A share reference that does not exist and one that expired must
+    # look the same from outside, so this says nothing about what does.
+    "unknown_share": 404, "share_expired": 410, "share_revoked": 410,
+    "share_exhausted": 410,
+    "format_not_produced": 422,
     # the platform configuring itself, and a document under review
     "not_configurable": 403, "empty_configuration": 422,
     "nothing_to_apply": 409, "loosening_needs_an_approver": 403,
@@ -698,7 +717,7 @@ class Routes:
                 ReferencedError, ApiKeyError,
                 ClassificationError, EstateError,
                 EventError, RetentionError, PluginError,
-                DiscoveryError) as exc:
+                TimestampError, DiscoveryError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

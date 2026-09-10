@@ -780,3 +780,55 @@ DOCUMENT_COMMENT = Table(
     Column("evidence_id", Text),
     Index("ix_document_comment", "document_id", "state"),
 )
+
+
+# A pack handed to somebody who has no login here.
+#
+# An examiner portal that authenticated examiners INTO the register would give a
+# third party a session in the bank's governance system, with whatever that
+# session can reach. This is the other shape: a time-boxed, scope-limited link
+# to bytes that were already sealed. The pack is content-addressed and
+# self-contained, so what the reader sees cannot drift from what was cut — and
+# a share is a read of one archive rather than a view of a live estate.
+#
+# Every access is recorded. "Who read what, and when" is the question asked
+# after something has gone wrong, and by then the answer has to already exist.
+EXPORT_SHARE = Table(
+    "export_share", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("model_id", Text),
+    Column("urn", Text, nullable=False),
+    # The pack this share serves, by content. Not a path: a share pointing at a
+    # location would serve whatever is at that location later.
+    Column("content_digest", Text, nullable=False),
+    Column("pack_digest", Text, nullable=False),
+    Column("filename", Text, nullable=False, server_default=text("''")),
+    Column("recipient", Text, nullable=False),
+    Column("purpose", Text, nullable=False, server_default=text("''")),
+    # Mandatory and bounded, like every other window in this platform. A share
+    # with no end is a standing grant of a bank's model record to somebody
+    # outside it.
+    Column("expires_at", Double, nullable=False),
+    Column("max_reads", Integer),
+    Column("reads", Integer, nullable=False, server_default=text('0')),
+    Column("status", Text, nullable=False, server_default=text("'open'")),
+    Column("created_by", Text, nullable=False),
+    Column("created_at", Double, nullable=False),
+    Column("revoked_at", Double),
+    Column("revoked_by", Text),
+    Column("revoke_reason", Text, nullable=False, server_default=text("''")),
+    Index("uq_export_share_reference", "reference", unique=True),
+)
+
+
+# One read of a shared pack. Append-only in practice.
+EXPORT_SHARE_READ = Table(
+    "export_share_read", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("share_id", Text, nullable=False),
+    Column("at", Double, nullable=False),
+    Column("outcome", Text, nullable=False),
+    Column("detail", Text, nullable=False, server_default=text("''")),
+    Index("ix_export_share_read", "share_id", "at"),
+)
