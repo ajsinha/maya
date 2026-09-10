@@ -15,6 +15,12 @@ from core.features.common import FeatureError
 from routes.base import Body, Routes
 
 
+
+class SkewIn(Body):
+    urn: str
+    observations: List[Dict[str, Any]] = Field(default_factory=list)
+    column: str = "value"
+
 class ServingAttestationIn(Body):
     """What an engine says it read. `served` is view name to namespace."""
     urn: str
@@ -111,6 +117,37 @@ class RetireSourceIn(Body):
 class FeatureRoutes(Routes):
     def register(self) -> None:
         f = self.ctx["features"]
+
+        @self.app.post(f"{self.api}/skew", tags=["features"])
+        def skew(request: Request, body: SkewIn):
+            """What an engine served, against both offline clocks.
+
+            MAYA does not hold the online store — building one would put this
+            platform on the serving path, which its own design says it must
+            never be. The engine says what it served; the offline history comes
+            from the register, so nothing here is taken on the engine's word
+            except the one thing only the engine knows.
+
+            **This is not a freshness check.** Freshness answers *how old is the
+            online value*; only this answers *is it the value the model was
+            trained to expect*, and a perfectly fresh store computing a subtly
+            different feature passes every freshness check ever written.
+
+            Read `future_value` and `late_arrival` first. A stale value is
+            visible to any freshness check; a value that is correct today but
+            was not knowable at the decision is invisible to all of them, and
+            every backtest of that model looked fine.
+            """
+            # The urn is required, and not merely for the scope check: a skew
+            # report that does not say which model it is about is one nobody
+            # can act on, and `monitor:observe` is a permission about one model
+            # — a legal-entity scope that is not applied is not a scope.
+            model = self.guard(
+                lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "monitor:observe", model=model)
+            return self.guard(lambda: self.ctx["skew"].observe(
+                body.observations, urn=body.urn, column=body.column,
+                actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/pipeline-health", tags=["features"])
         def pipeline_health(request: Request, view: str):
