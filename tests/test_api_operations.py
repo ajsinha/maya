@@ -122,6 +122,10 @@ class TestSchedulerApi:
                 # queue: the submission succeeded and every gate passed, so a
                 # record sitting submitted for four months appears nowhere.
                 "lifecycle.stalled",
+                # Detection that only ran when somebody asked for a draft
+                # would miss the row nobody has drafted about yet, which is
+                # exactly the row an attacker would choose.
+                "assist.injection",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

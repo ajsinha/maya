@@ -113,6 +113,23 @@ class Assist:
             "subject_id": subject_id, "instruction": instruction,
             "oracle_payload": oracle_payload or {}})
 
+    # -------------------------------------------------------------- injection
+    def injection(self) -> Dict[str, Any]:
+        """Register rows carrying content shaped like an instruction to a model.
+
+        Read this as a signal and never as a gate. It is a blocklist, and the
+        adversary can write anything — a clean sweep means nothing was
+        recognised, not that nothing is there. What actually holds is
+        structural: register content is fenced behind a nonce generated when
+        the prompt is assembled, so content written at any earlier moment
+        cannot contain it, and the grounding gate means even a fully successful
+        injection can produce only a *candidate* fact.
+
+        Nothing is stripped. The words are the evidence that somebody wrote
+        them.
+        """
+        return self._maya.call("GET", "/assist/injection")
+
     # ---------------------------------------------------------------- budgets
     def budgets(self) -> Dict[str, Any]:
         """Every capability, what it may spend and what it has spent.
