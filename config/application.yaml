@@ -360,6 +360,13 @@ logging:
 # questions that are not code: whether this instance may reach the internet at
 # all, what of the register may leave the institution, how a non-deterministic
 # model's output is made reproducible, and who pays. See core/assist/providers.
+# What each remediation act costs this firm, in units of effort. A shortest
+# path over guessed weights is a confident answer to a question nobody asked,
+# so anything left out here takes a platform default and the plan reports what
+# share of its total is defaulted.
+remediation:
+  costs: {}
+
 # Who built an artifact. MAYA verifies attestations and does not mint them:
 # signing belongs in a build system with keys a build system holds, and a
 # platform that signed artifacts would hold the key that could forge one.
