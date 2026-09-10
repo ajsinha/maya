@@ -261,6 +261,10 @@ class AdminRoutes(Routes):
             fibres = self.ctx["fibres"]
             return self.page(
                 request, "admin_runtimes.html",
+                # Which parts of this platform a deployment may extend.
+                # It belongs here because "what may execute" is the
+                # question this page already answers.
+                extensions=self.ctx["extensions"].registered(),
                 grammar=vocabulary(),
                 fibres=[_describe(fibres.of(k)) for k in fibres.classes()],
                 gaps=fibres.totality())
