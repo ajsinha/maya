@@ -288,6 +288,30 @@ class PrincipalRoutes(Routes):
             self.authorise(request, "principal:read")
             return {"principals": people.list()}
 
+        @self.app.get(f"{api}/data-layer-authorisation",
+                      tags=["authorisation"])
+        def data_layer(request: Request):
+            """The same authorisation, expressed for the data layer.
+
+            The row-level policies are **generated from `Scope`**, so the SQL a
+            database enforces and the check a route applies are one rule
+            expressed twice rather than two rules that happen to look alike.
+            They are emitted, not executed: applying them is a migration, and a
+            platform that turned on row-level security against a running
+            database would be making an availability decision for somebody
+            else.
+
+            `redacted_fields` says what *this* caller would not be shown and
+            what would show it — a redacted field is marked rather than dropped,
+            because a response that quietly omits one is a response the reader
+            cannot tell from an empty field.
+            """
+            who = self.authorise(request, "principal:read")
+            from core.authz.datalayer import policies, redactions
+            granted = self.ctx["authz"].permissions(who)
+            return self.guard(lambda: {**policies(),
+                                       **redactions(granted)})
+
         # ------------------------------------------------------ break-glass
         @self.app.get(f"{api}/break-glass", tags=["authorisation"])
         def break_glass_estate(request: Request):
