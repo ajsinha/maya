@@ -1770,6 +1770,50 @@
         ]
       }
     },
+    "/api/v1/lifecycle-profiles": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/lifecycle-profiles/{trainability}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:trainability!",
+          "query:tier"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/lifecycle-readiness": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:transition",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/lifecycle-stalled": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/limitation-kinds": {
       "get": {
         "body": [],
@@ -4066,6 +4110,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/lifecycle-profiles": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

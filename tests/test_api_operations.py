@@ -118,6 +118,10 @@ class TestSchedulerApi:
                 # Materiality was declared once, and a declaration goes
                 # stale quietly.
                 "immaterial.conditions",
+                # No other control here watches the clock on a governance
+                # queue: the submission succeeded and every gate passed, so a
+                # record sitting submitted for four months appears nowhere.
+                "lifecycle.stalled",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

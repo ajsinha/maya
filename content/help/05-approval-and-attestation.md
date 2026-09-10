@@ -59,6 +59,76 @@ doing](/help/estate-and-worklist).
 model registered in error does not have to be attested before it can be
 withdrawn.
 
+### One machine, and what each move costs
+
+Every model in the register is on the state graph above. That is deliberate.
+Every law this platform rests on is a statement about that graph — `L-1` is a
+reachability proof over exactly two initial states, and the immutability of an
+attested record is the reason amendments exist at all. A register whose
+vocabulary varies by model is one nobody can read across: a supervisor would
+have to ask which machine a model is on before knowing what `submitted` means
+on it.
+
+What does vary is **what each move costs**, and that varies by two things the
+register already knows.
+
+The **trainability class** says which evidence must be on file before a record
+can be attested. `L-15` already makes every class declare that, so the platform
+reads the declaration rather than keeping a second catalogue that would disagree
+with it the first time either moved. A T3 model owes an independent review; a T0
+does not, and asking for one is not rigour — it is a category error that wastes
+a review cycle and teaches everybody the checklist is noise.
+
+The **tier** says how many signatures approval and attestation take, and how
+long a record may sit mid-move before somebody should ask. Returning a record is
+one person's act at every tier: requiring a quorum to send something *back* is
+how a review queue seizes up.
+
+Only **attestation** is guarded by evidence, and that is the point — it is the
+moment the record becomes immutable and in force. Checking earlier would block a
+draft for lacking a validation report nobody could have written yet, and a
+control that fires before it can be satisfied teaches people to route around it.
+
+Read the reference lifecycles on **Lifecycle profiles**, or ask what a specific
+move would take:
+
+```
+GET /api/v1/lifecycle-profiles          every class, side by side
+GET /api/v1/lifecycle-profiles/T3?tier=1
+GET /api/v1/lifecycle-readiness?urn=...&transition=attest
+```
+
+Readiness reports *on file but unreviewed* separately from *missing*. They are
+different problems: a document nobody has accepted is already written and
+sitting in a queue, and telling somebody to go and write it wastes a week.
+
+### The queue nobody was watching
+
+A record that has been `submitted` for four months is blocked by nothing here.
+The submission succeeded, every gate passed, and until now no control anywhere
+in the platform looked at the clock. That is how a governance queue becomes a
+place things go to wait — the only thing that would show it is a state carrying
+an expected duration, and no state had one.
+
+Each transient state now carries one, by tier:
+
+| State | Tier 1 | Tier 2 | Tier 3 | Tier 4 |
+|---|---|---|---|---|
+| `submitted` | 10 days | 20 | 30 | 45 |
+| `approved` | 5 days | 10 | 20 | 30 |
+| `amending` | 30 days | 45 | 60 | 90 |
+
+`attested` and `retired` carry no clock: they are where a record is supposed to
+*rest*, and a duration on them would report every model in force as overdue.
+
+Nothing is refused. A queue is allowed to have a queue — the reviewer may be
+right to be taking their time, and blocking would punish the second line for
+being careful. The `lifecycle.stalled` batch job raises an **advisory** finding
+instead, and the *Lifecycle profiles* screen lists them worst-first. Where the
+duration is measured from matters: the **evidence chain**, which already records
+every transition with a timestamp, rather than a `status_changed_at` column that
+would drift from it the first time anything wrote a status without recording why.
+
 ### What "immutable" blocks
 
 An attested record refuses **field changes** (`PATCH /api/v1/models/{name}`) and

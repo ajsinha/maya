@@ -66,6 +66,7 @@ class JobContext:
     uses: Any = None
     pipeline: Any = None
     immaterial: Any = None
+    lifecycle_profiles: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -427,6 +428,54 @@ def expire_waivers(ctx: "JobContext") -> Dict[str, Any]:
                        else "no waiver reached its end date")}
 
 
+def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
+    """Records that have been mid-move longer than their tier allows.
+
+    Nothing else in this platform can see this. The submission succeeded, every
+    gate passed, and no control is watching the clock — which is exactly how a
+    governance queue becomes a place things go to wait. A model sitting
+    `submitted` for four months is not blocked by anything and appears on no
+    report, because the only thing that would show it is a state carrying an
+    expected duration.
+
+    Advisory at every tier, and deliberately so. A queue is allowed to have a
+    queue: the reviewer may be right to be taking their time, the model may be
+    genuinely contentious, and blocking on it would punish the second line for
+    doing the job carefully. What is not allowed is for nobody to know.
+    """
+    if not (ctx.lifecycle_profiles and ctx.findings):
+        return {"skipped": "lifecycle profiles or findings not available"}
+    report = ctx.lifecycle_profiles.stalled(now=ctx.now)
+    raised = []
+    for row in report["stalled"]:
+        model = ctx.registry.get(row["urn"]) or {}
+        if not model:
+            continue
+        title = f"Record has been {row['status']} for {row['days_in_state']:.0f} days"
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        ctx.findings.raise_finding(
+            model["id"], "Medium" if (row.get("tier") or 4) <= 2 else "Low",
+            title, row.get("owner") or model.get("owner") or "unassigned",
+            description=(
+                f"This record entered '{row['status']}' {row['days_in_state']:.0f} "
+                f"days ago, against the {row['limit_days']:.0f} days a tier "
+                f"{row.get('tier')} record is expected to take — over by "
+                f"{row['days_over']:.0f}. Nothing has refused anything: the "
+                f"submission succeeded and every gate passed. That is the "
+                f"point. A queue with no expected duration is one nobody can "
+                f"tell is stuck, and this is the only thing here that looks at "
+                f"the clock. Move it on, or say why it is waiting."),
+            blocking=False,
+            category="lifecycle_delay", source="self_identified",
+            actor=ctx.actor)
+        raised.append(row["urn"])
+    return {"raised": raised, "count": len(raised),
+            "stalled": report["count"],
+            "not_measurable": len(report["not_measurable"]),
+            "detail": report["detail"]}
+
+
 def check_immaterial(ctx: "JobContext") -> Dict[str, Any]:
     """Every immaterial model, against the conditions that would escalate it.
 
@@ -491,6 +540,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("lifecycle.stalled",
+        "raises a finding for a record that has been mid-move longer than its "
+        "tier allows",
+        "no control anywhere here watches the clock on a governance queue — "
+        "the submission succeeded and every gate passed, so a record sitting "
+        "submitted for four months appears on no report at all",
+        lifecycle_stalled),
     Job("waivers.expire",
         "closes every control waiver whose window has ended",
         "mandatory expiry is only a control if something acts on the date; a "

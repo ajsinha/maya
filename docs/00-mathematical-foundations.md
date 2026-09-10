@@ -824,7 +824,7 @@ constructions, so an obligation engine could in principle be a compiler from dec
 specifications rather than a hand-written scheduler with cases.
 
 > **State, stated.** That compiler is **not built**. What ships is the thing it would have
-> generated: **fourteen idempotent jobs**, each doing one obligation's work — the evidence chain is
+> generated: **fifteen idempotent jobs**, each doing one obligation's work — the evidence chain is
 > walked and checkpointed only when it verifies; worklists are delivered and unchanged ones
 > suppressed; a lapsed attestation and a stalled monitor each raise a finding; overlays past their
 > window close; baseline debt reconciles or expires into a breach; a missed remediation window is
@@ -1048,7 +1048,7 @@ that quietly omits the unbuilt entries is how a reader concludes the whole table
 | Sheaf consistency radius (`L-13`) | **Not built** |
 | The aggregate `ρ` as a magnitude | **Not built, and deliberately.** `L-14` itself runs — `core/risk/aggregate.py` joins the tier lattice and carries named **obstructions** — but the interaction term is a list of what has not been assessed, never a number. A composite risk figure that looks like a measurement and is not one is worse than the absence of one |
 | The fibration | `core/fibres/` — nine fibres over the trainability classes, a totality gate at start-up (`L-15`), and the per-class metric set that makes an unanswerable monitor a refusal |
-| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the fourteen scheduler jobs do that work by hand. The rows above that say a law does not run are `L-11` and `L-13`; the other two are components that do not exist beneath laws that do |
+| An MTL obligation compiler (`L-16`'s *original* ambition) | **Not built**, and `L-16` is not waiting on it. The law says the obligation set is deontically consistent, and that is checked and enforced at activation (§12). What was never built is the temporal-logic compiler that would have *generated* the monitoring from the obligations; the fifteen scheduler jobs do that work by hand. The rows above that say a law does not run are `L-11` and `L-13`; the other two are components that do not exist beneath laws that do |
 | An online feature store | **Not built, and `L-17` no longer waits on it.** The law was blocked on the wrong thing: §7 says MAYA will not sit on the serving path, so the engine **attests** which namespaces it read and MAYA compares against what the contract pins (`core/features/serving.py`). What a store would buy is *observation* rather than attestation — MAYA seeing for itself rather than being told — which is a smaller claim than this row used to make |
 
 The architecture in [04](04-architecture.md) is organised around these boundaries, which is why its
