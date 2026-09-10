@@ -657,6 +657,25 @@ class UIRoutes(Routes):
                 result=result, refusal=refusal,
                 views=views.list(self.actor(who)))
 
+        # ------------------------------------------- supervisory matters
+        @self.app.get("/supervisory", response_class=HTMLResponse, tags=["ui"])
+        def supervisory_page(request: Request):
+            """Matters a supervisor raised, and the queue behind them.
+
+            The two dates sit side by side on purpose: an internal plan that
+            runs past a regulatory commitment is arithmetic available months
+            before the letter is due, and invisible if only one of them is
+            stored.
+            """
+            if (r := self.page_gate(request, "finding:read")) is not None:
+                return r
+            capacity = self.ctx["validation_capacity"]
+            return self.page(
+                request, "supervisory.html",
+                report=self.ctx["supervisory"].across_the_estate(),
+                backlog=capacity.forecast(),
+                workload=capacity.by_validator())
+
         # ------------------------------------------------- model health
         @self.app.get("/model-health", response_class=HTMLResponse, tags=["ui"])
         def model_health_page(request: Request):

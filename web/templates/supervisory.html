@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Supervisory matters — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Matters a supervisor raised</h1>
+<div class="accent"></div>
+
+<p class="lead small">An MRA, an MRIA, a s166 finding: these look like findings
+and are not, in two structural ways that every register storing them as findings
+gets wrong.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">It is not about one model</div>
+    <p class="small text-muted mb-0">Every finding here hangs off a model, and a
+    thematic MRA about documentation reaches forty at once. Filing it against one
+    makes the other thirty-nine invisible; filing it forty times makes it forty
+    matters, and the firm then reports <strong>forty remediation programmes to a
+    supervisor who raised one</strong>. So a matter is its own object with a
+    scope, and the findings under it are derived from that scope.</p>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">It carries two dates</div>
+    <p class="small text-muted mb-0">Every finding already has an internal
+    remediation date derived from its severity. A matter <em>also</em> has the
+    date <strong>the firm gave the supervisor</strong> — a commitment made in a
+    letter, by a person, often before anybody costed the work. Conflating them
+    is how a firm discovers on the day that its plan ran past its commitment.</p>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Open and closed</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Reference</th><th>Kind</th><th>Supervisor</th><th>Models</th>
+      <th class="text-end">Open</th><th>Plan ends</th><th>Committed</th>
+      <th>Standing</th>
+    </tr></thead>
+    <tbody>
+    {% for m in report.matters %}
+      <tr>
+        <td>{{ m.reference }}<div class="small text-muted">{{ m.title }}</div></td>
+        <td class="small">{{ m.kind | upper }}</td>
+        <td class="small text-muted">{{ m.supervisor }}</td>
+        <td class="small">{{ m.scope | length }}</td>
+        <td class="text-end {{ 'evidence-bad' if m.open_findings else 'evidence-ok' }}">{{ m.open_findings }}</td>
+        <td class="small">{{ m.latest_internal_due | when if m.latest_internal_due else '—' }}</td>
+        <td class="small">
+          {% if m.committed_at %}{{ m.committed_at | when }}
+          {% else %}<span class="text-muted">none recorded</span>{% endif %}
+        </td>
+        <td>
+          {% if m.status == 'closed' %}<span class="badge bg-secondary">closed</span>
+          {% elif m.at_risk %}<span class="badge bg-danger">at risk</span>
+          {% else %}<span class="badge bg-success">on plan</span>{% endif %}
+        </td>
+      </tr>
+      <tr class="small text-muted"><td></td><td colspan="7">{{ m.detail }}.</td></tr>
+    {% else %}
+      <tr><td colspan="8" class="text-muted">No supervisory matter is recorded.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The validation queue</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    {{ backlog.detail }}.
+    <div class="mt-2"><strong>Read this before the number:</strong> {{ backlog.assumes }}</div>
+  </div>
+  <div class="row g-3 p-3">
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n">{{ backlog.due }}</div>
+      <div class="stat-l">falling due in {{ backlog.horizon_days | int }} days</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n">{{ '%.1f' | format(backlog.effort_due) }}</div>
+      <div class="stat-l">units of weighted effort</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if not backlog.validators_declaring }}">{{ '%.1f' | format(backlog.effort_available) }}</div>
+      <div class="stat-l">declared across {{ backlog.validators_declaring }} validator(s)</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if backlog.shortfall else 'evidence-ok' }}">{{ '%.1f' | format(backlog.shortfall) }}</div>
+      <div class="stat-l">shortfall</div>
+    </div></div></div>
+  </div>
+  {% if backlog.inverted_queue.inverted %}
+  <div class="card-body py-2 small border-top">
+    <strong>The queue is the wrong way round.</strong>
+    {{ backlog.inverted_queue.count }} lower-risk model(s) would sit in front of
+    higher-risk ones if this list were sorted by date — which is how every
+    backlog is sorted, and why nobody notices. That is a statement about how the
+    function is being run rather than about any one model.
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Who is carrying it</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ workload.detail }}.</div>
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Validator</th><th class="text-end">Open</th>
+      <th class="text-end">Weighted</th><th class="text-end">Capacity</th>
+      <th class="text-end">Utilisation</th><th class="text-end">Oldest</th>
+    </tr></thead>
+    <tbody>
+    {% for v in workload.validators %}
+      <tr class="{{ 'table-warning' if v.overloaded }}">
+        <td>{{ v.validator }}</td>
+        <td class="text-end">{{ v.open_episodes }}</td>
+        <td class="text-end">{{ v.weighted_effort }}</td>
+        <td class="text-end">
+          {% if v.capacity_declared %}{{ v.capacity_per_quarter }}
+          {% else %}<span class="text-muted">not declared</span>{% endif %}
+        </td>
+        <td class="text-end">{% if v.utilisation is not none %}{{ '%.0f' | format(100 * v.utilisation) }}%{% else %}—{% endif %}</td>
+        <td class="text-end small text-muted">{{ v.oldest_open_days }}d</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted">Nothing is open and nothing is declared.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

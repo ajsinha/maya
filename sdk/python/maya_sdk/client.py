@@ -123,6 +123,8 @@ class Maya:
         self.probes = governance.Probes(self)
         self.remediation = governance.Remediation(self)
         self.migrations = governance.Migrations(self)
+        self.supervisory = governance.SupervisoryMatters(self)
+        self.backlog = governance.ValidationBacklog(self)
         # Administering people, roles and keys. Reachable before this only by
         # constructing raw calls, which reads as "the SDK cannot do this"
         # rather than "nobody wired it up" — the same gap that once left ten

@@ -39,6 +39,8 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
+from core.validation.capacity import ValidationCapacity
+from core.validation.supervisory import SupervisoryMatters
 from core.assist.encoding import RegimeEncodingAssistant
 from core.assist.remediation import RemediationPlanner
 from core.assist.nlquery import NaturalLanguageQuery
@@ -164,6 +166,7 @@ from db import (ServingAttestationRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 SavedViewRepository, ScheduledRunRepository, SignatureRepository,
+                SupervisoryMatterRepository, ValidatorCapacityRepository,
                 SnapshotRepository,
                 SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
@@ -702,6 +705,22 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     external_monitoring = ExternalObservations(monitoring, registry, catalogue,
                                                evidence)
 
+    # A matter a supervisor raised. Not a finding, in two structural ways:
+    # it reaches many models at once, and it carries the date the FIRM GAVE
+    # THE SUPERVISOR beside the internal remediation date every finding
+    # derives from its severity. Conflating those two is how a firm discovers
+    # on the day that its plan ran past its commitment.
+    supervisory = SupervisoryMatters(
+        SupervisoryMatterRepository(db), registry, findings, evidence)
+
+    # The validation queue. Workload is derived and capacity is declared: a
+    # platform that guessed how many validations a person can run would produce
+    # a forecast nobody could dispute, which is worse than none because it
+    # survives the meeting.
+    validation_capacity = ValidationCapacity(
+        ValidatorCapacityRepository(db), registry, validation,
+        plans=validation_plans, evidence=evidence)
+
     # Two implementations of one model, and the shape of their disagreement —
     # which is the reading a pass rate cannot give.
     recode = RecodeHarness(validations=validation, evidence=evidence)
@@ -1097,6 +1116,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "as_at": as_at,
                            "uses": uses,
                            "validation_plans": validation_plans,
+                           "supervisory": supervisory,
+                           "validation_capacity": validation_capacity,
                            "recode": recode,
                            "lifecycle_profiles": lifecycle_profiles,
                            "findings": findings, "validation": validation,
