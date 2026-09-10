@@ -89,6 +89,10 @@ def test_the_taxonomy_has_no_codes_nothing_raises():
         # which credential a request arrived on, and giving it one would make
         # permissions come from two places.
         "outside_key_scope",
+        # Raised by the route layer when a champion/challenger comparison
+        # arrives with a model and only one version. Core takes two
+        # versions and has no notion of a half-filled query string.
+        "two_versions_required",
     }
     orphans = sorted(set(STATUS) - raised - ROUTE_OWNED)
     assert not orphans, (

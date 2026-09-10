@@ -4,7 +4,7 @@ slug: monitoring
 section: Assurance
 order: 100
 icon: activity
-summary: Two registers, one purpose — degradation becomes a refusal rather than a chart. Drift you can measure today, performance you cannot measure for a year and the bookkeeping that keeps it honest, telemetry the platform holds, and the overlay register whose central rule is that a permanent adjustment is a model defect.
+summary: Two registers, one purpose — degradation becomes a refusal rather than a chart. Drift you can measure today, performance you cannot measure for a year and the bookkeeping that keeps it honest, telemetry the platform holds, results computed elsewhere that MAYA judges rather than trusts, one health score whose band is not its arithmetic, and the overlay register whose central rule is that a permanent adjustment is a model defect.
 audience: Model risk, Engineers, Finance
 ---
 
@@ -233,6 +233,92 @@ longer has to carry the data to do it. What the platform *does* do is notice
 that nobody has: past three times its cadence, the `monitoring.stalled` job
 raises a Medium finding titled *Monitoring has stopped*, because a monitor that
 is not running looks exactly like a monitor that is passing.
+
+## Numbers you already compute somewhere else
+
+You almost certainly have monitoring already: an MLOps platform computing PSI
+nightly, a quant notebook that produces the AUC the committee actually looks at,
+a vendor dashboard for the vendor's own model. MAYA does not ask you to run any
+of it twice.
+
+Post the result to `POST /monitors/{id}/ingest` with the value, the window it
+covers, the population size and **what computed it**. There is no `passed`
+field. That is not an oversight and it will not be added.
+
+> **MAYA takes the number and refuses the verdict.** The threshold on the
+> monitor is the one your second line set. The comparison against it happens
+> here. A system that could push its own metric *and* its own pass mark would
+> be marking its own homework — which is what every "send us your metrics" API
+> quietly permits.
+
+An ingested number that breaches opens a breach, raises a finding and can block
+warrant resolution, exactly as one MAYA computed would. Taking the number and
+not acting on it would be filing rather than monitoring.
+
+### What you give up, said out loud
+
+An external observation **cannot be replayed**. MAYA does not hold the population
+it was computed over and cannot re-derive the value from the evidence chain. The
+register's record is that this system asserted this number over this window; the
+assurance behind it is that system's, not MAYA's.
+
+`GET /monitoring-provenance` reports the split for a monitor or for the whole
+estate. Read it occasionally. An estate where most of the numbers cannot be
+reproduced by the platform holding them is a real finding about the monitoring
+programme — and one that is invisible if both kinds of number print the same.
+
+## One number for a model
+
+The **Model health** screen scores each model out of 100 from six things the
+register already holds: performance monitors, drift monitors, feed health,
+overlay reliance, validation currency and open findings.
+
+Read two things before you read the score.
+
+**Coverage.** A model with no monitors, no validation and no findings has
+nothing bad to say about it, and most health scores read that as health. Here
+the components that could not be measured are left out of the denominator and
+named, and the share of the weight that *was* measurable sits beside the number.
+**92 at 30% coverage is a model nobody has looked at, not a healthy one.**
+
+**The band.** The band is not the score rounded into a colour. It is the score
+capped by conditions no amount of good news elsewhere may outweigh — a lapsed
+validation, a Critical finding past its date, an active overlay nobody has
+measured. A model can score 84 and band `poor`, and the page shows both.
+
+> Where the band is worse than the arithmetic, **the gap is the finding**. That
+> row is a model whose numbers look fine and whose governance does not, which is
+> the single most common way a health score misleads a committee.
+
+The `health.declining` job raises a Medium finding on a `poor` band — but only
+where at least half the weight was measurable. A model scoring badly because
+nothing about it can be measured needs monitors rather than a finding about its
+health, and `monitoring.stalled` already says so.
+
+## Champion and challenger
+
+`GET /champion-challenger` compares two versions on the monitors they share,
+paired window by window. It answers two questions separately and will not
+collapse them:
+
+- **Significant** — is the difference bigger than the disagreement between
+  windows? With enough windows, everything is.
+- **Material** — is it big enough to be worth a revalidation and a
+  redeployment? That threshold is yours, declared in the units of the test.
+
+A challenger that is significant and immaterial is the ordinary result of a long
+comparison, and the ordinary reason to leave the champion where it is.
+
+Below five paired windows nothing is tested, and the refusal says why: three
+windows agreeing is a coin landing the same way three times. Above five, the
+p-value is an exact sign-flip permutation up to fourteen windows and a normal
+approximation beyond it — and the answer tells you which, because a p-value
+whose method is unstated is one nobody can reproduce.
+
+> **It will never recommend promotion.** MAYA does not decide which model your
+> bank uses, and promoting a version is a second-line approval. The strongest
+> recommendation here is *open a validation of the challenger* — which is the
+> thing this comparison is evidence for, not a substitute for it.
 
 ## Post-model adjustments
 

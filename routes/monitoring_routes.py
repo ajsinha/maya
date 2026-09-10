@@ -15,6 +15,7 @@ from fastapi import HTTPException, Request
 from pydantic import Field
 
 from core.monitoring import ADMISSIBLE_TESTS, KINDS
+from core.monitoring.health import COMPONENTS, GOOD_AT, WATCH_AT
 from routes.base import Body, Routes
 
 
@@ -48,6 +49,23 @@ class EvaluateIn(Body):
         default_factory=list,
         description="scored_at, score, and label once the outcome is known")
     reference: Optional[List[float]] = None
+    now: Optional[float] = None
+
+
+class IngestIn(Body):
+    """A number somebody else computed. Deliberately no `passed` field.
+
+    Whoever produced the value does not get to say whether it breached: the
+    threshold is this firm's and the comparison happens in MAYA. An external
+    system that could mark its own homework is the failure mode every "push
+    your metrics to us" API has, and the absence of this field is the control.
+    """
+    value: Optional[float]
+    computed_by: str
+    method: str = ""
+    sample_size: int = 0
+    window_start: float
+    window_end: float
     now: Optional[float] = None
 
 
@@ -244,3 +262,104 @@ class MonitoringRoutes(Routes):
                     self.guard(lambda: monitors.require(monitor_id))))
             return self.guard(lambda: monitors.set_status(monitor_id, status,
                                                           self.actor(who)))
+
+        # ------------------------------------------------------------ health
+        @self.app.get(f"{api}/model-health", tags=["monitoring"])
+        def model_health(request: Request, urn: Optional[str] = None,
+                         now: Optional[float] = None):
+            """One number for a model, and the six that made it.
+
+            `coverage` travels with the score everywhere. A score of 92 at 30%
+            coverage is not a healthy model; it is a model nobody has looked
+            at, and the two must not print the same.
+            """
+            health = self.ctx["model_health"]
+            if urn is None:
+                self.authorise(request, "monitor:read",
+                               estate_wide="scoring the health of every model")
+                return self.guard(lambda: health.across_the_estate(now=now))
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            return self.guard(lambda: health.of_model(urn, now))
+
+        @self.app.get(f"{api}/model-health/components", tags=["monitoring"])
+        def health_components(request: Request):
+            """What goes into the score and what it weighs, before any model.
+
+            A composite whose weights are only visible in its output is one
+            nobody can check before they disagree with it.
+            """
+            self.authorise(request, "monitor:read")
+            return {"components": list(COMPONENTS),
+                    "good_at": GOOD_AT, "watch_at": WATCH_AT,
+                    "detail": ("the score is a weighted mean over what could be "
+                               "measured; the band is that mean capped by "
+                               "conditions no amount of good news elsewhere may "
+                               "outweigh, and when the two disagree the "
+                               "disagreement is the finding")}
+
+        # ---------------------------------------------- champion / challenger
+        @self.app.get(f"{api}/champion-challenger", tags=["monitoring"])
+        def champion_challenger(request: Request, urn: Optional[str] = None,
+                                champion: Optional[str] = None,
+                                challenger: Optional[str] = None,
+                                material: Optional[float] = None,
+                                now: Optional[float] = None):
+            """Two versions, paired window by window on the monitors they share.
+
+            Significance and materiality are separate answers. With enough
+            windows any difference is significant, and the recommendation is
+            never to promote: MAYA does not decide which model the bank uses.
+            """
+            comparison = self.ctx["challengers"]
+            if urn is None:
+                self.authorise(request, "monitor:read",
+                               estate_wide="comparing every challenger against "
+                                           "the version being served")
+                return self.guard(lambda: comparison.across_the_estate(now=now))
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            if not champion or not challenger:
+                raise HTTPException(422, {
+                    "error": "two_versions_required",
+                    "detail": "a comparison needs a champion and a challenger",
+                    "remediation": "add champion=... and challenger=..., or "
+                                   "omit urn for every pair in the estate"})
+            return self.guard(lambda: comparison.compare(
+                urn, champion, challenger, material=material, now=now))
+
+        # ------------------------------------------------ external monitoring
+        @self.app.post(f"{api}/monitors/{{monitor_id}}/ingest",
+                       status_code=201, tags=["monitoring"])
+        def ingest(request: Request, monitor_id: str, body: IngestIn):
+            """Take a number computed elsewhere. The verdict is still ours."""
+            who = self.authorise(
+                request, "monitor:observe",
+                model=self.model_behind(
+                    self.guard(lambda: monitors.require(monitor_id))))
+            return self.guard(lambda: self.ctx["external_monitoring"].ingest(
+                monitor_id, body.value, body.computed_by, method=body.method,
+                sample_size=body.sample_size, window_start=body.window_start,
+                window_end=body.window_end, now=body.now,
+                actor=self.actor(who)))
+
+        @self.app.get(f"{api}/monitoring-provenance", tags=["monitoring"])
+        def monitoring_provenance(request: Request,
+                                  monitor_id: Optional[str] = None):
+            """How much of this firm's monitoring MAYA could reproduce.
+
+            An estate where most numbers cannot be replayed is a finding about
+            the programme, and one that is invisible if the two kinds of number
+            print the same.
+            """
+            external = self.ctx["external_monitoring"]
+            if monitor_id is None:
+                self.authorise(request, "monitor:read",
+                               estate_wide="reading the provenance of every "
+                                           "monitoring result")
+                return self.guard(lambda: external.across_the_estate())
+            self.authorise(
+                request, "monitor:read",
+                model=self.model_behind(
+                    self.guard(lambda: monitors.require(monitor_id))))
+            return self.guard(lambda: external.provenance(monitor_id))

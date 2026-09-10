@@ -1537,6 +1537,16 @@ OBSERVATION = Table(
     Column("window_start", Double),
     Column("window_end", Double),
     Column("matured", Boolean, nullable=False, server_default=true()),
+    # Who computed this number. MAYA takes results from an MLOps platform, a
+    # quant notebook or a vendor dashboard, because insisting on recomputing
+    # them would make the firm run everything twice. It never takes the
+    # verdict: the threshold is this firm's and the comparison happens here.
+    # Provenance is a column rather than a detail string because an estate
+    # where most numbers cannot be replayed is a finding about the programme,
+    # and one that is invisible if the two kinds of number print the same.
+    Column("source", Text, nullable=False, server_default=text("'maya'")),
+    Column("computed_by", Text, nullable=False, server_default=text("''")),
+    Column("method", Text, nullable=False, server_default=text("''")),
     Column("digest", Text, nullable=False),
     Column("computed_at", Double, nullable=False),
     Index("ix_observation_monitor", "monitor_id", "computed_at"),

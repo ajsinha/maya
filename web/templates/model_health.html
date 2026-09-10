@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Model health — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>One number, and the six that made it</h1>
+<div class="accent"></div>
+
+<p class="lead small">Every model risk function is eventually asked for a health
+score, and every health score is eventually mistrusted. Two things are done
+differently here, and both are visible on this page rather than described in a
+methodology note nobody reads.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">A mean dilutes, so the band is not the mean</div>
+    <p class="small text-muted mb-0">A model with an excellent AUC, no drift and
+    a validation that expired eighteen months ago averages to a comfortable
+    number, and the comfortable number is what goes on the slide. The score is
+    a weighted mean over what could be measured; the <strong>band</strong> is
+    that mean <em>capped</em> by conditions no amount of good news elsewhere may
+    outweigh. When the two disagree, the disagreement is the finding.</p>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">An unmeasured component is not a good one</div>
+    <p class="small text-muted mb-0">A model with no monitors, no validation and
+    no findings has nothing bad to say about it, and a naive composite reads
+    that as health. Absent components are excluded from the denominator and
+    named, and <strong>coverage</strong> travels with the score everywhere it
+    goes: 92 at 30% coverage is not a healthy model, it is a model nobody has
+    looked at.</p>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The estate</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Tier</th><th class="text-end">Score</th>
+      <th class="text-end">Coverage</th><th>Arithmetic</th><th>Band</th>
+      <th>Why the band is not the number</th>
+    </tr></thead>
+    <tbody>
+    {% for row in report.models %}
+      <tr>
+        <td><a href="/models/{{ row.urn }}">{{ row.urn }}</a></td>
+        <td>{{ row.tier if row.tier is not none else '—' }}</td>
+        <td class="text-end">{% if row.score is not none %}{{ row.score }}{% else %}<span class="text-muted">not derivable</span>{% endif %}</td>
+        <td class="text-end {{ 'evidence-bad' if row.coverage < 0.5 else '' }}">{{ '%.0f' | format(100 * row.coverage) }}%</td>
+        <td class="small text-muted">{{ row.arithmetic_band or '—' }}</td>
+        <td>
+          {% if row.band == 'good' %}<span class="badge bg-success">good</span>
+          {% elif row.band == 'watch' %}<span class="badge bg-warning text-dark">watch</span>
+          {% elif row.band == 'poor' %}<span class="badge bg-danger">poor</span>
+          {% else %}<span class="badge bg-secondary">not derivable</span>{% endif %}
+        </td>
+        <td class="small text-muted">
+          {% if row.caps %}{{ row.caps | map(attribute='why') | join('; ') }}{% else %}—{% endif %}
+        </td>
+      </tr>
+      <tr class="small text-muted">
+        <td></td>
+        <td colspan="6">
+          {% for c in row.components %}
+            <span class="me-3">
+              <strong>{{ c.component.replace('_', ' ') }}</strong>
+              {% if c.measured %}{{ '%.2f' | format(c.score) }} × {{ c.weight }}{% else %}<em>not measured</em>{% endif %}
+            </span>
+          {% endfor %}
+          <div>{{ row.detail }}.</div>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="text-muted">No model in the register.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What goes into it, and what it weighs</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Published before any model is scored. A composite whose weights are only
+    visible in its own output is one nobody can check before they disagree with
+    it.
+  </div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Component</th><th class="text-end">Weight</th><th>What it asks</th><th>When it is absent</th></tr></thead>
+    <tbody>
+    {% for c in components %}
+      <tr>
+        <td>{{ c.key.replace('_', ' ') }}</td>
+        <td class="text-end">{{ c.weight }}</td>
+        <td class="small">{{ c.asks }}</td>
+        <td class="small text-muted">{{ c.absent_when }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if provenance %}
+<div class="card mb-3">
+  <div class="card-header">Where the numbers came from</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ provenance.detail }}.</div>
+  {% if provenance.external %}
+  <table class="table maya mb-0">
+    <thead><tr><th>Model</th><th>Monitor</th><th class="text-end">Observations</th><th class="text-end">Computed elsewhere</th><th>By</th></tr></thead>
+    <tbody>
+    {% for row in provenance.monitors %}
+      {% if row.by_source.get('external') %}
+      <tr>
+        <td class="small">{{ row.urn }}</td>
+        <td class="small">{{ row.name }}</td>
+        <td class="text-end">{{ row.observations }}</td>
+        <td class="text-end">{{ row.by_source.get('external') }}</td>
+        <td class="small text-muted">{{ row.systems.keys() | join(', ') }}</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

@@ -580,6 +580,25 @@ class UIRoutes(Routes):
                 report=self.ctx["vendor_assessments"].across_the_estate(),
                 checklist=VendorAssessments.checklist())
 
+        # ------------------------------------------------- model health
+        @self.app.get("/model-health", response_class=HTMLResponse, tags=["ui"])
+        def model_health_page(request: Request):
+            """The estate scored, with the derivation beside every score.
+
+            Coverage sits next to the number rather than behind a tooltip. A
+            score of 92 over 30% of the weight is a model nobody has looked at,
+            and a page that printed it the same as a measured 92 would be the
+            thing this screen exists to stop.
+            """
+            if (r := self.page_gate(request, "monitor:read")) is not None:
+                return r
+            from core.monitoring.health import COMPONENTS
+            return self.page(
+                request, "model_health.html",
+                report=self.ctx["model_health"].across_the_estate(),
+                components=list(COMPONENTS),
+                provenance=self.ctx["external_monitoring"].across_the_estate())
+
         # --------------------------------------------------- portfolio
         @self.app.get("/portfolio", response_class=HTMLResponse, tags=["ui"])
         def portfolio_page(request: Request, dimension: str = "tier"):

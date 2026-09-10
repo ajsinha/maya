@@ -916,6 +916,9 @@ CREATE TABLE IF NOT EXISTS observation (
     window_start DOUBLE,
     window_end DOUBLE,
     matured BOOLEAN DEFAULT 1 NOT NULL,
+    source TEXT DEFAULT 'maya' NOT NULL,
+    computed_by TEXT DEFAULT '' NOT NULL,
+    method TEXT DEFAULT '' NOT NULL,
     digest TEXT NOT NULL,
     computed_at DOUBLE NOT NULL,
     PRIMARY KEY (id)
