@@ -125,6 +125,11 @@ class ModelRegistry:
              tier: Optional[int] = None) -> List[Dict[str, Any]]:
         return self.catalogue.list(domain, tier)
 
+    def designate(self, urn: str, designations: List[str],
+                  actor: str = "system") -> Dict[str, Any]:
+        """What this model is ALSO subject to, beside its tier."""
+        return self.catalogue.designate(urn, designations, actor)
+
     def set_tier(self, model_id: str, tier: int) -> None:
         self.catalogue.set_tier(model_id, tier)
 

@@ -18,6 +18,8 @@ from typing import Any, Dict, List, Optional
 from core.evidence import EvidenceEngine
 from core.ports import LifecycleGate
 from core.registry.common import RegistryError
+from core.risk.designations import extra_controls
+from core.risk.designations import validate as designations_validate
 from db import ModelRepository
 
 
@@ -47,13 +49,43 @@ class ModelCatalogue:
         row = {"urn": urn, "name": name, "description": description,
                "model_class": model_class, "domain": domain, "owner": owner,
                "legal_entity": legal_entity, "purpose": purpose, "origin": origin,
-               "status": "draft", "tier": None, "attributes": attributes or {},
+               "status": "draft", "tier": None, "designations": [],
+               "attributes": attributes or {},
                "created_at": time.time(), "created_by": actor}
         with self.evidence.recording():
             self.models.add(row)
             self.evidence.append("model_registered", "model", row["id"],
                                  {"urn": urn, "owner": owner}, actor=actor)
         return row
+
+    def designate(self, urn: str, designations: List[str],
+                  actor: str = "system") -> Dict[str, Any]:
+        """Say what this model is ALSO subject to, beside its tier.
+
+        Replaces rather than adds, because a designation being *removed* is a
+        decision worth as much as one being applied — a set that could only
+        grow would record the day somebody decided a model reaches the
+        financial statements and not the day somebody decided it no longer
+        does.
+
+        Orthogonal to the tier: this does not enter `tau` and moves nothing up
+        or down the lattice. What it does is add required controls, and those
+        are waivable through the ordinary register — so a bank that cannot yet
+        meet one has to bound it and compensate for it rather than letting the
+        tag be decoration.
+        """
+        model = self.require(urn)
+        wanted = designations_validate(designations)
+        was = list(model.get("designations") or [])
+        if wanted == sorted(was):
+            return model
+        with self.evidence.recording():
+            self.models.set({"designations": wanted}, id=model["id"])
+            self.evidence.append(
+                "model_designated", "model", model["id"],
+                {"urn": urn, "designations": wanted, "was": sorted(was),
+                 "adds_controls": extra_controls(wanted)}, actor=actor)
+        return self.require(urn)
 
     def by_id(self, model_id: str) -> Optional[Dict[str, Any]]:
         """A model from its id. Rows elsewhere carry the id, not the urn."""

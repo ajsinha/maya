@@ -79,11 +79,18 @@ class TestWhatMayBeWaived:
                                                               control):
         waivers.propose(URN, control, "r", "c", 30)
 
-    def test_the_waivable_set_is_derived_from_the_tier_lattice(self):
+    def test_the_waivable_set_is_derived_from_what_is_required(self):
         """Not a second list. A waiver of a control nothing requires would read
-        on a report as though something had been relaxed."""
+        on a report as though something had been relaxed.
+
+        Both sources: the tiers' controls and the designations'. A bank that
+        cannot yet reconcile its submissions needs somewhere to SAY so, or a
+        designation-driven requirement is one people meet on paper.
+        """
+        from core.risk.designations import DESIGNATION_CONTROLS
         from core.risk.lattices import CONTROLS
-        assert set(WAIVABLE) == {c for cs in CONTROLS.values() for c in cs}
+        assert set(WAIVABLE) == ({c for cs in CONTROLS.values() for c in cs}
+                                 | set(DESIGNATION_CONTROLS))
 
 
 class TestApprovalScalesWithRisk:

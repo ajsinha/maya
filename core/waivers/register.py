@@ -45,15 +45,22 @@ from typing import Any, Dict, List, Optional
 
 from core.authz.common import same_person
 from core.evidence import EvidenceEngine
+from core.risk.designations import DESIGNATION_CONTROLS
 from core.risk.lattices import CONTROLS
 from core.waivers.common import (DAY, DEFAULT_MAX_DAYS, DEFAULT_RENEWAL_LIMIT,
                                  PROPOSED, WaiverError)
 
-#: Every control any tier requires, flattened. A waiver names one of these and
-#: nothing else: a waiver of a control nothing requires is a waiver of nothing,
-#: and it would read on a report as though something had been relaxed.
-WAIVABLE: tuple = tuple(sorted({c for controls in CONTROLS.values()
-                                for c in controls}))
+#: Every control anything requires — the tiers' and the designations' both.
+#:
+#: A waiver names one of these and nothing else: a waiver of a control nothing
+#: requires is a waiver of nothing, and it would read on a report as though
+#: something had been relaxed. And the designation half has to be here, or a
+#: bank that cannot yet reconcile its submissions has nowhere to SAY so — which
+#: would leave a designation-driven requirement as something people meet on
+#: paper, which is the failure the whole register exists to prevent.
+WAIVABLE: tuple = tuple(sorted(
+    {c for controls in CONTROLS.values() for c in controls}
+    | set(DESIGNATION_CONTROLS)))
 
 #: How many signatures, in how many distinct roles, by tier. This is the
 #: "approval level scaled to risk" the requirement asks for, and it is a

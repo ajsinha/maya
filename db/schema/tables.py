@@ -84,6 +84,12 @@ MODEL = Table(
     Column("origin", Text, nullable=False, server_default=text("'internal'")),
     Column("status", Text, nullable=False, server_default=text("'draft'")),
     Column("tier", Integer),
+    # What the model is ALSO subject to, beside its tier. Orthogonal and
+    # additive: these do not enter `tau` and do not move a model up or down the
+    # lattice — they name controls required in addition, which is the whole of
+    # what "driving additional control sets" means. A tag that changes nothing
+    # is a label.
+    Column("designations", Text, nullable=False, server_default=text("'[]'")),
     Column("attributes", Text, nullable=False, server_default=text("'{}'")),
     Column("created_at", Double, nullable=False),
     Column("created_by", Text, nullable=False),
