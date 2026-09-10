@@ -242,3 +242,102 @@ class Retraining:
     def revoke(self, urn: str, *, reason: str = "") -> Dict[str, Any]:
         return self._maya.call("POST", "/retraining/revoke",
                                params={"urn": urn, "reason": reason})
+
+
+class Elicitations:
+    """A panel asked a question, and the disagreement that is the answer.
+
+    T7 parameters come out of expert judgement, and **the value of an
+    elicitation is the spread, not the number**. *How much did they disagree* is
+    the first question a validator asks about a judgemental parameter, and a
+    process that stores only the final weight has destroyed the evidence that
+    they disagreed at all.
+
+    So responses are recorded per round, per panellist, and **never
+    overwritten**: a response revised in place erases the movement between
+    rounds, and the movement is the only thing convergence can be measured from.
+
+    Read `convergence` knowing what it cannot say. The spread narrowing is
+    arithmetic; *why* it narrowed is not. A panel that converged because the
+    most senior person answered first is indistinguishable, in the numbers, from
+    one that converged on the evidence — which is why the `method` is recorded,
+    so a workshop's spread is not read like a Delphi's.
+
+    **Dissent travels with the number.** A final weight whose dissent nobody can
+    find is a weight that looks unanimous, and the firm relying on it does not
+    know it is relying on a majority.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def methods(self) -> Dict[str, Any]:
+        """The methods, the panel floor, and what convergence cannot say."""
+        return self._maya.call("GET", "/elicitations/methods")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every elicitation, widest disagreement first.
+
+        An empty answer is worth reading: a T7 parameter with no elicitation
+        behind it is a number somebody chose, and the register cannot tell that
+        from one a panel agreed.
+        """
+        return self._maya.call("GET", "/elicitations", params={"now": now})
+
+    def get(self, reference: str) -> Dict[str, Any]:
+        return self._maya.call("GET", "/elicitations",
+                               params={"reference": reference})
+
+    def open(self, reference: str, *, urn: str, question: str,
+             panel: List[str], facilitator: str, units: str = "",
+             method: str = "delphi", semver: str = "") -> Dict[str, Any]:
+        """Convene a panel around one question.
+
+        Fewer than three panellists is refused: one expert's judgement is not an
+        elicitation, it is an assumption, and the assumption register is where
+        an assumption belongs — with a materiality, an owner, and something
+        watching it. The facilitator may not also answer.
+        """
+        return self._maya.call("POST", "/elicitations", json={
+            "reference": reference, "urn": urn, "question": question,
+            "panel": panel, "facilitator": facilitator, "units": units,
+            "method": method, "semver": semver})
+
+    def respond(self, reference: str, *, panellist: str, value: float,
+                confidence: str = "", reasoning: str = "",
+                independent: bool = True,
+                dissented: bool = False) -> Dict[str, Any]:
+        """Record one answer in the current round.
+
+        Set `independent=False` where the panellist is not independent of the
+        model. It is recorded rather than refused, because in a small firm the
+        only person who genuinely understands the model is often the person who
+        built it, and refusing would push the elicitation off the platform
+        entirely — the share of the answer that came from conflicted panellists
+        is then visible instead of invisible.
+        """
+        return self._maya.call("POST", f"/elicitations/{reference}/respond",
+                               json={"panellist": panellist, "value": value,
+                                     "confidence": confidence,
+                                     "reasoning": reasoning,
+                                     "independent": independent,
+                                     "dissented": dissented})
+
+    def next_round(self, reference: str) -> Dict[str, Any]:
+        """Open another round. The previous one stays exactly as it was."""
+        return self._maya.call("POST", f"/elicitations/{reference}/next-round")
+
+    def convergence(self, reference: str) -> Dict[str, Any]:
+        """Whether the spread narrowed, and why that is all it can say."""
+        return self._maya.call("GET", f"/elicitations/{reference}/convergence")
+
+    def conclude(self, reference: str, *, value: float,
+                 note: str) -> Dict[str, Any]:
+        """Record the number the panel arrived at, with its dissent attached.
+
+        `note` is required. The number is the least interesting thing an
+        elicitation produces, and a year later the note is the only part
+        anybody can act on.
+        """
+        return self._maya.call("POST", f"/elicitations/{reference}/conclude",
+                               json={"value": value, "note": note})

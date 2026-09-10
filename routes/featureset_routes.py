@@ -16,6 +16,7 @@ from pydantic import Field
 
 from core.features.expressions import describe as describe_language
 from core.parameters import PROVENANCE_MEANING
+from core.parameters.elicitation import Elicitations
 import logging
 
 from core.log import get_logger, swallowed
@@ -132,6 +133,42 @@ class AssembleIn(Body):
     spine: list
     as_of: float
     name: Optional[str] = None
+
+
+class ElicitationIn(Body):
+    """A panel convened around one question.
+
+    The panel is fixed here and cannot be added to mid-round: a new member
+    changes the denominator of a spread that has already been partly formed.
+    """
+    reference: str
+    urn: str
+    question: str
+    panel: List[str] = Field(default_factory=list)
+    facilitator: str
+    units: str = ""
+    method: str = "delphi"
+    semver: str = ""
+
+
+class ResponseIn(Body):
+    """One panellist's answer. Never overwritten.
+
+    `independent` is recorded rather than required: in a small firm the only
+    person who genuinely understands the model is often the person who built
+    it, and refusing would push the elicitation off the platform entirely.
+    """
+    panellist: str
+    value: float
+    confidence: str = ""
+    reasoning: str = ""
+    independent: bool = True
+    dissented: bool = False
+
+
+class ConcludeElicitationIn(Body):
+    value: float
+    note: str
 
 
 class RunIn(Body):
@@ -709,3 +746,87 @@ class FeaturesetRoutes(Routes):
             who = self.authorise(request, "parameter:approve", model=model)
             return self.guard(lambda: self.ctx["retraining"].revoke(
                 urn, reason, actor=self.actor(who)))
+
+        # ------------------------------------------------------ elicitation
+        @self.app.get(f"{api}/elicitations/methods", tags=["parameters"])
+        def elicitation_methods(request: Request):
+            """The methods, the panel floor, and what convergence cannot say."""
+            self.authorise(request, "parameter:record",
+                           estate_wide="reading the elicitation vocabulary, "
+                                       "which is about no model in particular")
+            return Elicitations.methods()
+
+        @self.app.get(f"{api}/elicitations", tags=["parameters"])
+        def elicitations(request: Request, reference: Optional[str] = None,
+                         now: Optional[float] = None):
+            """Every elicitation, widest disagreement first — or one of them."""
+            self.authorise(request, "parameter:record",
+                           estate_wide="reading every elicitation")
+            engine = self.ctx["elicitations"]
+            if reference is None:
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            return self.guard(lambda: engine.read(reference))
+
+        @self.app.post(f"{api}/elicitations", status_code=201,
+                       tags=["parameters"])
+        def open_elicitation(request: Request, body: ElicitationIn):
+            """Convene a panel. Fewer than three is not a panel."""
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "parameter:record", model=model)
+            return self.guard(lambda: self.ctx["elicitations"].open(
+                body.reference, body.urn, question=body.question,
+                panel=body.panel, facilitator=body.facilitator,
+                units=body.units, method=body.method, semver=body.semver,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/elicitations/{{reference}}/respond",
+                       status_code=201, tags=["parameters"])
+        def respond(request: Request, reference: str, body: ResponseIn):
+            """Record one answer in the current round."""
+            elicitation = self.guard(
+                lambda: self.ctx["elicitations"].require(reference))
+            model = self.model_behind(elicitation)
+            who = self.authorise(request, "parameter:record", model=model)
+            return self.guard(lambda: self.ctx["elicitations"].respond(
+                reference, body.panellist, value=body.value,
+                confidence=body.confidence, reasoning=body.reasoning,
+                independent=body.independent, dissented=body.dissented,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/elicitations/{{reference}}/next-round",
+                       tags=["parameters"])
+        def next_round(request: Request, reference: str):
+            """Open another round. The previous one stays exactly as it was."""
+            elicitation = self.guard(
+                lambda: self.ctx["elicitations"].require(reference))
+            model = self.model_behind(elicitation)
+            who = self.authorise(request, "parameter:record", model=model)
+            return self.guard(lambda: self.ctx["elicitations"].next_round(
+                reference, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/elicitations/{{reference}}/convergence",
+                      tags=["parameters"])
+        def convergence(request: Request, reference: str):
+            """Whether the spread narrowed — and why that is all it can say.
+
+            A panel that converged because the most senior person answered
+            first is indistinguishable, in the numbers, from one that converged
+            on the evidence.
+            """
+            self.authorise(request, "parameter:record",
+                           estate_wide="reading an elicitation's convergence")
+            return self.guard(
+                lambda: self.ctx["elicitations"].convergence(reference))
+
+        @self.app.post(f"{api}/elicitations/{{reference}}/conclude",
+                       tags=["parameters"])
+        def conclude_elicitation(request: Request, reference: str,
+                                 body: ConcludeElicitationIn):
+            """Record the number the panel arrived at, with its dissent."""
+            elicitation = self.guard(
+                lambda: self.ctx["elicitations"].require(reference))
+            model = self.model_behind(elicitation)
+            who = self.authorise(request, "parameter:approve", model=model)
+            return self.guard(lambda: self.ctx["elicitations"].conclude(
+                reference, value=body.value, note=body.note,
+                actor=self.actor(who)))

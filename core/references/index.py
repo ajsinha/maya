@@ -261,6 +261,20 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT id, reference, question, state FROM elicitation "
+                "WHERE model_id = :m", {"m": model_id}):
+            live = row["state"] == "open"
+            found.append(Reference(
+                "elicitation", row["id"], row["reference"],
+                (f"an open panel answering '{row['question'][:60]}' about this "
+                 f"model — deleting it would end an elicitation mid-round and "
+                 f"lose the responses already given"
+                 if live else
+                 "a concluded elicitation, and the record of how much the "
+                 "panel disagreed on the way to the number"),
+                live))
+
+        for row in self.db.query(
                 "SELECT id, reference, verb, state FROM run WHERE model_id = :m",
                 {"m": model_id}):
             live = row["state"] == "open"
