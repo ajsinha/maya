@@ -4407,6 +4407,61 @@
         ]
       }
     },
+    "/api/v1/supervisory-matters": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "committed_at",
+          "description",
+          "examination",
+          "kind!",
+          "owner!",
+          "reference!",
+          "scope",
+          "severity",
+          "supervisor!",
+          "title!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/supervisory-matters/kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/supervisory-matters/{reference}/close": {
+      "post": {
+        "body": [
+          "note!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/telemetry": {
       "get": {
         "body": [],
@@ -4608,6 +4663,43 @@
         ]
       }
     },
+    "/api/v1/validation-backlog": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:horizon_days",
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validation-capacity": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "episodes_per_quarter!",
+          "note",
+          "validator!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validation-due": {
       "get": {
         "body": [],
@@ -4627,6 +4719,19 @@
           "query:scope",
           "query:semver!",
           "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validation-queue": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:horizon_days",
+          "query:now"
         ],
         "responses": [
           "200",
@@ -5792,6 +5897,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/supervisory": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

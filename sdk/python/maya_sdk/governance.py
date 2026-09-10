@@ -1674,3 +1674,129 @@ class Migrations:
             "to_digest": to_digest, "to_format": to_format,
             "tolerance": tolerance, "probes": probes, "results": results,
             "ran_by": ran_by})
+
+
+class SupervisoryMatters:
+    """Matters a supervisor raised, and the two dates that are not one date.
+
+    An MRA, an MRIA, a s166 finding: these look like findings and differ from
+    them structurally, twice.
+
+    **A matter is not about one model.** A thematic MRA about documentation
+    reaches forty at once. Filing it against one makes thirty-nine invisible;
+    filing it forty times makes it forty matters, and the firm then reports
+    forty remediation programmes to a supervisor who raised one. So a matter
+    carries a `scope` and the findings under it are derived from it.
+
+    **And it carries `committed_at`** — the date the *firm gave the supervisor*,
+    which is not the internal remediation date each finding derives from its
+    severity. Both are held so `at_risk` can be computed: a matter whose last
+    remediation lands inside two weeks of its committed date has no room for the
+    firm's own closure verification, and that is arithmetic available months
+    before the letter is due.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def kinds(self) -> Dict[str, Any]:
+        """What a supervisor may raise, and how hard each binds."""
+        return self._maya.call("GET", "/supervisory-matters/kinds")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every matter, at-risk first.
+
+        `no_committed_date` is worth reading: an absent commitment reads on
+        every screen exactly like a distant one.
+        """
+        return self._maya.call("GET", "/supervisory-matters",
+                               params={"now": now})
+
+    def get(self, reference: str, *,
+            now: Optional[float] = None) -> Dict[str, Any]:
+        """One matter, with the findings under it."""
+        return self._maya.call("GET", "/supervisory-matters",
+                               params={"reference": reference, "now": now})
+
+    def raise_matter(self, reference: str, *, kind: str, supervisor: str,
+                     title: str, scope: List[str], owner: str,
+                     description: str = "", examination: str = "",
+                     severity: str = "High",
+                     committed_at: Optional[float] = None) -> Dict[str, Any]:
+        """Record a matter and raise one finding per model in scope.
+
+        `reference` is the supervisor's own — it is how the firm and the
+        supervisor talk about the same thing, and a matter tracked under an
+        internal id only is one nobody can reconcile against the letter.
+        """
+        return self._maya.call("POST", "/supervisory-matters", json={
+            "reference": reference, "kind": kind, "supervisor": supervisor,
+            "title": title, "scope": scope, "owner": owner,
+            "description": description, "examination": examination,
+            "severity": severity, "committed_at": committed_at})
+
+    def close(self, reference: str, *, note: str) -> Dict[str, Any]:
+        """Close a matter. Refused while any finding under it is open.
+
+        Telling a supervisor something is done when it is not is a failure of
+        bookkeeping rather than of intent — somebody closes the programme in one
+        system while two remediations run in another. This is the one system.
+        """
+        return self._maya.call("POST",
+                               f"/supervisory-matters/{reference}/close",
+                               json={"note": note})
+
+
+class ValidationBacklog:
+    """The validation queue, and what a backlog is a symptom of.
+
+    **Workload is derived; capacity is declared.** MAYA counts what is open and
+    computes what falls due. It does not guess how many validations a person can
+    run in a quarter — a platform that did would produce a forecast nobody could
+    dispute, which is worse than none because it survives the meeting.
+
+    Read `assumes` before `shortfall`. Dividing work by capacity assumes every
+    validation costs the same, which is false and everybody knows it, and a
+    forecast that hides its assumption is one people act on.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def workload(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """What each validator is carrying, against what they declared.
+
+        `overloaded` is not a scheduling report. The commonest response to a
+        validation backlog is to let a model's own team review it, and the
+        second commonest is to conclude an episode without doing the work —
+        both are independence failures that begin as capacity problems.
+        """
+        return self._maya.call("GET", "/validation-capacity",
+                               params={"now": now})
+
+    def declare(self, validator: str, *, episodes_per_quarter: float,
+                note: str = "") -> Dict[str, Any]:
+        """Record what one validator can take on."""
+        return self._maya.call("POST", "/validation-capacity", json={
+            "validator": validator,
+            "episodes_per_quarter": episodes_per_quarter, "note": note})
+
+    def forecast(self, *, horizon_days: float = 365.0,
+                 now: Optional[float] = None) -> Dict[str, Any]:
+        """What falls due against what the function said it could do."""
+        return self._maya.call("GET", "/validation-backlog",
+                               params={"horizon_days": horizon_days,
+                                       "now": now})
+
+    def queue(self, *, horizon_days: float = 365.0,
+              now: Optional[float] = None) -> Dict[str, Any]:
+        """Which models come due, highest risk first.
+
+        `inverted` says whether a date-sorted list would put lower-risk work in
+        front of higher-risk work. That is a statement about how the function is
+        being run, and it is invisible in the list everybody actually keeps —
+        which is sorted by date.
+        """
+        return self._maya.call("GET", "/validation-queue",
+                               params={"horizon_days": horizon_days,
+                                       "now": now})

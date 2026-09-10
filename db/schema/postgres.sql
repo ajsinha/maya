@@ -1192,6 +1192,27 @@ CREATE TABLE IF NOT EXISTS serving_attestation (
 );
 CREATE INDEX IF NOT EXISTS ix_serving_version ON serving_attestation (model_version_id);
 
+CREATE TABLE IF NOT EXISTS supervisory_matter (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    supervisor TEXT NOT NULL,
+    examination TEXT DEFAULT '' NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '' NOT NULL,
+    severity TEXT DEFAULT 'High' NOT NULL,
+    scope TEXT DEFAULT '[]' NOT NULL,
+    owner TEXT NOT NULL,
+    raised_at DOUBLE PRECISION NOT NULL,
+    committed_at DOUBLE PRECISION,
+    status TEXT DEFAULT 'open' NOT NULL,
+    closed_at DOUBLE PRECISION,
+    closure_note TEXT DEFAULT '' NOT NULL,
+    closed_by TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_supervisory_reference ON supervisory_matter (reference);
+
 CREATE TABLE IF NOT EXISTS telemetry_batch (
     id TEXT NOT NULL,
     digest TEXT NOT NULL,
@@ -1239,6 +1260,17 @@ CREATE TABLE IF NOT EXISTS validation (
     due_at DOUBLE PRECISION,
     PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS validator_capacity (
+    id TEXT NOT NULL,
+    validator TEXT NOT NULL,
+    episodes_per_quarter DOUBLE PRECISION NOT NULL,
+    note TEXT DEFAULT '' NOT NULL,
+    declared_by TEXT NOT NULL,
+    declared_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_validator_capacity ON validator_capacity (validator);
 
 CREATE TABLE IF NOT EXISTS vendor_assessment (
     id TEXT NOT NULL,
