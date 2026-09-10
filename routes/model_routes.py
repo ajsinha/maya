@@ -169,6 +169,18 @@ class WithdrawLimitationIn(Body):
     reason: str
 
 
+class HoldIn(Body):
+    matter: str
+    owner: str
+    scope_kind: str = "estate"
+    scope_id: Optional[str] = None
+    classes: List[str] = Field(default_factory=list)
+
+
+class LiftIn(Body):
+    reason: str
+
+
 class ClassifyIn(Body):
     classification: str
 
@@ -863,6 +875,59 @@ class ModelRoutes(Routes):
             self.authorise(request, "model:read")
             return self.guard(
                 lambda: self.ctx["classification"].across_the_estate())
+
+        @self.app.get(f"{self.api}/retention", tags=["registry"])
+        def retention(request: Request):
+            """How long each class is kept, and whether the backing meets it.
+
+            Read `requirements_not_met` first. A WORM option is a claim about
+            **where something is stored**, not a flag on a row: a directory with
+            the permission bit cleared is an honest limit and not immutable
+            storage, because whoever can clear the bit can set it again.
+            Reporting compliance because somebody chose WORM from a dropdown is
+            worse than having no such field, since the tick is what stops
+            anybody asking.
+            """
+            self.authorise(request, "evidence:read")
+            return self.guard(lambda: self.ctx["retention"].describe())
+
+        @self.app.get(f"{self.api}/legal-holds", tags=["registry"])
+        def legal_holds(request: Request):
+            """Every hold, and how long each has been in force."""
+            self.authorise(request, "evidence:read")
+            return self.guard(
+                lambda: self.ctx["legal_holds"].across_the_estate())
+
+        @self.app.post(f"{self.api}/legal-holds", status_code=201,
+                       tags=["registry"])
+        def place_hold(request: Request, body: HoldIn):
+            """Stop things being deleted, for a stated matter.
+
+            A hold has **no end date, and that is correct** — it inverts the
+            rule every other bounded thing here follows. A hold ends when the
+            matter ends, and when that is cannot be known when it is placed;
+            putting a date on it would be guessing at a litigation timetable and
+            calling the guess a control. What replaces the deadline is a named
+            owner and a stated matter.
+            """
+            who = self.authorise(request, "hold:place")
+            return self.guard(lambda: self.ctx["legal_holds"].place(
+                matter=body.matter, owner=body.owner,
+                scope_kind=body.scope_kind, scope_id=body.scope_id,
+                classes=body.classes, actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/legal-holds/{{reference}}/lift",
+                       tags=["registry"])
+        def lift_hold(request: Request, reference: str, body: LiftIn):
+            """Let deletion resume. The act that needs the ceremony.
+
+            Placing a hold keeps more than necessary, which is recoverable.
+            Lifting one lets deletion resume on material somebody may be about
+            to ask for, which is not.
+            """
+            who = self.authorise(request, "hold:place")
+            return self.guard(lambda: self.ctx["legal_holds"].lift(
+                reference, body.reason, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/classification-levels", tags=["risk"])
         def classification_levels(request: Request):

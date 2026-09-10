@@ -174,6 +174,60 @@ refused, naming the feature that forces the floor.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">How long each thing is kept, and what stops deletion</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    <strong>Retention is per class because the obligations are.</strong> AI Act
+    Art. 19 asks for logs over the system's lifetime; SOX asks seven years of
+    what supported a financial statement; data protection asks that personal data
+    be held for <em>less</em> time, not more. A single estate-wide number
+    satisfies whichever of those is loudest and quietly breaks the others.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Class</th><th class="text-end">Kept for</th><th>Requires WORM</th>
+      <th>Met?</th><th>Because</th>
+    </tr></thead>
+    <tbody>
+      {% for row in retention['classes'] %}
+      <tr>
+        <td class="mono small">{{ row.artifact_class }}</td>
+        <td class="small text-end">{{ '%.0f' | format(row.years) }} years</td>
+        <td class="small">
+          {% if row.requires_worm %}yes{% else %}<span class="text-muted">no</span>{% endif %}</td>
+        <td class="small">
+          {% if row.requirement_met %}<span class="evidence-ok">yes</span>
+          {% else %}<span class="evidence-bad">no — {{ row.backing }}</span>{% endif %}</td>
+        <td class="small text-muted">{{ row.because }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>A WORM option is a claim about where something is stored, not a flag
+    on a row.</strong> A directory with the permission bit cleared is an honest
+    limit and not immutable storage, because whoever can clear the bit can set it
+    again. A register that reports compliance because somebody chose WORM from a
+    dropdown is worse than one with no such field — the tick is what stops
+    anybody asking.
+    <br><br>
+    <strong>A period is a floor, never a ceiling.</strong> It says how long
+    something must be kept, not when it must go. Confusing <em>may now be
+    deleted</em> with <em>must now be deleted</em> is how a register loses the
+    record that was about to be asked for.
+    <br><br>
+    <strong>{{ holds.active }} legal hold(s) are in force</strong>, and a hold
+    overrides every period above — the one direction this platform lets a control
+    be overridden. A hold has <em>no end date, and that is correct</em>: it
+    inverts the rule every other bounded thing here follows, because a hold ends
+    when the matter ends and when that is cannot be known when it is placed.
+    Putting a date on it would be guessing at a litigation timetable and calling
+    the guess a control.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">What a document inherits</div>
   <div class="card-body small text-muted">
     A document is at least as sensitive as the most sensitive model it describes,

@@ -595,7 +595,10 @@ class UIRoutes(Routes):
                     [row["urn"] for row in report["models"]]),
                 # The other half of the same subject: what the platform is
                 # actually HOLDING about what those models were asked.
-                inference=self.ctx["inference"].posture())
+                inference=self.ctx["inference"].posture(),
+                # How long any of it is kept, and what stops it going.
+                retention=self.ctx["retention"].describe(),
+                holds=self.ctx["legal_holds"].across_the_estate())
 
         # -------------------------------------------- machine assistance
         @self.app.get("/assist", response_class=HTMLResponse, tags=["ui"])

@@ -869,6 +869,42 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# A matter that stops things being deleted.
+#
+# **This is the one control in the platform that must override the platform's
+# own deletion**, and it is therefore the one place where the usual rule is
+# inverted. Everywhere else an unbounded window is the failure — a waiver with
+# no end date reaches its fourth year, a conditional approval with none is an
+# unconditional approval that has not noticed. A legal hold has **no end date
+# and that is correct**: it ends when the matter ends, and when the matter ends
+# is not knowable when the hold is placed. Putting a date on it would be
+# guessing at a litigation timetable and calling the guess a control.
+#
+# What replaces the deadline is a **named person and a stated matter**. A hold
+# nobody owns is one nobody will lift, and a hold with no matter recorded is one
+# nobody can tell has ended.
+LEGAL_HOLD = Table(
+    "legal_hold", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("matter", Text, nullable=False),
+    Column("scope_kind", Text, nullable=False),
+    # Null when the scope is the whole estate, which is a real and blunt
+    # instrument: a regulator's document request does not arrive scoped to the
+    # models you would have chosen.
+    Column("scope_id", Text),
+    Column("classes", Text, nullable=False, server_default=text("'[]'")),
+    Column("owner", Text, nullable=False),
+    Column("placed_by", Text, nullable=False),
+    Column("placed_at", Double, nullable=False),
+    Column("state", Text, nullable=False, server_default=text("'active'")),
+    Column("lifted_at", Double),
+    Column("lifted_by", Text),
+    Column("lift_reason", Text, nullable=False, server_default=text("''")),
+    Index("uq_legal_hold_reference", "reference", unique=True),
+    Index("ix_legal_hold_state", "state", "scope_kind"),
+)
+
 # What a firm has done about a model it did not build.
 #
 # SR 26-2 VII and SS1/23 2.6 both say the same thing and it is the thing firms
