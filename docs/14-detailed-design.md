@@ -1390,6 +1390,93 @@ The `adaptive.change` job raises a **blocking** finding at tiers 1 and 2. Cumula
 means the model is materially not the one that was approved, and a warning nobody has to act on is how it
 stays that way.
 
+### 13.6 One number, and the six that made it
+
+Every model risk function is eventually asked for a health score, and every health score is eventually
+mistrusted. Two reasons, and both are answered in the shape of `core/monitoring/health.py` rather than
+in a methodology note.
+
+**A mean dilutes.** A model with an excellent AUC, no drift and a validation that expired eighteen
+months ago averages to a comfortable number, and the comfortable number is what goes on the slide. So
+the arithmetic is not the judgement. The **score** is a weighted mean over what could be measured; the
+**band** is that mean *capped* by conditions that no amount of good news elsewhere may outweigh.
+
+| Cap | Band | Why it is a cap rather than a weight |
+|---|---|---|
+| The validation has lapsed | `poor` | A model whose approval has run out is not partly approved |
+| A Critical or High finding is past its remediation date | `poor` | The date was agreed; missing it is a separate failure from the finding |
+| The model has never been validated | `poor` | It is standing on nothing, and averaging that against a good AUC is how it stays that way |
+| An open finding blocks progression | `watch` | Something has already been judged to stand in the way |
+| An active overlay has never been measured | `watch` | The size of the adjustment between the model and its answer is unknown |
+
+The score and the band are both reported, with `arithmetic_band` beside the capped one. **Where they
+disagree, the disagreement is the finding**, and the detail line names which cap did it.
+
+**An unmeasured component is not a good one.** A model with no monitors, no validation and no findings
+has nothing bad to say about it, and a naive composite reads that as health. Absent components are
+excluded from the denominator and named, and `coverage` — the share of the weight that was measurable —
+travels with the score everywhere it goes, on the screen and in the SDK docstring. **92 at 30% coverage
+is a model nobody has looked at, not a healthy one.** The distinction runs to the component level: a
+model carrying no overlay scores full marks and is *measured* — nothing is being adjusted — while a
+model whose overlays have never been measured is measured badly *and* capped. Those are opposite facts
+and the naive treatment gives them the same number.
+
+Nothing is stored. A health score written into a column is stale from the moment after it is written,
+and staleness is exactly the condition it exists to detect. The `health.declining` job raises a finding
+on a `poor` band **only above half coverage**: a model scoring badly because nothing about it is
+measurable needs monitors, not a finding about its health, and `monitoring.stalled` already says so.
+Raising both would put two findings on one absence and make the health programme look like it was
+working.
+
+### 13.7 Champion against challenger
+
+**Significant and material are two claims.** With enough windows any difference is significant, including
+one nobody would act on; materiality is declared in the units of the test and is a business judgement
+about whether a difference is worth a revalidation and a redeployment. Both are returned, neither is
+collapsed into the other, and a challenger that is significant and immaterial is the ordinary result of a
+long comparison and the ordinary reason to leave the champion alone.
+
+| Choice | Why |
+|---|---|
+| **Paired, window by window** | Both versions moved together when the population moved, which is most of what they did; a test over levels attributes that to the models |
+| Matched on the **window each observation names** | Two monitors on different schedules produce interleaved histories, and zipping them pairs last quarter against this one |
+| Keyed on **kind, test and slice** — never the monitor's name | Two teams naming the same question differently is the ordinary case, and a name match would silently find nothing and report agreement |
+| **Nothing below five paired windows** | Three windows agreeing is a coin landing the same way three times, and a p-value for it lends arithmetic authority to a coincidence |
+| **Exact sign-flip up to fourteen windows**, normal approximation above, and the answer says which | A p-value whose method is unstated is one nobody can reproduce |
+| Direction from the **test catalogue** | A challenger with a *lower* Brier is the better one, and a comparison that got this backwards would recommend the worse model with a straight face |
+
+**The recommendation is never to promote.** MAYA does not run models and does not decide which one the
+bank uses. Promotion of a version already requires a second-line approval, and a monitoring module that
+recommended promotion would be pre-empting the approval it exists to be evidence for. The strongest thing
+available is `open a validation of the challenger`. A challenger ahead on one test and behind on another
+returns *no material difference* with the reason spelled out: a trade-off is a judgement somebody has to
+make, not a number.
+
+### 13.8 Numbers MAYA did not compute
+
+Most banks already have monitoring — an MLOps platform computing PSI nightly, a quant notebook producing
+the AUC the committee actually looks at, a vendor dashboard for the vendor's own model. A governance
+platform that insisted on recomputing all of it would be asking the firm to run everything twice, and
+would lose: the number on the slide would keep coming from the other system.
+
+**So MAYA takes the number and refuses the verdict.** An ingested observation carries a value, a window,
+a population size and the name of what computed it. It does not carry `passed`, and there is no parameter
+for one in the core signature, the endpoint body or the SDK method — the absence *is* the control. The
+threshold is the one this firm's second line set on the monitor, and the comparison is made here with the
+same `judge` MAYA's own evaluations use. A system that could push its own metric *and* its own pass mark
+would be marking its own homework, which is the failure mode every "send us your metrics" API has.
+
+A breach opens a breach. Taking a number and not acting on it would be filing it rather than monitoring
+with it, so an ingested observation goes through the same reaction as a computed one.
+
+Provenance is **a column rather than a sentence in a detail string**: `source`, `computed_by` and
+`method` on every observation. And the loss is stated rather than glossed — an external observation
+cannot be replayed, because MAYA does not hold the population it was computed over and cannot re-derive
+the value from the evidence chain. That is a genuine reduction in assurance and the price of not
+mandating the compute. `across_the_estate()` reports the split, because **an estate where most of the
+numbers cannot be reproduced by the platform holding them is a finding about the programme** — and an
+invisible one if both kinds of number print the same.
+
 ## 14. Warrants
 
 `core/execution/` — `grammar/`, `builder`, `signing`, `grants`, `warrants`, `profiles`, `engine`,
@@ -1817,7 +1904,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 24 idempotent jobs
+### 16.3 25 idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -2378,8 +2465,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 275 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 336 modules in one
+the 278 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 339 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

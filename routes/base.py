@@ -399,6 +399,9 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # champion against challenger, and numbers computed elsewhere
+    "no_shared_monitor": 409, "unknown_version": 404,
+    "two_versions_required": 422, "computed_by_required": 422,
     # fitting a parameter object
     # A refusal here almost always names something the caller can put right in
     # the featureset or the warrant, so the status separates "you asked for

@@ -39,6 +39,9 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.monitoring.adaptive import AdaptiveChange
+from core.monitoring.challengers import ChampionChallenger
+from core.monitoring.external import ExternalObservations
+from core.monitoring.health import ModelHealth
 from core.validation.vendor import VendorAssessments
 from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
@@ -663,6 +666,32 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, fibres, validation=validation, monitoring=monitoring,
         changes=changes)
 
+    # One number for a model and the six that made it. Nothing is stored: a
+    # health score that is written down is stale, and staleness is exactly the
+    # condition it exists to detect. The score is a weighted mean over what
+    # could be measured; the BAND is that mean capped by conditions no amount
+    # of good news elsewhere may outweigh, and when the two disagree the
+    # disagreement is the finding.
+    model_health = ModelHealth(
+        registry, monitoring=monitoring, findings=findings, overlays=overlays,
+        plans=validation_plans, pipeline_health=pipeline_health,
+        catalogue=catalogue)
+
+    # Champion against challenger, paired window by window. Significance and
+    # materiality are asked separately — with enough windows any difference is
+    # significant — and the strongest recommendation available is to open a
+    # validation, never to promote: MAYA does not decide which model the bank
+    # uses, and promotion is a second-line approval this must not pre-empt.
+    challengers = ChampionChallenger(registry, monitoring, catalogue,
+                                     aliases=registry.alias_service)
+
+    # Numbers MAYA did not compute. It takes the value and refuses the verdict:
+    # the threshold is this firm's and the comparison happens here, because an
+    # external system that could mark its own homework is the failure mode
+    # every "push your metrics to us" API has.
+    external_monitoring = ExternalObservations(monitoring, registry, catalogue,
+                                               evidence)
+
     # Two implementations of one model, and the shape of their disagreement —
     # which is the reading a pass rate cannot give.
     recode = RecodeHarness(validations=validation, evidence=evidence)
@@ -941,7 +970,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    subscriptions=subscriptions,
                    adaptive=adaptive_change,
                    discovery=discovery,
-                   approvals=regulatory_approvals),
+                   approvals=regulatory_approvals, health=model_health),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -1026,6 +1055,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
                            "adaptive_change": adaptive_change,
+                           "model_health": model_health,
+                           "challengers": challengers,
+                           "external_monitoring": external_monitoring,
                            "experiments": experiments,
                            "compute_zones": compute_zones,
                            "vendor_assessments": vendor_assessments,
