@@ -28,6 +28,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from core.assist import AssistError
+from core.classification import ClassificationError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
@@ -126,6 +127,10 @@ STATUS: Dict[str, int] = {
     # machine assistance budgets. All 422: the request named a number that is
     # not a budget, and the caller can fix it by naming a different one.
     "budget_not_positive": 422, "window_not_positive": 422,
+    # data classification. 422 rather than 403: the caller may state this, they
+    # just stated a value the lattice does not admit or one below the floor
+    # their own model's inputs force.
+    "unknown_classification": 422, "below_the_derived_floor": 422,
     "nothing_to_set": 422, "budget_exhausted": 429,
     # A reassessment that re-runs the formula on last year's facts and
     # calls it a review. 422: the request is incomplete, not refused.
@@ -573,7 +578,8 @@ class Routes:
                 FindingWorkflowError, PolicyError,
                 ArtifactError, ProfileError, ExportError,
                 ReportingError, FibreError, RuleError,
-                ReferencedError, ApiKeyError) as exc:
+                ReferencedError, ApiKeyError,
+                ClassificationError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

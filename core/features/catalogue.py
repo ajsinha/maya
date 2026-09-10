@@ -21,8 +21,13 @@ from core.features.assertions import validate as validate_assertions
 from core.features.common import FeatureError
 from core.features.composition import Resolver
 from core.features.lifecycle import Lifecycle
+from core.classification import common as classification
+from core.log import get_logger
 from core.features import policy
 from db import FeatureRepository
+
+logger = get_logger(__name__)
+
 
 LEVELS = ("experimental", "certified", "deprecated")
 SIMILARITY_FLOOR = 0.25
@@ -52,6 +57,20 @@ class FeatureCatalogue:
                actor: str = "system") -> Dict[str, Any]:
         if self.features.one(name=name):
             raise FeatureError(f"feature '{name}' is already defined")
+        # Closed here rather than anywhere downstream. `sensitivity` was free
+        # text, displayed on one screen and read by nothing — and a lattice
+        # over free text is a lattice over nothing, because 'Confidential',
+        # 'confidential' and 'CONF' are three classes to a computer and one to
+        # a person. Nothing can propagate a class until the class is a value.
+        try:
+            sensitivity = classification.normalise(sensitivity)
+        except classification.ClassificationError as refused:
+            # Translated rather than propagated: a caller defining a feature
+            # should meet a FeatureError, not a refusal type from a subsystem
+            # it has never heard of. Logged because the translation loses the
+            # original code, and a refusal is a governance decision.
+            logger.warning("feature '%s' refused: %s", name, refused.code)
+            raise FeatureError(refused.detail) from refused
         dims = shapes.parse(shape)
         named = shapes.check_components(dims, components)
         row = {"name": name, "entity": entity, "dtype": dtype, "description": description,
