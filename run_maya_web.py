@@ -68,7 +68,8 @@ from core.docs import (ContextBuilder, DocumentCompiler, Dossier,
                        TrainingRecordCompiler)
 from core.content import ContentLibrary, MarkdownRenderer
 from core.monitoring import (BreachRegister, MonitoringDefaults,
-                             MonitorRegistry, MonitoringService)
+                             MonitoringPlans, MonitorRegistry,
+                             MonitoringService)
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
@@ -104,7 +105,7 @@ from db import (ServingAttestationRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 ApiKeyRepository, AssumptionRepository,
-                InvocationRepository,
+                InvocationRepository, MonitoringPlanRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
@@ -495,6 +496,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, tiering, invocations=invocations, composition=composition,
         risk_repo=RiskRepository(db), findings=findings)
 
+    # What a model will be watched for, written down before it goes anywhere.
+    # `inherited_at` is the column that carries the point: null means this
+    # model has a monitoring plan and is not monitored.
+    monitoring_plans = MonitoringPlans(
+        MonitoringPlanRepository(db), registry, monitoring.registry, evidence,
+        defaults=monitoring_defaults)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -638,6 +646,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "pipeline_health": pipeline_health,
                            "changes": changes,
                            "immaterial": immaterial,
+                           "monitoring_plans": monitoring_plans,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
