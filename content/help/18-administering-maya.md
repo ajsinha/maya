@@ -294,6 +294,27 @@ Merging the two into a single green tick would be this platform's own recurring
 defect: a control that reports success while answering a narrower question than
 the reader believes it answered.
 
+**The chain against a clock that is not ours.** Both checks above are arguments
+from MAYA's own clock, which is the party being asked making a statement about
+itself. The third card is an RFC 3161 timestamp: a token from an authority
+outside this platform, over an anchored head.
+
+Read what it proves before relying on it, because it is narrower than the phrase
+*tamper-evident* suggests. A token bounds a head **from above only** — it proves
+this hash existed *no later than* that time, which is exactly what defeats
+writing a chain after the fact and dating it before. It says nothing about how
+early the head existed, nothing about whether anything was deleted, and nothing
+at all about the period before the first token was taken.
+
+Three states, and `unverified` is a real one. MAYA is not the authority, and it
+does **not verify** by default: checking a token means holding a certificate
+chain and deciding which roots to trust, which is a decision your security
+function has already made for the whole institution. Wire a verifier and the
+state can reach `verified`; until then a held token reports as `unverified`,
+which is neither *no token* nor *a good one*.
+
+If no authority is wired at all, the screen says so rather than showing a tick.
+
 An anchor is never written for an empty chain. An anchor for sequence zero is a
 permanent claim that nothing can ever satisfy, which would make every fresh
 instance accuse itself.
@@ -352,6 +373,51 @@ evidence, its lifecycle, its metrics, its templates. A class with a missing face
 is one the platform would answer questions about by omitting them, so start-up
 refuses on a gap rather than booting partial. If the gaps table on this page is
 ever populated, the instance should not have started.
+
+## The register's edges
+
+`/admin/perimeter` — needs `policy:read`
+
+Everywhere else in MAYA the record is MAYA's own. This screen is the four places
+where it is not, and each is **narrower than its name suggests** — which is the
+reason there is a screen rather than an API and a paragraph in a design
+document.
+
+**Installed is not enabled.** A firm's own package can add a test type, a metric
+type, a template, a notification channel or a fibre, declared under the
+entry-point group `maya.extensions`. Discovery reads packaging metadata and
+**imports nothing**. Enabling is a separate act that configuration has to name,
+because a control that switched itself on when somebody bumped a dependency is a
+control nobody turned on — and one that switched itself *off* the same way is
+worse, since the platform would then report a control operating that is not.
+`seen` is the ordinary state and not a fault. The closed axes are listed with
+what each closure protects, because a closed axis here is the feature rather
+than a missing one.
+
+**What another system's export can and cannot say.** MLflow, Unity Catalog and a
+git tree can be read — from an **export document** that platform produced, never
+from its API, because a governance register holding read credentials to every ML
+platform in the bank is the broadest standing access anybody holds. What comes
+back is **candidates for triage, never registrations**: the five governance facts
+listed on the screen are in no ML platform anywhere, and a register that inferred
+them would have manufactured exactly what it exists to hold.
+
+**What a scanner has to send back.** MAYA does not sweep drives, and the reason
+is the same one. What it publishes is the contract: the fields a candidate and a
+sweep must carry, with the reason for each, and a confidence ceiling strictly
+below certainty. A sweep that misses the contract is refused **whole** — keeping
+the good rows would make the precision figure grade something other than the
+scanner that produced it. Precision is computed from what triage dismissed;
+**recall is not computable** and the screen says so, because nothing here knows
+what a scanner did not look at.
+
+**What has left the building.** Every export pack shared outside the platform:
+who it went to, why, whether it is still live, how many times it was read, and
+how many reads were **refused**. A share is a time-boxed link to a *content
+digest* and never to a path — a link to a location serves whatever is at that
+location later. It is **not an examiner portal** and establishes no identity, and
+both facts are published rather than left ambiguous. Revoking one ends access and
+does not unsend a document; the record keeps what it already served.
 
 ---
 
@@ -416,5 +482,7 @@ Databricks. `MAYA_DELTA_BACKEND` overrides it if you need to pin one.
 
 Administration in MAYA is currently *reading* the platform's configuration.
 Editing model classes, lifecycle definitions, document templates and the test
-catalogue is still API work. Connectors and a discovery scanner do not exist at
-all — see the roadmap. The estate is what somebody registered.
+catalogue is still API work. **Nothing here sweeps for unregistered models** —
+the contract a scanner must meet is published and running one is somebody else's
+job — and the connectors read an export rather than reaching into another
+platform. The estate is what somebody registered, plus what somebody triaged.

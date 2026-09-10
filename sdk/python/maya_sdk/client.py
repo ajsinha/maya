@@ -38,7 +38,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from maya_sdk import (artifacts, documents, features, governance, models,
-                      parameters, warrants)
+                      parameters, perimeter, warrants)
 from maya_sdk import assist as assist_module
 from maya_sdk import principals as principals_module
 from maya_sdk.errors import Refused, Unreachable, refusal
@@ -144,6 +144,16 @@ class Maya:
         # governance subjects unattached.
         self.principals = principals_module.Principals(self)
         self.api_keys = principals_module.ApiKeys(self)
+        # The register's edges. Each of these touches something MAYA does not
+        # control — an authority's clock, a firm's own package, another
+        # system's export, somebody else's scanner, a reader with no login —
+        # and each is narrower than the name suggests, on purpose.
+        self.timestamps = perimeter.ChainTimestamps(self)
+        self.plugins = perimeter.Plugins(self)
+        self.connectors = perimeter.Connectors(self)
+        self.scanner_contract = perimeter.ScannerContract(self)
+        self.shares = perimeter.ExportShares(self)
+        self.rendering = perimeter.DocumentRendering(self)
 
     # ------------------------------------------------------------- the wire
     def call(self, method: str, path: str, *, json: Any = None,

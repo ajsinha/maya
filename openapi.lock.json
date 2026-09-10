@@ -55,6 +55,15 @@
         ]
       }
     },
+    "/admin/perimeter": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/admin/principals": {
       "get": {
         "body": [],
@@ -1216,6 +1225,30 @@
         ]
       }
     },
+    "/api/v1/connectors": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/connectors/{source}": {
+      "post": {
+        "body": [
+          "document!",
+          "ingest"
+        ],
+        "parameters": [
+          "path:source!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/data-layer-authorisation": {
       "get": {
         "body": [],
@@ -1314,6 +1347,28 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/api/v1/document-rendering/formats": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/document-rendering/{document_id}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:document_id!",
+          "query:format"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
@@ -1612,6 +1667,37 @@
         ]
       }
     },
+    "/api/v1/evidence/timestamps": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:seq"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:seq"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/evidence/timestamps/posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/execute": {
       "post": {
         "body": [
@@ -1680,6 +1766,57 @@
           "path:name!",
           "query:attachments",
           "query:documents"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/export-shares": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "content_digest!",
+          "days",
+          "filename",
+          "max_reads",
+          "pack_digest",
+          "purpose!",
+          "recipient!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/export-shares/posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/export-shares/{reference}/revoke": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:reference!",
+          "query:reason"
         ],
         "responses": [
           "200",
@@ -4056,6 +4193,37 @@
         ]
       }
     },
+    "/api/v1/plugins/contract": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/plugins/discovered": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/plugins/enable": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:axis!",
+          "query:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "body": [],
@@ -4937,6 +5105,57 @@
         ],
         "responses": [
           "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/scanner-contract": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/scanner-contract/check": {
+      "post": {
+        "body": [
+          "candidates",
+          "recall_known",
+          "scanner",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/scanner-contract/grade": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:scanner"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/scanner-contract/ingest": {
+      "post": {
+        "body": [
+          "candidates",
+          "recall_known",
+          "scanner",
+          "scope"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
           "422"
         ]
       }

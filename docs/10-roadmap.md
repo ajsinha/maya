@@ -37,22 +37,22 @@ done.
 
 | | Why it is not built | What it costs while absent |
 |---|---|---|
-| **Asymmetric warrant signatures** | HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here | Verifying a warrant requires holding the key that could **mint** one. That is the wrong shape for a contract handed to engines you do not control, and it is the single largest gap in the execution story |
-| **A third-party time source for the anchors** | Anchoring is built: `WORMReader`/`WORMWriter` in `core/ports.py`, a filesystem implementation writing under `./data/worm`, and `verify_against_anchors` comparing the chain against heads held outside the database. What is not built is an RFC-3161 timestamping authority, which is a third party rather than code | The anchors say *this head existed before that one*; they do not say *at this time, attested by somebody who is not us*. A bank arguing with a supervisor about **when** wants the second. Finding **C-4**'s third disposition is now half-closed |
+| **Asymmetric warrant signatures** | **Deliberately deprioritised, 2026-09-10.** HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and this was the top of the list for two revisions of this document | Verifying a warrant requires holding a key that could **mint** one. Two things have changed the size of that. First, the honest scope: the shape is wrong for an engine outside the firm's trust boundary, and MAYA's engines are inside it — this is a segregation problem between teams, not a public-key problem between institutions. Second, **most of the isolation is available without key management**: a per-engine HMAC key means a compromised engine can forge only its own warrants, which is the property the asymmetric scheme was wanted for, at none of the custody, rotation and revocation cost. What genuinely still requires asymmetry is **non-repudiation** — proving MAYA and only MAYA issued a warrant, to somebody who is not MAYA — and that is a narrower and much rarer requirement than *"the single largest gap in the execution story"*, which is what this row used to say and which was an overstatement |
+| ~~**A third-party time source for the anchors**~~ **Built** | `core/evidence/timestamps.py`. It takes an RFC 3161 token over an anchored head, and the design is in what it declines: MAYA is not the authority **and does not verify**, because checking a token means holding a certificate chain and choosing which roots to trust — a decision the firm's security function has already made. What remains is not code: an authority has to be *chosen and wired*, and the platform reports itself as **arguing from its own clock** until one is | Closed, with the bound stated in the interface rather than in a footnote. A token bounds a head **from above only** — it proves this hash existed no later than that time, which is what stops a chain being rewritten and dated before the fact. It says nothing about how early the head existed, nothing about deletion, and nothing at all about the period before the first token. `unverified` is a third state that never collapses into either neighbour. Finding **C-4**'s third disposition is now closed |
 | **Three foundational laws** | `L-6`, `L-11`, `L-13` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason. `L-14` and `L-17` were on this list and now run | The strongest claim the design makes is that the laws are the acceptance criteria. Eighteen of twenty-one run; a law stated and not executed prevented nothing |
-| **`entry_points` discovery for fibres** | The fibration itself is built — `core/fibres/`, nine fibres over the derived trainability class, a totality gate at start-up (`L-15`) | A bank's own fibre ships inside this repository rather than as its own package. The structure and the gate exist; third-party packaging does not |
+| ~~**`entry_points` discovery for fibres**~~ **Built** | `core/plugins/discovery.py` reads `entry_points(group="maya.extensions")` across every open axis, fibres included | Closed, and the seam is the control rather than the convenience: discovery **imports nothing**, so a package is *seen* from its metadata and *enabled* only when configuration names it. A control that switched itself on when somebody bumped a dependency is a control nobody turned on. `not_installed` and `not_enabled` are separate refusals — the second is the safe state; the first means somebody believes a control is running. A third-party fibre may **add** obligations and never remove one, checked at load |
 
 ### 2.2 Reach — these change what MAYA can *cover*
 
 | | Why it is not built | What it costs while absent |
 |---|---|---|
 | **An online feature store** | The Delta namespace is the serving contract; reading it at request latency is deliberately the engine's problem — and §7 says MAYA will not sit on the serving path, so building one here would contradict this document | Nothing, for `L-17`. That row said the law was inert without a store, and the law was blocked on the wrong thing: the engine knows which namespaces it read, so it **attests** and MAYA compares (`core/features/serving.py`). Training–serving skew is now detectable without the platform being on the request path. What a store would still buy is *observation* rather than attestation — MAYA seeing for itself rather than being told — and that is a different, smaller claim than the one this row used to make |
-| **Connectors** — MLflow, Unity Catalog, git | Each is a real integration against an external API | Bulk import exists for a spreadsheet; the models already sitting in an ML platform have to be entered by hand |
-| **Discovery and an EUC scanner** | Nothing sweeps for unregistered models | The inventory is what somebody registered. An inventory campaign finds what people declare; discovery finds what they did not |
-| **Composite warrants and the interaction premium** | Typed composition (`L-21`) now gives `L-14` something to quantify over; the aggregate `ρ` is not built | The question supervisors actually ask — *how much riskier is the network than its parts* — has a definition and no computation |
+| ~~**Connectors** — MLflow, Unity Catalog, git~~ **Built, in one direction** | `core/discovery/connectors.py` parses an **export document** each of those systems already produces. It deliberately does not call an API and holds no credential: a register with read access to every ML platform in the bank is the broadest standing access anybody holds, granted to the system whose whole argument is that it holds none | Mostly closed. What a connector produces is **candidates for triage, never registrations** — five governance facts are in no ML platform anywhere (ownership in the bank's sense, the decision it is used for, the legal entity, materiality, and whether the thing is a model at all), and a register that inferred them would have manufactured exactly what it exists to hold. SageMaker, Vertex, SAS metadata and CMDB have no connector; neither does the *push governance status back* half, and that half needs care — a register that writes "approved" into another system's UI has told somebody something the approval record does not say |
+| **An EUC scanner** — the sweeping half | MAYA does not crawl the bank's drives and should not: a discovery agent needs credentials to every repository, notebook server, shared drive and gateway in the institution. The **receiving** half is built (`core/discovery/`), and what a scanner has to send is now **published as a contract** — `core/discovery/contract.py` names the required fields with the reason for each, caps confidence strictly below certainty, and refuses a sweep that misses it *whole* rather than keeping the good rows, because a partial ingest grades something other than the scanner | The inventory is still what somebody registered plus what somebody else's scanner delivered. Precision is computed from the triage outcomes and **recall is stated as not computable** — nothing here knows what a scanner did not look at, which is why the contract asks the scanner to declare its scope |
+| ~~**Composite warrants**~~ **Built**; the interaction premium is **refused** | Composite resolution ships — a chain of models resolves as one unit or is refused as one. The aggregate `ρ` is not built and is not going to be: `L-14` says the copy map is the obstruction, so a network that *copies* a dependency and one that *duplicates* it produce identical component ratings, and any single figure computed from those ratings is blind to precisely what it would exist to find | What composes is the **order** — the worst tier at stake — and not a magnitude. That is `L-14` arriving as an interface rather than as a caveat, and it is a better answer than a number a committee cannot decompose |
 | **Spark-scale monitor evaluation** | Monitors evaluate in-process | Fine at hundreds of models; not at an estate-wide nightly sweep over billions of rows |
-| **An examiner portal** | The export pack *is* the artefact — self-contained, digested, gaps named. What is missing is a place to hand it to somebody | Packs are produced and then emailed, which is the workflow they were meant to replace |
-| **PDF, and any rendering past markdown** | The compiler emits markdown, rendered through the same pipeline as the help system | A committee paper is copied into a word processor, at which point it stops being compiled and starts being edited |
+| **An examiner portal** — and it stays unbuilt on purpose | The **handing-over** half is built: `core/export/sharing.py` issues a time-boxed link to a **content digest**, never a path, revocable, optionally read-capped, recording **every read including the refused ones**. A portal is the other thing — it authenticates a third party *into* the register, and whatever that session can reach they can reach | Closed for the workflow that mattered; open, deliberately, for the one that did not. `is_a_portal` and `establishes_identity` are published as false rather than left ambiguous, because letting a time-boxed link be mistaken for scoped interactive access is the mistake that costs something here |
+| **PDF and `.docx`** — refused by name, with the reason | `core/docs/rendering.py` emits **typesetting source** — LaTeX or markdown — with the citations intact, and refuses PDF, `.docx` and standalone HTML on `/api/v1/document-rendering/formats` with what each would cost. Rendering needs a TeX distribution or a browser engine, which is a large attack surface for a formatting need, and a house template, which is a firm's document standard and not a register's decision | A committee paper is still typeset elsewhere — but it leaves here as source that **names the evidence each section rested on**, and coverage gaps are written *into* the output under a heading of their own. A rendering that flattened the citations away would produce a document whose claims can no longer be traced, which is the state every hand-written model document is already in; one that dropped the gaps would produce something that *looks* complete |
 | **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not | A JVM shop writes its own client, and writes it against HTTP rather than against the contract |
 | **Rule-set import from what a bank already has** | A decision table in a spreadsheet, a DMN file, a stored procedure — each is a parser, and each is a parser that can be subtly wrong | The rules are typed in, or posted as a document. Migrating an existing rulebook is manual work, and it is the work that decides whether T8 coverage is a demonstration or a programme |
 
@@ -68,29 +68,33 @@ NFR figure in [03 §7](03-requirements.md) is a target rather than a result.
 
 ## 3. The order, and the argument for it
 
-**First, the two that change what can be claimed.**
+**This section has been rewritten, and the rewrite is the more useful part of
+it.** For two revisions the order began *asymmetric signatures before anything
+else*, on the argument that everything downstream of the warrant is weaker while
+verification requires the minting key. That ordering was challenged on
+2026-09-10 and did not survive the challenge, which is worth recording rather
+than quietly editing away: the threat it addressed is an engine outside the
+firm's trust boundary, MAYA's engines are inside it, and **a per-engine HMAC key
+already gives the isolation that mattered** — a compromised engine can forge
+only its own warrants — without any of the custody, rotation and revocation cost
+that a key hierarchy brings. What asymmetry uniquely buys is *non-repudiation to
+a third party*, and nobody had asked for that. A roadmap item can be wrong about
+its own size, and this one was.
 
-**Asymmetric signatures** before anything else. Everything downstream of the
-warrant — every engine integration, every conversation with a team that runs
-models MAYA does not — is weaker while verification requires the minting key.
-The primitive already exists in the repository for OIDC; this is mostly a key
-management decision, and it is the kind of decision that gets harder after the
-first external engine is integrated rather than before.
+**Everything that was ahead of it is now built.** Chain timestamping,
+`entry_points` discovery, the connectors, the share, the scanner contract and
+the document rendering closed in one wave in September 2026; composite warrants
+closed earlier and out of order. What follows is what is genuinely left.
 
-**Chain anchoring** second, and it is second only because it depends on
-infrastructure somebody has to provide. Tamper evidence resting on
-self-consistency is the claim most likely to be challenged by an examiner who
-understands what a hash chain does and does not prove.
+**First, the law gap, because it is the platform's own standard.**
 
-**Then the law gap, because it is cheap and it is the platform's own standard.**
-`L-14` needs composite warrants, so one of the four is blocked on an item below
-rather than on effort. `L-17` was listed here too, blocked on the online store,
-and that was a mistake worth recording: the store is a component §7 says MAYA
-will not own, so the law had been made to depend on something the architecture
-forbids. The engine attests instead. `L-6`, `L-11` and `L-13`
-are honest refusals: building a document `put` to satisfy the lens laws would be
-building the wrong thing, and the table says so rather than leaving a gap that
-looks like neglect.
+`L-14` was blocked on composite warrants and now runs. `L-17` was listed here
+too, blocked on the online store, and that was a mistake worth recording: the
+store is a component §7 says MAYA will not own, so the law had been made to
+depend on something the architecture forbids. The engine attests instead.
+`L-6`, `L-11` and `L-13` are honest refusals: building a document `put` to
+satisfy the lens laws would be building the wrong thing, and the table says so
+rather than leaving a gap that looks like neglect.
 
 `L-15` was the third of those, and closing it is worth recording because the
 blocker was not effort. It was **the base**: the law says the fibration is
@@ -102,17 +106,18 @@ out in `docs/02 §5`.
 
 **Then reach, in the order a bank actually feels the absence.**
 
-1. **Connectors**, because an inventory somebody has to type is an inventory
-   that stays incomplete — and completeness is the precondition for everything
-   else. This is the *earn the inventory* principle below, and it is the one
-   most often skipped.
-2. **The examiner portal and PDF**, together: they are the same user, and half
-   the artefact already exists.
-3. **Composite warrants and the interaction premium**, which turn a theorem into
-   a number.
-4. **Discovery**, last of the reach items and deliberately so — it should run
-   against a register that is already good, or it produces a queue nobody
-   triages.
+1. **An EUC scanner somebody actually runs**, against the published contract.
+   The receiving half and the contract are built; what is missing is a sweep,
+   and it is deliberately last in the *earn the inventory* order below — a sweep
+   run against a register that is not yet good produces a queue nobody triages,
+   which is how every discovery programme that fails fails.
+2. **Rule-set import**, because it decides whether T8 coverage is a
+   demonstration or a programme.
+3. **A Java SDK**, because a JVM shop currently writes its own client against
+   HTTP rather than against the contract.
+4. **Spark-scale monitor evaluation**, which is a scale problem and not a
+   coverage one — it changes nothing about what MAYA can claim, only about how
+   many models it can claim it for in a night.
 
 **Deployment work runs alongside all of it** and is not sequenced here, because
 it belongs to whoever operates the platform rather than to whoever builds it.
@@ -152,12 +157,12 @@ Dropped the ones that have been resolved or overtaken. What remains:
 | Risk | Why it is still live | The mitigation that is actually in place |
 |---|---|---|
 | **Developers route around MAYA** | The permanent risk of any control plane | The SDK, and the refusals carrying remediation. Neither is sufficient; measuring it is not built |
-| **The inventory never reaches completeness** | Discovery is not built, so the register holds what people registered | Baseline import with **compliance debt kept apart from breach** — an imported model is visibly incomplete rather than quietly counted as governed |
+| **The inventory never reaches completeness** | The register holds what people registered, plus what a connector or a scanner delivered — and nobody in this firm has yet run a sweep | Baseline import with **compliance debt kept apart from breach** — an imported model is visibly incomplete rather than quietly counted as governed. Connectors and the scanner contract now give the two other routes in, and both produce **candidates for triage rather than registrations**, so nothing arrives counted as governed that nobody looked at |
 | **The warrant plane becomes a bank-wide SPOF** | It is on the authorisation path, by design | Governance is *not* on the serving path: if MAYA is down, authorised scoring continues and only new issuance stops. The grace window is the second half of that |
 | **Machine assistance ships ahead of its oracle** | The pressure to ship an impressive ungated demo is constant | Structural, not procedural: Tier C is **unrepresentable** in the schema. A capability without an oracle or a grounding check cannot be registered |
 | **Assistants drift toward deciding** | Policy erodes; this one has to be architectural | No AI principal holds a credential permitting a governance transition. **Held by construction and not by any check** — the test that would enforce it is named in [13](13-ai-in-the-platform.md) and not written |
 | **Scope creep into enterprise GRC** | The boundary is easy to state and easy to erode | Explicit: MAYA owns model risk; issues sync to the GRC platform rather than living in two places |
-| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Eighteen of twenty-one run, and the three that do not are named |
+| **Over-engineering the theory** | An ever-present temptation in a design like this one | Every abstraction ships with a law and a test or it is cut. Eighteen of twenty-one run, and the three that do not are named as refusals rather than as gaps |
 
 ---
 

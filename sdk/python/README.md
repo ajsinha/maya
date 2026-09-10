@@ -107,6 +107,18 @@ fall behind again.
 | `maya.health()`, `maya.verify_evidence()` | is it up, and does the chain still verify |
 | `maya.call(...)` | the escape hatch, for anything the SDK does not name |
 
+**The register's edges** — where MAYA touches something it does not control, and
+says so in narrower words than the name suggests
+
+| | |
+|---|---|
+| `maya.timestamps` | a time an RFC 3161 authority attests to. Bounds a head from **above only** — it stops backdating, and says nothing about deletion or about anything before the first token |
+| `maya.plugins` | what a firm's own package declares. Discovery imports nothing; enabling needs configuration to name it, because a control that switched on with a dependency bump is one nobody turned on |
+| `maya.connectors` | MLflow, Unity Catalog, a git tree — read from an export, never an API, and producing candidates for triage rather than registrations |
+| `maya.scanner_contract` | what somebody else's discovery scanner has to send. Precision is computable; **recall is not**, and the grade says so |
+| `maya.shares` | a time-boxed link to a **content digest**, for a reader with no login. Not a portal, and it establishes no identity |
+| `maya.rendering` | a compiled document as typesetting source with its citations intact. MAYA runs no typesetter, and coverage gaps are written *into* the output |
+
 ## Three things worth knowing before you use it
 
 **A refusal is an exception.** `Refused` carries `code`, `detail`, `remediation`,

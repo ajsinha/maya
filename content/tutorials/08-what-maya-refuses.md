@@ -4,14 +4,14 @@ slug: what-maya-refuses
 section: Start here
 order: 80
 icon: hand-raised
-summary: Nine places where the platform declines to build the thing that was asked for — managed serving, converting an artifact, submitting a training job, editing a compiled document, configuring the state graph, promoting a challenger — and why each refusal is what makes every other control in the register mean anything.
+summary: Thirteen places where the platform declines to build the thing that was asked for — managed serving, converting an artifact, submitting a training job, editing a compiled document, configuring the state graph, promoting a challenger, verifying its own timestamp, rendering your PDF — and why each refusal is what makes every other control in the register mean anything.
 audience: Model risk managers, Platform, Architects, Auditors
 ---
 
 # What MAYA refuses to do
 
 Most of this documentation is about what the platform does. This page is about
-the nine places it deliberately does not — and it is the page to read if you are
+the thirteen places it deliberately does not — and it is the page to read if you are
 deciding whether MAYA belongs in your architecture, because **the refusals are
 load-bearing**. Take any one of them away and several controls elsewhere quietly
 stop meaning anything.
@@ -189,10 +189,106 @@ the next person to read the table would correct it.
 
 ---
 
-## What the nine have in common
+## 10. It will not verify its own timestamp
+
+The evidence chain is hash-linked, and its heads are anchored to storage outside
+the database. Both are checks MAYA performs on MAYA — arguments from its own
+clock, made by the party being asked.
+
+So an RFC 3161 token can be taken over an anchored head, from an authority
+outside this platform. MAYA is obviously not that authority. Less obviously, it
+does not **verify** the token either: checking one means holding a certificate
+chain and deciding which roots to trust, and that is a decision your security
+function has already made once for the whole institution. A register making its
+own would either duplicate that decision or quietly contradict it.
+
+The result is a third state that most systems would collapse. `unverified` means
+a token is held and nothing here can check it. Reporting it as `verified` would
+be a lie; reporting it as `absent` would throw away something an examiner's own
+verifier could check. Both collapses are the convenient ones.
+
+And the limit is published rather than footnoted. A token bounds a head **from
+above only**: it proves this hash existed no later than that time — which is
+exactly what defeats writing a chain after the fact and dating it before — and
+says nothing about how early it existed, nothing about deletion, and nothing at
+all about the period before the first token.
+
+---
+
+## 11. It will not turn another system's export into a registration
+
+`INT-001` asks for MLflow and Unity Catalog import. `FR-INV-012` asks for bulk
+import from connectors. Both are built, and neither registers anything.
+
+What a connector produces is a **candidate for triage**. Five facts make a
+registration meaningful, and no ML platform on earth holds any of them: who owns
+this in the bank's sense rather than who last pushed a commit; what decision it
+is used for; which legal entity carries it; what materiality; and whether the
+thing is a model at all rather than an experiment somebody ran once. A register
+that inferred those from an export would have manufactured exactly the facts it
+exists to hold — at import scale, in one afternoon, with a confidence figure
+attached.
+
+It also refuses to hold a credential. The export is a document the source system
+produced with its own credentials, on its own schedule, and handed over. A
+governance register with standing read access to every ML platform in the bank
+holds the broadest access anybody has, granted to the system whose whole argument
+is that it holds none.
+
+---
+
+## 12. It will not let installing something switch it on
+
+`FR-PLT-004` asks for a plugin architecture. What ships is a statement of which
+axes are open, which are closed and why — and, between *installed* and *enabled*,
+a gap that has to be crossed deliberately.
+
+Discovery reads packaging metadata and **imports nothing**. Enabling requires
+configuration to name the extension. The sentence underneath: a control that
+switched itself on when somebody bumped a dependency is a control nobody turned
+on, and one that switched itself off the same way is worse — the platform would
+then report a control operating that is not.
+
+The two refusals stay apart for the same reason. `not_enabled` means it is
+installed and nothing names it, which is the safe state and not a fault.
+`not_installed` means configuration names something absent: somebody believes a
+control is running.
+
+And a third-party fibre may **add** obligations and never remove one. An
+extension axis that can loosen an obligation is a way to weaken every control the
+fibration carries, from outside it.
+
+---
+
+## 13. It will not render your PDF
+
+A compiled document's sections name the evidence nodes they rested on. That is
+the property that makes staleness a number the platform computes rather than one
+somebody remembers, and it is the thing that survives typesetting or does not.
+
+So what leaves is **source** — LaTeX or markdown — with the citations intact.
+PDF, `.docx` and standalone HTML are refused by name, each with its reason:
+rendering needs a TeX distribution or a browser engine, which is a large attack
+surface for a formatting need, and a house template, which is your document
+standard rather than a register's decision. Three renderings of one document are
+three things that can disagree.
+
+The gaps go **into** the output, under a heading of their own. A rendering that
+dropped them would produce something that looks complete, and a document whose
+thin sections are invisible is worse than a short one.
+
+---
+
+## What the thirteen have in common
 
 Each one is a place where building the requested thing would have made a
 different, quieter thing untrue.
+
+The last four are the same sentence pointed outward rather than inward. Where the
+first nine are about MAYA declining to perform an act it also authorises, these
+are about MAYA declining to **claim more than it holds at a boundary** — and the
+overstatement would be invisible precisely because nobody can see past the
+boundary to check it.
 
 | If MAYA did this | This would stop meaning anything |
 |---|---|
@@ -205,6 +301,10 @@ different, quieter thing untrue.
 | Configure the state graph | *Approved* meaning the same thing in two institutions |
 | Sign artifacts | The provenance check, which would then verify its own signature |
 | Hide the cheap route | The distinction between being safe and looking compliant |
+| Verify its own timestamp | The one check on the chain that MAYA did not author |
+| Register what a connector found | Ownership, purpose, entity and materiality as things somebody decided |
+| Enable a plugin on install | Every control's answer to *who turned this on* |
+| Render the PDF | The citation under each sentence, and the gaps under their own heading |
 
 When you are evaluating a governance platform, the useful question is not what it
 can do. It is **what it declines to do, and whether it can tell you why** — and

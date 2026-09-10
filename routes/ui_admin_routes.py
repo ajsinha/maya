@@ -36,7 +36,12 @@ from fastapi.responses import HTMLResponse
 from core.authz import INCOMPATIBLE_ROLES
 from core.authz.common import PERMISSIONS
 from core.authz.rolestore import INCOMPATIBLE_PERMISSIONS
+from core.discovery.connectors import Connectors
+from core.discovery.contract import ScannerContract
+from core.docs.rendering import DocumentRendering
+from core.export.sharing import ExportSharing
 from core.execution.grammar import vocabulary
+from core.plugins.discovery import PluginDiscovery
 from core.log import get_logger
 from routes.base import Routes, login_required
 
@@ -244,6 +249,12 @@ class AdminRoutes(Routes):
                 anchors=evidence.verify_against_anchors(),
                 checkpoint=evidence.checkpoint(),
                 head_seq=seq, head_hash=head,
+                # The third question, and the only one whose answer MAYA does
+                # not author: does anybody outside this system attest to when
+                # a head existed? Both cards above are arguments from this
+                # platform's own clock, which is an argument the party being
+                # asked is making about itself.
+                timestamps=self.ctx["chain_timestamps"].coverage(),
                 anchor_root=getattr(getattr(evidence, "anchors", None), "root", None))
 
         # ------------------------------------------------ runtimes and fibres
@@ -268,6 +279,37 @@ class AdminRoutes(Routes):
                 grammar=vocabulary(),
                 fibres=[_describe(fibres.of(k)) for k in fibres.classes()],
                 gaps=fibres.totality())
+
+
+        # ------------------------------------------------ the register's edges
+        @self.app.get("/admin/perimeter", response_class=HTMLResponse,
+                      tags=["ui"])
+        def perimeter_page(request: Request):
+            """Where this register touches something it does not control.
+
+            Four subjects on one screen because they are one question asked
+            four ways: what is this platform relying on somebody else for, and
+            has anybody been told how narrow the answer is? A firm's own
+            extension, another system's export, somebody else's scanner, and a
+            pack that left the building. Each is read here; none is decided
+            here.
+            """
+            refusal, _who = gate(request, "policy:read")
+            if refusal is not None:
+                return refusal
+            return self.page(
+                request, "admin_perimeter.html",
+                plugins=self.ctx["plugin_discovery"].discover(),
+                plugin_contract=PluginDiscovery.contract(),
+                connectors=Connectors.describe(),
+                scanner=ScannerContract.contract(),
+                # Empty on a platform nobody has swept for. The screen says so
+                # rather than rendering a precision figure over zero rows,
+                # which reads as perfect.
+                grade=self.ctx["scanner_contract"].grade(),
+                shares=self.ctx["export_sharing"].across_the_estate(),
+                share_posture=ExportSharing.posture(),
+                rendering=DocumentRendering.formats())
 
 
 def _describe(fibre: Any) -> Dict[str, Any]:

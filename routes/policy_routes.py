@@ -8,7 +8,7 @@ registry are the floor — and it cannot be published until its own cases pass.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
@@ -45,6 +45,37 @@ class ConfigurationIn(Body):
     configuration: Dict[str, Any] = Field(default_factory=dict)
     rationale: str = ""
     approved_by: str = ""
+
+
+class ConnectorIn(Body):
+    """A document the source system exported.
+
+    There is no field for a credential and no endpoint that connects to
+    anything. A governance register holding read access to every ML platform in
+    the bank is a large attack surface for a read-only need.
+    """
+    document: Any
+    ingest: bool = False
+
+
+class SweepIn(Body):
+    """One sweep from a scanner MAYA does not run.
+
+    Every field is optional **here** and required by the contract, which is
+    not a contradiction: a 422 naming three missing fields is the framework
+    answering, and the framework stops at the first shape it dislikes. The
+    contract answers with every problem at once and says why each matters,
+    which is the difference between a scanner author fixing three things in
+    one round and re-running over forty thousand files three times.
+
+    `recall_known` is almost always false. The register computes precision
+    from the dismissals and cannot compute recall — it has no idea what the
+    scanner did not look at.
+    """
+    scanner: str = ""
+    scope: str = ""
+    recall_known: Optional[bool] = None
+    candidates: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class PolicyRoutes(Routes):
@@ -180,3 +211,86 @@ class PolicyRoutes(Routes):
                 {"format": body.format, "configuration": body.configuration},
                 body.rationale, actor=self.actor(who),
                 approved_by=body.approved_by))
+
+        # ---------------------------------------------- plugin discovery
+        @self.app.get(f"{api}/plugins/contract", tags=["policy"])
+        def plugin_contract(request: Request):
+            """What a firm's package declares, and what it may extend."""
+            self.authorise(request, "policy:read")
+            from core.plugins.discovery import PluginDiscovery
+            return PluginDiscovery.contract()
+
+        @self.app.get(f"{api}/plugins/discovered", tags=["policy"])
+        def discovered(request: Request):
+            """What is installed, read from metadata. Nothing is imported.
+
+            Read `state`. `seen` means installed and **not enabled** — which is
+            the point: installing makes an extension available and
+            configuration makes it used, because a control that took effect
+            when somebody bumped a dependency is one nobody changed on purpose.
+            """
+            self.authorise(request, "policy:read",
+                           estate_wide="listing installed extensions")
+            return self.guard(lambda: self.ctx["plugin_discovery"].discover())
+
+        @self.app.post(f"{api}/plugins/enable", tags=["policy"])
+        def enable_plugin(request: Request, axis: str, name: str):
+            """Import and register one plugin. Refused unless config names it."""
+            who = self.authorise(
+                request, "policy:publish",
+                estate_wide="loading a third-party extension")
+            return self.guard(lambda: self.ctx["plugin_discovery"].enable(
+                axis, name, actor=self.actor(who)))
+
+        # ------------------------------------------------------ connectors
+        @self.app.get(f"{api}/connectors", tags=["policy"])
+        def connectors(request: Request):
+            """What each connector reads, and what no connector can bring."""
+            self.authorise(request, "model:read")
+            from core.discovery.connectors import Connectors
+            return Connectors.describe()
+
+        @self.app.post(f"{api}/connectors/{{source}}", tags=["policy"])
+        def read_connector(request: Request, source: str, body: ConnectorIn):
+            """Parse an export into candidates for triage. Registers nothing."""
+            who = self.authorise(
+                request, "model:read",
+                estate_wide="importing candidates from an ML platform export")
+            engine = self.ctx["connectors"]
+            if body.ingest:
+                return self.guard(lambda: engine.ingest(
+                    source, body.document, actor=self.actor(who)))
+            return self.guard(lambda: engine.read(source, body.document))
+
+        # ------------------------------------------------ scanner contract
+        @self.app.get(f"{api}/scanner-contract", tags=["policy"])
+        def scanner_contract(request: Request):
+            """What a scanner has to send, and why MAYA does not run one."""
+            self.authorise(request, "model:read")
+            from core.discovery.contract import ScannerContract
+            return ScannerContract.contract()
+
+        @self.app.post(f"{api}/scanner-contract/check", tags=["policy"])
+        def check_sweep(request: Request, body: SweepIn):
+            """What is wrong with this sweep — all of it, before anything is stored."""
+            self.authorise(request, "model:read",
+                           estate_wide="checking a discovery sweep")
+            return self.guard(lambda: self.ctx["scanner_contract"].check(
+                body.model_dump()))
+
+        @self.app.post(f"{api}/scanner-contract/ingest", status_code=201,
+                       tags=["policy"])
+        def ingest_sweep(request: Request, body: SweepIn):
+            """Check, then hand to the register. Refused as a whole or not at all."""
+            who = self.authorise(request, "model:register",
+                                 estate_wide="ingesting a discovery sweep")
+            return self.guard(lambda: self.ctx["scanner_contract"].ingest(
+                body.model_dump(), actor=self.actor(who)))
+
+        @self.app.get(f"{api}/scanner-contract/grade", tags=["policy"])
+        def grade_scanner(request: Request, scanner: str = ""):
+            """What the register knows about a scanner, and what it cannot know."""
+            self.authorise(request, "model:read",
+                           estate_wide="grading a discovery scanner")
+            return self.guard(
+                lambda: self.ctx["scanner_contract"].grade(scanner))
