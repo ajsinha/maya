@@ -171,6 +171,55 @@ changes &mdash; this page derives nothing itself.</p>
       recorded without a type check until then.</p>
     {% endif %}
   </div></div>
+
+<div class="card mt-3"><div class="card-header">What changed, step by step</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    The alias gate answers <em>may this version take over</em> — a yes with a
+    reason, and the right thing to gate a promotion on. A reviewer approving the
+    change needs <em>what moved</em>, and a boolean cannot be turned back into
+    that.
+    <br><br>
+    <strong>The most useful column is the shape.</strong> A rebuild, a re-fit and
+    a re-specification arrive at a reviewer looking identical — a new semver, a
+    new digest, an approval request — and they ask completely different
+    questions. A model whose last six steps were all rebuilds is telling a
+    different story from one with six re-specifications, and neither is visible
+    from a list of semvers.
+  </div>
+  {% if series.steps %}
+  <div class="card-body">
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>From</th><th>To</th><th>Shape</th><th>Contract</th></tr></thead>
+      <tbody>
+      {% for step in series.steps %}
+        <tr>
+          <td class="mono">{{ step.from }}</td>
+          <td class="mono">{{ step.to }}</td>
+          <td class="small">
+            <span class="{{ 'evidence-bad' if step.shape in ('respecification', 'reclassification') else '' }}">
+              {{ step.shape }}</span></td>
+          <td class="small">
+            <span class="{{ 'evidence-bad' if step.contract in ('widened', 'incomparable') else 'text-muted' }}">
+              {{ step.contract }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>Direction on the contract matters and a plain diff loses it.</strong>
+    <em>Narrowed</em> means the newer version assumes no more and promises no
+    less, so it substitutes safely — though it may start refusing calls the older
+    one accepted, which is a caller problem rather than a model one.
+    <em>Widened</em> means it claims more, and something has to stand behind the
+    extra claim; <code>L-7</code> refuses the alias move.
+    <em>Incomparable</em> means each claims something the other does not, which
+    is a different model wearing the same name.
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">{{ series.detail }}.</div>
+  {% endif %}
+</div>
 {% endblock %}
 {% block scripts %}
 <script>
