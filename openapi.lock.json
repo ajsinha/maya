@@ -2151,6 +2151,29 @@
         ]
       }
     },
+    "/api/v1/monitor-defaults": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:owner",
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/monitor-kinds": {
       "get": {
         "body": [],
