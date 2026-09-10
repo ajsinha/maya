@@ -22,6 +22,30 @@ from core.lifecycle.conditions import ApprovalConditions
 from routes.base import Body, Routes
 
 
+class ParallelIn(Body):
+    urn: str
+    champion: str
+    challenger: str
+    purpose: str
+    tolerance: float = 1e-9
+
+
+class ObservationIn(Body):
+    input_key: str
+    champion: Optional[float] = None
+    challenger: Optional[float] = None
+
+
+class OutcomeIn(Body):
+    input_key: str
+    outcome: float
+
+
+class ConcludeRunIn(Body):
+    conclusion: str
+    note: str
+
+
 class ConditionIn(Body):
     urn: str
     kind: str
@@ -72,6 +96,92 @@ class LifecycleRoutes(Routes):
             """The state machine itself: who may move what, from where, to where."""
             self.principal(request)
             return {"transitions": describe()}
+
+        @self.app.get(f"{api}/parallel-runs", tags=["lifecycle"])
+        def parallel_runs(request: Request, reference: str = ""):
+            """Open parallel runs, or one run's two readings.
+
+            **Divergence and outcomes are never mixed.** How often the two
+            models disagree is knowable the moment both have answered and says
+            nothing about which is right; which was right needs the outcome, and
+            the outcome arrives months later or never. Nearly every shadow-mode
+            dashboard reports the first and lets a reader conclude the second.
+            """
+            self.authorise(request, "model:read")
+            runs = self.ctx["parallel_runs"]
+            if not reference:
+                return self.guard(lambda: runs.across_the_estate())
+            return self.guard(lambda: runs.report(reference))
+
+        @self.app.post(f"{api}/parallel-runs", status_code=201,
+                       tags=["lifecycle"])
+        def open_parallel_run(request: Request, body: ParallelIn):
+            """Declare that a challenger is running beside the champion.
+
+            MAYA runs neither. It records that the run is happening and takes
+            delivery of what both produced.
+            """
+            model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "model:approve", model=model)
+            return self.guard(lambda: self.ctx["parallel_runs"].open(
+                body.urn, champion=body.champion, challenger=body.challenger,
+                purpose=body.purpose, tolerance=body.tolerance,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/parallel-runs/{{reference}}/observations",
+                       status_code=201, tags=["lifecycle"])
+        def observe(request: Request, reference: str, body: ObservationIn):
+            """What one or both models answered for one input.
+
+            Either side may arrive first and separately, because in a real
+            shadow deployment they do. An observation with only one side is
+            kept and reported as unpaired rather than dropped — a challenger
+            that silently failed on the hard cases would otherwise look like the
+            better model.
+            """
+            runs = self.ctx["parallel_runs"]
+            run = self.guard(lambda: runs.require(reference))
+            model = self.ctx["registry"].by_id(run["model_id"])
+            # `monitor:observe`, the same permission the telemetry ingestion
+            # path takes: an observation is what a running model produced, and
+            # a shadow deployment posts them from a service rather than a
+            # person.
+            self.authorise(request, "monitor:observe", model=model)
+            return self.guard(lambda: runs.observe(
+                reference, input_key=body.input_key, champion=body.champion,
+                challenger=body.challenger))
+
+        @self.app.post(f"{api}/parallel-runs/{{reference}}/outcomes",
+                       tags=["lifecycle"])
+        def record_outcome(request: Request, reference: str,
+                           body: OutcomeIn):
+            """The label, when it arrives — which is the part that takes months."""
+            runs = self.ctx["parallel_runs"]
+            run = self.guard(lambda: runs.require(reference))
+            model = self.ctx["registry"].by_id(run["model_id"])
+            self.authorise(request, "monitor:observe", model=model)
+            return self.guard(
+                lambda: runs.record_outcome(reference, body.input_key,
+                                            body.outcome))
+
+        @self.app.post(f"{api}/parallel-runs/{{reference}}/conclude",
+                       tags=["lifecycle"])
+        def conclude_parallel_run(request: Request, reference: str,
+                                  body: ConcludeRunIn):
+            """End the run with a verdict.
+
+            Promoting on divergence alone is refused. Divergence says the two
+            models differ; it does not say the challenger is better, and the
+            pressure at the end of an expensive run is to conclude something
+            rather than nothing. `inconclusive` is an honest end and a common
+            one.
+            """
+            runs = self.ctx["parallel_runs"]
+            run = self.guard(lambda: runs.require(reference))
+            model = self.ctx["registry"].by_id(run["model_id"])
+            who = self.authorise(request, "model:approve", model=model)
+            return self.guard(lambda: runs.conclude(
+                reference, body.conclusion, body.note, actor=self.actor(who)))
 
         @self.app.get(f"{api}/condition-kinds", tags=["lifecycle"])
         def condition_kinds(request: Request):

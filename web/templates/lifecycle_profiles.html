@@ -94,6 +94,66 @@ says how many signatures the move takes and how long it may sit.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">Challengers running beside the champion</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    SS1/23 3.3(c) asks for parallel outcomes analysis when a dynamic model
+    changes, and the reason is sound: the only way to know what a new version
+    does to real decisions is to let it see the real decisions without acting on
+    them. MAYA runs neither model — it records that a run is happening, takes
+    delivery of what both produced, and does the arithmetic.
+    <br><br>
+    <strong>Agreement is knowable now; correctness is not.</strong> Two models
+    disagreeing on ten thousand cases is a fact available the moment both have
+    answered. Which of them was <em>right</em> needs the outcome — the default,
+    the claim, the loss — and that arrives months later or never. Nearly every
+    shadow-mode dashboard reports a disagreement rate and lets a reader conclude
+    something about quality the data cannot support, so these two are shown
+    apart and never mixed.
+  </div>
+  {% if parallel.runs %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Ref</th><th>Model</th><th>Champion</th><th>Challenger</th>
+      <th class="text-end">Paired</th><th class="text-end">Unpaired</th>
+      <th class="text-end">Labelled</th><th>Can conclude?</th>
+    </tr></thead>
+    <tbody>
+      {% for row in parallel.runs %}
+      <tr>
+        <td class="mono small">{{ row.reference }}</td>
+        <td class="mono small">
+          {% if row.urn %}<a href="/model/{{ row.urn.split('/')[-1] }}">{{ row.urn }}</a>{% endif %}</td>
+        <td class="mono small">{{ row.champion }}</td>
+        <td class="mono small">{{ row.challenger }}</td>
+        <td class="small text-end">{{ row.paired }}</td>
+        <td class="small text-end">
+          <span class="{{ 'evidence-bad' if row.unpaired else 'text-muted' }}">{{ row.unpaired }}</span></td>
+        <td class="small text-end text-muted">{{ '%.0f' | format(100 * row.coverage) }}%</td>
+        <td class="small">
+          {% if row.conclusive %}<span class="evidence-ok">yes</span>
+          {% else %}<span class="text-muted">waiting on outcomes</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">{{ parallel.detail }}.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>Promoting on divergence alone is refused.</strong> Divergence says
+    the two models differ; it does not say the challenger is better, and the
+    pressure at the end of an expensive run is to conclude something rather than
+    nothing. <em>Inconclusive</em> is an honest end and a common one.
+    <br><br>
+    <strong>Unpaired observations are reported, not dropped.</strong> A
+    challenger that silently failed on the hard cases would otherwise look like
+    the better model.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">Approved on terms</div>
   <div class="card-body py-2 small text-muted border-bottom">
     SR 26-2 V permits a model to be used before it is validated <em>with
