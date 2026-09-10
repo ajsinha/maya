@@ -115,6 +115,9 @@ class TestSchedulerApi:
                 # Every other monitor points at a model's scores, which
                 # is the last place a data problem shows up.
                 "pipelines.check",
+                # Materiality was declared once, and a declaration goes
+                # stale quietly.
+                "immaterial.conditions",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,
