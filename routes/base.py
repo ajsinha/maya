@@ -166,6 +166,8 @@ STATUS: Dict[str, int] = {
     # discovery
     "scanner_required": 422, "already_triaged": 409,
     # regulatory approvals and the tiering what-if
+    "unknown_bom_format": 422, "unknown_predicate": 422,
+    "digest_required": 422, "provenance_not_verified": 403,
     "unknown_approval_kind": 422, "regulator_required": 422,
     "not_in_force": 409, "candidate_not_callable": 422,
     "urn_required": 422, "no_candidate": 404,

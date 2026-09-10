@@ -25,6 +25,47 @@ class ArtifactRoutes(Routes):
     def register(self) -> None:
         api, store = self.api, self.ctx["artifacts"]
 
+        @self.app.get(f"{api}/bill-of-materials", tags=["artifacts"])
+        def bill_of_materials(request: Request, urn: str, semver: str,
+                              fmt: str = "spdx"):
+            """Everything a version is made of, in SPDX or CycloneDX.
+
+            **Derived, never authored.** Every component is something the
+            register already holds, because an authored BOM is a document that
+            was true once — and the whole reason a supply-chain team wants one
+            is to diff it against the last.
+
+            The parts MAYA never saw — the library tree inside an artifact, the
+            build toolchain, the training code — are named **inside the
+            document**, not beside it. A consumer reading only the file is a
+            scanner, and a bill of materials whose gaps are invisible gets
+            reported as clean.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["bom"].render(urn, semver, fmt))
+
+        @self.app.get(f"{api}/artifact-provenance", tags=["artifacts"])
+        def artifact_provenance(request: Request):
+            """What this instance can establish about an artifact's origin.
+
+            **A digest establishes integrity; a signature establishes origin**,
+            and only the second tells you the artifact came from your own build.
+            A substituted file fails the digest check; a file that was never
+            substituted because the attacker had access to the build has a
+            correct digest from the first moment anybody looked.
+
+            MAYA verifies attestations and does not mint them. Signing belongs
+            in a build system with keys a build system holds, and a governance
+            platform that signed artifacts would hold the key that could forge
+            one — the same objection it already makes about its own warrant
+            signing.
+            """
+            self.authorise(request, "model:read")
+            return self.guard(
+                lambda: self.ctx["artifact_provenance"].posture())
+
         @self.app.get(f"{api}/artifact-formats", tags=["artifacts"])
         def formats(request: Request):
             """What may be stored, and which formats run code when they load."""
