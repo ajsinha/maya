@@ -211,6 +211,17 @@ class ReferenceIndex:
                 row["status"] == "active"))
 
         for row in self.db.query(
+                "SELECT id, reference, name, status, effective_to "
+                "FROM model_use WHERE model_id = :m", {"m": model_id}):
+            live = row["status"] == "active"
+            found.append(Reference(
+                "model_use", row["id"], row["reference"],
+                (f"a declared use of this model: {row['name']}" if live
+                 else f"a retired use, {row['name']} — the record that it was "
+                      f"used for this once"),
+                live))
+
+        for row in self.db.query(
                 "SELECT id, inherited_at FROM monitoring_plan "
                 "WHERE model_id = :m", {"m": model_id}):
             inherited = bool(row.get("inherited_at"))
