@@ -410,7 +410,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
         max_days=cfg.get_int("overlays.max_days", 180),
-        renewal_limit=cfg.get_int("overlays.renewal_limit", 2))
+        renewal_limit=cfg.get_int("overlays.renewal_limit", 2),
+        # An overlay adjusts a model's OUTPUT, and a model's output is another
+        # model's input — so approving one walks the typed graph and tells the
+        # owners downstream. SS1/23 3.4(d): a downstream owner whose PD feed
+        # quietly gained an uplift did not change anything, will not see it in
+        # their own monitoring for a quarter, and will spend that quarter
+        # looking for it in their own model.
+        composition=composition)
 
     # Activated before the compiler is built, because a document states which
     # supervisors apply and an inactive regime has nothing to say.
