@@ -1002,6 +1002,27 @@ CREATE TABLE IF NOT EXISTS warrant (
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_model ON warrant (model_id);
 
+CREATE TABLE IF NOT EXISTS warrant_invocation (
+    id TEXT NOT NULL,
+    warrant_id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    semver TEXT,
+    principal TEXT NOT NULL,
+    declared_use TEXT NOT NULL,
+    environment TEXT NOT NULL,
+    verb TEXT DEFAULT 'score' NOT NULL,
+    outcome TEXT NOT NULL,
+    refusal_code TEXT,
+    latency_ms DOUBLE,
+    boundary_ok BOOLEAN,
+    request_id TEXT,
+    at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_warrant_invocation_model_id_at ON warrant_invocation (model_id, at);
+CREATE INDEX IF NOT EXISTS ix_warrant_invocation_warrant_id ON warrant_invocation (warrant_id);
+
 CREATE TABLE IF NOT EXISTS warrant_profile (
     id TEXT NOT NULL,
     name TEXT NOT NULL,

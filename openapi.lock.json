@@ -1708,6 +1708,18 @@
         ]
       }
     },
+    "/api/v1/invocations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/lifecycle": {
       "get": {
         "body": [],
@@ -3435,6 +3447,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/warrant-catalogue": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
