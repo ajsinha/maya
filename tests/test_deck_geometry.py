@@ -57,7 +57,12 @@ DECKS = [
     # geometry walker caught it, and the alternative — trimming the quoted
     # refusals to fit — would have made them shorter than MAYA actually says
     # them, which is the one thing that slide must not do.
-    ("MAYA-Model-and-Feature-Management", 125),
+    # 126, from 125: case study 14 — the London Whale reconstruction — is the
+    # first worked example taken from outside, so chapter 26 gained a slide.
+    # 127, from 126: chapter 15 gained the refusals that happen at a boundary,
+    # which are a different kind from the other thirteen — they are about
+    # declining to claim more than the platform holds where it cannot see.
+    ("MAYA-Model-and-Feature-Management", 127),
     # Three audience-specific decks, built from the same theme. All are capped
     # at twenty slides on purpose: an executive briefing that grows into the
     # design deck stops being read, and a concepts deck that grows becomes the
