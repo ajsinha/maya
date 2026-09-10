@@ -1160,6 +1160,45 @@ CREATE TABLE IF NOT EXISTS validation (
     PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS vendor_assessment (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    vendor TEXT NOT NULL,
+    product TEXT NOT NULL,
+    vendor_version TEXT NOT NULL,
+    artifact_digest TEXT,
+    kind TEXT NOT NULL,
+    state TEXT DEFAULT 'open' NOT NULL,
+    customisation TEXT DEFAULT '' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE PRECISION NOT NULL,
+    concluded_at DOUBLE PRECISION,
+    concluded_by TEXT,
+    conclusion TEXT,
+    conclusion_note TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_vendor_assessment_model ON vendor_assessment (model_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vendor_assessment_reference ON vendor_assessment (reference);
+
+CREATE TABLE IF NOT EXISTS vendor_item (
+    id TEXT NOT NULL,
+    assessment_id TEXT NOT NULL,
+    item TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    answer TEXT DEFAULT '' NOT NULL,
+    evidence TEXT DEFAULT '[]' NOT NULL,
+    answered_by TEXT,
+    answered_at DOUBLE PRECISION,
+    stated_at DOUBLE PRECISION,
+    covers_version TEXT,
+    state TEXT DEFAULT 'outstanding' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_vendor_item_assessment ON vendor_item (assessment_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_vendor_item ON vendor_item (assessment_id, item);
+
 CREATE TABLE IF NOT EXISTS version_approval (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,

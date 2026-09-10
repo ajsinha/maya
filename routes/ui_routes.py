@@ -532,6 +532,24 @@ class UIRoutes(Routes):
                 request, "break_glass.html",
                 report=self.ctx["break_glass"].across_the_estate())
 
+        # ------------------------------------------------ vendor models
+        @self.app.get("/vendor-models", response_class=HTMLResponse,
+                      tags=["ui"])
+        def vendor_models_page(request: Request):
+            """Models somebody else built, and what this firm established.
+
+            The column worth reading is the one counting items only the firm
+            can discharge: those are what validate the USE rather than the
+            model, and a vendor's validation report cannot close any of them.
+            """
+            if (r := self.page_gate(request, "validation:read")) is not None:
+                return r
+            from core.validation.vendor import VendorAssessments
+            return self.page(
+                request, "vendor_models.html",
+                report=self.ctx["vendor_assessments"].across_the_estate(),
+                checklist=VendorAssessments.checklist())
+
         # --------------------------------------------------- portfolio
         @self.app.get("/portfolio", response_class=HTMLResponse, tags=["ui"])
         def portfolio_page(request: Request, dimension: str = "tier"):
