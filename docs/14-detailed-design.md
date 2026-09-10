@@ -1832,6 +1832,89 @@ until somebody intervenes. And the probe calls are **not charged to the capabili
 control that consumed the resource it protects would refuse to run at exactly the moment you would want it
 to.
 
+### 15.4a Proposing an encoding, and stopping short of one
+
+`L-8` already checks that a regime encoding is sound once written. Nothing proposed one, so every regime
+after the three shipped ones started from a blank file. `core/assist/encoding.py` proposes. It does not
+encode, and the distinction is the whole module.
+
+**No predicate is ever generated.** A sentence carries an executable predicate, and a language model
+emitting Python that decides what a regulation obliges is the point at which a governance platform starts
+making up the law. So a proposal names a **form** and some **terms**:
+
+| Form | Means |
+|---|---|
+| `requires` | every named term must be true |
+| `forbids` | the named term must not be true |
+| `implies` | if the first term holds, the second must |
+
+MAYA builds the sentence from its own constructors. What crosses the boundary is a form name and term
+names — and anything else a caller sends is discarded and **listed on the candidate**, because the
+interesting failure is not that the code would not have run, it is that something tried to send code.
+
+Where no provider is wired, obligations are found by **modal verb** — *shall*, *must*, *may not* — which
+is how a lawyer reads a statute for duties. Weaker than a language model and entirely explainable, which
+for a first pass over a statute is arguably the better trade: an obligation this misses is one a person
+adds, and an obligation it invents is one they must find and remove.
+
+Three honesties are built into the reading, and each was a failure first:
+
+* **An uncertain reading is flagged, never corrected.** *Must not X without Y* is a conditional
+  obligation; read as a prohibition it forbids the thing the regulation requires. Correcting it silently
+  would be the platform interpreting the regulation, so the candidate carries the reason it may be
+  backwards and an adjudicator decides.
+* **Surplus terms are named.** An obligation mentioning four things becomes a two-term implication, and
+  the two that did not fit are listed — a proposal that silently dropped half an obligation would be the
+  exact failure this module warns about everywhere else.
+* **Whitespace is collapsed before matching.** Regulatory text arrives pasted out of a PDF and about half
+  of it breaks a cue like *black box* across a line. A matcher that missed those would report the duty as
+  unreadable and look like a limit of the vocabulary rather than of the paste.
+
+The proposal is checked before anybody reads it — untranslated terms, `L-16` deontic conflicts, the `L-8`
+satisfaction condition — and **a failing proposal is shown rather than withheld**: the failure names the
+sentence that cannot be defended and the state it fails against, which is the most useful thing anybody
+can be told about a draft encoding.
+
+**Nothing here activates anything**, and a term outside the core vocabulary is named rather than mapped.
+Deciding that a regulation's word means one of MAYA's is precisely the expert judgement this must not
+make. And note what a passing check claims: the draft is *self-consistent*. That is a far weaker claim
+than that it reads the regulation correctly, and it is the reason the output is a candidate a person
+writes into the library themselves.
+
+### 15.4b Probes belong at the boundary, not in the interior
+
+A probe set is the fixed list of inputs a model is asked when somebody needs to know whether two things
+behave alike. Almost every probe set in the wild was written from rows that were lying around, so it
+samples the **interior** of the input domain — and that is the wrong sample, because **the interior is
+where two implementations agree**. Ten thousand ordinary rows will show two artifacts agreeing to six
+decimal places and say nothing about the case that will break.
+
+Two implementations come apart at the boundary, so `core/assist/probes.py` derives probes from the
+declaration rather than from data:
+
+| Kind | What it catches |
+|---|---|
+| `at_bound` | An inclusive and an exclusive reading of the same contract |
+| `just_inside` | A limit any correct implementation must accept |
+| `just_outside` | Whether the contract's stated behaviour on violation actually happens |
+| `missing` | The field absent — one implementation reads zero, another refuses. The commonest silent divergence there is |
+| `wrong_type` | Coercion rules, which differ between runtimes far more than anybody expects |
+| `interior` | An ordinary value. Necessary, and the only kind a hand-written set usually has |
+
+Both the input schema and the contract's assumptions are read: the schema says what a field *is* and the
+contract says what the model *promises about* it, and a probe set built from one misses whatever
+constraints live in the other.
+
+**Coverage is over the declaration, never over the probes.** *We have four thousand probes* is not an
+answer to *does anything test the lower bound of `dscr`*, and the two get confused because only the first
+is easy to count. Below 80% of declared constraints exercised, the set is reported as a **deficiency in
+the probe set** rather than as a comparison result — the two are indistinguishable in every equivalence
+report ever written, which is why it is stated rather than left to be noticed.
+
+And **MAYA does not run them**. Running a probe means running the model; the probes go to whoever does,
+and what comes back is an equivalence claim the register holds to a standard. A platform producing both
+the test and the result would be the only witness to its own model's behaviour.
+
 ### 15.5 Asking in English, and the boundary that makes it safe
 
 "Ask your data a question" is the demo every vendor gives and the feature every model risk function is
@@ -2605,8 +2688,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 283 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 344 modules in one
+the 285 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 346 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

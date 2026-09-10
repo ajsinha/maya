@@ -399,6 +399,8 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # proposing an encoding, and probes over a declared domain
+    "text_too_short": 422, "no_declared_domain": 409,
     # asking in English, and the three things a validator is offered
     "question_required": 422,
     # A service this deployment was built without. 501 rather than 500:

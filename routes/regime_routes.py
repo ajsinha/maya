@@ -13,7 +13,19 @@ from __future__ import annotations
 
 from fastapi import Request
 
-from routes.base import Routes
+from routes.base import Body, Routes
+
+
+class EncodingIn(Body):
+    """Regulatory prose, and a name to argue about it under.
+
+    Deliberately no field for a predicate, an expression or a rule. A proposal
+    carries a form name and term names; the sentence is built by MAYA's own
+    constructors, and anything else a caller sends is discarded and listed.
+    """
+    name: str
+    text: str
+    citation: str = ""
 
 
 class RegimeRoutes(Routes):
@@ -55,3 +67,31 @@ class RegimeRoutes(Routes):
             state = regimes.core_state(documents.build_context(urn))
             return {"model": urn, "core_state": state,
                     **regimes.determine_all(state)}
+
+        # ------------------------------------------- proposing an encoding
+        @self.app.get(f"{api}/regime-encoding", tags=["regimes"])
+        def encoding_forms(request: Request):
+            """The forms, the modal cues and the boundary — published first.
+
+            A proposal names a form and some terms; MAYA builds the sentence
+            from its own constructors, so no predicate ever crosses the
+            boundary.
+            """
+            self.authorise(request, "regime:read")
+            return self.ctx["regime_encoding"].describe()
+
+        @self.app.post(f"{api}/regime-encoding", tags=["regimes"])
+        def propose_encoding(request: Request, body: EncodingIn):
+            """Read obligations out of regulatory prose and propose an encoding.
+
+            **Nothing here is activated.** The output is a candidate somebody
+            reads, argues with and writes into the library themselves — a regime
+            that entered force because a machine proposed it and a check passed
+            would mean the institution's obligations were set by something with
+            no standing to set them.
+            """
+            self.authorise(request, "regime:activate",
+                           estate_wide="proposing an encoding of a regime that "
+                                       "would bind the whole estate")
+            return self.guard(lambda: self.ctx["regime_encoding"].propose(
+                body.name, body.text, citation=body.citation))

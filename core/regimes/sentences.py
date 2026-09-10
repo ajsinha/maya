@@ -69,7 +69,7 @@ class Sentence:
                                    f"judgement about the model" if unknown else ""))}
 
 
-def requires(key: str, text: str, *terms: str, citation: str = "") -> Callable:
+def requires(key: str, text: str, *terms: str, citation: str = "") -> Sentence:
     """Declare a sentence whose obligation is that every named term is truthy.
 
     Most supervisory obligations have this shape — "there must be independent
