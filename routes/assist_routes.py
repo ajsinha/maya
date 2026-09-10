@@ -95,6 +95,25 @@ class AssistRoutes(Routes):
                 body.prompt_digest, body.owner, body.oracle_key, body.autonomy,
                 body.review_sample, actor=self.actor(who)))
 
+        @self.app.get(f"{api}/assist/injection", tags=["assistance"])
+        def injection_sweep(request: Request):
+            """Register rows carrying content shaped like an instruction.
+
+            A **signal, never a gate**. This is a blocklist and the adversary
+            can write anything — synonyms, another language, base64, a
+            homoglyph — so a clean sweep means nothing was recognised, not that
+            nothing is there. What holds is structural: register content is
+            fenced behind a nonce generated when the prompt is assembled, which
+            content written earlier cannot contain.
+
+            Nothing is removed. The words are evidence that somebody wrote
+            them, and a control whose only output is a quieter prompt is one
+            nobody can audit.
+            """
+            self.authorise(request, "assist:read")
+            from core.assist import injection
+            return self.guard(lambda: injection.sweep(self.ctx["evidence"]))
+
         @self.app.get(f"{api}/assist/budgets", tags=["assistance"])
         def budgets_estate(request: Request):
             """Every capability, what it may spend and what it has spent.

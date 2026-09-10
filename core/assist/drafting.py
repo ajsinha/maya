@@ -35,6 +35,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence
 
+from core.assist import injection
 from core.assist.common import AssistError
 from core.assist.providers import build as build_provider
 from core.log import get_logger
@@ -90,6 +91,18 @@ class DraftingService:
                 f"grounded",
                 "a subject with no record is one nobody should be drafting about")
         evidence_ids = tuple(n["id"] for n in nodes)
+        # Every payload below was written by somebody. Scanned for the shapes an
+        # injection takes and NOT stripped of them: removing the words would
+        # destroy the evidence that somebody wrote them, and the structural
+        # separation in `_prompt` is what actually holds. This is the signal.
+        found = injection.scan_nodes(nodes)
+        found += injection.scan(instruction, where="caller_instruction")
+        injected = injection.report(found)
+        if found:
+            logger.warning(
+                "drafting for capability %s about %s %s over content carrying "
+                "%d injection-shaped span(s): %s", capability_key, subject_type,
+                subject_id, len(found), sorted(injected["by_pattern"]))
         prompt = self._prompt(capability, subject_type, subject_id, instruction,
                               nodes)
 
@@ -116,6 +129,10 @@ class DraftingService:
                 output={"provider": drafted.provider, "model": drafted.model,
                         "usage": drafted.usage,
                         "prompt_digest": canonical_digest({"prompt": prompt}),
+                        # Recorded next to the generation, because the useful
+                        # output is not "the prompt contained something" but
+                        # "this row in your register does".
+                        "injection": injected,
                         # The provider's own prose, kept for the record and NOT
                         # shown as the answer: what a reader sees is assembled
                         # from the claims that survived grounding.
@@ -156,27 +173,37 @@ class DraftingService:
     @staticmethod
     def _prompt(capability: Dict[str, Any], subject_type: str, subject_id: str,
                 instruction: str, nodes: Sequence[Dict[str, Any]]) -> str:
-        """The prompt, assembled from the record rather than from a template.
+        """The prompt, in three regions ordered by provenance.
 
-        Every line a model is given about the subject comes from an evidence
-        node and is labelled with that node's id, so a claim that cites one can
-        be checked and a claim that cites anything else cannot.
+        Every line about the subject comes from an evidence node and is labelled
+        with that node's id, so a claim citing one can be checked and a claim
+        citing anything else cannot.
+
+        The regions are separated by a **per-prompt nonce**, and that is the
+        whole of the structural control: a fixed marker is a string the register
+        content can simply print, and a delimiter the writer can forge is not a
+        delimiter. The boundary the regions draw is *governed against
+        ungoverned* rather than instruction against data — the capability's
+        description was registered by somebody holding `assist:register`, and
+        the caller's free text was not.
         """
-        lines = [
+        governed = [
             f"Capability: {capability.get('capability_key')} "
             f"(tier {capability.get('tier')}, {capability.get('autonomy')}).",
             f"Subject: {subject_type} {subject_id}.",
-            instruction or capability.get("description") or "Draft a summary.",
+            capability.get("description") or "Draft a summary.",
             "",
-            "You may cite ONLY the evidence below, by its id. A claim citing "
-            "anything else will be discarded before anybody reads it.",
-            "",
+            "You may cite ONLY the evidence in the data region below, by its "
+            "id. A claim citing anything else will be discarded before anybody "
+            "reads it.",
         ]
-        for node in nodes:
-            lines.append(f"[{node['id']}] {node.get('kind')} — "
-                         f"{node.get('subject_type')} {node.get('subject_id')} "
-                         f"— {node.get('payload')}")
-        return "\n".join(lines)
+        data = [f"[{node['id']}] {node.get('kind')} — "
+                f"{node.get('subject_type')} {node.get('subject_id')} "
+                f"— {node.get('payload')}"
+                for node in nodes]
+        return injection.envelope(governed=governed,
+                                  caller_instruction=instruction,
+                                  data=data, marker=injection.fence())
 
     def describe(self) -> Dict[str, Any]:
         """Which provider is in force, and whether it can actually be used."""
