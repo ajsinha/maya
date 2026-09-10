@@ -869,6 +869,48 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# An approval that carries conditions, each of which something checks.
+#
+# SR 26-2 V permits use before validation *with compensating controls*, and this
+# is the table that makes those controls machine-enforced rather than promised.
+#
+# The design turns on one distinction, recorded per condition: **enforced** means
+# something in this platform refuses when it is broken; **attested** means
+# somebody has to confirm periodically that it still holds, because MAYA cannot
+# see the thing it is about. An exposure cap is the honest example — the register
+# does not see the exposure of a call, so a firm told its exposure cap is
+# machine-enforced would be worse off than one told it is a diary entry with a
+# name on it.
+#
+# `expires_at` is NOT NULL on purpose. A conditional approval with no end date is
+# an unconditional approval that has not noticed yet, which is exactly how a
+# temporary state becomes the permanent one.
+APPROVAL_CONDITION = Table(
+    "approval_condition", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text),
+    Column("reference", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("enforcement", Text, nullable=False, server_default=text("'enforced'")),
+    Column("parameters", Text, nullable=False, server_default=text("'{}'")),
+    Column("rationale", Text, nullable=False),
+    Column("imposed_by", Text, nullable=False),
+    Column("imposed_at", Double, nullable=False),
+    Column("expires_at", Double, nullable=False),
+    # For an attested condition: who last confirmed it holds, and when. Null
+    # means nobody has, which is a different fact from its being broken.
+    Column("confirmed_by", Text),
+    Column("confirmed_at", Double),
+    Column("confirm_every_days", Double, nullable=False, server_default=text('30.0')),
+    Column("state", Text, nullable=False, server_default=text("'active'")),
+    Column("discharged_at", Double),
+    Column("discharged_by", Text),
+    Column("discharge_reason", Text, nullable=False, server_default=text("''")),
+    Index("ix_approval_condition_model", "model_id", "state"),
+    Index("uq_approval_condition_reference", "reference", unique=True),
+)
+
 # What a model was asked and what it answered — kept apart from the invocation
 # record on purpose.
 #

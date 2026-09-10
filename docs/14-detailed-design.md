@@ -674,6 +674,41 @@ quorum and may never approve alone. And **a version whose model has no tier cann
 approving first and assessing afterwards would be a way of choosing your own control depth, and it is the
 obvious way to game a rule like this one.
 
+### 9.1c Approving on terms
+
+SR 26-2 V permits a model to be used before it is validated **with compensating controls**. Every
+institution already does this; what varies is whether the controls are enforced or promised, and a
+conditional approval recorded as a sentence in a committee minute is a promise the register cannot tell from
+one nobody is honouring.
+
+`core/lifecycle/conditions.py` closes the vocabulary to kinds the platform can act on, and refuses free text
+naming them — *the model will only be used for low-value cases* is not a control, it is a hope with a date
+on it. Each kind records **how** it is checked:
+
+| Kind | Enforcement | How |
+|---|---|---|
+| `expires` | enforced | checked at resolution against the clock |
+| `environments` | enforced | refused at resolution by comparing the environment asked for |
+| `usage_cap` | enforced | imposed as a quota on every grant (§14.9), refused by the same code that refuses any other quota |
+| `validated_by` | enforced | checked against the validation register at resolution |
+| `exposure_cap` | **attested** | MAYA does not see the exposure behind a call. A named person confirms it periodically |
+| `human_review` | **attested** | MAYA does not see what happens to an output after it is returned |
+
+**The `enforced`/`attested` column is the design, not a caveat on it.** A firm that believes its exposure cap
+is machine-enforced is worse off than one that knows it is a diary entry with a name on it, because the first
+has stopped checking. Selling an attested condition as an enforced one would be the single most damaging
+thing this module could do, so the distinction is recorded at the moment the condition is imposed, returned
+on every read, and printed on the screen.
+
+An attested condition that nobody has confirmed is **stale, not broken** — a different fact, and the one
+worth acting on: it means a control exists on paper and nothing is exercising it.
+
+Two further decisions. The expiry is **mandatory and bounded** at six months, because a conditional approval
+with no end date is an unconditional approval that has not noticed yet — the same failure the waiver register
+exists to prevent, arriving through a different door. And the terms are evaluated **at resolution rather than
+at approval**: approval is a moment and use is continuous, so a condition checked only when somebody signed
+is a sentence in a minute.
+
 ### 9.2 Comparing two versions
 
 `L-7` and `L-12` decide whether an alias **may** move: contracts refine, inputs are contravariant, outputs
@@ -1901,8 +1936,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 241 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 302 modules in one
+the 242 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 303 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

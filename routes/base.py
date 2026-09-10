@@ -138,6 +138,12 @@ STATUS: Dict[str, int] = {
     # prevent.
     # Per-grant limits. 429 for all three: the caller did nothing wrong and
     # the answer is *later*, which is what 429 means and what 403 does not.
+    # A conditional approval whose terms no longer hold. 409 rather than 403:
+    # the caller is entitled, and the model is not — the record is in a state
+    # that does not permit the act.
+    "approval_condition_broken": 409, "unknown_condition": 422,
+    "condition_incomplete": 422, "window_out_of_range": 422,
+    "not_attested": 409, "no_condition": 404, "no_version": 404,
     "rate_limit_reached": 429, "quota_limit_reached": 429,
     "cost_limit_reached": 429, "limit_not_positive": 422,
     "idempotency_key_reused": 409, "idempotency_in_flight": 409,

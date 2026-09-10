@@ -36,6 +36,7 @@ from fastapi.templating import Jinja2Templates
 from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
+from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
@@ -123,6 +124,7 @@ from db import (ServingAttestationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
+                ApprovalConditionRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -644,11 +646,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
+    # Approving on terms, where the terms are checked by something. SR 26-2 V
+    # permits use before validation with compensating controls; this is what
+    # makes those controls enforced rather than promised.
+    approval_conditions = ApprovalConditions(
+        ApprovalConditionRepository(db), registry, evidence,
+        validation=validation, warrants=warrants)
+    warrants.conditions = approval_conditions
+
     # What one grant may spend: a rate that protects the downstream system, a
     # quota that protects the authorisation, a cost budget that protects the
     # invoice. Checked before a descriptor is signed.
     grant_quotas = GrantQuotas(warrants, invocations, evidence)
     warrants.quotas = grant_quotas
+    approval_conditions.quotas = grant_quotas
 
     # What changed between two versions, as a diff a person reads. L-7 and
     # L-12 decide whether an alias MAY move; that is a different question.
@@ -854,6 +865,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "idempotency": idempotency,
                            "inference": inference,
                            "grant_quotas": grant_quotas,
+                           "approval_conditions": approval_conditions,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

@@ -94,6 +94,65 @@ says how many signatures the move takes and how long it may sit.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">Approved on terms</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    SR 26-2 V permits a model to be used before it is validated <em>with
+    compensating controls</em>. Every institution already does this; what varies
+    is whether the controls are enforced or promised, and a conditional approval
+    recorded as a sentence in a committee minute is a promise.
+    <br><br>
+    <strong>The distinction that matters is enforced against attested.</strong>
+    <em>Enforced</em> means something here refuses when the condition is broken:
+    a usage cap becomes a grant quota, an environment restriction becomes a
+    refusal at resolution, an expiry lapses the approval. <em>Attested</em> means
+    MAYA cannot see the thing the condition is about — it does not know the
+    exposure behind a call, or whether a person read the output — so the control
+    is that somebody named periodically confirms it still holds. That is a real
+    control and it is not the same one. <strong>A firm that believes its exposure
+    cap is machine-enforced is worse off than one that knows it is a diary
+    entry</strong>, because the first has stopped checking.
+  </div>
+  {% if conditions.models %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Tier</th><th class="text-end">Conditions</th>
+      <th class="text-end">Attested</th><th>State</th><th>Owner</th>
+    </tr></thead>
+    <tbody>
+      {% for row in conditions.models %}
+      <tr>
+        <td class="mono small">
+          <a href="/model/{{ row.urn.split('/')[-1] }}">{{ row.urn }}</a></td>
+        <td class="small">{{ row.tier or '—' }}</td>
+        <td class="small text-end">{{ row.conditions }}</td>
+        <td class="small text-end">{{ row.attested }}</td>
+        <td class="small">
+          {% if not row.holds %}
+            <span class="evidence-bad">{{ row.broken }} broken</span>
+          {% elif row.stale %}
+            <span class="text-warning">{{ row.stale }} unconfirmed</span>
+          {% else %}<span class="evidence-ok">holding</span>{% endif %}</td>
+        <td class="mono small">{{ row.owner }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">{{ conditions.detail }}.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>The window is mandatory and bounded.</strong> A conditional approval
+    with no end date is an unconditional approval that has not noticed yet, which
+    is exactly how a temporary state becomes the permanent one.
+    <strong>And the terms bite at use, not at approval</strong> — approval is a
+    moment and use is continuous, so a condition checked only at approval is a
+    sentence in a minute.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">What each class owes before it can be attested</div>
   <div class="card-body py-2 small text-muted border-bottom">
     Only <strong>attestation</strong> is guarded by evidence, and that is the
