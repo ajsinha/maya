@@ -113,6 +113,38 @@ class Assist:
             "subject_id": subject_id, "instruction": instruction,
             "oracle_payload": oracle_payload or {}})
 
+    # --------------------------------------------------------------- canaries
+    def canaries(self) -> Dict[str, Any]:
+        """Whether the model under each capability's version string has moved.
+
+        A `base_model` string identifies nothing on its own: a hosted model is
+        re-trained, quantised and rolled forward while the string it answers to
+        stays the same, and every piece of evidence about that capability's
+        quality was gathered against the weights it had then.
+        """
+        return self._maya.call("GET", "/assist/canaries")
+
+    def take_canary(self, capability_key: str) -> Dict[str, Any]:
+        """Record what this capability's model answers today.
+
+        Take it at evaluation. A probe whose answers disagree with each other
+        across repeats is excluded by name — it measures sampling noise rather
+        than the weights — and a capability where none survive is recorded as
+        unfingerprintable, which is a better answer than a digest that moves on
+        every check.
+        """
+        return self._maya.call("POST", f"/assist/canaries/{capability_key}")
+
+    def check_canary(self, capability_key: str) -> Dict[str, Any]:
+        """Has it moved? A trigger, never a verdict.
+
+        Nothing is suspended on a hit: temperature, a sampling seed or different
+        hardware would produce the same signal. What changes is that the review
+        sample goes back to 1.0 — the accumulated evidence of quality was about
+        a model that, if this moved, no longer exists.
+        """
+        return self._maya.call("GET", f"/assist/canaries/{capability_key}")
+
     # -------------------------------------------------------------- injection
     def injection(self) -> Dict[str, Any]:
         """Register rows carrying content shaped like an instruction to a model.

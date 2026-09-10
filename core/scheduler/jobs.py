@@ -67,6 +67,7 @@ class JobContext:
     pipeline: Any = None
     immaterial: Any = None
     lifecycle_profiles: Any = None
+    canaries: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -476,6 +477,31 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def check_base_models(ctx: "JobContext") -> Dict[str, Any]:
+    """Whether the model under each capability's version string has moved.
+
+    A `base_model` string identifies nothing on its own. A hosted model is
+    re-trained, quantised and rolled forward while the string it answers to
+    stays the same, and nobody is told — so this has to be something that
+    happens on a schedule rather than something somebody remembers.
+
+    The probe calls are deliberately **not charged to the capability's budget**.
+    A control that consumes the resource it is protecting would refuse to run
+    once that resource ran out, which is precisely the moment you would want it
+    to.
+    """
+    if not (ctx.canaries and ctx.findings and ctx.registry):
+        return {"skipped": "canary register or findings not available"}
+    report = ctx.canaries.across_the_estate(actor=ctx.actor)
+    # No finding is raised against a model, because a capability is not one.
+    # The consequence has already happened inside `check`: the review sample is
+    # back to 1.0, which is the eval gate re-running.
+    return {"count": report["changed"], "checked": report["checked"],
+            "without_a_baseline": report["without_a_baseline"],
+            "unfingerprintable": report["unfingerprintable"],
+            "detail": report["detail"]}
+
+
 def scan_for_injection(ctx: "JobContext") -> Dict[str, Any]:
     """Register rows carrying content shaped like an instruction to a model.
 
@@ -589,6 +615,13 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("assist.canaries",
+        "checks whether the model under each capability's version string moved",
+        "a hosted model is re-trained, quantised and rolled forward while the "
+        "string it answers to stays the same, and every piece of evidence "
+        "about that capability's quality was gathered against the weights it "
+        "had then",
+        check_base_models),
     Job("assist.injection",
         "scans the register for content shaped like an instruction to a model",
         "detection that only ran when somebody asked for a draft would miss "

@@ -95,6 +95,55 @@ class AssistRoutes(Routes):
                 body.prompt_digest, body.owner, body.oracle_key, body.autonomy,
                 body.review_sample, actor=self.actor(who)))
 
+        @self.app.get(f"{api}/assist/canaries", tags=["assistance"])
+        def canaries_estate(request: Request):
+            """Whether the model under each capability's version string moved.
+
+            A `base_model` string identifies nothing: a hosted model is
+            re-trained, quantised and rolled forward while the string it answers
+            to stays the same. Fixed trivial probes, digested at evaluation
+            time, compared now.
+
+            Read `without_a_baseline` as the absence of a clean bill of health
+            rather than one, and `unfingerprintable` as an honest answer — a
+            model that will not give the same probe the same answer twice cannot
+            be fingerprinted, and a digest moving on every check is an alarm
+            that consumes exactly the attention a real change would need.
+            """
+            self.authorise(request, "assist:read")
+            return self.guard(
+                lambda: self.ctx["canaries"].across_the_estate())
+
+        @self.app.post(f"{api}/assist/canaries/{{capability_key}}",
+                       status_code=201, tags=["assistance"])
+        def take_canary(request: Request, capability_key: str):
+            """Record what this capability's model answers today.
+
+            Taken at evaluation — the moment the platform decides what it thinks
+            of a capability, and therefore the moment worth being able to name
+            the model it thought that about. Probes that disagree with
+            themselves across repeats are excluded by name.
+            """
+            who = self.authorise(request, "assist:register")
+            return self.guard(lambda: self.ctx["canaries"].take(
+                capability_key, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/assist/canaries/{{capability_key}}",
+                      tags=["assistance"])
+        def check_canary(request: Request, capability_key: str):
+            """Has it moved? A trigger, never a verdict.
+
+            Temperature, a sampling seed or different hardware all move the
+            output without the weights moving, so nothing is suspended. What
+            changes on a hit is that the review sample goes back to 1.0: every
+            accepted draft and every clean sample was measured against weights
+            that have apparently moved, so that evidence is not wrong — it is
+            about something else.
+            """
+            who = self.authorise(request, "assist:read")
+            return self.guard(lambda: self.ctx["canaries"].check(
+                capability_key, actor=self.actor(who)))
+
         @self.app.get(f"{api}/assist/injection", tags=["assistance"])
         def injection_sweep(request: Request):
             """Register rows carrying content shaped like an instruction.
