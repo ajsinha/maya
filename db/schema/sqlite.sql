@@ -1071,6 +1071,27 @@ CREATE TABLE IF NOT EXISTS principal (
 CREATE INDEX IF NOT EXISTS ix_principal_status ON principal (status);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_principal_username ON principal (username);
 
+CREATE TABLE IF NOT EXISTS regulatory_approval (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    model_id TEXT,
+    kind TEXT NOT NULL,
+    regulator TEXT NOT NULL,
+    scope TEXT NOT NULL,
+    conditions TEXT DEFAULT '' NOT NULL,
+    granted_at DOUBLE NOT NULL,
+    expires_at DOUBLE,
+    state TEXT DEFAULT 'in_force' NOT NULL,
+    withdrawn_at DOUBLE,
+    withdrawn_by TEXT,
+    withdrawal_reason TEXT DEFAULT '' NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_regulatory_approval_model ON regulatory_approval (model_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_regulatory_approval_reference ON regulatory_approval (reference);
+
 CREATE TABLE IF NOT EXISTS risk_appetite (
     id TEXT NOT NULL,
     metric TEXT NOT NULL,

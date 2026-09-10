@@ -165,6 +165,9 @@ STATUS: Dict[str, int] = {
     "unknown_axis": 422, "axis_closed": 403,
     # discovery
     "scanner_required": 422, "already_triaged": 409,
+    # regulatory approvals and the tiering what-if
+    "unknown_approval_kind": 422, "regulator_required": 422,
+    "not_in_force": 409, "candidate_not_callable": 422,
     "urn_required": 422, "no_candidate": 404,
     "scope_required": 422, "no_hold": 404,
     # the event stream and its subscribers

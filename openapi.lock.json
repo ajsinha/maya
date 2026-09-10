@@ -3653,6 +3653,48 @@
         ]
       }
     },
+    "/api/v1/regulatory-approvals": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "conditions",
+          "expires_at",
+          "granted_at!",
+          "kind!",
+          "regulator!",
+          "scope!",
+          "urn"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regulatory-approvals/{reference}/withdraw": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/reproducibility": {
       "get": {
         "body": [],
@@ -4075,6 +4117,19 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/api/v1/tiering-whatif": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:minimum_exposure",
+          "query:tier"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
