@@ -147,6 +147,9 @@ class TestSchedulerApi:
                 # A sweep that runs and is never triaged is worse than no
                 # sweep: the estate believes it has a discovery programme.
                 "discovery.backlog",
+                # A firm reporting model use under a permission it no longer
+                # holds is not a housekeeping error.
+                "approvals.expire",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

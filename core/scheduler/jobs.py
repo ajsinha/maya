@@ -74,6 +74,7 @@ class JobContext:
     subscriptions: Any = None
     adaptive: Any = None
     discovery: Any = None
+    approvals: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -483,6 +484,22 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def expire_regulatory_approvals(ctx: "JobContext") -> Dict[str, Any]:
+    """Mark regulatory permissions that have reached their expiry.
+
+    The same reasoning as every other expiry here: an approval past its date
+    that nothing has marked expired reads on every screen exactly like one
+    still in force, and the date was always there. The difference is what is
+    being claimed — a firm reporting model use under a permission it no longer
+    holds is not a housekeeping error.
+    """
+    if ctx.approvals is None:
+        return {"expired": [], "count": 0,
+                "detail": "no regulatory approval register is wired into this "
+                          "instance"}
+    return ctx.approvals.expire_due(now=ctx.now, actor=ctx.actor)
+
+
 def discovery_backlog(ctx: "JobContext") -> Dict[str, Any]:
     """Discovery candidates nobody has looked at.
 
@@ -768,6 +785,12 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("approvals.expire",
+        "marks regulatory permissions that have reached their expiry",
+        "an approval past its date that nothing marked expired reads on every "
+        "screen exactly like one still in force — and a firm reporting model "
+        "use under a permission it no longer holds is not a housekeeping error",
+        expire_regulatory_approvals),
     Job("discovery.backlog",
         "reports discovery candidates nobody has triaged",
         "a sweep that runs and is never triaged is worse than no sweep: the "

@@ -169,6 +169,20 @@ class WithdrawLimitationIn(Body):
     reason: str
 
 
+class ApprovalIn(Body):
+    kind: str
+    regulator: str
+    scope: str
+    granted_at: float
+    urn: str = ""
+    conditions: str = ""
+    expires_at: Optional[float] = None
+
+
+class WithdrawIn(Body):
+    reason: str
+
+
 class SweepIn(Body):
     scanner: str
     candidates: List[Dict[str, Any]] = Field(default_factory=list)
@@ -813,6 +827,97 @@ class ModelRoutes(Routes):
             return self.guard(lambda: reg.move_alias(
                 urn(name), body.environment, body.alias, body.semver,
                 actor=self.actor(who), justification=body.justification))
+
+        @self.app.get(f"{self.api}/regulatory-approvals", tags=["risk"])
+        def regulatory_approvals(request: Request, urn: str = ""):
+            """Permissions a supervisor gave, with scope and expiry.
+
+            **An approval is not a tier and not a control.** It is somebody
+            else's decision, about a defined scope, that can be taken away — and
+            it is recorded *beside* the tier and never folded into it. A model
+            with IRB permission is one whose numbers reach the capital
+            calculation, which is what a tier measures, and the permission was
+            granted on the strength of the firm's own governance, so using it to
+            reduce that governance is circular.
+            """
+            self.authorise(request, "model:read")
+            service = self.ctx["regulatory_approvals"]
+            if not urn:
+                return self.guard(lambda: service.across_the_estate())
+            model = self.guard(lambda: reg.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: service.for_model(urn))
+
+        @self.app.post(f"{self.api}/regulatory-approvals", status_code=201,
+                       tags=["risk"])
+        def record_approval(request: Request, body: ApprovalIn):
+            """Record a permission somebody gave.
+
+            Conditions are kept as the supervisor wrote them: normalising them
+            into a vocabulary this platform invented would be paraphrasing a
+            regulator, and a paraphrase is what somebody reads in three years
+            when the person who received the letter has left.
+            """
+            # An approval may be firm-level (a waiver against a requirement)
+            # or model-level. When it names a model the scope is applied to it;
+            # when it does not there is no model to scope to, and the
+            # permission is the firm-level one.
+            model = (self.guard(lambda: reg.require(body.urn))
+                     if body.urn else None)
+            who = (self.authorise(request, "risk:assess", model=model)
+                   if model is not None
+                   else self.authorise(request, "report:cut"))
+            return self.guard(
+                lambda: self.ctx["regulatory_approvals"].record(
+                    body.kind, regulator=body.regulator, scope=body.scope,
+                    granted_at=body.granted_at, urn=body.urn or None,
+                    conditions=body.conditions, expires_at=body.expires_at,
+                    actor=self.actor(who)))
+
+        @self.app.post(
+            f"{self.api}/regulatory-approvals/{{reference}}/withdraw",
+            tags=["risk"])
+        def withdraw_approval(request: Request, reference: str,
+                              body: WithdrawIn):
+            """Record that it was taken away. Never deleted."""
+            service = self.ctx["regulatory_approvals"]
+            row = self.guard(lambda: service.require(reference))
+            model = (reg.by_id(row["model_id"]) if row.get("model_id")
+                     else None)
+            who = (self.authorise(request, "risk:assess", model=model)
+                   if model is not None
+                   else self.authorise(request, "report:cut"))
+            return self.guard(
+                lambda: service.withdraw(
+                    reference, body.reason, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/tiering-whatif", tags=["risk"])
+        def tiering_whatif(request: Request, minimum_exposure: float = 0.0,
+                           tier: int = 1):
+            """What a candidate tiering rule would do to the estate you have.
+
+            The candidate here is deliberately simple — *tier 1 above this
+            exposure* — because the point of the endpoint is the **diff**, not
+            the rule language. Nobody can look at a rule and say what it does;
+            everybody can look at *eleven models leave tier 1* and have an
+            opinion.
+
+            **Read the downgrades.** Raising scrutiny costs money and somebody
+            notices; lowering it is silent, arrives as a spreadsheet with fewer
+            red cells, and is the easiest way to reduce a firm's model risk on
+            paper without touching a model. Nothing is applied.
+            """
+            # A what-if is about the whole estate rather than one model, so
+            # the model-scoped `risk:assess` is the wrong gate: `report:cut` is
+            # the estate-level act, and the simulation applies nothing.
+            self.authorise(request, "report:cut")
+
+            def candidate(facts):
+                exposure = float(facts.get("exposure") or 0.0)
+                return tier if exposure >= minimum_exposure else 4
+
+            return self.guard(
+                lambda: self.ctx["tiering_whatif"].simulate(candidate))
 
         @self.app.get(f"{self.api}/discovery", tags=["registry"])
         def discovery(request: Request):
