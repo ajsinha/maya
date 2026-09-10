@@ -33,6 +33,7 @@ from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
 from core.execution.invocations import InvocationLog
+from core.features.pipeline import PipelineHealth
 from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
@@ -454,6 +455,25 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         attempt_threshold=cfg.get_int("warrants.off_label_attempts", 20),
         window_days=cfg.get_int("warrants.reconcile_window_days", 90))
 
+    # The feeds under the models, judged against their own history rather than
+    # against an SLA somebody set at onboarding and nobody revisited.
+    def _models_using_view(view_name: str):
+        """Every model whose featureset pins this view.
+
+        A feature view is not a model and findings hang off models, so an
+        upstream problem is raised against whoever actually has to act on it.
+        """
+        rows = db.query(
+            "SELECT DISTINCT m.id, m.owner FROM model m "
+            "JOIN feature_contract c ON c.model_version_id IN "
+            "  (SELECT id FROM model_version WHERE model_id = m.id) "
+            "JOIN feature_view v ON v.name = :v", {"v": view_name})
+        return [dict(r) for r in rows]
+
+    pipeline_health = PipelineHealth(
+        features.views, findings=findings, registry=registry,
+        models_using=_models_using_view)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -553,7 +573,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    finding_workflow=finding_workflow,
                    evidence=evidence, risk=RiskRepository(db),
                    waivers=waivers,
-                   uses=use_reconciliation),
+                   uses=use_reconciliation,
+                   pipeline=pipeline_health),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -592,6 +613,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "waivers": waivers,
                            "invocations": invocations,
                            "use_reconciliation": use_reconciliation,
+                           "pipeline_health": pipeline_health,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
