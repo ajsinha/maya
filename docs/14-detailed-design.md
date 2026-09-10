@@ -594,7 +594,7 @@ gate.
 
 ## 9. Lifecycle, approval and attestation
 
-`core/lifecycle/` — `states`, `service`, `approval`, `attestation`, `amendments`.
+`core/lifecycle/` — `states`, `service`, `approval`, `attestation`, `amendments`, `changes`, `profiles`.
 
 ### 9.1 The record machine
 
@@ -602,6 +602,54 @@ Seven states — `draft`, `baselined`, `submitted`, `approved`, `attested`, `ame
 **two initial objects**. The path is `draft → submitted → approved → attested`, with amendment as the
 only route out of immutability, retirement keeping everything, and deletion administrators-only with the
 evidence chain left intact.
+
+### 9.1a One machine, several sets of obligations
+
+`FR-LC-001` asks for configurable state machines **per model class**, and `core/lifecycle/profiles.py`
+deliberately does not provide that. The states and transitions stay one machine, because every law here is
+a statement about that graph: `L-1` is a reachability proof over exactly two initial states, mutability is a
+property of the state set, and the immutability of an attested record is the reason amendments exist. Nine
+graphs would mean nine reachability proofs, nine answers to *can this be changed*, and a supervisor who has
+to ask which machine a model is on before reading its status.
+
+What the requirement actually wants is *a T3 needs an independent review on file before it can be attested
+and a T0 does not*, and that is a **guard on a transition**, not a different transition. So a profile is the
+join of three things the register already holds:
+
+| Source | Contributes | Why there |
+|---|---|---|
+| The fibre (`L-15`) | which evidence kinds must be on file | each class already declares what it owes; a second catalogue keyed by class would disagree with it the first time either moved |
+| The tier | how many signatures, and how long a move may sit | two models of one class at different tiers owe the same questions and a different amount of agreement about the answers |
+| The shared machine | which moves exist at all | one vocabulary, readable across the estate |
+
+This is also the **first consumer `Fibre.evidence` has ever had**. All nine classes had been declaring the
+attachment kinds they owe since the fibres were written, `Fibre.requires_evidence` existed, and nothing
+outside its own tests ever called it — attachments were checked for existence and never against the
+obligation of the class that needed them.
+
+Only `attest` is evidence-guarded. Checking earlier would block a draft for lacking a validation report
+nobody could have written yet, and a control that fires before it can be satisfied teaches people to route
+around it. Readiness reports *on file but unreviewed* apart from *missing*, because those are different
+problems and collapsing them sends somebody off to write a report already sitting in a queue.
+
+### 9.1b The clock nobody was watching
+
+The SLA half is new capability rather than a restatement. A record `submitted` for four months is blocked by
+nothing: the submission succeeded, every gate passed, and no control anywhere in the platform looked at the
+elapsed time. That is precisely how a governance queue becomes a place things go to wait, and the only thing
+that would surface it is a state carrying an expected duration — no state had one.
+
+`SLA_DAYS` gives each **transient** state a limit per tier. `attested` and `retired` carry none: they are
+where a record is supposed to rest, and a duration there would report every model in force as overdue.
+Nothing is refused — a queue is allowed to have a queue, and blocking would punish the second line for being
+careful — so `lifecycle.stalled` raises an advisory finding and the *Lifecycle profiles* screen lists them
+worst-first.
+
+Time-in-state is **folded from the evidence chain**, not read from a column. The chain already records every
+transition with its timestamp and its `to`, and a `status_changed_at` column would be a second copy that
+drifts the first time anything writes a status without recording why. Where the chain does not record a
+record entering the state it is in, the model is reported under `not_measurable` rather than silently
+skipped: a clean zero covering an unclean one is worse than the gap it hides.
 
 The second initial object is `baselined`, and it was found by writing `L-1` rather than by reading the
 design: the law computes the reachable closure of the initial set and asserts it equals the declared state
@@ -1212,7 +1260,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Fourteen idempotent jobs
+### 16.3 Fifteen idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1534,8 +1582,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 226 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 287 modules in one
+the 228 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 289 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

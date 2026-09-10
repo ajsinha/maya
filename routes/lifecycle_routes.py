@@ -11,7 +11,7 @@ Everyone else retires a model, which withdraws it from use and keeps the record.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from fastapi import Request
 from pydantic import Field
@@ -57,6 +57,65 @@ class LifecycleRoutes(Routes):
             """The state machine itself: who may move what, from where, to where."""
             self.principal(request)
             return {"transitions": describe()}
+
+        @self.app.get(f"{api}/lifecycle-profiles", tags=["lifecycle"])
+        def profiles(request: Request):
+            """The reference lifecycle for every trainability class.
+
+            One state graph and several sets of obligations. Nine graphs would
+            mean nine reachability proofs, nine answers to *can this be
+            changed*, and a supervisor who has to ask which machine a model is
+            on before reading its status. What varies is what each move costs.
+            """
+            self.principal(request)
+            return self.guard(lambda: self.ctx["lifecycle_profiles"].reference())
+
+        @self.app.get(f"{api}/lifecycle-profiles/{{trainability}}",
+                      tags=["lifecycle"])
+        def profile(request: Request, trainability: str,
+                    tier: Optional[int] = None):
+            """What a model of this class owes on each move, at this tier.
+
+            The class says which evidence kinds must be on file — `L-15`
+            already makes each one declare that — and the tier says how many
+            signatures a move takes and how long it may sit.
+            """
+            self.principal(request)
+            return self.guard(
+                lambda: self.ctx["lifecycle_profiles"].for_class(
+                    trainability, tier))
+
+        # A top-level path with a `urn` query rather than a suffix under
+        # `/models/{name}`: the model route's path converter is greedy and
+        # swallows any suffix hung off it, which is why every derived read in
+        # this platform — validation plans, monitoring plans, uses — takes the
+        # urn as a parameter instead.
+        @self.app.get(f"{api}/lifecycle-readiness", tags=["lifecycle"])
+        def readiness(request: Request, urn: str, transition: str = "attest"):
+            """Whether this model can make this move, and what is missing.
+
+            *On file but unreviewed* is reported apart from *missing*: the
+            document exists and the obligation is not yet discharged, and
+            collapsing the two sends somebody off to write a report that is
+            already written and sitting in a queue.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["lifecycle_profiles"].check(urn, transition))
+
+        @self.app.get(f"{api}/lifecycle-stalled", tags=["lifecycle"])
+        def stalled(request: Request):
+            """Records that have been mid-move longer than their tier allows.
+
+            Nothing else here can see this. Submission succeeded, every gate
+            passed, and no control is watching the clock — which is how a
+            governance queue becomes a place things go to wait. Not a refusal:
+            a queue is allowed to have a queue, but one with no expected
+            duration is one nobody can tell is stuck.
+            """
+            self.principal(request)
+            return self.guard(lambda: self.ctx["lifecycle_profiles"].stalled())
 
         @self.app.patch(f"{api}/models/{{name:path}}", tags=["lifecycle"])
         def update(request: Request, name: str, body: UpdateIn):

@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Lifecycle profiles — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>What each move costs</h1>
+<div class="accent"></div>
+
+<p class="lead small">Every model in this register is on the <strong>same state
+machine</strong>. That is deliberate and it is not a simplification: every law
+the platform rests on is a statement about that graph — <code>L-1</code> is a
+reachability proof over exactly two initial states, and the immutability of an
+attested record is the reason amendments exist. Nine graphs would mean nine
+reachability proofs, nine answers to <em>can this be changed</em>, and a
+supervisor who has to ask which machine a model is on before reading its
+status.</p>
+
+<p class="small text-muted">What varies is what each move <strong>costs</strong>.
+The trainability class says which evidence must be on file before a record can
+be attested — <code>L-15</code> already makes each class declare that, and this
+screen is the first thing in the platform that reads the declaration. The tier
+says how many signatures the move takes and how long it may sit.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ reference.count }}</div>
+    <div class="stat-l">reference lifecycles</div>
+    <div class="small text-muted">one for every trainability class</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">1</div>
+    <div class="stat-l">state graph</div>
+    <div class="small text-muted">shared by all of them, on purpose</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ reference.distinct_evidence_sets }}</div>
+    <div class="stat-l">distinct evidence sets</div>
+    <div class="small text-muted">what actually differs between classes</div>
+  </div></div></div>
+  {# The number this screen exists for. Nothing else in the platform can see it:
+     submission succeeded, every gate passed, and no control watches the clock. #}
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if stalled.count else 'evidence-ok' }}">{{ stalled.count }}</div>
+    <div class="stat-l">stuck mid-move</div>
+    <div class="small text-muted">longer than the tier allows</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Records nobody is waiting on</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    A record that has been <code>submitted</code> for four months is not blocked
+    by any control here — the submission succeeded and every gate passed. That is
+    how a governance queue becomes a place things go to wait, and the only reason
+    it is invisible is that no state carries an expected duration. None of this is
+    refused: a queue is allowed to have a queue, but one with no expected duration
+    is one nobody can tell is stuck.
+  </div>
+  {% if stalled.stalled %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Tier</th><th>Sitting in</th>
+      <th class="text-end">Days</th><th class="text-end">Allowed</th>
+      <th class="text-end">Over by</th><th>Owner</th>
+    </tr></thead>
+    <tbody>
+      {% for row in stalled.stalled %}
+      <tr>
+        <td class="mono small">
+          <a href="/model/{{ row.urn.split('/')[-1] }}">{{ row.urn }}</a></td>
+        <td class="small">{{ row.tier or '—' }}</td>
+        <td class="small mono">{{ row.status }}</td>
+        <td class="small text-end">{{ '%.0f' | format(row.days_in_state) }}</td>
+        <td class="small text-end text-muted">{{ '%.0f' | format(row.limit_days) }}</td>
+        <td class="small text-end evidence-bad">
+          +{{ '%.0f' | format(row.days_over) }}</td>
+        <td class="mono small">{{ row.owner or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No record is sitting mid-move longer than its tier allows.
+    {% if stalled.not_measurable %}
+    <span class="evidence-bad">{{ stalled.not_measurable | length }} could not be
+    measured</span> — nothing on the evidence chain records them entering the
+    state they are in, and reporting zero here while some could not be measured
+    would be a clean number covering an unclean one.
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What each class owes before it can be attested</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Only <strong>attestation</strong> is guarded by evidence, and that is the
+    point: it is the moment a record becomes immutable and in force. Checking
+    earlier would block a draft for lacking a validation report nobody could have
+    written yet, and a control that fires before it can be satisfied teaches
+    everybody to route around it.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Class</th><th>Kind</th><th>Required before attesting</th>
+      <th class="text-end">Kinds</th>
+    </tr></thead>
+    <tbody>
+      {% for row in reference.lifecycles %}
+      <tr>
+        <td class="mono small">{{ row.trainability_class }}</td>
+        <td class="small">{{ row.class_name }}</td>
+        <td class="small">
+          {% for kind in row.required_before_attesting %}
+          <span class="badge bg-secondary-subtle text-body-secondary me-1 mono"
+                style="font-weight:400">{{ kind.replace('_', ' ') }}</span>
+          {% endfor %}
+        </td>
+        <td class="small text-end">{{ row.required_before_attesting | length }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">How many signatures, and how long it may sit</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    What the tier contributes that the class cannot. Two models of one class at
+    different tiers owe the same <em>questions</em> and a different amount of
+    agreement about the answers. Returning a record is one person's act at every
+    tier — requiring a quorum to send something <em>back</em> is how a review
+    queue seizes up.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Tier</th><th class="text-end">Signatures to approve or attest</th>
+      {% for state in sla_states %}<th class="text-end">{{ state }}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+      {% for tier in [1, 2, 3, 4] %}
+      <tr>
+        <td class="small">{{ tier }}</td>
+        <td class="small text-end">{{ signatures[tier] }}</td>
+        {% for state in sla_states %}
+        <td class="small text-end text-muted">
+          {{ '%.0f days' | format(sla[state][tier]) }}</td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">
+    <code>attested</code> and <code>retired</code> carry no clock. They are where
+    a record is supposed to <em>rest</em>, and a duration on them would report
+    every model in force as overdue.
+  </div>
+</div>
+
+{% endblock %}

@@ -85,6 +85,55 @@ class Lifecycle:
         """
         return self._maya.call("GET", f"/models/{short(urn)}").get("lifecycle", {})
 
+    # -------------------------------------------------------- what a move costs
+    def profiles(self) -> Dict[str, Any]:
+        """The reference lifecycle for every trainability class.
+
+        One state graph and several sets of obligations. Nine graphs would mean
+        nine reachability proofs, nine answers to *can this be changed*, and a
+        supervisor who has to ask which machine a model is on before reading its
+        status. What varies is what each move **costs**: the class says which
+        evidence kinds must be on file before a record can be attested, the tier
+        says how many signatures the move takes.
+        """
+        return self._maya.call("GET", "/lifecycle-profiles")
+
+    def profile(self, trainability_class: str, *,
+                tier: Optional[int] = None) -> Dict[str, Any]:
+        """What a model of this class owes on each move, at this tier.
+
+        Both halves are derived rather than configured: the evidence comes from
+        the fibre, which `L-15` already makes each class declare, and the quorum
+        from the tier. Omit the tier and the lightest quorum is shown — an
+        untiered model is not a tier 1 model, and this must not invent one.
+        """
+        params = {"tier": tier} if tier is not None else None
+        return self._maya.call("GET", f"/lifecycle-profiles/{trainability_class}",
+                               params=params)
+
+    def readiness(self, urn: str, *,
+                  transition: str = "attest") -> Dict[str, Any]:
+        """Whether this model can make this move, and what is missing if not.
+
+        Read `awaiting_review` apart from `missing_evidence`. A document on file
+        that nobody has accepted is a different problem from a document nobody
+        has written, and treating them alike sends somebody off to produce a
+        report that is already sitting in a review queue.
+        """
+        return self._maya.call("GET", "/lifecycle-readiness",
+                               params={"urn": urn, "transition": transition})
+
+    def stalled(self) -> Dict[str, Any]:
+        """Records that have been mid-move longer than their tier allows.
+
+        Nothing else in the platform can see this. Submission succeeded, every
+        gate passed, and no control watches the clock — which is how a
+        governance queue becomes a place things go to wait. Not a refusal: a
+        queue is allowed to have a queue, but one with no expected duration is
+        one nobody can tell is stuck.
+        """
+        return self._maya.call("GET", "/lifecycle-stalled")
+
     # ------------------------------------------------------------------- acts
     def update(self, urn: str, *, fields: Dict[str, Any]) -> Dict[str, Any]:
         """Revise an open record. Refused once it is attested, naming the amendment."""
