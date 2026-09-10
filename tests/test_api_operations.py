@@ -138,6 +138,9 @@ class TestSchedulerApi:
                 # The one place where deleting is correct: this table holds
                 # somebody else's personal data.
                 "inference.expire",
+                # A governance act must not fail because somebody's webhook
+                # receiver is down.
+                "events.deliver",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

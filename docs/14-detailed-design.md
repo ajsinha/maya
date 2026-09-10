@@ -1580,7 +1580,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Twenty idempotent jobs
+### 16.3 21 idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1702,6 +1702,41 @@ prefixes**, so the exempt set cannot grow as routes are added beneath it. And th
 the guard registers *before* the session middleware, which places it *inside* it, since Starlette wraps
 later-added middleware outermost and a guard running before the session is decoded has nothing to compare
 against.
+
+### 17.3 The event stream and its subscribers
+
+**There is no event table, and that is the design.** Every act that changes this register already appends to
+the evidence chain — hash-linked, append-only, in a **total order**. A separate event log would be a second
+thing to keep in step, and the first time the two disagreed nobody could say which was true. That is the
+failure a governance platform cannot afford, because the chain is the thing an examiner is shown.
+
+The chain's `seq` is what makes a cursor work: an integer, ordered, so a consumer that stores the last one it
+processed resumes exactly where it stopped — no window, no watermark, no duplicate-detection heuristics on
+the consumer's side. Delivery is at-least-once and the envelope carries the node's own **`content_hash`**, so
+a receiver deduplicates on a fact rather than on a UUID this platform invented. Telling somebody to make
+their handler idempotent without supplying the key is how at-least-once becomes at-least-twice in production.
+The envelope is versioned, because a consumer written today has to keep working when a payload gains a field
+and a version is the only thing that lets anybody reason about when it will not.
+
+**A webhook is an egress, and this platform is meant to be deployable air-gapped.** Every asset here is
+vendored for that reason, and a subscription is the first thing that deliberately reaches outward. So it is
+off unless somebody creates one, the URL goes through the same `permit()` guard as every other outward call,
+and the **content** question is answered explicitly rather than skipped: `kinds` is mandatory and `*` is
+refused. A chain node's payload carries model inventory, findings and exposure figures, and a subscription
+that receives everything is one nobody decided the content of.
+
+| Decision | Why |
+|---|---|
+| The cursor is **per subscription** | A failing receiver falls behind on its own; it does not hold up the others and is not silently skipped past. Its backlog is a number somebody can look at, which is what makes a broken integration visible instead of quiet |
+| Delivery runs on the **batch**, not at the act | A governance act must not fail because somebody's webhook receiver is down. An act that could be rolled back by a failed notification would make an outside system's availability part of this register's integrity |
+| A failing subscriber is **suspended, never deleted** | Deleting loses the record that somebody was being told and stopped being told, and the cursor with it — so a receiver that came back would either miss everything in between or be resent the whole chain |
+| The secret is returned **once** | A secret a listing endpoint hands back is a secret held by everybody with read access |
+| The signature covers the **exact body** | A signature over anything less leaves the rest unsigned, and a receiver has no way to know which part it verified |
+| A new subscription starts at the **head** | A new subscriber does not want the entire history of the register delivered to it; one that does can rewind deliberately |
+
+The sender is injected, for the same reason the mock assistance provider exists: the whole governed path —
+cursor, filter, signature, backoff, suspension — is exercisable without anything leaving the process, and a
+test that has to reach the network is a test nobody runs.
 
 ## 18. Authorisation
 
@@ -2003,8 +2038,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 245 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 306 modules in one
+the 249 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 310 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

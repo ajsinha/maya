@@ -869,6 +869,43 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# Who wants to be told what, and where they have got to.
+#
+# **There is no event table.** The evidence chain already records every domain
+# act, in a total order, hash-linked — so a subscription is a *cursor over the
+# chain* rather than a copy of it. A second event log would be a second thing to
+# keep in step, and the first time the two disagreed nobody would know which was
+# true.
+#
+# `kinds` is required and `*` is refused. A chain node's payload carries model
+# inventory, findings and exposure figures, so what may leave the institution is
+# a deployment decision — and a subscription that receives everything is one
+# nobody decided the content of.
+EVENT_SUBSCRIPTION = Table(
+    "event_subscription", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("name", Text, nullable=False),
+    Column("url", Text, nullable=False),
+    Column("kinds", Text, nullable=False, server_default=text("'[]'")),
+    # Write-only. Returned on creation and never on a read: a secret a listing
+    # endpoint hands back is a secret anybody with read access holds.
+    Column("secret", Text, nullable=False),
+    # Where this subscriber has got to in the chain. Per subscription, so one
+    # failing receiver falls behind on its own rather than holding up the rest
+    # or being silently skipped.
+    Column("cursor", Integer, nullable=False, server_default=text('0')),
+    Column("state", Text, nullable=False, server_default=text("'active'")),
+    Column("failures", Integer, nullable=False, server_default=text('0')),
+    Column("last_delivery_at", Double),
+    Column("last_failure_at", Double),
+    Column("last_failure", Text, nullable=False, server_default=text("''")),
+    Column("owner", Text, nullable=False),
+    Column("created_at", Double, nullable=False),
+    Column("created_by", Text, nullable=False),
+    Index("uq_event_subscription_reference", "reference", unique=True),
+)
+
 # An approval that carries conditions, each of which something checks.
 #
 # SR 26-2 V permits use before validation *with compensating controls*, and this

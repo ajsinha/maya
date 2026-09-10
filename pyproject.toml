@@ -132,6 +132,12 @@ ignore = [
 # core/outbound.py and tests/test_outbound.py.
 "core/authz/oidc.py" = ["S310"]
 "core/notify/channels.py" = ["S310"]
+# The same: a subscription URL is checked by `permit()` at the moment it is
+# registered, so what reaches `urlopen` here has already had its scheme
+# decided — and a URL that changed since would have to have been written
+# straight into the table, which is the database being trusted rather than
+# this call.
+"core/events/subscriptions.py" = ["S310"]
 # The SDK is given its base URL by whoever constructs it, and `verify_tls=False`
 # is an argument somebody passes deliberately — documented as the thing you use
 # against a corporate proxy with an internal CA, and nowhere else.
