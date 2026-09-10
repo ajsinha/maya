@@ -11,12 +11,16 @@ creating the pack the committee will later be minuted against.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import Request
+from fastapi.responses import Response
 from pydantic import Field
 
+from core.authz.scope import Scope
 from core.reporting import NO_COMPOSITE, STATUS_MEANING
+from core.reporting.returns import RegulatoryReturns
+from core.reporting.views import SavedViews
 from routes.base import Body, Routes
 
 
@@ -34,6 +38,31 @@ class RetireIn(Body):
     metric: str
     scope: Dict[str, Any] = Field(default_factory=dict)
     reason: str = ""
+
+
+class QueryIn(Body):
+    """A structured query. There is deliberately no field for query text.
+
+    A layer that accepted SQL could promise nothing about what a query can
+    reach, and the first thing a BI tool does with table access is invent its
+    own definition of the most important word in the register.
+    """
+    entity: str
+    select: Optional[List[str]] = None
+    where: List[Dict[str, Any]] = Field(default_factory=list)
+    order_by: str = ""
+    descending: bool = False
+    limit: int = 1000
+
+
+class SaveViewIn(Body):
+    name: str
+    entity: str
+    query: Dict[str, Any] = Field(default_factory=dict)
+    description: str = ""
+    #: Shared views carry their QUERY and never their rows, so sharing one
+    #: cannot disclose a row the reader's own scope does not reach.
+    shared: bool = False
 
 
 class PackIn(Body):
@@ -174,3 +203,121 @@ class ReportingRoutes(Routes):
             """A pack as it was read, not as it would be recomputed today."""
             self.authorise(request, "report:read")
             return self.guard(lambda: packs.get(pack_id))
+
+        # ------------------------------------------------- the semantic layer
+        @self.app.get(f"{api}/semantic-layer", tags=["reporting"])
+        def semantic_layer(request: Request):
+            """Every entity, field and operator this layer publishes.
+
+            Read before querying. A field marked `derived` is computed by the
+            same code the screens use, which is the point: `in_force` here is
+            the platform's `in_force` and not somebody's `status = 'approved'`.
+            """
+            self.authorise(request, "report:read")
+            return self.ctx["semantics"].describe()
+
+        @self.app.post(f"{api}/query", tags=["reporting"])
+        def run_query(request: Request, body: QueryIn):
+            """Run one structured query under the caller's own scope.
+
+            Scope filters rows rather than refusing the call, and the answer
+            says how many rows it removed: a total that is silently short gets
+            reconciled against somebody else's and the gap blamed on a bug.
+            """
+            who = self.authorise(
+                request, "report:read",
+                estate_wide=f"querying the {body.entity} entity")
+            return self.guard(lambda: self.ctx["semantics"].query(
+                body.entity, select=body.select, where=body.where,
+                order_by=body.order_by, descending=body.descending,
+                limit=body.limit, scope=Scope.of(who)))
+
+        # --------------------------------------------------------- saved views
+        @self.app.get(f"{api}/saved-views", tags=["reporting"])
+        def list_views(request: Request):
+            """Your own views, and everything shared with you."""
+            who = self.authorise(request, "report:read")
+            return self.guard(
+                lambda: self.ctx["saved_views"].list(self.actor(who)))
+
+        @self.app.post(f"{api}/saved-views", status_code=201, tags=["reporting"])
+        def save_view(request: Request, body: SaveViewIn):
+            """Keep a query. It is run once here, so a broken view is refused
+            while its author is present rather than in front of a committee."""
+            who = self.authorise(request, "report:read")
+            return self.guard(lambda: self.ctx["saved_views"].save(
+                body.name, body.entity, body.query, self.actor(who),
+                description=body.description, shared=body.shared))
+
+        @self.app.get(f"{api}/saved-views/{{view_id}}", tags=["reporting"])
+        def run_view(request: Request, view_id: str,
+                     limit: Optional[int] = None):
+            """Run a saved view **under your scope, not its author's**."""
+            who = self.authorise(request, "report:read",
+                                 estate_wide="running a saved view")
+            return self.guard(lambda: self.ctx["saved_views"].run(
+                view_id, self.actor(who), scope=Scope.of(who), limit=limit))
+
+        @self.app.delete(f"{api}/saved-views/{{view_id}}", tags=["reporting"])
+        def delete_view(request: Request, view_id: str):
+            who = self.authorise(request, "report:read")
+            return self.guard(lambda: self.ctx["saved_views"].delete(
+                view_id, self.actor(who)))
+
+        # ------------------------------------------------------------- export
+        @self.app.get(f"{api}/export-formats", tags=["reporting"])
+        def export_formats(request: Request):
+            """What is offered, and what is refused with the reason.
+
+            An unexplained absence reads as an oversight and gets raised as one
+            every quarter.
+            """
+            self.authorise(request, "report:read")
+            return SavedViews.formats()
+
+        @self.app.post(f"{api}/query/export", tags=["reporting"])
+        def export_query(request: Request, body: QueryIn, format: str = "csv"):
+            """Serialise a query's rows. Recorded: an export is a disclosure."""
+            who = self.authorise(
+                request, "report:read",
+                estate_wide=f"exporting the {body.entity} entity")
+            out = self.guard(lambda: self.ctx["saved_views"].export(
+                body.entity, format,
+                {"select": body.select, "where": body.where,
+                 "order_by": body.order_by, "descending": body.descending,
+                 "limit": body.limit},
+                self.actor(who), scope=Scope.of(who)))
+            return Response(
+                out["bytes"], media_type=out["media_type"],
+                headers={"Content-Disposition":
+                         f'attachment; filename="{out["filename"]}"',
+                         "X-Rows": str(out["rows"]),
+                         "X-Outside-Scope": str(out["outside_scope"]),
+                         "X-Truncated": str(out["truncated"]).lower()})
+
+        # -------------------------------------------------- regulatory returns
+        @self.app.get(f"{api}/regulatory-returns", tags=["reporting"])
+        def returns_catalogue(request: Request):
+            """Every return, and which of its fields the register cannot answer.
+
+            Published before anybody runs one, so the gaps are known in advance
+            rather than found in the output.
+            """
+            self.authorise(request, "report:read")
+            return RegulatoryReturns.catalogue()
+
+        @self.app.get(f"{api}/regulatory-returns/{{name}}", tags=["reporting"])
+        def regulatory_return(request: Request, name: str,
+                              now: Optional[float] = None):
+            """Extract one return.
+
+            MAYA extracts and does not file. A field the register cannot answer
+            comes back empty and named in the header — a plausible value in a
+            box nobody knew the answer to is the one output here that goes to a
+            supervisor.
+            """
+            who = self.authorise(
+                request, "report:read",
+                estate_wide=f"extracting the {name} return over the estate")
+            return self.guard(lambda: self.ctx["regulatory_returns"].extract(
+                name, now=now, scope=Scope.of(who)))

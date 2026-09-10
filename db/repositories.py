@@ -602,6 +602,11 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class SavedViewRepository(Repository):
+    TABLE, ORDER = "saved_view", "name"
+    JSON = ("query",)
+
+
 class LegalHoldRepository(Repository):
     TABLE, ORDER = "legal_hold", "reference"
     JSON = ("classes",)

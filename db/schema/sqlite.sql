@@ -1149,6 +1149,20 @@ CREATE TABLE IF NOT EXISTS role (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_role_name ON role (name);
 
+CREATE TABLE IF NOT EXISTS saved_view (
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    entity TEXT NOT NULL,
+    description TEXT DEFAULT '' NOT NULL,
+    "query" TEXT DEFAULT '{}' NOT NULL,
+    owner TEXT NOT NULL,
+    shared BOOLEAN DEFAULT 0 NOT NULL,
+    created_at DOUBLE NOT NULL,
+    last_run_at DOUBLE,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_saved_view_name ON saved_view (owner, name);
+
 CREATE TABLE IF NOT EXISTS scheduled_run (
     id TEXT NOT NULL,
     job TEXT NOT NULL,

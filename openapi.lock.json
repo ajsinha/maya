@@ -1243,6 +1243,15 @@
         ]
       }
     },
+    "/api/v1/export-formats": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/export-packs": {
       "get": {
         "body": [],
@@ -3688,6 +3697,42 @@
         ]
       }
     },
+    "/api/v1/query": {
+      "post": {
+        "body": [
+          "descending",
+          "entity!",
+          "limit",
+          "order_by",
+          "select",
+          "where"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/query/export": {
+      "post": {
+        "body": [
+          "descending",
+          "entity!",
+          "limit",
+          "order_by",
+          "select",
+          "where"
+        ],
+        "parameters": [
+          "query:format"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/references": {
       "get": {
         "body": [],
@@ -3781,6 +3826,28 @@
         ],
         "parameters": [
           "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/regulatory-returns": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/regulatory-returns/{name}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:name!",
+          "query:now"
         ],
         "responses": [
           "200",
@@ -4007,6 +4074,52 @@
         ]
       }
     },
+    "/api/v1/saved-views": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "description",
+          "entity!",
+          "name!",
+          "query",
+          "shared"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/saved-views/{view_id}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:view_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:view_id!",
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/scheduler": {
       "get": {
         "body": [],
@@ -4035,6 +4148,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/semantic-layer": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
@@ -5436,6 +5558,21 @@
         "body": [],
         "parameters": [
           "query:dimension"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/query": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:entity",
+          "query:field",
+          "query:operator",
+          "query:value"
         ],
         "responses": [
           "200",

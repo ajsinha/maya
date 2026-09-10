@@ -1926,6 +1926,83 @@ scheduler is not a reason to take a node out of service. That last decision has 
 an instance whose operator never wires a trigger has a governance platform in which nothing ever lapses, and
 nothing in this repository can tell it apart from a healthy one.
 
+### 16.3a A read layer, and the one thing it must not be
+
+Every governance platform is eventually asked for database access so the BI team can build their own
+dashboards. Granting it is the fastest way to lose the register, and the mechanism is worth spelling out
+because it does not look like a failure while it is happening.
+
+A tool pointed at the physical schema has to decide for itself what *in force* means. `status =
+'approved'` is the obvious answer and it is wrong: a model can be approved and carry a blocking finding,
+an expired attestation, a lapsed warrant. So a second definition of the most important word in the
+register comes into existence, lives in a dashboard nobody governs, disagrees with the platform, and is
+the one on the slide. **Handing out SQL is not a semantic layer; it is a database credential with a nicer
+name.**
+
+| Decision | Why |
+|---|---|
+| **Entities and fields, never tables and columns** | The physical schema is an implementation and would become an interface the moment anybody selected from it |
+| Every derived field computed by **the code the screens use** | `in_force` here is the platform's `in_force`; when it changes, the BI tool's next refresh is right rather than differently wrong |
+| **No parameter anywhere takes query text** | A layer that accepts SQL can promise nothing about what a query reaches, and the promise is the product |
+| Operators **closed, and admissible per type** | `contains` on a timestamp is how a query builder produces a form nobody can fill in correctly |
+| Scope filters **rows**, not endpoints, and the count of removed rows is returned | A total that is silently short gets reconciled against somebody else's and the difference blamed on a bug |
+| A null **satisfies no comparison** | SQL agrees, and the alternative is a filter that silently includes the rows it cannot judge |
+| Nulls **sort last in both directions** | A report ordered by due date opening with everything that has no date is one nobody reads past the first screen |
+| The catalogue is **tested against the data** | A data dictionary that drifts from the data is the artefact this layer exists to replace |
+
+### 16.3b A saved view holds the query, never the rows
+
+The disclosure this prevents would otherwise be invisible. An author whose scope reaches four legal
+entities saves a view and shares it; a reader scoped to one opens it — and if the *rows* had been stored,
+that reader now holds three entities' worth of models because somebody clicked **share**. Storing the
+**query** means the view re-executes under whoever opened it. Two people running one view legitimately
+see different numbers, which is correct, and each is told how many rows their own scope removed.
+
+A view is run once at the moment it is saved, so a broken view is refused while its author is present
+rather than six months later in front of the committee it was saved for. A stored query carrying a key
+the layer does not accept is filtered rather than passed through — a `TypeError` is a stack trace where a
+refusal belongs.
+
+**An export is a disclosure and is recorded in the evidence chain as one.** "Who took a copy of the model
+inventory, and when" is a question asked after something has gone wrong, and by then the answer has to
+already exist.
+
+Three formats — CSV, Parquet, JSON — and `.xlsx` is **refused by name with the reason** rather than left
+out. A binary workbook cannot be diffed, carries formatting and formulas that are not in the register,
+and invites the edit-then-circulate cycle that turns an extract into a second source of truth nobody
+versions. CSV opens in Excel. An unexplained absence reads as an oversight and gets raised as one every
+quarter; a named refusal is a decision somebody can argue with.
+
+### 16.3c An extract is not a filing
+
+MAYA produces the fields it holds, from the register, each traced to where it came from. It does not
+submit, does not sign, and **does not fill in a box it cannot answer**.
+
+Every model inventory return has fields a register genuinely does not know: the authorised
+representative, the notified body, the identifier of an EU declaration of conformity. A tool that emits a
+plausible value in those boxes has produced the single most dangerous artefact in this codebase, because
+unlike every other output here **it gets sent to a supervisor**. So an unanswerable field is emitted
+empty, named in `not_held`, counted in the header, and the header says the extract is incomplete. A firm
+that files it anyway is taking a decision; a firm handed a full-looking spreadsheet is not.
+
+Two kinds of gap, deliberately separated:
+
+| | What it is | Whose problem |
+|---|---|---|
+| `not_held` | The register has no field for this at all | A limit of the platform |
+| `empty_in_this_extract` | The register could answer and is empty for every row | A gap in this firm's data, and somebody's work |
+
+**The population is derived and the exclusion is published.** Annex III scope is computed from the
+designations and purpose classes the register already carries — never from a checkbox at onboarding,
+because the checkbox is the field that is wrong. Models *out* of scope are listed with the reason they
+are out: a regulator's first question about a population of eleven is what happened to the twelfth. And
+where the register has no purpose class at all, the extract says that is an absence rather than a
+negative answer, because those are different facts and only one of them is safe to rely on.
+
+No return here is a legal opinion. The scoping encodes a reading of Annex III and of SS1/23, and where
+that reading is contestable the extract names the fact it turned on — so a firm's counsel can disagree
+with a specific derivation rather than with a number.
+
 ### 16.4 The worklist, the estate summary and notification
 
 Outstanding work is **derived from the register rather than assigned** — no task table, so it cannot go
@@ -2465,8 +2542,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 278 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 339 modules in one
+the 281 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 342 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

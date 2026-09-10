@@ -64,7 +64,7 @@ every engine and script — which is how a security control ends up switched off
 
 | Property | Detail | Where it runs |
 |---|---|---|
-| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **175 mutating endpoints**, and a control 125 places have to remember will be missing from the 126th | Code (`core/authz/csrf.py`) |
+| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **179 mutating endpoints**, and a control 125 places have to remember will be missing from the 126th | Code (`core/authz/csrf.py`) |
 | Exemptions | **Exact paths, never prefixes.** A prefix exemption grows silently as routes are added beneath it — asserted in `tests/test_web_security.py` | Code |
 | Token lifetime | **Per session, not per form.** A single-use token breaks the back button, breaks two tabs, and breaks every page that posts more than once. A control people route around is worse than one they never had, because it also reports success | Code |
 | Minting | Lazily, on first render — so a session predating the control gets a token instead of silently skipping the check. There is no upgrade step whose absence disables it | Code |

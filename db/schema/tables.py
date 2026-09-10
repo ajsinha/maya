@@ -952,6 +952,31 @@ REGULATORY_APPROVAL = Table(
 # dismissed against its own fingerprint.
 #
 # `fingerprint` is what makes a sweep idempotent: the same artifact found again
+# A query somebody wants to keep, and never the rows it returned.
+#
+# The rows are deliberately not here. A saved view that stored its result set
+# would make sharing one a disclosure decision nobody realised they were
+# making: the author's scope reaches models the reader's does not, and the
+# stored rows would carry them across. Storing the QUERY means a shared view
+# re-runs under whoever opens it, and two people running the same view
+# legitimately see different numbers — which is the correct behaviour and the
+# reason the answer says how many rows a scope removed.
+SAVED_VIEW = Table(
+    "saved_view", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("name", Text, nullable=False),
+    Column("entity", Text, nullable=False),
+    Column("description", Text, nullable=False, server_default=text("''")),
+    # The structured query: selected fields, comparisons, order. Never text.
+    Column("query", Text, nullable=False, server_default=text("'{}'")),
+    Column("owner", Text, nullable=False),
+    Column("shared", Boolean, nullable=False, server_default=false()),
+    Column("created_at", Double, nullable=False),
+    Column("last_run_at", Double),
+    Index("uq_saved_view_name", "owner", "name", unique=True),
+)
+
+
 # is the same candidate, not a new one. A path is not enough — files move — so
 # it is whatever the scanner can compute that survives being moved.
 DISCOVERY_CANDIDATE = Table(
@@ -2365,6 +2390,7 @@ __all__ = [
     "RISK_APPETITE",
     "RISK_ASSESSMENT",
     "ROLE",
+    "SAVED_VIEW",
     "SCHEDULED_RUN",
     "SERVING_ATTESTATION",
     "TABLES",

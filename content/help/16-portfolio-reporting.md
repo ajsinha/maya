@@ -4,7 +4,7 @@ slug: portfolio-reporting
 section: Oversight
 order: 135
 icon: clipboard-data
-summary: "An appetite statement is only a control if a machine can evaluate it. Twelve indicators derived from the register, limits declared with a rationale and versioned so a relaxation is findable, a pack kept as it was read — and why there is deliberately no single number."
+summary: "An appetite statement is only a control if a machine can evaluate it. Twelve indicators derived from the register, limits declared with a rationale and versioned so a relaxation is findable, a pack kept as it was read, a query layer over entities rather than tables, supervisory extracts that name what they do not know — and why there is deliberately no single number."
 audience: Model risk managers, Committees, Auditors
 ---
 
@@ -212,6 +212,91 @@ Supervisors ask about common dependencies and shared assumptions in prose. This
 is that question with an answer, and it needs `model:read` rather than a
 reporting permission, because it is a fact about the register rather than about
 the pack.
+
+## Asking your own questions
+
+The **Query the register** screen and `POST /query` let you ask anything the
+register knows, without waiting for somebody to build a report.
+
+There is no box that takes SQL, and there is no parameter for one.
+
+> A tool pointed at the database has to decide for itself what *in force* means.
+> `status = 'approved'` is the obvious answer and it is wrong — a model can be
+> approved and carry a blocking finding. So a second definition of the most
+> important word in the register comes into existence, lives in a dashboard
+> nobody governs, and is the one on the slide. **Handing out SQL is not a
+> semantic layer; it is a database credential with a nicer name.**
+
+You query **entities and fields**, not tables and columns. Fields marked
+*derived* — `in_force`, `overdue`, `stalled`, `expired` — are computed by the
+same code the screens use, so your query and the model page cannot disagree.
+
+Scope filters **rows**, not access: a reader restricted to one legal entity gets
+a shorter table rather than a refusal, and the answer says how many rows were
+removed. Read that number. A total that is silently short gets reconciled
+against somebody else's, and the difference is blamed on a bug rather than on a
+permission.
+
+### Saved views carry the query, never the rows
+
+Save a query, share it, and what you have shared is the **question**. Anyone who
+opens it re-runs it under their own scope, so two people can legitimately see
+different numbers from one view.
+
+That is not a limitation, it is the point. Had the rows been stored, sharing a
+view would carry your scope to the reader — an author who can see four legal
+entities would hand three of them to somebody entitled to one, and nobody in
+that exchange would have realised they were making a disclosure decision.
+
+A view is run once when you save it, so a broken one is refused while you are
+still there to fix it.
+
+### Exports
+
+CSV, Parquet and JSON. **Every export is recorded in the evidence chain**, because
+*who took a copy of the model inventory, and when* is a question asked after
+something has gone wrong, and by then the answer has to already exist.
+
+`.xlsx` is refused, and the refusal says why rather than the format simply being
+missing: a binary workbook cannot be diffed, carries formatting and formulas that
+are not in the register, and invites the edit-then-circulate cycle that turns an
+extract into a second source of truth nobody versions. CSV opens in Excel.
+
+## Supervisory returns
+
+`GET /regulatory-returns` lists what MAYA can extract — AI Act high-risk
+registration, a supervisory model inventory, a third-party model return — and,
+before you run any of them, **which of their fields the register cannot answer**.
+
+> **An extract is not a filing.** MAYA produces the fields it holds. It does not
+> submit anything, it does not sign anything, and it does not fill in a box it
+> cannot answer.
+
+That last part is the whole design. Every inventory return has fields a register
+genuinely does not know — the authorised representative, the notified body, the
+identifier of an EU declaration of conformity. A tool that puts a plausible value
+in those boxes has produced the most dangerous artefact this platform can make,
+because unlike everything else here **it goes to a supervisor**. So they come back
+empty, named, counted, and the header says the extract is incomplete. Filing it
+anyway is a decision somebody takes with their eyes open.
+
+Two kinds of gap, and only one of them is your work:
+
+| | What it means |
+|---|---|
+| `not_held` | MAYA has no field for this. A limit of the platform |
+| `empty_in_this_extract` | MAYA could hold it and every row is blank. A gap in your data |
+
+The population is **derived, and the exclusions are listed**. Which models fall
+under Annex III comes from the designations and purpose classes already on the
+register, not from a checkbox somebody ticked at onboarding — because the
+checkbox is the field that is wrong. Models left out are shown with the reason
+they were left out: a regulator's first question about a population of eleven is
+what happened to the twelfth.
+
+None of this is a legal opinion. Where the reading of Annex III is arguable, the
+extract names the fact it turned on, so your counsel can disagree with a specific
+derivation rather than with a number.
 
 ## Who may do what
 
