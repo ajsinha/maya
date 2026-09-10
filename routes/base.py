@@ -399,6 +399,11 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # asking in English, and the three things a validator is offered
+    "question_required": 422,
+    # A service this deployment was built without. 501 rather than 500:
+    # nothing is broken, the capability was never wired.
+    "no_document_search": 501, "no_findings": 501, "no_assumptions": 501,
     # the semantic layer, saved views and the extracts taken from them
     "unknown_entity": 422, "operator_not_admissible": 422,
     "value_not_a_list": 422, "view_already_saved": 409,

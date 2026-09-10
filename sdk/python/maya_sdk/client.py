@@ -118,6 +118,7 @@ class Maya:
         self.findings = governance.Findings(self)
         self.monitors = governance.Monitors(self)
         self.reports = governance.Reports(self)
+        self.validation_aid = governance.ValidationAssistance(self)
         # Administering people, roles and keys. Reachable before this only by
         # constructing raw calls, which reads as "the SDK cannot do this"
         # rather than "nobody wired it up" — the same gap that once left ten
