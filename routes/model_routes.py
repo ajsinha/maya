@@ -448,6 +448,32 @@ class ModelRoutes(Routes):
             return self.guard(lambda: self.ctx["assumptions"].withdraw(
                 assumption_id, body.reason, actor=self.actor(who)))
 
+        # ------------------------------------------------------ as at a date
+        @self.app.get(f"{self.api}/as-at", tags=["models"])
+        def as_at(request: Request, at: float,
+                  urn_: Optional[str] = Query(None, alias="urn")):
+            """The register as it stood at a moment, or one model in it.
+
+            Folded from the evidence chain rather than read from a history
+            table, so the answer carries the chain sequence and hash it is true
+            at. A projection somebody could have rewritten is not evidence, and
+            the chain cannot be rewritten without every hash after the edit
+            disagreeing.
+
+            What the chain does not carry is named in `not_projected` rather
+            than guessed: *we do not know what the purpose field said in March*
+            is an answer, and a confidently wrong purpose is not.
+            """
+            if urn_ is None:
+                self.authorise(request, "model:read",
+                               estate_wide="reconstructing the whole register "
+                                           "as at a past date")
+                return self.guard(lambda: self.ctx["as_at"].register(at))
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "model:read", model=m)
+            return self.guard(
+                lambda: self.ctx["as_at"].model(urn_of(urn_), at))
+
         # ----------------------------------------------------- designations
         @self.app.get(f"{self.api}/designations", tags=["models"])
         def designations(request: Request):

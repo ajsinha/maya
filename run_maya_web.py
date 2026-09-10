@@ -73,6 +73,7 @@ from core.monitoring import (BreachRegister, MonitoringDefaults,
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
+from core.registry.asat import AsAtProjection
 from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
@@ -503,6 +504,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         MonitoringPlanRepository(db), registry, monitoring.registry, evidence,
         defaults=monitoring_defaults)
 
+    # The register as it stood on a date that has passed — the question every
+    # examination opens with. Folded from the evidence chain rather than kept
+    # in a parallel history table, so the answer carries the chain hash at its
+    # own sequence and is verifiable rather than merely asserted.
+    as_at = AsAtProjection(evidence, registry)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -647,6 +654,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "changes": changes,
                            "immaterial": immaterial,
                            "monitoring_plans": monitoring_plans,
+                           "as_at": as_at,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
