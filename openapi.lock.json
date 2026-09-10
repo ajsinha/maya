@@ -4087,6 +4087,89 @@
         ]
       }
     },
+    "/api/v1/vendor-assessments": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "artifact_digest",
+          "product!",
+          "urn!",
+          "vendor!",
+          "version!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/vendor-assessments/{reference}/conclude": {
+      "post": {
+        "body": [
+          "conclusion!",
+          "note!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/vendor-assessments/{reference}/items": {
+      "post": {
+        "body": [
+          "answer!",
+          "covers_version",
+          "evidence",
+          "item!",
+          "stated_at"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/vendor-assessments/{reference}/version": {
+      "post": {
+        "body": [
+          "artifact_digest",
+          "version!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/vendor-checklist": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/version-approval-quorum": {
       "get": {
         "body": [],
@@ -5035,6 +5118,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/vendor-models": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

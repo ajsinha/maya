@@ -593,6 +593,15 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class VendorAssessmentRepository(Repository):
+    TABLE, ORDER = "vendor_assessment", "reference"
+
+
+class VendorItemRepository(Repository):
+    TABLE, ORDER = "vendor_item", "item"
+    JSON = ("evidence",)
+
+
 class ParallelRunRepository(Repository):
     TABLE, ORDER = "parallel_run", "reference"
 
