@@ -602,6 +602,15 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class SupervisoryMatterRepository(Repository):
+    TABLE, ORDER = "supervisory_matter", "raised_at"
+    JSON = ("scope",)
+
+
+class ValidatorCapacityRepository(Repository):
+    TABLE, ORDER = "validator_capacity", "validator"
+
+
 class SavedViewRepository(Repository):
     TABLE, ORDER = "saved_view", "name"
     JSON = ("query",)

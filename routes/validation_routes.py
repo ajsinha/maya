@@ -118,6 +118,35 @@ class ReplayIn(Body):
         description="test_key -> [left, right]; omit a key to report it as skipped")
 
 
+class MatterIn(Body):
+    """A matter a supervisor raised.
+
+    `committed_at` is the date the FIRM GAVE THE SUPERVISOR, and it is a
+    different field from the internal remediation date each finding derives
+    from its severity. Both are held so the gap can be computed.
+    """
+    reference: str
+    kind: str
+    supervisor: str
+    title: str
+    scope: List[str] = Field(default_factory=list)
+    owner: str
+    description: str = ""
+    examination: str = ""
+    severity: str = "High"
+    committed_at: Optional[float] = None
+
+
+class CloseMatterIn(Body):
+    note: str
+
+
+class CapacityIn(Body):
+    validator: str
+    episodes_per_quarter: float
+    note: str = ""
+
+
 class ProbeGradeIn(Body):
     """A probe set somebody else holds, to be graded against the declaration.
 
@@ -550,3 +579,106 @@ class ValidationRoutes(Routes):
             self.authorise(request, "validation:read", model=model)
             return self.guard(lambda: self.ctx["probe_sets"].grade(
                 body.urn, body.semver, body.probes))
+
+        # ------------------------------------------- supervisory matters
+        @self.app.get(f"{api}/supervisory-matters/kinds", tags=["validation"])
+        def matter_kinds(request: Request):
+            """What a supervisor may raise, and how hard each binds."""
+            self.authorise(request, "finding:read")
+            from core.validation.supervisory import SupervisoryMatters
+            return SupervisoryMatters.kinds()
+
+        @self.app.get(f"{api}/supervisory-matters", tags=["validation"])
+        def matters(request: Request, reference: Optional[str] = None,
+                    now: Optional[float] = None):
+            """Every matter, at-risk first — or one of them."""
+            supervisory = self.ctx["supervisory"]
+            if reference is None:
+                self.authorise(request, "finding:read",
+                               estate_wide="reading every supervisory matter")
+                return self.guard(
+                    lambda: supervisory.across_the_estate(now=now))
+            self.authorise(request, "finding:read",
+                           estate_wide="reading a matter that may reach many "
+                                       "models")
+            return self.guard(lambda: supervisory.status(reference, now=now))
+
+        @self.app.post(f"{api}/supervisory-matters", status_code=201,
+                       tags=["validation"])
+        def raise_matter(request: Request, body: MatterIn):
+            """Record a matter and raise one finding per model in scope.
+
+            A thematic MRA reaches forty models at once. Filing it against one
+            makes the other thirty-nine invisible; filing it forty times makes
+            it forty matters, and the firm then reports forty remediation
+            programmes to a supervisor who raised one.
+            """
+            who = self.authorise(
+                request, "finding:raise",
+                estate_wide="raising a supervisory matter across its scope")
+            return self.guard(lambda: self.ctx["supervisory"].raise_matter(
+                body.reference, kind=body.kind, supervisor=body.supervisor,
+                title=body.title, scope=body.scope, owner=body.owner,
+                description=body.description, examination=body.examination,
+                severity=body.severity, committed_at=body.committed_at,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/supervisory-matters/{{reference}}/close",
+                       tags=["validation"])
+        def close_matter(request: Request, reference: str, body: CloseMatterIn):
+            """Close a matter. Refused while anything under it is open."""
+            who = self.authorise(
+                request, "finding:close",
+                estate_wide="closing a supervisory matter across its scope")
+            return self.guard(lambda: self.ctx["supervisory"].close(
+                reference, body.note, actor=self.actor(who)))
+
+        # --------------------------------------------- backlog and capacity
+        @self.app.get(f"{api}/validation-capacity", tags=["validation"])
+        def capacity(request: Request, now: Optional[float] = None):
+            """What each validator is carrying, against what they declared.
+
+            An overloaded validator is not a scheduling problem: the commonest
+            response to a backlog is to let a model's own team review it.
+            """
+            self.authorise(request, "validation:read",
+                           estate_wide="reading the validation workload")
+            return self.guard(
+                lambda: self.ctx["validation_capacity"].by_validator(now=now))
+
+        @self.app.post(f"{api}/validation-capacity", status_code=201,
+                       tags=["validation"])
+        def declare_capacity(request: Request, body: CapacityIn):
+            """Record what one validator can take on. Never inferred."""
+            who = self.authorise(request, "validation:open",
+                                 estate_wide="declaring validator capacity")
+            return self.guard(lambda: self.ctx["validation_capacity"].declare(
+                body.validator, body.episodes_per_quarter, note=body.note,
+                actor=self.actor(who)))
+
+        @self.app.get(f"{api}/validation-backlog", tags=["validation"])
+        def backlog(request: Request, horizon_days: float = 365.0,
+                    now: Optional[float] = None):
+            """What falls due, against what the function said it could do.
+
+            Read `assumes` before `shortfall`. A forecast that hides its own
+            assumption is one people act on.
+            """
+            self.authorise(request, "validation:read",
+                           estate_wide="forecasting the validation backlog")
+            return self.guard(lambda: self.ctx["validation_capacity"].forecast(
+                horizon_days=horizon_days, now=now))
+
+        @self.app.get(f"{api}/validation-queue", tags=["validation"])
+        def queue(request: Request, horizon_days: float = 365.0,
+                  now: Optional[float] = None):
+            """Which models come due, highest risk first.
+
+            `inverted` says whether a date-sorted list would put lower-risk work
+            in front of higher-risk work — a statement about how the function is
+            being run, and invisible in the list everybody actually keeps.
+            """
+            self.authorise(request, "validation:read",
+                           estate_wide="reading the validation queue")
+            return self.guard(lambda: self.ctx["validation_capacity"].due_within(
+                horizon_days=horizon_days, now=now))

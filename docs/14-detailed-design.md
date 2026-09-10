@@ -884,6 +884,61 @@ validation finding stop the model rather than generate an email.
 shared upstream failure raises one finding per consuming model — **M-8**, answered at the notification layer
 instead ([§16](#16-reporting-baseline-and-the-operational-jobs)).
 
+### 10.3a A matter a supervisor raised is not a finding
+
+An MRA, an MRIA, a s166 finding: these look like findings and differ from them structurally, twice.
+
+**It is not about one model.** Every finding in this platform hangs off a model, and a thematic MRA about
+documentation reaches forty at once. File it against one and the other thirty-nine are invisible; file it
+forty times and it becomes forty matters — and the firm then reports forty remediation programmes to a
+supervisor who raised one. So a matter is its own object with a `scope`, and the findings under it are
+derived from that scope.
+
+**It carries two dates, and they are not the same date.**
+
+| | Where it comes from | What it is |
+|---|---|---|
+| The finding's `due_at` | Derived from severity, like every other finding | When the firm's own process says it should be fixed |
+| The matter's `committed_at` | Typed in from the letter | The date **the firm gave the supervisor** — a commitment made by a person, often before anybody costed the work |
+
+Conflating them is how a firm discovers, on the day, that its internal plan runs past its regulatory
+commitment. Both are held, and `at_risk` is arithmetic: a matter whose last remediation lands inside the
+fortnight that closure verification needs is flagged **now**, months before the letter is due. An absent
+commitment is named rather than treated as slack, because it reads on every screen exactly like a distant
+one.
+
+**A matter cannot be closed while a finding under it is open.** Telling a supervisor something is done
+when it is not is a failure of bookkeeping rather than of intent — somebody closes the programme in one
+system while two remediations run in another. Here there is one system. And closing every finding does
+*not* close the matter: that is a separate act, which is the point.
+
+### 10.3b The validation queue, and what a backlog is a symptom of
+
+Every model risk function runs a backlog and almost none can say how big it is, because the two halves of
+the answer live apart: what is **due** is in the register, and what a team can **do** is in somebody's
+head.
+
+**Workload is derived; capacity is declared.** MAYA counts open episodes and computes what falls due from
+triggers it already evaluates. It does not guess how many validations a person can run in a quarter — a
+platform that guessed would produce a forecast nobody could dispute, which is worse than no forecast
+because it survives the meeting. A validator carrying work who has declared no capacity is *named*, since
+an absent capacity reads exactly like a generous one.
+
+**The forecast states its own assumption.** Dividing work by capacity assumes every validation costs the
+same, which is false and everybody knows it — a Tier 1 initial validation and a Tier 4 targeted one are
+not the same week. The effort weights are published as data so they can be argued with, and the sentence
+travels with the number, because a forecast that hides its assumption is one people act on.
+
+**The sort order is the finding.** Backlogs are kept sorted by date, and a date sort puts a Tier 4 model
+in front of a Tier 1 whenever the dates say so. This sorts by risk and separately *computes* whether the
+date ordering would invert it — a statement about how the function is being run rather than about any one
+model, and invisible in the list everybody actually keeps.
+
+And **an overloaded validator is not a scheduling problem.** The commonest response to a validation
+backlog is to let a model's own team review it; the second commonest is to conclude an episode without
+doing the work. Both are independence failures that begin as capacity problems, so the overload is named
+early and named as what it is.
+
 ### 10.4 Validating a model you did not build
 
 SR 26-2 VII and SS1/23 2.6 say the same thing and it is the thing firms get wrong: **you cannot validate
@@ -2752,8 +2807,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 287 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 348 modules in one
+the 295 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 356 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
