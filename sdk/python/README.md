@@ -77,6 +77,8 @@ fall behind again.
 | `maya.probes` | derive a probe set from a declared domain, grade one |
 | `maya.remediation` | the cheapest route to a model being in force, computed |
 | `maya.migrations` | judge an equivalence claim about two artifacts |
+| `maya.supervisory` | matters a regulator raised, their scope and the committed date |
+| `maya.backlog` | validator workload, declared capacity, forecast, queue |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**
