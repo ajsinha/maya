@@ -81,6 +81,8 @@ fall behind again.
 | `maya.backlog` | validator workload, declared capacity, forecast, queue |
 | `maya.campaigns` | open a round over a frozen population, respond, close |
 | `maya.intake` | record a proposal, read the assessment, triage, register |
+| `maya.runs` | declare a run before it happens, close it, read a search |
+| `maya.retraining` | when a re-fit is due, and the standing approval for one |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**

@@ -88,6 +88,8 @@ class Maya:
         self.warrants = warrants.Warrants(self)
         self.artifacts = artifacts.Artifacts(self)
         self.parameters = parameters.Parameters(self)
+        self.runs = parameters.Runs(self)
+        self.retraining = parameters.Retraining(self)
         self.assist = assist_module.Assist(self)
         # Filled in by the SDK completion pass. Attached here rather than
         # discovered, because a client that grows subjects dynamically is one

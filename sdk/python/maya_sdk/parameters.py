@@ -13,7 +13,7 @@ experiment tracker most often get wrong.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 
 class Parameters:
@@ -87,3 +87,158 @@ class Parameters:
     def provenance(self) -> Dict[str, Any]:
         """What each provenance means: fitted, calibrated, declared."""
         return self._maya.call("GET", "/parameter-provenance")
+
+
+class Runs:
+    """The record of an activity somebody else executed.
+
+    Every experiment tracker records a run **when it finishes**, and that
+    produces a register of successes. A fit that started, consumed a warrant,
+    read a snapshot of somebody's data and vanished — preempted node, killed
+    job, nobody watching — appears in none of them, and it is the run a
+    supervisor asks about.
+
+    So `open()` is called **before** the activity, `close()` after, and a run
+    still open well past its own `expected_seconds` reads as `lost`. Lost is a
+    state, not an absence, and it is derived from the clock rather than
+    asserted: a caller who could report a run lost could close one it would
+    rather nobody read.
+
+    **MAYA submits no jobs and never reads `log_uri`.** Submitting would put the
+    register on the failure path of the thing it exists to observe; fetching
+    logs would put its readiness on somebody else's object store.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def vocabulary(self) -> Dict[str, Any]:
+        """The verbs, the states, and what MAYA does not do."""
+        return self._maya.call("GET", "/runs/vocabulary")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every top-level run, lost first."""
+        return self._maya.call("GET", "/runs", params={"now": now})
+
+    def get(self, reference: str, *,
+            now: Optional[float] = None) -> Dict[str, Any]:
+        return self._maya.call("GET", "/runs",
+                               params={"reference": reference, "now": now})
+
+    def open(self, reference: str, *, verb: str, urn: str = "",
+             semver: str = "", warrant_id: str = "", parent: str = "",
+             purpose: str = "",
+             resource_profile: Optional[Dict[str, Any]] = None,
+             environment: Optional[Dict[str, Any]] = None,
+             inputs: Optional[Dict[str, Any]] = None,
+             hyperparameters: Optional[Dict[str, Any]] = None,
+             seeds: Optional[Dict[str, Any]] = None, log_uri: str = "",
+             expected_seconds: Optional[float] = None) -> Dict[str, Any]:
+        """Declare a run before it happens.
+
+        Supply `expected_seconds`. Without it nothing can ever call this run
+        lost, and a run that can never be lost is one that quietly stays open
+        forever — which reads on every screen exactly like one still working.
+        """
+        return self._maya.call("POST", "/runs", json={
+            "reference": reference, "verb": verb, "urn": urn, "semver": semver,
+            "warrant_id": warrant_id, "parent": parent, "purpose": purpose,
+            "resource_profile": resource_profile or {},
+            "environment": environment or {}, "inputs": inputs or {},
+            "hyperparameters": hyperparameters or {}, "seeds": seeds or {},
+            "log_uri": log_uri, "expected_seconds": expected_seconds})
+
+    def close(self, reference: str, *, state: str,
+              metrics: Optional[Dict[str, Any]] = None,
+              parameter_set_id: str = "", cost: Optional[float] = None,
+              note: str = "") -> Dict[str, Any]:
+        """Take delivery of what a run produced.
+
+        A failure needs a note. The failures are the part of a training record
+        anybody reads twice, and a bare `failed` six months on is
+        indistinguishable from a run nobody looked at.
+        """
+        return self._maya.call("POST", f"/runs/{reference}/close", json={
+            "state": state, "metrics": metrics or {},
+            "parameter_set_id": parameter_set_id, "cost": cost, "note": note})
+
+    def search(self, reference: str, *,
+               now: Optional[float] = None) -> Dict[str, Any]:
+        """A parent search and its children, and what a ranking hides.
+
+        Read `tried` before any metric. A search that tried four hundred
+        configurations and published the best is a multiple-comparisons problem
+        — the best of four hundred draws from a null distribution looks
+        excellent — and the count is what makes that visible.
+
+        MAYA does not select a winner. Choosing a child means approving its
+        parameter set, and a search cannot approve its own output.
+        """
+        return self._maya.call("GET", f"/runs/{reference}/search",
+                               params={"now": now})
+
+
+class Retraining:
+    """When a re-fit is due, and the standing approval that may accept one.
+
+    **MAYA retrains nothing.** It says a re-fit is due from triggers it already
+    computes; the fit happens under a warrant elsewhere and comes back as a run
+    and a parameter set.
+
+    The auto-acceptance policy approves a **procedure**, never a result. The
+    objection is obvious and mostly right — nobody looked at this number — but
+    the alternative in practice is not a committee reading every recalibration.
+    It is a recalibration that happens anyway, at the frequency the business
+    needs, with nobody's name on it.
+
+    Four things make that defensible, and each is enforced rather than
+    documented: tier 1 is never eligible and it is not configurable; every
+    policy expires; the tolerance is checked here rather than by whatever
+    produced the parameters; and the person who writes a policy may not approve
+    it. An acceptance is attributed to the policy's human approver, because
+    *who approved this parameter set* must always have a human answer.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def triggers(self) -> Dict[str, Any]:
+        """The triggers, the tier ceiling and the maximum policy lifetime."""
+        return self._maya.call("GET", "/retraining/triggers")
+
+    def due(self, urn: str, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Whether a re-fit is due for one model, and on what."""
+        return self._maya.call("GET", "/retraining",
+                               params={"urn": urn, "now": now})
+
+    def across_the_estate(self, *,
+                          now: Optional[float] = None) -> Dict[str, Any]:
+        """Every model's policy and whether anything has fired."""
+        return self._maya.call("GET", "/retraining", params={"now": now})
+
+    def declare(self, urn: str, *, triggers: List[str], rationale: str,
+                tolerance: Optional[Dict[str, Any]] = None,
+                auto_accept: bool = False,
+                expires_at: Optional[float] = None) -> Dict[str, Any]:
+        """Write the standing policy. Approval is a separate act.
+
+        Declaring it without `auto_accept` still fires the triggers and still
+        puts the model on the due list, which is most of the value and none of
+        the delegation.
+        """
+        return self._maya.call("POST", "/retraining",
+                               params={"urn": urn},
+                               json={"triggers": triggers,
+                                     "tolerance": tolerance or {},
+                                     "auto_accept": auto_accept,
+                                     "rationale": rationale,
+                                     "expires_at": expires_at})
+
+    def approve(self, urn: str) -> Dict[str, Any]:
+        """Approve a standing policy — never as the person who wrote it."""
+        return self._maya.call("POST", "/retraining/approve",
+                               params={"urn": urn})
+
+    def revoke(self, urn: str, *, reason: str = "") -> Dict[str, Any]:
+        return self._maya.call("POST", "/retraining/revoke",
+                               params={"urn": urn, "reason": reason})

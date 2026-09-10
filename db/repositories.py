@@ -602,6 +602,17 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class RunRepository(Repository):
+    TABLE, ORDER = "run", "opened_at"
+    JSON = ("resource_profile", "environment", "inputs", "hyperparameters",
+            "seeds", "metrics")
+
+
+class RetrainPolicyRepository(Repository):
+    TABLE, ORDER = "retrain_policy", "declared_at"
+    JSON = ("triggers", "tolerance")
+
+
 class CampaignRepository(Repository):
     TABLE, ORDER = "campaign", "opened_at"
     JSON = ("derivation",)
