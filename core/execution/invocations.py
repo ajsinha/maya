@@ -63,6 +63,7 @@ class InvocationLog:
                refusal_code: Optional[str] = None,
                boundary_ok: Optional[bool] = None,
                request_id: Optional[str] = None,
+               cost: Optional[float] = None,
                at: Optional[float] = None) -> Dict[str, Any]:
         """One call, as it happened.
 
@@ -83,6 +84,10 @@ class InvocationLog:
             "semver": subject.get("version"),
             "principal": authority.get("principal") or "",
             "declared_use": authority.get("declared_use") or "",
+            # Null means "not reported" rather than "free". A cost budget over
+            # a column that silently read zero would never be reached, which is
+            # the failure worth designing against for a token-metered model.
+            "cost": cost,
             "environment": authority.get("environment") or "",
             "verb": (warrant.get("operation") or {}).get("verb") or "score",
             "outcome": outcome if outcome in OUTCOMES else ERROR,

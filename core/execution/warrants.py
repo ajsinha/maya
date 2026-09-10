@@ -58,6 +58,11 @@ class WarrantService:
         # Optional, for the same reason it is optional on the engine: a
         # register that has never fitted anything still issues warrants.
         self.parameters = parameters
+        # What this grant may spend. Set at wiring time, and optional for the
+        # same reason the parameter register is: an instance that has set no
+        # limits still issues warrants, and inventing one would refuse work
+        # nobody agreed to refuse.
+        self.quotas = None
         # As everywhere: consulted after the checks above, and only
         # ever to refuse.
         self.policy = None
@@ -81,6 +86,12 @@ class WarrantService:
         m = self._model(urn, model_urn(name))
         self._check_not_blocked(m)
         grant = self._grant(m, environment, principal, declared_use)
+        # Before the descriptor is signed, not after. A signed descriptor IS an
+        # authorisation: handing one out and then declining to honour it would
+        # leave the caller holding a warrant the platform does not intend to let
+        # it use, which is exactly the confusion the warrant design removes.
+        if self.quotas is not None:
+            self.quotas.check(grant["id"])
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
         if self.policy is not None:

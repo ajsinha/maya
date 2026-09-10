@@ -25,6 +25,46 @@ from typing import Any, Dict, Optional
 class Warrants:
     """Entitlements, warrants, and the two things you can do with one."""
 
+    # -------------------------------------------------------------- limits
+    def limits(self) -> Dict[str, Any]:
+        """Every live grant, and how close it is to its limits.
+
+        Read `unlimited` first: a grant with no limit of any kind is a decision
+        nobody has taken rather than one they have.
+        """
+        return self._maya.call("GET", "/grant-limits")
+
+    def limits_of(self, warrant_id: str) -> Dict[str, Any]:
+        """One grant's limits, what it has spent, and what is left."""
+        return self._maya.call("GET", f"/grant-limits/{warrant_id}")
+
+    def set_limits(self, warrant_id: str, *, rate: Optional[int] = None,
+                   quota: Optional[int] = None,
+                   cost: Optional[float] = None,
+                   window_hours: Optional[float] = None) -> Dict[str, Any]:
+        """Declare what this grant may spend.
+
+        Three limits, and they are not three sizes of the same thing. `rate`
+        bounds calls per minute and protects the downstream system from a loop.
+        `quota` bounds calls per window and protects the *authorisation* from
+        being used more than anybody intended — which no rate limit would
+        notice, because none of it is fast. `cost` is the only one whose unit is
+        not calls, and is therefore the one that matters for a token-metered
+        model, where ten calls can cost more than ten thousand.
+
+        On the grant rather than the principal: a service account holding four
+        grants should not have one runaway use exhaust the other three.
+
+        Exceeding one gives `429` with `rate_limit_reached`,
+        `quota_limit_reached` or `cost_limit_reached`. The refusal is recorded
+        and does not itself count against the limit, so a retry loop cannot keep
+        a grant exhausted.
+        """
+        return self._maya.call("PUT", f"/grant-limits/{warrant_id}",
+                               json={"rate": rate, "quota": quota,
+                                     "cost": cost,
+                                     "window_hours": window_hours})
+
     def __init__(self, maya):
         self._maya = maya
 

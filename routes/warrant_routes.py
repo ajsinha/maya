@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import time
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import Request
 from pydantic import Field
@@ -72,6 +72,13 @@ class RevokeIn(Body):
     reason: str
 
 
+class LimitsIn(Body):
+    rate: Optional[int] = None
+    quota: Optional[int] = None
+    cost: Optional[float] = None
+    window_hours: Optional[float] = None
+
+
 class WarrantRoutes(Routes):
     def _must_be_self_or_delegated(self, who: Dict[str, Any],
                                    principal: str) -> None:
@@ -114,6 +121,56 @@ class WarrantRoutes(Routes):
                 body.urn, body.environment, body.principal, body.declared_use,
                 body.featureset, body.featureset_version, body.window,
                 body.as_of))
+
+        @self.app.get(f"{self.api}/grant-limits", tags=["warrants"])
+        def grant_limits(request: Request):
+            """Every live grant, and how close it is to its limits.
+
+            Read `unlimited` first: a grant with no limit of any kind is a
+            decision nobody has taken rather than one they have, and this
+            reports it rather than treating it as the normal state.
+            """
+            self.authorise(request, "warrant:read")
+            return self.guard(
+                lambda: self.ctx["grant_quotas"].across_the_estate())
+
+        @self.app.get(f"{self.api}/grant-limits/{{warrant_id}}",
+                      tags=["warrants"])
+        def grant_limit(request: Request, warrant_id: str):
+            """One grant's limits, what it has spent, and what is left."""
+            self.authorise(request, "warrant:read")
+            return self.guard(lambda: self.ctx["grant_quotas"].of(warrant_id))
+
+        @self.app.put(f"{self.api}/grant-limits/{{warrant_id}}",
+                      tags=["warrants"])
+        def set_grant_limit(request: Request, warrant_id: str,
+                            body: LimitsIn):
+            """Declare what this grant may spend.
+
+            Three limits, and they are not three sizes of the same thing. The
+            **rate** protects the downstream system from a loop; the **quota**
+            protects the authorisation from being used more than anybody
+            intended, which no rate limit would notice because none of it is
+            fast; the **cost** budget is the only one whose unit is not calls,
+            and is therefore the one that matters for a token-metered model
+            where ten calls can cost more than ten thousand.
+
+            On the grant rather than the principal: a service account holding
+            four grants should not have one runaway use exhaust the other three.
+
+            `warrant:issue`, because setting terms on a grant is the same
+            authority as issuing one: somebody who may create a grant with no
+            limits at all can hardly be refused the ability to put limits on it.
+            And that permission is about one model, so the model is loaded and
+            named — a legal-entity scope that is not applied is not a scope.
+            """
+            quotas = self.ctx["grant_quotas"]
+            grant = self.guard(lambda: quotas.of(warrant_id))
+            model = self.ctx["registry"].by_id(grant["model_id"])
+            who = self.authorise(request, "warrant:issue", model=model)
+            return self.guard(lambda: quotas.set(
+                warrant_id, rate=body.rate, quota=body.quota, cost=body.cost,
+                window_hours=body.window_hours, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/engine", tags=["warrants"])
         def engine_boundary(request: Request):
