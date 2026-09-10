@@ -237,6 +237,7 @@ core/
 ├── reporting/       risk appetite as a computable limit; indicators; the board pack
 ├── overlays/        post-model adjustments, time-boxed, with an ageing analysis
 ├── authz/           roles, scope, segregation from the chain, OIDC, RS256, CSRF
+├── classification/  the sensitivity lattice, and the join that propagates it
 ├── assist/          machine assistance: capabilities, oracles, grounding, providers,
 │                    and what each capability may spend before it spends it
 ├── baseline/        cold-start import and dated compliance debt (C-5)

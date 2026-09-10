@@ -993,6 +993,36 @@ passes no `partition_by`, isolation is by directory path, and `vacuum_horizon_da
 vacuums nothing. And a featureset carries `composes` without a `definition_version` stamp, so a composed
 featureset has no drift to report — the sixth instance of the C-2 class and the one still open.
 
+### 12.9 Data classification, and what carries it downstream
+
+A feature has been able to say it is confidential since the catalogue was written. The field was **free
+text**, it appeared on one screen, and **nothing read it** — not the model that consumed the feature, not
+the document compiled from that model, not one control anywhere. A field that describes a legal obligation
+and reaches no decision is a field that will be wrong, because nothing ever depends on it being right.
+
+`core/classification/` closes the vocabulary first, because a join over free text means nothing:
+`Confidential`, `confidential` and `CONF` are three classes to a computer and one to a person. Four levels,
+**totally ordered** — `public < internal < confidential < restricted` — which makes propagation a maximum.
+
+| Decision | Why |
+|---|---|
+| The join, not a declaration | A thing built out of parts is not less sensitive than its most sensitive part. Letting somebody declare a model's class would let them declare it *lower*, which is the only direction anybody ever wants to move it |
+| Declaring **higher** is allowed | An output can be more disclosive than any single input, which is most of what re-identification is. Declaring lower is refused naming the feature that forces the floor, so somebody told *no* has somewhere to go |
+| `pii` is a flag, not a level | A confidential model built on personal data and one built on market data are the same class and different legal objects. Collapsing them loses exactly the distinction a data protection officer needs |
+| The identity of the join is `public` | A model reading nothing is at the bottom of the lattice, which is correct rather than convenient — defaulting to `internal` would classify a model with no inputs above one reading public data |
+| The default for an **unstated** feature is `internal`, not `public` | An unstated class is unknown, and treating unknown as public is the single assumption that makes a classification scheme worthless |
+
+**Two paths to a model's inputs, and they are not equally good.** A parameter set pins a featureset version
+whose bindings *name* the features — exact. A version's declared `input_schema` names fields which may or
+may not be catalogued features — a match on name, and reported as one. A model that resolves to neither is
+reported as **untraceable** rather than given the default: returning `internal` for a model nobody has
+traced is reporting an assumption as a finding.
+
+**Documents inherit by the same rule, and the surprising answer is the useful one.** A board pack compiled
+across the estate inherits the join of every model in it, which is nearly always higher than whoever asked
+for it expected. That is not a fault in the arithmetic — it is what aggregation does, and it is precisely
+why the classification of a summary is worth computing rather than assuming.
+
 ## 13. Monitoring and telemetry
 
 ### 13.1 Telemetry is two streams, not one
@@ -1700,8 +1730,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 231 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 292 modules in one
+the 234 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 295 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

@@ -57,6 +57,7 @@ from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,
                             IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
+from core.classification import Classification
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
                          DraftingService, GenerationLog)
 from core.assist import providers as assist_providers
@@ -552,6 +553,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     lifecycle_profiles = LifecycleProfiles(
         registry, fibres, attachments=attachments, evidence=evidence)
 
+    # A feature has carried a sensitivity since the catalogue was written and
+    # nothing ever read it. The join propagates it: a model is at least as
+    # sensitive as the most sensitive thing it reads.
+    data_classification = Classification(registry, features,
+                                         parameters=parameters)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -719,6 +726,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "drafting": drafting,
                            "assist_budgets": assist_budgets,
                            "canaries": canaries,
+                           "classification": data_classification,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

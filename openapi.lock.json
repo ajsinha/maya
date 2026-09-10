@@ -701,6 +701,48 @@
         ]
       }
     },
+    "/api/v1/classification": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "put": {
+        "body": [
+          "classification!"
+        ],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/classification-levels": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/classifications": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/derived-features": {
       "get": {
         "body": [],
@@ -3934,6 +3976,15 @@
       }
     },
     "/board-pack": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/classification": {
       "get": {
         "body": [],
         "parameters": [],

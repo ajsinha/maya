@@ -61,6 +61,34 @@ class Models:
             "domain": domain, "tier": tier, "q": q,
             "limit": limit, "offset": offset})
 
+    # -------------------------------------------------------- classification
+    def classification(self, urn: str) -> Dict[str, Any]:
+        """What this model's inputs force, and what it declares.
+
+        Derived, never declared: the classes are totally ordered, so
+        propagation is a maximum — a thing built out of parts is not less
+        sensitive than its most sensitive part. Read `forced_by` for the
+        features that set the floor, and `unresolved_inputs` for the ones that
+        match no catalogued feature and are therefore in nothing.
+        """
+        return self._maya.call("GET", "/classification", params={"urn": urn})
+
+    def classify(self, urn: str, classification: str) -> Dict[str, Any]:
+        """State a model's class. Higher than the floor only.
+
+        An output can be more disclosive than any single input — which is most
+        of what re-identification is — so declaring higher is allowed. Lower is
+        refused with `below_the_derived_floor`, and the refusal names the
+        feature that forces it, so the remediation is a decision about the data
+        rather than about this model.
+        """
+        return self._maya.call("PUT", "/classification", params={"urn": urn},
+                               json={"classification": classification})
+
+    def classifications(self) -> Dict[str, Any]:
+        """Every model's class, and where the scheme is not working."""
+        return self._maya.call("GET", "/classifications")
+
     def assess(self, urn: str, *, exposure: float, purpose_class: str,
                feature_count: Optional[int] = None,
                uses_alternative_data: Optional[bool] = None,
