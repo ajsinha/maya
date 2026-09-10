@@ -529,6 +529,70 @@ def main() -> int:
     save_json(out / "warrant-training.json", fit_warrant,
               what="the training warrant")
 
+    # ------------------------- what the model relies on, in the register
+    say.step("State the ASSUMPTIONS and LIMITATIONS in the registers")
+    say.did("these were a paragraph in a diagnostics blob. A blob cannot be "
+            "counted, compared between two versions, or asked the question a "
+            "supervisor asks — so they go where they can be")
+    for kind, statement, materiality, monitor, mitigation in (
+        # THE one this case study measured. It is an assumption and not a
+        # limitation because it can stop being true — a better forecast
+        # provider would change it — and nothing here is watching it.
+        ("operational",
+         "The temperature at serving time is a day-ahead FORECAST, and is "
+         "assumed to be as accurate as the observed temperature the model was "
+         "fitted on. It is not: on the same held-out hours the error is "
+         f"{100 * (forecast_rmse / network_rmse - 1):.0f}% higher.",
+         "material", None,
+         "Operational tolerances are set from the forecast figure "
+         f"({forecast_rmse:.0f} MW) and not the backtest "
+         f"({network_rmse:.0f} MW)."),
+        ("structural",
+         "Load responds to temperature through heating below roughly 15C and "
+         "cooling above roughly 22C, and the network is assumed to have "
+         "recovered that shape rather than memorised the sample.",
+         "moderate", None,
+         "Benchmarked against the registered linear incumbent on held-out "
+         "hours; the improvement is the evidence."),
+        ("behavioural",
+         "Consumption habits — when people heat, cool and work — go on looking "
+         "like the fitting period.",
+         "moderate", None, ""),
+        ("data",
+         "The meter feed settles within fifteen minutes and the hour it "
+         "describes is complete when it arrives.",
+         "low", None, ""),
+    ):
+        attempt(f"assumption: {kind}", lambda k=kind, s=statement,
+                m=materiality, mon=monitor, mit=mitigation:
+                maya.assumptions.record(
+                    urn=URN, semver=SEMVER, kind=k, statement=s,
+                    materiality=m, monitor_id=mon, mitigation=mit,
+                    owner="person/j.okafor",
+                    basis="stated at first approval of 1.0.0"),
+                already="already stated")
+
+    for kind, statement in (
+        ("methodology",
+         "No subgroup performance by season or by weekday, and no stability "
+         "under input perturbation — both asked for by the T3 fibre."),
+        ("scope",
+         "Fitted and validated for one load centre. Nothing here establishes "
+         "it for another grid."),
+    ):
+        attempt(f"limitation: {kind}", lambda k=kind, s=statement:
+                maya.limitations.record(urn=URN, semver=SEMVER, kind=k,
+                                        statement=s,
+                                        basis="stated at first approval"),
+                already="already stated")
+
+    standing = maya.assumptions.for_version(URN, SEMVER)
+    say.maya(standing.get("detail", ""))
+    say.note("the count that matters is "
+             f"{standing.get('unmonitored_material', 0)} material and "
+             f"unwatched. It is not a documentation gap — it is a decision "
+             f"nobody has taken, and it is now a query rather than a paragraph")
+
     say.step("Deliver the parameter set — which is the DIGEST, not the weights")
     recorded = attempt("the trained parameters", lambda: maya.parameters.record(
         urn=URN, semver=SEMVER, name="net-2026-q1", kind="learned_weights",

@@ -541,6 +541,13 @@ class LimitationRepository(Repository):
     TABLE, ORDER = "model_limitation", "created_at"
 
 
+class AssumptionRepository(Repository):
+    #: The sibling of the above, and deliberately the same shape: what a model
+    #: relies on being true, as against what it cannot do. `basis` is prose for
+    #: the same reason.
+    TABLE, ORDER = "model_assumption", "created_at"
+
+
 class MeasurementRepository(Repository):
     TABLE, ORDER = "overlay_measurement", "measured_at"
 

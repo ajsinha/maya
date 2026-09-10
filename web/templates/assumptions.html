@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Assumptions — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>What the estate is relying on being true</h1>
+<div class="accent"></div>
+
+<p class="lead small">An assumption is not a limitation. A limitation is a
+boundary of competence — what a model <em>is</em> — and it does not stop being
+true. An assumption is a claim about the world the model reads, and it
+<strong>can stop being true while the model is running</strong>. So the question
+here is not what is enforced but what is <em>watched</em>: an assumption with no
+monitor is one this platform believes on nobody's authority and would not notice
+becoming false.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.standing }}</div>
+    <div class="stat-l">standing assumptions</div>
+    <div class="small text-muted">across {{ report.models }} model{{ '' if report.models == 1 else 's' }}</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.monitored }}</div>
+    <div class="stat-l">tested by a monitor</div>
+    <div class="small text-muted">something would notice these failing</div>
+  </div></div></div>
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.unmonitored else '' }}">{{ report.unmonitored }}</div>
+    <div class="stat-l">believed and unwatched</div>
+    <div class="small text-muted">nothing would notice these failing</div>
+  </div></div></div>
+  {# The number this screen exists for. Not "how many assumptions" — a model
+     with forty watched assumptions is in better shape than one with three
+     material ones nobody is looking at. #}
+  <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.unmonitored_material else 'evidence-ok' }}">{{ report.unmonitored_material }}</div>
+    <div class="stat-l">material and unwatched</div>
+    <div class="small text-muted">
+      {% if report.unmitigated %}
+        {{ report.unmitigated }} of them with no mitigation either
+      {% else %}
+        the count worth acting on
+      {% endif %}
+    </div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every standing assumption</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.
+    Sorted with the <strong>material and unwatched</strong> first, because
+    "most assumptions" is not the same as "worst read" — a version with twelve
+    monitored assumptions is in better shape than one with three nobody checks.</div>
+  {% if report.versions %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Version</th><th>Kind</th><th>Materiality</th>
+      <th>Assumption</th><th>Tested by</th><th>Mitigation</th><th>Owner</th>
+    </tr></thead>
+    <tbody>
+      {% for v in report.versions %}
+        {% for a in v.assumptions %}
+        <tr>
+          <td class="mono small">
+            {% if loop.first %}
+              {% if v.urn %}<a href="/model/{{ v.urn.split('/')[-1] }}">{{ v.urn }}</a>
+              {% else %}<span class="text-muted">version {{ v.model_version_id }}</span>{% endif %}
+            {% endif %}</td>
+          <td class="mono small">{% if loop.first %}{{ v.semver or '—' }}{% endif %}</td>
+          <td class="small">{{ a.kind }}</td>
+          <td class="small">
+            {% if a.materiality in ('material', 'critical') %}
+              <span class="evidence-bad">{{ a.materiality }}</span>
+            {% else %}{{ a.materiality }}{% endif %}</td>
+          <td class="small">{{ a.statement }}</td>
+          <td class="small">
+            {% if a.monitor_id %}
+              <a class="evidence-ok mono" href="/monitors">{{ a.monitor_id[:12] }}</a>
+            {% else %}
+              <span class="evidence-bad">nothing</span>
+            {% endif %}</td>
+          <td class="small">
+            {% if a.mitigation %}{{ a.mitigation }}
+            {% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="mono small">{{ a.owner or a.raised_by }}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No assumptions are recorded anywhere on the estate. That is a claim about
+    every model in it, not an absence of one — a model that relies on nothing
+    being true about the world is a model that reads no data.
+  </div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <div class="card-header">The five kinds</div>
+  <div class="card-body small">
+    <p class="text-muted">Closed on purpose. An open list becomes a free-text
+    field with extra steps, and then the register cannot be counted by anything.</p>
+    <dl class="row mb-0 small">
+      {% for kind, means in kinds.items() %}
+      <dt class="col-sm-3 mono">{{ kind }}</dt><dd class="col-sm-9">{{ means }}</dd>
+      {% endfor %}
+    </dl>
+  </div>
+</div>
+
+{% endblock %}

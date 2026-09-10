@@ -14,6 +14,9 @@ from core.execution.urn import urn_of
 from core.domain import paging
 from routes.base import Body, Routes
 from core.features.rendering import to_latex, to_python
+from core.assumptions import KIND_MEANING as ASSUMPTION_KIND_MEANING
+from core.assumptions import KINDS as ASSUMPTION_KINDS
+from core.assumptions import MATERIALITIES
 from core.limitations import KIND_MEANING, KINDS
 from core.registry.versions import latest_version
 
@@ -71,6 +74,28 @@ class LimitationIn(Body):
     #: version's own contract rather than accepted — a limitation claiming an
     #: enforcement that does not exist reads as the safe case and is not.
     bound_key: Optional[str] = None
+
+
+class AssumptionIn(Body):
+    urn: str
+    semver: str
+    kind: str
+    statement: str
+    basis: str = ""
+    #: The monitor that TESTS this assumption, if one does. Checked against the
+    #: monitors that exist AND against the model they are on, rather than
+    #: accepted — an assumption watched by somebody else's monitor is unwatched
+    #: and reads as watched.
+    monitor_id: Optional[str] = None
+    #: Who is accountable for it, which is routinely not who raised it.
+    owner: str = ""
+    materiality: str = "moderate"
+    #: What compensates when the assumption fails. Its emptiness on a material
+    #: assumption is the number the estate view surfaces.
+    mitigation: str = ""
+    review_due: Optional[float] = None
+    finding_id: Optional[str] = None
+    overlay_id: Optional[str] = None
 
 
 class WithdrawLimitationIn(Body):
@@ -312,6 +337,73 @@ class ModelRoutes(Routes):
                                  model=self.model_of(row["model_id"]))
             return self.guard(lambda: self.ctx["limitations"].withdraw(
                 limitation_id, body.reason, actor=self.actor(who)))
+
+        # -------------------------------------------------------- assumptions
+        @self.app.get(f"{self.api}/assumption-kinds", tags=["models"])
+        def assumption_kinds(request: Request):
+            """The five kinds and the four materialities. Closed on purpose."""
+            self.principal(request)
+            return {"kinds": [{"kind": k, "means": ASSUMPTION_KIND_MEANING[k]}
+                              for k in ASSUMPTION_KINDS],
+                    "materialities": list(MATERIALITIES),
+                    "detail": "an assumption names the monitor that tests it, "
+                              "or names none — and none is the value worth "
+                              "counting, because it is what the platform "
+                              "believes and would not notice becoming false"}
+
+        # A model name is a QUERY parameter here for the same reason it is on
+        # `/limitations`: `{name:path}` is greedy and would swallow the rest of
+        # the path. See `14 §Addressing`.
+        @self.app.get(f"{self.api}/assumptions", tags=["models"])
+        def assumptions(request: Request,
+                        urn_: Optional[str] = Query(None, alias="urn"),
+                        semver: Optional[str] = Query(None)):
+            """What a version relies on being true — or the whole estate."""
+            if urn_ is None:
+                self.authorise(
+                    request, "assumption:read",
+                    estate_wide="reading every assumption on every model")
+                return self.guard(
+                    lambda: self.ctx["assumptions"].across_the_estate())
+            if semver is None:
+                raise HTTPException(422, {
+                    "error": "semver_required",
+                    "detail": "a urn was given without a semver; an assumption "
+                              "is recorded against a version, not a model",
+                    "remediation": "add semver=..., or omit urn for the whole "
+                                   "estate"})
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "assumption:read", model=m)
+            return self.guard(
+                lambda: self.ctx["assumptions"].for_version(urn_of(urn_), semver))
+
+        @self.app.post(f"{self.api}/assumptions", status_code=201,
+                       tags=["models"])
+        def record_assumption(request: Request, body: AssumptionIn):
+            """State an assumption against one version."""
+            m = self.guard(lambda: reg.require(urn_of(body.urn)))
+            who = self.authorise(request, "assumption:record", model=m)
+            return self.guard(lambda: self.ctx["assumptions"].record(
+                urn_of(body.urn), body.semver, body.kind, body.statement,
+                basis=body.basis, monitor_id=body.monitor_id,
+                owner=body.owner, materiality=body.materiality,
+                mitigation=body.mitigation, review_due=body.review_due,
+                finding_id=body.finding_id, overlay_id=body.overlay_id,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{self.api}/assumptions/{{assumption_id}}/withdraw",
+                       tags=["models"])
+        def withdraw_assumption(request: Request, assumption_id: str,
+                                body: WithdrawLimitationIn):
+            """Withdraw one. Never deleted, for the same reason a limitation is
+            not: the version is immutable, so what it was understood to rely on
+            is part of the record."""
+            row = self.guard(
+                lambda: self.ctx["assumptions"].require(assumption_id))
+            who = self.authorise(request, "assumption:withdraw",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["assumptions"].withdraw(
+                assumption_id, body.reason, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/mathematics", tags=["models"])
         def mathematics(request: Request, name: str = Query(..., alias="urn"),
