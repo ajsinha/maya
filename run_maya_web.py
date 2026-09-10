@@ -77,6 +77,8 @@ from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
 from core.scanning.upload import DEFAULT_LICENCES
 from core.discovery import DiscoveryRegister
+from core.artifacts.bom import BillOfMaterials
+from core.artifacts.provenance import ArtifactProvenance
 from core.risk.approvals import RegulatoryApprovals
 from core.risk.whatif import TieringWhatIf
 from core.features.skew import SkewDetector
@@ -757,6 +759,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # clocks, which is what separates a stale value from a leaked one.
     skew = SkewDetector(evidence)
 
+    # Everything a version is made of, in a form somebody else's scanner
+    # reads. Derived, never authored: an authored BOM is a document that was
+    # true once.
+    bom = BillOfMaterials(registry, features=features, parameters=parameters)
+
+    # Who built the artifact. A digest establishes integrity and a signature
+    # establishes ORIGIN, and only the second says it came from your own build.
+    # MAYA verifies attestations and does not mint them: signing belongs in a
+    # build system, and a platform that signed would hold the key that forges.
+    provenance = ArtifactProvenance(
+        trusted=cfg.get("artifacts.trusted_builders", []) or [],
+        evidence=evidence,
+        require_verified=cfg.get_bool("artifacts.require_provenance", False))
+
     # A permission a supervisor gave, with what it covers and when it lapses.
     # Recorded BESIDE the tier and never folded into it.
     regulatory_approvals = RegulatoryApprovals(
@@ -1002,6 +1018,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "skew": skew,
                            "discovery": discovery,
                            "regulatory_approvals": regulatory_approvals,
+                           "bom": bom,
+                           "artifact_provenance": provenance,
                            "tiering_whatif": tiering_whatif,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
