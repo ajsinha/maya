@@ -76,6 +76,12 @@ class Maya:
 
         self.models = models.Models(self)
         self.versions = models.Versions(self)
+        # The two registers a model risk manager actually writes into.
+        # Neither had a client surface, so every worked example in this
+        # repository put its limitations in a free-text diagnostics blob
+        # where nothing could count them.
+        self.limitations = models.Limitations(self)
+        self.assumptions = models.Assumptions(self)
         self.features = features.Features(self)
         self.featuresets = features.Featuresets(self)
         self.warrants = warrants.Warrants(self)

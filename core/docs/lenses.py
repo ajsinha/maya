@@ -126,10 +126,93 @@ def methodology(ctx: Dict[str, Any]) -> Rendered:
 
 
 def assumptions(ctx: Dict[str, Any]) -> Rendered:
+    """Assumptions and limitations: the registers first, the contract after.
+
+    This read only the version contract's numeric bounds. Two consequences
+    followed, and both were bad in the quiet way. A model with no numeric
+    contract — a vendor score, a generative assembly, an elicited scorecard —
+    rendered the section as NOTHING, so a document about the model whose
+    limitations matter most said least about them. And where a person had taken
+    the trouble to record structured statements in the two registers, the
+    document could not see them, which is what `FR-INV-007` means by the gap
+    that most directly weakens this document.
+
+    So the registers lead. The contract's bounds follow as what a machine
+    enforces at call time, which is a smaller and harder claim.
+    """
+    if (gap := unreadable(ctx, "assumptions")) is not None:
+        return gap
+    if (gap := unreadable(ctx, "limitations")) is not None:
+        return gap
+
+    parts: List[str] = []
+    cites: List[Any] = []
+    asm = ctx.get("assumptions") or {}
+    lim = ctx.get("limitations") or {}
+
+    standing_asm = [a for a in (asm.get("assumptions") or [])
+                    if not a.get("withdrawn_at")]
+    standing_lim = [ln for ln in (lim.get("limitations") or [])
+                    if not ln.get("withdrawn_at")]
+
+    if standing_asm:
+        parts.append(
+            "**What this model relies on being true.** An assumption can stop "
+            "being true while the model runs, which is what separates it from "
+            "a limitation. The column that matters is the last one: an "
+            "assumption with no monitor is one the platform believes and would "
+            "not notice becoming false.\n\n"
+            "| Ref | Kind | Materiality | Assumption | Tested by |\n"
+            "|---|---|---|---|---|\n"
+            + "\n".join(
+                f"| `{a['reference']}` | {a['kind']} | {a.get('materiality', '—')} "
+                f"| {a['statement']} | "
+                + (f"monitor `{str(a['monitor_id'])[:12]}`"
+                   if a.get("monitor_id") else "**nothing**")
+                + " |"
+                for a in standing_asm) + "\n")
+        parts.append(f"\n{asm.get('detail', '')}\n")
+        # A material assumption with nothing compensating for it is a risk
+        # nobody has decided about, and it is worth its own sentence rather
+        # than a reader counting the table.
+        exposed = [a for a in standing_asm
+                   if a.get("materiality") in ("material", "critical")
+                   and not a.get("monitor_id")
+                   and not (a.get("mitigation") or "").strip()]
+        if exposed:
+            parts.append(
+                "\n> **" + str(len(exposed)) + " assumption(s) here are "
+                "material or worse, monitored by nothing and mitigated by "
+                "nothing: "
+                + ", ".join(f"`{a['reference']}`" for a in exposed)
+                + ". That combination is not a gap in the document; it is a "
+                "decision nobody has taken.**\n")
+        mitigations = [a for a in standing_asm
+                       if (a.get("mitigation") or "").strip()]
+        if mitigations:
+            parts.append(
+                "\n**Mitigations.**\n\n"
+                + "\n".join(f"- `{a['reference']}` — {a['mitigation']}"
+                             for a in mitigations) + "\n")
+        cites += _cite(ctx["evidence"], "assumption_recorded")
+
+    if standing_lim:
+        parts.append(
+            "\n**What this model cannot do.** A limitation is a boundary of "
+            "competence rather than a claim about the world, so it does not "
+            "stop being true — it is simply what the model is.\n\n"
+            "| Ref | Kind | Limitation | Enforced by |\n|---|---|---|---|\n"
+            + "\n".join(
+                f"| `{ln['reference']}` | {ln['kind']} | {ln['statement']} | "
+                + (f"contract clause `{ln['bound_key']}`"
+                   if ln.get("bound_key") else "**nothing**") + " |"
+                for ln in standing_lim) + "\n")
+        parts.append(f"\n{lim.get('detail', '')}\n")
+        cites += _cite(ctx["evidence"], "limitation_recorded")
+
     v = ctx.get("version")
     contract = (v or {}).get("contract") or {}
-    if not contract:
-        return None, []
+
     def bounds(items, label):
         if not items:
             return f"*no {label} declared*\n"
@@ -139,13 +222,28 @@ def assumptions(ctx: Dict[str, Any]) -> Rendered:
              if b.get("minimum") is not None or b.get("maximum") is not None
              else f"in {b.get('allowed')}")
             for b in items) + "\n"
-    return ("**Assumptions** — the model's guarantees hold only within these. "
-            "Outside them the guarantee is void, and the execution engine refuses "
-            "rather than extrapolating.\n\n"
-            + bounds(contract.get("assumptions"), "assumptions")
-            + "\n**Guarantees** — what the model promises when its assumptions hold.\n\n"
-            + bounds(contract.get("guarantees"), "guarantees")), \
-        _cite(ctx["evidence"], "version_created")
+
+    if contract:
+        parts.append(
+            "\n**Enforced at call time.** These are the subset a machine can "
+            "check on every invocation. Outside them the guarantee is void and "
+            "the execution engine refuses rather than extrapolating.\n\n"
+            + bounds(contract.get("assumptions"), "bounded assumptions")
+            + "\n**Guarantees** — what the model promises when they hold.\n\n"
+            + bounds(contract.get("guarantees"), "guarantees"))
+        cites += _cite(ctx["evidence"], "version_created")
+    elif standing_asm or standing_lim:
+        # Said rather than omitted. A reader who sees no bounds section should
+        # know it is a property of the model and not of the compiler.
+        parts.append(
+            "\n**Nothing here is enforced at call time.** This version "
+            "declares no numeric operating contract, because its inputs are "
+            "not the kind of thing an interval bounds. Everything above is "
+            "recorded and read, not checked on invocation.\n")
+
+    if not parts:
+        return None, []
+    return "".join(parts), cites
 
 
 def data_and_features(ctx: Dict[str, Any]) -> Rendered:

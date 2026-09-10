@@ -97,7 +97,8 @@ from db import (ServingAttestationRepository,
                 FindingRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
-                ApiKeyRepository, LimitationRepository, RoleRepository,
+                ApiKeyRepository, AssumptionRepository,
+                LimitationRepository, RoleRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -105,6 +106,7 @@ from db import (ServingAttestationRepository,
                 WarrantRepository)
 from fastapi.openapi.docs import get_swagger_ui_html
 
+from core.assumptions import AssumptionRegister
 from core.limitations import LimitationRegister
 from core.apikeys import ApiKeyRegister
 from core.authz.rolestore import RoleStore
@@ -395,9 +397,22 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                                    str(ROOT / "data" / "attachments")))),
         registry, evidence)
 
+    # Built here rather than in the context dict below, because the document
+    # context builder needs them too and two instances would be two registers.
+    limitations = LimitationRegister(LimitationRepository(db), registry, evidence)
+    # The monitor repository is passed so an assumption claiming to be tested
+    # by a monitor can be checked against the monitors that exist — and against
+    # the model they are on, because a monitor watching somebody else's scores
+    # would otherwise pass as coverage.
+    assumptions = AssumptionRegister(AssumptionRepository(db), registry,
+                                     evidence, monitors=MonitorRepository(db),
+                                     findings=FindingRepository(db),
+                                     overlays=OverlayRepository(db))
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
-                             warrants, overlays, regimes, attachments)
+                             warrants, overlays, regimes, attachments,
+                             limitations=limitations, assumptions=assumptions)
     documents = DocumentCompiler(DocumentRepository(db), evidence, context)
 
     # The pack uses the SAME context builder the compiler does. Two gatherers
@@ -525,8 +540,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "api_keys": ApiKeyRegister(
                                ApiKeyRepository(db), principals, authz, evidence),
                            "references": ReferenceIndex(db, registry, features),
-                           "limitations": LimitationRegister(
-                               LimitationRepository(db), registry, evidence),
+                           "limitations": limitations,
+                           "assumptions": assumptions,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
