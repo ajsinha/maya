@@ -23,6 +23,13 @@ from core.rules.common import OPERATOR_MEANING, OPERATORS, ORDERED_DTYPES, ORDER
 from routes.base import Body, Routes
 
 
+
+class ExtensionIn(Body):
+    axis: str
+    name: str
+    owner: str
+    does: str
+
 class RuleSetIn(Body):
     urn: str
     semver: str
@@ -41,6 +48,41 @@ class RulePublishIn(RuleSetIn):
 class RuleRoutes(Routes):
     def register(self) -> None:
         api = self.api
+
+        @self.app.get(f"{api}/extension-points", tags=["policy"])
+        def extension_points(request: Request, axis: str = ""):
+            """Which parts of this platform a deployment may extend.
+
+            **The dividing line is whether the extension changes a governance
+            answer.** A notification channel changes how somebody is told; a
+            runtime adapter changes what may execute. The four closed axes are
+            each a place where a plugin would be a *removal* rather than an
+            extension — an open format axis is a `pickle` loader arriving by
+            pull request — so a closed axis here is not a missing feature, it is
+            the feature.
+
+            Every closed axis names what the closure protects and a route to
+            what the caller actually wanted, because a refusal that names no
+            route is a wall.
+            """
+            self.principal(request)
+            return self.guard(
+                lambda: self.ctx["extensions"].registered(axis))
+
+        @self.app.post(f"{api}/extension-points", status_code=201,
+                       tags=["policy"])
+        def register_extension(request: Request, body: ExtensionIn):
+            """Add something on an open axis. A governance act, not an import.
+
+            A name is never silently replaced: doing so would change what a
+            recorded result *means* without changing its name, and every
+            measurement taken under the old one would still say it was taken
+            under this.
+            """
+            who = self.authorise(request, "policy:publish")
+            return self.guard(lambda: self.ctx["extensions"].register(
+                body.axis, body.name, owner=body.owner, does=body.does,
+                actor=self.actor(who)))
 
         @self.app.get(f"{api}/rulesets/vocabulary", tags=["rules"])
         def vocabulary(request: Request):

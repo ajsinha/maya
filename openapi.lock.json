@@ -1205,6 +1205,31 @@
         ]
       }
     },
+    "/api/v1/extension-points": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:axis"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "axis!",
+          "does!",
+          "name!",
+          "owner!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/feature-contracts": {
       "post": {
         "body": [

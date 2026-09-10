@@ -76,6 +76,7 @@ from core.classification import Classification
 from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
 from core.scanning.upload import DEFAULT_LICENCES
+from core.plugins import ExtensionPoints
 from core.retention import LegalHolds, RetentionSchedule
 from core.registry.comparison import VersionComparison
 from core.assist.monitoring import AssistMonitoring
@@ -744,6 +745,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # to read models a reader cannot see, one query at a time.
     document_search = DocumentSearch(attachments, registry, authz=authz)
 
+    # Which parts of this platform a deployment may extend. Four axes are
+    # open; four are closed because a plugin there would be a removal rather
+    # than an extension, and each refusal names what the closure protects.
+    extensions = ExtensionPoints(evidence)
+
     # A matter that stops things being deleted — the one control here that
     # overrides the platform's own deletion, which is why the inference log
     # asks it from inside its own expiry rather than beside it.
@@ -960,6 +966,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "legal_holds": legal_holds,
                            "document_search": document_search,
                            "upload_scanner": upload_scanner,
+                           "extensions": extensions,
                            "retention": retention,
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
