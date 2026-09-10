@@ -67,6 +67,8 @@ class WarrantService:
         # optional: a register where nothing was approved conditionally still
         # issues warrants.
         self.conditions = None
+        # Where a fit on sensitive data may happen. Set at wiring time.
+        self.zones = None
         # As everywhere: consulted after the checks above, and only
         # ever to refuse.
         self.policy = None
@@ -187,7 +189,8 @@ class WarrantService:
     # ------------------------------------------------------------------- fit
     def resolve_fit(self, urn: str, environment: str, principal: str,
                     declared_use: str, featureset: str, featureset_version: int,
-                    window: Dict[str, float], as_of: float) -> Dict[str, Any]:
+                    window: Dict[str, float], as_of: float,
+                    zone: str = "") -> Dict[str, Any]:
         """A signed descriptor to fit this version from that featureset version.
 
         The schema check happens here and not at publish time, because a
@@ -198,6 +201,12 @@ class WarrantService:
         m = self._model(urn, model_urn(name))
         self._check_not_blocked(m)
         grant = self._grant(m, environment, principal, declared_use)
+        # Where the fit may run, checked before the descriptor is signed. This
+        # is the only moment MAYA holds anything: it does not run the training
+        # and cannot observe which machine read the rows, so what it can do is
+        # decline to authorise the run.
+        if self.zones is not None and zone:
+            self.zones.check(m["urn"], zone, declared_use)
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
         plan = self._check_schema(version, featureset, featureset_version)

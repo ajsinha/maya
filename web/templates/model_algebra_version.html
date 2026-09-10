@@ -220,6 +220,57 @@ changes &mdash; this page derives nothing itself.</p>
   <div class="card-body small text-muted">{{ series.detail }}.</div>
   {% endif %}
 </div>
+<div class="card mt-3"><div class="card-header">The runs under these versions</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    A parameter set under one version <strong>is</strong> an experiment — nothing
+    new is stored to compare them. Read <em>same inputs</em> before the metric
+    table: runs over the same data through the same schema differ because of the
+    procedure, and runs over different inputs differ for reasons nobody has
+    separated.
+    <br><br>
+    <strong>&ldquo;Reproducible&rdquo; is a property of a claim, not of a
+    wish.</strong> The column below says whether a re-run could answer the same
+    question from what the register holds — not whether some metadata was stored.
+    MAYA did not run the training and cannot reconstruct an environment it never
+    had, so what the fitter did not supply is stated rather than assumed away.
+  </div>
+  {% if experiments.runs %}
+  <div class="card-body">
+    <table class="table table-sm maya mb-0">
+      <thead><tr><th>Run</th><th>State</th><th class="text-end">Rows</th>
+        <th>Reproducible</th>
+        {% for m in experiments.metrics %}<th class="text-end">{{ m }}</th>{% endfor %}
+      </tr></thead>
+      <tbody>
+      {% for run in experiments.runs %}
+        <tr>
+          <td class="mono small">{{ run.name }} v{{ run.version }}</td>
+          <td class="small">{{ run.state }}</td>
+          <td class="small text-end">{{ run.cardinality }}</td>
+          <td class="small">
+            {% if run.reproducible %}<span class="evidence-ok">yes</span>
+            {% else %}<span class="evidence-bad">no</span>{% endif %}</td>
+          {% for m in experiments.metrics %}
+          <td class="small text-end">
+            {% if run.metrics[m] is not none %}{{ '%.4g' | format(run.metrics[m]) }}
+            {% else %}<span class="text-muted">&mdash;</span>{% endif %}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">{{ experiments.detail }}.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>There is no &ldquo;promote this run to a version&rdquo; button, and
+    that is the answer rather than an omission.</strong>
+    {{ experiments.promotion.why_not }}. What to do instead:
+    {{ experiments.promotion.what_to_do_instead }}.
+  </div>
+</div>
+
 {% endblock %}
 {% block scripts %}
 <script>

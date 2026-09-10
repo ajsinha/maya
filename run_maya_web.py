@@ -70,6 +70,8 @@ from core import concurrency
 from core.concurrency import IdempotencyStore
 from core.execution.inference import InferenceLog
 from core.execution.quotas import GrantQuotas
+from core.execution.zones import ComputeZones
+from core.parameters.experiments import Experiments
 from core.classification import Classification
 from core.docs.search import DocumentSearch
 from core.scanning import UploadScanner
@@ -725,6 +727,18 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     data_classification = Classification(registry, features,
                                          parameters=parameters)
 
+    # Comparing the runs under a version, and saying whether any of them could
+    # be repeated — which is a claim about what is recorded, not a badge.
+    experiments = Experiments(parameters, registry)
+
+    # Where a fit on sensitive data may run. Enforced at warrant issue, because
+    # MAYA does not run the training and cannot observe the machine.
+    compute_zones = ComputeZones(
+        zones=cfg.get("compute.zones", []) or [],
+        classification=data_classification, evidence=evidence)
+    warrants.zones = compute_zones
+
+
     # Finding the sentence in the document nobody remembered filing. Scoped
     # like everything else: a search that ignored who is asking would be a way
     # to read models a reader cannot see, one query at a time.
@@ -951,6 +965,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
                            "adaptive_change": adaptive_change,
+                           "experiments": experiments,
+                           "compute_zones": compute_zones,
                            "vendor_assessments": vendor_assessments,
                            "portfolio": portfolio,
                            "event_stream": event_stream,
