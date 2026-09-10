@@ -31,6 +31,7 @@ from core.assist import AssistError
 from core.classification import ClassificationError
 from core.estate.common import EstateError
 from core.events.common import EventError
+from core.retention.common import RetentionError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
@@ -154,6 +155,9 @@ STATUS: Dict[str, int] = {
     "no_run": 404,
     # portfolio views
     "unknown_dimension": 422, "same_dimension": 422,
+    # retention and legal holds
+    "matter_required": 422,
+    "scope_required": 422, "no_hold": 404,
     # the event stream and its subscribers
     "kinds_required": 422, "wildcard_refused": 422,
     "limit_out_of_range": 422, "no_subscription": 404,
@@ -620,7 +624,7 @@ class Routes:
                 ReportingError, FibreError, RuleError,
                 ReferencedError, ApiKeyError,
                 ClassificationError, EstateError,
-                EventError) as exc:
+                EventError, RetentionError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

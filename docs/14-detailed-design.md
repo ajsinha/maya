@@ -1835,7 +1835,7 @@ test that has to reach the network is a test nobody runs.
 
 ## 18. Authorisation
 
-`core/authz/` — eight roles across three lines of defence, seventy-two permissions, refused incompatible
+`core/authz/` — eight roles across three lines of defence, eighty-four permissions, refused incompatible
 pairs, entity and domain scope, and emergency elevation with a second signature.
 
 Three properties are worth the space.
@@ -2022,6 +2022,45 @@ path — obtained by dispatching a GET through the whole app, so the comparison 
 caller read — and where no representation exists the request is refused with 428 rather than allowed
 through.
 
+### 21.2 Retention, and the one control that overrides another
+
+**Retention is per artifact class because the obligations are.** AI Act Art. 19 asks for logs over the
+system's lifetime; SOX asks seven years of what supported a financial statement; data protection asks that
+personal data be held for *less* time, not more. A single estate-wide number satisfies whichever of those is
+loudest and quietly breaks the others, so `core/retention/schedule.py` keeps them separate and every class
+names the obligation it comes from. The shortest period in the table is `inference`, which is the only class
+whose content is somebody else's personal data — and the only one where the period is enforced by deleting.
+
+**A period is a floor, never a ceiling.** It says how long something must be kept, not when it must go.
+Confusing *may now be deleted* with *must now be deleted* is how a register loses the record that was about
+to be asked for.
+
+**A WORM option is a claim about where something is stored, not a flag on a row.** `core/evidence/worm.py`
+says so about itself: a directory with the permission bit cleared is an honest limit, not immutable storage,
+because whoever can clear the bit can set it again. So a class declares the backing it **requires**, the
+platform reports the backing it **has**, and where those differ it says so. A register that reported
+compliance because somebody chose WORM from a dropdown would be worse than one with no such field — the tick
+is what stops anybody asking.
+
+**And the legal hold is the one control in this platform that overrides another.** It is checked *inside*
+`InferenceLog.expire_due` rather than beside it, because a hold a retention job can race is not a hold. Its
+design inverts the rule every other bounded thing here follows:
+
+| Everywhere else | A legal hold |
+|---|---|
+| An unbounded window is the failure — a waiver reaches its fourth year, a conditional approval becomes unconditional | **No end date, and that is correct.** It ends when the matter ends, and when that is cannot be known when it is placed. A date on it would be guessing at a litigation timetable and calling the guess a control |
+| The deadline is what forces a decision | A **named owner and a stated matter** are. A hold nobody owns is one nobody will lift; one with no matter recorded is one nobody can tell has ended |
+| Placing takes the ceremony | **Lifting** does. Placing keeps more than necessary, which is recoverable; lifting resumes deletion on material somebody may be about to ask for, which is not |
+
+Estate-wide is a real scope and a blunt one, because a regulator's document request does not arrive scoped
+to the models somebody would have chosen — and it is *reported* as widest, since a hold over everything is a
+decision with a cost and should read like one. A record kept past its retention **because of a hold** is
+counted apart from one nobody deleted: only one of those is somebody's decision.
+
+`hold:place` is its own permission rather than a reused one. Placing a hold is neither a model act nor an
+evidence act — it is the firm answering a matter — and putting retention policy behind an
+account-administration gate is where nobody in legal or compliance would think to look for it.
+
 ## 22. Refusals
 
 The interesting behaviour of this platform is what it will not do, so the refusal path is designed rather
@@ -2133,8 +2172,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 252 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 313 modules in one
+the 256 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 317 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
