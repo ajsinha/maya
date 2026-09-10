@@ -72,6 +72,12 @@ class RevokeIn(Body):
     reason: str
 
 
+class ZoneAttestIn(Body):
+    warrant_id: str
+    ran_in: str
+    authorised: str
+
+
 class LimitsIn(Body):
     rate: Optional[int] = None
     quota: Optional[int] = None
@@ -121,6 +127,42 @@ class WarrantRoutes(Routes):
                 body.urn, body.environment, body.principal, body.declared_use,
                 body.featureset, body.featureset_version, body.window,
                 body.as_of))
+
+        @self.app.get(f"{self.api}/compute-zones", tags=["warrants"])
+        def compute_zones(request: Request):
+            """Where a fit on sensitive data is allowed to happen.
+
+            Enforced at **warrant issue**, because MAYA does not run the
+            training and cannot observe which machine read the rows — a
+            platform claiming to enforce residency by watching would be
+            claiming something it has no way to check. What it can do is
+            decline to authorise the run.
+
+            An unlisted zone handles no more than the weakest class, so a
+            restricted fit into an unconfigured estate is refused rather than
+            allowed by omission.
+            """
+            self.authorise(request, "warrant:read")
+            return self.guard(lambda: self.ctx["compute_zones"].describe())
+
+        @self.app.post(f"{self.api}/compute-zones/attest", tags=["warrants"])
+        def attest_zone(request: Request, body: ZoneAttestIn):
+            """The executor states where it actually ran.
+
+            An **attestation, not an observation**. A mismatch is a finding
+            rather than a refusal: by the time it is known the run has already
+            happened, and refusing here would be theatre.
+            """
+            # The model is looked up from the warrant rather than taken from
+            # the caller: `warrant:execute` is a permission about one model, and
+            # a legal-entity scope that is not applied is not a scope.
+            grant = self.ctx["warrants"].grants.repo.one(id=body.warrant_id)
+            model = (self.ctx["registry"].by_id(grant["model_id"])
+                     if grant else None)
+            who = self.authorise(request, "warrant:execute", model=model)
+            return self.guard(lambda: self.ctx["compute_zones"].attest(
+                body.warrant_id, ran_in=body.ran_in,
+                authorised=body.authorised, actor=self.actor(who)))
 
         @self.app.get(f"{self.api}/grant-limits", tags=["warrants"])
         def grant_limits(request: Request):

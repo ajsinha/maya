@@ -258,6 +258,24 @@ def _verdict(spec: Dict[str, Any], fibres) -> Dict[str, Any]:
     }
 
 
+def _first_with_runs(service, urn, versions):
+    """The runs under the first version anybody has fitted.
+
+    A model usually has runs under one version and none under the others, and
+    showing the newest because it is newest is how a page that has the answer
+    reports nothing.
+    """
+    for version in reversed(list(versions or ())):
+        out = service.compare(urn, version["semver"])
+        if out["count"]:
+            return out
+    if versions:
+        return service.compare(urn, versions[-1]["semver"])
+    return {"runs": [], "count": 0, "metrics": [],
+            "promotion": service.promotion(),
+            "detail": "this model has no versions, so it has no runs"}
+
+
 class ModelAlgebraRoutes(Routes):
     """Screens for the operations *on* models, and the three checks they need."""
 
@@ -402,7 +420,11 @@ class ModelAlgebraRoutes(Routes):
                 # reads. The alias gate answers "may this move"; a reviewer
                 # approving the change needs "what moved", and a boolean cannot
                 # be turned back into that.
-                series=self.ctx["version_comparison"].history(model["urn"]))
+                series=self.ctx["version_comparison"].history(model["urn"]),
+                # The runs under whichever version has any. A parameter set is
+                # an experiment, and comparing them needs nothing new stored.
+                experiments=_first_with_runs(self.ctx["experiments"],
+                                             model["urn"], versions))
 
         # ------------------------------------------------------- composition
         @self.app.get("/model-algebra/composition", response_class=HTMLResponse,
