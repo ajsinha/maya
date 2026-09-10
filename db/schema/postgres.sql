@@ -631,6 +631,33 @@ CREATE TABLE IF NOT EXISTS model_limitation (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_model_limitation_model_version_id_reference ON model_limitation (model_version_id, reference);
 
+CREATE TABLE IF NOT EXISTS model_use (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    declared_use TEXT NOT NULL,
+    name TEXT NOT NULL,
+    purpose TEXT DEFAULT '' NOT NULL,
+    product TEXT DEFAULT '' NOT NULL,
+    legal_entity TEXT DEFAULT '' NOT NULL,
+    geography TEXT DEFAULT '' NOT NULL,
+    channel TEXT DEFAULT '' NOT NULL,
+    segment TEXT DEFAULT '' NOT NULL,
+    decision_authority TEXT DEFAULT '' NOT NULL,
+    owner TEXT NOT NULL,
+    status TEXT DEFAULT 'active' NOT NULL,
+    effective_from DOUBLE PRECISION NOT NULL,
+    effective_to DOUBLE PRECISION,
+    created_at DOUBLE PRECISION NOT NULL,
+    created_by TEXT NOT NULL,
+    retired_at DOUBLE PRECISION,
+    retired_by TEXT,
+    retire_reason TEXT,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_model_use_declared_use ON model_use (declared_use);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_use_model_id_reference ON model_use (model_id, reference);
+
 CREATE TABLE IF NOT EXISTS model_version (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,
