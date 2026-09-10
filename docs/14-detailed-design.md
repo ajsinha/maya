@@ -674,6 +674,43 @@ quorum and may never approve alone. And **a version whose model has no tier cann
 approving first and assessing afterwards would be a way of choosing your own control depth, and it is the
 obvious way to game a rule like this one.
 
+### 9.2 Comparing two versions
+
+`L-7` and `L-12` decide whether an alias **may** move: contracts refine, inputs are contravariant, outputs
+covariant. That is a yes with a reason and the right thing to gate a promotion on. It is not what somebody
+approving the change needs to read — *is this legal* and *what changed* are different questions, and a
+boolean cannot be turned back into the second one.
+
+`core/registry/comparison.py` diffs two versions out of what the register already holds, and the output
+worth reading first is the **shape**:
+
+| Shape | What moved | The question it asks |
+|---|---|---|
+| `identical` | nothing, digest included | why was this registered twice |
+| `rebuild` | the artifact digest alone | not *is the model still right* but *why did the bytes change* |
+| `refit` | the parameters, and not the specification | the ordinary case, and the one outcomes analysis is for |
+| `respecification` | the contract or the schemas | a different model wearing the same name |
+| `reclassification` | the trainability class | every obligation derived from the class moves with it |
+
+Those five arrive at a reviewer looking identical — a new semver, a new digest, an approval request — and
+naming which one it is, from what is already recorded, is most of the value. The shape is decided
+most-significant-first: a re-specification that also re-fitted is a re-specification, because the reviewer's
+question is set by the largest thing that moved.
+
+**Direction on the contract is read off `L-7`, not from a text diff.** Refinement is computed in both
+directions and the pair carries the direction: `narrowed` means the newer version assumes no more and
+promises no less, so it substitutes safely (and may start refusing calls the older one accepted, which is a
+caller problem rather than a model one); `widened` means it claims more and something must stand behind the
+extra claim; `incomparable` means each claims something the other does not, which is the case worth arguing
+about. The schema half reads `L-12` the same way — two implementations of one order eventually disagree, and
+they disagree in the direction of permitting more.
+
+**MAYA runs neither version.** *Output on a common test set* is answered from the measurements each version
+actually recorded, on the tests they have in common. Where they share none, that is reported as a finding
+rather than an empty section: two versions of one model measured on different things are two things nobody
+can put side by side, and printing a delta across different test sets would be worse than printing nothing
+because it looks like an answer.
+
 ## 10. Validation and findings
 
 `core/validation/` — `catalogue`, `service`, `findings`, `workflow`, `ageing`, `replay`, `storage`,
@@ -1758,8 +1795,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 235 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 296 modules in one
+the 236 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 297 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
