@@ -323,10 +323,24 @@ current there:
 
 ## Try it
 
+**Python 3.13**, which is what `.python-version`, the linter's `target-version`
+and CI all say. It is one number in three places and they are kept in step
+deliberately: a linter targeting one version while CI runs another is a
+disagreement that surfaces as a surprise in somebody's pull request.
+
 ```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt
+python3.13 -m venv .venv && .venv/bin/pip install -r requirements.txt
 .venv/bin/python run_maya_web.py
 ```
+
+> **If your `python3` is managed by uv or pyenv**, point the venv at that
+> interpreter explicitly rather than at `/usr/bin/python3` —
+> `~/.local/share/uv/python/cpython-3.13.15-*/bin/python3.13 -m venv .venv`. A
+> venv built from `/usr/bin/python3` records that path in `pyvenv.cfg` and
+> **breaks the day the distribution upgrades it underneath you**: the
+> interpreter moves to a new minor version, `lib/python3.<old>/site-packages`
+> stops being on its path, and every import fails at once with nothing having
+> changed in the repository.
 
 Then <http://localhost:5006> — sign in as `admin` / `maya-admin-dev`, and change that before anybody else
 can reach it.

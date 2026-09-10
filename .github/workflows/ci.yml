@@ -37,7 +37,10 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  PYTHON_VERSION: "3.12"
+  # One place, read by every job below. Moved 3.12 -> 3.13 when the local
+  # interpreter did: a linter targeting one version while CI runs another is a
+  # disagreement that only shows up as a surprise in a pull request.
+  PYTHON_VERSION: "3.13"
 
 jobs:
   # ------------------------------------------------------------------ hygiene
