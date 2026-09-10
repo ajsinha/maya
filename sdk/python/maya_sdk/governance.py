@@ -1377,6 +1377,42 @@ class Reports:
         """
         return self._maya.call("GET", "/export-formats")
 
+    def vocabulary(self) -> Dict[str, Any]:
+        """What a question in English may be built from, and who translates it.
+
+        Read `translated_by`. Where no provider is wired MAYA matches the
+        published vocabulary — deterministic and weaker — and how much a reader
+        should trust a translation depends entirely on which of the two produced
+        it.
+        """
+        return self._maya.call("GET", "/ask/vocabulary")
+
+    def ask(self, question: str, *, limit: int = 100) -> Dict[str, Any]:
+        """Ask in English. The answer always carries the query it became.
+
+        **The translation produces a query and never a number.** The rows come
+        from the register, computed by the same code the screens use, under your
+        own scope — nothing a model emitted is in them.
+
+        Read `proposed` before `result`, every time. An interface that shows
+        only the answer is one where nobody can tell a misread question from a
+        wrong number, and the misread question is far commoner: somebody asking
+        how many models are unmonitored and being handed 4 has no way to know
+        the query counted retired ones.
+
+        When the proposal names something the register does not have,
+        `understood` is false and `result` is None. It is not retried into
+        something that parses — a query answering a different question would be
+        indistinguishable from one answering yours.
+        """
+        return self._maya.call("POST", "/ask", json={"question": question,
+                                                     "limit": limit})
+
+    def translate(self, question: str) -> Dict[str, Any]:
+        """The query a question becomes, without running it."""
+        return self._maya.call("POST", "/ask/translate",
+                               json={"question": question, "limit": 1})
+
     def returns(self) -> Dict[str, Any]:
         """Every supervisory return, and the fields the register cannot answer.
 
@@ -1403,3 +1439,62 @@ class Reports:
         """
         return self._maya.call("GET", f"/regulatory-returns/{name}",
                                params={"now": now})
+
+
+class ValidationAssistance:
+    """Three pieces of a validator's work. None of them is a conclusion.
+
+    There is no method here that concludes a validation and no parameter that
+    takes an outcome, because effective challenge is a judgement made by a
+    person who can be held to it. The absence is the control.
+
+    Each answer carries a `basis`, and it is worth reading: `exact` is
+    arithmetic over the register, `derived` is inference from what the register
+    holds, `retrieved` points at a document somebody must still read. A screen
+    that mixed the three without saying so would get one level of trust applied
+    to all of them, which is either too much or too little for two.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def describe(self) -> Dict[str, Any]:
+        """The three offerings, and the one thing none of them does."""
+        return self._maya.call("GET", "/validation-assistance")
+
+    def vendor_coverage(self, urn: str) -> Dict[str, Any]:
+        """Which filed document speaks to which vendor checklist item.
+
+        Retrieval, never summary. A paraphrase of a vendor document is a second
+        document that says something the vendor did not, and the validator who
+        relies on it cannot cite it when the vendor disagrees. What comes back
+        is where to look.
+        """
+        return self._maya.call("GET", "/validation-assistance/vendor-coverage",
+                               params={"urn": urn})
+
+    def challenge_questions(self, urn: str, *, limit: int = 20) -> Dict[str, Any]:
+        """Questions from findings raised against comparable models.
+
+        Every one carries the finding it came from and the model it was raised
+        against. A challenge question with no provenance is one a validator
+        cannot defend when the owner pushes back, and "the tool suggested it" is
+        not an answer.
+
+        An empty result is not a clean bill: a model with no comparable peers is
+        one whose failure modes nobody else has met yet.
+        """
+        return self._maya.call(
+            "GET", "/validation-assistance/challenge-questions",
+            params={"urn": urn, "limit": limit})
+
+    def untested_assumptions(self, urn: str = "") -> Dict[str, Any]:
+        """Assumptions with nothing watching them. Exact, and labelled exact.
+
+        No model is involved: the assumption register already records whether a
+        monitor watches each one, so this is a filter. Routing it through a
+        language model would add a source of error to an answer that had none.
+        """
+        return self._maya.call(
+            "GET", "/validation-assistance/untested-assumptions",
+            params={"urn": urn})

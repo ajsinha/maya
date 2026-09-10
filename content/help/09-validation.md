@@ -4,7 +4,7 @@ slug: validation
 section: Assurance
 order: 90
 icon: clipboard-check
-summary: An episode of challenge is worth having only if it can refuse something, and a finding is worth having only if somebody is accountable for closing it. The independence rule, the test catalogue, replay against the pinned snapshot — and the four acts from which a finding's ageing, acceptance and escalation are all derived.
+summary: An episode of challenge is worth having only if it can refuse something, and a finding is worth having only if somebody is accountable for closing it. The independence rule, the test catalogue, replay against the pinned snapshot, three pieces of assistance that never conclude — and the four acts from which a finding's ageing, acceptance and escalation are all derived.
 audience: Model validation, Model risk, Model owners
 ---
 
@@ -313,6 +313,85 @@ POST /api/v1/findings                          # needs finding:raise
 
 An owner is required. *A finding with no owner is a finding nobody will fix* —
 and that is the refusal message.
+
+## What the platform will help with, and what it will not
+
+`GET /validation-assistance` offers three pieces of a validator's work. None of
+them is a conclusion, and that is not a limitation of the current version.
+
+> Effective challenge is a judgement made by a person who can be held to it.
+> There is no method here that concludes a validation, no parameter that takes
+> an outcome, and a test that asserts both. **The absence is the control** — and
+> an absence nothing checks is one somebody eventually adds a method to.
+
+Every answer carries a `basis`. Read it before you read the answer.
+
+| `basis` | What it means | How much to trust it |
+|---|---|---|
+| `exact` | Arithmetic over the register | As much as the register |
+| `derived` | Inference from what the register holds | Check the provenance it gives you |
+| `retrieved` | A pointer at a document you must still read | Read the document |
+
+A page that mixed the three without saying so would get one level of trust
+applied to all of them, which is either too much or too little for two.
+
+### Vendor documents against the checklist — `retrieved`
+
+For each item on the vendor checklist, which filed attachment mentions it, and
+on what terms. Deliberately not a summary.
+
+A paraphrase of a vendor document is **a second document**. It says something the
+vendor did not, and when the vendor disagrees with it you cannot cite it back to
+them. What comes back is where to look.
+
+Items no filed document mentions at all are listed — a different fact from an
+item nobody has answered in the assessment, and both are shown.
+
+### Challenge questions — `derived`
+
+Findings raised against comparable models, phrased as questions. Comparability is
+the register's own: same domain, same trainability class, same model class, and
+the more of those two models share, the higher the question sorts.
+
+Every question carries the finding it came from and the model it was raised
+against, because a challenge with no provenance is one the owner can dismiss, and
+*the tool suggested it* is not an answer you can give in a committee.
+
+Closed findings make the better questions: somebody found it, agreed it was real
+and fixed it, so it is a failure mode this institution has confirmed rather than
+suspected.
+
+If it returns nothing, read the reason. **No comparable model is not a clean
+bill** — it is a model whose failure modes nobody here has met yet.
+
+### Assumptions nothing tests — `exact`
+
+Standing assumptions with no monitor against them, material-and-unmitigated
+first. There is no model involved: the assumption register already records
+whether something watches each one, so this is a filter.
+
+It is here because you want it beside the other two, and it is labelled `exact`
+so you know it is not a suggestion.
+
+## Asking the register a question
+
+The **Query the register** screen takes a question in English and turns it into
+a query. The query is shown to you every time, next to the rows.
+
+> **The translation produces a query, never a number.** Whatever produced it — a
+> wired provider or MAYA's own vocabulary match — the proposal is checked against
+> the published catalogue before anything runs, and the rows come from the
+> register under your own scope.
+
+Read the query, not just the answer. If you ask *how many models are unmonitored*
+and are handed **4**, you cannot tell whether the query counted retired models
+unless you can see it. The misread question is far commoner than the wrong number
+and is invisible unless the translation is in front of you.
+
+When the translation names something the register does not have, you get the
+proposal and the refusal, and nothing runs. It is not retried into a query that
+parses: that would answer a different question in a form indistinguishable from
+answering yours.
 
 ## The four acts
 

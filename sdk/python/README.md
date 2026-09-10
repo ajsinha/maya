@@ -72,6 +72,7 @@ fall behind again.
 | `maya.findings` | raise, assign, acknowledge, plan, extend, close, ageing, escalation |
 | `maya.monitors` | define, evaluate, evaluate from telemetry, observations |
 | `maya.reports` | query the semantic layer, save and run views, export, regulatory returns |
+| `maya.validation_aid` | vendor document coverage, challenge questions, untested assumptions |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**
