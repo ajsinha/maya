@@ -57,7 +57,8 @@ from core.export import ExportPacker
 from core.reporting import (AppetiteRegister, BoardPackBuilder,
                             IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
-from core.assist import CapabilityRegistry, DraftingService, GenerationLog
+from core.assist import (BudgetRegister, CapabilityRegistry, DraftingService,
+                         GenerationLog)
 from core.assist import providers as assist_providers
 from core.attachments import AttachmentRegister, DocumentStore
 from core.parameters import FittingService, ParameterRegister
@@ -115,6 +116,7 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
+                SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
                 WarrantRepository)
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -410,9 +412,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # grounding, attestation, sampling -- without calling anything. Every
     # other provider refuses by name until somebody has answered the
     # egress and confidentiality questions for their deployment.
+    # What each capability may spend per rolling window, checked BEFORE the
+    # provider is asked. A budget checked afterwards is an invoice.
+    assist_budgets = BudgetRegister(capabilities, SpendRepository(db),
+                                    evidence)
     drafting = DraftingService(
         generations, capabilities, evidence,
-        assist_providers.build(cfg.get("assist.provider", "mock")))
+        assist_providers.build(cfg.get("assist.provider", "mock")),
+        budgets=assist_budgets)
 
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
@@ -704,6 +711,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "overlays": overlays,
                            "capabilities": capabilities, "generations": generations,
                            "drafting": drafting,
+                           "assist_budgets": assist_budgets,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

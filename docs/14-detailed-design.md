@@ -1195,7 +1195,7 @@ deliberately: a governance platform is not a model store of last resort.
 
 ## 15. Machine assistance
 
-`core/assist/` — capabilities, oracles, grounding, generations, providers.
+`core/assist/` — capabilities, oracles, grounding, generations, providers, budgets.
 
 A capability registers at **Tier A** (a named oracle checks the output) or **Tier B** (every claim cites
 evidence). **Tier C cannot be registered**, and `CapabilityRegistry.register` refuses it by name before it
@@ -1223,6 +1223,42 @@ Two rules bound the whole package. **Nothing is evidence until a person attests 
 asked.** And **no AI principal holds a credential permitting a governance transition** — a capability cannot
 make a governance decision because it holds no credential to attempt one, which is held by construction and
 not by any check.
+
+### 15.1 What a capability may spend
+
+`core/assist/providers/remote.py` named this gap in its own docstring — *cost and rate limits, which are
+operational, and which is why they are named here rather than discovered in production*. `core/assist/budgets.py`
+is that, and the ordering is the whole of it: the budget is checked in `DraftingService.draft` **before** the
+provider is asked. Everything else about a generation — the prompt digest, the claims, the oracle verdict, who
+attested it — is recorded after the model answered, and a spend figure computed the same way tells you what
+happened without stopping it happening.
+
+Three numbers, because they bound three different failures. **Tokens** bound a prompt that grew — a grounding
+set that quietly went from forty nodes to four thousand. **Cost** bounds the invoice, which is the number
+somebody signs for. **Steps bound a loop**, and that is the one worth setting deliberately: a runaway agent is
+not one enormous call, it is a large number of small ones, and it will pass a token budget and a cost budget
+for a long time before either notices.
+
+The window is **rolling, never a lifetime cap**. A lifetime cap is reached once and then the capability is dead
+forever, which is how budgets end up raised to a number that means nothing. And the overshoot is **exactly one
+call** — nothing can know what a call costs before making it, short of proxying the provider and metering the
+stream, so a 100,000-token budget stops somewhere between 100,000 and 100,000 plus one call. Saying so is
+better than implying a precision the arrangement does not have.
+
+**The slice turned up a defect, and the schema records the fix.** `GenerationLog.record` *refuses* a draft
+whose claims ground nothing and writes no row. The provider was still called and the tokens were still spent.
+Counting spend from generation rows would therefore have meant that a capability whose output never grounds has
+no measurable cost at all — exactly backwards, because the capability failing most often is the one burning the
+most. Spend lives in its own `ai_spend` ledger, one row per provider call, and `generation_id` is null for
+precisely those calls. That null is the column worth reading: it is the spend that bought nothing, and
+`outcome` says which refusal it was, because a capability burning its budget on `oracle_failed` is a different
+problem from one burning it on `nothing_grounded`.
+
+Two smaller decisions. A capability with **no budget declared is not unlimited** — it runs on a default, and
+the estate view names which ones do, because a default reported as a decision is how a default becomes
+permanent. And **exhaustion refuses without suspending**: the capability stays active and the window refills,
+because suspending is a governance act somebody takes with a reason recorded, and a control that quietly
+retires a capability for being busy on Tuesday is one people work around.
 
 ## 16. Reporting, baseline and the operational jobs
 
@@ -1582,8 +1618,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 228 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 289 modules in one
+the 229 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 290 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

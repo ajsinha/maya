@@ -51,10 +51,16 @@ MAX_EVIDENCE = 40
 class DraftingService:
     """Asks a provider for a draft, and records it through the ordinary gate."""
 
-    def __init__(self, generations, capabilities, evidence, provider=None):
+    def __init__(self, generations, capabilities, evidence, provider=None,
+                 budgets=None):
         self.generations, self.capabilities = generations, capabilities
         self.evidence = evidence
         self.provider = provider or build_provider("mock")
+        # The gateway's budget check. Optional so an instance can run
+        # without one, and when it is absent nothing is claimed: no budget
+        # is enforced and the estate view says which capabilities that is
+        # true of, rather than reporting them as within budget.
+        self.budgets = budgets
 
     # ------------------------------------------------------------------ draft
     def draft(self, capability_key: str, subject_type: str, subject_id: str,
@@ -62,6 +68,12 @@ class DraftingService:
               actor: str = "system") -> Dict[str, Any]:
         """Ask for a draft about this subject, grounded in what the register holds."""
         capability = self.capabilities.require(capability_key)
+        # Before the provider is asked, which is the only position from which a
+        # budget is a control rather than a report. Everything else about a
+        # generation is recorded afterwards, and a spend figure computed the
+        # same way tells you what happened without stopping it happening.
+        if self.budgets is not None:
+            self.budgets.check(capability_key)
         if why := self.provider.available():
             raise AssistError(
                 "provider_unavailable",
@@ -89,18 +101,47 @@ class DraftingService:
 
         # The gate is the existing one, unchanged. Nothing here decides whether a
         # claim is admissible; that judgement stays in one place.
-        return self.generations.record(
-            capability_key, subject_type, subject_id,
-            claims=drafted.claims, known_evidence=evidence_ids,
-            oracle_payload=oracle_payload,
-            output={"provider": drafted.provider, "model": drafted.model,
-                    "usage": drafted.usage,
-                    "prompt_digest": canonical_digest({"prompt": prompt}),
-                    # The provider's own prose, kept for the record and NOT
-                    # shown as the answer: what a reader sees is assembled from
-                    # the claims that survived grounding.
-                    "as_drafted": drafted.text},
-            actor=actor)
+        #
+        # The `try` is not defensive. `GenerationLog.record` REFUSES a draft
+        # that grounds nothing and writes no row — the provider was still
+        # called, and the tokens were still spent. Letting the refusal through
+        # without charging for it would mean a capability whose output never
+        # grounds has no measurable cost at all, which is exactly backwards:
+        # the one failing most often is the one burning the most.
+        try:
+            generation = self.generations.record(
+                capability_key, subject_type, subject_id,
+                claims=drafted.claims, known_evidence=evidence_ids,
+                oracle_payload=oracle_payload,
+                output={"provider": drafted.provider, "model": drafted.model,
+                        "usage": drafted.usage,
+                        "prompt_digest": canonical_digest({"prompt": prompt}),
+                        # The provider's own prose, kept for the record and NOT
+                        # shown as the answer: what a reader sees is assembled
+                        # from the claims that survived grounding.
+                        "as_drafted": drafted.text},
+                actor=actor)
+        except AssistError as refused:
+            logger.warning("capability %s was called and produced nothing (%s); "
+                           "the call is charged to its budget anyway",
+                           capability_key, refused.code)
+            self._charge(capability_key, drafted, outcome=refused.code,
+                         actor=actor)
+            raise
+        self._charge(capability_key, drafted, generation_id=generation["id"],
+                     actor=actor)
+        return generation
+
+    def _charge(self, capability_key, drafted, generation_id=None,
+                outcome: str = "recorded", actor: str = "system") -> None:
+        """One provider call, one row on the spend ledger."""
+        if self.budgets is None:
+            return
+        usage = drafted.usage or {}
+        self.budgets.charge(
+            capability_key, tokens=usage.get("tokens") or 0,
+            cost=usage.get("cost") or 0.0, steps=usage.get("steps") or 1,
+            generation_id=generation_id, outcome=outcome, actor=actor)
 
     # ------------------------------------------------------------------ parts
     def _evidence_for(self, subject_id: str) -> List[Dict[str, Any]]:
