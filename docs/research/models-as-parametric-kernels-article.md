@@ -968,8 +968,13 @@ version-substitution check judges outputs on name and type alone, so narrowing i
 are defensible. Holding both is not, and this is exactly the kind of divergence that "write the relation
 once" was supposed to prevent.
 
-**Five laws don't execute**, and one of them is the interaction premium — which is the result I've been most
-enthusiastic about in this article. The theorem is proved. The number is not computed anywhere.
+**Three laws don't execute**, and one of them is the interaction premium — which is the result I've been
+most enthusiastic about in this article. The theorem is proved. The number is not computed anywhere. Two of
+the five that were on this list have since come off it, and the way they came off is worth more than the
+count: `L-17` was recorded as blocked on an online feature store, and it was blocked on the wrong thing. A
+store sits on the serving path, and the design says the platform does not go there — so the engine attests
+what it read and the platform compares. The law was not waiting on a component; it was waiting on somebody
+noticing that the claim could be made the other way round.
 
 **The lattice is finite-fragment, and half of it has no caller.** No bottom element, and the meet is partial
 — both honest, and both meaning the structure is weaker than "schemas form a complete lattice" would lead you
