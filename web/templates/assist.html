@@ -131,6 +131,83 @@ afterwards is an invoice.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">What it is actually doing</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Almost none of this is new measurement — the generation log, the spend ledger
+    and the injection scan already record it. What matters is what the numbers
+    mean, which is the part that goes wrong.
+    <br><br>
+    <strong>Citation accuracy is 1.0 by construction, and that is not good
+    news.</strong> The grounding gate drops a claim citing something the platform
+    does not hold <em>before anybody reads it</em>, so measuring citation accuracy
+    on the output measures the gate and not the model. A dashboard showing 100%
+    would be true and would tell a reader the opposite of what it appears to. The
+    number carrying the information is the <strong>hallucination rate</strong> —
+    what the model tried to say and could not support.
+  </div>
+  {% if metrics.capabilities %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Capability</th><th class="text-end">Generations</th>
+      <th class="text-end">Grounded</th><th class="text-end">Hallucinated</th>
+      <th class="text-end">Refused</th><th class="text-end">Injections</th>
+      <th class="text-end">Edits</th><th>Override</th>
+    </tr></thead>
+    <tbody>
+      {% for row in metrics.capabilities %}
+      <tr>
+        <td class="mono small">{{ row.capability_key }}</td>
+        <td class="small text-end">{{ row.generations }}</td>
+        <td class="small text-end">
+          {% if row.groundedness is not none %}{{ '%.0f' | format(100 * row.groundedness) }}%
+          {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td class="small text-end">
+          {% if row.hallucination_rate is not none %}
+            <span class="{{ 'evidence-bad' if row.hallucination_rate > 0.1 else '' }}">
+              {{ '%.0f' | format(100 * row.hallucination_rate) }}%</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td class="small text-end">
+          {% if row.refusal_rate is not none %}
+            <span class="{{ 'evidence-bad' if row.refusal_rate > 0.2 else '' }}">
+              {{ '%.0f' | format(100 * row.refusal_rate) }}%</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td class="small text-end">{{ row.injection_detections }}</td>
+        <td class="small text-end text-muted">{{ row.edit_distance.count }}</td>
+        <td class="small">
+          {% if row.override_rate.rate is none %}
+            <span class="text-muted">too few</span>
+          {% elif row.override_rate.rate == 0.0 %}
+            <span class="evidence-bad">never</span>
+          {% else %}{{ '%.0f' | format(100 * row.override_rate.rate) }}%{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">{{ metrics.detail }}.</div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>A falling override rate is the alarm, not the goal.</strong> The
+    obvious reading is that the capability is improving. The other is that a
+    reviewer who has approved forty correct drafts is not reviewing the
+    forty-first — and the two look identical in the number. That is what the
+    automation-bias sample exists for.
+    <br><br>
+    <strong>Edit distance is the only number here that is not
+    self-reported.</strong> Everything else is the platform grading its own
+    homework; a reviewer's revision is the one signal from outside the system.
+    <br><br>
+    <strong>Toxicity and personal-data leakage are not measured</strong>, and are
+    shown as not measured rather than as zero. MAYA has no classifier for either
+    and will not ship a keyword list dressed up as one: a dashboard showing no
+    toxicity because nothing looked is worse than a blank, because a blank
+    prompts somebody to ask.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">Has the model moved underneath its own name?</div>
   <div class="card-body py-2 small text-muted border-bottom">
     A <code>base_model</code> string identifies nothing on its own. A hosted model

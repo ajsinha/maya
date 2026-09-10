@@ -1362,7 +1362,7 @@ the caller did nothing wrong and the answer is *later*, which is what 429 means 
 ## 15. Machine assistance
 
 `core/assist/` — capabilities, oracles, grounding, generations, providers, budgets, injection,
-canaries.
+canaries, monitoring.
 
 A capability registers at **Tier A** (a named oracle checks the output) or **Tier B** (every claim cites
 evidence). **Tier C cannot be registered**, and `CapabilityRegistry.register` refuses it by name before it
@@ -1507,6 +1507,42 @@ Two smaller notes. The check **re-baselines** on a hit, so it reports the change
 until somebody intervenes. And the probe calls are **not charged to the capability's budget** (§15.1): a
 control that consumed the resource it protects would refuse to run at exactly the moment you would want it
 to.
+
+### 15.4 What the assistance is actually doing
+
+Almost none of this is new measurement. The generation log already records what each draft claimed and what
+the grounding gate dropped; the spend ledger (§15.1) already records what every call consumed and which ones
+bought nothing; the injection scan (§15.2) already records what the register tried to say to a model.
+`core/assist/monitoring.py` joins them, and what it adds is saying what the numbers **mean** — which is the
+part that goes wrong.
+
+**Citation accuracy is 1.0 by construction, and that is not good news.** The grounding gate drops a claim
+citing something the platform does not hold *before anybody reads it*, so measuring citation accuracy on the
+output measures the gate and not the model. A dashboard showing 100% would be true and would tell a reader
+the opposite of what it appears to. The number carrying the information is the **hallucination rate** — what
+the model tried to say and could not support — and it is returned in its place, with the reason travelling
+beside the figure in `citation_accuracy_means`.
+
+**Toxicity and personal-data leakage are reported as not measured, never as zero.** MAYA has no classifier
+for either and will not ship a keyword list dressed up as one. A dashboard showing no toxicity because
+nothing looked is worse than a blank, because a blank prompts somebody to ask. What would have to be true is
+named in the metric's own definition.
+
+**Edit distance is the only number here that is not self-reported.** Everything else is the platform grading
+its own homework; a reviewer's revision of what a model wrote is the one signal that comes from outside the
+system, which makes it the one worth trending. It is reported as quantiles, because a mean over drafts a
+reviewer either waved through or rewrote completely describes neither.
+
+**A falling override rate is the alarm, not the goal.** The obvious reading is that the capability is
+improving. The other is that a reviewer who has approved forty correct drafts is not reviewing the
+forty-first — the automation bias the review sample exists to catch — and the two look identical in the
+number. Both readings are returned rather than a green tick, and a rate over fewer than ten decisions is
+reported as *too few* rather than printed to two decimal places, because a rate over four samples is a number
+pretending to be a measurement.
+
+One case the join catches that neither source could alone: a capability that was **called and produced
+nothing**. The generation log shows it empty and looking idle; the spend ledger shows it burning tokens. It
+is a capability failing rather than one that is busy, and it costs exactly as much as one that works.
 
 ## 16. Reporting, baseline and the operational jobs
 
@@ -1967,8 +2003,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 244 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 305 modules in one
+the 245 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 306 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

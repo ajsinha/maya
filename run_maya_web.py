@@ -67,6 +67,7 @@ from core.execution.inference import InferenceLog
 from core.execution.quotas import GrantQuotas
 from core.classification import Classification
 from core.registry.comparison import VersionComparison
+from core.assist.monitoring import AssistMonitoring
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
                          DraftingService, GenerationLog)
 from core.assist import providers as assist_providers
@@ -644,6 +645,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     lifecycle_profiles = LifecycleProfiles(
         registry, fibres, attachments=attachments, evidence=evidence)
 
+    # What the platform's own generative assistance is actually doing. Almost
+    # nothing new is measured: the generation log, the spend ledger and the
+    # injection scan already record it, and this says what it means.
+    assist_monitoring = AssistMonitoring(generations, capabilities,
+                                         spend=SpendRepository(db))
+
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
@@ -866,6 +873,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "capabilities": capabilities, "generations": generations,
                            "drafting": drafting,
                            "assist_budgets": assist_budgets,
+                           "assist_monitoring": assist_monitoring,
                            "canaries": canaries,
                            "classification": data_classification,
                            "break_glass": break_glass,

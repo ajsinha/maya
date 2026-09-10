@@ -113,6 +113,35 @@ class Assist:
             "subject_id": subject_id, "instruction": instruction,
             "oracle_payload": oracle_payload or {}})
 
+    # ------------------------------------------------------------- monitoring
+    def metric_definitions(self) -> Dict[str, Any]:
+        """The metrics, where each comes from, and the two not measured.
+
+        `toxicity` and `personal_data_leakage` are reported as **not measured**
+        rather than as zero. MAYA has no classifier for either and will not ship
+        a keyword list dressed up as one — a dashboard showing no toxicity
+        because nothing looked is worse than a blank, because a blank prompts
+        somebody to ask.
+        """
+        return self._maya.call("GET", "/assist/metrics")
+
+    def monitoring(self, capability_key: str = "",
+                   window_days: float = 30.0) -> Dict[str, Any]:
+        """What the platform's own generative assistance is doing.
+
+        Two fields repay reading with their `means` beside them.
+        `citation_accuracy` is 1.0 by construction — the grounding gate drops an
+        unsupported claim before a reader sees it, so it measures the gate and
+        not the model, and the number carrying the information is
+        `hallucination_rate`. And a falling `override_rate` reads two ways that
+        look identical in the number: the capability improving, or a reviewer
+        who has stopped reading.
+        """
+        params: Dict[str, Any] = {"window_days": window_days}
+        if capability_key:
+            params["capability_key"] = capability_key
+        return self._maya.call("GET", "/assist/monitoring", params=params)
+
     # --------------------------------------------------------------- canaries
     def canaries(self) -> Dict[str, Any]:
         """Whether the model under each capability's version string has moved.
