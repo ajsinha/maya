@@ -399,6 +399,11 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # the run register, and the standing approval for a re-fit
+    "unknown_verb": 422, "parent_closed": 409,
+    "nesting_too_deep": 422, "run_closed": 409, "unknown_run": 404,
+    "unknown_trigger": 422, "trigger_required": 422,
+    "tier_not_eligible": 403, "author_may_not_approve": 403,
     # a round of asking, and what arrives before a model is a model
     "unknown_campaign_kind": 422, "campaign_already_open": 409,
     "empty_population": 422, "campaign_closed": 409,

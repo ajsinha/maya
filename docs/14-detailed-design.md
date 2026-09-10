@@ -1420,6 +1420,71 @@ old is the online value*; only this comparison answers *is it the value the mode
 a perfectly fresh online store computing a subtly different feature passes every freshness check ever
 written.
 
+### 12.11 A run is opened before it happens
+
+Every experiment tracker records a run **when it finishes**, and that produces a register of successes. A
+fit that started, consumed a warrant, read a snapshot of somebody's data and then vanished — preempted
+node, killed job, nobody watching — appears in none of them. It is the run a supervisor asks about.
+
+So a run is declared before the activity and closed after, and the states carry that:
+
+| State | Set by | Means |
+|---|---|---|
+| `open` | Declaring the run | It is meant to be happening |
+| `succeeded` / `failed` / `abandoned` | Closing it | Somebody took delivery of what came back |
+| `lost` | **The clock** | Open well past its own `expected_seconds` |
+
+`lost` is derived and never assertable, because a caller who could report a run lost could close one they
+would rather nobody read. A failed run needs a note: the failures are the part of a training record
+anybody reads twice, and a bare `failed` six months on is indistinguishable from a run nobody looked at.
+
+**MAYA submits nothing.** The requirement asks for orchestration against a compute backend; this is the
+callee, always. A register that submitted jobs would be on the failure path of the thing it exists to
+observe, and would need a client for every backend a bank has.
+
+**And it never reads `log_uri`.** The field exists so a person can find the logs, not so the platform can
+— fetching them would put readiness on somebody else's object store. The verbs come from the warrant
+grammar rather than being repeated here, so a run and the authority for it cannot describe the same
+activity differently. And an incomplete resource profile is named on *every* state rather than only at
+closure: it is a fact about the declaration, and the moment it is worth knowing is while the run is open
+and somebody could still fix the next one.
+
+**A search is a parent with children, and the count is the finding.** A hyperparameter search that tried
+four hundred configurations and published the best one is a multiple-comparisons problem — the best of
+four hundred draws from a null distribution looks excellent — so the parent carries `tried`, cost is
+summed from the children rather than taken from the winner, and grandchildren are refused because nesting
+would make the child count depend on how somebody chose to group the runs. A number that can be reshaped
+by grouping is not a control. MAYA selects no winner: choosing a child means approving its parameter set,
+and a search cannot approve its own output.
+
+### 12.12 The standing approval for a re-fit
+
+MAYA retrains nothing. It says a re-fit is **due**, from triggers it already computes — a monitor in
+breach, drift past threshold, an adaptive excursion, a fitting window elapsed — and a trigger the
+platform cannot evaluate is refused *when the policy is written*, because a condition that silently never
+fires is worse than one nobody declared.
+
+The harder half is automatic acceptance, and the honest framing matters. The objection is obvious and
+mostly right: nobody looked at this number. But the alternative in practice is not a committee reading
+every recalibration. It is **a recalibration that happens anyway, at the frequency the business needs,
+with nobody's name on it.** A standing policy is a person saying in advance *a re-fit of this model, on
+this trigger, whose diagnostics land inside this tolerance, may be accepted without me* — and their name
+is on every acceptance it produces.
+
+Four things make that defensible, each enforced rather than documented:
+
+| Rule | Why it is not configurable |
+|---|---|
+| **Tier 1 is never eligible** | The first thing anybody asks of an auto-promotion policy is whether it can be widened. A ceiling that can be raised is a ceiling that will be. An *untiered* model takes the same treatment: a model nobody has tiered is not a safe model |
+| **Every policy expires** within a year | A standing approval with no end is a permanent delegation of a judgement, and the person who gave it has usually moved on |
+| **The tolerance is checked here** | A policy whose tolerance is evaluated by whatever produced the parameters is a model marking its own homework. A diagnostic that was *not reported* counts as outside it — otherwise a fit that stopped emitting a number passes the check that number existed for |
+| **The author may not approve it** | It delegates a judgement over every future re-fit of the model, which makes it a larger approval than most rather than a smaller one |
+
+An acceptance is attributed to the policy's **human approver**, never to `system`. *Who approved this
+parameter set* must always have a human answer, and *the automation did* is not one. Declaring a policy
+without `auto_accept` still fires the triggers and still puts the model on the due list — which is most
+of the value and none of the delegation.
+
 ## 13. Monitoring and telemetry
 
 ### 13.1 Telemetry is two streams, not one
@@ -2869,8 +2934,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 297 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 358 modules in one
+the 299 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 360 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

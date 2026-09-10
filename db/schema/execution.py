@@ -317,3 +317,75 @@ PARALLEL_OBSERVATION = Table(
     Index("uq_parallel_observation", "run_id", "input_key", unique=True),
     Index("ix_parallel_observation_run", "run_id"),
 )
+
+
+# An activity somebody else executed, declared before it ran.
+#
+# MAYA is always the callee: it does not submit jobs and does not fetch logs.
+# Fetching them would make the register a client of every compute backend and
+# put it on the failure path of the thing it exists to observe, so the log
+# location is recorded and never read.
+#
+# The important word is BEFORE. A run recorded only on success is a register of
+# successes, and the runs that matter most are the ones that failed or never
+# came back — a fit that started, consumed a warrant and vanished is invisible
+# in every training tracker that writes its row at the end. An open run past
+# its expected duration is `lost`, and lost is a state rather than an absence.
+RUN = Table(
+    "run", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("model_id", Text),
+    Column("model_version_id", Text),
+    # One of the ten warrant verbs. The same vocabulary, because a run and the
+    # authority for it must not be able to describe the activity differently.
+    Column("verb", Text, nullable=False),
+    Column("warrant_id", Text),
+    # A hyperparameter search is a parent with children. The number nobody
+    # reports is how many children were run and discarded, and it is the number
+    # that makes a multiple-comparisons problem visible.
+    Column("parent_id", Text),
+    Column("purpose", Text, nullable=False, server_default=text("''")),
+    Column("resource_profile", Text, nullable=False, server_default=text("'{}'")),
+    Column("environment", Text, nullable=False, server_default=text("'{}'")),
+    Column("inputs", Text, nullable=False, server_default=text("'{}'")),
+    Column("hyperparameters", Text, nullable=False, server_default=text("'{}'")),
+    Column("seeds", Text, nullable=False, server_default=text("'{}'")),
+    Column("log_uri", Text, nullable=False, server_default=text("''")),
+    Column("metrics", Text, nullable=False, server_default=text("'{}'")),
+    Column("parameter_set_id", Text),
+    Column("state", Text, nullable=False, server_default=text("'open'")),
+    Column("outcome_note", Text, nullable=False, server_default=text("''")),
+    Column("expected_seconds", Double),
+    Column("cost", Double),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    Column("closed_at", Double),
+    Column("closed_by", Text),
+    Index("uq_run_reference", "reference", unique=True),
+    Index("ix_run_parent", "parent_id", "state"),
+)
+
+
+# The standing policy under which a re-fit may be accepted without a person.
+#
+# It approves a PROCEDURE and never a result: a committee cannot meet every
+# morning, and the alternative to a standing approval is a recalibration that
+# happens anyway with nobody's name on it. Tier 1 is never eligible and the
+# ceiling is enforced rather than documented, because the first thing anybody
+# asks of an auto-promotion policy is whether it can be widened.
+RETRAIN_POLICY = Table(
+    "retrain_policy", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("triggers", Text, nullable=False, server_default=text("'[]'")),
+    Column("tolerance", Text, nullable=False, server_default=text("'{}'")),
+    Column("auto_accept", Boolean, nullable=False, server_default=false()),
+    Column("rationale", Text, nullable=False, server_default=text("''")),
+    Column("declared_by", Text, nullable=False),
+    Column("approved_by", Text),
+    Column("declared_at", Double, nullable=False),
+    Column("expires_at", Double),
+    Column("status", Text, nullable=False, server_default=text("'active'")),
+    Index("uq_retrain_policy_model", "model_id", unique=True),
+)

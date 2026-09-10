@@ -261,6 +261,36 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT id, reference, verb, state FROM run WHERE model_id = :m",
+                {"m": model_id}):
+            live = row["state"] == "open"
+            found.append(Reference(
+                "run", row["id"], row["reference"],
+                (f"an OPEN {row['verb']} run against this model — it has "
+                 f"consumed a warrant and read whatever its inputs named, and "
+                 f"deleting the model now would leave a run nothing can be "
+                 f"reconciled to"
+                 if live else
+                 f"a {row['verb']} run that {row['state']}, and the lineage of "
+                 f"whatever it produced"),
+                live))
+
+        for row in self.db.query(
+                "SELECT id, auto_accept, status FROM retrain_policy "
+                "WHERE model_id = :m", {"m": model_id}):
+            live = row["status"] == "active"
+            found.append(Reference(
+                "retrain_policy", row["id"],
+                "automatic" if row["auto_accept"] else "triggers only",
+                ("a standing approval in force — somebody delegated a "
+                 "judgement over this model's future re-fits, and deleting it "
+                 "would erase the delegation rather than end it"
+                 if live else
+                 "a standing approval that is no longer in force, kept as the "
+                 "record that one existed"),
+                live))
+
+        for row in self.db.query(
                 "SELECT i.id, i.state, c.reference, c.kind, c.status "
                 "FROM campaign_item i JOIN campaign c "
                 "ON c.id = i.campaign_id WHERE i.model_id = :m",

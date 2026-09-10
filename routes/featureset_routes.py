@@ -134,6 +134,51 @@ class AssembleIn(Body):
     name: Optional[str] = None
 
 
+class RunIn(Body):
+    """A run somebody else will execute, declared before it does.
+
+    There is no field for a job specification and no endpoint that submits one.
+    MAYA is the callee: it records the authority and takes delivery of what came
+    back. `log_uri` is recorded and never read — fetching it would put this
+    platform's readiness on somebody else's object store.
+    """
+    reference: str
+    verb: str
+    urn: str = ""
+    semver: str = ""
+    warrant_id: str = ""
+    parent: str = ""
+    purpose: str = ""
+    resource_profile: Dict[str, Any] = Field(default_factory=dict)
+    environment: Dict[str, Any] = Field(default_factory=dict)
+    inputs: Dict[str, Any] = Field(default_factory=dict)
+    hyperparameters: Dict[str, Any] = Field(default_factory=dict)
+    seeds: Dict[str, Any] = Field(default_factory=dict)
+    log_uri: str = ""
+    expected_seconds: Optional[float] = None
+
+
+class CloseRunIn(Body):
+    """What a run produced. `lost` is not accepted here.
+
+    It is derived from the clock, because a caller who could report a run lost
+    could close one it would rather nobody read.
+    """
+    state: str
+    metrics: Dict[str, Any] = Field(default_factory=dict)
+    parameter_set_id: str = ""
+    cost: Optional[float] = None
+    note: str = ""
+
+
+class RetrainPolicyIn(Body):
+    triggers: List[str] = Field(default_factory=list)
+    tolerance: Dict[str, Any] = Field(default_factory=dict)
+    auto_accept: bool = False
+    rationale: str
+    expires_at: Optional[float] = None
+
+
 class ParametersIn(Body):
     urn: str
     semver: str
@@ -544,3 +589,123 @@ class FeaturesetRoutes(Routes):
                 lambda: parameters.approve(parameter_set_id, actor, body.note)
                 if body.accept
                 else parameters.reject(parameter_set_id, actor, body.note))
+
+        # ------------------------------------------------------------- runs
+        @self.app.get(f"{api}/runs/vocabulary", tags=["parameters"])
+        def run_vocabulary(request: Request):
+            """The verbs, the states and what MAYA does not do."""
+            self.authorise(request, "model:read")
+            from core.parameters.runs import Runs
+            return Runs.describe()
+
+        @self.app.get(f"{api}/runs", tags=["parameters"])
+        def runs(request: Request, reference: Optional[str] = None,
+                 now: Optional[float] = None):
+            """Every top-level run, lost first — or one of them."""
+            self.authorise(request, "model:read",
+                           estate_wide="reading the run register")
+            engine = self.ctx["runs"]
+            if reference is None:
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            return self.guard(lambda: engine.read(reference, now=now))
+
+        @self.app.post(f"{api}/runs", status_code=201, tags=["parameters"])
+        def open_run(request: Request, body: RunIn):
+            """Declare a run before it happens.
+
+            A run recorded only on success is a register of successes, and the
+            run a supervisor asks about is the one that consumed a warrant,
+            read a snapshot of somebody's data and vanished.
+            """
+            model = (self.guard(lambda: self.ctx["registry"].require(body.urn))
+                     if body.urn else None)
+            who = self.authorise(request, "parameter:record", model=model) \
+                if model else self.authorise(
+                    request, "parameter:record",
+                    estate_wide="declaring a run against no model")
+            return self.guard(lambda: self.ctx["runs"].open(
+                body.reference, verb=body.verb, urn=body.urn,
+                semver=body.semver, warrant_id=body.warrant_id,
+                parent=body.parent, purpose=body.purpose,
+                resource_profile=body.resource_profile,
+                environment=body.environment, inputs=body.inputs,
+                hyperparameters=body.hyperparameters, seeds=body.seeds,
+                log_uri=body.log_uri, expected_seconds=body.expected_seconds,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/runs/{{reference}}/close", tags=["parameters"])
+        def close_run(request: Request, reference: str, body: CloseRunIn):
+            """Take delivery of what a run produced."""
+            run = self.guard(lambda: self.ctx["runs"].require(reference))
+            model = self.model_behind(run)
+            who = self.authorise(request, "parameter:record", model=model) \
+                if model else self.authorise(
+                    request, "parameter:record",
+                    estate_wide="closing a run against no model")
+            return self.guard(lambda: self.ctx["runs"].close(
+                reference, state=body.state, metrics=body.metrics,
+                parameter_set_id=body.parameter_set_id, cost=body.cost,
+                note=body.note, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/runs/{{reference}}/search", tags=["parameters"])
+        def run_search(request: Request, reference: str,
+                       now: Optional[float] = None):
+            """A parent and its children — and what the ranking hides.
+
+            The best of four hundred draws from a null distribution looks
+            excellent. The count of children is what makes that visible, and
+            MAYA does not select a winner: choosing one is approving a
+            parameter set, which is an act with a person's name on it.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading a search and its children")
+            return self.guard(
+                lambda: self.ctx["runs"].search(reference, now=now))
+
+        # ---------------------------------------------------------- retraining
+        @self.app.get(f"{api}/retraining/triggers", tags=["parameters"])
+        def retrain_triggers(request: Request):
+            """The triggers, the tier ceiling and the policy lifetime."""
+            self.authorise(request, "model:read")
+            from core.parameters.retraining import Retraining
+            return Retraining.triggers()
+
+        @self.app.get(f"{api}/retraining", tags=["parameters"])
+        def retraining(request: Request, urn: Optional[str] = None,
+                       now: Optional[float] = None):
+            """Whether a re-fit is due, and the standing approval if any."""
+            engine = self.ctx["retraining"]
+            if urn is None:
+                self.authorise(request, "model:read",
+                               estate_wide="reading every retraining policy")
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: engine.due(urn, now=now))
+
+        @self.app.post(f"{api}/retraining", status_code=201,
+                       tags=["parameters"])
+        def declare_policy(request: Request, urn: str,
+                           body: RetrainPolicyIn):
+            """Write the standing policy. Approval is a separate act."""
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            who = self.authorise(request, "parameter:approve", model=model)
+            return self.guard(lambda: self.ctx["retraining"].declare(
+                urn, triggers=body.triggers, tolerance=body.tolerance,
+                auto_accept=body.auto_accept, rationale=body.rationale,
+                expires_at=body.expires_at, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/retraining/approve", tags=["parameters"])
+        def approve_policy(request: Request, urn: str):
+            """Approve a standing policy. Never by the person who wrote it."""
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            who = self.authorise(request, "parameter:approve", model=model)
+            return self.guard(lambda: self.ctx["retraining"].approve(
+                urn, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/retraining/revoke", tags=["parameters"])
+        def revoke_policy(request: Request, urn: str, reason: str = ""):
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            who = self.authorise(request, "parameter:approve", model=model)
+            return self.guard(lambda: self.ctx["retraining"].revoke(
+                urn, reason, actor=self.actor(who)))

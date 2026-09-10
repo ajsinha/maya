@@ -40,6 +40,8 @@ from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
 from core.lifecycle.campaigns import Campaigns
+from core.parameters.retraining import Retraining
+from core.parameters.runs import Runs
 from core.lifecycle.intake import Intake
 from core.validation.capacity import ValidationCapacity
 from core.validation.supervisory import SupervisoryMatters
@@ -168,6 +170,7 @@ from db import (ServingAttestationRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
+                RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
                 SavedViewRepository, ScheduledRunRepository, SignatureRepository,
                 SupervisoryMatterRepository, ValidatorCapacityRepository,
@@ -715,6 +718,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     intake = Intake(IntakeProposalRepository(db), registry, evidence,
                     tiering=tiering)
 
+    # An activity somebody else executed, declared BEFORE it runs. MAYA
+    # submits no jobs and never reads `log_uri`: a register that submitted
+    # would be on the failure path of the thing it exists to observe, and
+    # fetching logs would put its readiness on somebody else's object store.
+    # The state that matters is `lost` — a run that consumed a warrant, read a
+    # snapshot and vanished appears in no tracker that writes its row on
+    # success.
+    runs = Runs(RunRepository(db), registry, evidence, warrants=warrants,
+                parameters=parameters)
+
     # A matter a supervisor raised. Not a finding, in two structural ways:
     # it reaches many models at once, and it carries the date the FIRM GAVE
     # THE SUPERVISOR beside the internal remediation date every finding
@@ -761,6 +774,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # and the parameter trajectory is the only place the change is visible.
     adaptive_change = AdaptiveChange(parameters, registry, fibres=fibres,
                                      findings=findings)
+
+    # When a re-fit is due, and the standing approval that may accept one.
+    # MAYA retrains nothing. The policy approves a PROCEDURE, tier 1 is never
+    # eligible and that is not configurable, every policy expires, and an
+    # acceptance is attributed to its human approver rather than to `system`.
+    retraining = Retraining(
+        RetrainPolicyRepository(db), registry, parameters, evidence,
+        monitoring=monitoring, adaptive=adaptive_change)
 
     # A challenger running beside the champion. MAYA runs neither: it takes
     # delivery of what both produced and reports the shape of the
@@ -1136,6 +1157,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "validation_plans": validation_plans,
                            "supervisory": supervisory,
                            "campaigns": campaigns,
+                           "runs": runs,
+                           "retraining": retraining,
                            "intake": intake,
                            "validation_capacity": validation_capacity,
                            "recode": recode,
