@@ -38,6 +38,48 @@ note(sl, ML, y + th + 0.26, CW, 1.15,
      "the third, because it is the one people find strange. The other three "
      "are argued where they bite, in chapters 7, 8 and 19.")
 
+# ------------------------------------------------- the nine refusals
+sl, y = content("Nine things it will not build, and what each one protects",
+                "Philosophy · the refusals are load-bearing")
+data = [["Asked for", "Refused because", "What would stop meaning anything"],
+        ["Managed serving",
+         "the register and the runtime would be one process — and one that "
+         "argues a warrant survives its own unavailability",
+         "every claim to be an independent record of execution"],
+        ["Convert an artifact",
+         "converting means loading and running a model",
+         "the equivalence claim it holds to a standard"],
+        ["Submit training jobs",
+         "the register would be on the failure path of what it observes",
+         "the run register as an account of somebody else's work"],
+        ["Accept a `passed` flag",
+         "whoever computed the number would set the pass mark",
+         "the threshold this firm's second line set"],
+        ["Recommend promotion",
+         "it would pre-empt the approval it is evidence for",
+         "the second-line approval itself"],
+        ["Edit a compiled document",
+         "every sentence cites a node; the prose would outlive the citation",
+         "traceability of every sentence in it"],
+        ["Configure the state graph",
+         "a firm could add a transition that skips approval",
+         "'approved' meaning the same in two institutions"],
+        ["Sign artifacts",
+         "the platform would hold the key that could forge one",
+         "the provenance check, verifying its own signature"],
+        ["Hide the cheap remediation",
+         "a solver with no view on KIND recommends the waiver every time",
+         "the difference between safe and looking compliant"]]
+th = table(sl, data, ML, y, CW, col_w=[2.3, 4.6, 4.734], row_h=0.36, fs=9,
+           hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
+note(sl, ML, y + th + 0.20, CW, 1.05,
+     "One sentence underneath all nine. ",
+     "A platform that both authorises an act and performs it is the only "
+     "witness to its own execution. Every row above is that sentence applied "
+     "to a different request — and the useful question when evaluating a "
+     "governance platform is not what it can do, but what it declines to do "
+     "and whether the answer is about architecture or about a roadmap.")
+
 # ------------------------------------------ it does not run models, in detail
 sl, y = content("Why governance must not be in the serving path",
                 "Philosophy · the serving path")

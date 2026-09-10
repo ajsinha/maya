@@ -4,7 +4,7 @@ slug: administering-maya
 section: Reference
 order: 145
 icon: sliders
-summary: Seven screens about the platform rather than about any model in it — who may act, which rulebook is in force, what runs unattended, whether the record is still intact, what the process is doing right now, and what may execute. Each gated by the same permission its API asks for.
+summary: Seven screens about the platform rather than about any model in it — who may act, which rulebook is in force, what runs unattended, whether the record is still intact, what the process is doing right now, and what may execute — plus the line between what a firm configures and what it must not. Each gated by the same permission its API asks for.
 audience: Operators, Platform, Model risk
 ---
 
@@ -181,6 +181,64 @@ evidence chain rather than recomputed, because a comparison was made against the
 rule in force at the time and that rule may since have been superseded twice.
 
 Authoring a gate and putting it in force are separate permissions on purpose.
+
+## Configuring the platform, and what you cannot configure
+
+`GET /configuration/boundary` publishes the line. Read it before you write any
+YAML.
+
+> "Configuration as code" done naively to a governance platform is the single
+> most effective way to defeat one, because **the gates and the git repository
+> end up with the same approval process** — and that process is a pull request
+> reviewed by whoever is on shift.
+
+**What you configure** is where your firm's own judgement belongs: your policy
+gates, your warrant profiles, your monitoring defaults, your appetite limits,
+your retraining policies, your remediation costs.
+
+**What you do not configure** is not a list of things somebody forgot to expose:
+
+| Not configurable | Why |
+|---|---|
+| The lifecycle state graph | A firm that could add a transition could add one that skips approval — and the graph is the only thing making *approved* mean the same in two institutions |
+| The tier lattice | The adjunction between a tier and the controls it owes is the argument, not a setting. A configurable lattice can be made to say tier 1 owes what tier 4 owes |
+| The trainability fibration | A class is derived from what a version declares and never asserted. Configuring the derivation would make it an assertion with extra steps |
+| The refusal taxonomy | A refusal code is an interface. Renaming one in configuration breaks every caller that handles it — silently, at the moment it fires |
+| The evidence chain | Append-only and hash-linked is what makes the record evidence rather than a table |
+| Segregation of duties | The incompatible-role pairs are the three lines of defence. Configuring them away is configuring away the reason the platform exists |
+
+### Plan before you apply
+
+`POST /configuration/plan` shows exactly what would change and **which way each
+change points**. Read `loosens` first.
+
+*Three rules changed* is not a reviewable sentence. *Two of these three let
+something through that is refused today* is.
+
+The direction is computed from the shape of each change rather than asserted by
+whoever wrote it — and where the shape gives no reading it comes back `neutral`
+and is **not guessed**, because a wrong direction on a review screen is worse
+than none: somebody stops reading the diff.
+
+### Applying is a governance act
+
+`POST /configuration/apply` records the diff, the rationale and the author on the
+evidence chain. It is not a deployment step, and a configuration that applied
+silently would let somebody change every gate in the estate with a git push and
+no approval.
+
+**A plan that loosens needs a named approver.** A configuration that tightens can
+be a deployment; one that loosens is a decision, and the whole risk of
+configuration-as-code is that the two travel in the same pull request.
+
+Each section is still applied through its own register, which keeps its own
+approval. There is no path here that writes a policy directly — a second way to
+publish a gate is always the one without the signature.
+
+Export reads **the registers in force**, never the last file applied. That is the
+difference between a description of the platform and a description of somebody's
+intentions, and running an export-then-plan is the only proof that your
+repository and your platform agree.
 
 ## Regulatory regimes
 
