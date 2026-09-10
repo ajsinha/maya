@@ -725,6 +725,32 @@ decision, and a test reads the OpenAPI document to keep it that way.
 | `GET` | `/health`, `/health/live` | none | Liveness with uptime and version. **Not** under `/api/v1` |
 | `GET` | `/health/ready` | none | **Includes the evidence chain**, incrementally from the last checkpoint. 503 if it is broken |
 | `GET` | `/api/v1/evidence/chain` | `evidence:read` | The full walk from genesis |
+| `GET` | `/evidence/timestamps` | `evidence:read` | Coverage, or one head's token with `?seq=`. Three states — `absent`, `unverified`, `verified` — and `unverified` never collapses into either neighbour |
+| `GET` | `/evidence/timestamps/posture` | `evidence:read` | What a token proves and the three things it does not. Worth reading once before wiring an authority |
+| `POST` | `/evidence/timestamps` | `evidence:read` | Ask the authority to attest to an anchored head. Refused with no authority wired, rather than recording an untimestamped anchor as though it had been timed |
+
+### The register's edges
+
+Five subjects that touch something MAYA does not control. Each answers with
+what it declines to claim as well as what it holds.
+
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| `GET` | `/plugins/contract` | `policy:read` | The entry-point group, the open axes, and the closed ones with what each closure protects |
+| `GET` | `/plugins/discovered` | `policy:read` | What is installed, read from packaging metadata. **Nothing is imported.** `seen` means installed and not enabled, which is the ordinary state |
+| `POST` | `/plugins/enable?axis=&name=` | `policy:publish` | Refused `not_enabled` unless configuration names it — and `not_installed` is the worse refusal, because somebody believes a control is running |
+| `GET` | `/connectors` | `model:read` | Each source, and the five governance facts no source holds |
+| `POST` | `/connectors/{source}` | `model:read` | Parse an MLflow, Unity Catalog or git **export** into candidates. `ingest: true` hands them to triage. Registers nothing, holds no credential |
+| `GET` | `/scanner-contract` | `model:read` | What a sweep must carry, and why MAYA runs no scanner |
+| `POST` | `/scanner-contract/check` | `model:read` | Every problem with a sweep, before anything is stored — not the first |
+| `POST` | `/scanner-contract/ingest` | `model:register` | Refused `sweep_does_not_meet_the_contract` **as a whole**; a partial ingest grades something other than the scanner |
+| `GET` | `/scanner-contract/grade` | `model:read` | Precision from the triage record. **Recall is reported as not computable** |
+| `GET` | `/export-shares` | `document:read` | Every share, live first — or one with `?reference=` |
+| `POST` | `/export-shares` | `document:read` | A time-boxed link to a **content digest**, never a path. `recipient` and `purpose` are required |
+| `POST` | `/export-shares/{reference}/revoke` | `document:read` | Ends access; keeps everything it served |
+| `GET` | `/export-shares/posture` | `document:read` | `is_a_portal` and `establishes_identity` are both false, and published rather than implied |
+| `GET` | `/document-rendering/formats` | `document:read` | What is emitted, and `pdf`, `docx`, `html` refused by name with the reason |
+| `GET` | `/document-rendering/{document_id}?format=` | `document:read` | Typesetting source with the citations intact. Coverage gaps are written **into** the output |
 
 ## The refusals you are most likely to hit
 

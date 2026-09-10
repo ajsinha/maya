@@ -1291,6 +1291,41 @@ class ModelRoutes(Routes):
 
 
 
+        # --------------------------------------------- chain timestamps
+        @self.app.get(f"{self.api}/evidence/timestamps", tags=["evidence"])
+        def timestamps(request: Request, seq: Optional[int] = None):
+            """A time somebody who is not us will attest to.
+
+            Three states, and `unverified` never collapses into either
+            neighbour: a token nobody can check is not the same as no token,
+            and it is very much not the same as a verified one.
+            """
+            self.authorise(request, "evidence:read")
+            stamps = self.ctx["chain_timestamps"]
+            if seq is None:
+                return self.guard(lambda: stamps.coverage())
+            return self.guard(lambda: stamps.read(seq))
+
+        @self.app.get(f"{self.api}/evidence/timestamps/posture",
+                      tags=["evidence"])
+        def timestamp_posture(request: Request):
+            """What a timestamp proves, and the three things it does not."""
+            self.authorise(request, "evidence:read")
+            from core.evidence.timestamps import ChainTimestamps
+            return ChainTimestamps.posture()
+
+        @self.app.post(f"{self.api}/evidence/timestamps", tags=["evidence"])
+        def take_timestamp(request: Request, seq: Optional[int] = None):
+            """Ask the authority to attest to an anchored head.
+
+            Refused with no authority wired, rather than recording an
+            untimestamped anchor as though it had been timed.
+            """
+            who = self.authorise(request, "evidence:read",
+                                 estate_wide="timestamping the evidence chain")
+            return self.guard(lambda: self.ctx["chain_timestamps"].stamp(
+                seq, actor=self.actor(who)))
+
     def _approvals_below_quorum(self, model: Dict[str, Any],
                                 tier: int) -> List[str]:
         """Approved versions whose approval would not satisfy this tier.

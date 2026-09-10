@@ -21,7 +21,8 @@ from tests.api_helpers import login as _login
 
 
 ADMIN_PAGES = ["/admin", "/admin/principals", "/admin/regimes",
-               "/admin/scheduler", "/admin/evidence", "/admin/runtimes"]
+               "/admin/scheduler", "/admin/evidence", "/admin/runtimes",
+               "/admin/perimeter"]
 
 
 def _nav(body: str) -> str:

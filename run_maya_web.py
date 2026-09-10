@@ -40,6 +40,12 @@ from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
 from core.docs.review import DocumentReview
+from core.discovery.connectors import Connectors
+from core.discovery.contract import ScannerContract
+from core.docs.rendering import DocumentRendering
+from core.evidence.timestamps import ChainTimestamps
+from core.export.sharing import ExportSharing
+from core.plugins.discovery import PluginDiscovery
 from core.estate.concentration import Concentration
 from core.features.impact import FeatureImpact
 from core.execution.composite import CompositeWarrants
@@ -180,6 +186,7 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
+                ExportShareReadRepository, ExportShareRepository,
                 ElicitationRepository, ElicitationResponseRepository,
                 RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
@@ -1137,6 +1144,48 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         vendor=vendor_assessments, search=document_search,
         monitoring=monitoring)
 
+    # Reading what an ML platform already knows, without holding credentials
+    # to it and without registering anything. A connector parses a document the
+    # source exported and produces CANDIDATES — an import that created records
+    # would produce an inventory of everything, which is the failure intake
+    # triage exists to prevent.
+    connectors = Connectors(discovery, registry=registry)
+
+    # What a scanner has to send. MAYA still does not sweep: a scan means
+    # credentials to every file store in the bank, which is a larger thing than
+    # the register it would protect. Precision the register computes from the
+    # dismissals; recall it cannot, so the contract asks the scanner to say.
+    scanner_contract = ScannerContract(discovery)
+
+    # A typesetting source, not a rendered document. Every claim in a compiled
+    # document cites a node, and a PDF is where a citation goes to die.
+    document_rendering = DocumentRendering(DocumentRepository(db),
+                                           registry=registry)
+
+    # Handing a pack to somebody with no login — and not by giving them one.
+    # An examiner portal authenticates a third party INTO the register; this is
+    # a time-boxed read of one sealed archive.
+    export_sharing = ExportSharing(
+        ExportShareRepository(db), ExportShareReadRepository(db), registry,
+        evidence, packer=export)
+
+    # A time somebody who is not us will attest to. MAYA is not the
+    # authority and does not verify the token either: checking an RFC 3161
+    # token means holding a certificate chain and deciding which roots to
+    # trust, which is a decision this firm's security function has already
+    # made differently. Three states, and `unverified` never collapses into
+    # either neighbour.
+    chain_timestamps = ChainTimestamps(
+        anchors, authority=None, verifier=None, evidence=evidence)
+
+    # What a firm has installed, read from packaging metadata without importing
+    # any of it. Installing makes an extension AVAILABLE; configuration makes
+    # it used — a governance control that took effect because somebody bumped a
+    # dependency is a control nobody changed on purpose.
+    plugin_discovery = PluginDiscovery(
+        extensions=extensions, fibres=fibres,
+        enabled=cfg.get("plugins.enabled", []) or [], evidence=evidence)
+
     # What several models depend on at once — the shared feature view, the
     # shared snapshot, the shared vendor, the shared methodology. This is the
     # obstruction made FINDABLE and deliberately not made additive: a network
@@ -1244,6 +1293,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "elicitations": elicitations,
                            "request_time": request_time,
                            "concentration": concentration,
+                           "chain_timestamps": chain_timestamps,
+                           "connectors": connectors,
+                           "scanner_contract": scanner_contract,
+                           "document_rendering": document_rendering,
+                           "export_sharing": export_sharing,
+                           "plugin_discovery": plugin_discovery,
                            "feature_impact": feature_impact,
                            "configuration": configuration,
                            "document_review": document_review,

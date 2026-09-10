@@ -126,7 +126,7 @@ runs(tf, [("There is no cache, so there is no stampede. ", CRIMSON, True),
           ("Resolution reads four to six tables on every call. The Redis descriptor "
            "cache, single-flight coalescing, pre-warm-before-invalidate, the "
            "warrant_projection read model and a Kafka revocation event are "
-           "designed and not built — docs/14 §26 — and the 50 ms p99 in the "
+           "designed and not built — docs/14 §27 — and the 50 ms p99 in the "
            "requirements is a target that nothing here measures. TTL jitter is "
            "built, which is the one piece that matters only once a cache exists.",
            INK, False)],
@@ -165,7 +165,7 @@ th = table(sl, data, x, y + 0.94, CW * 0.52, col_w=[4.0, 2.4], row_h=0.30,
            fs=9.5, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
 tf = txt(sl, x, y + 0.94 + th + 0.18, CW * 0.52, 0.60)
 runs(tf, [("None of this runs. ", CRIMSON, True),
-          ("Use reconciliation is one of the eight screens in docs/14 §27 that are designed "
+          ("Use reconciliation is one of the eight screens in docs/14 §28 that are designed "
            "and not built; the boundary check on the left is the one part of it that is enforced today, "
            "at execution rather than in a report.", INK, False)],
      size=10, first=True, space_after=0, line=1.22)

@@ -3214,8 +3214,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 309 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 370 modules in one
+the 316 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 377 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3229,7 +3229,164 @@ defect on its first run.
 Everything below this line is conditional. **None of it runs.** It is here because each item is a decision
 already taken, and a reader planning against this system deserves the list rather than a discovery.
 
-## 26. Infrastructure the design assumes and the build does not have
+## 26. The register's edges
+
+Every other section of this document describes MAYA's own record. This one
+describes the five places where it is not MAYA's own — where the platform is
+relying on a party it does not control — and the design of each is almost
+entirely a matter of **what it declines to claim**. They are grouped because
+they share one failure mode: at a boundary, a system is tempted to report the
+answer it wishes it had, and the resulting overstatement is invisible precisely
+because nobody can see past the boundary to check.
+
+### 26.1 An attested time (`core/evidence/timestamps.py`)
+
+The evidence chain is hash-linked and its heads are anchored to WORM storage
+outside the database. Both are arguments **from MAYA's own clock**, which is the
+party being asked making a statement about itself. An RFC 3161 token is the
+first statement about the chain that MAYA did not author.
+
+Two decisions carry the design.
+
+**MAYA is not the authority and does not verify.** Being the authority is
+obvious nonsense — the whole point is a third party. *Not verifying* is the less
+obvious half: checking a token means holding a certificate chain and deciding
+which roots to trust, and that is a decision the firm's security function has
+already made, once, for the whole institution. A register that made its own
+would either duplicate that decision or quietly contradict it. So a `verifier`
+is a port; unwired, a held token reports as `unverified`.
+
+**Three states, and `unverified` never collapses into either neighbour.**
+`absent` means no token was ever taken. `unverified` means one is held and
+nothing here can check it. `verified` means a wired verifier said so. Collapsing
+`unverified` into `verified` is a lie; collapsing it into `absent` throws away a
+token that an examiner's own verifier could check. Both collapses are the
+convenient ones, which is why the type has three values.
+
+**The bound is stated in the interface.** `posture()` publishes it: a token
+bounds a head **from above only** — it proves this hash existed *no later than*
+that time, which is exactly what defeats writing a chain after the fact and
+dating it before. It does not bound below, says nothing about deletion, and
+cannot see behind the first token. Every one of those is a real limit of RFC
+3161 rather than of this implementation, and a platform that shipped
+*tamper-evident* without them would be trading on the reader not knowing.
+
+### 26.2 What is installed against what is enabled (`core/plugins/discovery.py`)
+
+Extensions are declared under the entry-point group `maya.extensions`, named
+`<axis>:<name>`. Two properties matter more than the mechanism.
+
+**Discovery imports nothing.** It reads packaging metadata. Importing a package
+to find out what it declares means running a third party's module-level code as
+a side effect of *asking a question*, and the question here is asked by a
+read-only administration screen.
+
+**Installed and enabled are different states, and the gap is the control.**
+`discover()` reports what is installed; `enable()` refuses unless configuration
+names the extension. The reason is a sentence worth keeping: *a control that
+switched itself on when somebody bumped a dependency is a control nobody turned
+on* — and one that switched itself off the same way is worse, because the
+platform then reports a control operating that is not. The two refusals are kept
+apart for the same reason. `not_enabled` is the safe state. `not_installed`
+means configuration names something absent, which is somebody believing a
+control is running.
+
+**Closed axes are reported as refused, not skipped**, each with what the closure
+protects. And a third-party fibre may **add** obligations and never remove one,
+checked at load — an extension axis that can *loosen* an obligation is a way to
+weaken every control the fibration carries, from outside it.
+
+### 26.3 Reading another system's export (`core/discovery/connectors.py`)
+
+MLflow, Unity Catalog and a git tree know a great deal about models and nothing
+about governance.
+
+**The direction is the design.** A connector parses an **export document** the
+source system produced with its own credentials, on its own schedule. It never
+calls an API and holds no credential, because a governance register with read
+access to every ML platform in the bank holds the broadest standing access
+anybody has — granted to the system whose entire argument is that it holds none.
+
+**It produces candidates for triage, never registrations.** `NOT_IN_THE_SOURCE`
+names the five facts no ML platform holds: who owns this in the bank's sense
+rather than who last pushed a commit; what decision it is used for; which legal
+entity; what materiality; and whether the thing is a model at all. A connector
+that inferred any of them would have manufactured exactly the facts the register
+exists to hold, and would have done it at import scale.
+
+**The fingerprint is an artifact digest or a normalised name, never a `run_id`.**
+A `run_id` keys a candidate to a row that re-registration replaces, and the
+triage somebody performed is then lost — which is how a discovery queue comes
+back next month the same size. Confidence is capped well below certainty for the
+same reason it is capped in §26.4.
+
+### 26.4 What a scanner has to send (`core/discovery/contract.py`)
+
+MAYA does not sweep drives; §26.3's argument applies with more force, since a
+EUC scanner needs read access to every shared drive in the institution. What it
+does is **publish the contract** the receiving half enforces.
+
+**Confidence must be strictly below certainty.** A scanner asserting `1.0` is
+asserting a registration decision, and it is not in a position to make one.
+
+**A sweep is refused whole or accepted whole.** Dropping the malformed rows and
+keeping the rest is the obvious kindness and it is wrong: the precision figure
+computed afterwards would grade *the subset MAYA chose to keep* rather than the
+scanner that produced the sweep.
+
+**Every problem is reported, not the first.** A scanner author fixing one field
+per round re-runs over forty thousand files each time.
+
+**Precision is computable and recall is not**, and the grade says so. Precision
+comes from the triage outcomes — which is a real measurement of the scanner
+rather than the scanner's opinion of itself, and it exists only because the
+**dismissals** were recorded. Recall would require knowing what the scanner did
+not look at, which nothing here knows, so the contract asks the scanner to
+declare its scope and treats *recall unknown* as the honest answer.
+
+### 26.5 A pack that has left the building (`core/export/sharing.py`)
+
+An export pack is self-contained, digested member by member, and names its own
+gaps. Getting it to somebody was, until this section, email.
+
+**A share points at a content digest, never a path.** A link to a location
+serves whatever is at that location later, which is how a supervisor ends up
+reading a document nobody meant to send them.
+
+**Every read is recorded, including the refused ones.** In a year, *the link had
+expired* is a fact somebody will need, and a system that logs only successes
+cannot produce it. This is also why the refusal codes are three literal strings
+rather than one interpolated from the state: a code assembled at runtime is
+invisible to the scanner that checks every refusal is mapped, and an expired
+link would have answered 500.
+
+**It is not an examiner portal, and both facts are published.** `is_a_portal`
+and `establishes_identity` are `False` on the posture. A portal authenticates a
+third party *into* the register, and whatever that session can reach they can
+reach; establishing one means issuing a credential to somebody outside the firm
+and owning its lifecycle. Letting a time-boxed link be mistaken for scoped
+interactive access is the mistake that costs something here.
+
+**Revocation ends access and does not unsend a document.** The record keeps what
+the share already served.
+
+### 26.6 A document that leaves as source (`core/docs/rendering.py`)
+
+A compiled document's sections name the evidence nodes they rested on, which is
+the property that makes staleness computable rather than remembered.
+
+**What is emitted is typesetting source** — LaTeX or markdown — with the
+citations intact. PDF, `.docx` and standalone HTML are refused **by name with
+the reason**: rendering needs a TeX distribution or a browser engine, which is a
+large attack surface for a formatting need, and a house template, which is a
+firm's document standard and not a register's decision.
+
+**Coverage gaps are written into the output** under a heading of their own. A
+rendering that dropped them would produce something that *looks* complete, and
+looking complete is the failure mode — a document whose thin sections are
+invisible is worse than a short one.
+
+## 27. Infrastructure the design assumes and the build does not have
 
 | Designed | Why it is not built, and what its absence costs |
 |---|---|
@@ -3240,17 +3397,17 @@ already taken, and a reader planning against this system deserves the list rathe
 | **An online feature store**, namespaced by view version, with dual-write and governed namespace retirement | `L-17` has nothing to compare against, so training–serving skew is undetectable. This is the one absence that makes a whole law inert. `serving_namespaces()` computes the half that can exist without a store |
 | **Postgres row-level security**, forced, with a non-owner application role and a cross-entity negative test | H-5. Scope is enforced in Python and the database offers no backstop |
 | **A separate audit database**, read replicas, monthly partitioning | H-9. One database, one identity, one flat evidence table |
-| **WORM anchoring and an RFC-3161 timestamp** on the daily chain head | C-4 disposition 2, and the largest open weakness in the platform. Verification compares the chain against itself |
-| **Asymmetric warrant signing** | HMAC-SHA256 ships. RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and the gap is key management. Verifying a warrant currently requires holding the key that could mint one |
-| **A plugin loader and a fibre registry** | `L-15` cannot be checked, so *no fibre is empty* is an intention. A model class is a string; adding a family is a convention rather than a validated extension |
+| ~~**WORM anchoring and an RFC-3161 timestamp** on the daily chain head~~ | **Both built** — anchoring in `core/evidence/anchor.py`, timestamping in `core/evidence/timestamps.py` (§26.1). C-4 disposition 2 is closed. What remains is not code: an authority has to be chosen and wired, and until one is the platform reports itself as arguing from its own clock rather than showing a tick |
+| **Asymmetric warrant signing** | HMAC-SHA256 ships. RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and the gap is key management — verifying a warrant currently requires holding a key that could mint one. **Deprioritised deliberately** (see [10 §2.1](10-roadmap.md)): MAYA's engines are inside the firm's trust boundary, and a per-engine HMAC key already confines a compromised engine to forging its own warrants. What asymmetry uniquely buys is non-repudiation to a third party, which nobody has asked for |
+| ~~**A plugin loader and a fibre registry**~~ | **Both built** — the fibration over the derived trainability class with a start-up totality gate, and `entry_points` discovery in `core/plugins/discovery.py` (§26.2). `L-15` runs at every start-up. The base had to change for it to be checkable at all: totality over a free-text `model_class` is either a closed vocabulary or a gate defeated by a typo |
 | **Continuous integration** | Seven of the nine gates in [12 §7](12-implementation-plan.md) now run. What remains is DAST, a generated client and an accessibility run; migration rehearsal is not applicable, because there are no migrations |
 
-## 27. Capabilities designed and not built
+## 28. Capabilities designed and not built
 
 | Designed | Status |
 |---|---|
 | **The decoupled front end** ([ADR-011](adr/ADR-011-decoupled-frontend.md)) — two processes, OIDC in the browser, a generated client pinned to `openapi.lock.json`, CORS | Accepted and not built. There is no CORS middleware anywhere, which a two-origin deployment could not function without. [08 Part two](08-ui-ux.md) is the full design |
-| **Eight screens** — dependency and blast-radius explorer, validation workbench, discovery triage, use reconciliation, examiner portal, campaigns, admin, schema-driven metadata form | None exists. The `input_to` edges are typed and stored and nothing draws them |
+| **Eight screens** — dependency and blast-radius explorer, validation workbench, discovery triage, use reconciliation, examiner portal, campaigns, admin, schema-driven metadata form | The administration screens exist, including `/admin/perimeter`, which puts §26.2–§26.5 in front of the people who own the question *what are we relying on somebody else for*. The examiner portal is refused rather than pending (§26.5). The rest do not exist; the `input_to` edges are typed and stored and nothing draws them |
 | **API conventions** — `ETag`/`If-Match`, `Idempotency-Key`, `?expand=`/`?fields=`, `?as_of=`, keyset cursors, SSE on `/events`, `Sunset` headers, `/derivations/{id}` | None built. Listings return whole and paging is limit/offset |
 | **Composite warrants** and the interaction premium | `L-21` now gives `L-14` a derived composite schema to quantify over, and `shared_dependencies` computes the obstruction. The aggregate `ρ` is not built, so the question supervisors actually ask has a definition and no computation |
 | **Correlated findings** — one root finding with impact records | M-8. The `finding` table has no root, parent or correlation column. Suppression happens at delivery instead |
@@ -3258,8 +3415,8 @@ already taken, and a reader planning against this system deserves the list rathe
 | **Crypto-shredded personal data** — payload in Delta under a per-subject key, key destroyed on erasure | H-3's mechanism. What runs discards the payload instead, which satisfies `L-18` by making retrieval impossible. There is no `payload_uri` column |
 | **Legal hold, tombstones and a retention state machine** | M-7. Deletion is administrators-only, reasoned and evidenced, and cascades to nothing |
 | **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
-| **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | The inventory is what somebody registered |
-| **PDF and DOCX rendering** | The compiler emits markdown, rendered through the same pipeline as the help system |
+| **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | **Built as the receiving half** (§26.3, §26.4). Each parses an export rather than calling an API, and produces candidates for triage rather than registrations. SageMaker, Vertex, SAS metadata and CMDB have none, and nothing sweeps: the contract a scanner must meet is published, and running one is somebody else's job |
+| **PDF and DOCX rendering** | **Refused by name with the reason** (§26.6). What is emitted is typesetting source with the citations intact — a PDF that flattened them away is a document whose claims can no longer be traced |
 | **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not |
 
 ---
@@ -3284,6 +3441,7 @@ already taken, and a reader planning against this system deserves the list rathe
 | [§17](#17-the-http-surface)–[§19](#19-the-interface-and-the-sdk) Interfaces | `FR-PLT-*`; ADR-008, ADR-011; [08](08-ui-ux.md), [09 §1](09-security-compliance.md) |
 | [§20](#20-persistence-and-transactions)–[§21](#21-concurrency-and-idempotency) | `NFR-DATA-*`; [05](05-data-model.md); finding M-3 |
 | [§22](#22-refusals)–[§25](#25-testing-design) | `NFR-OPS-*`, `NFR-MNT-*`; ADR-010 |
+| [§26](#26-the-registers-edges) The register's edges | `FR-SEC-004`, `FR-SEC-008`, `FR-INV-012`, `FR-INV-013`, `FR-AI-012`, `FR-PLT-004`, `FR-DOC-010`; `INT-001`, `INT-002`, `INT-017`; finding C-4 |
 
 ---
 

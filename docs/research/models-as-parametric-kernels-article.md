@@ -1012,8 +1012,8 @@ all, because the paper said "reference implementation" four times and never name
 It's called **MAYA**, and it's at **[github.com/ajsinha/maya](https://github.com/ajsinha/maya)**.
 
 It isn't a demo built to illustrate the argument. The argument is the account of what building it required.
-At the revision this article describes: 309 Python modules that type-check clean, 80 tables in one typed
-schema that generates both dialects' DDL, 466 locked HTTP paths, and 5,196 tests that run on every push.
+At the revision this article describes: 316 Python modules that type-check clean, 82 tables in one typed
+schema that generates both dialects' DDL, 487 locked HTTP paths, and 5,279 tests that run on every push.
 
 Each of the four derivations is a module, not a proposal:
 
@@ -1028,9 +1028,10 @@ The twenty-one laws are `tests/test_laws.py`. Eighteen run against generated inp
 listed *in that file* with their reasons, and a test asserts the list in the file matches the set of laws
 with no runner.
 
-### Four things building it changed
+### Five things building it changed
 
-The useful report isn't that the propositions are implemented. It's that four of them came back altered.
+The useful report isn't that the propositions are implemented. It's that four of them came back altered —
+and that a fifth thing turned up which none of them covers.
 
 **The `min` was wrong first.** The operator says the ingest bound is `min(ℓ, a)`. The implementation read
 `a`, which is the natural thing to write and gives you a training assembly that's correct today and
@@ -1050,6 +1051,36 @@ composes a *chain* and authorises it as one unit, and the chain's tier is the **
 exactly what the impossibility theorem permits and no more. What composes is the order, not the number. It
 can say *this chain is at least tier 1 and every link resolves*. It cannot say *this chain is 0.83 risky*,
 and the reason it can't is a theorem, not a backlog item.
+
+**The boundary needed a type, not a caveat.** None of the four propositions says anything about what
+happens where the register *stops* — where it has to rely on somebody it doesn't control. There turned out
+to be five such places: an external timestamping authority over the evidence chain, a third-party
+extension package, an export from another model registry, a sweep run by somebody else's scanner, and an
+evidence pack handed to a supervisor who has no account.
+
+Every one of them had the same failure mode, and it's one the apparatus above doesn't prevent: **at a
+boundary, the natural thing to report is the answer you wish you had, and the overstatement is invisible
+precisely because nobody can see past the boundary to check it.**
+
+The fix, each time, was to widen a type rather than add a warning. The clearest case is the timestamp. A
+held RFC 3161 token that nothing has verified is not the same object as a verified one, and it is not the
+same object as no token. Collapse it into the first and you've reported a verification you didn't perform.
+Collapse it into the second and you've thrown away evidence you actually hold. Both collapses are the
+convenient ones — so the state is three-valued, and the third value is inhabited.
+
+The same move elsewhere. A connector produces **candidates**, never registrations, because the five facts
+that make a registration mean anything — who owns this in the bank's sense, what decision it's used for,
+which legal entity, what materiality, whether it's a model at all — are in no ML platform anywhere, and a
+register that inferred them would have manufactured exactly what it exists to hold. A discovery sweep is
+admitted whole or refused whole, because a partial admission gives you a precision figure that grades *the
+rows you chose to keep* rather than the scanner. Installed and enabled are distinct states, because a
+control switched on by a dependency resolution is a control nobody turned on.
+
+I'm recording this because it's the one place the implementation demanded something the theory doesn't
+supply. The propositions constrain what the register may *conclude* from what it holds. They say nothing
+about the **epistemic status of what it holds** — and at a boundary, that status is the entire question.
+Making the unknown state *representable*, instead of reporting it as its nearest convenient neighbour,
+isn't a consequence of anything proved in the paper. It's an obligation the practice added.
 
 ### The one case study I didn't design
 
@@ -1121,7 +1152,7 @@ And a test had been passing on that wrong sentence.
 The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
 serves neither. The system carries a second register of the same content with no notation in it — nineteen
 help pages and eight walkthroughs — including one called *What MAYA refuses to do*, which is the
-derive/declare boundary written as nine refusals and what each one protects. If you want the argument
+derive/declare boundary written as thirteen refusals and what each one protects. If you want the argument
 without the algebra, start there.
 
 ---
