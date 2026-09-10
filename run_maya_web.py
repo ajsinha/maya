@@ -38,6 +38,8 @@ from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
+from core.assist.nlquery import NaturalLanguageQuery
+from core.assist.validation_aid import ValidationAssistant
 from core.monitoring.adaptive import AdaptiveChange
 from core.reporting.returns import RegulatoryReturns
 from core.reporting.semantics import SemanticLayer
@@ -978,6 +980,23 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, validation=validation, findings=findings,
         monitoring=monitoring, vendor=vendor_assessments)
 
+    # A question in English becomes a QUERY and never a number. The
+    # translation is checked against the published catalogue before anything
+    # runs, the rows come from the register under the reader's own scope, and
+    # the query is shown beside them — an interface that shows only the answer
+    # is one where nobody can tell a misread question from a wrong number.
+    nl_query = NaturalLanguageQuery(semantics, provider=None)
+
+    # Three pieces of a validator's work, and not one of them a conclusion:
+    # retrieval over filed vendor documents, questions derived from findings on
+    # comparable models, and an exact filter over the assumption register —
+    # each labelled with which of the three it is, because a page that mixed
+    # them would get one level of trust applied to all.
+    validation_aid = ValidationAssistant(
+        registry, findings=findings, assumptions=assumptions,
+        vendor=vendor_assessments, search=document_search,
+        monitoring=monitoring)
+
     scheduler = Scheduler(
         ScheduledRunRepository(db), evidence,
         JobContext(registry=registry, now=0.0, lifecycle=lifecycle,
@@ -1084,6 +1103,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "parallel_runs": parallel_runs,
                            "adaptive_change": adaptive_change,
                            "semantics": semantics,
+                           "nl_query": nl_query,
+                           "validation_aid": validation_aid,
                            "saved_views": saved_views,
                            "regulatory_returns": regulatory_returns,
                            "model_health": model_health,

@@ -289,6 +289,41 @@
         ]
       }
     },
+    "/api/v1/ask": {
+      "post": {
+        "body": [
+          "limit",
+          "question!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/ask/translate": {
+      "post": {
+        "body": [
+          "limit",
+          "question!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/ask/vocabulary": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/assist/budgets": {
       "get": {
         "body": [],
@@ -4419,6 +4454,52 @@
         ]
       }
     },
+    "/api/v1/validation-assistance": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/validation-assistance/challenge-questions": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:limit",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validation-assistance/untested-assumptions": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/validation-assistance/vendor-coverage": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validation-due": {
       "get": {
         "body": [],
@@ -5572,6 +5653,7 @@
           "query:entity",
           "query:field",
           "query:operator",
+          "query:question",
           "query:value"
         ],
         "responses": [

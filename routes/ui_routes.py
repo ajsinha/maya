@@ -606,7 +606,7 @@ class UIRoutes(Routes):
         @self.app.get("/query", response_class=HTMLResponse, tags=["ui"])
         def query_page(request: Request, entity: str = "model",
                        field: str = "", operator: str = "eq",
-                       value: str = ""):
+                       value: str = "", question: str = ""):
             """The query builder, over entities rather than over tables.
 
             There is no box on this page that takes query text. The form can
@@ -641,8 +641,16 @@ class UIRoutes(Routes):
                 # who can fix it.
                 logger.info("query refused on %s: %s", spec.name, exc.code)
                 refusal = exc.as_problem()
+            # Asked only when there is a question. The two forms on this page
+            # are separate deliberately: the structured one is what the
+            # translation PRODUCES, so showing them side by side is how somebody
+            # learns to stop needing the English one.
+            asked = (self.ctx["nl_query"].ask(
+                question, scope=Scope.of(who), limit=100,
+                actor=self.actor(who)) if question.strip() else None)
             return self.page(
                 request, "query.html", entity=spec.name, catalogue=catalogue,
+                question=question, asked=asked,
                 selected=selected, fields=selected["fields"],
                 operators=[(op, OPERATORS[op]) for op in admissible],
                 field=field, operator=operator, value=value,

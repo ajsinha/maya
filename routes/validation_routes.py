@@ -451,3 +451,53 @@ class ValidationRoutes(Routes):
                     "remediation": "omit verified_by, or have that person close it"})
             return self.guard(lambda: register.close(
                 finding_id, verifier, body.evidence, actor=verifier))
+
+        # ------------------------------------------- assistance for a validator
+        @self.app.get(f"{api}/validation-assistance", tags=["validation"])
+        def assistance(request: Request):
+            """The three offerings, and the one thing none of them does."""
+            self.authorise(request, "validation:read")
+            return self.ctx["validation_aid"].describe()
+
+        @self.app.get(f"{api}/validation-assistance/vendor-coverage",
+                      tags=["validation"])
+        def vendor_coverage(request: Request, urn: str):
+            """Which filed document speaks to which checklist item.
+
+            Retrieval and not summary: a paraphrase of a vendor document is a
+            second document saying something the vendor did not, and a
+            validator cannot cite it back to them.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            who = self.authorise(request, "validation:read", model=model)
+            return self.guard(
+                lambda: self.ctx["validation_aid"].vendor_coverage(
+                    urn, principal=who))
+
+        @self.app.get(f"{api}/validation-assistance/challenge-questions",
+                      tags=["validation"])
+        def challenge_questions(request: Request, urn: str, limit: int = 20):
+            """What went wrong on comparable models, phrased as a question.
+
+            Each carries the finding it came from. A challenge question with no
+            provenance is one the model owner can dismiss.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "validation:read", model=model)
+            return self.guard(
+                lambda: self.ctx["validation_aid"].challenge_questions(
+                    urn, limit=limit))
+
+        @self.app.get(f"{api}/validation-assistance/untested-assumptions",
+                      tags=["validation"])
+        def untested_assumptions(request: Request, urn: str = ""):
+            """Assumptions nothing is watching. Exact, and labelled exact."""
+            if not urn:
+                self.authorise(request, "validation:read",
+                               estate_wide="reading every unwatched assumption")
+                return self.guard(
+                    lambda: self.ctx["validation_aid"].untested_assumptions())
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "validation:read", model=model)
+            return self.guard(
+                lambda: self.ctx["validation_aid"].untested_assumptions(urn))

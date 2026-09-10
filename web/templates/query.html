@@ -67,6 +67,69 @@ happening.</p>
   </div>
 </form>
 
+<form method="get" action="/query" class="card mb-3">
+  <div class="card-header">Or ask in English</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-10">
+        <label class="form-label small" for="q-question">Question</label>
+        <input id="q-question" name="question" value="{{ question }}"
+               class="form-control form-control-sm"
+               placeholder="models with tier at most 2">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-sm btn-outline-primary w-100">Ask</button>
+      </div>
+    </div>
+    <div class="small text-muted mt-2">
+      The question becomes a <strong>query</strong> and never a number. The
+      translation is checked against the catalogue below before anything runs,
+      and it is shown to you either way — an interface that shows only the
+      answer is one where nobody can tell a misread question from a wrong
+      number, and the misread question is far commoner.
+    </div>
+  </div>
+</form>
+
+{% if asked %}
+<div class="card mb-3">
+  <div class="card-header">Read as</div>
+  <div class="card-body">
+    <div class="fw-bold">{{ asked.detail }}.</div>
+    <pre class="small mt-2 mb-0" style="white-space:pre-wrap">{{ asked.proposed }}</pre>
+    {% if asked.refusal %}
+      <div class="alert alert-warning small mt-2 mb-0">
+        <strong>{{ asked.refusal.error }}</strong> — {{ asked.refusal.detail }}.
+        <div class="mt-1">The proposal is shown rather than retried into
+        something that parses: a query answering a different question would look
+        exactly like one answering yours.</div>
+      </div>
+    {% endif %}
+    {% if asked.also_named %}
+      <div class="small text-muted mt-2">This question also named
+        {{ asked.also_named | join(', ') }}. The first thing you named is what
+        was answered.</div>
+    {% endif %}
+  </div>
+  {% if asked.result %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>{% for f in asked.result.fields %}<th>{{ f }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in asked.result.rows %}
+      <tr>{% for f in asked.result.fields %}
+        <td class="small">{% if row[f] is none %}<span class="text-muted">—</span>{% else %}{{ row[f] }}{% endif %}</td>
+      {% endfor %}</tr>
+    {% else %}
+      <tr><td colspan="{{ asked.result.fields | length }}" class="text-muted">Nothing matched.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
 {% if refusal %}
 <div class="alert alert-warning small">
   <strong>{{ refusal.error }}</strong> — {{ refusal.detail }}.
