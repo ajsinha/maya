@@ -1800,3 +1800,153 @@ class ValidationBacklog:
         return self._maya.call("GET", "/validation-queue",
                                params={"horizon_days": horizon_days,
                                        "now": now})
+
+
+class Campaigns:
+    """Rounds of asking, over a population fixed at the moment of asking.
+
+    **The population is derived at launch and then frozen**, and the derivation
+    is kept beside it. That is the whole design, and the reason is a number
+    nobody watches: a campaign whose population is a live query silently changes
+    size, so a model retired in week three turns 47 of 50 into 47 of 49 and the
+    completion figure **goes up without anybody having done anything**.
+
+    So there are two numbers. `completion` is against the frozen population —
+    the one that goes to a committee, and it can only move when somebody
+    responds. `drift` is what re-deriving now would add, reported rather than
+    folded in, because adding a model mid-round moves the denominator.
+
+    Assignment is derived from the register, never typed: a campaign with typed
+    assignees ends up assigned to people who left.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def kinds(self) -> Dict[str, Any]:
+        """What a round may be for, and how completion is measured."""
+        return self._maya.call("GET", "/campaigns/kinds")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every round, least complete first."""
+        return self._maya.call("GET", "/campaigns", params={"now": now})
+
+    def get(self, reference: str, *,
+            now: Optional[float] = None) -> Dict[str, Any]:
+        """One round, with its items and its drift."""
+        return self._maya.call("GET", "/campaigns",
+                               params={"reference": reference, "now": now})
+
+    def open(self, reference: str, *, kind: str, title: str,
+             where: Optional[List[Dict[str, Any]]] = None,
+             instruction: str = "",
+             due_at: Optional[float] = None) -> Dict[str, Any]:
+        """Fix a population from a semantic-layer filter and assign it.
+
+        There is no parameter for a list of models. A typed population is one
+        somebody assembled by hand, and nothing can re-derive it later to say
+        what has changed since.
+        """
+        return self._maya.call("POST", "/campaigns", json={
+            "reference": reference, "kind": kind, "title": title,
+            "where": where or [], "instruction": instruction,
+            "due_at": due_at})
+
+    def respond(self, reference: str, *, urn: str, state: str,
+                response: str = "") -> Dict[str, Any]:
+        """Answer one item. `declined` and `not_applicable` need a reason."""
+        return self._maya.call("POST", f"/campaigns/{reference}/respond",
+                               json={"urn": urn, "state": state,
+                                     "response": response})
+
+    def reassign(self, reference: str, *, urn: str, to: str,
+                 reason: str) -> Dict[str, Any]:
+        """Move an item, on the record rather than by editing it.
+
+        *Who was this originally for* is the question asked about the items that
+        were not done, and an edit erases the answer.
+        """
+        return self._maya.call("POST", f"/campaigns/{reference}/reassign",
+                               json={"urn": urn, "to": to, "reason": reason})
+
+    def close(self, reference: str) -> Dict[str, Any]:
+        """End a round, recording what was never answered.
+
+        Closing over outstanding items is allowed — a round has to end — and the
+        count goes on the chain, because a campaign that ends quietly and
+        reports 100% is worse than one that reports 84% and stops.
+        """
+        return self._maya.call("POST", f"/campaigns/{reference}/close")
+
+
+class Intake:
+    """What arrives before a model, and the answer that matters most.
+
+    A proposal is **not a model** and is not stored as one: no version, no
+    artifact, nothing that could resolve. Keeping it in the register would be
+    the fastest way to turn one into an inventory of ideas.
+
+    Triage answers three prior questions — is it a model at all, build or buy,
+    is it generative — and **the most valuable answer is "this is not a model"**.
+    The pressure runs entirely the other way, because nobody is ever criticised
+    for registering something. An out-of-scope determination is kept rather than
+    deleted: a proposal declined and forgotten comes back next year as a fresh
+    idea, and the second triage starts over without knowing the first happened.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def questions(self) -> Dict[str, Any]:
+        """The three questions, the cues each turns on, and the sourcing terms."""
+        return self._maya.call("GET", "/intake/questions")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every proposal, untriaged first."""
+        return self._maya.call("GET", "/intake", params={"now": now})
+
+    def get(self, reference: str) -> Dict[str, Any]:
+        return self._maya.call("GET", "/intake",
+                               params={"reference": reference})
+
+    def propose(self, reference: str, *, title: str, description: str,
+                proposed_by: str, business_area: str = "") -> Dict[str, Any]:
+        """Record a proposal."""
+        return self._maya.call("POST", "/intake", json={
+            "reference": reference, "title": title, "description": description,
+            "proposed_by": proposed_by, "business_area": business_area})
+
+    def assessment(self, reference: str) -> Dict[str, Any]:
+        """What the description suggests, with the words it turned on.
+
+        A reading, never a determination — and the words are shown so somebody
+        can disagree with something specific. A determination whose reasoning is
+        invisible is one nobody can disagree with, and the whole value of triage
+        is in the disagreements.
+        """
+        return self._maya.call("GET", f"/intake/{reference}/assessment")
+
+    def triage(self, reference: str, *, in_scope: bool, sourcing: str,
+               generative: bool, rationale: str) -> Dict[str, Any]:
+        """Record the determination a person made, beside the reading.
+
+        `rationale` is required. An out-of-scope decision with no reason is one
+        that gets re-litigated every year by somebody who was not there.
+        """
+        return self._maya.call("POST", f"/intake/{reference}/triage", json={
+            "in_scope": in_scope, "sourcing": sourcing,
+            "generative": generative, "rationale": rationale})
+
+    def register(self, reference: str, *, urn: str, name: str,
+                 model_class: str, domain: str, owner: str,
+                 legal_entity: str, purpose: str) -> Dict[str, Any]:
+        """Cross from proposal to model. Refused before triage.
+
+        The triage travels with the model as its first evidence: the
+        build-versus-buy decision is the one that decides what the firm owes,
+        and it is otherwise made in a meeting nobody minuted.
+        """
+        return self._maya.call("POST", f"/intake/{reference}/register", json={
+            "urn": urn, "name": name, "model_class": model_class,
+            "domain": domain, "owner": owner, "legal_entity": legal_entity,
+            "purpose": purpose})

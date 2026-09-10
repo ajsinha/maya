@@ -973,6 +973,68 @@ in **either** reopens the assessment and puts every vendor statement outstanding
 established about its own book survives, because that did not stop being true when the vendor shipped. An
 assessment of a model that has since been replaced is an assessment of nothing.
 
+### 10.5 A round of asking, and the number that moves on its own
+
+An attestation round, an annual inventory certification, a *confirm your model's limitations are still
+accurate* exercise: this is the work a model risk function does most of, and it runs out of spreadsheets
+because a register that holds models does not obviously hold **rounds of asking about models**.
+
+**The population is derived at launch and then frozen, and the derivation is kept beside it.** The reason
+is a number nobody watches. A campaign whose population is a live query silently changes size: a model
+retired in week three turns 47 of 50 into **47 of 49**, and the completion figure goes up without anybody
+having done anything — and completion is the one number a campaign exists to produce.
+
+| Number | Measured against | Moves when |
+|---|---|---|
+| `completion` | The population as it stood at launch | Somebody responds. Only then |
+| `drift` | Re-running the derivation now | The estate changes — reported, never folded in |
+
+Folding drift in would move the denominator, so a model that enters the population mid-round is named and
+refused an answer, with the reason. The population comes through the **semantic layer** rather than a
+private query, so a campaign and an estate report cannot disagree about what `in_force` means.
+
+**Assignment is derived, never typed.** Each item goes to the model's own owner at launch; a campaign
+with typed assignees is one that ends up assigned to people who left. Reassignment is an act with a
+reason rather than an edit, because *who was this originally for* is the question asked about the items
+that were not done, and an edit erases the answer.
+
+And a round **can** be closed over outstanding items — a round has to end. The count of never-answered
+items goes on the evidence chain at closure, because a campaign that ends quietly and reports 100% is
+worse than one that reports 84% and stops.
+
+### 10.6 What arrives before a model is a model
+
+Before a thing is a model it is a paragraph — a business case, a vendor demo — and the question is not
+*how do we govern this* but three prior ones: is it a model at all, build or buy, and is it generative.
+
+**A proposal is not a model and is not stored as one.** No version, no artifact, nothing that could
+resolve. Keeping it in the model table is the fastest way to turn a register into an inventory of ideas,
+so the two objects are separate and the crossing between them is an explicit act, refused before triage.
+
+**The most valuable answer triage gives is *this is not a model*.** A register that admits everything is
+one nobody can read, and the pressure runs entirely the other way: nobody is ever criticised for
+registering something. So an out-of-scope determination is recorded with its reasons and **kept** — a
+proposal declined and forgotten comes back next year as a fresh idea, and the second triage starts over
+without knowing the first happened.
+
+**Scope is proposed from what was written and decided by a person.** The platform reads the description
+for what the definitions turn on and publishes both the cue list and the words it matched:
+
+| Question | Why it decides something |
+|---|---|
+| Does it apply a quantitative method? | SR 26-2 §II turns on the phrase, and it is why a spreadsheet with a discount curve is a model |
+| Does it produce an estimate? | A system returning a stored value is a database; one producing a number nobody stored is a model |
+| Does its output reach a decision? | The tier lattice and the AI Act both turn on who is affected |
+| Is it generative? | Not a question about technology: a generative output has no ground truth, so the validation apparatus changes shape |
+| Was it built elsewhere? | You cannot validate what you cannot see, so a bought model means validating the firm's *use* of it |
+
+A determination whose reasoning is invisible is one nobody can disagree with, and the whole value of
+triage is in the disagreements — so where the person's answer differs from the reading, **both are on the
+record**. `undecided` is a real sourcing answer rather than a default to build, because that choice is
+usually made before the second line hears about it and a default hides it. And the triage travels with
+the registered model as its first evidence: build-versus-buy is the decision that settles what the firm
+owes, and it is otherwise made in a meeting nobody minuted.
+
 ## 11. Documentation
 
 Three separate things, deliberately not one thing with a flag.
@@ -2807,8 +2869,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 295 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 356 modules in one
+the 297 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 358 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

@@ -602,6 +602,20 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class CampaignRepository(Repository):
+    TABLE, ORDER = "campaign", "opened_at"
+    JSON = ("derivation",)
+
+
+class CampaignItemRepository(Repository):
+    TABLE, ORDER = "campaign_item", "urn"
+
+
+class IntakeProposalRepository(Repository):
+    TABLE, ORDER = "intake_proposal", "proposed_at"
+    JSON = ("rationale",)
+
+
 class SupervisoryMatterRepository(Repository):
     TABLE, ORDER = "supervisory_matter", "raised_at"
     JSON = ("scope",)
