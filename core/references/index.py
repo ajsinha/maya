@@ -245,6 +245,22 @@ class ReferenceIndex:
                     False))
 
         for row in self.db.query(
+                "SELECT id, reference, kind, regulator, scope, state "
+                "FROM regulatory_approval WHERE model_id = :m",
+                {"m": model_id}):
+            live = row["state"] == "in_force"
+            found.append(Reference(
+                "regulatory_approval", row["id"], row["reference"],
+                (f"a {row['kind'].upper()} permission from {row['regulator']} "
+                 f"over {row['scope']} — deleting the model would remove the "
+                 f"record of a permission somebody else granted, which is not "
+                 f"this firm's to delete"
+                 if live else
+                 f"a {row['kind'].upper()} permission that is {row['state']}, "
+                 f"and the record that it was once held"),
+                live))
+
+        for row in self.db.query(
                 "SELECT id, reference, vendor, product, state "
                 "FROM vendor_assessment WHERE model_id = :m",
                 {"m": model_id}):

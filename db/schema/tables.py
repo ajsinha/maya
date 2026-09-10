@@ -905,6 +905,43 @@ LEGAL_HOLD = Table(
     Index("ix_legal_hold_state", "state", "scope_kind"),
 )
 
+# A permission a supervisor gave, with what it covers and when it lapses.
+#
+# **A regulatory approval is not a tier and not a control**, and putting it in
+# either would lose what makes it different: it is somebody else's decision
+# about a defined scope, and it expires. IRB permission is granted for named
+# portfolios; an FRTB IMA desk approval is granted for a desk and withdrawn when
+# the desk fails its P&L attribution. A register that recorded "approved" as a
+# flag on a model would be unable to answer the two questions that matter —
+# *for what* and *until when*.
+#
+# `conditions` is free text on purpose: a supervisor's conditions are the
+# supervisor's words, and normalising them into a vocabulary this platform
+# invented would be paraphrasing a regulator.
+REGULATORY_APPROVAL = Table(
+    "regulatory_approval", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("model_id", Text),
+    Column("kind", Text, nullable=False),
+    Column("regulator", Text, nullable=False),
+    Column("scope", Text, nullable=False),
+    Column("conditions", Text, nullable=False, server_default=text("''")),
+    Column("granted_at", Double, nullable=False),
+    # Nullable, and null means "no stated end" rather than "forever". IRB
+    # permission has no expiry date and is withdrawn rather than lapsing, which
+    # is a different fact from a desk approval that runs to a date.
+    Column("expires_at", Double),
+    Column("state", Text, nullable=False, server_default=text("'in_force'")),
+    Column("withdrawn_at", Double),
+    Column("withdrawn_by", Text),
+    Column("withdrawal_reason", Text, nullable=False, server_default=text("''")),
+    Column("recorded_by", Text, nullable=False),
+    Column("recorded_at", Double, nullable=False),
+    Index("uq_regulatory_approval_reference", "reference", unique=True),
+    Index("ix_regulatory_approval_model", "model_id", "state"),
+)
+
 # Something a scanner found that might be a model.
 #
 # **A candidate is not a model, and registering everything a scanner finds is
