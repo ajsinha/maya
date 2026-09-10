@@ -590,6 +590,23 @@ CREATE TABLE IF NOT EXISTS finding_action (
 );
 CREATE INDEX IF NOT EXISTS ix_finding_action ON finding_action (finding_id, acted_at);
 
+CREATE TABLE IF NOT EXISTS idempotency (
+    id TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    principal TEXT NOT NULL,
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    request_digest TEXT NOT NULL,
+    state TEXT DEFAULT 'in_flight' NOT NULL,
+    status INTEGER,
+    body TEXT,
+    started_at DOUBLE PRECISION NOT NULL,
+    completed_at DOUBLE PRECISION,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_idempotency_started ON idempotency (started_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_idempotency ON idempotency (idempotency_key, principal);
+
 CREATE TABLE IF NOT EXISTS model (
     id TEXT NOT NULL,
     urn TEXT NOT NULL,

@@ -20,12 +20,13 @@ import logging
 import json
 import os
 import sys
+import hashlib
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -58,6 +59,8 @@ from core.reporting import (AppetiteRegister, BoardPackBuilder,
                             IndicatorSet)
 from core.execution.profiles import WarrantProfileRegister
 from core.authz.breakglass import BreakGlass
+from core import concurrency
+from core.concurrency import IdempotencyStore
 from core.classification import Classification
 from core.registry.comparison import VersionComparison
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
@@ -118,7 +121,7 @@ from db import (ServingAttestationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
-                BreakGlassRepository,
+                BreakGlassRepository, IdempotencyRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
@@ -147,6 +150,84 @@ from routes import ALL_ROUTES
 #: broke them would be turned off within a week — which is worse than a policy
 #: that blocks the external-origin case and says so. Removing it means moving
 #: the inline blocks out first, which is its own change.
+#: The methods an idempotency key applies to. `GET` is idempotent by
+#: definition and `DELETE` is idempotent by its own semantics — but a caller
+#: retrying a DELETE still wants the same ANSWER rather than a 404 the second
+#: time, so it is included.
+MUTATING = ("POST", "PUT", "PATCH", "DELETE")
+
+
+async def _current_etag(app, request) -> Optional[str]:
+    """The ETag of what a GET to this same path would return, or `None`.
+
+    Dispatched through the app's own router rather than reconstructed, so the
+    precondition is evaluated against exactly the representation the caller
+    read. `None` means the path has no readable representation — and that is
+    reported as a refusal rather than treated as a pass, because a precondition
+    nobody can evaluate is not a precondition that holds.
+    """
+    from starlette.datastructures import Headers
+
+    # A fresh scope through the WHOLE app rather than the bare router: the
+    # router alone asserts on middleware state it does not have. There is no
+    # recursion — this only ever runs for a mutating method, and it dispatches
+    # a GET, which never reaches here.
+    scope = {k: v for k, v in request.scope.items()
+             if k not in ("fastapi_astack", "fastapi_middleware_astack",
+                          "router", "route_handler", "endpoint", "route",
+                          "path_params", "session", "starlette.exception_handlers")}
+    scope.update({"method": "GET", "query_string": b"",
+                  "headers": [(k, v) for k, v in request.scope["headers"]
+                              if k not in (b"if-match", b"content-type",
+                                           b"content-length")]})
+    captured: Dict[str, Any] = {"status": 0, "body": b""}
+
+    async def receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message):
+        if message["type"] == "http.response.start":
+            captured["status"] = message["status"]
+            captured["headers"] = Headers(raw=message.get("headers") or [])
+        elif message["type"] == "http.response.body":
+            captured["body"] += message.get("body") or b""
+
+    try:
+        await app(scope, receive, send)
+    except Exception:
+        # A path whose GET raises is a path with no representation to compare
+        # against. Logged rather than swallowed, because it is also a defect.
+        logger.warning("could not read %s back to evaluate If-Match",
+                       request.url.path, exc_info=True)
+        return None
+    if captured["status"] != 200:
+        return None
+    try:
+        return concurrency.etag_of(json.loads(captured["body"]))
+    except (ValueError, UnicodeDecodeError):
+        # A representation that is not JSON is one this cannot tag, so the
+        # precondition is unevaluable rather than satisfied. Logged because a
+        # JSON route returning non-JSON is also a defect.
+        logger.warning("the representation of %s is not JSON, so If-Match "
+                       "cannot be evaluated against it", request.url.path)
+        return None
+
+
+def _credential_scope(request) -> str:
+    """A stable per-caller scope for an idempotency key, before authentication.
+
+    The middleware runs before any route, so it cannot know who the caller *is*
+    — it knows what they presented. Hashing that gives a scope no two callers
+    share while storing nothing sensitive, which is the property that matters:
+    a key is chosen by the caller, and a well-chosen UUID does not protect you
+    from somebody else's badly chosen one.
+    """
+    presented = (request.headers.get("authorization")
+                 or request.cookies.get("session")
+                 or "anonymous")
+    return hashlib.sha256(presented.encode("utf-8")).hexdigest()[:32]
+
+
 SECURITY_HEADERS: Dict[str, str] = {
     "Content-Security-Policy": (
         "default-src 'self'; "
@@ -168,6 +249,7 @@ SECURITY_HEADERS: Dict[str, str] = {
     "Referrer-Policy": "same-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 }
+from routes.base import STATUS as REFUSAL_STATUS
 from routes.base import authz_problem
 
 ROOT = Path(__file__).resolve().parent
@@ -556,6 +638,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     lifecycle_profiles = LifecycleProfiles(
         registry, fibres, attachments=attachments, evidence=evidence)
 
+    # A mutating request somebody may send twice, and the answer to the first.
+    idempotency = IdempotencyStore(IdempotencyRepository(db))
+
     # What changed between two versions, as a diff a person reads. L-7 and
     # L-12 decide whether an alias MAY move; that is a different question.
     version_comparison = VersionComparison(
@@ -678,7 +763,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    immaterial=immaterial,
                    lifecycle_profiles=lifecycle_profiles,
                    canaries=canaries,
-                   break_glass=break_glass),
+                   break_glass=break_glass,
+                   idempotency=idempotency),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -745,6 +831,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "classification": data_classification,
                            "break_glass": break_glass,
                            "version_comparison": version_comparison,
+                           "idempotency": idempotency,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
@@ -973,7 +1060,7 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
         without proving it came from one of our pages.
 
         Middleware rather than a check in each route, because there are a
-        hundred and four mutating endpoints and a control that many places have
+        hundred and fifty mutating endpoints and a control that many places have
         to remember is a control that will be missing from the next one. The
         exemptions are
         exact paths and the condition is narrow — see `core/authz/csrf.py` for
@@ -1027,6 +1114,134 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                        # coded False, so the session cookie never carried
                        # `Secure` even behind TLS and there was no key to set.
                        https_only=cfg.get_bool("auth.session_https_only", False))
+
+    @app.middleware("http")
+    async def entity_tags(request, call_next):
+        """Answer *is this still what I read*, and refuse to pretend otherwise.
+
+        Two things, and the second is the one that matters.
+
+        On a **JSON GET** the response carries a weak `ETag` derived from the
+        representation itself — never a stored version column, which is a second
+        thing to keep in step and says *unchanged* about something that changed
+        the first time somebody writes a row without bumping it. `If-None-Match`
+        then gets a 304, which is a real saving on the estate views that fold
+        the whole evidence chain.
+
+        On a **mutating request carrying `If-Match`**, the precondition is
+        evaluated against the current representation of the same path — and if
+        that path has no GET to evaluate against, the request is **refused by
+        name**. Silently dropping a precondition header is strictly worse than
+        not supporting preconditions at all: the client believes it has
+        optimistic concurrency, has none, and has stopped checking for itself.
+        The lost update it thinks it is preventing is the quietest failure in
+        any register — two people edit, both save, the second write discards the
+        first, nothing is refused and the only trace is a field nobody typed.
+        """
+        supplied = request.headers.get(concurrency.IF_MATCH)
+        if supplied and request.method in MUTATING:
+            current = await _current_etag(app, request)
+            try:
+                concurrency.require_match(supplied, current, request.url.path)
+            except concurrency.PreconditionError as refused:
+                logger.warning("refused a %s to %s (%s)", request.method,
+                               request.url.path, refused.code)
+                return JSONResponse(
+                    refused.as_problem(),
+                    status_code=REFUSAL_STATUS.get(refused.code, 412),
+                    headers={"etag": current} if current else {})
+
+        response = await call_next(request)
+        # Read from the header rather than `response.media_type`, which a
+        # streaming response coming back through middleware does not carry.
+        content_type = response.headers.get("content-type", "")
+        if (request.method != "GET" or response.status_code != 200
+                or not content_type.startswith("application/json")
+                or not hasattr(response, "body_iterator")):
+            return response
+        captured = b"".join([chunk async for chunk in response.body_iterator])
+        try:
+            tag = concurrency.etag_of(json.loads(captured))
+        except (ValueError, UnicodeDecodeError):
+            # Served without a tag rather than with a wrong one. A body
+            # declaring application/json that does not parse is a defect
+            # somewhere else, and a tag over bytes nobody can compare
+            # semantically would be a claim this does not check.
+            logger.warning("a response from %s declares JSON and does not "
+                           "parse; serving it without an ETag",
+                           request.url.path)
+            return Response(content=captured, status_code=200,
+                            headers=dict(response.headers))
+        headers = {**dict(response.headers), "etag": tag}
+        if concurrency.matches(request.headers.get(concurrency.IF_NONE_MATCH),
+                               tag):
+            headers.pop("content-length", None)
+            return Response(status_code=304, headers=headers)
+        return Response(content=captured, status_code=200, headers=headers)
+
+    # Registered here, which puts it INSIDE the request-context middleware and
+    # OUTSIDE the routes: a replayed response must still get a request id and a
+    # log line, and the claim must be taken before any route runs.
+    @app.middleware("http")
+    async def idempotent_replay(request, call_next):
+        """Let a client retry a mutating request without doing it twice.
+
+        Middleware rather than a decorator on each route, for the same reason
+        the CSRF guard is: there are over a hundred and fifty mutating
+        endpoints, and a control that many places have to remember is a control
+        that will be missing from the next one.
+
+        **Scoped by credential rather than by principal**, and the distinction
+        is not pedantry: this runs before authentication, so it cannot know who
+        the caller *is*. What it has is what they presented, and a digest of
+        that is a stable per-caller scope that stores nothing sensitive. Two
+        callers cannot collide on a key, which is the property that matters,
+        and an unauthenticated request never gets that far because the route
+        refuses it and the key is released.
+        """
+        key = request.headers.get(concurrency.HEADER)
+        if not key or request.method not in MUTATING:
+            return await call_next(request)
+
+        scope = _credential_scope(request)
+        body = await request.body()
+        store = ctx["idempotency"]
+        try:
+            replay = store.claim(key, scope, request.method,
+                                 request.url.path, body)
+        except concurrency.IdempotencyError as refused:
+            logger.warning("refused (%s): %s", refused.code, refused)
+            return JSONResponse(refused.as_problem(),
+                                status_code=REFUSAL_STATUS.get(refused.code, 409))
+        if replay is not None:
+            logger.info("replaying idempotency key %s for %s %s", key,
+                        request.method, request.url.path)
+            return Response(content=replay["body"] or "",
+                            status_code=replay["status"] or 200,
+                            media_type="application/json",
+                            headers={concurrency.REPLAYED: "true"})
+
+        try:
+            response = await call_next(request)
+        except Exception:
+            # A key held by a request that blew up is a key that can never be
+            # retried, which turns one failure into a permanent one. Re-raised
+            # after being recorded, never swallowed.
+            logger.warning("releasing idempotency key %s: %s %s failed",
+                           key, request.method, request.url.path)
+            store.release(key, scope)
+            raise
+
+        captured = b"".join([chunk async for chunk in response.body_iterator])
+        if 200 <= response.status_code < 300:
+            store.complete(key, scope, response.status_code, captured)
+        else:
+            # Only a success is kept. A recorded failure makes the client's
+            # retry replay that failure forever, and the key becomes a
+            # tombstone for an act that never happened.
+            store.release(key, scope)
+        return Response(content=captured, status_code=response.status_code,
+                        headers=dict(response.headers))
 
     # Registered LAST, which puts it OUTERMOST: an `add_middleware` added later
     # wraps the ones before it. That is deliberate here and the opposite of the
