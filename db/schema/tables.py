@@ -1478,6 +1478,58 @@ MODEL_ASSUMPTION = Table(
 
 
 
+
+# What a model is used FOR, as a thing rather than as a string.
+#
+# `declared_use` on a warrant grant is a string, checked at resolution against
+# the grant that carries it. That is enough to authorise a call and not enough
+# for anything else: a use has no owner, no dates, no product and no legal
+# entity, so risk cannot attach to one and *which models fed the Q2 provision*
+# has no answer.
+#
+# The distinction that makes this worth a table: the same model used for two
+# purposes is TWO RISK PROPOSITIONS. A PD model used at origination and used
+# for provisioning carries different materiality, different regulatory
+# expectations and different consequences of being wrong, and a register that
+# holds one row for the model holds one answer for both.
+#
+# `effective_from` and `effective_to` are the other half. SR 26-2 asks about
+# models being "misapplied or misused", and the commonest form of that is not a
+# use nobody approved — it is a use somebody approved, for a period that ended,
+# which nobody switched off.
+MODEL_USE = Table(
+    "model_use", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("reference", Text, nullable=False),
+    # The string a warrant grant carries, so a grant and a use can be matched.
+    Column("declared_use", Text, nullable=False),
+    Column("name", Text, nullable=False),
+    Column("purpose", Text, nullable=False, server_default=text("''")),
+    # The dimensions the requirement names. Each is prose because each is the
+    # institution's own vocabulary — a closed list here would be this
+    # platform's opinion about how a bank divides itself up.
+    Column("product", Text, nullable=False, server_default=text("''")),
+    Column("legal_entity", Text, nullable=False, server_default=text("''")),
+    Column("geography", Text, nullable=False, server_default=text("''")),
+    Column("channel", Text, nullable=False, server_default=text("''")),
+    Column("segment", Text, nullable=False, server_default=text("''")),
+    # Who decides on the back of this model's output, which is not the same
+    # person as its owner and is the one a supervisor asks for.
+    Column("decision_authority", Text, nullable=False, server_default=text("''")),
+    Column("owner", Text, nullable=False),
+    Column("status", Text, nullable=False, server_default=text("'active'")),
+    Column("effective_from", Double, nullable=False),
+    Column("effective_to", Double),
+    Column("created_at", Double, nullable=False),
+    Column("created_by", Text, nullable=False),
+    Column("retired_at", Double),
+    Column("retired_by", Text),
+    Column("retire_reason", Text),
+    Index("uq_model_use_model_id_reference", "model_id", "reference", unique=True),
+    Index("ix_model_use_declared_use", "declared_use"),
+)
+
 # What this model will be watched for, written down BEFORE it goes anywhere.
 #
 # A monitoring plan and a monitored model are different statements, and the

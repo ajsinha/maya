@@ -544,6 +544,12 @@ class LimitationRepository(Repository):
     TABLE, ORDER = "model_limitation", "created_at"
 
 
+class ModelUseRepository(Repository):
+    #: No JSON: every dimension is a column, because the point of the
+    #: table is that a use can be QUERIED by product and entity and date.
+    TABLE, ORDER = "model_use", "created_at"
+
+
 class MonitoringPlanRepository(Repository):
     #: One plan per version, and `monitor_ids` records which monitors it
     #: actually became — so "planned" and "monitored" can be compared

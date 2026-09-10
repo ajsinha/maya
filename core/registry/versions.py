@@ -512,7 +512,13 @@ class VersionService:
             self.versions.add(row)
             self.evidence.append(
                 "version_created", "version", row["id"],
-                {"semver": semver, "digest": row["manifest_digest"],
+                # The urn is carried even though the subject id identifies the
+                # version, because the as-at projection folds the chain and a
+                # fold cannot look anything up: without this, reconstructing
+                # the register at a past date has to ask the register what a
+                # version belonged to, and a model deleted since would silently
+                # lose its versions from its own history.
+                {"semver": semver, "urn": urn, "digest": row["manifest_digest"],
                  "trainability_class": row["trainability_class"]}, actor=actor)
         return row
 

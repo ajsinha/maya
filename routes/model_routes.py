@@ -103,6 +103,30 @@ class AssumptionIn(Body):
     overlay_id: Optional[str] = None
 
 
+class ModelUseIn(Body):
+    urn: str
+    #: The string a warrant grant carries, so a grant and a use can be matched.
+    declared_use: str
+    name: str
+    owner: str
+    purpose: str = ""
+    #: The institution's own vocabulary. Not closed here: a closed list would
+    #: be this platform having an opinion about how a bank divides itself up.
+    product: str = ""
+    legal_entity: str = ""
+    geography: str = ""
+    channel: str = ""
+    segment: str = ""
+    #: Who decides on the back of the output, which is routinely not the
+    #: model's owner and is the person a supervisor asks for.
+    decision_authority: str = ""
+    effective_from: Optional[float] = None
+    #: The field that catches the commonest form of misuse. A use somebody
+    #: approved, for a period that ended, which nobody switched off, is
+    #: invisible to every other control here.
+    effective_to: Optional[float] = None
+
+
 class DesignateIn(Body):
     #: The complete set, not an addition. A designation being removed is a
     #: decision worth as much as one being applied.
@@ -447,6 +471,93 @@ class ModelRoutes(Routes):
                                  model=self.model_of(row["model_id"]))
             return self.guard(lambda: self.ctx["assumptions"].withdraw(
                 assumption_id, body.reason, actor=self.actor(who)))
+
+        # -------------------------------------------------------- model uses
+        @self.app.get(f"{self.api}/model-uses", tags=["models"])
+        def model_uses(request: Request,
+                       urn_: Optional[str] = Query(None, alias="urn"),
+                       product: Optional[str] = Query(None),
+                       legal_entity: Optional[str] = Query(None),
+                       at: Optional[float] = Query(None)):
+            """One model's uses, or every model in use for something.
+
+            With no urn this is the *which models fed the Q2 provision* query,
+            and `at` is the half that makes it worth asking: a use in force
+            today and one in force in June are different sets, and the second
+            is the one an examiner wants.
+            """
+            if urn_ is None:
+                self.authorise(request, "model:read",
+                               estate_wide="reading every declared use across "
+                                           "the estate")
+                return self.guard(
+                    lambda: self.ctx["uses"].across_the_estate(
+                        product=product, legal_entity=legal_entity, at=at))
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "model:read", model=m)
+            return self.guard(lambda: self.ctx["uses"].for_model(urn_of(urn_)))
+
+        @self.app.get(f"{self.api}/model-uses/lapsed", tags=["models"])
+        def lapsed_uses(request: Request):
+            """Uses whose window ended and which nobody retired.
+
+            A use nobody approved gets refused. A use somebody approved, for a
+            period that has ended, is invisible to every other control here —
+            the grant still exists, the warrant still resolves, and every call
+            under it is still authorised.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading every lapsed use")
+            return self.guard(lambda: self.ctx["uses"].lapsed())
+
+        @self.app.post(f"{self.api}/model-uses", status_code=201,
+                       tags=["models"])
+        def declare_use(request: Request, body: ModelUseIn):
+            """Record what this model is used for."""
+            m = self.guard(lambda: reg.require(urn_of(body.urn)))
+            who = self.authorise(request, "model:register", model=m)
+            payload = body.model_dump()
+            payload.pop("urn")
+            return self.guard(lambda: self.ctx["uses"].declare(
+                urn_of(body.urn), actor=self.actor(who), **payload))
+
+        @self.app.post(f"{self.api}/model-uses/{{use_id}}/retire",
+                       tags=["models"])
+        def retire_use(request: Request, use_id: str,
+                       body: WithdrawLimitationIn):
+            """End a use. Never deleted: what a model was used for, and when,
+            is the history a supervisor asks about."""
+            row = self.guard(lambda: self.ctx["uses"].require(use_id))
+            who = self.authorise(request, "model:register",
+                                 model=self.model_of(row["model_id"]))
+            return self.guard(lambda: self.ctx["uses"].retire(
+                use_id, body.reason, actor=self.actor(who)))
+
+        # ------------------------------------------------------ as at a date
+        @self.app.get(f"{self.api}/as-at", tags=["models"])
+        def as_at(request: Request, at: float,
+                  urn_: Optional[str] = Query(None, alias="urn")):
+            """The register as it stood at a moment, or one model in it.
+
+            Folded from the evidence chain rather than read from a history
+            table, so the answer carries the chain sequence and hash it is true
+            at. A projection somebody could have rewritten is not evidence, and
+            the chain cannot be rewritten without every hash after the edit
+            disagreeing.
+
+            What the chain does not carry is named in `not_projected` rather
+            than guessed: *we do not know what the purpose field said in March*
+            is an answer, and a confidently wrong purpose is not.
+            """
+            if urn_ is None:
+                self.authorise(request, "model:read",
+                               estate_wide="reconstructing the whole register "
+                                           "as at a past date")
+                return self.guard(lambda: self.ctx["as_at"].register(at))
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "model:read", model=m)
+            return self.guard(
+                lambda: self.ctx["as_at"].model(urn_of(urn_), at))
 
         # ----------------------------------------------------- designations
         @self.app.get(f"{self.api}/designations", tags=["models"])
