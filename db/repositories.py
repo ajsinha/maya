@@ -253,7 +253,8 @@ class WarrantRepository(Repository):
 
 class FeatureRepository(Repository):
     TABLE, ORDER = "feature", "name"
-    JSON = ("shape", "components", "composes", "operations", "defaults")
+    JSON = ("shape", "components", "composes", "operations", "defaults",
+            "assertions")
 
 
 class FeatureViewRepository(Repository):
@@ -268,7 +269,9 @@ class FeatureSourceRepository(Repository):
 
 
 class FeatureViewVersionRepository(Repository):
-    TABLE, JSON, ORDER = ("feature_view_version", ("features", "quality_report"), "version")
+    TABLE, JSON, ORDER = ("feature_view_version",
+                          ("features", "quality_report", "assertion_report"),
+                          "version")
 
 
 class ContractRepository(Repository):

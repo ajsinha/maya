@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from core.evidence import EvidenceEngine
 from core.features.catalogue import FeatureCatalogue
 from core.log import get_logger, swallowed
+from core.features.assertions import check as check_assertions
 from core.features.common import ENTITY, INGEST_TIME, RESERVED, VALID_TIME, FeatureError
 from db import DeltaStore, FeatureViewRepository, FeatureViewVersionRepository
 
@@ -95,15 +96,31 @@ class ViewManager:
             delta_version = self.delta.write(target, rows,
                                              dtypes=self._dtypes(view))
         names = feature_names or sorted({k for r in rows for k in r} - set(RESERVED))
+        # The declared assertions, checked against what is being recorded. A
+        # failing load is QUARANTINED rather than refused: the rows are
+        # written, the version is recorded and the report says which assertion
+        # failed and by how much, because deleting the evidence of a bad load
+        # is how nobody finds out what arrived. What quarantine buys is that
+        # nothing may pin it.
+        report = check_assertions(rows, self._assertions_for(names))
         row = {"feature_view_id": view["id"], "version": number, "features": names,
                "delta_version": delta_version, "valid_time_column": VALID_TIME,
                "ingest_time_column": INGEST_TIME, "row_count": len(rows),
+               "quarantined": not report["passed"],
+               "assertion_report": report,
                "quality_report": self.quality(rows, names), "materialised_at": time.time()}
         with self.evidence.recording():
             self.view_versions.add(row)
             self.evidence.append("feature_view_materialised", "feature_view", view["id"],
                                  {"version": number, "rows": len(rows),
-                                  "table": target}, actor=actor)
+                                  "table": target,
+                                  "assertions_checked": report["checked"],
+                                  "quarantined": not report["passed"],
+                                  "failed": report["failed"]}, actor=actor)
+            if not report["passed"]:
+                logger.warning(
+                    "feature view '%s' version %s is QUARANTINED: %s",
+                    view_name, number, report["detail"])
         return row
 
     @staticmethod
@@ -114,6 +131,20 @@ class ViewManager:
                     raise FeatureError(
                         f"row is missing '{required}'; feature rows carry two clocks — "
                         f"{VALID_TIME} (when it was true) and {INGEST_TIME} (when we learned it)")
+
+    def _assertions_for(self, names: List[str]) -> Dict[str, List[Dict[str, Any]]]:
+        """Each named feature's declared assertions, if it has any.
+
+        Read from the FEATURE rather than the view: a null rate unacceptable in
+        one table is unacceptable in the next, and an assertion attached to a
+        view would have to be restated every time somebody built another one.
+        """
+        out: Dict[str, List[Dict[str, Any]]] = {}
+        for name in names:
+            row = self.catalogue.get(name)
+            if row and row.get("assertions"):
+                out[name] = list(row["assertions"])
+        return out
 
     @staticmethod
     def quality(rows: List[Dict[str, Any]], names: List[str]) -> Dict[str, Any]:
@@ -202,6 +233,21 @@ class ViewManager:
         row = self.view_versions.one(feature_view_id=view["id"], version=version)
         if row is None:
             raise FeatureError(f"feature view '{view_name}' has no version {version}")
+        # The single choke point for pinning, which is why the quarantine check
+        # is here rather than in each caller: every path that binds a version
+        # to a featureset, a contract or a snapshot comes through this method,
+        # and a check in three of the four would make the assertion advisory in
+        # the fourth.
+        if row.get("quarantined"):
+            report = row.get("assertion_report") or {}
+            raise FeatureError(
+                f"feature view '{view_name}' version {version} is QUARANTINED: "
+                f"{report.get('detail', 'a declared assertion failed')}. The "
+                f"rows are recorded and readable — the load is evidence of "
+                f"what arrived — but nothing may pin a version whose declared "
+                f"assertions did not hold, because a featureset that could "
+                f"bind one would make every assertion advisory. Load again, or "
+                f"change the assertion if it was wrong")
         return {"namespace": self._path(view, version),
                 "delta_version": row["delta_version"],
                 "row_count": row["row_count"],

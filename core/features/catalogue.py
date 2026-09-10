@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from core.evidence import EvidenceEngine
 from core.features import shapes
+from core.features.assertions import validate as validate_assertions
 from core.features.common import FeatureError
 from core.features.composition import Resolver
 from core.features.lifecycle import Lifecycle
@@ -47,6 +48,7 @@ class FeatureCatalogue:
                operations: Optional[Sequence[Dict[str, Any]]] = None,
                ephemeral: bool = False, ttl_days: Optional[float] = None,
                defaults: Optional[Dict[str, Any]] = None,
+               assertions: Optional[List[Dict[str, Any]]] = None,
                actor: str = "system") -> Dict[str, Any]:
         if self.features.one(name=name):
             raise FeatureError(f"feature '{name}' is already defined")
@@ -63,6 +65,10 @@ class FeatureCatalogue:
                "operations": list(operations or []),
                "definition_version": 1,
                "defaults": policy.check(defaults),
+               # Validated rather than stored as given: an assertion the
+               # platform silently dropped would be one somebody believes is
+               # running on every load.
+               "assertions": validate_assertions(assertions),
                "ephemeral": int(ephemeral),
                "expires_at": (self.lifecycle.expiry(ttl_days) if ephemeral
                               else None),
