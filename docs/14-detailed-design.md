@@ -1180,6 +1180,31 @@ Two smaller rules. **A finding never quotes the credential it found** — a hit 
 copy of it, in a table more people can read than the file it came from. And **a scanner that falls over
 quarantines**: an upload nothing could check is not an upload something checked and cleared.
 
+### 11.8 A compiled document is not editable
+
+The requirement asks for collaborative narrative editing: comments, suggestions, review states, history.
+Three of those four are built. The fourth is refused, and the refusal is the design.
+
+Every sentence in a compiled document is assembled from the evidence chain and **cites a node**. Editing
+the prose would break the citation without changing the record it cites, producing a document that reads
+correctly and is no longer traceable to anything — which is worse than a wrong sentence, because a wrong
+sentence can be found.
+
+**So the fix for a wrong sentence is a fix to the record it was compiled from**, and a recompilation.
+
+| Decision | Why |
+|---|---|
+| `asks_for` from a **closed list** | *Please look at this* and *this is factually wrong* are different obligations; a free-text field makes them the same one |
+| Comments attach to a **digest**, not a document id | A comment carried onto a recompilation is a remark about text that may no longer be there — and worse, one that looks answered |
+| A resolution **names the node** where the fix was to the record | A comment closed with "fixed" is indistinguishable a year later from one closed because the reviewer gave up |
+| A `factual` comment or an `objection` **may not be closed by its raiser** | An objection somebody withdraws themselves is a disagreement that never happened |
+| Withdrawal is **its own act** | Recorded as what it is, and never a deletion |
+
+A recompiled document therefore opens with no live comments, and the previous round is reported as
+*raised against an earlier version* — the honest state, and the one that prompts somebody to check. The
+authored narrative sections are attachments, and attachments already carry versions; this does not build
+a second editor for them.
+
 ## 12. The feature platform
 
 `core/features/` is the largest package here: eighteen modules. This section covers the parts a reader has
@@ -1419,6 +1444,36 @@ say on the interesting ones. Having **two clocks** is what makes them separable:
 old is the online value*; only this comparison answers *is it the value the model was trained to expect*, and
 a perfectly fresh online store computing a subtly different feature passes every freshness check ever
 written.
+
+### 12.9a The inputs the caller brings
+
+Most of a model's inputs come from the feature platform: materialised, versioned, bitemporal, replayable.
+Some arrive **in the request** — a loan amount typed into a form, a transaction scored as it happens.
+That is fine, and it is also a hole in every assurance this platform otherwise gives. The point of
+declaring one is that the hole becomes **visible rather than discovered**.
+
+| Guarantee | Holds for a request-time input? | Why |
+|---|---|---|
+| Point-in-time | ❌ | The value was never stored as at anything, so no as-at read returns it |
+| Bitemporal | ❌ | There was no ingest, so the two clocks that separate a future value from a late arrival do not exist |
+| Replayable | ❌ | Re-running would need the caller's payload; the inference log holds a keyed digest and deliberately not the values |
+| Skew-checkable | ❌ | There is no offline value to compare against |
+| Bounded at serve | ✅ | The operating contract's boundary check applies once the input is *declared* — which is what the declaration is for |
+
+The fourth row is the dangerous one. The skew check finds nothing over a request-time input, and **that
+reads on a screen exactly like finding no skew**, so the gap is counted as its own number rather than
+left to be inferred.
+
+**The collision is the real bug and is refused at declaration.** A name that is both a request-time input
+and a catalogued feature means the model was fitted on the stored value and is served the caller's; the
+two differ by construction and nothing anywhere distinguishes them. By the time it shows up in production
+it looks like model degradation.
+
+An input with **no declared bound at all** is named, because the boundary check then has nothing to
+refuse against and a caller may send anything. In a payload check, every violation is reported rather
+than the first — a caller told about one bad field fixes it, retries, and is told about the next — and an
+undeclared field is reported and *not* refused, since a caller sending a superset for two models is the
+ordinary case.
 
 ### 12.10a A panel's disagreement is the answer
 
@@ -2446,6 +2501,41 @@ scheduler is not a reason to take a node out of service. That last decision has 
 an instance whose operator never wires a trigger has a governance platform in which nothing ever lapses, and
 nothing in this repository can tell it apart from a healthy one.
 
+### 16.2a Configuration as code, and the line that does not move
+
+"Configuration as code" usually means: put everything in YAML, put the YAML in git, let CI apply it. Done
+that way to a governance platform it is the single most effective way to defeat one, because **the gates
+and the git repository then have the same approval process** — and that process is a pull request
+reviewed by whoever is on shift.
+
+So the boundary is published, and it does not move.
+
+| Configurable | Not configurable, and why |
+|---|---|
+| Policies — what each gate refuses | **Lifecycle states**: a firm that could add a transition could add one that skips approval |
+| Warrant profiles | **Tier lattice**: the adjunction between a tier and the controls it owes is the argument, not a setting |
+| Monitoring defaults | **Trainability fibration**: a class is derived and never asserted; configuring the derivation makes it an assertion with extra steps |
+| Appetite limits | **Refusal taxonomy**: a refusal code is an interface, and renaming one in configuration breaks every caller that handles it, silently, at the moment it fires |
+| Retraining policies | **Evidence chain**: append-only and hash-linked is what makes the record evidence rather than a table |
+| Remediation costs | **Segregation of duties**: a firm that could configure the incompatible-role pairs away would have configured away the reason the platform exists |
+
+Each refusal carries its reason, because *why can I not configure X* is a question with an answer, and the
+answer is more useful than the absence.
+
+**Applying is a governance act, not a deployment step.** `plan` renders exactly what would change and
+`apply` records it on the evidence chain — and each section is still applied through its own register
+with its own approval, because a path here that wrote policies directly would be a second way to publish
+a gate, and the second way is always the one without the signature.
+
+**A plan that loosens is separated from one that tightens, and needs a named approver.** *Three rules
+changed* is not a reviewable sentence; *two of these three let something through that is refused today*
+is. The direction is computed from the shape of each change rather than asserted by whoever wrote it, and
+where the shape gives no reading the answer is `neutral` and is **not guessed** — a wrong direction on a
+review screen is worse than none, because somebody stops reading the diff.
+
+Export reads **the registers in force**, never the last file applied: the difference between a
+description of the platform and a description of somebody's intentions.
+
 ### 16.3a A read layer, and the one thing it must not be
 
 Every governance platform is eventually asked for database access so the BI team can build their own
@@ -3062,8 +3152,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 303 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 364 modules in one
+the 307 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 368 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

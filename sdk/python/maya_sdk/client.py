@@ -94,6 +94,9 @@ class Maya:
         self.shadow = warrants.Shadow(self)
         self.elicitations = parameters.Elicitations(self)
         self.overlay_disclosure = governance.OverlayDisclosure(self)
+        self.configuration = governance.Configuration(self)
+        self.document_review = governance.DocumentReview(self)
+        self.request_time = governance.RequestTimeInputs(self)
         self.assist = assist_module.Assist(self)
         # Filled in by the SDK completion pass. Attached here rather than
         # discovered, because a client that grows subjects dynamically is one

@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from pydantic import Field
+
 from fastapi import Request
 
+from core.platform.configuration import FORMAT, Configuration
 from core.policy import GATES, describe_facts, vocabulary
 from core.policy.language import describe as describe_language
 from routes.base import Body, Routes
@@ -28,6 +31,20 @@ class DraftIn(Body):
 class TryIn(Body):
     gate: str
     facts: Dict[str, Any] = {}
+
+
+class ConfigurationIn(Body):
+    """A configuration document, in the platform's own format.
+
+    `rationale` is required on apply and `approved_by` on any plan that
+    loosens: a configuration that tightens can be a deployment, one that
+    loosens is a decision, and the whole risk of configuration-as-code is that
+    the two travel in the same pull request.
+    """
+    format: str = FORMAT
+    configuration: Dict[str, Any] = Field(default_factory=dict)
+    rationale: str = ""
+    approved_by: str = ""
 
 
 class PolicyRoutes(Routes):
@@ -108,3 +125,58 @@ class PolicyRoutes(Routes):
             # path must not do.
             return self.guard(
                 lambda: policies.decide(body.gate, body.facts, strict=False))
+
+        # ---------------------------------------------------- configuration
+        @self.app.get(f"{api}/configuration/boundary", tags=["policy"])
+        def configuration_boundary(request: Request):
+            """What is configuration, what is code, and why the line is there.
+
+            Published, because *why can I not configure X* is a question with
+            an answer, and the answer is more useful than the absence.
+            """
+            self.authorise(request, "policy:read")
+            return Configuration.boundary()
+
+        @self.app.get(f"{api}/configuration", tags=["policy"])
+        def export_configuration(request: Request, sections: str = ""):
+            """What is in force, as a document.
+
+            Read from the registers rather than from whatever was last applied
+            — the difference between a description of the platform and a
+            description of somebody's intentions.
+            """
+            self.authorise(request, "policy:read",
+                           estate_wide="exporting the platform configuration")
+            wanted = [s.strip() for s in sections.split(",") if s.strip()]
+            return self.guard(lambda: self.ctx["configuration"].export(
+                sections=wanted or None))
+
+        @self.app.post(f"{api}/configuration/plan", tags=["policy"])
+        def plan_configuration(request: Request, body: ConfigurationIn):
+            """Exactly what would change, and which way each change points.
+
+            Read `loosens` first. *Three rules changed* is not a reviewable
+            sentence; *two of these three let something through that is refused
+            today* is.
+            """
+            self.authorise(request, "policy:read",
+                           estate_wide="planning a configuration change")
+            return self.guard(lambda: self.ctx["configuration"].plan(
+                {"format": body.format, "configuration": body.configuration}))
+
+        @self.app.post(f"{api}/configuration/apply", tags=["policy"])
+        def apply_configuration(request: Request, body: ConfigurationIn):
+            """Record that a configuration was applied, with its diff.
+
+            A governance act and not a deployment step. Each section is applied
+            through its own register, which keeps its own approval — a path
+            here that wrote policies directly would be a second way to publish
+            a gate, and the second way is always the one without the signature.
+            """
+            who = self.authorise(
+                request, "policy:publish",
+                estate_wide="applying a configuration across the platform")
+            return self.guard(lambda: self.ctx["configuration"].apply(
+                {"format": body.format, "configuration": body.configuration},
+                body.rationale, actor=self.actor(who),
+                approved_by=body.approved_by))
