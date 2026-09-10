@@ -1,7 +1,11 @@
 # MAYA case studies
 
-Three worked models, each registered in MAYA end to end, each with a script you
-can run in front of an audience and a README written to be talked through.
+Fourteen worked models, each registered in MAYA end to end, each with a script
+you can run in front of an audience and a README written to be talked through.
+
+Thirteen of them were designed to exercise the platform. The fourteenth was not
+— it is a failure taken from the public record, and it is the only one whose
+closing section is a list of what the platform does not reach.
 
 | | Model | Class | What it is for showing |
 |---|---|---|---|
@@ -18,9 +22,19 @@ can run in front of an audience and a README written to be talked through.
 | **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
 | **12** | [Climate transition scorecard](12_climate_transition_elicited/) | **T7** — elicited | **Climate risk.** Weights from a panel, because the transition has not happened and there is nothing to estimate from. The dissent is on the parameter set, priced — and a judgment claiming to have been *fitted* is refused |
 | **13** | [Load forecast network](13_load_forecast_trained/) | **T3** — trained | **Energy.** The opacity has to be EARNED: the linear incumbent is registered too, and beating it by 85% is the evidence. The artifact's digest is the model's identity — same code, new seed, different model |
+| **14** | [VaR model swapped mid-crisis](14_var_model_change/) | **T2** — estimated | **The one not designed to fit.** Reconstructed from the public record of the 2012 London Whale losses. Six governance questions, five answered, and a section listing the four links in the failure chain MAYA does not reach |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
+
+**Case study 14 is different in kind and should be read that way.** The other
+thirteen were designed by the author of the platform, which is the weakness the
+research paper names as its principal missing evidence: a demonstration built
+by its own author shows sufficiency and little else, and you cannot fix that by
+building a fourteenth the same way. Number 14 takes a failure from the public
+record instead and walks it into whatever the platform happens to do — including
+one refusal the script's author did not expect, and a closing list of the four
+links in that failure chain MAYA does not reach.
 
 Every README opens with a **theory** section: the mathematics of the model, its
 assumptions, and where it is known to be wrong — before any of the governance.
@@ -53,7 +67,7 @@ nine classes are now covered:
 |---|---|---|
 | **T0** | theory — there are none | case study 4 |
 | **T1** | calibration to observables | case studies 1, 10 |
-| **T2** | estimation from a sample | case studies 2, 3, 5, 9, 13 (the incumbent) |
+| **T2** | estimation from a sample | case studies 2, 3, 5, 9, 13 (the incumbent), 14 |
 | **T3** | iterative training — the artifact IS the parameters | case study 13 |
 | T4 | adaptation in production | **deliberately not covered** |
 | **T5** | configuration of a generative assembly | case study 11 |
