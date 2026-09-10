@@ -229,6 +229,20 @@ class SupervisoryMatters:
         if latest_due is None:
             return True, "an open finding under this matter carries no date"
         slack = (committed - latest_due) / DAY
+        if slack < 0:
+            # Said in its own words. The general sentence below reported this
+            # as "-163 day(s) apart, inside the 14 days closure verification
+            # needs", which is arithmetically true and reads as a near miss —
+            # and a plan that lands FIVE MONTHS after the date the firm gave a
+            # supervisor is not a near miss. Case study 14 produced exactly
+            # that line, which is why it now has its own branch.
+            return True, (
+                f"the last remediation under this matter is due "
+                f"{_when(latest_due)}, which is {abs(slack):.0f} day(s) AFTER "
+                f"the {_when(committed)} the firm committed to. The internal "
+                f"plan does not meet the commitment at all — this is not a "
+                f"question of headroom, and it is visible now rather than on "
+                f"the day the letter is due")
         if slack < HEADROOM_DAYS:
             return True, (
                 f"the last remediation under this matter is due "
