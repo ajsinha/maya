@@ -198,6 +198,19 @@
         ]
       }
     },
+    "/api/v1/as-at": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:at!",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/assist/capabilities": {
       "get": {
         "body": [],
@@ -1961,6 +1974,66 @@
           "to_urn!"
         ],
         "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-uses": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:at",
+          "query:legal_entity",
+          "query:product",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "channel",
+          "decision_authority",
+          "declared_use!",
+          "effective_from",
+          "effective_to",
+          "geography",
+          "legal_entity",
+          "name!",
+          "owner!",
+          "product",
+          "purpose",
+          "segment",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/model-uses/lapsed": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/model-uses/{use_id}/retire": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:use_id!"
+        ],
         "responses": [
           "200",
           "422"

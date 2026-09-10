@@ -73,6 +73,8 @@ from core.monitoring import (BreachRegister, MonitoringDefaults,
 from core.overlays import OverlayRegister
 from core.regimes import RegimeEngine
 from core.registry import ModelComposition, ModelRegistry, RegistryError
+from core.registry.asat import AsAtProjection
+from core.registry.uses import ModelUses
 from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
@@ -105,7 +107,7 @@ from db import (ServingAttestationRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 ApiKeyRepository, AssumptionRepository,
-                InvocationRepository, MonitoringPlanRepository,
+                InvocationRepository, MonitoringPlanRepository, ModelUseRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
@@ -503,6 +505,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         MonitoringPlanRepository(db), registry, monitoring.registry, evidence,
         defaults=monitoring_defaults)
 
+    # The register as it stood on a date that has passed — the question every
+    # examination opens with. Folded from the evidence chain rather than kept
+    # in a parallel history table, so the answer carries the chain hash at its
+    # own sequence and is verifiable rather than merely asserted.
+    as_at = AsAtProjection(evidence, registry)
+
+    # What each model is used FOR, as a thing rather than as a string on a
+    # grant. The same model used for two purposes is two risk propositions,
+    # and a use with an end date is the only thing that catches the commonest
+    # form of misuse: a use somebody approved, for a period that ended, which
+    # nobody switched off.
+    uses = ModelUses(ModelUseRepository(db), registry, evidence,
+                     warrants=warrants)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -647,6 +663,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "changes": changes,
                            "immaterial": immaterial,
                            "monitoring_plans": monitoring_plans,
+                           "as_at": as_at,
+                           "uses": uses,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
