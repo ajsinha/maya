@@ -15,6 +15,7 @@ from core.monitoring.common import (ADMISSIBLE_TESTS, CALIBRATION, INPUT_DRIFT, 
                                     MonitorError)
 from core.monitoring.definitions import MonitorRegistry
 from core.monitoring.defaults import MonitoringDefaults
+from core.monitoring.plans import MonitoringPlans
 from core.monitoring.labels import OutcomeWindow, labelled
 from core.monitoring.service import MonitoringService
 
@@ -30,6 +31,7 @@ __all__ = [
                                     "MonitorError",
                                     "MonitorRegistry",
                                     "MonitoringDefaults",
+                                    "MonitoringPlans",
                                     "MonitoringService",
                                     "OutcomeWindow",
                                     "labelled",

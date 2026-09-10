@@ -544,6 +544,14 @@ class LimitationRepository(Repository):
     TABLE, ORDER = "model_limitation", "created_at"
 
 
+class MonitoringPlanRepository(Repository):
+    #: One plan per version, and `monitor_ids` records which monitors it
+    #: actually became — so "planned" and "monitored" can be compared
+    #: rather than assumed equal.
+    TABLE, ORDER = "monitoring_plan", "authored_at"
+    JSON = ("items", "monitor_ids")
+
+
 class InvocationRepository(Repository):
     #: Append-only in practice: an invocation is a fact about a moment,
     #: and there is no operation that edits one.

@@ -11,11 +11,21 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import Request
+from fastapi import HTTPException, Request
 from pydantic import Field
 
 from core.monitoring import ADMISSIBLE_TESTS, KINDS
 from routes.base import Body, Routes
+
+
+class MonitoringPlanIn(Body):
+    urn: str
+    semver: str
+    #: Empty means the class-aware defaults, which is not a convenience: a
+    #: blank form produces either a plan copied from the last model or a plan
+    #: with one monitor on it.
+    items: List[Dict[str, Any]] = Field(default_factory=list)
+    rationale: str = ""
 
 
 class MonitorIn(Body):
@@ -103,6 +113,59 @@ class MonitoringRoutes(Routes):
             return self.guard(lambda: self.ctx["monitoring_defaults"].seed(
                 urn, model["id"], owner=owner or model.get("owner") or actor,
                 actor=actor))
+
+        @self.app.get(f"{api}/monitoring-plans", tags=["monitoring"])
+        def monitoring_plans(request: Request,
+                             urn: Optional[str] = None,
+                             semver: Optional[str] = None):
+            """One version's plan, or every plan authored and never inherited.
+
+            The second is the report this exists for: *this model has a
+            monitoring plan and is not monitored* is a sentence no institution
+            wants to be able to say about itself, and almost every institution
+            can.
+            """
+            if urn is None:
+                self.authorise(request, "monitor:read",
+                               estate_wide="reading every monitoring plan")
+                return self.guard(
+                    lambda: self.ctx["monitoring_plans"].outstanding())
+            model = self.guard(lambda: registry.require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            if semver is None:
+                raise HTTPException(422, {
+                    "error": "semver_required",
+                    "detail": "a monitoring plan is authored against a "
+                              "version, not a model",
+                    "remediation": "add semver=..., or omit urn for every "
+                                   "outstanding plan"})
+            return self.guard(
+                lambda: self.ctx["monitoring_plans"].for_version(urn, semver))
+
+        @self.app.post(f"{api}/monitoring-plans", status_code=201,
+                       tags=["monitoring"])
+        def author_plan(request: Request, body: MonitoringPlanIn):
+            """Write the plan. With no items, the class-aware defaults."""
+            model = self.guard(lambda: registry.require(body.urn))
+            who = self.authorise(request, "monitor:define", model=model)
+            return self.guard(lambda: self.ctx["monitoring_plans"].author(
+                body.urn, body.semver, items=body.items,
+                rationale=body.rationale, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/monitoring-plans/inherit", tags=["monitoring"])
+        def inherit_plan(request: Request, urn: str, semver: str,
+                         owner: str = ""):
+            """Turn the plan into the monitors it describes.
+
+            A separate act performed by a person rather than something
+            approval does quietly: making approval create monitors would mean
+            nobody looked at the plan again, and the drift between the plan and
+            the monitors is the whole reason this exists.
+            """
+            model = self.guard(lambda: registry.require(urn))
+            who = self.authorise(request, "monitor:define", model=model)
+            return self.guard(lambda: self.ctx["monitoring_plans"].inherit(
+                urn, semver, owner=owner, actor=self.actor(who)))
 
         @self.app.post(f"{api}/monitors/{{monitor_id}}/evaluate", tags=["monitoring"])
         def evaluate(request: Request, monitor_id: str, body: EvaluateIn):

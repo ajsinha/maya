@@ -217,6 +217,10 @@ STATUS: Dict[str, int] = {
     # something being done instead — so they are 422 rather than 400, except
     # the two that are about the row's state and the one that is a lookup.
     "unknown_designation": 422,
+    # Monitoring plans. `no_plan` is a 404 because the version was
+    # found and the plan is what is missing; the other two are about
+    # the state of a plan that exists.
+    "no_plan": 404, "plan_exists": 409, "already_inherited": 409,
     "unknown_control": 422, "no_rationale": 422,
     "no_compensating_control": 422, "no_expiry": 422,
     "no_such_waiver": 404, "no_reason": 422,

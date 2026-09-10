@@ -678,6 +678,21 @@ CREATE TABLE IF NOT EXISTS monitor (
 );
 CREATE INDEX IF NOT EXISTS ix_monitor_model ON monitor (model_id, status);
 
+CREATE TABLE IF NOT EXISTS monitoring_plan (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT NOT NULL,
+    items TEXT DEFAULT '[]' NOT NULL,
+    rationale TEXT DEFAULT '' NOT NULL,
+    authored_by TEXT NOT NULL,
+    authored_at DOUBLE NOT NULL,
+    inherited_at DOUBLE,
+    inherited_by TEXT,
+    monitor_ids TEXT DEFAULT '[]' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_monitoring_plan_model_version_id ON monitoring_plan (model_version_id);
+
 CREATE TABLE IF NOT EXISTS notification (
     id TEXT NOT NULL,
     principal TEXT NOT NULL,
