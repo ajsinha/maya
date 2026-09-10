@@ -144,6 +144,9 @@ class TestSchedulerApi:
                 # A T4 has no version bump, so every other control here — all
                 # of which fire on a version — is blind to it moving.
                 "adaptive.change",
+                # A sweep that runs and is never triaged is worse than no
+                # sweep: the estate believes it has a discovery programme.
+                "discovery.backlog",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

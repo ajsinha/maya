@@ -905,6 +905,44 @@ LEGAL_HOLD = Table(
     Index("ix_legal_hold_state", "state", "scope_kind"),
 )
 
+# Something a scanner found that might be a model.
+#
+# **A candidate is not a model, and registering everything a scanner finds is
+# how an inventory becomes noise.** The whole value of a discovery programme is
+# in the triage, and the failure mode is not missing things — it is raising the
+# same spreadsheet every sweep because nobody recorded that it was looked at and
+# dismissed. So a candidate carries a decision, and a dismissed one stays
+# dismissed against its own fingerprint.
+#
+# `fingerprint` is what makes a sweep idempotent: the same artifact found again
+# is the same candidate, not a new one. A path is not enough — files move — so
+# it is whatever the scanner can compute that survives being moved.
+DISCOVERY_CANDIDATE = Table(
+    "discovery_candidate", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("source", Text, nullable=False),
+    Column("scanner", Text, nullable=False),
+    Column("fingerprint", Text, nullable=False),
+    Column("location", Text, nullable=False),
+    Column("evidence", Text, nullable=False, server_default=text("'{}'")),
+    # What the scanner thought it was, and how sure. Recorded because the
+    # precision of a scanner is measured against these, and a scanner nobody
+    # measures is one nobody should scale up.
+    Column("proposed_as", Text, nullable=False, server_default=text("'model'")),
+    Column("confidence", Double),
+    Column("state", Text, nullable=False, server_default=text("'open'")),
+    Column("outcome", Text),
+    Column("outcome_note", Text, nullable=False, server_default=text("''")),
+    Column("registered_urn", Text),
+    Column("triaged_by", Text),
+    Column("triaged_at", Double),
+    Column("found_at", Double, nullable=False),
+    Column("last_seen_at", Double, nullable=False),
+    Index("uq_discovery_fingerprint", "scanner", "fingerprint", unique=True),
+    Index("ix_discovery_state", "state", "scanner"),
+)
+
 # What a firm has done about a model it did not build.
 #
 # SR 26-2 VII and SS1/23 2.6 both say the same thing and it is the thing firms

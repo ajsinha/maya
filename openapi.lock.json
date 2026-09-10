@@ -997,6 +997,42 @@
         ]
       }
     },
+    "/api/v1/discovery": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "candidates",
+          "scanner!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/discovery/{reference}/triage": {
+      "post": {
+        "body": [
+          "note!",
+          "outcome!",
+          "urn"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/document-kinds": {
       "get": {
         "body": [],

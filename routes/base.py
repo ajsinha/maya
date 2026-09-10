@@ -31,6 +31,7 @@ from core.assist import AssistError
 from core.classification import ClassificationError
 from core.estate.common import EstateError
 from core.events.common import EventError
+from core.discovery.common import DiscoveryError
 from core.plugins.common import PluginError
 from core.retention.common import RetentionError
 from core.attachments import AttachmentError
@@ -162,6 +163,9 @@ STATUS: Dict[str, int] = {
     "empty_query": 422,
     # extension points
     "unknown_axis": 422, "axis_closed": 403,
+    # discovery
+    "scanner_required": 422, "already_triaged": 409,
+    "urn_required": 422, "no_candidate": 404,
     "scope_required": 422, "no_hold": 404,
     # the event stream and its subscribers
     "kinds_required": 422, "wildcard_refused": 422,
@@ -633,7 +637,8 @@ class Routes:
                 ReportingError, FibreError, RuleError,
                 ReferencedError, ApiKeyError,
                 ClassificationError, EstateError,
-                EventError, RetentionError, PluginError) as exc:
+                EventError, RetentionError, PluginError,
+                DiscoveryError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

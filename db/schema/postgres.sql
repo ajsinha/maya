@@ -379,6 +379,29 @@ CREATE TABLE IF NOT EXISTS derived_feature (
 CREATE INDEX IF NOT EXISTS ix_derived_feature ON derived_feature (feature_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_derived_feature_name_definition_version ON derived_feature (name, definition_version);
 
+CREATE TABLE IF NOT EXISTS discovery_candidate (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    source TEXT NOT NULL,
+    scanner TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    location TEXT NOT NULL,
+    evidence TEXT DEFAULT '{}' NOT NULL,
+    proposed_as TEXT DEFAULT 'model' NOT NULL,
+    confidence DOUBLE PRECISION,
+    state TEXT DEFAULT 'open' NOT NULL,
+    outcome TEXT,
+    outcome_note TEXT DEFAULT '' NOT NULL,
+    registered_urn TEXT,
+    triaged_by TEXT,
+    triaged_at DOUBLE PRECISION,
+    found_at DOUBLE PRECISION NOT NULL,
+    last_seen_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_discovery_state ON discovery_candidate (state, scanner);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_discovery_fingerprint ON discovery_candidate (scanner, fingerprint);
+
 CREATE TABLE IF NOT EXISTS document (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,
