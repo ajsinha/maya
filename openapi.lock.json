@@ -3193,6 +3193,18 @@
         ]
       }
     },
+    "/api/v1/use-reconciliation": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validations": {
       "post": {
         "body": [

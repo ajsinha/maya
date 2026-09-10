@@ -33,6 +33,7 @@ from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
 from core.execution.invocations import InvocationLog
+from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
@@ -445,6 +446,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         InvocationRepository(db), registry=registry, warrants=warrants,
         idle_days=cfg.get_int("warrants.idle_days", 90))
 
+    # What each model was approved for, against what it is actually used for.
+    # Every individual call is already legitimate — off-label use is a pattern
+    # of good calls, and nothing was looking at the pattern.
+    use_reconciliation = UseReconciliation(
+        invocations, warrants, registry, findings=findings,
+        attempt_threshold=cfg.get_int("warrants.off_label_attempts", 20),
+        window_days=cfg.get_int("warrants.reconcile_window_days", 90))
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -543,7 +552,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    notifications=notifications,
                    finding_workflow=finding_workflow,
                    evidence=evidence, risk=RiskRepository(db),
-                   waivers=waivers),
+                   waivers=waivers,
+                   uses=use_reconciliation),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -581,6 +591,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "assumptions": assumptions,
                            "waivers": waivers,
                            "invocations": invocations,
+                           "use_reconciliation": use_reconciliation,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
