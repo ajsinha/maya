@@ -476,6 +476,55 @@ def lifecycle_stalled(ctx: "JobContext") -> Dict[str, Any]:
             "detail": report["detail"]}
 
 
+def scan_for_injection(ctx: "JobContext") -> Dict[str, Any]:
+    """Register rows carrying content shaped like an instruction to a model.
+
+    Detection that only ran when somebody asked for a draft would miss the row
+    nobody has drafted about yet — which is precisely the row an attacker would
+    choose, because it sits in the register until the day it is used.
+
+    Advisory, and it has to be. This is a blocklist, and a blocklist run as a
+    gate fails open on everything it does not recognise while failing closed on
+    somebody who wrote "ignore the above" in a limitation. The structural fence
+    in the prompt is the control; this raises a finding so a person reads the
+    row.
+    """
+    if not (ctx.evidence and ctx.findings and ctx.registry):
+        return {"skipped": "evidence chain or findings not available"}
+    from core.assist import injection
+
+    report = injection.sweep(ctx.evidence)
+    raised = []
+    for subject in report["subjects"]:
+        if subject["subject_type"] != "model":
+            continue
+        model = ctx.registry.by_id(subject["subject_id"])
+        if not model:
+            continue
+        title = "Register content is shaped like an instruction to a model"
+        if _already_raised(ctx.findings, model["id"], title):
+            continue
+        ctx.findings.raise_finding(
+            model["id"], "Low", title, model.get("owner") or "unassigned",
+            description=(
+                f"{subject['count']} span(s) in this model's record match "
+                f"known injection shapes ({', '.join(subject['patterns'])}). "
+                f"Nothing has been removed and no draft was refused: the "
+                f"prompt fences register content behind a per-call nonce, so "
+                f"this is a signal rather than an incident. It is worth "
+                f"reading because it is either somebody testing the platform, "
+                f"somebody's joke, or a field somebody filled in badly — and "
+                f"all three are things you would want to know about a record "
+                f"a model will one day be asked to summarise."),
+            blocking=False,
+            category="prompt_injection", source="self_identified",
+            actor=ctx.actor)
+        raised.append(model["urn"])
+    return {"raised": raised, "count": len(raised),
+            "subjects": report["count"], "hits": report["hits"],
+            "complete": report["complete"], "detail": report["detail"]}
+
+
 def check_immaterial(ctx: "JobContext") -> Dict[str, Any]:
     """Every immaterial model, against the conditions that would escalate it.
 
@@ -540,6 +589,12 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "the pattern; a use attempted four hundred times and refused every "
         "time reads on a control report as the platform working perfectly",
         reconcile_uses),
+    Job("assist.injection",
+        "scans the register for content shaped like an instruction to a model",
+        "detection that only ran when somebody asked for a draft would miss "
+        "the row nobody has drafted about yet, which is exactly the row an "
+        "attacker would choose because it sits there until the day it is used",
+        scan_for_injection),
     Job("lifecycle.stalled",
         "raises a finding for a record that has been mid-move longer than its "
         "tier allows",
