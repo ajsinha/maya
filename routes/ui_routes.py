@@ -648,6 +648,10 @@ class UIRoutes(Routes):
                 # run would send, so the preview is the message rather than a
                 # rehearsal of it.
                 preview=notifications.digest_for(who),
+                # Who is subscribed to the chain, and how far behind. A
+                # different question from which channels work, and it belongs
+                # on the same page because both are "who gets told what".
+                events=self.ctx["subscriptions"].across_the_estate(),
                 # The estate's deliveries, or only your own. `GET
                 # /notifications/history` requires `principal:read`, and this
                 # page called `history(None, ...)` — everybody's — for anybody

@@ -30,6 +30,7 @@ from fastapi.templating import Jinja2Templates
 from core.assist import AssistError
 from core.classification import ClassificationError
 from core.estate.common import EstateError
+from core.events.common import EventError
 from core.attachments import AttachmentError
 from core.notify import NotifyError
 from core.parameters import ParameterError
@@ -147,6 +148,10 @@ STATUS: Dict[str, int] = {
     "not_attested": 409, "no_condition": 404, "no_version": 404,
     # portfolio views
     "unknown_dimension": 422, "same_dimension": 422,
+    # the event stream and its subscribers
+    "kinds_required": 422, "wildcard_refused": 422,
+    "limit_out_of_range": 422, "no_subscription": 404,
+    "delivery_refused": 502,
     "rate_limit_reached": 429, "quota_limit_reached": 429,
     "cost_limit_reached": 429, "limit_not_positive": 422,
     "idempotency_key_reused": 409, "idempotency_in_flight": 409,
@@ -608,7 +613,8 @@ class Routes:
                 ArtifactError, ProfileError, ExportError,
                 ReportingError, FibreError, RuleError,
                 ReferencedError, ApiKeyError,
-                ClassificationError, EstateError) as exc:
+                ClassificationError, EstateError,
+                EventError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)
