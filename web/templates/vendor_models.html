@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Vendor models — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Models somebody else built</h1>
+<div class="accent"></div>
+
+<p class="lead small">SR 26-2 VII and SS1/23 2.6 say the same thing, and it is the
+thing firms get wrong: <strong>you cannot validate what you cannot see, so what
+is validated is your <em>use</em> of the model, not the model.</strong> The
+commonest failure is not laziness — it is a bank asking the vendor for a
+validation report, receiving a thorough one, and filing it. That report describes
+the vendor's development on the vendor's data.</p>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.count }}</div>
+    <div class="stat-l">vendor assessments</div>
+  </div></div></div>
+  {# The number that says whether anybody validated the USE. #}
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.with_firm_items_outstanding else 'evidence-ok' }}">{{ report.with_firm_items_outstanding }}</div>
+    <div class="stat-l">missing what only you can establish</div>
+    <div class="small text-muted">no vendor statement discharges these</div>
+  </div></div></div>
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.with_stale_attestations else '' }}">{{ report.with_stale_attestations }}</div>
+    <div class="stat-l">with a stale vendor statement</div>
+    <div class="small text-muted">it no longer describes what is installed</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every assessment</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.</div>
+  {% if report.assessments %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Ref</th><th>Model</th><th>Vendor</th><th>Product</th><th>Version</th>
+      <th class="text-end">Outstanding</th><th class="text-end">Yours</th>
+      <th>Customised</th><th>State</th>
+    </tr></thead>
+    <tbody>
+      {% for row in report.assessments %}
+      <tr>
+        <td class="mono small">{{ row.reference }}</td>
+        <td class="mono small">
+          {% if row.urn %}<a href="/model/{{ row.urn.split('/')[-1] }}">{{ row.urn }}</a>{% endif %}</td>
+        <td class="small">{{ row.vendor }}</td>
+        <td class="small">{{ row.product }}</td>
+        <td class="mono small">{{ row.vendor_version }}</td>
+        <td class="small text-end">{{ row.outstanding }}</td>
+        <td class="small text-end">
+          <span class="{{ 'evidence-bad' if row.firm_outstanding else 'text-muted' }}">{{ row.firm_outstanding }}</span></td>
+        <td class="small">
+          {% if row.customised %}<span class="text-warning">yes</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td class="small">
+          {% if row.conclusion %}
+            <span class="{{ 'evidence-ok' if row.conclusion == 'fit_for_use' else 'text-warning' }}">
+              {{ row.conclusion.replace('_', ' ') }}</span>
+          {% else %}<span class="text-muted">open</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No model on this estate is recorded as somebody else's.
+  </div>
+  {% endif %}
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The checklist, and who must answer each item</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ checklist.detail }}.</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr><th>Item</th><th>Who</th><th>Asks</th><th>Why</th></tr></thead>
+    <tbody>
+      {% for item in checklist['items'] %}
+      <tr>
+        <td class="mono small">{{ item.item }}</td>
+        <td class="small">
+          {% if item.discharged_by == 'firm' %}
+            <span class="evidence-bad">you</span>
+          {% else %}<span class="text-muted">vendor</span>{% endif %}</td>
+        <td class="small">{{ item.asks }}</td>
+        <td class="small text-muted">{{ item.why }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>A vendor attestation is evidence that the vendor said something, and
+    nothing else.</strong> It is recorded with its date and the version it
+    covers, it goes stale after a year, and it cannot discharge an item only your
+    own outcomes can. Accepting a vendor's word for its own discrimination is how
+    a bank ends up unable to answer the one question a supervisor asks, which is
+    <em>how does it perform on your book</em>.
+    <br><br>
+    <strong>A version change reopens the assessment.</strong> The vendor version
+    string identifies what the vendor calls it; the artifact digest identifies
+    what is running, and the two part company at every silent upgrade. A change
+    in either puts every vendor statement outstanding again — they were made
+    about a release that is no longer installed, and an assessment of a model
+    that has since been replaced is an assessment of nothing. What <em>you</em>
+    established about your own book survives it, because that did not stop being
+    true when the vendor shipped.
+  </div>
+</div>
+
+{% endblock %}

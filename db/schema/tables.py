@@ -869,6 +869,74 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# What a firm has done about a model it did not build.
+#
+# SR 26-2 VII and SS1/23 2.6 both say the same thing and it is the thing firms
+# get wrong: **you cannot validate what you cannot see, so what is validated is
+# your USE of the model, not the model.** A vendor's validation report describes
+# the vendor's development on the vendor's data; filing it and calling the model
+# validated is validating somebody else's work.
+#
+# So the register keeps three things apart. A **due-diligence item** is a
+# question the firm answered about the vendor. A **vendor attestation** is
+# evidence that the vendor SAID something — recorded with its date and its
+# scope, and going stale — and it discharges nothing that only the firm's own
+# outcomes can discharge. **Customisation** is what the firm changed, which
+# matters because a customised vendor model is neither the vendor's model nor
+# the firm's, and both parties will say so when it goes wrong.
+VENDOR_ASSESSMENT = Table(
+    "vendor_assessment", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("reference", Text, nullable=False),
+    Column("vendor", Text, nullable=False),
+    Column("product", Text, nullable=False),
+    Column("vendor_version", Text, nullable=False),
+    # The digest of what was actually installed, where the firm can compute it.
+    # A vendor version string identifies what the vendor calls it; this
+    # identifies what is running — and the two part company at every silent
+    # upgrade, which is the failure this column exists for.
+    Column("artifact_digest", Text),
+    Column("kind", Text, nullable=False),
+    Column("state", Text, nullable=False, server_default=text("'open'")),
+    # Free text answering "what did you change", or empty. Empty is a real
+    # answer and a different one from unanswered, which is why the column is
+    # NOT NULL and the checklist item is what records whether anybody said.
+    Column("customisation", Text, nullable=False, server_default=text("''")),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    Column("concluded_at", Double),
+    Column("concluded_by", Text),
+    Column("conclusion", Text),
+    Column("conclusion_note", Text, nullable=False, server_default=text("''")),
+    Index("uq_vendor_assessment_reference", "reference", unique=True),
+    Index("ix_vendor_assessment_model", "model_id", "state"),
+)
+
+
+# One question the firm answered about a model it did not build, or one thing
+# the vendor said. Kept in one table because both are *findings of the same
+# assessment* — and separated by `kind`, because what discharges them differs
+# absolutely.
+VENDOR_ITEM = Table(
+    "vendor_item", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("assessment_id", Text, nullable=False),
+    Column("item", Text, nullable=False),
+    Column("kind", Text, nullable=False),
+    Column("answer", Text, nullable=False, server_default=text("''")),
+    Column("evidence", Text, nullable=False, server_default=text("'[]'")),
+    Column("answered_by", Text),
+    Column("answered_at", Double),
+    # For a vendor attestation: when the vendor said it and what it covered.
+    # A statement with no date is one nobody can tell is current.
+    Column("stated_at", Double),
+    Column("covers_version", Text),
+    Column("state", Text, nullable=False, server_default=text("'outstanding'")),
+    Index("uq_vendor_item", "assessment_id", "item", unique=True),
+    Index("ix_vendor_item_assessment", "assessment_id", "state"),
+)
+
 # A challenger running beside the champion, and what each was asked.
 #
 # **MAYA runs neither.** It registers that a parallel run is happening, takes

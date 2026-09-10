@@ -39,6 +39,7 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.monitoring.adaptive import AdaptiveChange
+from core.validation.vendor import VendorAssessments
 from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
@@ -132,6 +133,7 @@ from db import (ServingAttestationRepository,
                 PrincipalRepository, RiskRepository,
                 ApprovalConditionRepository, SubscriptionRepository,
                 ParallelObservationRepository, ParallelRunRepository,
+                VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -659,6 +661,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # A mutating request somebody may send twice, and the answer to the first.
     idempotency = IdempotencyStore(IdempotencyRepository(db))
 
+    # Validating a model the firm did not build — which means validating its
+    # USE of it, because you cannot validate what you cannot see.
+    vendor_assessments = VendorAssessments(
+        VendorAssessmentRepository(db), VendorItemRepository(db), registry,
+        evidence, validation=validation)
+
     # A model that changes itself has no version bump for anything to notice,
     # and the parameter trajectory is the only place the change is visible.
     adaptive_change = AdaptiveChange(parameters, registry, fibres=fibres,
@@ -914,6 +922,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "approval_conditions": approval_conditions,
                            "parallel_runs": parallel_runs,
                            "adaptive_change": adaptive_change,
+                           "vendor_assessments": vendor_assessments,
                            "portfolio": portfolio,
                            "event_stream": event_stream,
                            "subscriptions": subscriptions,

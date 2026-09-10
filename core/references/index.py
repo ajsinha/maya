@@ -245,6 +245,23 @@ class ReferenceIndex:
                     False))
 
         for row in self.db.query(
+                "SELECT id, reference, vendor, product, state "
+                "FROM vendor_assessment WHERE model_id = :m",
+                {"m": model_id}):
+            open_still = row["state"] == "open"
+            found.append(Reference(
+                "vendor_assessment", row["id"], row["reference"],
+                (f"an open due-diligence assessment of {row['vendor']} "
+                 f"{row['product']} — deleting the model would end it with no "
+                 f"conclusion, and the questions answered so far would answer "
+                 f"nothing"
+                 if open_still else
+                 f"a concluded assessment of {row['vendor']} "
+                 f"{row['product']}, and the record of what this firm "
+                 f"established about a model it did not build"),
+                open_still))
+
+        for row in self.db.query(
                 "SELECT id, reference, state, champion_semver, "
                 "challenger_semver FROM parallel_run WHERE model_id = :m",
                 {"m": model_id}):
