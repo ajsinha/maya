@@ -119,6 +119,10 @@ STATUS: Dict[str, int] = {
     # lifecycle
     "illegal_transition": 409, "record_frozen": 409, "nothing_to_approve": 409,
     "not_tiered": 409,
+    # Asking what an unnamed move costs. 422 rather than 409: the record is in
+    # no wrong state — the caller named a transition this machine does not
+    # have, and the refusal names the ones it does.
+    "unknown_transition": 422,
     # A reassessment that re-runs the formula on last year's facts and
     # calls it a review. 422: the request is incomplete, not refused.
     "review_says_nothing": 422, "amendment_open": 409, "attestation_open": 409,
