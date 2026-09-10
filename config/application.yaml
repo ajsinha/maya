@@ -360,6 +360,21 @@ logging:
 # questions that are not code: whether this instance may reach the internet at
 # all, what of the register may leave the institution, how a non-deterministic
 # model's output is made reproducible, and who pays. See core/assist/providers.
+# Where a fit on sensitive data may run. Empty by default, and that is the
+# strict setting rather than the permissive one: an unlisted zone is treated as
+# handling no more than `internal`, so a confidential or restricted fit into an
+# unconfigured estate is REFUSED rather than allowed by omission.
+#
+# `handles` is the highest data classification the zone may process, read
+# against the classification lattice — so *which data is sensitive* is derived
+# from the features a model reads rather than from anybody's memory.
+compute:
+  zones: []
+    # - name: eu-secure
+    #   residency: EU
+    #   handles: restricted
+    #   purposes: [credit, provisioning]
+
 # Telling other systems what happened. A webhook is the first thing here that
 # deliberately reaches outward, and this platform is meant to be deployable
 # air-gapped — so nothing is sent until somebody creates a subscription, and a

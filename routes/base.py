@@ -164,6 +164,10 @@ STATUS: Dict[str, int] = {
     "kinds_required": 422, "wildcard_refused": 422,
     "limit_out_of_range": 422, "no_subscription": 404,
     "delivery_refused": 502,
+    # compute zones. 403: this is about authority over data, and the
+    # answer is not *later* — it is *not from there*.
+    "zone_may_not_hold_this_data": 403,
+    "purpose_not_permitted_in_zone": 403,
     "rate_limit_reached": 429, "quota_limit_reached": 429,
     "cost_limit_reached": 429, "limit_not_positive": 422,
     "idempotency_key_reused": 409, "idempotency_in_flight": 409,

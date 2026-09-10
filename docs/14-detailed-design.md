@@ -778,6 +778,62 @@ rather than an empty section: two versions of one model measured on different th
 can put side by side, and printing a delta across different test sets would be worse than printing nothing
 because it looks like an answer.
 
+### 9.3 Runs, and whether any of them could be repeated
+
+**A parameter set under one version is an experiment.** Nothing new is stored to compare experiments: a fit
+already records the warrant it ran under, the snapshot it read, the featureset version that shaped it, the
+window, the cardinality and the diagnostics. `differ_only_in_parameters` is the field to read before the
+metric table — runs over the same inputs differ *because of the procedure*, and runs over different inputs
+differ for reasons nobody has separated, so a metric table across the second kind is a table of unlike
+things.
+
+**"Promote a run to a version" is a category error, and saying so is the answer.** A parameter set is a point
+in `P`; a version is a kernel, `f : P ⊗ X → D(Y)`. Promoting one to the other would mean the kernel changed
+because somebody re-fitted — which is exactly the confusion the parameter/version split exists to prevent,
+and the thing that lets a recalibration procedure be approved once instead of pretending a committee meets
+every morning. What promotion *means* here is **approving the parameter set**: a real act, with a real
+signature and its own segregation rule. If the kernel genuinely changed then it is a new version and goes
+through refinement and variance like any other — the checks a promotion button would have skipped.
+
+**"Reproducible" is a property of a claim, not of a wish.** Most platforms show a badge meaning *we stored
+some metadata*. `Experiments.bundle` enumerates what a re-run would need, says which is present, and refuses
+to call a fit reproducible when a **fatal** fact is missing:
+
+| Fact | From | Threat if absent |
+|---|---|---|
+| snapshot, featureset version, warrant, window | the register | **fatal** — a re-run would answer a different question |
+| seed | the fitter | serious — a stochastic fit is then reproducible only in distribution |
+| environment, commit | the fitter | moderate — a patch-level difference usually agrees to more decimal places than anybody uses, and *usually* is not a control |
+
+Gaps are ranked by threat rather than counted: *seven fields missing* is not a finding, and *you cannot
+reproduce this because you do not know which rows it read* is. MAYA did not run the training and cannot
+reconstruct an environment it never had, so what the fitter did not supply is stated rather than assumed
+away.
+
+### 9.4 Where a fit on sensitive data may happen
+
+GDPR asks that a run over personal data stay where it is permitted to be and be for the purpose it was
+collected for, and both are questions about *where the compute is* — which a register does not see. **MAYA
+does not run the training**, cannot observe which machine read the rows, and a platform claiming to enforce
+residency by watching would be claiming something it has no way to check.
+
+What it can do is **refuse to issue the authority**. A fit happens under a warrant, the warrant names a
+zone, and a warrant for restricted data into an unapproved zone is never issued — a real control at the only
+moment MAYA holds anything, and the same shape as everything else here: the platform gates the
+*authorisation*, not the execution. Purpose limitation is checked separately from residency, because it is
+not about where the data is; it is about what it was gathered to do.
+
+Two supporting decisions. **Which data is sensitive is derived** from §12.9 rather than from a policy keyed
+on somebody's memory — a second answer to that question would disagree with the features themselves. And an
+**unlisted zone handles no more than the weakest class**, so a restricted fit into an unconfigured estate is
+refused rather than permitted by omission, which is what a zone policy exists to prevent.
+
+**Where it actually ran is an attestation, not an observation**, and is labelled as one — the executor
+states the zone, exactly as a vendor states its own validation (§10.4). A mismatch is a **finding rather than
+a refusal**: by the time it is known the run has happened, and refusing there would be theatre. What it tells
+you is that the authorisation and the execution have come apart, which is worth knowing whichever of them
+was wrong.
+
 ## 10. Validation and findings
 
 `core/validation/` — `catalogue`, `service`, `findings`, `workflow`, `ageing`, `replay`, `storage`,
@@ -2229,8 +2285,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 261 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 322 modules in one
+the 263 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 324 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

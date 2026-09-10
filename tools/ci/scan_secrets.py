@@ -54,6 +54,11 @@ ALLOWED = {
     # they are testing nothing. Excusing the test rather than weakening a
     # pattern is the right way round: the patterns are the product here.
     "tests/test_secret_scanner.py",
+    # The upload scanner's tests, for the same reason: an upload scanner tested
+    # without a credential in the fixture is an upload scanner tested against
+    # nothing. Excusing the test rather than weakening the pattern is the right
+    # way round — the patterns are the product.
+    "tests/test_upload_scanning.py",
 }
 
 SKIP_DIRS = {".git", ".venv", "__pycache__", "node_modules", "web/static/vendor",
