@@ -35,6 +35,7 @@ from fastapi.templating import Jinja2Templates
 from core.execution.invocations import InvocationLog
 from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
+from core.lifecycle.profiles import LifecycleProfiles
 from core.risk.immaterial import ImmaterialPath
 from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
@@ -76,6 +77,7 @@ from core.registry import ModelComposition, ModelRegistry, RegistryError
 from core.registry.asat import AsAtProjection
 from core.registry.uses import ModelUses
 from core.validation.plans import ValidationPlans
+from core.validation.recode import RecodeHarness
 from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
@@ -527,6 +529,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, fibres, validation=validation, monitoring=monitoring,
         changes=changes)
 
+    # Two implementations of one model, and the shape of their disagreement —
+    # which is the reading a pass rate cannot give.
+    recode = RecodeHarness(validations=validation, evidence=evidence)
+
+    # What each lifecycle move costs this class at this tier. One state graph,
+    # nine sets of obligations — and the first consumer `Fibre.evidence` has
+    # ever had. The chain is passed because time-in-state is folded from it
+    # rather than kept in a column that would drift.
+    lifecycle_profiles = LifecycleProfiles(
+        registry, fibres, attachments=attachments, evidence=evidence)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -628,7 +641,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    waivers=waivers,
                    uses=use_reconciliation,
                    pipeline=pipeline_health,
-                   immaterial=immaterial),
+                   immaterial=immaterial,
+                   lifecycle_profiles=lifecycle_profiles),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -674,6 +688,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "as_at": as_at,
                            "uses": uses,
                            "validation_plans": validation_plans,
+                           "recode": recode,
+                           "lifecycle_profiles": lifecycle_profiles,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,

@@ -517,6 +517,26 @@ class UIRoutes(Routes):
                              report=self.ctx["waivers"].across_the_estate(),
                              controls=list(WAIVABLE), quorum=QUORUM_BY_TIER)
 
+        # ----------------------------------------------- lifecycle profiles
+        @self.app.get("/lifecycle-profiles", response_class=HTMLResponse,
+                      tags=["ui"])
+        def lifecycle_profiles_page(request: Request):
+            """What each lifecycle move costs, per class and per tier.
+
+            And the number nothing else in the platform can see: records that
+            have been mid-move longer than their tier allows. Submission
+            succeeded, every gate passed, and no control watches the clock.
+            """
+            if (r := self.page_gate(request, "model:read")) is not None:
+                return r
+            from core.lifecycle.profiles import SIGNATURES, SLA_DAYS
+            profiles = self.ctx["lifecycle_profiles"]
+            return self.page(request, "lifecycle_profiles.html",
+                             reference=profiles.reference(),
+                             stalled=profiles.stalled(),
+                             signatures=SIGNATURES, sla=SLA_DAYS,
+                             sla_states=list(SLA_DAYS))
+
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
         def notifications_page(request: Request):
