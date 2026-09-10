@@ -298,16 +298,24 @@ and not a comfortable one.
   designer, no ticketing integration beyond a generic webhook, and no library of
   regulatory report templates. OpenPages and SAS have two decades of exactly
   that, and it is the part a large programme buys.
-- **Six of the twenty-one foundational laws do not run.** They are named, with
-  the reason, rather than quietly counted among the ones that do. The two that
-  matter commercially: there is no aggregate risk figure (`L-14`), which is
-  argued for rather than apologised for, and there is no online feature serving,
-  so contract–serving agreement (`L-17`) is half built — the platform computes
-  what serving must read and cannot check what it did read.
+- **Some of the twenty-one foundational laws do not run.** They are named, with
+  the reason, rather than quietly counted among the ones that do. The one that
+  matters commercially is that there is no aggregate risk figure (`L-14`), which
+  is argued for rather than apologised for. `L-17`, contract–serving agreement,
+  used to be on this list as *half built, waiting on an online store*, and it was
+  waiting on the wrong thing: a store sits on the serving path at request
+  latency and this platform will not own that, so the engine attests what it
+  read and MAYA compares. The same move made training–serving **skew detection**
+  possible at the level of values, and having two clocks is what lets it separate
+  a stale value from one that was correct today and not knowable at the decision
+  — the kind every backtest passes.
 - **Document handling stops at markdown.** No PDF renderer, no house template,
-  no signature page, no full-text search over filed documents. Turning compiled
-  output into a firm's document standard is somebody else's rendering problem
-  today.
+  no signature page. Turning compiled output into a firm's document standard is
+  somebody else's rendering problem today. Filed documents *are* searchable now —
+  exact terms, ranked, with the line quoted — though not semantically: a semantic
+  index needs an embedding model, which is something that runs, has a version and
+  drifts, and would have to be registered under the rules this platform enforces.
+  Shipping an unregistered model to search its own registry would be ridiculous.
 - **Scale.** The design targets a large estate; it has been exercised at
   thousands of evidence nodes, not at a bank's whole inventory over years. The
   one performance bug found so far was found by running it bigger, which is
