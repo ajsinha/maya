@@ -273,6 +273,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # as prose: `validators` was free text, and a validation naming
     # `person/nobody.at.all` was accepted, recorded and concluded.
     validation.principals = principals
+    # And the finding register, so a validator's verdict that the tier is
+    # too low becomes something somebody has to close.
+    validation.findings = findings
 
     warrants = WarrantService(WarrantRepository(db), registry, evidence,
                         signing_key=cfg.get("warrants.signing_key", "maya-dev-key"),

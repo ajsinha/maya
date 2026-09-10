@@ -3097,6 +3097,15 @@
         ]
       }
     },
+    "/api/v1/tier-verdicts": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/training-records/{parameter_set_id}": {
       "post": {
         "body": [],
@@ -3182,7 +3191,9 @@
       "post": {
         "body": [
           "conditions",
-          "outcome!"
+          "outcome!",
+          "tier_note",
+          "tier_verdict"
         ],
         "parameters": [
           "path:validation_id!"
