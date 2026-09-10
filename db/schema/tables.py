@@ -1477,6 +1477,37 @@ MODEL_ASSUMPTION = Table(
 
 
 
+
+# What this model will be watched for, written down BEFORE it goes anywhere.
+#
+# A monitoring plan and a monitored model are different statements, and the
+# gap between them is where estates actually fail. The plan is written at
+# development time, argued over in validation, approved — and then somebody
+# else, months later, creates whatever monitors seem reasonable. Nothing ever
+# compared the two.
+#
+# So the plan is a row against a VERSION, and `inherited_at` is the column that
+# matters: null means this model has a monitoring plan and is not monitored,
+# which is a sentence no estate wants to be able to say about itself and every
+# estate can.
+MONITORING_PLAN = Table(
+    "monitoring_plan", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text, nullable=False),
+    # The monitors this model is to have, in the shape `monitors.define` takes.
+    Column("items", Text, nullable=False, server_default=text("'[]'")),
+    Column("rationale", Text, nullable=False, server_default=text("''")),
+    Column("authored_by", Text, nullable=False),
+    Column("authored_at", Double, nullable=False),
+    # When the plan became actual monitors, and which ones. Null is the
+    # interesting value.
+    Column("inherited_at", Double),
+    Column("inherited_by", Text),
+    Column("monitor_ids", Text, nullable=False, server_default=text("'[]'")),
+    Index("uq_monitoring_plan_model_version_id", "model_version_id", unique=True),
+)
+
 # Every time a warrant was actually USED, and how it went.
 #
 # Resolutions were evidence nodes and invocations were not recorded at all, so

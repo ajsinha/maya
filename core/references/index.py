@@ -211,6 +211,17 @@ class ReferenceIndex:
                 row["status"] == "active"))
 
         for row in self.db.query(
+                "SELECT id, inherited_at FROM monitoring_plan "
+                "WHERE model_id = :m", {"m": model_id}):
+            inherited = bool(row.get("inherited_at"))
+            found.append(Reference(
+                "monitoring_plan", row["id"], "monitoring plan",
+                ("the plan this model's monitors were created from" if inherited
+                 else "a monitoring plan that has NOT been inherited — this "
+                      "model is planned for and not monitored"),
+                not inherited))
+
+        for row in self.db.query(
                 "SELECT COUNT(*) AS n, MAX(at) AS last FROM warrant_invocation "
                 "WHERE model_id = :m", {"m": model_id}):
             if row.get("n"):

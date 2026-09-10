@@ -2248,6 +2248,46 @@
         ]
       }
     },
+    "/api/v1/monitoring-plans": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "items",
+          "rationale",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitoring-plans/inherit": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:owner",
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/monitors": {
       "get": {
         "body": [],
