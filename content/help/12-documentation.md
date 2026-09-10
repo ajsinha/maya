@@ -4,7 +4,7 @@ slug: documentation
 section: Assurance
 order: 120
 icon: file-earmark-text
-summary: What a document is about, and whether it still describes it. The six pinned subjects, the fifteen lenses that compile four documents from the register, the training record a daily calibration never had, the dossier that walks the whole graph naming its gaps, and the export pack that carries it to somebody with no login.
+summary: What a document is about, and whether it still describes it. The six pinned subjects, the fifteen lenses that compile four documents from the register, the training record a daily calibration never had, the dossier that walks the whole graph naming its gaps, the export pack that carries it to somebody with no login, and a review that comments on a compiled document rather than editing one.
 audience: Model risk, Model owners, Validators
 ---
 
@@ -490,6 +490,53 @@ digest, rather than against the model: recorded against the model it would land
 inside the next pack's own evidence, and every pack would differ from the last
 for no reason but that somebody had taken one.
 
+## Reviewing one, and the one thing you cannot do to it
+
+`GET /document-review` holds comments on a compiled document — which section is
+wrong, what about it, and what happened. What it does not hold is an edit.
+
+> **A compiled document cannot be edited.** Every sentence in one is assembled
+> from the evidence chain and cites a node. Editing the prose would break the
+> citation without changing the record it cites, producing a document that reads
+> correctly and is <strong>no longer traceable to anything</strong> — which is
+> worse than a wrong sentence, because a wrong sentence can be found.
+
+**So the fix for a wrong sentence is a fix to the record it was compiled from**,
+and then a recompilation. That is not a workaround; it is the only correction
+that leaves the document still meaning what it says.
+
+A comment says what it is asking for, from a closed list, because *please look at
+this* and *this is factually wrong* are different obligations:
+
+| `asks_for` | What is owed |
+|---|---|
+| `comment` | Nothing. It is here so a reader in a year sees what a reviewer noticed |
+| `clarification` | The section is unclear — usually a narrative fix, not a record fix |
+| `factual` | The section says something the register does not support. **Fix the record** |
+| `omission` | Almost always a missing piece of evidence rather than a missing paragraph |
+| `objection` | The reviewer does not accept it. A standing disagreement, not something the compiler resolves |
+
+Three rules are worth knowing before you use it.
+
+**Comments attach to the version you read.** They are keyed on the document's
+digest, so a recompilation starts with none open and the earlier round is
+reported as *raised against an earlier version*. A comment moved forward onto a
+recompilation would be a remark about text that may no longer be there — and
+worse, one that looks answered.
+
+**Closing a comment says what was done**, and where the fix was to the record it
+names the node. A comment closed with *fixed* and nothing else is
+indistinguishable a year later from one closed because the reviewer gave up, and
+the difference is the entire value of a review history.
+
+**A `factual` comment or an `objection` cannot be closed by the person who raised
+it.** An objection somebody withdraws themselves is a disagreement that never
+happened. Withdraw it explicitly instead — that is its own act and is recorded as
+what it is.
+
+The narrative sections your firm writes itself are attachments, and attachments
+already carry versions. There is no second editor for them here.
+
 ## What is not built
 
 There is no PDF renderer, no house template and no signature page. The output is
@@ -505,8 +552,8 @@ whole documents rather than editing them — so the lens here is a `get` and
 nothing else, and building a `put` to satisfy a law would be building the wrong
 thing.
 
-Nothing here is a document management system either: no check-out, no
-collaborative editing, no rendering pipeline for proprietary formats, no
-full-text search. It is a register. It knows which subject a document describes,
+Nothing here is a document management system either: no check-out, no rendering
+pipeline for proprietary formats, no rich-text editor. It is a register. It knows
+which subject a document describes,
 who filed it, who accepted it, what was rejected and why, and that the bytes
 served are the bytes approved.

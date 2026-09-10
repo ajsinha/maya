@@ -109,13 +109,16 @@ steps(sl, ML, y, CW * 0.62, [
     ("4", "Evidence", "version_created appended to the chain"),
 ], h=1.70)
 x = ML + CW * 0.65
-listbox(sl, x, y, CW * 0.35, "Designed, not built",
+listbox(sl, x, y, CW * 0.35, "Not built, and why each one is not",
         [("Quarantine to a no-execute store", SLATE, ""),
-         ("Malware, pickle-opcode, SCA, secret and licence scans", SLATE, ""),
+         ("Malware, pickle-opcode, SCA and licence scans", SLATE, ""),
          ("Format policy per target environment", SLATE, ""),
-         ("Declared inputs reconciled against the feature registry", SLATE, ""),
-         ("Artifact promotion, signing and attestation", SLATE, "")],
-        sub="core/artifacts/store.py hashes and stores; it does not scan",
+         ("SIGNING — verification is built; minting is refused", CRIMSON,
+          "a platform that signed would hold the key that could forge"),
+         ("CONVERSION — the equivalence claim is held to a standard",
+          CRIMSON, "converting means loading and running a model")],
+        sub="store.py hashes and stores. provenance.py verifies attestations "
+            "in three states — verified, unverified, absent — and mints none",
         row=0.30)
 note(sl, ML, y + 2.10, CW * 0.62, 1.55,
      "There is no outbox. ",
