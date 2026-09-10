@@ -155,7 +155,11 @@ is a judgement your second line and your regulator make.
 | Look up a term | [Glossary](/help/glossary) |
 
 Worked walkthroughs with real calls are in the [tutorials](/tutorials/end-to-end).
-Eight cover the platform; [seven are one per kind of
+Seven cover the platform; [seven are one per kind of
 model](/tutorials/defining-a-model), each complete from registration to
 monitoring, so a pricing library and a neural network can be seen getting the
-same treatment.
+same treatment. The last of the seven —
+[governing what you cannot see](/tutorials/governing-what-you-cannot-see) — is
+about the other half of a real estate: a model a vendor built, a challenger
+running in shadow, a model that changes itself, and data you are only allowed to
+keep for so long.

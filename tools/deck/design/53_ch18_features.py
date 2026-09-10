@@ -127,12 +127,15 @@ data = [["Phase", "Behaviour"],
         ["Retire v(n)", "Only when zero active contracts reference it — a governed action with consumer-impact check"]]
 table(sl, data, x, y + 1.30, CW * 0.50, col_w=[1.7, 4.3], row_h=0.40, fs=10.5, hfs=10.5, bold_col0=True, first_col_color=CRIMSON)
 tf = txt(sl, ML, y + 2.55, CW * 0.46, 1.8)
-runs(tf, [("Law L-17 is one of the five that do not run. ", CRIMSON, True),
-          ("It is a runtime check by nature: the namespace served must equal the namespace pinned, compared "
-           "continuously, because nothing inspectable before deployment can see it. ", INK, False),
-          ("Half of it exists: ", CRIMSON, True),
-          ("core/features/contracts.py computes what serving must read. There is no online store to compare it "
-           "against, so the table on the right is the design and not the behaviour.", INK, False)],
+runs(tf, [("Law L-17 was recorded as blocked on an online store, and was blocked on the wrong thing. ",
+           CRIMSON, True),
+          ("A store sits on the serving path at request latency, and this platform does not go there. The engine "
+           "already knows which namespaces it read, so it attests them and MAYA compares against what the "
+           "contract pins — the same shape as every other claim here: the platform does not perform the act, it "
+           "holds whoever did to what they said they did. ", INK, False),
+          ("The same move made value-level skew detection possible, ", CRIMSON, True),
+          ("and having two clocks is what separates a stale value from one that is correct today and was not "
+           "knowable at the decision — the kind every backtest passes.", INK, False)],
      size=11, first=True, space_after=0, line=1.26)
 
 sl, y = content("Monitoring reads two streams, and the gap between them is the point",

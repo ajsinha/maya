@@ -70,10 +70,7 @@ data = [["Not built", "Why not"],
         ["L-13  evidence gluing", "no consistency radius is computed anywhere"],
         ["L-14  lax monoidality of risk",
          "there is no aggregate risk measure over composed models, and no "
-         "interaction premium"],
-        ["L-17  contract–serving agreement",
-         "there is no online feature store to compare against; half of it "
-         "exists — what serving must read is computed"]]
+         "interaction premium"]]
 table(sl, data, ML, y + h1 + 0.26, CW, col_w=[2.6, 9.034],
       row_h=0.30, fs=9, hfs=9, bold_col0=True, first_col_color=CRIMSON,
       head_fill=SLATE)

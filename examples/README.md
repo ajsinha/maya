@@ -119,3 +119,57 @@ miniature:
 Note `parameters.kind: none`. This is **T0**: the parameter object is terminal,
 the constants come from theory, and law **L-W1** refuses to warrant it for
 fitting. That refusal is the trainability class working rather than a limitation.
+
+
+## Governing what nobody here built
+
+The warrants above are all about a model somebody in this repository could
+describe. A real estate has the other kind too, and four of them are worth
+exercising against a running instance because each one **refuses** something.
+
+```bash
+# A vendor model: concluding "fit for use" is refused while the items only YOU
+# can discharge are open. Filing the vendor's own validation report does not
+# validate your use of their model.
+curl -u a.mehta:pw -X POST localhost:5006/api/v1/vendor-assessments \
+  -H 'Content-Type: application/json' \
+  -d '{"urn":"maya://model/credit.pd.vendor","vendor":"Acme","product":"RiskScore",
+       "version":"7.2"}'
+curl -u a.mehta:pw -X POST localhost:5006/api/v1/vendor-assessments/VEN-0001/conclude \
+  -H 'Content-Type: application/json' \
+  -d '{"conclusion":"fit_for_use","note":"looks fine"}'
+# → 409, naming own_outcomes and own_population as the reason
+
+# A shadow run: promoting on divergence alone is refused, because divergence
+# says the two models differ and not that the challenger is better.
+curl -u s.iqbal:pw -X POST localhost:5006/api/v1/parallel-runs/PAR-0001/conclude \
+  -H 'Content-Type: application/json' \
+  -d '{"conclusion":"promote","note":"it looks better"}'
+# → 409 not_conclusive
+
+# A fit into a zone that may not hold the data. Nothing observes the machine —
+# MAYA declines to issue the authority, which is the moment it controls.
+curl -u j.okafor:pw -X POST localhost:5006/api/v1/fit-warrants \
+  -H 'Content-Type: application/json' \
+  -d '{"urn":"maya://model/credit.pd.smallbiz","environment":"prod",
+       "declared_use":"training","featureset":"sb.pd.v1","featureset_version":1,
+       "window":{"from":0,"to":1},"as_of":1,"zone":"us-east"}'
+# → 403 zone_may_not_hold_this_data
+
+# Training–serving skew. The engine says what it served; MAYA compares against
+# BOTH offline clocks, which is what separates a stale value from one that was
+# correct today and not knowable at the decision.
+curl -u admin:pw -X POST localhost:5006/api/v1/skew \
+  -H 'Content-Type: application/json' \
+  -d '{"urn":"maya://model/credit.pd.smallbiz","observations":[
+        {"entity":"c-1","at":1000,"served":2.0,"history":[
+          {"value":1.0,"event_ts":900,"ingest_ts":900},
+          {"value":2.0,"event_ts":1500,"ingest_ts":1500}]}]}'
+# → future_value: the served value describes a state of the world after the
+#   decision. Every backtest of that model looked fine.
+```
+
+Each of those is the same shape as the warrants: **the interesting output is the
+refusal**, and the refusal names what would have to be true instead. A worked
+example that only shows the happy path demonstrates that the code runs, which
+was never the question.
