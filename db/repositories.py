@@ -593,6 +593,14 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class ParallelRunRepository(Repository):
+    TABLE, ORDER = "parallel_run", "reference"
+
+
+class ParallelObservationRepository(Repository):
+    TABLE, ORDER = "parallel_observation", "at"
+
+
 class SubscriptionRepository(Repository):
     TABLE, ORDER = "event_subscription", "reference"
     JSON = ("kinds",)

@@ -869,6 +869,63 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# A challenger running beside the champion, and what each was asked.
+#
+# **MAYA runs neither.** It registers that a parallel run is happening, takes
+# delivery of what both produced, and reports the shape of the disagreement —
+# which is the same position it takes on every other execution.
+#
+# The pairing is keyed on the INPUT, and that is not bookkeeping: a parallel run
+# whose champion and challenger were not asked the same question is not a
+# parallel run, it is two unrelated series printed side by side. Rows arrive one
+# observation at a time and are matched on `input_key`.
+#
+# `outcome` is nullable and usually null when the row is written. That is the
+# whole difficulty of the requirement: the two models disagreeing is knowable
+# immediately, and which of them was RIGHT is not knowable until the label
+# arrives — often months later. A dashboard that conflates the two is the
+# commonest failure in shadow deployment.
+PARALLEL_RUN = Table(
+    "parallel_run", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("model_id", Text, nullable=False),
+    Column("champion_version_id", Text, nullable=False),
+    Column("challenger_version_id", Text, nullable=False),
+    Column("champion_semver", Text, nullable=False),
+    Column("challenger_semver", Text, nullable=False),
+    Column("purpose", Text, nullable=False),
+    Column("tolerance", Double, nullable=False, server_default=text('1e-9')),
+    Column("state", Text, nullable=False, server_default=text("'running'")),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    Column("closed_at", Double),
+    Column("closed_by", Text),
+    Column("conclusion", Text),
+    Column("close_note", Text, nullable=False, server_default=text("''")),
+    Index("uq_parallel_run_reference", "reference", unique=True),
+    Index("ix_parallel_run_model", "model_id", "state"),
+)
+
+
+# One observation: what both were asked, what each answered, and — later, if
+# ever — what actually happened.
+PARALLEL_OBSERVATION = Table(
+    "parallel_observation", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("run_id", Text, nullable=False),
+    Column("input_key", Text, nullable=False),
+    Column("champion", Double),
+    Column("challenger", Double),
+    # Null until the label arrives, which is the point. Recorded separately from
+    # the predictions because it comes from somewhere else and at another time.
+    Column("outcome", Double),
+    Column("outcome_at", Double),
+    Column("at", Double, nullable=False),
+    Index("uq_parallel_observation", "run_id", "input_key", unique=True),
+    Index("ix_parallel_observation_run", "run_id"),
+)
+
 # Who wants to be told what, and where they have got to.
 #
 # **There is no event table.** The evidence chain already records every domain

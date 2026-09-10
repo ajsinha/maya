@@ -3018,6 +3018,78 @@
         ]
       }
     },
+    "/api/v1/parallel-runs": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "challenger!",
+          "champion!",
+          "purpose!",
+          "tolerance",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parallel-runs/{reference}/conclude": {
+      "post": {
+        "body": [
+          "conclusion!",
+          "note!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parallel-runs/{reference}/observations": {
+      "post": {
+        "body": [
+          "challenger",
+          "champion",
+          "input_key!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/parallel-runs/{reference}/outcomes": {
+      "post": {
+        "body": [
+          "input_key!",
+          "outcome!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/parameter-fits": {
       "post": {
         "body": [
