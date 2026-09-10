@@ -110,4 +110,47 @@ omitting them, so the gaps are listed first and start-up refuses on them.</p>
 same vocabulary rather than kept beside it —
 <span class="mono">GET /api/v1/grammar/schema</span> — so a client validating
 against it is validating against what the platform will actually admit.</p>
+
+<div class="card mt-4"><div class="card-header">What this deployment may extend</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    <strong>The dividing line is whether the extension changes a governance
+    answer.</strong> A notification channel changes how somebody is told; a
+    runtime adapter changes what may execute. Four axes are open and four are
+    closed, and each closed one names what the closure protects — because an axis
+    closed with no reason recorded is one somebody will open.
+    <br><br>
+    <strong>A closed axis is not a missing feature; it is the feature.</strong>
+    A governance platform that can be extended into permissiveness is one whose
+    assurances mean whatever the last plugin author thought.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr><th>Axis</th><th>State</th><th>What it is</th>
+      <th>Why open / what the closure protects</th></tr></thead>
+    <tbody>
+      {% for row in extensions.axes %}
+      <tr>
+        <td class="mono small">{{ row.axis }}</td>
+        <td class="small">
+          {% if row.state == 'open' %}<span class="evidence-ok">open</span>
+          {% else %}<span class="text-muted">closed</span>{% endif %}</td>
+        <td class="small">{{ row.is }}</td>
+        <td class="small text-muted">{{ row.why or row.protects }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if extensions.extensions %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>Registered here:</strong>
+    {% for e in extensions.extensions %}
+      <span class="mono">{{ e.axis }}/{{ e.name }}</span> ({{ e.owner }}){{ ', ' if not loop.last }}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card-body py-2 small text-muted border-top">{{ extensions.detail }}.</div>
+  {% endif %}
+</div>
+
 {% endblock %}
