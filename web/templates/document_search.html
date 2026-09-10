@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Search documents — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Find the sentence somebody wrote</h1>
+<div class="accent"></div>
+
+<p class="lead small">A register that can serve a document and cannot find one is
+a filing cabinet with a URL. This searches the text of everything filed against
+the models you can see.</p>
+
+<form method="get" action="/documents/search" class="mb-3">
+  <div class="row g-2">
+    <div class="col-md-8">
+      <input class="form-control" type="search" name="q" value="{{ q or '' }}"
+             placeholder="rate shock limitation" aria-label="Search terms">
+    </div>
+    <div class="col-md-2">
+      <input class="form-control" type="text" name="kind" value="{{ kind or '' }}"
+             placeholder="kind (optional)" aria-label="Document kind">
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100" type="submit">Search</button>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ coverage.readable }}</div>
+    <div class="stat-l">documents that can be searched</div>
+    <div class="small text-muted">of {{ coverage.documents }} filed</div>
+  </div></div></div>
+  {# The figure to read before any empty result. #}
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if coverage.unread else 'evidence-ok' }}">{{ coverage.unread }}</div>
+    <div class="stat-l">filed and never read</div>
+    <div class="small text-muted">invisible to a search, and indistinguishable
+      from absent</div>
+  </div></div></div>
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ '%.0f' | format(100 * coverage.coverage) }}%</div>
+    <div class="stat-l">of the corpus covered</div>
+    <div class="small text-muted">an empty answer means less the lower this is</div>
+  </div></div></div>
+</div>
+
+{% if results %}
+<div class="card mb-3">
+  <div class="card-header">Results</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ results.detail }}.</div>
+  {% if results.results %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Model</th><th>Document</th><th>Kind</th><th>Line</th><th>Where it says it</th>
+    </tr></thead>
+    <tbody>
+      {% for hit in results.results %}
+      <tr>
+        <td class="mono small">
+          {% if hit.urn %}<a href="/model/{{ hit.urn.split('/')[-1] }}">{{ hit.urn }}</a>{% endif %}</td>
+        <td class="small">{{ hit.title }}</td>
+        <td class="small mono">{{ hit.kind }}</td>
+        <td class="small text-end text-muted">{{ hit.line or '—' }}</td>
+        <td class="small">{{ hit.quote }}
+          {% if hit.terms_missing %}
+          <br><span class="text-muted">not in this one:
+            {{ hit.terms_missing | join(', ') }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+  {% if results.could_not_be_read %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>{{ results.could_not_be_read | length }} filed document(s) could not
+    be read</strong> and were not searched. A PDF filed and never extracted is
+    invisible to a search, and invisible is exactly how it looks to somebody who
+    searched and found nothing.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="card mb-3">
+  <div class="card-header">Why there is no semantic search</div>
+  <div class="card-body small text-muted">
+    {{ coverage.semantic_search.why_not }}.
+    <br><br>
+    <strong>What it would take:</strong> {{ coverage.semantic_search.what_it_would_take }}.
+    <br><br>
+    <strong>Meanwhile:</strong> {{ coverage.semantic_search.meanwhile }} — and an
+    approximate answer to that question is worse than none, because the reader
+    cannot tell a miss from an absence.
+  </div>
+</div>
+
+{% endblock %}

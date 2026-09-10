@@ -974,6 +974,30 @@
         ]
       }
     },
+    "/api/v1/document-search": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:kind",
+          "query:limit",
+          "query:q!",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/document-search/coverage": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/document-subjects": {
       "get": {
         "body": [],
@@ -4602,6 +4626,19 @@
         "body": [],
         "parameters": [
           "path:document_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/documents/search": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:kind",
+          "query:q"
         ],
         "responses": [
           "200",

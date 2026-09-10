@@ -24,6 +24,40 @@ class DocumentRoutes(Routes):
         docs, registry = self.ctx["documents"], self.ctx["registry"]
         api = self.api
 
+        @self.app.get(f"{api}/document-search", tags=["documentation"])
+        def document_search(request: Request, q: str, urn: str = "",
+                            kind: str = "", limit: int = 25):
+            """Every filed document containing these terms, best match first.
+
+            Retrieval is **exact rather than semantic**, and that is a decision.
+            The question a supervisor asks is *show me where you wrote that*,
+            and an approximate answer to it is worse than none because the
+            reader cannot tell a miss from an absence. The semantic half is
+            named in `/document-search/coverage` with what it would take, rather
+            than left as an absence somebody has to discover.
+
+            Read `could_not_be_read` before an empty result. A PDF filed and
+            never extracted is invisible to a search, and invisible is exactly
+            how it looks to somebody who searched and found nothing.
+            """
+            who = self.authorise(request, "document:read")
+            return self.guard(
+                lambda: self.ctx["document_search"].search(
+                    q, principal=who, urn=urn, kind=kind, limit=limit))
+
+        @self.app.get(f"{api}/document-search/coverage",
+                      tags=["documentation"])
+        def document_coverage(request: Request):
+            """How much of the corpus a search can actually see.
+
+            The figure to read before any result: a search over a corpus that is
+            forty percent unextracted is a search whose empty answers mean
+            nothing.
+            """
+            who = self.authorise(request, "document:read")
+            return self.guard(
+                lambda: self.ctx["document_search"].coverage(principal=who))
+
         @self.app.get(f"{api}/document-kinds", tags=["documents"])
         def kinds(request: Request):
             self.principal(request)

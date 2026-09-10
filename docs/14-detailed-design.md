@@ -950,6 +950,35 @@ document, so every model's document changed whenever anything happened anywhere.
 
 # Part III — Data and execution
 
+### 11.6 Finding a filed document
+
+`attachment.text_indexed` had been on the row since attachments were written. It was set at upload, read by
+one status count, and **nothing ever searched anything** — the same shape as `Fibre.evidence` (§9.1a) and
+`feature.sensitivity` (§12.9): a field that describes an obligation and reaches no decision. A register that
+can serve a document and cannot find one is a filing cabinet with a URL.
+
+**Retrieval is exact, and that is a decision rather than a shortfall.** Semantic search means an embedding
+model: something that runs, that has a version, that drifts, and that would have to be registered under the
+very rules this platform enforces — a MAYA that shipped an unregistered model to search its own registry
+would be ridiculous. More practically, the question a supervisor asks is *show me where you wrote that*, and
+an approximate answer to that is worse than none because the reader cannot tell a miss from an absence. So:
+exact terms, ranked, with the **line quoted** — and the semantic half named in the answer, with what it
+would take, rather than left as an absence somebody has to discover.
+
+Ranking is on **how many of the query's terms appear at all** before how often, because a document
+mentioning every term once is a better answer to a two-word question than one mentioning the first forty
+times and the second never.
+
+**A document nobody can read is reported as unread, not skipped.** A PDF filed against a model and never
+extracted is invisible to a search, and invisible is exactly how it looks to somebody who searched and found
+nothing — so every answer carries `could_not_be_read`, and `coverage()` is the figure to read *before* an
+empty result. A search over a corpus that is forty percent unextracted is a search whose empty answers mean
+nothing.
+
+And results are **scoped like everything else**. A search that ignored who is asking would be a way to read
+the contents of models a reader cannot see, one query at a time — the same leak the model page's scope check
+prevents, arriving through a search box.
+
 ## 12. The feature platform
 
 `core/features/` is the largest package here: eighteen modules. This section covers the parts a reader has
@@ -2172,8 +2201,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 256 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 317 modules in one
+the 257 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 318 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
