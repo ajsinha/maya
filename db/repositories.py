@@ -253,7 +253,8 @@ class WarrantRepository(Repository):
 
 class FeatureRepository(Repository):
     TABLE, ORDER = "feature", "name"
-    JSON = ("shape", "components", "composes", "operations", "defaults")
+    JSON = ("shape", "components", "composes", "operations", "defaults",
+            "assertions")
 
 
 class FeatureViewRepository(Repository):
@@ -268,7 +269,9 @@ class FeatureSourceRepository(Repository):
 
 
 class FeatureViewVersionRepository(Repository):
-    TABLE, JSON, ORDER = ("feature_view_version", ("features", "quality_report"), "version")
+    TABLE, JSON, ORDER = ("feature_view_version",
+                          ("features", "quality_report", "assertion_report"),
+                          "version")
 
 
 class ContractRepository(Repository):
@@ -539,6 +542,12 @@ class LimitationRepository(Repository):
     #: `basis` is prose here rather than JSON — a limitation's basis is a
     #: sentence somebody wrote, not a structure.
     TABLE, ORDER = "model_limitation", "created_at"
+
+
+class InvocationRepository(Repository):
+    #: Append-only in practice: an invocation is a fact about a moment,
+    #: and there is no operation that edits one.
+    TABLE, ORDER = "warrant_invocation", "at"
 
 
 class WaiverRepository(Repository):

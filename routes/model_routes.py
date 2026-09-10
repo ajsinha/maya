@@ -109,6 +109,17 @@ class DesignateIn(Body):
     designations: List[str] = Field(default_factory=list)
 
 
+class ChangeOverrideIn(Body):
+    urn: str
+    from_semver: str
+    to_semver: str
+    verdict: str
+    #: Mandatory. The rules cannot see what a change is FOR, which is exactly
+    #: why an override with no reasoning is indistinguishable from somebody who
+    #: did not want to revalidate.
+    reason: str
+
+
 class WaiverIn(Body):
     urn: str
     #: Which control. Closed, and drawn from what the tiering engine requires.
@@ -465,6 +476,38 @@ class ModelRoutes(Routes):
                         updated.get("designations") or []),
                     "why": explain_designations(
                         updated.get("designations") or [])}
+
+        # ------------------------------------------------ change management
+        @self.app.get(f"{self.api}/change-classification", tags=["models"])
+        def change_classification(request: Request,
+                                  urn_: str = Query(..., alias="urn"),
+                                  from_semver: str = Query(...),
+                                  to_semver: str = Query(...)):
+            """Material or not, computed from what actually changed.
+
+            Every reason is returned rather than reduced to the verdict,
+            because the argument a person is about to have is never about the
+            verdict — it is about which of the differences counts.
+            """
+            m = self.guard(lambda: reg.require(urn_of(urn_)))
+            self.authorise(request, "model:read", model=m)
+            return self.guard(lambda: self.ctx["changes"].classify(
+                urn_of(urn_), from_semver, to_semver))
+
+        @self.app.post(f"{self.api}/change-classification", tags=["models"])
+        def record_change_classification(request: Request,
+                                         body: ChangeOverrideIn):
+            """A person's answer, recorded beside the computed one.
+
+            Both are kept, and an override goes on the evidence chain — *this
+            was computed non-material and a person called it material* is a
+            much better sentence for a supervisor than a bare classification.
+            """
+            m = self.guard(lambda: reg.require(urn_of(body.urn)))
+            who = self.authorise(request, "validation:conclude", model=m)
+            return self.guard(lambda: self.ctx["changes"].override(
+                urn_of(body.urn), body.from_semver, body.to_semver,
+                body.verdict, body.reason, actor=self.actor(who)))
 
         # ---------------------------------------------------------- waivers
         @self.app.get(f"{self.api}/waivable-controls", tags=["models"])

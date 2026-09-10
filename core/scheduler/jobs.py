@@ -63,6 +63,8 @@ class JobContext:
     evidence: Any = None
     risk: Any = None
     waivers: Any = None
+    uses: Any = None
+    pipeline: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -424,7 +426,48 @@ def expire_waivers(ctx: "JobContext") -> Dict[str, Any]:
                        else "no waiver reached its end date")}
 
 
+def check_pipelines(ctx: "JobContext") -> Dict[str, Any]:
+    """Every feature view, against its own history.
+
+    Most model failures are data failures, and every other monitor in this
+    platform points at a model's scores — which is the last place the problem
+    shows up rather than the first.
+    """
+    if ctx.pipeline is None:
+        return {"count": 0,
+                "detail": "no pipeline health check is wired into this instance"}
+    return ctx.pipeline.sweep(now=ctx.now, actor=ctx.actor)
+
+
+def reconcile_uses(ctx: "JobContext") -> Dict[str, Any]:
+    """Compare what each model is approved for against what it is used for.
+
+    Run as a batch because it is a question about a PATTERN, and a pattern is
+    not visible at the moment any one call is made — every call this looks at
+    was individually authorised, or individually refused, and correctly so.
+    """
+    if ctx.uses is None:
+        return {"count": 0,
+                "detail": "no use reconciliation is wired into this instance"}
+    return ctx.uses.sweep(now=ctx.now, actor=ctx.actor)
+
+
 JOBS: Dict[str, Job] = {j.key: j for j in (
+    Job("pipelines.check",
+        "checks every feature view against its own loading history — "
+        "freshness, volume, schema and null rates",
+        "most model failures are data failures, and every other monitor here "
+        "points at a model's scores, which is the last place the problem shows "
+        "up rather than the first",
+        check_pipelines),
+    Job("uses.reconcile",
+        "compares each model's approved uses against the uses actually "
+        "exercised, and raises the persistent off-label ones",
+        "every call is individually authorised or individually refused, so "
+        "off-label use is a PATTERN of good calls and nothing was looking at "
+        "the pattern; a use attempted four hundred times and refused every "
+        "time reads on a control report as the platform working perfectly",
+        reconcile_uses),
     Job("waivers.expire",
         "closes every control waiver whose window has ended",
         "mandatory expiry is only a control if something acts on the date; a "

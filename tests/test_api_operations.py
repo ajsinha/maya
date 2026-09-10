@@ -108,6 +108,13 @@ class TestSchedulerApi:
                 # on every screen exactly like one still in force, so
                 # mandatory expiry needs something that acts on the date.
                 "waivers.expire",
+                # Off-label use is a PATTERN of individually authorised
+                # calls, so nothing sees it at the moment any one of
+                # them is made.
+                "uses.reconcile",
+                # Every other monitor points at a model's scores, which
+                # is the last place a data problem shows up.
+                "pipelines.check",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

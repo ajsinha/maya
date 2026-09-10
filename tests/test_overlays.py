@@ -239,3 +239,94 @@ class TestClosing:
         assert overlays.sweep_expired(a_model["id"], now=NOW) == []
         swept = overlays.sweep_expired(a_model["id"], now=time.time() + 200 * DAY)
         assert len(swept) == 1 and swept[0]["status"] == "expired"
+
+
+class TestDownstreamPropagation:
+    """An overlay adjusts a model's OUTPUT, and a model's output is another
+    model's input. A downstream owner whose PD feed quietly gained a 12% uplift
+    did not change anything, will not see it in their own monitoring for a
+    quarter, and will spend that quarter looking for it in their own model.
+    """
+
+    @pytest.fixture
+    def wired(self, repos, db, registry, evidence, findings):
+        from core.overlays import OverlayRegister
+        from core.registry import ModelComposition
+        from db import (MeasurementRepository, ModelEdgeRepository,
+                        OverlayRepository)
+
+        composition = ModelComposition(ModelEdgeRepository(db),
+                                       registry.catalogue, evidence)
+        feeder = "maya://model/pd.feeder"
+        downstream = "maya://model/ecl.consumer"
+        challenger = "maya://model/pd.challenger"
+        for urn in (feeder, downstream, challenger):
+            registry.register(urn, urn.split("/")[-1], "credit", "retail",
+                              "person/o", "LE-US-01", "p")
+        composition.relate(from_urn=feeder, to_urn=downstream, kind="input_to",
+                           note="the ECL model reads this PD")
+        composition.relate(from_urn=challenger, to_urn=feeder,
+                           kind="challenger_of", note="argues with it")
+        register = OverlayRegister(
+            OverlayRepository(db), MeasurementRepository(db), evidence,
+            findings, composition=composition)
+        return register, feeder, downstream, challenger
+
+    def _approved(self, register, registry, urn):
+        model = registry.require(urn)
+        made = register.propose(
+            model["id"], "segment uplift", "output",
+            "the model under-predicts in this segment", "person/j.okafor",
+            actor="person/a.mehta")
+        return register.approve(made["id"], actor="person/s.iqbal")
+
+    def test_approving_tells_the_models_downstream(self, wired, registry):
+        register, feeder, downstream, _ = wired
+        out = self._approved(register, registry, feeder)
+        told = [n["urn"] for n in out["downstream"]["notified"]]
+        assert downstream in told
+        assert "downstream were told" in out["downstream"]["detail"]
+
+    def test_a_challenger_is_not_downstream(self, wired, registry):
+        """A challenger is not downstream of the model it argues with, and
+        telling its owner would train them to ignore these."""
+        register, feeder, _, challenger = wired
+        out = self._approved(register, registry, feeder)
+        assert challenger not in [n["urn"] for n in out["downstream"]["notified"]]
+
+    def test_a_model_nothing_reads_says_so(self, wired, registry):
+        register, _, downstream, _ = wired
+        out = self._approved(register, registry, downstream)
+        assert out["downstream"]["count"] == 0
+        assert "nothing reads this model's output" in out["downstream"]["detail"]
+
+    def test_the_propagation_is_on_the_evidence_chain(self, wired, evidence,
+                                                     registry):
+        """So the record survives a failed delivery: an overlay approved
+        without its notification is a governed decision plus a delivery
+        problem."""
+        register, feeder, downstream, _ = wired
+        self._approved(register, registry, feeder)
+        model = registry.require(feeder)
+        entries = [e for e in evidence.for_subjects([model["id"]])
+                   if e["kind"] == "overlay_propagated"]
+        assert entries
+        assert entries[0]["payload"]["downstream_urn"] == downstream
+        assert "not visible in the downstream model's own monitoring" in \
+            entries[0]["payload"]["impact"]
+
+    def test_an_unwired_graph_does_not_fail_the_approval(self, repos, db,
+                                                         registry, evidence,
+                                                         findings):
+        from core.overlays import OverlayRegister
+        from db import MeasurementRepository, OverlayRepository
+
+        urn = "maya://model/lonely"
+        registry.register(urn, "L", "credit", "retail", "person/o",
+                          "LE-US-01", "p")
+        register = OverlayRegister(OverlayRepository(db),
+                                   MeasurementRepository(db), evidence,
+                                   findings)
+        out = self._approved(register, registry, urn)
+        assert out["status"] == "active"
+        assert "no dependency graph is wired" in out["downstream"]["detail"]

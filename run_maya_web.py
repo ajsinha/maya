@@ -32,6 +32,10 @@ from starlette.middleware.sessions import SessionMiddleware
 from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
+from core.execution.invocations import InvocationLog
+from core.features.pipeline import PipelineHealth
+from core.lifecycle.changes import ChangeClassifier
+from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
@@ -99,6 +103,7 @@ from db import (ServingAttestationRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 ApiKeyRepository, AssumptionRepository,
+                InvocationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
@@ -405,7 +410,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     overlays = OverlayRegister(
         OverlayRepository(db), MeasurementRepository(db), evidence, findings,
         max_days=cfg.get_int("overlays.max_days", 180),
-        renewal_limit=cfg.get_int("overlays.renewal_limit", 2))
+        renewal_limit=cfg.get_int("overlays.renewal_limit", 2),
+        # An overlay adjusts a model's OUTPUT, and a model's output is another
+        # model's input — so approving one walks the typed graph and tells the
+        # owners downstream. SS1/23 3.4(d): a downstream owner whose PD feed
+        # quietly gained an uplift did not change anything, will not see it in
+        # their own monitoring for a quarter, and will spend that quarter
+        # looking for it in their own model.
+        composition=composition)
 
     # Activated before the compiler is built, because a document states which
     # supervisors apply and an inactive regime has nothing to say.
@@ -438,6 +450,41 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         WaiverRepository(db), evidence, registry, findings=findings,
         max_days=cfg.get_int("waivers.max_days", 90),
         renewal_limit=cfg.get_int("waivers.renewal_limit", 3))
+
+    invocations = InvocationLog(
+        InvocationRepository(db), registry=registry, warrants=warrants,
+        idle_days=cfg.get_int("warrants.idle_days", 90))
+
+    # What each model was approved for, against what it is actually used for.
+    # Every individual call is already legitimate — off-label use is a pattern
+    # of good calls, and nothing was looking at the pattern.
+    use_reconciliation = UseReconciliation(
+        invocations, warrants, registry, findings=findings,
+        attempt_threshold=cfg.get_int("warrants.off_label_attempts", 20),
+        window_days=cfg.get_int("warrants.reconcile_window_days", 90))
+
+    # The feeds under the models, judged against their own history rather than
+    # against an SLA somebody set at onboarding and nobody revisited.
+    def _models_using_view(view_name: str):
+        """Every model whose featureset pins this view.
+
+        A feature view is not a model and findings hang off models, so an
+        upstream problem is raised against whoever actually has to act on it.
+        """
+        rows = db.query(
+            "SELECT DISTINCT m.id, m.owner FROM model m "
+            "JOIN feature_contract c ON c.model_version_id IN "
+            "  (SELECT id FROM model_version WHERE model_id = m.id) "
+            "JOIN feature_view v ON v.name = :v", {"v": view_name})
+        return [dict(r) for r in rows]
+
+    pipeline_health = PipelineHealth(
+        features.views, findings=findings, registry=registry,
+        models_using=_models_using_view)
+
+    # Material or not, computed from the two versions rather than asked of
+    # somebody who has an opinion about how much work revalidation is.
+    changes = ChangeClassifier(registry, evidence, validation=validation)
 
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
@@ -537,7 +584,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    notifications=notifications,
                    finding_workflow=finding_workflow,
                    evidence=evidence, risk=RiskRepository(db),
-                   waivers=waivers),
+                   waivers=waivers,
+                   uses=use_reconciliation,
+                   pipeline=pipeline_health),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -574,6 +623,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "limitations": limitations,
                            "assumptions": assumptions,
                            "waivers": waivers,
+                           "invocations": invocations,
+                           "use_reconciliation": use_reconciliation,
+                           "pipeline_health": pipeline_health,
+                           "changes": changes,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
@@ -608,7 +661,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
             sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox(),
             # So a warrant naming a point of P can be honoured: the engine reads
             # the values and checks their digest before anything runs at them.
-            parameters=parameters)
+            parameters=parameters,
+            # So the estate can answer how much a model is actually used, when
+            # a standing grant was last exercised, and which grants nobody has
+            # ever used — the last being a security question rather than a
+            # reporting one.
+            invocations=invocations)
         # Fitting needs an engine to run the estimator in, so it is wired here
         # rather than beside the register: an instance with the captive engine
         # switched off can still record a fit performed elsewhere, and cannot

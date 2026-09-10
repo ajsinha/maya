@@ -211,6 +211,18 @@ class ReferenceIndex:
                 row["status"] == "active"))
 
         for row in self.db.query(
+                "SELECT COUNT(*) AS n, MAX(at) AS last FROM warrant_invocation "
+                "WHERE model_id = :m", {"m": model_id}):
+            if row.get("n"):
+                found.append(Reference(
+                    "warrant_invocation", model_id,
+                    f"{row['n']} invocation(s)",
+                    "a record of this model actually being run — not a "
+                    "dependency, but the thing that says deleting it would "
+                    "lose the history of who called it",
+                    False))
+
+        for row in self.db.query(
                 "SELECT id, reference, control, status FROM control_waiver "
                 "WHERE model_id = :m", {"m": model_id}):
             active = row["status"] == "active"

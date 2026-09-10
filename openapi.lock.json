@@ -584,6 +584,34 @@
         ]
       }
     },
+    "/api/v1/change-classification": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:from_semver!",
+          "query:to_semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "from_semver!",
+          "reason!",
+          "to_semver!",
+          "urn!",
+          "verdict!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/derived-features": {
       "get": {
         "body": [],
@@ -1016,6 +1044,7 @@
       },
       "post": {
         "body": [
+          "assertions",
           "business_definition",
           "components",
           "composes",
@@ -1066,6 +1095,7 @@
     "/api/v1/features/check": {
       "post": {
         "body": [
+          "assertions",
           "business_definition",
           "components",
           "composes",
@@ -1700,6 +1730,18 @@
       "post": {
         "body": [],
         "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/invocations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
         "responses": [
           "200",
           "422"
@@ -2551,6 +2593,18 @@
         ]
       }
     },
+    "/api/v1/pipeline-health": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:view!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/policies": {
       "get": {
         "body": [],
@@ -3179,6 +3233,18 @@
         ]
       }
     },
+    "/api/v1/use-reconciliation": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/validations": {
       "post": {
         "body": [
@@ -3433,6 +3499,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/warrant-catalogue": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },
