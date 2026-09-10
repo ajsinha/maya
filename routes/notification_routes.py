@@ -8,13 +8,22 @@ endpoints make it arrive somewhere rather than waiting to be looked at.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
+
+from pydantic import Field
 
 from fastapi import Request
 
 from core.notify import CHANNEL_MEANING
 from routes.base import Body, Routes
 
+
+
+class SubscriptionIn(Body):
+    name: str
+    url: str
+    kinds: List[str] = Field(default_factory=list)
+    owner: str
 
 class NotifyIn(Body):
     channel: Optional[str] = None
@@ -24,6 +33,75 @@ class NotifyIn(Body):
 class NotificationRoutes(Routes):
     def register(self) -> None:
         notifications, api = self.ctx["notifications"], self.api
+
+        @self.app.get(f"{api}/events", tags=["events"])
+        def events(request: Request, after: int = 0, limit: int = 100,
+                   kind: str = ""):
+            """The domain event stream, which is the evidence chain read
+            forwards.
+
+            **There is no event table.** Every act that changes this register
+            already appends to the chain — hash-linked, append-only, in a total
+            order — and a second event log would be a second thing to keep in
+            step. The first time they disagreed nobody could say which was true,
+            which is the failure a governance platform cannot afford, because
+            the chain is what an examiner is shown.
+
+            Store `cursor` and pass it back as `after`. Each event carries its
+            `seq` and the node's `content_hash`: deduplicate on the second, not
+            on an identifier this platform invented.
+            """
+            self.authorise(request, "evidence:read")
+            kinds = [k.strip() for k in kind.split(",") if k.strip()]
+            return self.guard(
+                lambda: self.ctx["event_stream"].read(after, limit,
+                                                      kinds or None))
+
+        @self.app.get(f"{api}/events/kinds", tags=["events"])
+        def event_kinds(request: Request):
+            """Every kind this register has actually produced.
+
+            Derived rather than declared: a hand-written list goes stale the
+            first time somebody appends a new kind, and a subscriber filtering
+            on one that no longer exists receives nothing and is told nothing.
+            """
+            self.authorise(request, "evidence:read")
+            return {"kinds": self.ctx["event_stream"].kinds(),
+                    "head": self.ctx["event_stream"].head()}
+
+        @self.app.get(f"{api}/subscriptions", tags=["events"])
+        def subscriptions(request: Request):
+            """Every subscriber, and how far behind each has fallen.
+
+            Secrets are never returned here: one a listing endpoint hands back
+            is held by everybody with read access.
+            """
+            self.authorise(request, "principal:read")
+            return self.guard(
+                lambda: self.ctx["subscriptions"].across_the_estate())
+
+        @self.app.post(f"{api}/subscriptions", status_code=201,
+                       tags=["events"])
+        def subscribe(request: Request, body: SubscriptionIn):
+            """Register a receiver. The secret is returned once and never again.
+
+            `kinds` is mandatory and `*` is refused. A chain node's payload
+            carries model inventory, findings and exposure figures, so what
+            leaves the institution is a decision somebody takes — and *we send
+            you all our events* is not one anybody made.
+            """
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: self.ctx["subscriptions"].subscribe(
+                name=body.name, url=body.url, kinds=body.kinds,
+                owner=body.owner, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/subscriptions/{{reference}}/resume",
+                       tags=["events"])
+        def resume_subscription(request: Request, reference: str):
+            """Bring a suspended subscription back, from where it stopped."""
+            who = self.authorise(request, "principal:manage")
+            return self.guard(lambda: self.ctx["subscriptions"].resume(
+                reference, actor=self.actor(who)))
 
         @self.app.get(f"{api}/notifications", tags=["notifications"])
         def status(request: Request):

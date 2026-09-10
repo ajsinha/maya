@@ -1038,6 +1038,29 @@
         ]
       }
     },
+    "/api/v1/events": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:after",
+          "query:kind",
+          "query:limit"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/events/kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/evidence/chain": {
       "get": {
         "body": [],
@@ -3657,6 +3680,40 @@
       "post": {
         "body": [],
         "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/subscriptions": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "kinds",
+          "name!",
+          "owner!",
+          "url!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/subscriptions/{reference}/resume": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
         "responses": [
           "200",
           "422"

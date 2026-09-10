@@ -43,6 +43,8 @@ from core.execution.reconciliation import UseReconciliation
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate.portfolio import Portfolio
+from core.events import EventStream, Subscriptions
+from core.events.subscriptions import http_sender
 from core.estate import EstateSummary, WorkList
 from core.evidence import EvidenceEngine
 from core.evidence.anchor import ChainAnchor
@@ -126,7 +128,7 @@ from db import (ServingAttestationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
-                ApprovalConditionRepository,
+                ApprovalConditionRepository, SubscriptionRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
@@ -746,6 +748,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                         # process needs a push.
                         composition=composition)
 
+    # Telling other systems what happened, from the record of what happened.
+    # A cursor over the evidence chain rather than a second event log — and off
+    # unless somebody creates a subscription, because a webhook is the first
+    # thing here that deliberately reaches outward.
+    event_stream = EventStream(evidence)
+    subscriptions = Subscriptions(
+        SubscriptionRepository(db), event_stream, evidence,
+        sender=http_sender(cfg.get_float("events.timeout_seconds", 10.0))
+        if cfg.get_bool("events.deliver", True) else None)
+
     # The register cut by the dimensions somebody asks about, and the trend —
     # which is a series of as-at folds rather than a snapshot table that would
     # be wrong for every date before somebody added it.
@@ -810,7 +822,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    canaries=canaries,
                    break_glass=break_glass,
                    idempotency=idempotency,
-                   inference=inference),
+                   inference=inference,
+                   subscriptions=subscriptions),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -883,6 +896,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "grant_quotas": grant_quotas,
                            "approval_conditions": approval_conditions,
                            "portfolio": portfolio,
+                           "event_stream": event_stream,
+                           "subscriptions": subscriptions,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,
