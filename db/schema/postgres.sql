@@ -150,6 +150,30 @@ CREATE TABLE IF NOT EXISTS api_key (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_api_key_key_hash ON api_key (key_hash);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_api_key_username_name ON api_key (username, name);
 
+CREATE TABLE IF NOT EXISTS approval_condition (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    reference TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    enforcement TEXT DEFAULT 'enforced' NOT NULL,
+    parameters TEXT DEFAULT '{}' NOT NULL,
+    rationale TEXT NOT NULL,
+    imposed_by TEXT NOT NULL,
+    imposed_at DOUBLE PRECISION NOT NULL,
+    expires_at DOUBLE PRECISION NOT NULL,
+    confirmed_by TEXT,
+    confirmed_at DOUBLE PRECISION,
+    confirm_every_days DOUBLE PRECISION DEFAULT 30.0 NOT NULL,
+    state TEXT DEFAULT 'active' NOT NULL,
+    discharged_at DOUBLE PRECISION,
+    discharged_by TEXT,
+    discharge_reason TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_approval_condition_model ON approval_condition (model_id, state);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_approval_condition_reference ON approval_condition (reference);
+
 CREATE TABLE IF NOT EXISTS attachment (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,
