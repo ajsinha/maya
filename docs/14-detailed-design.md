@@ -2079,6 +2079,38 @@ There are no migrations and there is no outbox. Schema evolution is expand-and-c
 files; there is no relay, no broker and no eventual consistency to reconcile, because there is nothing to be
 eventually consistent with.
 
+### 19.4 Which parts of this platform may be extended
+
+The requirement asks for a plugin architecture across eight axes. Built as eight open sockets it would be
+the fastest way to remove every control here, so the answer is not eight sockets — it is a **statement of
+which axes are open and why the others are not**, with the open ones genuinely open.
+
+**The dividing line is whether the extension changes a governance answer.**
+
+| Open | Why it is safe |
+|---|---|
+| `test_types`, `metric_types` | the extension sits **inside** a control rather than around it: the result carries its own digest, a person reviews it, a validator challenges it. A firm's own discrimination measure is exactly what it should be able to add |
+| `templates` | a template decides what a document *says*, and every claim in it is still assembled from evidence the register holds. A template cannot make the platform believe anything |
+| `notification_channels` | it changes how somebody is told and nothing else — the one axis where a plugin has no governance meaning at all |
+
+| Closed | What the closure protects |
+|---|---|
+| `connectors` | provenance. A connector decides what enters the register as fact, and an open axis here writes into the inventory without going through registration — the one thing the inventory exists to prevent |
+| `formats` | the decision that the vocabulary contains no `pickle`. An open format axis is a pickle loader arriving by pull request |
+| `policy_evaluators` | the gates. An evaluator that can return *permitted* widens every control from outside it — and a **rule set** already changes what a gate decides, declaratively and without executing anybody's code |
+| `runtime_adapters` | the warrant grammar's four axes. A new model technology is already a new value in one of them, which is extension without arbitrary code |
+
+**A closed axis is not a missing feature; it is the feature.** The alternative is a platform whose controls a
+deployment can widen without anybody deciding to, and a governance platform that can be extended into
+permissiveness is one whose assurances mean whatever the last plugin author thought. Every closed axis
+therefore names a **route** to what the caller actually wanted, because a refusal that names no route is a
+wall.
+
+**Registering on an open axis is a governance act, not an import.** It takes an owner and a purpose, lands on
+the evidence chain — *who added the test everybody has been passing* is a question somebody will ask — and
+**never silently replaces a name**: doing so would change what a recorded result *means* without changing its
+name, and every measurement taken under the old one would still say it was taken under this.
+
 ## 21. Concurrency and idempotency
 
 | Hazard | What actually holds |
@@ -2285,8 +2317,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 263 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 324 modules in one
+the 266 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 327 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
