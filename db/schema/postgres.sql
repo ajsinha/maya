@@ -300,6 +300,38 @@ CREATE TABLE IF NOT EXISTS break_glass (
 CREATE INDEX IF NOT EXISTS ix_break_glass_principal ON break_glass (principal, state);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_break_glass_reference ON break_glass (reference);
 
+CREATE TABLE IF NOT EXISTS campaign (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    title TEXT NOT NULL,
+    instruction TEXT DEFAULT '' NOT NULL,
+    derivation TEXT DEFAULT '{}' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE PRECISION NOT NULL,
+    due_at DOUBLE PRECISION,
+    status TEXT DEFAULT 'open' NOT NULL,
+    closed_at DOUBLE PRECISION,
+    closed_by TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_campaign_reference ON campaign (reference);
+
+CREATE TABLE IF NOT EXISTS campaign_item (
+    id TEXT NOT NULL,
+    campaign_id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    urn TEXT NOT NULL,
+    assignee TEXT NOT NULL,
+    assigned_at DOUBLE PRECISION NOT NULL,
+    state TEXT DEFAULT 'outstanding' NOT NULL,
+    response TEXT DEFAULT '' NOT NULL,
+    responded_by TEXT,
+    responded_at DOUBLE PRECISION,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_campaign_item ON campaign_item (campaign_id, model_id);
+
 CREATE TABLE IF NOT EXISTS compliance_debt (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,
@@ -696,6 +728,26 @@ CREATE TABLE IF NOT EXISTS inference (
 );
 CREATE INDEX IF NOT EXISTS ix_inference_model ON inference (model_id, at);
 CREATE INDEX IF NOT EXISTS ix_inference_retention ON inference (retain_until);
+
+CREATE TABLE IF NOT EXISTS intake_proposal (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '' NOT NULL,
+    proposed_by TEXT NOT NULL,
+    business_area TEXT DEFAULT '' NOT NULL,
+    proposed_at DOUBLE PRECISION NOT NULL,
+    in_scope BOOLEAN,
+    sourcing TEXT,
+    generative BOOLEAN,
+    rationale TEXT DEFAULT '{}' NOT NULL,
+    state TEXT DEFAULT 'proposed' NOT NULL,
+    triaged_by TEXT,
+    triaged_at DOUBLE PRECISION,
+    registered_urn TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_intake_reference ON intake_proposal (reference);
 
 CREATE TABLE IF NOT EXISTS legal_hold (
     id TEXT NOT NULL,

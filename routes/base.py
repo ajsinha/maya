@@ -399,6 +399,14 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # a round of asking, and what arrives before a model is a model
+    "unknown_campaign_kind": 422, "campaign_already_open": 409,
+    "empty_population": 422, "campaign_closed": 409,
+    "unknown_response": 422, "not_in_this_campaign": 404,
+    "unknown_campaign": 404, "description_required": 422,
+    "proposal_already_recorded": 409, "unknown_sourcing": 422,
+    "proposal_declined": 409, "not_triaged": 409,
+    "unknown_proposal": 404,
     # an equivalence claim about two artifacts, measured elsewhere
     "same_artifact": 422, "ran_by_required": 422,
     "tolerance_required": 422,

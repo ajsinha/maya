@@ -39,6 +39,8 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
+from core.lifecycle.campaigns import Campaigns
+from core.lifecycle.intake import Intake
 from core.validation.capacity import ValidationCapacity
 from core.validation.supervisory import SupervisoryMatters
 from core.assist.encoding import RegimeEncodingAssistant
@@ -165,6 +167,8 @@ from db import (ServingAttestationRepository,
                 VendorAssessmentRepository, VendorItemRepository,
                 BreakGlassRepository, IdempotencyRepository,
                 InferenceRepository,
+                CampaignItemRepository, CampaignRepository,
+                IntakeProposalRepository,
                 SavedViewRepository, ScheduledRunRepository, SignatureRepository,
                 SupervisoryMatterRepository, ValidatorCapacityRepository,
                 SnapshotRepository,
@@ -705,6 +709,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     external_monitoring = ExternalObservations(monitoring, registry, catalogue,
                                                evidence)
 
+    # What arrives before a model is a model. Kept apart from the register,
+    # because a register that admits everything is one nobody can read — and
+    # the most valuable answer triage gives is "this is not a model".
+    intake = Intake(IntakeProposalRepository(db), registry, evidence,
+                    tiering=tiering)
+
     # A matter a supervisor raised. Not a finding, in two structural ways:
     # it reaches many models at once, and it carries the date the FIRM GAVE
     # THE SUPERVISOR beside the internal remediation date every finding
@@ -1003,6 +1013,14 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, validation=validation, findings=findings,
         monitoring=monitoring, vendor=vendor_assessments)
 
+    # Rounds of asking, over a population fixed at the moment of asking. The
+    # derivation is kept beside the frozen population, because a campaign whose
+    # population is a live query has a completion figure that improves on its
+    # own: a model retired in week three turns 47 of 50 into 47 of 49.
+    campaigns = Campaigns(
+        CampaignRepository(db), CampaignItemRepository(db), registry,
+        semantics, evidence, notifications=notifications)
+
     # A question in English becomes a QUERY and never a number. The
     # translation is checked against the published catalogue before anything
     # runs, the rows come from the register under the reader's own scope, and
@@ -1117,6 +1135,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "uses": uses,
                            "validation_plans": validation_plans,
                            "supervisory": supervisory,
+                           "campaigns": campaigns,
+                           "intake": intake,
                            "validation_capacity": validation_capacity,
                            "recode": recode,
                            "lifecycle_profiles": lifecycle_profiles,

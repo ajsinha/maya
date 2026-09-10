@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Campaigns and intake — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Rounds of asking, and what arrives before a model</h1>
+<div class="accent"></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">The population is frozen, and the derivation is kept</div>
+    <p class="small text-muted mb-0">A campaign whose population is a live query
+    silently changes size. A model retired in week three turns 47 of 50 into
+    <strong>47 of 49</strong>, and the completion figure goes up without anybody
+    having done anything — and completion is the one number a campaign exists to
+    produce. So <em>completion</em> is measured against the population as it
+    stood at launch, <em>coverage</em> against re-running the derivation, and the
+    drift between them is reported rather than folded in.</p>
+  </div></div></div>
+  <div class="col-md-6"><div class="card h-100"><div class="card-body">
+    <div class="card-title fw-bold">A proposal is not a model</div>
+    <p class="small text-muted mb-0">It has no version, no artifact and nothing
+    that could resolve. Keeping it in the register would be the fastest way to
+    turn one into an inventory of ideas. And the most valuable answer triage
+    gives is <strong>this is not a model</strong> — the pressure runs entirely
+    the other way, because nobody is ever criticised for registering
+    something.</p>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Campaigns</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ campaigns.detail }}.</div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Reference</th><th>Kind</th><th class="text-end">Population</th>
+      <th class="text-end">Answered</th><th class="text-end">Complete</th>
+      <th>Drift</th><th>Standing</th>
+    </tr></thead>
+    <tbody>
+    {% for c in campaigns.campaigns %}
+      <tr>
+        <td>{{ c.reference }}<div class="small text-muted">{{ c.title }}</div></td>
+        <td class="small">{{ c.kind.replace('_', ' ') }}</td>
+        <td class="text-end">{{ c.population }}</td>
+        <td class="text-end">{{ c.answered }}</td>
+        <td class="text-end">{{ '%.0f' | format(100 * c.completion) }}%</td>
+        <td class="small text-muted">
+          {% if c.drift %}+{{ c.drift | length }} since launch{% endif %}
+          {% if c.left_the_population %} −{{ c.left_the_population | length }}{% endif %}
+          {% if not c.drift and not c.left_the_population %}—{% endif %}
+        </td>
+        <td>
+          {% if c.status == 'closed' %}<span class="badge bg-secondary">closed</span>
+          {% elif c.overdue %}<span class="badge bg-danger">overdue</span>
+          {% else %}<span class="badge bg-success">open</span>{% endif %}
+        </td>
+      </tr>
+      <tr class="small text-muted"><td></td><td colspan="6">{{ c.detail }}.</td></tr>
+    {% else %}
+      <tr><td colspan="7" class="text-muted">No round has been opened.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Intake</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ intake.detail }}.</div>
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Reference</th><th>Proposed by</th><th>Sourcing</th>
+      <th>Generative</th><th>State</th><th>What triage decided</th>
+    </tr></thead>
+    <tbody>
+    {% for p in intake.proposals %}
+      <tr>
+        <td>{{ p.reference }}<div class="small text-muted">{{ p.title }}</div></td>
+        <td class="small text-muted">{{ p.proposed_by }}</td>
+        <td class="small">{{ p.sourcing or '—' }}</td>
+        <td class="small">
+          {% if p.generative is none %}—{% elif p.generative %}yes{% else %}no{% endif %}
+        </td>
+        <td>
+          {% if p.state == 'declined' %}<span class="badge bg-secondary">out of scope</span>
+          {% elif p.state == 'registered' %}<span class="badge bg-success">registered</span>
+          {% elif p.state == 'triaged' %}<span class="badge bg-info text-dark">in scope</span>
+          {% else %}<span class="badge bg-warning text-dark">untriaged</span>{% endif %}
+        </td>
+        <td class="small text-muted">{{ p.detail }}.</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="text-muted">No proposal is recorded. In most
+      firms that means intake is happening somewhere else.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">The three questions triage asks</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    The platform reads the description for what the definitions turn on and
+    shows the words it turned on. <strong>A person decides.</strong> A
+    determination whose reasoning is invisible is one nobody can disagree with,
+    and the whole value of triage is in the disagreements.
+  </div>
+  <table class="table maya mb-0">
+    <thead><tr><th>Question</th><th>Why it matters</th></tr></thead>
+    <tbody>
+    {% for q in questions.questions %}
+      <tr>
+        <td class="small">{{ q.asks }}?</td>
+        <td class="small text-muted">{{ q.why }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% endblock %}

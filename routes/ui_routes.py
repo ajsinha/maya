@@ -657,6 +657,24 @@ class UIRoutes(Routes):
                 result=result, refusal=refusal,
                 views=views.list(self.actor(who)))
 
+        # ------------------------------------------ campaigns and intake
+        @self.app.get("/campaigns", response_class=HTMLResponse, tags=["ui"])
+        def campaigns_page(request: Request):
+            """Rounds of asking, and the queue of things that are not yet models.
+
+            The two live on one page because they are the two ends of the same
+            question: what enters the register, and what the register asks about
+            once a year.
+            """
+            if (r := self.page_gate(request, "model:read")) is not None:
+                return r
+            from core.lifecycle.intake import Intake
+            return self.page(
+                request, "campaigns.html",
+                campaigns=self.ctx["campaigns"].across_the_estate(),
+                intake=self.ctx["intake"].across_the_estate(),
+                questions=Intake.questions())
+
         # ------------------------------------------- supervisory matters
         @self.app.get("/supervisory", response_class=HTMLResponse, tags=["ui"])
         def supervisory_page(request: Request):
