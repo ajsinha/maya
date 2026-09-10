@@ -83,6 +83,8 @@ fall behind again.
 | `maya.intake` | record a proposal, read the assessment, triage, register |
 | `maya.runs` | declare a run before it happens, close it, read a search |
 | `maya.retraining` | when a re-fit is due, and the standing approval for one |
+| `maya.composites` | resolve a chain of models as one unit, or refuse it as one |
+| `maya.shadow` | authorise an advisory grant for mirrored traffic |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**

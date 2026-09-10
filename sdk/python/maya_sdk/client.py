@@ -90,6 +90,8 @@ class Maya:
         self.parameters = parameters.Parameters(self)
         self.runs = parameters.Runs(self)
         self.retraining = parameters.Retraining(self)
+        self.composites = warrants.Composites(self)
+        self.shadow = warrants.Shadow(self)
         self.assist = assist_module.Assist(self)
         # Filled in by the SDK completion pass. Attached here rather than
         # discovered, because a client that grows subjects dynamically is one

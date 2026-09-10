@@ -399,6 +399,14 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # a chain resolved as one unit, and an answer that must not be used
+    "cyclic_composition": 409, "composition_too_deep": 422,
+    # 409 and not 403: every node is individually authorised and the
+    # composite is refused because of the STATE of one of them, which is
+    # a conflict the caller can resolve rather than a permission it lacks.
+    "composite_refused": 409,
+    "share_out_of_range": 422, "mirrors_required": 422,
+    "shadow_use_is_a_production_use": 409,
     # the run register, and the standing approval for a re-fit
     "unknown_verb": 422, "parent_closed": 409,
     "nesting_too_deep": 422, "run_closed": 409, "unknown_run": 404,

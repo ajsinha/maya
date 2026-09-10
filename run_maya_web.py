@@ -39,6 +39,8 @@ from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
+from core.execution.composite import CompositeWarrants
+from core.execution.shadow import ShadowTraffic
 from core.lifecycle.campaigns import Campaigns
 from core.parameters.retraining import Retraining
 from core.parameters.runs import Runs
@@ -718,6 +720,21 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     intake = Intake(IntakeProposalRepository(db), registry, evidence,
                     tiering=tiering)
 
+    # One call over a chain of models, and the refusal that makes it worth
+    # having: a chain is as governed as its least governed link, so a composite
+    # resolves only if every node does. There is deliberately no single signed
+    # descriptor — signing one would assert the chain as a whole is authorised,
+    # and three approvals for three models were not that.
+    composite_warrants = CompositeWarrants(registry, composition, warrants)
+
+    # An answer that must not be used. MAYA is not in the serving path and does
+    # not mirror traffic: what it does is authorise the mirror as advisory,
+    # refuse a shadow grant whose declared use is a production use — which is
+    # how a shadow answer reaches a decision — and notice a shadow that never
+    # ends.
+    shadow = ShadowTraffic(registry, warrants, warrants.grants, uses=uses,
+                           invocations=invocations)
+
     # An activity somebody else executed, declared BEFORE it runs. MAYA
     # submits no jobs and never reads `log_uri`: a register that submitted
     # would be on the failure path of the thing it exists to observe, and
@@ -1158,6 +1175,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "supervisory": supervisory,
                            "campaigns": campaigns,
                            "runs": runs,
+                           "composite_warrants": composite_warrants,
+                           "shadow": shadow,
                            "retraining": retraining,
                            "intake": intake,
                            "validation_capacity": validation_capacity,
