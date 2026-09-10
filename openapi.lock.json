@@ -3818,6 +3818,32 @@
         ]
       }
     },
+    "/api/v1/version-comparison": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:left!",
+          "query:right!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/version-history": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/waivable-controls": {
       "get": {
         "body": [],
