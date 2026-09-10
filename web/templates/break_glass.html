@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Break-glass — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>Emergency access, and what happened without it</h1>
+<div class="accent"></div>
+
+<p class="lead small">The <code>admin</code> role is <em>described</em> as
+break-glass and is exempt from the incompatible-roles check. That is not
+break-glass. It is a standing account that happens to be powerful — and a
+standing powerful account is precisely the thing break-glass exists to replace.
+Break-glass is defined by being <strong>closed by default</strong>: asked for,
+agreed to by somebody else, ending on its own, and read afterwards by somebody
+who was not in the incident.</p>
+
+<div class="row g-3 mb-3">
+  {# The number an examiner should read first, and the reason this screen is
+     worth having rather than a policy document. #}
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.unglassed.acts else 'evidence-ok' }}">{{ report.unglassed.acts }}</div>
+    <div class="stat-l">privileged acts under no grant</div>
+    <div class="small text-muted">in the last {{ '%.0f' | format(report.unglassed.window_days) }} days</div>
+  </div></div></div>
+  <div class="col-md-2"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.open else '' }}">{{ report.open }}</div>
+    <div class="stat-l">open now</div>
+  </div></div></div>
+  <div class="col-md-2"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n">{{ report.unilateral }}</div>
+    <div class="stat-l">unilateral</div>
+    <div class="small text-muted">one person, shorter window</div>
+  </div></div></div>
+  <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+    <div class="stat-n {{ 'evidence-bad' if report.awaiting_review else 'evidence-ok' }}">{{ report.awaiting_review }}</div>
+    <div class="stat-l">awaiting review</div>
+    <div class="small text-muted">the next request from that person is refused
+      until somebody reads them</div>
+  </div></div></div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What happened without a grant</div>
+  <div class="card-body small text-muted">
+    <strong>You cannot find break-glass abuse by watching break-glass.</strong>
+    Anybody misusing emergency access would simply not open a grant for it, so
+    the abuse is never in the break-glass log — it is in what is missing from it.
+    The figure above counts privileged acts by an administrator that fell inside
+    no open window, folded from the evidence chain rather than reported by the
+    people it is about.
+    <br><br>{{ report.unglassed.detail }}.
+    {% if report.unglassed.by_principal %}
+    <br><br>
+    {% for who, n in report.unglassed.by_principal.items() %}
+    <span class="badge bg-secondary-subtle text-body-secondary me-1 mono"
+          style="font-weight:400">{{ who }} — {{ n }}</span>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Every grant</div>
+  <div class="card-body py-2 small text-muted border-bottom">{{ report.detail }}.</div>
+  {% if report.grants %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Ref</th><th>Who</th><th>State</th><th>Authorised by</th>
+      <th>Reason</th><th>Review</th>
+    </tr></thead>
+    <tbody>
+      {% for row in report.grants %}
+      <tr>
+        <td class="mono small">{{ row.reference }}</td>
+        <td class="mono small">{{ row.principal }}</td>
+        <td class="small">
+          {% if row.effectively_open %}
+            <span class="evidence-bad">open</span>
+            <span class="text-muted">({{ '%.0f' | format(row.seconds_left / 60) }} min left)</span>
+          {% else %}<span class="text-muted">{{ row.state }}</span>{% endif %}
+          {% if row.unilateral %}
+            <span class="badge bg-secondary-subtle text-body-secondary ms-1"
+                  style="font-weight:400">unilateral</span>{% endif %}
+        </td>
+        <td class="mono small">{{ row.authorised_by or '—' }}</td>
+        <td class="small">{{ row.reason }}</td>
+        <td class="small">
+          {% if row.review_outcome %}
+            <span class="{{ 'evidence-ok' if row.review_outcome == 'appropriate' else 'evidence-bad' }}">
+              {{ row.review_outcome }}</span>
+            <span class="text-muted">by {{ row.reviewed_by }}</span>
+          {% elif row.awaiting_review %}<span class="evidence-bad">outstanding</span>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card-body small text-muted">
+    No emergency elevation has ever been asked for on this instance.
+  </div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>A unilateral grant is allowed and is marked.</strong> Dual
+    authorisation means the second person cannot be the first, and at three in
+    the morning there may be only one person awake. Refusing outright is how an
+    institution ends up with a shared password in a safe, which has no name, no
+    reason, no window and no review — so a single-person grant opens, gets a
+    shorter window, and its review is not optional.
+    <br><br>
+    <strong>Expiry is derived, never a flag somebody clears.</strong> A grant is
+    closed to the platform the instant its window ends, whether or not the batch
+    has run — a grant only closed when a batch runs is open whenever the batch is
+    not, which is exactly when it would matter.
+  </div>
+</div>
+
+{% endblock %}

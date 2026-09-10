@@ -673,6 +673,81 @@
         ]
       }
     },
+    "/api/v1/break-glass": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "principal",
+          "reason!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/break-glass/{reference}/authorise": {
+      "post": {
+        "body": [
+          "unilateral"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/break-glass/{reference}/close": {
+      "post": {
+        "body": [
+          "reason"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/break-glass/{reference}/review": {
+      "post": {
+        "body": [
+          "note!",
+          "outcome!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/break-glass/{reference}/under": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/change-classification": {
       "get": {
         "body": [],
@@ -3976,6 +4051,15 @@
       }
     },
     "/board-pack": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/break-glass": {
       "get": {
         "body": [],
         "parameters": [],

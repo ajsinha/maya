@@ -131,6 +131,14 @@ STATUS: Dict[str, int] = {
     # just stated a value the lattice does not admit or one below the floor
     # their own model's inputs force.
     "unknown_classification": 422, "below_the_derived_floor": 422,
+    # break-glass. `same_person` and `reviewed_by_the_user` are 403 because
+    # they are refusals of *authority*: this person may not do this act,
+    # whoever they are. The rest are 409 — a grant in the wrong state — or 422.
+    "same_person": 403, "reviewed_by_the_user": 403,
+    "review_outstanding": 409, "not_requested": 409, "not_open": 409,
+    "still_open": 409,
+    "not_unilateral": 422, "unknown_outcome": 422, "note_required": 422,
+    "no_grant": 404,
     "nothing_to_set": 422, "budget_exhausted": 429,
     # A reassessment that re-runs the formula on last year's facts and
     # calls it a review. 422: the request is incomplete, not refused.

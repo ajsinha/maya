@@ -806,6 +806,51 @@ DATASET_SNAPSHOT = Table(
 )
 
 
+# Emergency elevation, with a second signature, an end and a review.
+#
+# The `admin` role is *described* as break-glass and is exempt from the
+# incompatible-roles check, which is not break-glass — it is a standing account
+# that happens to be powerful, and a standing powerful account is the thing
+# break-glass exists to replace. Break-glass is defined by being **closed by
+# default**: it is asked for, agreed to by somebody else, it ends on its own, and
+# somebody reads afterwards what was done under it.
+#
+# There is no `permissions` column, and that is deliberate. A grant does not
+# hand out rights; the role does. What the grant establishes is a **window with
+# a reason and a second signature**, and the platform's answer to *what was done
+# under it* is a fold of the evidence chain over that window by that actor —
+# derived rather than kept in a second log that could disagree with the first.
+BREAK_GLASS = Table(
+    "break_glass", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("principal", Text, nullable=False),
+    Column("requested_by", Text, nullable=False),
+    Column("reason", Text, nullable=False),
+    # Null while the second signature is outstanding, and null forever on a
+    # unilateral grant — which is allowed, because refusing outright at 3am is
+    # how people end up sharing passwords instead.
+    Column("authorised_by", Text),
+    Column("unilateral", Boolean, nullable=False, server_default=false()),
+    Column("opened_at", Double),
+    # A moment, not a flag. Expiry that depends on a batch having run is expiry
+    # that has not happened, so every read derives it from this.
+    Column("expires_at", Double),
+    Column("closed_at", Double),
+    Column("closed_by", Text),
+    Column("close_reason", Text, nullable=False, server_default=text("''")),
+    # The review is mandatory in the only sense that means anything: an
+    # unreviewed grant refuses the next one.
+    Column("review_due", Double),
+    Column("reviewed_at", Double),
+    Column("reviewed_by", Text),
+    Column("review_outcome", Text),
+    Column("review_note", Text, nullable=False, server_default=text("''")),
+    Column("state", Text, nullable=False, server_default=text("'requested'")),
+    Index("ix_break_glass_principal", "principal", "state"),
+    Index("uq_break_glass_reference", "reference", unique=True),
+)
+
 # --------------------------------------------------------------------------
 # Validation, test results and findings
 # --------------------------------------------------------------------------
