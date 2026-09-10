@@ -99,6 +99,81 @@ refused, naming the feature that forces the floor.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">What this instance is holding, and for how long</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    The invocation log records the <em>shape</em> of every call — who, what for,
+    which version, how long, how it ended — and deliberately holds no content.
+    The inference log is the other half, and it holds content only where somebody
+    decided it should. <strong>The digest is the default and the values are the
+    exception</strong>: a digest proves what was asked and what was answered
+    without holding either, which is what AI Act Art. 12 traceability actually
+    needs.
+  </div>
+  <div class="row g-3 p-3">
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n">{{ inference.records }}</div>
+      <div class="stat-l">inference records</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if inference.holding_content else '' }}">{{ inference.holding_content }}</div>
+      <div class="stat-l">holding the values themselves</div>
+      <div class="small text-muted">a decision somebody took, not a default</div>
+    </div></div></div>
+    {# Set inference.digest_key, or a digest of an age and a postcode is a
+       lookup table anybody with the same hash function can enumerate. #}
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-ok' if inference.keyed_digests else 'evidence-bad' }}">
+        {{ 'keyed' if inference.keyed_digests else 'unkeyed' }}</div>
+      <div class="stat-l">digests</div>
+      <div class="small text-muted">an unkeyed digest of a small vector is a
+        lookup table</div>
+    </div></div></div>
+    <div class="col-md-3"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if inference.past_retention else 'evidence-ok' }}">{{ inference.past_retention }}</div>
+      <div class="stat-l">past their retention</div>
+      <div class="small text-muted">above zero means the batch has not run</div>
+    </div></div></div>
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Class</th><th class="text-end">Records held</th>
+      <th class="text-end">Kept for</th><th>Sampling</th>
+    </tr></thead>
+    <tbody>
+      {% for level in levels %}
+      <tr>
+        <td class="small mono">{{ level }}</td>
+        <td class="small text-end">{{ inference.by_classification.get(level, 0) }}</td>
+        <td class="small text-end text-muted">
+          {{ '%.0f' | format(inference.retention_days[level]) }} days</td>
+        <td class="small text-muted">
+          {% if loop.first %}by tier:
+            {% for tier, rate in inference.sampling.items() %}
+            tier {{ tier }} {{ '%.0f' | format(100 * rate) }}%{{ ', ' if not loop.last }}
+            {% endfor %}
+          {% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">
+    <strong>Retention runs the other way from what people expect.</strong>
+    <code>restricted</code> data is kept for the <em>shortest</em> time, not the
+    longest. The instinct is that important data should be kept longer; the
+    obligation is that data you should not be holding should be held for less
+    time.
+    <br><br>
+    <strong>And the interesting calls are never sampled out.</strong> A refusal, a
+    boundary violation and an error are kept whatever the rate says — the sample
+    exists to make the rare thing visible, and sampling out the rare thing is
+    exactly backwards. Every row says which reason put it there, because a sample
+    nobody can explain is a sample nobody trusts.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">What a document inherits</div>
   <div class="card-body small text-muted">
     A document is at least as sensitive as the most sensitive model it describes,

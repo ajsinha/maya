@@ -552,7 +552,10 @@ class UIRoutes(Routes):
                 request, "classification.html", report=report,
                 levels=list(LEVELS), meaning=MEANING,
                 documents=service.of_documents(
-                    [row["urn"] for row in report["models"]]))
+                    [row["urn"] for row in report["models"]]),
+                # The other half of the same subject: what the platform is
+                # actually HOLDING about what those models were asked.
+                inference=self.ctx["inference"].posture())
 
         # -------------------------------------------- machine assistance
         @self.app.get("/assist", response_class=HTMLResponse, tags=["ui"])

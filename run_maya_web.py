@@ -61,6 +61,7 @@ from core.execution.profiles import WarrantProfileRegister
 from core.authz.breakglass import BreakGlass
 from core import concurrency
 from core.concurrency import IdempotencyStore
+from core.execution.inference import InferenceLog
 from core.classification import Classification
 from core.registry.comparison import VersionComparison
 from core.assist import (BudgetRegister, CanaryRegister, CapabilityRegistry,
@@ -122,6 +123,7 @@ from db import (ServingAttestationRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
                 BreakGlassRepository, IdempotencyRepository,
+                InferenceRepository,
                 ScheduledRunRepository, SignatureRepository, SnapshotRepository,
                 SpendRepository,
                 TestResultRepository, ValidationRepository, VersionRepository,
@@ -659,6 +661,16 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     data_classification = Classification(registry, features,
                                          parameters=parameters)
 
+    # What a model was asked and answered. The digest is the default and the
+    # values are the exception, because content carries personal data — so this
+    # table has a sampling rate, a retention period and a classification, and
+    # none of them is optional.
+    inference = InferenceLog(
+        InferenceRepository(db), registry,
+        classification=data_classification,
+        key=cfg.get("inference.digest_key", ""))
+
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -764,7 +776,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    lifecycle_profiles=lifecycle_profiles,
                    canaries=canaries,
                    break_glass=break_glass,
-                   idempotency=idempotency),
+                   idempotency=idempotency,
+                   inference=inference),
         # The configured cadence, so `health` can say the batch has STOPPED
         # rather than only how many hours it has been. A dead scheduler makes
         # the estate look clean, not stale, because every lapse it records is
@@ -832,6 +845,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "break_glass": break_glass,
                            "version_comparison": version_comparison,
                            "idempotency": idempotency,
+                           "inference": inference,
                            "debts": debts, "baseline": baseline,
                            "regimes": regimes, "worklist": worklist,
                            "estate": estate, "scheduler": scheduler,

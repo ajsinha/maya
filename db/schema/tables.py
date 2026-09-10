@@ -851,6 +851,54 @@ BREAK_GLASS = Table(
     Index("uq_break_glass_reference", "reference", unique=True),
 )
 
+# What a model was asked and what it answered — kept apart from the invocation
+# record on purpose.
+#
+# `warrant_invocation` holds the SHAPE of a call: who, what for, which version,
+# how long, how it ended. That can be kept for years without anybody having to
+# think about it. This holds the CONTENT, and content carries personal data, so
+# it has a retention period, a sampling rate and a classification, and none of
+# those is optional.
+#
+# **The digest is the default and the values are the exception.** A digest
+# proves what was asked and what was answered without holding either, which is
+# what AI Act Art. 12 traceability actually needs. Holding the values is a
+# decision somebody takes per model, with a reason and an end date.
+#
+# The digest is **keyed**, and that is not decoration. An unkeyed digest of a
+# small feature vector — an age, a postcode, a band — is a lookup table anybody
+# with the same hash function can enumerate. A key the platform holds and the
+# row does not makes the digest a comparison token rather than a disclosure.
+INFERENCE = Table(
+    "inference", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("invocation_id", Text),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text),
+    Column("request_id", Text),
+    Column("principal", Text, nullable=False),
+    # Always present. What was asked and what came back, as keyed digests.
+    Column("feature_digest", Text, nullable=False),
+    Column("prediction_digest", Text, nullable=False),
+    # Present only where somebody decided to retain content for this model, and
+    # only until `retain_until`.
+    Column("features", Text),
+    Column("prediction", Text),
+    Column("explanation", Text),
+    Column("latency_ms", Double),
+    Column("outcome", Text, nullable=False, server_default=text("'ok'")),
+    # Why this row exists when most calls produce none: `sampled`, `refused`,
+    # `boundary` or `always`. A sample nobody can explain is a sample nobody
+    # trusts, and the interesting rows are kept for a different reason from the
+    # ordinary ones.
+    Column("reason", Text, nullable=False, server_default=text("'sampled'")),
+    Column("classification", Text, nullable=False, server_default=text("'internal'")),
+    Column("retain_until", Double),
+    Column("at", Double, nullable=False),
+    Index("ix_inference_model", "model_id", "at"),
+    Index("ix_inference_retention", "retain_until"),
+)
+
 # A mutating request somebody may send twice.
 #
 # Scoped to the **principal as well as the key**, because a key is chosen by the
