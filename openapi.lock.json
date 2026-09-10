@@ -336,6 +336,15 @@
         ]
       }
     },
+    "/api/v1/assist/injection": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/assist/providers": {
       "get": {
         "body": [],

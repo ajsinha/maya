@@ -529,12 +529,14 @@ class UIRoutes(Routes):
             """
             if (r := self.page_gate(request, "assist:read")) is not None:
                 return r
+            from core.assist import injection
             from core.assist import providers as assist_providers
             return self.page(
                 request, "assist.html",
                 budgets=self.ctx["assist_budgets"].across_the_estate(),
                 capabilities=self.ctx["capabilities"].list(),
-                providers=assist_providers.describe())
+                providers=assist_providers.describe(),
+                injection=injection.sweep(self.ctx["evidence"]))
 
         # ----------------------------------------------- lifecycle profiles
         @self.app.get("/lifecycle-profiles", response_class=HTMLResponse,
