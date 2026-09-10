@@ -1283,6 +1283,47 @@ rather than refused, because plenty of checkpoints live elsewhere and are named 
 verify them on load — and the warrant carries the difference as `held_by_maya`. The ceiling is 8 GiB,
 deliberately: a governance platform is not a model store of last resort.
 
+### 14.9 What one grant may spend
+
+Checked in `WarrantService.resolve` **before the descriptor is signed**. A signed descriptor *is* an
+authorisation: handing one out and then declining to honour it would leave the caller holding a warrant the
+platform does not intend to let it use, which is exactly the confusion the whole warrant design removes.
+
+| Limit | Unit | What it protects |
+|---|---|---|
+| `rate_per_minute` | calls | the **downstream system** from a loop |
+| `quota` per window | calls | the **authorisation** from being used more than anybody intended — a grant issued for a nightly batch and exercised forty thousand times a day is being used for something nobody approved, and no rate limit would notice because none of it is fast |
+| `cost_budget` per window | money | the **invoice**. The only one whose unit is not calls, which is precisely why it is the one that matters for a token-metered generative model: ten calls can cost more than ten thousand |
+
+Four decisions carry the design.
+
+**The limit is on the grant, not the caller.** That is what *per grant* means and it is the right unit. A
+service account holding four grants should not have one runaway use exhaust the other three — a limit on the
+principal turns an incident in one product into an outage in three unrelated ones.
+
+**A refused call does not spend.** Otherwise a caller in a retry loop can never recover: the retries consume
+the allowance the retries are waiting for, and the grant is dead until the window rolls even though it was
+never used successfully. The refusals are still *recorded* — `warrant_invocation` keeps them, which is what
+makes *who is hammering this* answerable — they simply do not count.
+
+**The rate window slides.** A fixed one-minute bucket permits twice the limit across a boundary: sixty calls
+at 11:59:59 and sixty more at 12:00:01 is a hundred and twenty in two seconds under a limit of sixty a
+minute. The whole point of a rate limit is the burst, so measuring it in a way that misses the burst measures
+nothing.
+
+**Nothing is defaulted.** A grant with no limits is unlimited on every axis, and the estate view reports how
+many of those there are rather than treating it as the normal state. Inventing a limit would refuse work
+nobody agreed to refuse; pretending an absent limit is a decision would be worse. The same reasoning puts
+`cost` at null rather than zero when a caller reports none — a cost budget over a column that silently read
+zero would never be reached, which is the failure worth designing against for the very models this
+requirement names.
+
+The three refusals are written out as literals (`rate_limit_reached`, `quota_limit_reached`,
+`cost_limit_reached`) rather than assembled from the limit's name. A code built with an f-string is a code
+nobody can grep for, and the discipline test that reconciles the refusal taxonomy against the route layer's
+status map cannot see one either — so the mapping would silently degrade to a bare 400. All three are 429:
+the caller did nothing wrong and the answer is *later*, which is what 429 means and what 403 does not.
+
 ## 15. Machine assistance
 
 `core/assist/` — capabilities, oracles, grounding, generations, providers, budgets, injection,
@@ -1860,8 +1901,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 240 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 301 modules in one
+the 241 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 302 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

@@ -152,6 +152,26 @@ def _laws() -> List[Dict[str, str]]:
 
 
 class WarrantAuthoringRoutes(Routes):
+
+    def _limits_within(self, grants):
+        """What each of these grants may spend.
+
+        Scoped to the grants the reader could already see, rather than asking
+        the estate. A limits table that listed every grant would name the
+        principals and declared uses of models this reader is not entitled to
+        know exist — which is the shape of leak the scope check on this page
+        exists to prevent, arriving through a second table.
+        """
+        visible = {g.get("id") for g in grants}
+        whole = self.ctx["grant_quotas"].across_the_estate()
+        rows = [r for r in whole["grants"] if r["warrant_id"] in visible]
+        return {
+            **whole, "grants": rows, "count": len(rows),
+            "exhausted": sum(1 for r in rows if r["exhausted"]),
+            "unlimited": sum(1 for r in rows if len(r["unlimited"]) == 3),
+            "refused_in_window": sum(r["refused_in_window"] for r in rows),
+        }
+
     def register(self) -> None:
         registry, warrants = self.ctx["registry"], self.ctx["warrants"]
 
@@ -190,6 +210,12 @@ class WarrantAuthoringRoutes(Routes):
             return self.page(request, "warrants_estate.html", grants=grants,
                              live=[g for g in grants
                                    if not g.get("revoked") and not g["lapsed"]],
+                             # What each grant may spend, which is a different
+                             # question from whether it is in force — and
+                             # scoped to the same models, because a limits
+                             # table listing every grant would name principals
+                             # and uses for models this reader may not see.
+                             limits=self._limits_within(grants),
                              now=now)
 
         @self.app.get("/warrants", response_class=HTMLResponse, tags=["ui"])
