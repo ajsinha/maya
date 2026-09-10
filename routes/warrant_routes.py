@@ -17,6 +17,7 @@ from fastapi import Request
 from pydantic import Field
 
 from core.authz.common import AuthzError, same_person
+from core.execution.shadow import ShadowTraffic
 from core.execution.urn import model_urn, parse_urn
 from routes.base import Body, Routes
 
@@ -83,6 +84,36 @@ class LimitsIn(Body):
     quota: Optional[int] = None
     cost: Optional[float] = None
     window_hours: Optional[float] = None
+
+
+class CompositeIn(Body):
+    """A chain, addressed by its terminal.
+
+    There is no field naming the nodes: the chain is derived from the recorded
+    `input_to` edges, so a caller cannot compose a set of models the register
+    does not know are composed.
+    """
+    terminal: str
+    environment: str
+    declared_use: str
+    principal: str = ""
+    verb: str = "score"
+
+
+class ShadowIn(Body):
+    """A mirror somebody else's router will perform.
+
+    `share` is an attestation and not a control — MAYA is not in the serving
+    path. `declared_use` must not be a production use of this model, because
+    that is how a shadow answer reaches a decision.
+    """
+    urn: str
+    environment: str
+    principal: str
+    declared_use: str
+    mirrors: str
+    share: float
+    until: Optional[float] = None
 
 
 class WarrantRoutes(Routes):
@@ -378,3 +409,89 @@ class WarrantRoutes(Routes):
             return self.guard(lambda: engine.execute(
                 body.urn, body.environment, body.principal, body.declared_use,
                 body.inputs).__dict__)
+
+        # ------------------------------------------------------- composites
+        @self.app.get(f"{self.api}/composites", tags=["warrants"])
+        def composites(request: Request, urn: Optional[str] = None):
+            """Every chain, or the one behind a terminal.
+
+            The composite's tier is the join of its nodes': a chain is at least
+            as risky as its riskiest part, derived rather than declared because
+            the only direction anybody ever wants to move it is down.
+            """
+            engine = self.ctx["composite_warrants"]
+            if urn is None:
+                self.authorise(request, "warrant:read",
+                               estate_wide="reading every composition")
+                return self.guard(lambda: engine.across_the_estate())
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "warrant:read", model=model)
+            return self.guard(lambda: engine.chain(urn))
+
+        @self.app.post(f"{self.api}/composites/resolve", tags=["warrants"])
+        def resolve_composite(request: Request, body: CompositeIn):
+            """Resolve every node, or refuse the whole chain naming each one.
+
+            There is no composite descriptor and that is deliberate: signing one
+            would assert the chain as a whole is authorised, and nothing
+            established that.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(body.terminal))
+            who = self.authorise(request, "warrant:resolve", model=model)
+            return self.guard(
+                lambda: self.ctx["composite_warrants"].resolve(
+                    body.terminal, body.environment,
+                    body.principal or self.actor(who), body.declared_use,
+                    verb=body.verb))
+
+        @self.app.post(f"{self.api}/composites/check", tags=["warrants"])
+        def check_composite(request: Request, body: CompositeIn):
+            """Would this chain resolve? Without minting anything.
+
+            Its own endpoint because *can this chain run* is asked far more
+            often than the chain is run, and answering by resolving would mint
+            descriptors nobody intends to use.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(body.terminal))
+            who = self.authorise(request, "warrant:read", model=model)
+            return self.guard(lambda: self.ctx["composite_warrants"].check(
+                body.terminal, body.environment,
+                body.principal or self.actor(who), body.declared_use))
+
+        # ---------------------------------------------------------- shadow
+        @self.app.get(f"{self.api}/shadow/posture", tags=["warrants"])
+        def shadow_posture(request: Request):
+            """What MAYA does and does not do about mirrored traffic."""
+            self.authorise(request, "warrant:read")
+            return ShadowTraffic.describe()
+
+        @self.app.get(f"{self.api}/shadow", tags=["warrants"])
+        def shadow(request: Request, urn: Optional[str] = None,
+                   environment: str = "", now: Optional[float] = None):
+            """Advisory grants, and whether any has outstayed itself."""
+            engine = self.ctx["shadow"]
+            if urn is None:
+                self.authorise(request, "warrant:read",
+                               estate_wide="reading every advisory grant")
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "warrant:read", model=model)
+            return self.guard(
+                lambda: engine.status(urn, environment=environment, now=now))
+
+        @self.app.post(f"{self.api}/shadow", status_code=201, tags=["warrants"])
+        def authorise_shadow(request: Request, body: ShadowIn):
+            """Issue an advisory grant for a challenger beside a champion.
+
+            The share is an attestation. MAYA is not in the serving path and
+            cannot see the router, and claiming to enforce a canary percentage
+            by watching would be claiming something it has no way to check.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "warrant:issue", model=model)
+            return self.guard(lambda: self.ctx["shadow"].authorise(
+                body.urn, body.environment, body.principal,
+                declared_use=body.declared_use, mirrors=body.mirrors,
+                share=body.share, until=body.until, actor=self.actor(who)))

@@ -1824,6 +1824,71 @@ rather than refused, because plenty of checkpoints live elsewhere and are named 
 verify them on load — and the warrant carries the difference as `held_by_maya`. The ceiling is 8 GiB,
 deliberately: a governance platform is not a model store of last resort.
 
+### 14.8a A chain resolved as one unit, and refused as one
+
+A discount curve feeds a valuation feeds a provision. The caller wants one authorisation and one answer;
+the register holds three models, three approvals, three sets of limitations and three tiers. A composite
+warrant reconciles those, and the reconciliation is almost entirely about what it **refuses**.
+
+**A chain is as governed as its least governed link.** A composite resolves only if every node resolves —
+one blocking finding, one revoked grant, one unapproved version, and the whole thing is refused. The
+reason `input_to` edges are tracked at all is that a change upstream reaches downstream; an authorisation
+that ignored the upstream state would be routing around the only control that knows.
+
+| Decision | Why |
+|---|---|
+| **Every refusing node is named**, not the first | A caller told about one fixes it, retries and discovers the next. A chain with three problems takes three round trips and each looks like a new failure |
+| The tier is the **join** of the nodes' | A chain is at least as risky as its riskiest part — the same lattice reasoning as data classification, and derived so it cannot be declared lower |
+| **No single signed descriptor** | Signing one would assert the chain *as a whole* is authorised. Three people approved three models for three purposes; none approved the composition |
+| Cycles **refused, not truncated** | A truncated order hands a caller a chain that runs and is wrong |
+| `check` beside `resolve` | *Can this chain run* is asked far more often than the chain is run, and answering by resolving would mint descriptors nobody intends to use |
+
+The register already refuses to *create* a cycle, so the composite's own check is the backstop for a
+graph that arrived by import or restore — the case where the first line of defence was never applied.
+
+### 14.8b An answer that must not be used
+
+Shadow traffic is a good practice and it happens in the router. **MAYA is not in the serving path**: it
+does not mirror, does not sample and cannot observe the share. Claiming to enforce a canary percentage by
+*watching* would be claiming something it has no way to check — the same objection this codebase makes
+about compute residency, and the declared share is labelled an **attestation** for the same reason.
+
+Three things a register can do instead, and each is a real control:
+
+1. **Authorise the mirror as advisory.** The grant carries a flavour, the answer is non-authoritative,
+   and every invocation is recorded as such. A firm that never marked its shadow traffic has a
+   challenger's answers in the same log as its champion's, and *did this number reach a decision* becomes
+   unanswerable a year later.
+2. **Refuse a shadow grant whose declared use is an approved production use.** That is exactly how a
+   shadow answer reaches a decision — not by somebody deciding to use it, but by a grant nothing can tell
+   from a production one at the point of use.
+3. **Notice a shadow that never ends.** Shadow mode exists to decide something. One running past ninety
+   days is a second production model nobody approved, on production traffic, with no owner, no validation
+   and no monitoring plan — and it is the failure this is most likely to catch in a real estate.
+
+Where invocation telemetry exists the observed share is computed **with its caveat attached**: it is the
+share of calls that asked MAYA for a warrant, not the share the router mirrored, and a router that copies
+traffic without resolving is invisible here in a way no arrangement of this platform would fix.
+
+### 14.8c Why there is no managed serving
+
+`FR-WARRANT-014` asks for an optional serving endpoint for teams without their own runtime. It is refused,
+and the refusal is the position the rest of the platform rests on.
+
+Every control here is credible because MAYA is not in the serving path: it authorises, it takes delivery
+of what happened, and it can therefore be the independent record of both. Managed serving ends that twice
+over. **Operationally**, the register and the runtime become one process — so an outage of the governance
+platform becomes an outage of the bank's credit decisions, and the platform whose whole argument is that
+a warrant survives its own unavailability (§14.3) would have made itself the thing that must not go down.
+**In principle**, a platform that both issues the authority and performs the act is the only witness to
+its own execution; the invocation log, the refusal to take a verdict from whoever computed a monitoring
+number (§13.8) and the refusal to submit training jobs (§12.11) are all the same rule, and this would be
+the exception that dissolves it.
+
+The captive engine is a **reference consumer of the public warrant contract** — so that a deployment works
+out of the box and the contract is demonstrably usable by somebody other than its author. That is a
+different thing from a serving product, and it is off by one configuration key.
+
 ### 14.9 What one grant may spend
 
 Checked in `WarrantService.resolve` **before the descriptor is signed**. A signed descriptor *is* an
@@ -2934,8 +2999,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 299 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 360 modules in one
+the 301 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 362 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
