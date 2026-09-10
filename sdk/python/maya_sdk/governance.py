@@ -1587,3 +1587,90 @@ class Probes:
         """
         return self._maya.call("POST", "/probe-sets/grade", json={
             "urn": urn, "semver": semver, "probes": probes})
+
+
+class Remediation:
+    """What is still owed, computed rather than proposed.
+
+    *What do I still have to do* is answered everywhere else with a checklist,
+    and a checklist is a conjunction. The real structure is a **disjunction of
+    conjunctions** — there is usually more than one route to a model being in
+    force, and the routes cost different amounts. That makes it a shortest-path
+    problem, solved in the tropical semiring over a published derivation.
+
+    Nothing asks a language model what to do next, and nothing could: the answer
+    is arithmetic, and an arithmetic answer produced by a model is a worse
+    version of the same number.
+
+    **Nothing is executed.** Each step names the route a person calls — no
+    capability in this platform holds a credential permitting a governance
+    transition, and an assistant that could conclude a validation to close out
+    its own plan would defeat the whole control structure in one method.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def acts(self) -> Dict[str, Any]:
+        """The acts, their costs and the derivation, before any plan."""
+        return self._maya.call("GET", "/remediation")
+
+    def plan(self, urn: str, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """The cheapest route to this model being in force.
+
+        Read `cheaper_but_hollow`. A validation is expensive and a waiver of the
+        validation requirement is cheap; both make the compliance predicate
+        true, and a shortest-path solver with no opinion about kind recommends
+        the waiver every time — correctly, and disastrously. Those acts are
+        excluded from the plan by *kind* and listed separately, so a firm can
+        take one deliberately rather than find it by accident.
+
+        Read `defaulted_share` too. A shortest path over guessed weights is a
+        confident answer to a question nobody asked, and the confidence is the
+        dangerous part.
+        """
+        return self._maya.call("GET", f"/models/{urn}/remediation",
+                               params={"now": now})
+
+
+class Migrations:
+    """An artifact converted to another format, and the claim it is the same model.
+
+    **MAYA does not convert it.** Converting means loading and running a model,
+    and this platform does neither. What it does is hold the equivalence claim
+    to a standard: you run both artifacts over a probe set and send the results,
+    and the register judges them.
+
+    Three things it refuses on, each a way a real equivalence report passes when
+    it should not. A probe with **no result** fails rather than being skipped —
+    a report over 40 of 50 probes looks exactly like a report over 50 at the
+    bottom of the page. A **thin probe set** makes the claim `unsubstantiated`
+    rather than `passed`, because two implementations agree in the interior by
+    construction and this one never reached the boundary. And **tolerance has no
+    default**: one chosen after the divergences are known is not a tolerance, it
+    is a description of them, and it will be exactly wide enough.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def outcomes(self) -> Dict[str, Any]:
+        """The three outcomes, and what MAYA does not do."""
+        return self._maya.call("GET", "/migrations")
+
+    def verify(self, urn: str, *, semver: str, from_digest: str,
+               to_digest: str, to_format: str, tolerance: float,
+               probes: List[Dict[str, Any]], results: List[Dict[str, Any]],
+               ran_by: str) -> Dict[str, Any]:
+        """Judge an equivalence claim you measured.
+
+        `results` pairs each probe by index with what each artifact answered:
+        `{"probe": 0, "from": ..., "to": ...}`. Both refusing is *agreement*,
+        and about the most informative kind — the boundary behaves the same way
+        in both.
+        """
+        return self._maya.call("POST", "/migrations/verify", json={
+            "urn": urn, "semver": semver, "from_digest": from_digest,
+            "to_digest": to_digest, "to_format": to_format,
+            "tolerance": tolerance, "probes": probes, "results": results,
+            "ran_by": ran_by})

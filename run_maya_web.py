@@ -38,7 +38,9 @@ from core.features.pipeline import PipelineHealth
 from core.lifecycle.changes import ChangeClassifier
 from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
+from core.artifacts.migration import FormatMigration
 from core.assist.encoding import RegimeEncodingAssistant
+from core.assist.remediation import RemediationPlanner
 from core.assist.nlquery import NaturalLanguageQuery
 from core.assist.probes import ProbeSets
 from core.assist.validation_aid import ValidationAssistant
@@ -989,6 +991,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # is one where nobody can tell a misread question from a wrong number.
     nl_query = NaturalLanguageQuery(semantics, provider=None)
 
+    # What is still owed, computed rather than proposed: the tropical
+    # semiring over a published derivation gives the cheapest route to a model
+    # being in force. Only acts that PRODUCE EVIDENCE are in the plan — a
+    # waiver makes the claim true without making the model safer, is genuinely
+    # cheaper, and a shortest-path solver with no opinion about kind would
+    # recommend it every time.
+    remediation = RemediationPlanner(
+        registry, findings=findings, validation=validation,
+        monitoring=monitoring, documents=documents,
+        costs=cfg.get("remediation.costs", {}) or {})
+
     # Reads obligations out of regulatory prose and PROPOSES an encoding —
     # a form name and some term names, never a predicate: a language model
     # emitting code that decides what a regulation obliges is where a
@@ -1002,6 +1015,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # the boundary. MAYA proposes them and does not run them — running a probe
     # means running the model.
     probe_sets = ProbeSets(registry)
+
+    # An artifact converted from one format to another, and the claim that it
+    # is the same model. MAYA converts nothing and runs nothing: it holds
+    # somebody else's equivalence measurement to a standard and refuses.
+    migration = FormatMigration(registry, probe_sets, evidence)
 
     # Three pieces of a validator's work, and not one of them a conclusion:
     # retrieval over filed vendor documents, questions derived from findings on
@@ -1122,6 +1140,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "nl_query": nl_query,
                            "regime_encoding": regime_encoding,
                            "probe_sets": probe_sets,
+                           "remediation": remediation,
+                           "migration": migration,
                            "validation_aid": validation_aid,
                            "saved_views": saved_views,
                            "regulatory_returns": regulatory_returns,
