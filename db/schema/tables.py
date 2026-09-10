@@ -1476,6 +1476,46 @@ MODEL_ASSUMPTION = Table(
 
 
 
+
+# Every time a warrant was actually USED, and how it went.
+#
+# Resolutions were evidence nodes and invocations were not recorded at all, so
+# the register could say who was ENTITLED to run a model and never who did.
+# Three questions had no answer: how much is this model actually used, when was
+# this standing authorisation last exercised, and which grants has nobody used
+# at all. The last one is a security question rather than a reporting one — a
+# grant nobody has exercised in a year is an authorisation the estate is
+# carrying for no reason, and least privilege says to withdraw it.
+#
+# What is recorded is deliberately the SHAPE of the call and not its content.
+# No feature values, no prediction: those are `FR-MON-008`'s business, they
+# carry personal data, and a table that quietly accumulated them would be a
+# retention problem nobody decided to take on. What is here is who called,
+# under what use, against which version, how long it took and how it ended.
+WARRANT_INVOCATION = Table(
+    "warrant_invocation", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("warrant_id", Text, nullable=False),
+    Column("model_id", Text, nullable=False),
+    Column("model_version_id", Text),
+    Column("semver", Text),
+    Column("principal", Text, nullable=False),
+    Column("declared_use", Text, nullable=False),
+    Column("environment", Text, nullable=False),
+    Column("verb", Text, nullable=False, server_default=text("'score'")),
+    # `ok`, `refused` or `error`. A refusal is a normal outcome and is recorded
+    # as one — a log that only held successes would make a model look healthier
+    # the more often it was refused.
+    Column("outcome", Text, nullable=False),
+    Column("refusal_code", Text),
+    Column("latency_ms", Double),
+    Column("boundary_ok", Boolean),
+    Column("request_id", Text),
+    Column("at", Double, nullable=False),
+    Index("ix_warrant_invocation_warrant_id", "warrant_id"),
+    Index("ix_warrant_invocation_model_id_at", "model_id", "at"),
+)
+
 # A control this model is NOT meeting, and who said that was acceptable.
 #
 # Every estate has these and most keep them in a spreadsheet, which is how a

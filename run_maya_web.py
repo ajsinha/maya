@@ -32,6 +32,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from core.authz import csrf
 from fastapi.templating import Jinja2Templates
 
+from core.execution.invocations import InvocationLog
 from core.execution import (CaptiveEngine, InProcessSandbox,
                             SubprocessSandbox)
 from core.estate import EstateSummary, WorkList
@@ -99,6 +100,7 @@ from db import (ServingAttestationRepository,
                 GenerationRepository, ImportRepository, MeasurementRepository,
                 ModelRepository, MonitorRepository, ObservationRepository,
                 ApiKeyRepository, AssumptionRepository,
+                InvocationRepository,
                 LimitationRepository, RoleRepository, WaiverRepository,
                 OverlayRepository,
                 PrincipalRepository, RiskRepository,
@@ -439,6 +441,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         max_days=cfg.get_int("waivers.max_days", 90),
         renewal_limit=cfg.get_int("waivers.renewal_limit", 3))
 
+    invocations = InvocationLog(
+        InvocationRepository(db), registry=registry, warrants=warrants,
+        idle_days=cfg.get_int("warrants.idle_days", 90))
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -574,6 +580,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "limitations": limitations,
                            "assumptions": assumptions,
                            "waivers": waivers,
+                           "invocations": invocations,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,
@@ -608,7 +615,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
             sandbox=SubprocessSandbox() if chosen == "subprocess" else InProcessSandbox(),
             # So a warrant naming a point of P can be honoured: the engine reads
             # the values and checks their digest before anything runs at them.
-            parameters=parameters)
+            parameters=parameters,
+            # So the estate can answer how much a model is actually used, when
+            # a standing grant was last exercised, and which grants nobody has
+            # ever used — the last being a security question rather than a
+            # reporting one.
+            invocations=invocations)
         # Fitting needs an engine to run the estimator in, so it is wired here
         # rather than beside the register: an instance with the captive engine
         # switched off can still record a fit performed elsewhere, and cannot

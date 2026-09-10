@@ -17,6 +17,7 @@ Note the ordering: every check happens BEFORE the artifact is touched.
 """
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,7 +31,7 @@ from core.execution.runtimes import (CallableRuntime, EstimatorRuntime, Invocati
 from core.execution.sandbox import (Limits, Sandbox, SubprocessSandbox,
                                     describe as describe_sandbox)
 from core.execution.warrants import WarrantError, WarrantService
-from core.log import get_logger
+from core.log import get_logger, swallowed
 
 # Runtimes that load an artifact from disk, and therefore run isolated.
 # QuantLib is not here on purpose. It loads no artifact — the instrument and the
@@ -70,8 +71,14 @@ class CaptiveEngine:
                  artifact_dir: Optional[Path] = None,
                  runtimes: Optional[RuntimeRegistry] = None,
                  sandbox: Optional[Sandbox] = None,
-                 parameters=None):
+                 parameters=None, invocations=None):
         self.warrants = warrants
+        # The invocation log, and NOT the register. The engine is a consumer of
+        # the public warrant contract and nothing more, so it hands the log a
+        # urn and lets the log resolve it — an engine holding a registry is an
+        # engine that could read the register directly, which is the thing
+        # `test_engine_never_reaches_the_store_directly` exists to prevent.
+        self.invocations = invocations
         self.max_seconds = max_seconds
         self.artifact_dir = Path(artifact_dir) if artifact_dir else None
         self._callables = CallableRuntime()
@@ -186,7 +193,19 @@ class CaptiveEngine:
     def execute(self, urn: str, environment: str, principal: str, declared_use: str,
                 inputs: Dict[str, Any]) -> ExecutionResult:
         started = time.perf_counter()
-        warrant = self.warrants.resolve(urn, environment, principal, declared_use)
+        # The log wraps everything from the resolution onward, because the
+        # calls worth reading in an access review are the ones that were
+        # REFUSED — and a log that only saw successful executions would miss
+        # every one of them.
+        try:
+            warrant = self.warrants.resolve(urn, environment, principal,
+                                            declared_use)
+        except WarrantError as refusal:
+            logger.info("refused to resolve %s for %s: %s", urn, principal,
+                        getattr(refusal, "code", "refused"))
+            self._log_refusal(urn, environment, principal, declared_use,
+                              refusal)
+            raise
 
         if not self.warrants.verify(warrant):
             raise WarrantError("signature_invalid", "warrant signature does not verify",
@@ -238,10 +257,46 @@ class CaptiveEngine:
                                           Limits.of(warrant))
         else:
             prediction = self.runtimes.invoke(Invocation(warrant, inputs))
+        latency_ms = round((time.perf_counter() - started) * 1000, 3)
+        self._log(warrant, "ok", latency_ms=latency_ms,
+                  boundary_ok=not violations)
         return ExecutionResult(
             descriptor_id=warrant["warrant_id"],
             model_urn=warrant["subject"]["model_urn"],
             version=warrant["subject"]["version"],
             prediction=prediction, boundary_ok=not violations,
             boundary_violations=violations,
-            latency_ms=round((time.perf_counter() - started) * 1000, 3))
+            latency_ms=latency_ms)
+
+    # ------------------------------------------------------------------- log
+    def _log(self, warrant: Dict[str, Any], outcome: str, **fields) -> None:
+        """Record one invocation. Never raises.
+
+        This is called on the way out of an execution, including a failing one,
+        and a logger that could fail the call it is logging would be a worse
+        defect than the missing log.
+        """
+        if self.invocations is None:
+            return
+        try:
+            self.invocations.record(warrant=warrant, outcome=outcome, **fields)
+        except Exception as exc:
+            swallowed(logger, exc, "did not record an invocation",
+                      detail="the call itself is unaffected",
+                      level=logging.WARNING)
+
+    def _log_refusal(self, urn: str, environment: str, principal: str,
+                     declared_use: str, refusal) -> None:
+        """A call that never got a warrant, which is the kind an access review
+        wants most and the kind a warrant-keyed log would miss entirely."""
+        if self.invocations is None:
+            return
+        try:
+            self.invocations.record_refusal(
+                urn=urn, principal=principal, declared_use=declared_use,
+                environment=environment,
+                code=getattr(refusal, "code", "refused"))
+        except Exception as exc:
+            swallowed(logger, exc, "did not record a refused invocation",
+                      detail="the refusal itself is unaffected",
+                      level=logging.WARNING)

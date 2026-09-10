@@ -544,6 +544,12 @@ class LimitationRepository(Repository):
     TABLE, ORDER = "model_limitation", "created_at"
 
 
+class InvocationRepository(Repository):
+    #: Append-only in practice: an invocation is a fact about a moment,
+    #: and there is no operation that edits one.
+    TABLE, ORDER = "warrant_invocation", "at"
+
+
 class WaiverRepository(Repository):
     #: `approvals` is JSON: a waiver's signatures accumulate on the row, so a
     #: half-signed tier 1 waiver is visibly half-signed rather than looking
