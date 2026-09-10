@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Portfolio — {{ app_name }}{% endblock %}
+{% block content %}
+
+<h1>The estate, cut the way somebody asked</h1>
+<div class="accent"></div>
+
+<p class="lead small">SR 26-2 VI asks for an inventory sufficient to understand
+individual <strong>and aggregate</strong> risk. Filters on a list only ever
+answer the first — <em>how many models does credit own</em> is a question a list
+answers by making somebody count.</p>
+
+<div class="card mb-3">
+  <div class="card-header">How much rides on the ones that are not right</div>
+  <div class="card-body small text-muted">
+    <strong>The aggregate question is not <em>how many</em>.</strong>
+    {{ aggregate.detail }}.
+  </div>
+  <div class="row g-3 p-3">
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if aggregate.with_something_owed else 'evidence-ok' }}">{{ aggregate.with_something_owed }}</div>
+      <div class="stat-l">models with something outstanding</div>
+      <div class="small text-muted">of {{ aggregate.models }}</div>
+    </div></div></div>
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n">
+        {% if aggregate.share_of_exposure_owing is not none %}
+          {{ '%.0f' | format(100 * aggregate.share_of_exposure_owing) }}%
+        {% else %}—{% endif %}</div>
+      <div class="stat-l">of known exposure, on those models</div>
+    </div></div></div>
+    {# The number that stops the one beside it being read as the whole truth. #}
+    <div class="col-md-4"><div class="card h-100"><div class="card-body py-3">
+      <div class="stat-n {{ 'evidence-bad' if aggregate.exposure_coverage < 0.5 else '' }}">{{ '%.0f' | format(100 * aggregate.exposure_coverage) }}%</div>
+      <div class="stat-l">of the estate that figure covers</div>
+      <div class="small text-muted">exposure is recorded for
+        {{ aggregate.exposure_known_for }} models</div>
+    </div></div></div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Where the work is</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    Shaded by what is <strong>owed</strong>, never by count. A grid coloured by
+    count tells you where the models are, which nobody needed a grid to learn.
+    What is worth seeing is where the models are <em>and something is owed on
+    them</em> — a cell with forty healthy models and a cell with one that is
+    missing its validation are not the same cell.
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>{{ heatmap.rows }}</th>
+      {% for c in heatmap.column_values %}<th class="text-center">{{ heatmap.columns }} {{ c }}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+      {% for r in heatmap.row_values %}
+      <tr>
+        <td class="small mono">{{ r }}</td>
+        {% for c in heatmap.column_values %}
+          {% set cell = heatmap.grid.get(r, {}).get(c) %}
+          <td class="text-center small"
+              {% if cell and cell.owed %}
+              style="background: rgba(220,53,69,{{ 0.10 + 0.55 * (cell.owed / heatmap.worst_cell) }})"
+              {% endif %}>
+            {% if cell %}
+              <strong>{{ cell.models }}</strong>
+              {% if cell.owed %}<br><span class="small">{{ cell.owed }} owed</span>{% endif %}
+            {% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">{{ heatmap.detail }}.</div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">By {{ cut.dimension }}</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    {{ cut.means | capitalize }}. Ordered by outstanding work rather than
+    alphabetically, because a cut sorted by name buries whatever needs doing.
+    <br><br>
+    Other cuts:
+    {% for d in dimensions %}
+      {% if d != cut.dimension %}<a href="/portfolio?dimension={{ d }}">{{ d }}</a>{{ ', ' if not loop.last }}{% endif %}
+    {% endfor %}
+  </div>
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>{{ cut.dimension | capitalize }}</th><th class="text-end">Models</th>
+      <th class="text-end">Outstanding</th><th class="text-end">Exposure known for</th>
+    </tr></thead>
+    <tbody>
+      {% for cell in cut.cells %}
+      <tr>
+        <td class="small mono">{{ cell.value }}</td>
+        <td class="small text-end">{{ cell.models }}</td>
+        <td class="small text-end">
+          <span class="{{ 'evidence-bad' if cell.owed else 'text-muted' }}">{{ cell.owed }}</span></td>
+        <td class="small text-end text-muted">{{ cell.exposure_known }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">How the estate got here</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    <strong>Not a snapshot table.</strong> A nightly snapshot starts on the day
+    somebody remembered to add it and is wrong for every day before that. Each
+    point below is a fold of the <em>evidence chain</em> as it stood at that
+    moment, so it is true for every date the chain covers — back to the first act
+    — and each one carries the chain hash that makes it verifiable rather than
+    asserted.
+  </div>
+  {% if trend.available %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>As at</th><th class="text-end">Models</th><th>By status</th>
+      <th>Chain</th>
+    </tr></thead>
+    <tbody>
+      {% for point in trend.points %}
+      <tr>
+        <td class="small mono">{{ point.at | int }}</td>
+        <td class="small text-end">{{ point.models }}</td>
+        <td class="small text-muted">
+          {% for status, n in point.by_status.items() %}{{ n }} {{ status }}{{ ', ' if not loop.last }}{% endfor %}
+          {% if not point.by_status %}—{% endif %}</td>
+        <td class="mono small text-muted">
+          {% if point.chain_hash %}{{ point.chain_hash[:16] }}…{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="card-body py-2 small text-muted border-top">{{ trend.detail }}.</div>
+  {% else %}
+  <div class="card-body small text-muted">{{ trend.detail }}.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
