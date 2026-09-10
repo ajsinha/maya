@@ -501,6 +501,22 @@ class UIRoutes(Routes):
                              report=self.ctx["assumptions"].across_the_estate(),
                              kinds=KIND_MEANING)
 
+        # --------------------------------------------------------- waivers
+        @self.app.get("/waivers", response_class=HTMLResponse, tags=["ui"])
+        def waivers_page(request: Request):
+            """Every control the estate is deliberately not meeting.
+
+            Sorted by tier, because the same control relaxed on a tier 1 model
+            and on a tier 4 one are different sentences and a list sorted by
+            date buries the first.
+            """
+            if (r := self.page_gate(request, "waiver:read")) is not None:
+                return r
+            from core.waivers import QUORUM_BY_TIER, WAIVABLE
+            return self.page(request, "waivers.html",
+                             report=self.ctx["waivers"].across_the_estate(),
+                             controls=list(WAIVABLE), quorum=QUORUM_BY_TIER)
+
         # --------------------------------------------------- notifications
         @self.app.get("/notifications", response_class=HTMLResponse, tags=["ui"])
         def notifications_page(request: Request):

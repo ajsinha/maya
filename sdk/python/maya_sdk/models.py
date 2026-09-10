@@ -103,6 +103,27 @@ class Models:
         return self._maya.call("POST", f"/models/{short(urn)}/attest",
                                json={"role": role})
 
+    def designations(self) -> Dict[str, Any]:
+        """The four a model may carry, and what each one ADDS.
+
+        Orthogonal to the tier and additive to it. A designation does not move
+        a model up or down the lattice — two models at the same tier can owe
+        different things because one of them feeds a regulatory submission, and
+        no amount of re-tiering produces a reconciliation requirement.
+        """
+        return self._maya.call("GET", "/designations")
+
+    def designate(self, urn: str, designations: List[str]) -> Dict[str, Any]:
+        """Say what this model is also subject to. Replaces the whole set.
+
+        Replaces rather than adds, because a designation being *removed* is a
+        decision worth as much as one being applied: a set that could only grow
+        would record the day somebody decided a model reaches the financial
+        statements and not the day somebody decided it no longer does.
+        """
+        return self._maya.call("PUT", f"/models/{short(urn)}/designations",
+                               json={"designations": list(designations)})
+
     def relate(self, *, from_urn: str, to_urn: str, kind: str,
                note: str = "") -> Dict[str, Any]:
         """Record a relation. `derives_from` and `input_to` do different work.
@@ -300,3 +321,67 @@ class Assumptions:
         stable* is exactly the sentence a post-mortem needs to find."""
         return self._maya.call("POST", f"/assumptions/{assumption_id}/withdraw",
                                json={"reason": reason})
+
+
+class Waivers:
+    """Controls a model is not meeting, and who said that was acceptable.
+
+    Every estate has these and most keep them in a spreadsheet, which is how a
+    temporary exception reaches its fourth year. Four rules are enforced by the
+    register rather than trusted to process: a window is mandatory and bounded,
+    a compensating control is required, the proposer may not approve, and
+    approval scales with the tier.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def controls(self) -> Dict[str, Any]:
+        """What may be waived, and how many signatures each tier takes."""
+        return self._maya.call("GET", "/waivable-controls")
+
+    def propose(self, *, urn: str, control: str, rationale: str,
+                compensating_control: str, days: float,
+                model_version_id: Optional[str] = None) -> Dict[str, Any]:
+        """Ask for a control to be relaxed, for a bounded time.
+
+        `days` is mandatory and capped. There is no way to record an indefinite
+        exception, because an exception with no end date is not an exception —
+        it is a decision to stop applying a control, and it will outlive
+        everybody who agreed to it.
+
+        `compensating_control` is mandatory too. A waiver saying only *we are
+        not doing this* records the gap and not the containment; if the honest
+        answer is that nothing compensates, this is an accepted risk and
+        belongs in a finding somebody owns.
+        """
+        return self._maya.call("POST", "/waivers", json={
+            "urn": urn, "control": control, "rationale": rationale,
+            "compensating_control": compensating_control, "days": days,
+            "model_version_id": model_version_id})
+
+    def approve(self, waiver_id: str, *, role: str) -> Dict[str, Any]:
+        """Sign one, under a named role. The proposer may not, and a tier 1
+        waiver takes two signatures in two different roles."""
+        return self._maya.call("POST", f"/waivers/{waiver_id}/approve",
+                               json={"role": role})
+
+    def renew(self, waiver_id: str, *, days: float) -> Dict[str, Any]:
+        """Extend an active one, and count that it happened. Past the limit
+        this raises a finding: a control relaxed four times running is not a
+        temporary exception, it is the framework the model is governed under."""
+        return self._maya.call("POST", f"/waivers/{waiver_id}/renew",
+                               json={"days": days})
+
+    def revoke(self, waiver_id: str, *, reason: str) -> Dict[str, Any]:
+        """End one early. Never deleted: what was relaxed, and when, is part of
+        what this model's governance actually was."""
+        return self._maya.call("POST", f"/waivers/{waiver_id}/revoke",
+                               json={"reason": reason})
+
+    def for_model(self, urn: str) -> Dict[str, Any]:
+        return self._maya.call("GET", "/waivers", params={"urn": urn})
+
+    def across_the_estate(self) -> Dict[str, Any]:
+        """Every control the estate is currently not meeting, worst tier first."""
+        return self._maya.call("GET", "/waivers")

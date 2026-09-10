@@ -799,11 +799,27 @@ class Validations:
                 "slice": slice or {}})
 
     def conclude(self, validation_id: str, *, outcome: str,
-                 conditions: Optional[List[str]] = None) -> Dict[str, Any]:
-        """Reach the verdict. Never as whoever created the version."""
+                 tier_verdict: str,
+                 conditions: Optional[List[str]] = None,
+                 tier_note: str = "") -> Dict[str, Any]:
+        """Reach the verdict. Never as whoever created the version.
+
+        `tier_verdict` is required and has no default. SS1/23 1.3(e) asks that
+        the model's risk tier be re-assessed *during* validation, and an
+        episode concluded without a verdict is indistinguishable from one where
+        the validator looked and agreed — which are the two answers a
+        supervisor most needs told apart. The three are `remains_appropriate`,
+        `should_be_higher` and `should_be_lower`; the last two need a
+        `tier_note`, and `should_be_higher` raises a finding.
+        """
         return self._maya.call(
             "POST", f"/validations/{validation_id}/conclude",
-            json={"outcome": outcome, "conditions": conditions or []})
+            json={"outcome": outcome, "conditions": conditions or [],
+                  "tier_verdict": tier_verdict, "tier_note": tier_note})
+
+    def tier_verdicts(self) -> Dict[str, Any]:
+        """The three a validator may reach about a tier, and what each causes."""
+        return self._maya.call("GET", "/tier-verdicts")
 
     def replay(self, validation_id: str, *,
                data: Optional[Dict[str, List[List[float]]]] = None) -> Dict[str, Any]:
@@ -987,6 +1003,31 @@ class Monitors:
             "cadence_days": cadence_days, "label_delay_days": label_delay_days,
             "breach_severity": breach_severity,
             "escalate_after": escalate_after})
+
+    def defaults(self, urn: str) -> Dict[str, Any]:
+        """What this model's class and tier say it should be watched for.
+
+        And what it should NOT be. A model with no performance monitor because
+        its class cannot answer that question, and one with no performance
+        monitor because nobody got round to it, look identical on every
+        coverage screen ever built — so the answer separates them.
+        """
+        return self._maya.call("GET", "/monitor-defaults", params={"urn": urn})
+
+    def seed_defaults(self, urn: str, *,
+                      owner: Optional[str] = None) -> Dict[str, Any]:
+        """Create the proposed monitors that are not already there.
+
+        An explicit act rather than something registration does for you: an
+        estate that acquires monitors nobody asked for is one whose coverage
+        nobody understands. Idempotent by kind and test.
+        """
+        # `owner` is sent as it arrives, empty or not. Branching on it here
+        # would be this package deciding what an absent owner means, and the
+        # server already has a better answer than the SDK could invent: the
+        # model's own owner, then the actor.
+        return self._maya.call("POST", "/monitor-defaults",
+                               params={"urn": urn, "owner": owner or ""})
 
     def evaluate(self, monitor_id: str, *,
                  rows: Optional[List[Dict[str, Any]]] = None,

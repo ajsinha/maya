@@ -101,7 +101,7 @@ class TestGapsAreVisible:
         episode = validation.open(URN, "3.2.1", "initial", ["a.mehta"])
         validation.record(episode["id"], "discrimination.gini", *scored,
                           threshold={"min": 0.3})
-        validation.conclude(episode["id"], "approved")
+        validation.conclude(episode["id"], "approved", tier_verdict="remains_appropriate")
         monitors.define(a_model["id"], "psi", "score_drift", "stability.psi",
                         {"max": 0.25}, "person/j.okafor")
 

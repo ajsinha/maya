@@ -622,6 +622,15 @@
         ]
       }
     },
+    "/api/v1/designations": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/document-kinds": {
       "get": {
         "body": [],
@@ -2066,6 +2075,20 @@
         ]
       }
     },
+    "/api/v1/models/{name}/designations": {
+      "put": {
+        "body": [
+          "designations"
+        ],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/models/{name}/relations": {
       "get": {
         "body": [],
@@ -2147,6 +2170,29 @@
         ],
         "responses": [
           "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitor-defaults": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:owner",
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
           "422"
         ]
       }
@@ -3074,6 +3120,15 @@
         ]
       }
     },
+    "/api/v1/tier-verdicts": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/training-records/{parameter_set_id}": {
       "post": {
         "body": [],
@@ -3159,7 +3214,9 @@
       "post": {
         "body": [
           "conditions",
-          "outcome!"
+          "outcome!",
+          "tier_note",
+          "tier_verdict"
         ],
         "parameters": [
           "path:validation_id!"
@@ -3294,6 +3351,84 @@
         "body": [],
         "parameters": [
           "path:approval_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/waivable-controls": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/waivers": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "compensating_control!",
+          "control!",
+          "days!",
+          "model_version_id",
+          "rationale!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/waivers/{waiver_id}/approve": {
+      "post": {
+        "body": [
+          "role!"
+        ],
+        "parameters": [
+          "path:waiver_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/waivers/{waiver_id}/renew": {
+      "post": {
+        "body": [
+          "days!"
+        ],
+        "parameters": [
+          "path:waiver_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/waivers/{waiver_id}/revoke": {
+      "post": {
+        "body": [
+          "reason!"
+        ],
+        "parameters": [
+          "path:waiver_id!"
         ],
         "responses": [
           "200",
@@ -4014,6 +4149,15 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/waivers": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

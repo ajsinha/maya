@@ -251,6 +251,30 @@ CREATE TABLE IF NOT EXISTS compliance_debt (
 );
 CREATE INDEX IF NOT EXISTS ix_debt_model ON compliance_debt (model_id, status);
 
+CREATE TABLE IF NOT EXISTS control_waiver (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    model_version_id TEXT,
+    reference TEXT NOT NULL,
+    control TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    compensating_control TEXT NOT NULL,
+    tier_at_grant INTEGER,
+    status TEXT DEFAULT 'proposed' NOT NULL,
+    proposed_by TEXT NOT NULL,
+    approved_by TEXT,
+    approvals TEXT DEFAULT '[]' NOT NULL,
+    granted_at DOUBLE PRECISION,
+    expires_at DOUBLE PRECISION NOT NULL,
+    renewals INTEGER DEFAULT 0 NOT NULL,
+    finding_id TEXT,
+    created_at DOUBLE PRECISION NOT NULL,
+    closed_at DOUBLE PRECISION,
+    closure_reason TEXT,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_control_waiver_model_id_reference ON control_waiver (model_id, reference);
+
 CREATE TABLE IF NOT EXISTS dataset_snapshot (
     id TEXT NOT NULL,
     name TEXT NOT NULL,
@@ -531,6 +555,7 @@ CREATE TABLE IF NOT EXISTS model (
     origin TEXT DEFAULT 'internal' NOT NULL,
     status TEXT DEFAULT 'draft' NOT NULL,
     tier INTEGER,
+    designations TEXT DEFAULT '[]' NOT NULL,
     attributes TEXT DEFAULT '{}' NOT NULL,
     created_at DOUBLE PRECISION NOT NULL,
     created_by TEXT NOT NULL,
@@ -916,6 +941,9 @@ CREATE TABLE IF NOT EXISTS validation (
     outcome TEXT,
     conditions TEXT DEFAULT '[]' NOT NULL,
     snapshot_id TEXT,
+    tier_at_open INTEGER,
+    tier_verdict TEXT,
+    tier_note TEXT DEFAULT '' NOT NULL,
     started_at DOUBLE PRECISION NOT NULL,
     completed_at DOUBLE PRECISION,
     due_at DOUBLE PRECISION,

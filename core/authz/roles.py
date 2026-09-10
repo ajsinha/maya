@@ -35,6 +35,9 @@ MODEL_DEVELOPER = {
     # so it is not theirs.
     "limitation:read", "limitation:record",
     "assumption:read", "assumption:record",
+    # A developer or owner may ASK for a control to be relaxed. Only
+    # the second line may grant it.
+    "waiver:read", "waiver:propose",
     "feature:read", "feature:define", "feature:materialise", "feature:assemble",
     "feature:contract", "validation:read", "finding:read", "evidence:read",
     # A finding can be owned by whoever has to fix it, and the first line does
@@ -85,6 +88,7 @@ VALIDATOR = READ_PERMISSIONS | {
     # immutable version, so it is the second line's, not the first's.
     "limitation:withdraw",
     "assumption:withdraw",
+    "waiver:approve", "waiver:revoke",
     "feature:seal", "featureset:seal",
     # Writing a gate and putting it in force are different acts, so a validator
     # drafts and the model risk manager publishes. A rule authored and enacted
@@ -105,6 +109,7 @@ MODEL_RISK_MANAGER = VALIDATOR | {
     # immutable version, so it is the second line's, not the first's.
     "limitation:withdraw",
     "assumption:withdraw",
+    "waiver:approve", "waiver:revoke",
     "baseline:import", "baseline:plan", "regime:activate",
     "policy:publish",
     # Cutting the pack a committee is minuted against sits with the second line,

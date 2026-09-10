@@ -84,6 +84,12 @@ MODEL = Table(
     Column("origin", Text, nullable=False, server_default=text("'internal'")),
     Column("status", Text, nullable=False, server_default=text("'draft'")),
     Column("tier", Integer),
+    # What the model is ALSO subject to, beside its tier. Orthogonal and
+    # additive: these do not enter `tau` and do not move a model up or down the
+    # lattice — they name controls required in addition, which is the whole of
+    # what "driving additional control sets" means. A tag that changes nothing
+    # is a label.
+    Column("designations", Text, nullable=False, server_default=text("'[]'")),
     Column("attributes", Text, nullable=False, server_default=text("'{}'")),
     Column("created_at", Double, nullable=False),
     Column("created_by", Text, nullable=False),
@@ -812,6 +818,15 @@ VALIDATION = Table(
     Column("outcome", Text),
     Column("conditions", Text, nullable=False, server_default=text("'[]'")),
     Column("snapshot_id", Text),
+    # SS1/23 1.3(e) asks that the tier be re-assessed during validation and
+    # that the answer be recorded. Both halves are here, and they are two
+    # columns rather than one because *what the tier was when the validator
+    # started* and *what the validator thinks of it* are different facts —
+    # without the first, a verdict of "remains appropriate" cannot be checked
+    # against a tier that moved underneath the episode.
+    Column("tier_at_open", Integer),
+    Column("tier_verdict", Text),
+    Column("tier_note", Text, nullable=False, server_default=text("''")),
     Column("started_at", Double, nullable=False),
     Column("completed_at", Double),
     Column("due_at", Double),
@@ -1445,6 +1460,61 @@ MODEL_ASSUMPTION = Table(
     Index("uq_model_assumption_model_version_id_reference", "model_version_id", "reference", unique=True),
 )
 
+
+
+# A control this model is NOT meeting, and who said that was acceptable.
+#
+# Every estate has these and most keep them in a spreadsheet, which is how a
+# temporary exception reaches its fourth year. Four rules are enforced here
+# rather than trusted to process, and they are the overlay register's four
+# rules pointed at a different object, because a waiver and a management
+# adjustment fail in the same ways.
+#
+# MANDATORY EXPIRY. `expires_at` is not nullable. An exception with no end date
+# is not an exception, it is a decision to stop applying a control, and it will
+# outlive everybody who agreed to it.
+#
+# A COMPENSATING CONTROL IS REQUIRED. A waiver saying only "we are not doing
+# this" records the gap and not the containment. What is being done instead is
+# the half a reviewer needs, and its absence is the thing worth refusing.
+#
+# THE PROPOSER MAY NOT APPROVE. Same reason as everywhere else in this
+# platform: one person who can both ask and grant is a preference.
+#
+# APPROVAL SCALES WITH THE TIER. A tier 1 model's waiver needs two signatures
+# in two roles; a tier 4 model's needs one. The requirement calls this "an
+# approval level scaled to risk", and the platform already has the quorum it
+# needs for it.
+CONTROL_WAIVER = Table(
+    "control_waiver", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    # Nullable: a waiver can be about the model rather than one version of it —
+    # "this model is not independently validated" outlives a version bump, and
+    # forcing a version here would make it look as though it did not.
+    Column("model_version_id", Text),
+    Column("reference", Text, nullable=False),
+    # WHICH control. Closed, and drawn from the controls the tiering engine
+    # already requires per tier — a waiver naming a control nothing requires is
+    # a waiver of nothing, and it would read on a report as though something
+    # had been relaxed.
+    Column("control", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    Column("compensating_control", Text, nullable=False),
+    Column("tier_at_grant", Integer),
+    Column("status", Text, nullable=False, server_default=text("'proposed'")),
+    Column("proposed_by", Text, nullable=False),
+    Column("approved_by", Text),
+    Column("approvals", Text, nullable=False, server_default=text("'[]'")),
+    Column("granted_at", Double),
+    Column("expires_at", Double, nullable=False),
+    Column("renewals", Integer, nullable=False, server_default=text("0")),
+    Column("finding_id", Text),
+    Column("created_at", Double, nullable=False),
+    Column("closed_at", Double),
+    Column("closure_reason", Text),
+    Index("uq_control_waiver_model_id_reference", "model_id", "reference", unique=True),
+)
 
 # API keys: how a service or a script authenticates without a password.
 #
