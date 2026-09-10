@@ -87,6 +87,9 @@ fall behind again.
 | `maya.shadow` | authorise an advisory grant for mirrored traffic |
 | `maya.elicitations` | convene a panel, record responses per round, conclude with dissent |
 | `maya.overlay_disclosure` | the judgement component of the number, by period |
+| `maya.configuration` | export, plan and apply the platform's own configuration |
+| `maya.document_review` | comment on a compiled document; never edit one |
+| `maya.request_time` | the inputs the caller brings, and what cannot be promised |
 | `maya.fibres` | what each trainability class must carry |
 
 **Documents, and the platform itself**

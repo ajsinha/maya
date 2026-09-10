@@ -399,6 +399,13 @@ STATUS: Dict[str, int] = {
     "obligation_contradiction": 422,
     # the documentation graph
     "unknown_subject": 422,
+    # the platform configuring itself, and a document under review
+    "not_configurable": 403, "empty_configuration": 422,
+    "nothing_to_apply": 409, "loosening_needs_an_approver": 403,
+    "unknown_ask": 422, "body_required": 422, "unknown_section": 422,
+    "comment_closed": 409, "resolution_required": 422,
+    "raiser_may_not_close": 403, "not_your_comment": 403,
+    "unknown_comment": 404, "unknown_document": 404,
     # a panel asked a question, and the judgement component of a number
     "period_required": 422, "unknown_method": 422,
     "panel_too_small": 422, "facilitator_is_a_panellist": 409,

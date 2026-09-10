@@ -602,6 +602,10 @@ class DiscoveryRepository(Repository):
     JSON = ("evidence",)
 
 
+class DocumentCommentRepository(Repository):
+    TABLE, ORDER = "document_comment", "raised_at"
+
+
 class ElicitationRepository(Repository):
     TABLE, ORDER = "elicitation", "opened_at"
     JSON = ("panel",)
