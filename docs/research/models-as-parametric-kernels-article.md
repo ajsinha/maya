@@ -1051,6 +1051,71 @@ exactly what the impossibility theorem permits and no more. What composes is the
 can say *this chain is at least tier 1 and every link resolves*. It cannot say *this chain is 0.83 risky*,
 and the reason it can't is a theorem, not a backlog item.
 
+### The one case study I didn't design
+
+Everything above has a problem I can't argue my way out of: I wrote the platform
+*and* the demonstrations of it. Fourteen worked examples by the same person prove
+that the thing is self-consistent and almost nothing else.
+
+So the fourteenth is taken from the public record instead. It reconstructs the
+model governance failure at the centre of the 2012 JPMorgan Chief Investment
+Office losses — the London Whale — from the firm's own Management Task Force
+report and the Senate Permanent Subcommittee report. **The sequence is theirs.
+I walked it into whatever MAYA happens to do.**
+
+What happened, briefly: a synthetic credit portfolio breached its VaR limit; a
+new VaR model went into production days later; reported VaR fell by roughly half
+and the breach disappeared; the model had been approved subject to further work
+that wasn't done; it lived in a chain of spreadsheets with manual copy-and-paste;
+one of them divided by the *sum* of two rates where it should have divided by the
+*average*.
+
+Six governance questions. MAYA answers five:
+
+| | Question | Answer |
+|---|---|---|
+| 1 | Is replacing a VaR model a material change? | Computed, not asked — `material`, because the guarantee loosened |
+| 2 | May the alias move without revalidation? | Refused |
+| 3 | Does swapping the model close the breach? | **No.** The finding survives and keeps blocking |
+| 4 | Does "approved subject to further work" bind? | Yes, and it expires |
+| 5 | Does the spreadsheet agree with the model? | Answerable — and it reports the *shape*, not a pass rate |
+| 6 | Is the arithmetic inside the cell right? | **It cannot see this.** |
+
+**Question 3 is the one I'd want a model risk function to sit with.** A VaR
+breach is a fact about the *portfolio*. A model that reports a smaller number has
+not made the portfolio safer. MAYA closes a *breach* when the monitor recovers
+and deliberately leaves the *finding* open — and here the model didn't even
+recover, it was replaced, and the finding is still open and still blocking.
+
+**And then there was a seventh I hadn't planned for.** The script expected to
+demonstrate questions 1–6. It got a refusal I wasn't expecting:
+
+```
+cannot add a version to maya://model/market.var.synthetic_credit:
+this model is attested and therefore immutable; open an amendment to change it
+```
+
+An attested record can't simply acquire a new version. Somebody has to open an
+**amendment**, with a name on it and a stated scope, and that goes on the chain.
+In the real failure, the new model went into production days after the breach and
+*the question of what was being amended was never put*.
+
+That's a stronger control than the one I set out to demonstrate, and I only found
+it because the scenario wasn't mine. It is the single best argument I have for
+the exercise.
+
+**The closing section of that case study is a list of what the platform doesn't
+reach**, and it's four of the seven links in the chain: the arithmetic inside the
+cell, the manual copy-and-paste between spreadsheets, the trader marks, and
+whether anybody actually read the finding. A firm adopting a register needs that
+list *before* it adopts one.
+
+Running it also found two defects in the platform, which is the suite working as
+intended. The supervisory register reported an internal plan landing five months
+past a regulatory commitment as `-163 day(s) apart, inside the 14 days closure
+verification needs` — arithmetically true, and it reads as a near miss. It isn't.
+And a test had been passing on that wrong sentence.
+
 ### And the part that's for practitioners
 
 The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
