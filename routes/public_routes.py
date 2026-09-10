@@ -114,6 +114,26 @@ class PublicRoutes(Routes):
                     # start-up line that scrolled past a week ago.
                     "storage": describe(self.ctx.get("table_store"))}
 
+        @self.app.get("/health/encryption", tags=["health"])
+        def encryption():
+            """What is actually encrypted, as opposed to what a checkbox claims.
+
+            MAYA does not encrypt the database and does not pretend to:
+            at-rest and in-transit encryption are the deployment's, and a
+            platform shipping its own would be shipping a key-management
+            decision nobody asked it to make. What it will not do is imply
+            otherwise — every finding here is a setting that is not what a
+            production instance should have.
+            """
+            from core.authz.datalayer import encryption_posture
+            cfg = self.ctx["config"]
+            return encryption_posture(
+                https=cfg.get_bool("auth.session_https_only", False),
+                cookie_secure=cfg.get_bool("auth.session_https_only", False),
+                database_url=str(cfg.get("database.url", "")),
+                session_secret_is_default=not cfg.get("auth.session_secret",
+                                                      ""))
+
         @self.app.get("/health/live", tags=["health"])
         def live():
             return {"status": "alive"}
