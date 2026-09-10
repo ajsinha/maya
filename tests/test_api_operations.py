@@ -126,6 +126,9 @@ class TestSchedulerApi:
                 # would miss the row nobody has drafted about yet, which is
                 # exactly the row an attacker would choose.
                 "assist.injection",
+                # A hosted model is rolled forward while the string it answers
+                # to stays the same, and nobody is told.
+                "assist.canaries",
                 "debt.reconcile", "findings.overdue", "findings.unacknowledged",
                 "notify.outstanding",
                 # Readiness only checks what arrived since the last full walk,

@@ -131,6 +131,60 @@ afterwards is an invoice.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">Has the model moved underneath its own name?</div>
+  <div class="card-body py-2 small text-muted border-bottom">
+    A <code>base_model</code> string identifies nothing on its own. A hosted model
+    is re-trained, quantised, re-served on different hardware and rolled forward
+    while the string it answers to stays the same — and every piece of evidence
+    this platform holds about a capability's quality was gathered against the
+    weights it had <em>then</em>. So: a fixed set of trivial probes, digested at
+    evaluation time, compared now.
+  </div>
+  {% if canaries.capabilities %}
+  <div style="overflow-x:auto">
+  <table class="table maya mb-0">
+    <thead><tr>
+      <th>Capability</th><th>Base model</th><th>Fingerprint</th>
+      <th>Probes</th><th>Verdict</th>
+    </tr></thead>
+    <tbody>
+      {% for row in canaries.capabilities %}
+      <tr>
+        <td class="mono small">{{ row.capability_key }}</td>
+        <td class="mono small text-muted">{{ row.base_model or '—' }}</td>
+        <td class="mono small text-muted">
+          {% if row.recorded_digest %}{{ row.recorded_digest[:20] }}…
+          {% else %}—{% endif %}</td>
+        <td class="small text-muted">
+          {% if row.probes %}{{ row.probes | join(', ') }}{% else %}—{% endif %}</td>
+        <td class="small">
+          {% if row.changed %}<span class="evidence-bad">moved</span>
+          {% elif row.checked %}<span class="evidence-ok">unchanged</span>
+          {% elif row.recorded_digest %}
+            <span class="text-muted">cannot be fingerprinted</span>
+          {% else %}<span class="evidence-bad">no baseline</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+  <div class="card-body py-2 small text-muted border-top">
+    Three readings worth keeping apart. <strong>No baseline</strong> is the
+    absence of a clean bill of health, not one. <strong>Cannot be
+    fingerprinted</strong> is an honest answer: a model that will not give the
+    same probe the same answer twice has no fingerprint, and a digest that moved
+    on every check would be an alarm consuming exactly the attention a real
+    change would need. And <strong>moved</strong> is a trigger, never a verdict —
+    temperature, a sampling seed or different hardware would do the same, so
+    nothing is suspended. What happens instead is that the capability's review
+    sample goes back to 100%: every accepted draft and every clean sample was
+    measured against weights that have apparently moved, so that evidence is not
+    wrong — it is about something else.
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">Register content shaped like an instruction</div>
   <div class="card-body py-2 small text-muted border-bottom">
     Every line a model is given about a subject comes out of the evidence chain,

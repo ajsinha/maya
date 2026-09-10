@@ -1195,7 +1195,8 @@ deliberately: a governance platform is not a model store of last resort.
 
 ## 15. Machine assistance
 
-`core/assist/` — capabilities, oracles, grounding, generations, providers, budgets, injection.
+`core/assist/` — capabilities, oracles, grounding, generations, providers, budgets, injection,
+canaries.
 
 A capability registers at **Tier A** (a named oracle checks the output) or **Tier B** (every claim cites
 evidence). **Tier C cannot be registered**, and `CapabilityRegistry.register` refuses it by name before it
@@ -1302,6 +1303,45 @@ happens to be the strongest injection bound in the system: the worst an injected
 making the model cite an evidence node that says something else, which is exactly the thing a reader can
 check.
 
+### 15.3 Noticing that the model moved underneath its own name
+
+A capability records a `base_model`, and everybody reads that string as though it identified something. It
+does not. A hosted model is re-trained, quantised, re-served on different hardware and silently rolled
+forward while the string it answers to stays the same — and every piece of evidence this platform holds
+about that capability's quality was gathered against the weights it had *then*.
+
+`core/assist/canaries.py` asks a fixed set of trivial probes at evaluation time and digests the shape of the
+answers — how many claims, what they cite, how long the text is. Not the prose, which moves on whitespace,
+and not nothing, which never moves at all. The probes are deliberately boring and are not secret: a canary
+whose output is interesting is one somebody starts relying on for its content, and then changing it becomes
+a decision rather than maintenance.
+
+**A stochastic model has no fingerprint, and pretending otherwise is worse than not fingerprinting.** Each
+probe is asked three times when the baseline is taken, and any probe whose answers disagree with *each
+other* is excluded by name — it is measuring sampling noise, not the weights. Where no probe survives, the
+capability is recorded as `unfingerprintable`, which is a real answer and a far better one than a digest
+that changes on every check. The alarm that cries wolf is worse than no alarm, because it consumes exactly
+the attention the real one would have needed. At check time only the probes that were stable at baseline are
+asked, since comparing against a number known to be noise establishes nothing. Per-probe digests are kept
+and not just the combined one, because *which* probe moved is most of the diagnostic value — the refusal
+probe moving and the counting probe moving say different things about what changed.
+
+**A changed digest is a trigger, never a verdict.** Temperature, a sampling seed, a different accelerator's
+floating point or a provider's own caching all move the output without the weights moving. Nothing is
+suspended.
+
+**What *re-running the eval gate* means here is the interesting part.** This platform's gate on a capability
+is its oracle and its review sample — the fraction of accepted drafts pulled for independent review
+regardless of how good they looked, which is lowered as confidence accumulates. Every bit of that confidence
+was measured against a model that, if the digest moved, no longer exists. So a detected change puts the
+review sample back to **1.0**. The capability keeps working and stops being trusted unreviewed. The evidence
+was not wrong; it was about something else.
+
+Two smaller notes. The check **re-baselines** on a hit, so it reports the change once rather than every run
+until somebody intervenes. And the probe calls are **not charged to the capability's budget** (§15.1): a
+control that consumed the resource it protects would refuse to run at exactly the moment you would want it
+to.
+
 ## 16. Reporting, baseline and the operational jobs
 
 ### 16.1 Risk appetite as a computable limit
@@ -1338,7 +1378,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 Sixteen idempotent jobs
+### 16.3 Seventeen idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -1660,8 +1700,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 230 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 291 modules in one
+the 231 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 292 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
