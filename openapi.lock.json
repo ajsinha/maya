@@ -897,6 +897,87 @@
         ]
       }
     },
+    "/api/v1/campaigns": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "due_at",
+          "instruction",
+          "kind!",
+          "reference!",
+          "title!",
+          "where"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/campaigns/kinds": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{reference}/close": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{reference}/reassign": {
+      "post": {
+        "body": [
+          "reason!",
+          "to!",
+          "urn!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/campaigns/{reference}/respond": {
+      "post": {
+        "body": [
+          "response",
+          "state!",
+          "urn!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/champion-challenger": {
       "get": {
         "body": [],
@@ -2333,6 +2414,91 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/api/v1/intake": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:reference"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "business_area",
+          "description!",
+          "proposed_by!",
+          "reference!",
+          "title!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/intake/questions": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/intake/{reference}/assessment": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/intake/{reference}/register": {
+      "post": {
+        "body": [
+          "domain!",
+          "legal_entity!",
+          "model_class!",
+          "name!",
+          "owner!",
+          "purpose!",
+          "urn!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/intake/{reference}/triage": {
+      "post": {
+        "body": [
+          "generative!",
+          "in_scope!",
+          "rationale!",
+          "sourcing!"
+        ],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
@@ -5287,6 +5453,15 @@
       }
     },
     "/break-glass": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/campaigns": {
       "get": {
         "body": [],
         "parameters": [],

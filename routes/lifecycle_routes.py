@@ -22,6 +22,64 @@ from core.lifecycle.conditions import ApprovalConditions
 from routes.base import Body, Routes
 
 
+class CampaignIn(Body):
+    """A round of asking.
+
+    `where` is a semantic-layer filter, and the population it selects is frozen
+    at launch. There is no field for a list of models: a typed population is one
+    somebody assembled by hand, and nothing can re-derive it later to say what
+    has changed.
+    """
+    reference: str
+    kind: str
+    title: str
+    where: List[Dict[str, Any]] = Field(default_factory=list)
+    instruction: str = ""
+    due_at: Optional[float] = None
+
+
+class CampaignResponseIn(Body):
+    urn: str
+    state: str
+    response: str = ""
+
+
+class ReassignIn(Body):
+    urn: str
+    to: str
+    reason: str
+
+
+class ProposalIn(Body):
+    reference: str
+    title: str
+    description: str
+    proposed_by: str
+    business_area: str = ""
+
+
+class TriageIn2(Body):
+    """A determination a person made. `rationale` is not optional.
+
+    An out-of-scope decision with no reason is one that gets re-litigated every
+    year by somebody who was not there.
+    """
+    in_scope: bool
+    sourcing: str
+    generative: bool
+    rationale: str
+
+
+class RegisterProposalIn(Body):
+    urn: str
+    name: str
+    model_class: str
+    domain: str
+    owner: str
+    legal_entity: str
+    purpose: str
+
+
 class ParallelIn(Body):
     urn: str
     champion: str
@@ -384,3 +442,131 @@ class LifecycleRoutes(Routes):
             self.guard(lambda: self.ctx["references"].refuse_if_referenced(
                 "model", model["urn"], label=model["urn"]))
             return self.guard(lambda: lifecycle.delete(model, who, reason))
+
+        # --------------------------------------------------------- campaigns
+        @self.app.get(f"{api}/campaigns/kinds", tags=["lifecycle"])
+        def campaign_kinds(request: Request):
+            """What a round may be for, and how completion is measured."""
+            self.authorise(request, "model:read")
+            from core.lifecycle.campaigns import Campaigns
+            return Campaigns.kinds()
+
+        @self.app.get(f"{api}/campaigns", tags=["lifecycle"])
+        def campaigns(request: Request, reference: Optional[str] = None,
+                      now: Optional[float] = None):
+            """Every round, least complete first — or one of them."""
+            self.authorise(request, "model:read",
+                           estate_wide="reading campaigns over the estate")
+            engine = self.ctx["campaigns"]
+            if reference is None:
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            return self.guard(lambda: engine.status(reference, now=now))
+
+        @self.app.post(f"{api}/campaigns", status_code=201, tags=["lifecycle"])
+        def open_campaign(request: Request, body: CampaignIn):
+            """Fix a population and assign it to the models' own owners."""
+            who = self.authorise(
+                request, "model:attest",
+                estate_wide="opening a campaign across a derived population")
+            return self.guard(lambda: self.ctx["campaigns"].open(
+                body.reference, kind=body.kind, title=body.title,
+                where=body.where, instruction=body.instruction,
+                due_at=body.due_at, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/campaigns/{{reference}}/respond",
+                       tags=["lifecycle"])
+        def respond(request: Request, reference: str,
+                    body: CampaignResponseIn):
+            """Answer one item."""
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "model:attest", model=model)
+            return self.guard(lambda: self.ctx["campaigns"].respond(
+                reference, body.urn, state=body.state, response=body.response,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/campaigns/{{reference}}/reassign",
+                       tags=["lifecycle"])
+        def reassign(request: Request, reference: str, body: ReassignIn):
+            """Move an item, on the record rather than by editing it."""
+            model = self.guard(lambda: self.ctx["registry"].require(body.urn))
+            who = self.authorise(request, "model:attest", model=model)
+            return self.guard(lambda: self.ctx["campaigns"].reassign(
+                reference, body.urn, body.to, body.reason,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/campaigns/{{reference}}/close",
+                       tags=["lifecycle"])
+        def close_campaign(request: Request, reference: str):
+            """End a round, recording what was never answered."""
+            who = self.authorise(
+                request, "model:attest",
+                estate_wide="closing a campaign over its whole population")
+            return self.guard(lambda: self.ctx["campaigns"].close(
+                reference, actor=self.actor(who)))
+
+        # ------------------------------------------------------------ intake
+        @self.app.get(f"{api}/intake/questions", tags=["lifecycle"])
+        def intake_questions(request: Request):
+            """The three questions, the cues and the sourcing vocabulary."""
+            self.authorise(request, "model:read")
+            from core.lifecycle.intake import Intake
+            return Intake.questions()
+
+        @self.app.get(f"{api}/intake", tags=["lifecycle"])
+        def proposals(request: Request, reference: Optional[str] = None,
+                      now: Optional[float] = None):
+            """Every proposal, untriaged first — or one of them."""
+            self.authorise(request, "model:read",
+                           estate_wide="reading the intake queue")
+            engine = self.ctx["intake"]
+            if reference is None:
+                return self.guard(lambda: engine.across_the_estate(now=now))
+            return self.guard(lambda: engine.read(reference))
+
+        @self.app.post(f"{api}/intake", status_code=201, tags=["lifecycle"])
+        def propose(request: Request, body: ProposalIn):
+            """Record a proposal. It is not a model and is not stored as one."""
+            who = self.authorise(request, "model:read",
+                                 estate_wide="recording an intake proposal")
+            return self.guard(lambda: self.ctx["intake"].propose(
+                body.reference, title=body.title, description=body.description,
+                proposed_by=body.proposed_by,
+                business_area=body.business_area, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/intake/{{reference}}/assessment",
+                      tags=["lifecycle"])
+        def assess(request: Request, reference: str):
+            """What the description suggests, with the words it turned on.
+
+            A reading, never a determination. A determination whose reasoning is
+            invisible is one nobody can disagree with, and the whole value of
+            triage is in the disagreements.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading an intake assessment")
+            return self.guard(lambda: self.ctx["intake"].assess(reference))
+
+        @self.app.post(f"{api}/intake/{{reference}}/triage", tags=["lifecycle"])
+        def triage_proposal(request: Request, reference: str, body: TriageIn2):
+            """Record the determination a person made, beside the reading."""
+            who = self.authorise(
+                request, "risk:assess",
+                estate_wide="triaging a proposal into or out of scope")
+            return self.guard(lambda: self.ctx["intake"].triage(
+                reference, in_scope=body.in_scope, sourcing=body.sourcing,
+                generative=body.generative, rationale=body.rationale,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/intake/{{reference}}/register",
+                       status_code=201, tags=["lifecycle"])
+        def register_proposal(request: Request, reference: str,
+                              body: RegisterProposalIn):
+            """Cross from proposal to model. Refused before triage."""
+            who = self.authorise(
+                request, "model:register",
+                estate_wide="registering a model from a proposal")
+            return self.guard(lambda: self.ctx["intake"].register(
+                reference, urn=body.urn, name=body.name,
+                model_class=body.model_class, domain=body.domain,
+                owner=body.owner, legal_entity=body.legal_entity,
+                purpose=body.purpose, actor=self.actor(who)))
