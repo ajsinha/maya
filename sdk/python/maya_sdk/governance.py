@@ -1998,3 +1998,197 @@ class OverlayDisclosure:
         """
         return self._maya.call("GET", "/overlay-disclosure/trend",
                                params={"periods": ",".join(periods)})
+
+
+class Configuration:
+    """The platform configuring itself, and the line that does not move.
+
+    "Configuration as code" done naively to a governance platform is the single
+    most effective way to defeat one: the gates and the git repository end up
+    with **the same approval process**, and that process is a pull request
+    reviewed by whoever is on shift.
+
+    So `boundary()` publishes what a firm may configure and what it may not, and
+    why. Policies, warrant profiles, monitoring defaults, appetite limits and
+    remediation costs are a bank's own judgement. The lifecycle state graph, the
+    tier lattice, the trainability fibration and the refusal taxonomy are not
+    settings that happen to be hardcoded — they are the argument, and the
+    argument is what the platform is.
+
+    Applying is a **governance act**, not a deployment step. `plan()` renders
+    exactly what would change and which way each change points, and a plan that
+    **loosens** needs a named approver: a configuration that tightens can be a
+    deployment, one that loosens is a decision, and the whole risk of
+    configuration-as-code is that the two travel in the same pull request.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def boundary(self) -> Dict[str, Any]:
+        """What is configuration, what is code, and why."""
+        return self._maya.call("GET", "/configuration/boundary")
+
+    def export(self, *, sections: Optional[List[str]] = None) -> Dict[str, Any]:
+        """What is in force, read from the registers rather than from a file.
+
+        That difference matters: a file describes somebody's intentions, and the
+        registers describe the platform.
+        """
+        params = {"sections": ",".join(sections)} if sections else {}
+        return self._maya.call("GET", "/configuration", params=params)
+
+    def plan(self, configuration: Dict[str, Any], *,
+             format: str = "maya.configuration/v1") -> Dict[str, Any]:
+        """Exactly what would change. Read `loosens` first.
+
+        *Three rules changed* is not a reviewable sentence; *two of these three
+        let something through that is refused today* is — and the direction is
+        computed from the shape of each change rather than asserted by whoever
+        wrote it. Where the shape gives no reading it is `neutral` and is not
+        guessed, because a wrong direction on a review screen is worse than
+        none: somebody stops reading the diff.
+        """
+        return self._maya.call("POST", "/configuration/plan", json={
+            "format": format, "configuration": configuration})
+
+    def apply(self, configuration: Dict[str, Any], *, rationale: str,
+              approved_by: str = "",
+              format: str = "maya.configuration/v1") -> Dict[str, Any]:
+        """Record that a configuration was applied, with its diff.
+
+        Each section is applied through its own register, which keeps its own
+        approval — a path here that wrote policies directly would be a second
+        way to publish a gate, and the second way is always the one without the
+        signature.
+        """
+        return self._maya.call("POST", "/configuration/apply", json={
+            "format": format, "configuration": configuration,
+            "rationale": rationale, "approved_by": approved_by})
+
+
+class DocumentReview:
+    """Comments on a compiled document, and the one thing a reviewer cannot do.
+
+    **A compiled document cannot be edited.** Every sentence is assembled from
+    the evidence chain and cites a node; editing the prose would break the
+    citation without changing the record it cites, producing a document that
+    reads correctly and is no longer traceable to anything. That is worse than a
+    wrong sentence, because a wrong sentence can be found.
+
+    So the fix for a wrong sentence is **a fix to the record it was compiled
+    from**, and a recompilation. What a reviewer does here is say which section
+    is wrong and what about it, with `asks_for` from a closed list — *please
+    look at this* and *this is factually wrong* are different obligations, and a
+    free-text field makes them the same one.
+
+    Comments attach to a **digest**, not a document id: a comment carried onto a
+    recompilation is a remark about text that may no longer be there, and worse,
+    one that looks answered.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def asks(self) -> Dict[str, Any]:
+        """What a comment may ask for, and why a document is not editable."""
+        return self._maya.call("GET", "/document-review/asks")
+
+    def list(self, *, now: Optional[float] = None) -> Dict[str, Any]:
+        """Every document under review, most contested first.
+
+        An empty answer is worth reading as a fact about how documents are
+        reviewed here rather than about their quality: a review that happens in
+        email leaves the register exactly this empty.
+        """
+        return self._maya.call("GET", "/document-review", params={"now": now})
+
+    def read(self, document_id: str, *,
+             now: Optional[float] = None) -> Dict[str, Any]:
+        """One document's review state, against the version it was raised on."""
+        return self._maya.call("GET", "/document-review",
+                               params={"document_id": document_id,
+                                       "now": now})
+
+    def comment(self, document_id: str, *, section: str, body: str,
+                asks_for: str = "comment", quote: str = "") -> Dict[str, Any]:
+        """Say which section is wrong and what about it."""
+        return self._maya.call("POST", "/document-review",
+                               params={"document_id": document_id},
+                               json={"section": section, "body": body,
+                                     "asks_for": asks_for, "quote": quote})
+
+    def resolve(self, comment_id: str, *, resolution: str,
+                evidence_id: str = "") -> Dict[str, Any]:
+        """Close a comment, saying what was done — and which node if any.
+
+        A comment closed with "fixed" and nothing else is indistinguishable a
+        year later from one closed because the reviewer gave up, and the
+        difference is the entire value of a review history. A `factual` comment
+        or an `objection` may not be closed by the person who raised it.
+        """
+        return self._maya.call("POST",
+                               f"/document-review/{comment_id}/resolve",
+                               json={"resolution": resolution,
+                                     "evidence_id": evidence_id})
+
+    def withdraw(self, comment_id: str, *, reason: str = "") -> Dict[str, Any]:
+        """Take your own comment back. Recorded as what it is, never deleted."""
+        return self._maya.call("POST",
+                               f"/document-review/{comment_id}/withdraw",
+                               params={"reason": reason})
+
+
+class RequestTimeInputs:
+    """The inputs the caller brings, and the guarantees that do not reach them.
+
+    Most of a model's inputs come from the feature platform: materialised,
+    versioned, bitemporal, replayable. Some arrive **in the request** — a loan
+    amount typed into a form, a transaction being scored as it happens. That is
+    fine, and it is also a hole in every assurance this platform otherwise
+    gives.
+
+    Point-in-time does not apply: the value was never stored as at anything.
+    There is no ingest time, so the two clocks that separate a future value from
+    a late arrival do not exist. A replay cannot reproduce it. And **the skew
+    check is blind to it** — there is no offline value to compare against, so the
+    check finds nothing, which reads on a screen exactly like finding no skew.
+    That is why the gap is counted rather than left to be inferred.
+
+    The collision is the real bug: a name that is both a request-time input and
+    a catalogued feature means the model was fitted on the stored value and is
+    served the caller's. It is refused at declaration, because by the time it
+    shows up in production it looks like model degradation.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def guarantees(self) -> Dict[str, Any]:
+        """What the platform promises about a stored value, and not a sent one."""
+        return self._maya.call("GET", "/request-time/guarantees")
+
+    def posture(self, urn: str, *, semver: str) -> Dict[str, Any]:
+        """What arrives in the request, and what cannot be promised about it.
+
+        Read `unbounded`. An input with no declared bound gives the operating
+        contract's boundary check nothing to refuse against, so a caller may
+        send anything.
+        """
+        return self._maya.call("GET", "/request-time",
+                               params={"urn": urn, "semver": semver})
+
+    def across_the_estate(self, *,
+                          now: Optional[float] = None) -> Dict[str, Any]:
+        """Every version that reads a value the caller brings."""
+        return self._maya.call("GET", "/request-time", params={"now": now})
+
+    def check(self, urn: str, *, semver: str,
+              payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Judge one request's caller-supplied values against the contract.
+
+        Every violation is reported rather than the first: a caller told about
+        one bad field fixes it, retries, and is told about the next.
+        """
+        return self._maya.call("POST", "/request-time/check", json={
+            "urn": urn, "semver": semver, "payload": payload})

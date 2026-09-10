@@ -455,6 +455,25 @@ CREATE TABLE IF NOT EXISTS document (
 );
 CREATE INDEX IF NOT EXISTS ix_document_model ON document (model_id, kind);
 
+CREATE TABLE IF NOT EXISTS document_comment (
+    id TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    document_digest TEXT NOT NULL,
+    section TEXT NOT NULL,
+    quote TEXT DEFAULT '' NOT NULL,
+    body TEXT NOT NULL,
+    asks_for TEXT DEFAULT 'comment' NOT NULL,
+    raised_by TEXT NOT NULL,
+    raised_at DOUBLE NOT NULL,
+    state TEXT DEFAULT 'open' NOT NULL,
+    resolution TEXT DEFAULT '' NOT NULL,
+    resolved_by TEXT,
+    resolved_at DOUBLE,
+    evidence_id TEXT,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_document_comment ON document_comment (document_id, state);
+
 CREATE TABLE IF NOT EXISTS elicitation (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,

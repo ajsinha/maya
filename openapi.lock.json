@@ -1140,6 +1140,57 @@
         ]
       }
     },
+    "/api/v1/configuration": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:sections"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/configuration/apply": {
+      "post": {
+        "body": [
+          "approved_by",
+          "configuration",
+          "format",
+          "rationale"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/configuration/boundary": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/configuration/plan": {
+      "post": {
+        "body": [
+          "approved_by",
+          "configuration",
+          "format",
+          "rationale"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/data-layer-authorisation": {
       "get": {
         "body": [],
@@ -1238,6 +1289,71 @@
         "parameters": [],
         "responses": [
           "200"
+        ]
+      }
+    },
+    "/api/v1/document-review": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:document_id",
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "asks_for",
+          "body!",
+          "quote",
+          "section!"
+        ],
+        "parameters": [
+          "query:document_id!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/document-review/asks": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/document-review/{comment_id}/resolve": {
+      "post": {
+        "body": [
+          "evidence_id",
+          "resolution!"
+        ],
+        "parameters": [
+          "path:comment_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/document-review/{comment_id}/withdraw": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:comment_id!",
+          "query:reason"
+        ],
+        "responses": [
+          "200",
+          "422"
         ]
       }
     },
@@ -4340,6 +4456,43 @@
         "responses": [
           "200",
           "422"
+        ]
+      }
+    },
+    "/api/v1/request-time": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:semver",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/request-time/check": {
+      "post": {
+        "body": [
+          "payload",
+          "semver!",
+          "urn!"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/request-time/guarantees": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
         ]
       }
     },

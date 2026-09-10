@@ -744,3 +744,39 @@ INTAKE_PROPOSAL = Table(
     Column("registered_urn", Text),
     Index("uq_intake_reference", "reference", unique=True),
 )
+
+
+# A remark on one section of a compiled document, and the state it is in.
+#
+# Deliberately NOT an edit. A compiled document is assembled from evidence and
+# every sentence in it cites a node; editing the prose would break the citation
+# without changing the record it cites, producing a document that reads
+# correctly and is no longer traceable to anything. So a reviewer comments, and
+# the fix for a wrong sentence is a fix to the record it was compiled from.
+#
+# Comments attach to a document by DIGEST rather than by id, because a document
+# is recompiled and the question a reviewer is answering is about the version
+# they read. A comment carried forward onto a recompilation would be a remark
+# about text that may no longer be there.
+DOCUMENT_COMMENT = Table(
+    "document_comment", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("document_id", Text, nullable=False),
+    Column("document_digest", Text, nullable=False),
+    Column("section", Text, nullable=False),
+    Column("quote", Text, nullable=False, server_default=text("''")),
+    Column("body", Text, nullable=False),
+    # What the commenter wants done. A closed list, because "please look at
+    # this" and "this is factually wrong" are different obligations and a free
+    # text field makes them the same one.
+    Column("asks_for", Text, nullable=False, server_default=text("'comment'")),
+    Column("raised_by", Text, nullable=False),
+    Column("raised_at", Double, nullable=False),
+    Column("state", Text, nullable=False, server_default=text("'open'")),
+    Column("resolution", Text, nullable=False, server_default=text("''")),
+    Column("resolved_by", Text),
+    Column("resolved_at", Double),
+    # Where a comment led to a change in the RECORD rather than in the prose.
+    Column("evidence_id", Text),
+    Index("ix_document_comment", "document_id", "state"),
+)
