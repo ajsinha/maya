@@ -76,6 +76,7 @@ from core.registry import ModelComposition, ModelRegistry, RegistryError
 from core.registry.asat import AsAtProjection
 from core.registry.uses import ModelUses
 from core.validation.plans import ValidationPlans
+from core.validation.recode import RecodeHarness
 from core.features.serving import ServingRegister
 from core.scheduler import JobContext, Scheduler, SchedulerLoop
 from core.authz.oidc import build as build_oidc
@@ -527,6 +528,10 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         registry, fibres, validation=validation, monitoring=monitoring,
         changes=changes)
 
+    # Two implementations of one model, and the shape of their disagreement —
+    # which is the reading a pass rate cannot give.
+    recode = RecodeHarness(validations=validation, evidence=evidence)
+
     context = ContextBuilder(registry, evidence, RiskRepository(db), features,
                              validation, findings, monitoring, lifecycle,
                              warrants, overlays, regimes, attachments,
@@ -674,6 +679,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "as_at": as_at,
                            "uses": uses,
                            "validation_plans": validation_plans,
+                           "recode": recode,
                            "findings": findings, "validation": validation,
                            "finding_workflow": finding_workflow,
                            "test_catalogue": catalogue,

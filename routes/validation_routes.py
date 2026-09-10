@@ -39,6 +39,18 @@ class RecordTestIn(Body):
     slice: Dict[str, Any] = Field(default_factory=dict)
 
 
+class RecodeIn(Body):
+    #: Two sets of outputs, keyed by the input each side was given. MAYA does
+    #: not run the validator's code: executing it would put arbitrary code in
+    #: the control plane, and where each side came from is recorded rather
+    #: than assumed.
+    model: Dict[str, float]
+    recode: Dict[str, float]
+    tolerance: float = 1e-9
+    model_source: str = "unstated"
+    recode_source: str = "unstated"
+
+
 class ConcludeIn(Body):
     outcome: str
     conditions: List[str] = Field(default_factory=list)
@@ -187,6 +199,28 @@ class ValidationRoutes(Routes):
                               "validation, and an episode with no verdict "
                               "reads exactly like one where the validator "
                               "looked and agreed"}
+
+        @self.app.post(f"{api}/validations/{{validation_id}}/recode",
+                       tags=["validation"])
+        def recode(request: Request, validation_id: str, body: RecodeIn):
+            """Compare an independent implementation against the model's.
+
+            The distribution is the point. A recode agreeing to twelve decimal
+            places on 9,997 rows and disagreeing wildly on three is a
+            completely different finding from one off by 1e-9 everywhere, and a
+            pass rate reports them identically — the first is a branch nobody
+            tested and is exactly what independent recode exists to find.
+            """
+            episode = self.guard(lambda: service.require(validation_id))
+            who = self.authorise(request, "validation:record",
+                                 model=self.model_behind(episode))
+            harness = self.ctx["recode"]
+            comparison = self.guard(lambda: harness.compare(
+                body.model, body.recode, tolerance=body.tolerance,
+                model_source=body.model_source,
+                recode_source=body.recode_source))
+            return self.guard(lambda: harness.record(
+                validation_id, comparison, actor=self.actor(who)))
 
         @self.app.post(f"{api}/validations/{{validation_id}}/replay", tags=["validation"])
         def replay(request: Request, validation_id: str, body: ReplayIn):
