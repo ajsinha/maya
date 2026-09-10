@@ -60,6 +60,34 @@ only check here that somebody holding the database cannot simply satisfy.</p>
   </div>
 </div>
 
+<div class="card mb-3">
+  <div class="card-header">The chain against a clock that is not ours</div>
+  <div class="card-body py-3 small">
+    {% if not timestamps.authority_wired %}
+      <p class="mb-2"><strong>No timestamping authority is wired.</strong>
+      {{ timestamps.detail }}</p>
+    {% else %}
+      <div class="d-flex gap-4 flex-wrap mb-2">
+        <div><div class="stat">{{ timestamps.verified }}</div>
+             <div class="stat-l">verified</div></div>
+        <div><div class="stat">{{ timestamps.unverified }}</div>
+             <div class="stat-l">held, not checked here</div></div>
+        <div><div class="stat">{{ timestamps.absent }}</div>
+             <div class="stat-l">anchored, never stamped</div></div>
+      </div>
+      <p class="mb-2">{{ timestamps.detail }}</p>
+    {% endif %}
+    <p class="text-muted mb-0">A token bounds a head <strong>from above
+    only</strong>: it proves this hash existed no later than that time, which
+    is what stops a chain being written after the fact and dated before it. It
+    says nothing about how early the head existed, nothing about whether
+    anything was deleted, and nothing at all about the period before the first
+    token was taken. <span class="mono">unverified</span> is a third state on
+    purpose — a token nobody can check is not the same as no token, and it is
+    not the same as a verified one.</p>
+  </div>
+</div>
+
 <div class="card mb-3" {{ 'style=border-color:var(--crimson)' if drift }}>
   <div class="card-header" {{ 'style=background:var(--bad-soft)' if drift }}>Does the database still match the release?</div>
   <div class="card-body py-3 small">

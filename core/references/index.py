@@ -261,6 +261,20 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT id, reference, recipient, status, expires_at "
+                "FROM export_share WHERE model_id = :m", {"m": model_id}):
+            live = row["status"] == "open"
+            found.append(Reference(
+                "export_share", row["id"], row["recipient"],
+                ("a live share of this model's export pack with somebody "
+                 "outside the firm — deleting the model would leave a link "
+                 "serving an archive nothing here can any longer explain"
+                 if live else
+                 "a closed share, and the record of what left the building "
+                 "and who it went to"),
+                live))
+
+        for row in self.db.query(
                 "SELECT id, reference, question, state FROM elicitation "
                 "WHERE model_id = :m", {"m": model_id}):
             live = row["state"] == "open"

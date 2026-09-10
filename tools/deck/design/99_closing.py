@@ -61,7 +61,7 @@ data = [["Not built", "What that means today"],
          "inventory is what somebody registered"],
         ["The infrastructure Part IV assumes",
          "no cache, no broker, no outbox, no read replica, no row-level "
-         "security, no metrics endpoint, no CI — docs/14 §26 and §27 hold the "
+         "security, no metrics endpoint, no CI — docs/14 §27 and §28 hold the "
          "list, and every performance figure here is a target, not a measurement"]]
 th = table(sl, data, ML, y, CW, col_w=[3.6, 8.034],
            row_h=0.38, fs=10, hfs=10, bold_col0=True, first_col_color=CRIMSON)

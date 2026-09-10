@@ -559,6 +559,39 @@ CREATE TABLE IF NOT EXISTS evidence_node (
 CREATE INDEX IF NOT EXISTS ix_evidence_subject ON evidence_node (subject_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_evidence_node_seq ON evidence_node (seq);
 
+CREATE TABLE IF NOT EXISTS export_share (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    model_id TEXT,
+    urn TEXT NOT NULL,
+    content_digest TEXT NOT NULL,
+    pack_digest TEXT NOT NULL,
+    filename TEXT DEFAULT '' NOT NULL,
+    recipient TEXT NOT NULL,
+    purpose TEXT DEFAULT '' NOT NULL,
+    expires_at DOUBLE NOT NULL,
+    max_reads INTEGER,
+    reads INTEGER DEFAULT 0 NOT NULL,
+    status TEXT DEFAULT 'open' NOT NULL,
+    created_by TEXT NOT NULL,
+    created_at DOUBLE NOT NULL,
+    revoked_at DOUBLE,
+    revoked_by TEXT,
+    revoke_reason TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_export_share_reference ON export_share (reference);
+
+CREATE TABLE IF NOT EXISTS export_share_read (
+    id TEXT NOT NULL,
+    share_id TEXT NOT NULL,
+    at DOUBLE NOT NULL,
+    outcome TEXT NOT NULL,
+    detail TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_export_share_read ON export_share_read (share_id, at);
+
 CREATE TABLE IF NOT EXISTS feature (
     id TEXT NOT NULL,
     name TEXT NOT NULL,

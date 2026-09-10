@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}The register's edges — {{ app_name }}{% endblock %}
+{% block content %}
+{% include "admin_nav.html" %}
+<div class="accent"></div>
+<p class="kicker mt-2 mb-1">WHAT THIS PLATFORM IS TAKING ON TRUST</p>
+<h1>The register's edges</h1>
+<div class="rule"></div>
+<p class="text-muted small" style="max-width:48rem">Everywhere else in MAYA, the
+record is MAYA's own. These four subjects are the places where it is not: a
+package somebody in this firm wrote, an export another system produced, a sweep
+somebody else's scanner ran, and a pack that has already left the building. The
+screen exists because each of them is <em>narrower than its name suggests</em>,
+and a narrowness nobody has read is the same as one that is not there.</p>
+
+<div class="card mb-3">
+  <div class="card-header">Installed is not enabled</div>
+  <div class="card-body py-3 small">
+    <div class="d-flex gap-4 flex-wrap mb-2">
+      <div><div class="stat">{{ plugins.count }}</div>
+           <div class="stat-l">declared under <span class="mono">{{ plugins.group }}</span></div></div>
+      <div><div class="stat">{{ plugins.enabled|length }}</div>
+           <div class="stat-l">named by configuration</div></div>
+    </div>
+    <p class="mb-2">{{ plugins.detail }}</p>
+    {% if plugins.found %}
+      <table class="table table-sm maya mb-2">
+        <thead><tr><th>Axis</th><th>Name</th><th>From</th><th>State</th></tr></thead>
+        <tbody>{% for row in plugins.found %}
+          <tr><td class="mono">{{ row.axis }}</td>
+              <td class="mono">{{ row.name }}</td>
+              <td>{{ row.distribution }} {{ row.version }}</td>
+              <td class="{{ 'evidence-bad' if row.state == 'refused' }}">{{ row.state }}</td></tr>
+        {% endfor %}</tbody>
+      </table>
+    {% endif %}
+    <p class="text-muted mb-2">Discovery reads packaging metadata and
+    <strong>imports nothing</strong>. Enabling is a separate act that
+    configuration has to name, because a control that switched itself on when
+    somebody bumped a dependency is a control nobody turned on — and one that
+    switched itself off the same way is worse.</p>
+    <div class="row g-3">
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Open to extension</strong></div>
+        <div>{% for axis in plugin_contract.open %}
+          <span class="chip mono">{{ axis }}</span>{% endfor %}</div>
+        <p class="text-muted mt-2 mb-0">{{ plugin_contract.fibre_rule }}</p>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Closed, and why</strong></div>
+        <dl class="mb-0">{% for axis, why in plugin_contract.closed.items() %}
+          <dt class="mono small">{{ axis }}</dt>
+          <dd class="text-muted small">{{ why }}</dd>
+        {% endfor %}</dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What another system's export can and cannot say</div>
+  <div class="card-body py-3 small">
+    <table class="table table-sm maya mb-2">
+      <thead><tr><th>Source</th><th>Read from</th><th>Why not its API</th></tr></thead>
+      <tbody>{% for row in connectors.sources %}
+        <tr><td class="mono">{{ row.source }}</td>
+            <td>{{ row.reads }}</td>
+            <td class="text-muted">{{ row.why_not_the_api }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+    <p class="mb-2"><strong>What no source holds.</strong> A connector produces
+    candidates for triage, never registrations, and this is the reason:</p>
+    <ul class="mb-2">{% for fact in connectors.not_in_the_source %}
+      <li>{{ fact }}</li>{% endfor %}</ul>
+    <p class="text-muted mb-0">{{ connectors.detail }}</p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What a scanner has to send back</div>
+  <div class="card-body py-3 small">
+    <p class="mb-2">MAYA does not sweep drives. {{ scanner.detail }}</p>
+    <div class="row g-3 mb-2">
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Per candidate</strong></div>
+        <dl class="mb-0">{% for row in scanner.candidate_fields %}
+          <dt class="mono small">{{ row.field }}</dt>
+          <dd class="text-muted small">{{ row.why }}</dd>
+        {% endfor %}</dl>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Per sweep</strong></div>
+        <dl class="mb-0">{% for row in scanner.sweep_fields %}
+          <dt class="mono small">{{ row.field }}</dt>
+          <dd class="text-muted small">{{ row.why }}</dd>
+        {% endfor %}</dl>
+      </div>
+    </div>
+    <p class="mb-2">Confidence must be strictly below
+    <span class="mono">{{ scanner.max_confidence }}</span>; a scanner asserting
+    certainty is asserting a registration decision it is not in a position to
+    make. A sweep that misses the contract is refused <em>whole</em> — keeping
+    the good rows would mean the precision figure below grades something other
+    than the scanner that produced it.</p>
+    <p class="mb-0"><strong>How the scanners are doing.</strong>
+    {{ grade.detail }}</p>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">What has left the building</div>
+  <div class="card-body py-3 small">
+    <div class="d-flex gap-4 flex-wrap mb-2">
+      <div><div class="stat">{{ shares.open }}</div>
+           <div class="stat-l">live now</div></div>
+      <div><div class="stat">{{ shares.count }}</div>
+           <div class="stat-l">ever created</div></div>
+      <div><div class="stat">{{ shares.never_opened|length }}</div>
+           <div class="stat-l">never opened</div></div>
+    </div>
+    <p class="mb-2">{{ shares.detail }}</p>
+    {% if shares.shares %}
+      <table class="table table-sm maya mb-2">
+        <thead><tr><th>Reference</th><th>Model</th><th>Recipient</th>
+                   <th>Purpose</th><th>State</th><th>Served</th><th>Refused</th></tr></thead>
+        <tbody>{% for row in shares.shares %}
+          <tr><td class="mono">{{ row.reference }}</td>
+              <td class="mono">{{ row.urn }}</td>
+              <td>{{ row.recipient }}</td>
+              <td>{{ row.purpose }}</td>
+              <td class="{{ 'evidence-ok' if row.state == 'open' }}">{{ row.state }}</td>
+              <td>{{ row.reads }}</td>
+              <td>{{ row.refused }}</td></tr>
+        {% endfor %}</tbody>
+      </table>
+    {% endif %}
+    <p class="text-muted mb-0">A share is <strong>not an examiner
+    portal</strong> and establishes no identity. It is a time-boxed link to a
+    <em>content digest</em> — never a path, because a link to a location serves
+    whatever is at that location later. Refused reads are recorded alongside
+    served ones: in a year, <em>the link had expired</em> is a fact somebody
+    will need. {{ share_posture.detail }}</p>
+  </div>
+</div>
+
+<p class="text-muted small" style="max-width:48rem">A compiled document leaves
+as typesetting source — {{ rendering.emits|join(" or ") }} — and MAYA runs no
+typesetter. {% for row in rendering.not_produced %}<span class="mono">{{ row.format }}</span>{{ ", " if not loop.last }}{% endfor %}
+are refused by name with the reason on
+<span class="mono">/api/v1/document-rendering/formats</span>. The citations are
+the point: a section names the evidence it rested on, and a rendering that
+flattened that away would produce a document whose claims can no longer be
+traced — which is the state every hand-written model document is already in.</p>
+{% endblock %}
