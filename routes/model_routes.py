@@ -1257,6 +1257,39 @@ class ModelRoutes(Routes):
             self.authorise(request, "evidence:read")
             return ev.verify_chain()
 
+        # ---------------------------------------------- what is still owed
+        @self.app.get(f"{self.api}/remediation", tags=["lifecycle"])
+        def remediation_acts(request: Request):
+            """The acts, their costs and the derivation, before any plan.
+
+            A plan nobody can check against the structure it was computed over
+            is a plan nobody can argue with.
+            """
+            self.authorise(request, "model:read")
+            return self.ctx["remediation"].describe()
+
+        @self.app.get(f"{self.api}/models/{{name:path}}/remediation",
+                      tags=["lifecycle"])
+        def remediation_plan(request: Request, name: str,
+                             now: Optional[float] = None):
+            """The cheapest route to this model being in force.
+
+            Computed in the tropical semiring over the published derivation,
+            not proposed — the answer is arithmetic. Only acts that produce
+            evidence are in the plan; the cheaper ones that make the claim true
+            without making the model safer are listed separately, so a firm can
+            take one deliberately rather than find it by accident.
+
+            Nothing is executed. Each step names the route a person calls.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(urn_of(name)))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["remediation"].plan(model["urn"], now=now))
+
+
+
 
     def _approvals_below_quorum(self, model: Dict[str, Any],
                                 tier: int) -> List[str]:
