@@ -40,6 +40,8 @@ from core.lifecycle.conditions import ApprovalConditions
 from core.lifecycle.parallel import ParallelRuns
 from core.artifacts.migration import FormatMigration
 from core.docs.review import DocumentReview
+from core.estate.concentration import Concentration
+from core.features.impact import FeatureImpact
 from core.execution.composite import CompositeWarrants
 from core.features.request_time import RequestTimeInputs
 from core.platform.configuration import Configuration
@@ -1135,6 +1137,23 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         vendor=vendor_assessments, search=document_search,
         monitoring=monitoring)
 
+    # What several models depend on at once — the shared feature view, the
+    # shared snapshot, the shared vendor, the shared methodology. This is the
+    # obstruction made FINDABLE and deliberately not made additive: a network
+    # that copies a dependency and one that duplicates it produce identical
+    # component ratings, so any score computed from those ratings is blind to
+    # exactly what this exists to find. Sets, and no aggregate anywhere.
+    concentration = Concentration(
+        registry, composition, features=features, parameters=parameters,
+        vendor=vendor_assessments)
+
+    # Who is downstream of a feature, walked forward to the DECLARED USE. A
+    # count of models tells a feature owner nothing they can take to anybody;
+    # a named use tells them who has to be told and what will stop working.
+    feature_impact = FeatureImpact(
+        features, registry, parameters=parameters, warrants=warrants,
+        uses=uses, invocations=invocations)
+
     # The inputs the caller brings, and the guarantees that do not reach
     # them. Point-in-time, bitemporal, replay and skew all stop at a value that
     # arrived with the question — and the skew check's silence over them reads
@@ -1224,6 +1243,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "runs": runs,
                            "elicitations": elicitations,
                            "request_time": request_time,
+                           "concentration": concentration,
+                           "feature_impact": feature_impact,
                            "configuration": configuration,
                            "document_review": document_review,
                            "disclosure": disclosure,

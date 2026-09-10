@@ -1131,6 +1131,31 @@
         ]
       }
     },
+    "/api/v1/concentration": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/concentration/single-points": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/condition-kinds": {
       "get": {
         "body": [],
@@ -1714,6 +1739,34 @@
         "body": [],
         "parameters": [
           "path:model_version_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-impact": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:feature",
+          "query:now",
+          "query:view"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/feature-impact/restatement": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:version!",
+          "query:view!"
         ],
         "responses": [
           "200",

@@ -362,3 +362,39 @@ class FeatureRoutes(Routes):
             return self.guard(lambda: f.build_training_set(
                 body.name, body.spine, body.views, body.as_of,
                 body.valid_time_bound, body.transaction_time_bound))
+
+        # ------------------------------------------------- consumer impact
+        @self.app.get(f"{self.api}/feature-impact", tags=["features"])
+        def feature_impact(request: Request, feature: str = "",
+                           view: str = "", now: Optional[float] = None):
+            """Who is downstream, walked forward to the DECLARED USE.
+
+            A count of models is not an impact assessment. *Eleven models*
+            tells a feature owner nothing they can take to anybody; *this feeds
+            the origination decision under three live grants* tells them who
+            has to be told and what will stop working.
+            """
+            self.authorise(request, "feature:read",
+                           estate_wide="reading what rests on a feature")
+            engine = self.ctx["feature_impact"]
+            if feature:
+                return self.guard(lambda: engine.of_feature(feature, now=now))
+            if view:
+                return self.guard(lambda: engine.of_view(view, now=now))
+            return self.guard(lambda: engine.across_the_estate(now=now))
+
+        @self.app.get(f"{self.api}/feature-impact/restatement", tags=["features"])
+        def restatement_impact(request: Request, view: str, version: int,
+                               now: Optional[float] = None):
+            """What a restatement of this view version reaches.
+
+            The detection half already existed. This is the walk forward that
+            did not: a correction nobody traced is one that quietly invalidates
+            every parameter set fitted from it and every authority resting on
+            those.
+            """
+            self.authorise(request, "feature:read",
+                           estate_wide="tracing a restatement forward")
+            return self.guard(
+                lambda: self.ctx["feature_impact"].of_restatement(
+                    view, version, now=now))
