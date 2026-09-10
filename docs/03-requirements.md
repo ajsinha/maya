@@ -327,14 +327,19 @@ erDiagram
 Every entity emits **evidence nodes**; the chain is the connective tissue rather than a separate
 feature, and the segregation-of-duties engine reads it rather than a second who-did-what table.
 
-**Entities in earlier editions of this diagram that have no table.** `MODEL_USE`, `ASSUMPTION`,
-`LIMITATION`, `DEPLOYMENT`, `RUN`, `DATASET_SNAPSHOT` (as a first-class object rather than a column
-group), `INVOCATION`, `REMEDIATION` and `OBSERVATION` were drawn as entities and are not. Approved uses
-and boundaries live on the version's contract; assumptions and limitations live in an unstructured
-attribute blob; a fit is recorded as a parameter set rather than as a run; **and there is no invocation
-record at all**, which is why `FR-MON-008`, `FR-MON-009` and `FR-WARRANT-009` are all not built and why
-`FR-WARRANT-016` cannot be. Removing them from the drawing is the honest correction; the requirements
-that describe them are unchanged and still say Not built.
+**Entities in earlier editions of this diagram that have no table.** `MODEL_USE`, `DEPLOYMENT`, `RUN`,
+`DATASET_SNAPSHOT` (as a first-class object rather than a column group), `REMEDIATION` and `OBSERVATION`
+were drawn as entities and are not. Approved uses and boundaries live on the version's contract, and a
+fit is recorded as a parameter set rather than as a run. Removing them from the drawing is the honest
+correction; the requirements that describe them are unchanged and still say Not built.
+
+**Three of them have since been built, and this paragraph used to say why they could not be.** It read
+*there is no invocation record at all, which is why `FR-MON-008`, `FR-MON-009` and `FR-WARRANT-009` are
+all not built and why `FR-WARRANT-016` cannot be* — and that was true when it was written. `ASSUMPTION`
+and `LIMITATION` are now two tables rather than an attribute blob (`FR-INV-007`), and `INVOCATION` is
+one (`FR-WARRANT-009`), which unblocked `FR-MON-009` and `FR-WARRANT-016` in turn. `FR-MON-008` remains
+Not built and is now the only one waiting: an invocation record holds the SHAPE of a call and inference
+logging holds its content, and the second is a retention decision rather than a schema one.
 
 ---
 
@@ -349,7 +354,7 @@ that describe them are unchanged and still say Not built.
 | ID | Requirement | Pri | Status | Traceability |
 |---|---|---|---|---|
 | FR-INV-001 | Register a model under a globally unique, human-readable **URN** (`maya://model/<domain>.<family>.<name>`), immutable for life. | M | **Built** | SR 26-2 VI; SS1/23 1.2 |
-| FR-INV-002 | Capture the inventory attribute set of §8.1, with mandatory/optional driven by model class and tier. | M | **Partial** — identity, ownership, organisation and classification are columns; methodology, assumptions, boundaries and the vendor and generative groups live in an unstructured attribute blob with no per-attribute obligation | SS1/23 1.2(c) |
+| FR-INV-002 | Capture the inventory attribute set of §8.1, with mandatory/optional driven by model class and tier. | M | **Partial** — identity, ownership, organisation and classification are columns, and **assumptions and limitations are now two registers rather than a blob** (`FR-INV-007`), as are designations (`FR-INV-019`). Methodology, boundaries and the vendor and generative groups still live in an unstructured attribute blob with no per-attribute obligation, and *mandatory/optional driven by class and tier* is the half that has not moved: the fibres already know what each class owes, and nothing keys the attribute set off them | SS1/23 1.2(c) |
 | FR-INV-003 | Support the inventory states a supervisor asks about, including **under development** and **decommissioned**. | M | **Partial** — seven states (`draft`, `baselined`, `submitted`, `approved`, `attested`, `amending`, `retired`) rather than the thirteen named here. `baselined` is a second **initial** state, because an imported record entering through `draft` would imply historical evidence was asserted when it was not (`L-1`) | SS1/23 1.2(a) |
 | FR-INV-004 | Record **multi-valued regulatory scope** per model, with a stored rationale for every in/out determination. | M | **Built** — three regimes as institutions, each determination carrying the terms it read and the citation it rests on; regimes that disagree are reported as disagreeing | SR 26-2 II; SS1/23 1.1; AI Act Art. 6 |
 | FR-INV-005 | Model **uses** as separate entities: purpose, product, legal entity, geography, channel, segment, decision authority, effective dates. | M | **Not built** — a warrant grant carries a `declared_use` string checked at resolution; there is no use object, so risk cannot attach to one | SR 26-2 III ("misapplied or misused") |
