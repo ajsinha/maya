@@ -57,6 +57,34 @@ class MonitoringRoutes(Routes):
         monitors = monitoring.registry
         api = self.api
 
+        @self.app.get(f"{api}/inference-posture", tags=["monitoring"])
+        def inference_posture(request: Request):
+            """What this instance is holding, and what it is not saying.
+
+            Two lines repay reading. `keyed_digests` false means a digest of a
+            small feature vector — an age, a postcode, a band — is a lookup
+            table anybody with the same hash function can enumerate, which is
+            worse than storing the values because it is stored under a name
+            that stops anybody worrying about it. `past_retention` above zero
+            means the batch has not run, and a retention period nothing
+            enforces is a policy document.
+            """
+            self.authorise(request, "monitor:read")
+            return self.guard(lambda: self.ctx["inference"].posture())
+
+        @self.app.get(f"{api}/inference", tags=["monitoring"])
+        def inference_for(request: Request, urn: str, limit: int = 100):
+            """What this model was asked and answered, at the rate its tier
+            selects.
+
+            An empty answer distinguishes two different facts: a model nobody
+            has called, and a model whose calls the sampler did not select.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "monitor:read", model=model)
+            return self.guard(
+                lambda: self.ctx["inference"].for_model(urn, limit))
+
         @self.app.get(f"{api}/monitor-kinds", tags=["monitoring"])
         def kinds(request: Request):
             """Which questions can be asked, and which tests can answer them."""

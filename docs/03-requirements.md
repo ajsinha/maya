@@ -339,13 +339,17 @@ were drawn as entities and are not. Approved uses and boundaries live on the ver
 fit is recorded as a parameter set rather than as a run. Removing them from the drawing is the honest
 correction; the requirements that describe them are unchanged and still say Not built.
 
-**Three of them have since been built, and this paragraph used to say why they could not be.** It read
+**All four have since been built, and this paragraph used to say why they could not be.** It read
 *there is no invocation record at all, which is why `FR-MON-008`, `FR-MON-009` and `FR-WARRANT-009` are
 all not built and why `FR-WARRANT-016` cannot be* — and that was true when it was written. `ASSUMPTION`
 and `LIMITATION` are now two tables rather than an attribute blob (`FR-INV-007`), and `INVOCATION` is
-one (`FR-WARRANT-009`), which unblocked `FR-MON-009` and `FR-WARRANT-016` in turn. `FR-MON-008` remains
-Not built and is now the only one waiting: an invocation record holds the SHAPE of a call and inference
-logging holds its content, and the second is a retention decision rather than a schema one.
+one (`FR-WARRANT-009`), which unblocked `FR-MON-009` and `FR-WARRANT-016` in turn.
+
+`FR-MON-008` was the last to go, and it was right that it went last: an invocation record holds the SHAPE
+of a call and inference logging holds its **content**, and the second is a retention decision rather than a
+schema one. `INFERENCE` is therefore a separate table from `WARRANT_INVOCATION` rather than more columns on
+it — one can be kept for years without anybody thinking about it, and the other has a sampling rate, a
+retention period derived from the model's data classification, and a batch job that **deletes**.
 
 ---
 
@@ -658,7 +662,7 @@ any good, which is what closure evidence and an independent verifier are for.
 | FR-MON-005 | **Slice-level monitoring** by segment, geography, channel, product and protected class; detect aggregate-stable/slice-degraded conditions. | M | **Partial** — a slice can be declared on a monitor and on a result. No fairness metric exists to slice on (`FR-VAL-002`), and nothing detects the aggregate-stable case | ECOA; AI Act Art. 15 |
 | FR-MON-006 | **Breach → finding** with severity mapping and assignment. | M | **Built** — escalating with persistence; recovery closes the breach and deliberately **leaves the finding open**, because the model having recovered is not the same as somebody having looked at why it degraded | — |
 | FR-MON-007 | **Model health score** per version combining performance, drift, data quality, overlay reliance, validation currency and open findings, with full derivation transparency. | S | **Not built** | P8 |
-| FR-MON-008 | **Inference logging**: request id, URN and resolved version, feature values or a governed digest, prediction, explanation, latency, caller, outcome, with sampling by tier and retention by class. | M | **Not built.** There is no invocation record of any kind. This is the requirement three others depend on, and its absence is why `FR-MON-009`, `FR-WARRANT-009` and `FR-WARRANT-016` cannot be built and why AI Act Art. 12 and 19 are not met | AI Act Art. 12, 19 |
+| FR-MON-008 | **Inference logging**: request id, URN and resolved version, feature values or a governed digest, prediction, explanation, latency, caller, outcome, with sampling by tier and retention by class. | M | **Built** — `core/execution/inference.py`, kept apart from `warrant_invocation` on purpose: that table holds the *shape* of a call and can be kept for years without anybody thinking about it, this one holds **content**, and content carries personal data. **The digest is the default and the values are the exception** — a digest proves what was asked and what was answered without holding either, which is what Art. 12 traceability actually needs, and retaining the values is a decision taken per model with an end date. **The digest is keyed**, because an unkeyed digest of a small feature vector (an age, a postcode, a band) is a lookup table anybody with the same hash function can enumerate — worse than storing the data, since it is stored under a name that stops anybody worrying about it; an unkeyed instance is *reported* rather than refused. **Sampling is by tier and the interesting calls are never sampled out**: a refusal, a boundary violation and an error are kept whatever the rate, because the sample exists to make the rare thing visible, and every row says which reason put it there. **Retention is by classification and runs the other way from the instinct** — `restricted` is kept for the shortest time, not the longest — derived from `FR-SEC-007` rather than guessed at, and `inference.expire` **deletes**, because a retention period enforced by a column a query could select around is not a retention period | AI Act Art. 12, 19 |
 | FR-MON-009 | **Approved-use vs actual-use reconciliation** from resolution telemetry, raising off-label-use exceptions. | M | **Built** — `core/execution/reconciliation.py`, unblocked by `FR-WARRANT-009`. The insight the requirement turns on: every individual call is ALREADY legitimate. A declared use is checked at resolution against the grant carrying it, and a call for a use nobody holds is refused on the spot — so no single invocation in the log is objectionable. **Off-label use is a pattern of good calls**, and nothing was looking at the pattern. Four shapes, three invisible per-call by construction: a use nobody grants tried persistently (all refused, so a control-effectiveness report shows the platform working perfectly while a team attempts the same unapproved question four hundred times); a granted use nobody exercises; a registered purpose the traffic does not match, where the purpose and the grants were each approved by people who never saw them side by side; and a use that crosses from a lower environment into production. Only the first raises a finding — a register that raised one every time a model's traffic was uneven is a register whose findings nobody reads — and it is idempotent, so a quarterly sweep does not produce a quarterly duplicate | SS1/23 1.2(c)(i) |
 | FR-MON-010 | **Operating-boundary monitoring**: flag requests whose inputs fall outside the declared boundaries; count, alert and optionally reject. | M | **Partial** — enforced at execution with `reject`, `flag` or `clamp`, and violations returned on the result. Not counted over time and not alerted, because there is no invocation record to count | SS1/23 1.2(c)(i) |
 | FR-MON-011 | **Champion/challenger continuous comparison** with significance and a promotion recommendation. | S | **Not built** | — |
@@ -989,7 +993,7 @@ their absence as the largest single gap against the incumbents.
 | Documentation supporting continuity, and tracking of recommendations and exceptions | SR 26-2 VI | FR-DOC-001..014; FR-LC-011; FR-SEC-013..015 |
 | Documentation filed against the thing it describes, surviving a refit | SR 26-2 VI; SS1/23 4.x | FR-DOC-011..013 |
 | Technical documentation to Annex IV | AI Act Art. 11 | FR-DOC-002/003 |
-| Automatic logging over the system's lifetime; log retention | AI Act Art. 12, 19 | FR-MON-008; §8.3 — **not met** |
+| Automatic logging over the system's lifetime; log retention | AI Act Art. 12, 19 | FR-MON-008; §8.3 — **met**: every call's shape in `warrant_invocation`, its content as a keyed digest in `inference`, sampled by tier with refusals never sampled out, and retained by data classification with a batch that deletes |
 | Data and data governance for high-risk AI | AI Act Art. 10 | FR-FEA-001/011/013 |
 | Human oversight design | AI Act Art. 14 | FR-INV-002; FR-LC-006; FR-AI-004/006/014 |
 | Accuracy, robustness, cybersecurity | AI Act Art. 15 | FR-VAL-002; FR-VER-005/006/007 |

@@ -1942,6 +1942,28 @@
         ]
       }
     },
+    "/api/v1/inference": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:limit",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/inference-posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/invocations": {
       "get": {
         "body": [],

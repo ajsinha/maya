@@ -245,6 +245,25 @@ class ReferenceIndex:
                     False))
 
         for row in self.db.query(
+                "SELECT COUNT(*) AS n, SUM(CASE WHEN features IS NOT NULL "
+                "THEN 1 ELSE 0 END) AS held FROM inference "
+                "WHERE model_id = :m", {"m": model_id}):
+            if row.get("n"):
+                held = row.get("held") or 0
+                found.append(Reference(
+                    "inference", model_id, f"{row['n']} inference record(s)",
+                    (f"what this model was asked and answered. {held} of them "
+                     f"hold the feature values themselves, so deleting the "
+                     f"model would strand personal data behind an identifier "
+                     f"nothing resolves — which is worse than losing it, "
+                     f"because nothing would then be watching its retention"
+                     if held else
+                     "what this model was asked and answered, as keyed "
+                     "digests. Not a dependency, but the record that would "
+                     "answer whether a past decision came from this model"),
+                    bool(held)))
+
+        for row in self.db.query(
                 "SELECT id, reference, control, status FROM control_waiver "
                 "WHERE model_id = :m", {"m": model_id}):
             active = row["status"] == "active"

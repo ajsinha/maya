@@ -593,6 +593,11 @@ class GenerationRepository(Repository):
     JSON = ("output", "claims", "rejected_claims", "oracle_verdict")
 
 
+class InferenceRepository(Repository):
+    TABLE, ORDER = "inference", "at"
+    JSON = ("features", "prediction", "explanation")
+
+
 class IdempotencyRepository(Repository):
     TABLE, ORDER = "idempotency", "started_at"
 

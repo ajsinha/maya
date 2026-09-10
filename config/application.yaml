@@ -360,5 +360,21 @@ logging:
 # questions that are not code: whether this instance may reach the internet at
 # all, what of the register may leave the institution, how a non-deterministic
 # model's output is made reproducible, and who pays. See core/assist/providers.
+# What a model was asked and answered. The invocation log holds the SHAPE of
+# every call and needs no configuration; this holds the CONTENT, and content
+# carries personal data.
+inference:
+  # The HMAC key for the feature and prediction digests. EMPTY BY DEFAULT AND
+  # THAT IS A REAL GAP, reported on /classification rather than hidden: an
+  # unkeyed digest of a small feature vector — an age, a postcode, a risk band —
+  # is a lookup table anybody with the same hash function can enumerate, which
+  # is worse than storing the values because it is stored under a name that
+  # stops anybody worrying about it.
+  #
+  # Set it to a secret this deployment holds and does not ship. Changing it
+  # makes existing digests incomparable with new ones, which is correct — they
+  # are digests under a different key — so change it deliberately.
+  digest_key: ""
+
 assist:
   provider: mock
