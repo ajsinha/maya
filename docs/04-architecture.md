@@ -241,7 +241,7 @@ core/
 │                    and what each capability may spend before it spends it
 ├── baseline/        cold-start import and dated compliance debt (C-5)
 ├── estate/          the worklist and the summary, derived from the register
-├── scheduler/       sixteen idempotent jobs, a runner and an optional in-process loop
+├── scheduler/       seventeen idempotent jobs, a runner and an optional in-process loop
 ├── notify/          a digest per person per run; silence when nothing has changed
 ├── content/         help, about and tutorials as markdown, rendered server-side
 ├── config/          YAML with a git-ignored .local overlay and ${...} resolution
@@ -536,7 +536,7 @@ discovers the difference by looking for a service that is not there.
 | Lakehouse | Delta Lake on Spark/Databricks | Delta via `delta-rs`, in-process, or **Apache Iceberg** via `pyiceberg` by configuration — `db/table_backend.py` decides once, CI runs the whole suite both ways. **No Spark**; the PIT join is Python over the table files. `deltalake` is OPTIONAL: it is a compiled Rust extension and some estates forbid binary wheels, so `maya_deltalake/` implements the six calls MAYA makes in pure Python and writes the real transaction log — tables stay readable by Spark, Databricks and `deltalake` itself. `db/delta_backend.py` chooses, preferring the reference implementation where it installs; CI runs the whole suite both ways and the counts must match |
 | Object store | S3/ADLS/GCS with Object Lock for WORM | a content-addressed store on the local filesystem, digest as key, re-hashed on every read |
 | Cache / queue | Redis 7 | **not used.** Warrant TTL and jitter are computed in process |
-| Async | Celery, APScheduler | `core/scheduler/`: **sixteen idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |
+| Async | Celery, APScheduler | `core/scheduler/`: **seventeen idempotent jobs** invoked by an ordinary authenticated call, so cron, a Kubernetes CronJob or a person produce identical results. An in-process loop exists and is off by default |
 | Eventing | Kafka with CloudEvents | **not used** |
 | Policy | OPA/Rego | `core/policy/`: a rule is a predicate over a **closed vocabulary** of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions; no loops, no assignment, no attribute access — checked at the AST. Rego is a general language, and a gate written in one is a program a reviewer has to *run* rather than reason about |
 | Auth | OIDC + SAML + SCIM + MFA | OIDC authorisation code with PKCE, state and nonce; HTTP Basic and a session cookie for people; CSRF on cookie authority. **No SAML, no SCIM, no MFA, no Authlib.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason: it *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token |

@@ -4,7 +4,7 @@ slug: estate-and-worklist
 section: Assurance
 order: 130
 icon: list-check
-summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, sixteen idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
+summary: A computed condition nobody has looked at has had no consequence. Four mechanisms close that — a summary of the estate as it is, a worklist derived rather than assigned, seventeen idempotent jobs that record what has become true, and a digest that reaches out — plus the compliance debt an imported estate carries honestly.
 audience: Everyone, Model risk, Programme, Operators
 ---
 
@@ -279,19 +279,27 @@ the platform *already* computes and turns them into things that are
 **recorded** — a finding, a state change, an evidence entry. After this, a
 lapsed attestation raises a finding, and a finding can block.
 
-### The sixteen jobs
+### The seventeen jobs
 
 | Job | Records |
 |---|---|
 | `evidence.verify` | walks the whole evidence chain and moves the verification checkpoint |
+| `evidence.anchor` | writes the evidence chain head outside the database, and checks the chain still agrees with every head written before |
 | `notify.outstanding` | tells each person what is outstanding for them |
-| `attestation.lapsed` | a High finding for a model in force on an attestation past its validity |
-| `review.overdue` | a finding for a model past the review date its own tier set |
-| `monitoring.stalled` | a Medium finding for a monitor far past its cadence |
+| `attestation.lapsed` | raises a finding for a model in force on a lapsed attestation |
+| `review.overdue` | raises a finding for a model past the review date its tier set |
+| `monitoring.stalled` | raises a finding for a monitor far past its cadence |
 | `overlays.expire` | closes overlays whose approved window has elapsed |
-| `debt.reconcile` | closes baseline debt whose evidence arrived; expires what is overdue |
-| `findings.overdue` | a High finding that an agreed remediation window was missed |
-| `findings.unacknowledged` | a finding whose owner never accepted it |
+| `debt.reconcile` | closes baseline debt whose evidence arrived, expires what is overdue |
+| `findings.overdue` | records that a finding passed its remediation window |
+| `findings.unacknowledged` | records that a finding's owner never accepted it |
+| `waivers.expire` | closes every control waiver whose window has ended |
+| `uses.reconcile` | compares each model's approved uses against the uses actually exercised, and raises the persistent off-label ones |
+| `pipelines.check` | checks every feature view against its own loading history — freshness, volume, schema and null rates |
+| `immaterial.conditions` | checks every immaterial model against the conditions that would mean it is no longer immaterial — usage, dependence and the age of its assessment |
+| `lifecycle.stalled` | raises a finding for a record that has been mid-move longer than its tier allows |
+| `assist.injection` | scans the register for content shaped like an instruction to a model |
+| `assist.canaries` | checks whether the model under each capability's version string moved |
 
 Five are worth explaining.
 

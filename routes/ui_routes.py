@@ -536,7 +536,8 @@ class UIRoutes(Routes):
                 budgets=self.ctx["assist_budgets"].across_the_estate(),
                 capabilities=self.ctx["capabilities"].list(),
                 providers=assist_providers.describe(),
-                injection=injection.sweep(self.ctx["evidence"]))
+                injection=injection.sweep(self.ctx["evidence"]),
+                canaries=self.ctx["canaries"].across_the_estate())
 
         # ----------------------------------------------- lifecycle profiles
         @self.app.get("/lifecycle-profiles", response_class=HTMLResponse,
