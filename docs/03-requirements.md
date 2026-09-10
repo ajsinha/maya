@@ -133,8 +133,9 @@ RAG corpora, and **the firm's own tiering rule**.
 > should be answerable from one system, with evidence, without asking a human to look something up.**
 
 The original wording of this sentence promised sixty seconds and an as-at-date reconstruction. The
-second half of that promise rests on `FR-INV-016`, which is **not built** — so the sentence is stated
-here as an aim and marked as one, rather than as a description.
+second half of that promise rested on `FR-INV-016`, which is now **built** — the register at a past
+date is a fold of the evidence chain, and the answer carries the chain hash it is true at. The
+*sixty seconds* half is still an aim rather than a measurement, and the sentence is marked as one.
 
 ### 2.2 The five pillars
 
@@ -289,12 +290,16 @@ resolution fails closed. See [06 — Warrants & Execution](06-warrants-and-execu
 *"Show me every model that fed the Q2 provision, its validation status at that date, and any overlays
 applied."*
 
-**This journey cannot be executed today.** The evidence chain records what happened; there is no
-projection over it that reconstructs the register as at a past date (`FR-INV-016`, **not built**). What
-*can* be produced today is an **export pack** per model — self-contained, digested member by member,
-carrying where the chain stood, with everything it could not gather named in `gaps.md` — and a
-**board pack** persisted per period so *"the March pack"* means the March pack rather than a document
-of the same name recomputed today.
+**Most of this journey can now be executed.** `FR-INV-016` is built: the evidence chain records what
+happened, and the projection over it reconstructs the register as at a past date — every model's
+existence, owner, lifecycle status, tier and versions as they stood, carrying the chain sequence and
+hash the answer is true at. So *its validation status at that date* is answerable.
+
+What is still not: **which models fed the Q2 provision** needs `FR-INV-005`, a model *use* as an
+entity, and the overlays applied at a date are on the chain but not yet folded by this projection —
+each is a payload field away rather than a design away. Alongside it there is an **export pack** per
+model, self-contained and digested member by member, and a **board pack** persisted per period so
+*"the March pack"* means the March pack rather than a document of the same name recomputed today.
 
 ---
 
@@ -368,7 +373,7 @@ logging holds its content, and the second is a retention decision rather than a 
 | FR-INV-013 | **Continuous discovery**: scheduled sweeps detecting unregistered models, raising a discovery exception. | S | **Not built** | 01 §1.1 |
 | FR-INV-014 | **EUC discovery ingestion**: accept scan output and triage into the register or an EUC register. | S | **Not built** | SS1/23 1.1(b) |
 | FR-INV-015 | Full-text and **semantic search** across the register, documents and code. | S | **Partial** — a case-insensitive substring filter over name, URN, owner and model class of the already-scope-filtered list. Not indexed, not full-text, no vectors, and it does not reach documents or code | — |
-| FR-INV-016 | **As-at-date query**: reconstruct the register and every model's status as it stood on any past date. | M | **Not built** — and it is the largest single gap against §2.1. Delta time travel gives it for feature *data*; nothing projects the evidence chain into a register state | Examiner requests; SOX |
+| FR-INV-016 | **As-at-date query**: reconstruct the register and every model's status as it stood on any past date. | M | **Built** — `core/registry/asat.py`. The answer was already in the building: the evidence chain is append-only, hash-linked and records every act that changes the register, so the register at a moment is a **fold of the chain up to that moment**. No history table is kept in parallel, and the projection carries the **chain sequence and hash it is true at** — which is the reason to fold the chain rather than keep an audit table, because a projection somebody could have rewritten is not evidence and the chain cannot be rewritten without every hash after the edit disagreeing. It folds existence, owner, lifecycle status, tier, versions with their classes, which were approved, and which version each environment's alias pointed at. It does **not** invent the rest: the fields the chain does not carry are named in `not_projected`, because *we do not know what the purpose field said in March* is an answer and a confidently wrong purpose is not — and that list is a to-do list, closed one payload field at a time at the point of the act. `version_created` now carries its model's urn for exactly that reason: a fold cannot look anything up, and asking the register would mean a model deleted since silently lost its versions from its own history | Examiner requests; SOX |
 | FR-INV-017 | Periodic **owner attestation** with tracked completion and discrepancy findings. | S | **Partial** — attestation is a real quorum with a validity period, a lapse raises a finding, and outstanding signatures are derived onto each principal's worklist. There is no **campaign**: no generated population, no completion tracking across one, no discrepancy findings | — |
 | FR-INV-018 | Model **decommissioning** capturing rationale, replacement, downstream notification, retention class and archive. | M | **Partial** — `retire` is a governed transition that deletes nothing; the rationale, replacement link, downstream notification and retention class are not captured | SS1/23 1.2 fn.6 |
 | FR-INV-019 | Tag models `sox_relevant`, `regulatory_reporting`, `consumer_impacting`, `safety_critical`, driving additional control sets. | M | **Built** — `core/risk/designations.py`, and the *driving* half is the design. Each designation names controls required **in addition**, chosen to be what the designation actually implies rather than a general tightening: SOX adds change-control evidence and access review, because SOX is about controls over the thing that produces the numbers; regulatory reporting adds a reconciliation, because the question about a submission is not *is the model good* but *show me this figure came from that model on that date*. They are **orthogonal to the tier and additive to it** — they do not enter `tau`, and `supports_tier` reads tier controls only, because an adjoint that also read designation controls would answer *which tier do these defend* from facts the tier lattice does not contain and `L-5` would stop holding without anything obviously breaking. The extra controls join the waivable set, or a bank that cannot yet reconcile its submissions would have nowhere to say so and the requirement would be one people meet on paper. Designating replaces the set rather than adding to it, because a designation being removed is a decision worth as much as one being applied | SOX; ECOA |

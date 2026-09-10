@@ -198,6 +198,19 @@
         ]
       }
     },
+    "/api/v1/as-at": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:at!",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/assist/capabilities": {
       "get": {
         "body": [],
