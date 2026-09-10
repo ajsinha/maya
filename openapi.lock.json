@@ -91,6 +91,19 @@
         ]
       }
     },
+    "/api/v1/adaptive-change": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver",
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/aggregate-risk": {
       "get": {
         "body": [],
