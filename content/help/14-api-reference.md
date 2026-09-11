@@ -406,6 +406,10 @@ and these are what to use instead.
 | `POST` | `/models/{name}/attest` | `model:attest` | `role` + `decision`, `statement`. One role's half of the quorum |
 | `POST` | `/models/{name}/amend` | `model:amend` | `reason` + `scope`. The only route out of immutability |
 | `POST` | `/models/{name}/retire` | `model:retire` | `reason`. Withdraw from use, keep everything |
+| `GET` | `/decommission` | `model:read` | What a decommissioning captures, and the two things it does not do. `?urn=` reads one model's record |
+| `GET` | `/decommission/consumers` | `model:read` | Who reads this model, from the register's own typed edges, before anybody retires it |
+| `GET` | `/decommission/estate` | `model:read` | Retired vs decommissioned — two populations, and the gap is a backlog |
+| `POST` | `/decommission?urn=` | `model:retire` | `rationale`, `replacement` (URN or `none`), `retention_class`, `notified`, `acknowledged`. Validated **before** the transition |
 | `DELETE` | `/models/{name}?reason=` | `model:delete` | Administrators only. The evidence chain survives |
 
 ### Serialised model artifacts

@@ -55,6 +55,7 @@ from core.features.rendering import to_latex
 from core.attachments import KIND_MEANING as DOCUMENT_MEANING, KINDS as DOCUMENT_KINDS
 from core.docs.subjects import describe as describe_subjects
 from core.domain.algebra import FitProcedure, OutputKind, ParameterKind
+from core.lifecycle.decommission import Decommissioning
 from core.lifecycle import describe as describe_machine
 from core.lifecycle.states import MEANING as STATE_MEANING, MUTABLE, STATES
 from core.log import get_logger, swallowed
@@ -506,7 +507,15 @@ class ModelAlgebraRoutes(Routes):
                 # scope and segregation are checked at the act, and a permission
                 # held is not an act allowed.
                 permissions=sorted(self.ctx["authz"].explain(who)["permissions"])
-                if who else [])
+                if who else [],
+                # Decommissioning sits on this screen rather than one of its
+                # own: the four facts it captures are only ever asked for at
+                # the moment somebody is about to make the `retire` move that
+                # is in the table above, and a separate screen would be a
+                # screen nobody visits on the day it matters.
+                decommission=self.ctx["decommissioning"].of(model["urn"]),
+                reading=self.ctx["decommissioning"].consumers(model["urn"]),
+                posture=Decommissioning.posture())
 
         # ------------------------------------------------------------ quorum
         @self.app.get("/model-algebra/quorum/{name:path}",
