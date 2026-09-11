@@ -548,7 +548,7 @@ discovers the difference by looking for a service that is not there.
 | Observability | OpenTelemetry, Prometheus, Grafana | structured JSON logging with request id and principal on every line (`core/log.py`). The rest does not ship |
 | Testing | pytest, Hypothesis, schemathesis, testcontainers | pytest and Hypothesis. The executable laws live beside the code they constrain, plus the discipline walkers of §4.2 and §4.4 — tests that walk the source and hold a rule a review would not catch |
 | Packaging | uv/Poetry, Docker, Helm, Terraform | `requirements.txt` |
-| Clients | Python and JVM SDKs, CLI, notebook and CI plugins | `sdk/python/maya_sdk` — **standard library only**, no dependencies at all, because an SDK with a dependency tree moves the air-gap problem into the client's build pipeline rather than solving it. `sdk/java/` is a **README stating the contract a JVM client must honour**, and no implementation; saying so is the point of the directory |
+| Clients | Python and JVM SDKs, CLI, notebook and CI plugins | `sdk/python/maya_sdk` — **standard library only**, no dependencies at all, because an SDK with a dependency tree moves the air-gap problem into the client's build pipeline rather than solving it. `sdk/java/` honours the same rule — `java.net.http` and a two-hundred-line `Json.java`, release 17, JUnit on the test classpath only. Its README was written as the **contract a JVM client must honour** before there was an implementation and is kept in that order, because what a MAYA client must do outlives any one client. **No CLI, no notebook plugin and no CI plugin** |
 
 ### 9.1 What deployment actually looks like
 

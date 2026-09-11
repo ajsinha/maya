@@ -32,53 +32,72 @@ for i, (t, d) in enumerate(outs):
          f"0{i+1}", t, d)
 
 # ------------------------------------------------------ what it does not do
-sl, y = content("And what it does not do", "Closing · the honest half")
-data = [["Not built, or not ours", "What that means today"],
+# Two slides rather than one, and the split is the argument. A GAP closes with
+# effort; a REFUSAL closes only by making something else untrue. Putting them
+# in one table let a reader take the whole list for a backlog.
+sl, y = content("What is not built", "Closing \u00b7 the honest half")
+data = [["Not built", "What that means today"],
         ["An EUC scanner",
          "MAYA does not crawl the bank\u2019s drives and should not \u2014 a sweep needs "
          "credentials to every repository, notebook server and shared drive in "
          "the institution. The receiving half is built and the CONTRACT a "
          "scanner must meet is published; running one is somebody else\u2019s job, "
          "and nobody has"],
-        ["An online feature store",
-         "the Delta namespace IS the serving contract, and \u00a77 says MAYA will "
-         "not sit on the serving path. L-17 is no longer blocked on it: the "
-         "engine attests which namespaces it read and MAYA compares. A store "
-         "would buy OBSERVATION rather than attestation \u2014 a smaller claim "
-         "than this row used to make"],
         ["Three foundational laws",
          "L-6, L-11, L-13 \u2014 each named in chapter 8 with the reason. L-14 and "
          "L-17 were on this list and now run. The three that remain are honest "
          "refusals: building a document `put` to satisfy the lens laws would be "
          "building the wrong thing"],
-        ["The interaction premium",
-         "REFUSED rather than pending. L-14 says the copy map is the "
-         "obstruction, so any single figure over the component ratings is "
-         "blind to exactly what it would exist to find. What composes is the "
-         "ORDER \u2014 the worst tier at stake \u2014 and not a magnitude"],
-        ["An examiner portal",
-         "and it stays unbuilt on purpose. Handing a pack over IS built: a "
-         "time-boxed link to a content digest, revocable, recording every read "
-         "including the refused ones. A portal authenticates a third party INTO "
-         "the register, and whatever that session reaches, they reach"],
-        ["Non-repudiation to a third party",
-         "a warrant is signed with a key DERIVED from the audience, so a "
-         "compromised engine forges warrants for itself and nobody else. What "
-         "that does not do is prove authorship to somebody outside the bank \u2014 "
-         "a verifier holds the key it verifies with. Published at "
-         "GET /warrant-signing rather than left to be assumed"],
         ["The infrastructure Part IV assumes",
          "no cache, no broker, no outbox, no read replica, no row-level "
          "security, no metrics endpoint \u2014 docs/14 \u00a727 and \u00a728 hold the "
          "list, and every performance figure here is a target, not a measurement"]]
 th = table(sl, data, ML, y, CW, col_w=[3.6, 8.034],
+           row_h=0.34, fs=9.5, hfs=9.5, bold_col0=True,
+           first_col_color=CRIMSON)
+note(sl, ML, y + th + 0.22, CW, 0.86,
+     "Three rows, and one of them is not code. ",
+     "The sweep is a job somebody with the credentials has to run, and it is "
+     "deliberately last: a sweep against a register that is not yet good "
+     "produces a queue nobody triages, ",
+     "which is how every discovery programme that fails, fails.")
+
+sl, y = content("And what will not be built", "Closing \u00b7 the honest half")
+data = [["Refused", "What closing it would cost"],
+        ["The interaction premium",
+         "L-14 says the copy map is the obstruction, so any single figure over "
+         "the component ratings is blind to exactly what it would exist to "
+         "find. What composes is the ORDER \u2014 the worst tier at stake \u2014 and "
+         "not a magnitude"],
+        ["An examiner portal",
+         "handing a pack over IS built: a time-boxed link to a content digest, "
+         "revocable, recording every read including the refused ones. A portal "
+         "authenticates a third party INTO the register, and whatever that "
+         "session reaches, they reach"],
+        ["An online feature store",
+         "\u00a77 says MAYA will not sit on the serving path. L-17 is no longer "
+         "blocked on it \u2014 the engine attests which namespaces it read and "
+         "MAYA compares. A store would buy OBSERVATION rather than "
+         "attestation, a smaller claim than this row used to make"],
+        ["Non-repudiation to a third party",
+         "a warrant is signed with a key DERIVED from the audience, so a "
+         "compromised engine forges warrants for itself and nobody else. What "
+         "asymmetry would add is proof of authorship to somebody outside the "
+         "bank, which nobody has asked for. Published at GET /warrant-signing"],
+        ["Spark inside MAYA",
+         "monitoring at estate scale moves the SCAN to whatever the firm "
+         "already runs \u2014 PSI, AUC and KS are functions of sufficient "
+         "statistics, which add across partitions \u2014 while MAYA computes the "
+         "metric and compares it. Unlike an external observation, that one "
+         "can be replayed"]]
+th = table(sl, data, ML, y, CW, col_w=[3.6, 8.034],
            row_h=0.34, fs=9, hfs=9, bold_col0=True, first_col_color=CRIMSON)
-note(sl, ML, y + th + 0.22, CW, 0.72,
+note(sl, ML, y + th + 0.22, CW, 0.80,
      "A deck that ends on what it built has told you half of it. ",
-     "Four of these are refusals rather than gaps, and the difference matters: "
-     "a gap closes with effort, and a refusal closes only by making something "
-     "else untrue. ",
-     "The distinction is the part a reader most needs without asking.")
+     "These five are not a backlog. Each would close only by making something "
+     "else untrue \u2014 a theorem, an architecture principle, or a sentence this "
+     "platform has been telling people. ",
+     "That distinction is what a reader most needs without asking.")
 
 # -------------------------------------------------------------- last slide
 sl = blank()

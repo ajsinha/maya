@@ -421,6 +421,13 @@ STATUS: Dict[str, int] = {
     "hit_policy_not_mappable": 422, "no_outcome_columns": 422,
     "no_decision_table": 422, "unreadable_dmn": 422,
     "dmn_declares_a_doctype": 422, "dmn_too_large": 413,
+    # An estate that will not fit in memory. A test that does not decompose is
+    # a 422 rather than a 501: nothing is missing, and asking again later will
+    # not help — the statistic genuinely is not a sum over partitions.
+    "test_does_not_decompose": 422, "test_not_distributable": 422,
+    "submission_does_not_meet_the_plan": 422, "bin_count_mismatch": 422,
+    "reference_too_small": 409, "no_rows_in_submission": 422,
+    "one_class_absent": 422,
     "fibre_narrows_obligations": 409,
     "unknown_source": 422, "unreadable_export": 422,
     "sweep_does_not_meet_the_contract": 422,

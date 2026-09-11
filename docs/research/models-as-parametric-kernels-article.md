@@ -1012,8 +1012,8 @@ all, because the paper said "reference implementation" four times and never name
 It's called **MAYA**, and it's at **[github.com/ajsinha/maya](https://github.com/ajsinha/maya)**.
 
 It isn't a demo built to illustrate the argument. The argument is the account of what building it required.
-At the revision this article describes: 317 Python modules that type-check clean, 82 tables in one typed
-schema that generates both dialects' DDL, 491 locked HTTP paths, and 5,340 tests that run on every push.
+At the revision this article describes: 318 Python modules that type-check clean, 82 tables in one typed
+schema that generates both dialects' DDL, 494 locked HTTP paths, and 5,394 tests that run on every push.
 
 Each of the four derivations is a module, not a proposal:
 

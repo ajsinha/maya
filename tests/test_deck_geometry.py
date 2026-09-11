@@ -62,7 +62,10 @@ DECKS = [
     # 127, from 126: chapter 15 gained the refusals that happen at a boundary,
     # which are a different kind from the other thirteen — they are about
     # declining to claim more than the platform holds where it cannot see.
-    ("MAYA-Model-and-Feature-Management", 127),
+    # 128, from 127: the closing "what it does not do" table split in two. A
+    # GAP closes with effort and a REFUSAL closes only by making something else
+    # untrue, and one table let a reader take the whole list for a backlog.
+    ("MAYA-Model-and-Feature-Management", 128),
     # Three audience-specific decks, built from the same theme. All are capped
     # at twenty slides on purpose: an executive briefing that grows into the
     # design deck stops being read, and a concepts deck that grows becomes the

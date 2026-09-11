@@ -128,6 +128,7 @@ class Maya:
         self.validations = governance.Validations(self)
         self.findings = governance.Findings(self)
         self.monitors = governance.Monitors(self)
+        self.distributed_monitoring = governance.DistributedMonitoring(self)
         self.reports = governance.Reports(self)
         self.validation_aid = governance.ValidationAssistance(self)
         self.regime_encoding = governance.RegimeEncoding(self)

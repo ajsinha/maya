@@ -149,3 +149,6 @@ my-warrant.json
 # The soak run's scratch server and database. The JOURNAL is committed
 # (docs/soak/); the working state it was produced from is not.
 .soak/
+
+# The Java SDK's build output. `mvn` writes it; nothing reads it from here.
+sdk/java/target/
