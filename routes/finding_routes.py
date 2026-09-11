@@ -16,13 +16,26 @@ and the finding register's owner/verifier split, for the same reason.
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Request
 from pydantic import Field
 
 from core.validation import ACT_MEANING, ACTS
 from routes.base import Body, Routes
+
+
+class RootIn(Body):
+    """A shared cause, named by a person rather than inferred."""
+    title: str
+    kind: str
+    detail: str
+    findings: List[str] = Field(default_factory=list)
+
+
+class AttachIn(Body):
+    """More findings for an existing cause."""
+    findings: List[str] = Field(default_factory=list)
 
 
 class AssignIn(Body):
@@ -165,3 +178,87 @@ class FindingWorkflowRoutes(Routes):
             return {"finding_id": finding_id, "title": reading["title"],
                     "owner": reading["owner"], **reading["escalation"]}
 
+
+        # ------------------------------------------- one cause, many findings
+        @self.app.get(f"{api}/finding-roots/posture", tags=["findings"])
+        def root_posture(request: Request):
+            """What a root is, and the three things it is not.
+
+            It **merges nothing** — a model whose feature stopped landing has
+            a real problem whatever caused it. It **infers nothing** — a guess
+            that grouped two unrelated findings would hide one behind the
+            other's closure. And **addressing a root closes no finding**,
+            because the point of a finding is that somebody checked *this
+            model* is all right again.
+            """
+            self.principal(request)
+            from core.validation.correlation import FindingRoots
+            return FindingRoots.posture()
+
+        @self.app.get(f"{api}/finding-roots", tags=["findings"])
+        def roots(request: Request, root_id: Optional[str] = None):
+            """Causes rather than symptoms — or one cause and what it caused.
+
+            The view this exists for. A board pack showing twelve open
+            findings in one domain reads as twelve problems; the committee
+            asks about the wrong thing, and the person who knows it is one
+            problem is not in the room.
+            """
+            self.authorise(request, "finding:read",
+                           estate_wide="reading correlated findings")
+            engine = self.ctx["finding_roots"]
+            if root_id:
+                return self.guard(lambda: engine.of(root_id))
+            return self.guard(lambda: engine.across_the_estate())
+
+        @self.app.get(f"{api}/finding-roots/candidates", tags=["findings"])
+        def root_candidates(request: Request, window_hours: float = 24.0):
+            """Findings that MIGHT share a cause. Nothing is grouped.
+
+            Same source, same category, one window, more than one model. A
+            deliberately weak signal: this proposes, and a person decides. A
+            platform that grouped on it would eventually hide one finding
+            behind another's closure, and a correlation nobody asserted is one
+            nobody can be asked about.
+            """
+            self.authorise(request, "finding:read",
+                           estate_wide="suggesting correlated findings")
+            return self.guard(lambda: self.ctx["finding_roots"].candidates(
+                window_hours))
+
+        @self.app.post(f"{api}/finding-roots", status_code=201,
+                       tags=["findings"])
+        def open_root(request: Request, body: RootIn):
+            """Name a cause, and attach the findings it produced."""
+            who = self.authorise(request, "finding:raise",
+                                 estate_wide="naming a shared cause")
+            return self.guard(lambda: self.ctx["finding_roots"].open_root(
+                title=body.title, kind=body.kind, detail=body.detail,
+                findings=body.findings, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/finding-roots/{{root_id}}/attach",
+                       tags=["findings"])
+        def attach_to_root(request: Request, root_id: str, body: AttachIn):
+            """Hang more findings off a cause. Refused whole if any is unknown.
+
+            A root that silently covers fewer findings than somebody listed is
+            a root somebody will rely on.
+            """
+            who = self.authorise(request, "finding:raise",
+                                 estate_wide="correlating findings")
+            return self.guard(lambda: self.ctx["finding_roots"].attach(
+                root_id, body.findings, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/finding-roots/{{root_id}}/address",
+                       tags=["findings"])
+        def address_root(request: Request, root_id: str, note: str):
+            """Record that the cause was dealt with. **Closes no finding.**
+
+            Each still needs its own closure with its own verifier. A root
+            that closed its children would be one act discharging obligations
+            several different people owe.
+            """
+            who = self.authorise(request, "finding:close",
+                                 estate_wide="addressing a shared cause")
+            return self.guard(lambda: self.ctx["finding_roots"].address(
+                root_id, note, actor=self.actor(who)))
