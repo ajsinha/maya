@@ -420,6 +420,7 @@ registered properly.
 | **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The nine places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
 | **19** | [Deploying MAYA](docs/19-deploying-maya.md) | The image, the two database roles, the chart's refusals, the batch — and the five things that must be true, in order |
 | — | [ADRs](docs/adr/INDEX.md) | Fourteen architecture decision records |
+| — | [CONTRIBUTING](CONTRIBUTING.md) | The five preflight gates, the discipline tests that walk the source, and the two mistakes this repository keeps making |
 
 ---
 
