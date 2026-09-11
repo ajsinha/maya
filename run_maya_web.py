@@ -91,6 +91,7 @@ from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
 from core.rules import RuleSetEditor
+from core.security import RowLevelSecurity
 from core.rules.importing import RuleSetImport
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
@@ -1606,6 +1607,10 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
             swagger_js_url="/static/vendor/swagger-ui/swagger-ui-bundle.js",
             swagger_css_url="/static/vendor/swagger-ui/swagger-ui.css",
             swagger_favicon_url="/static/img/maya-mark-64.png")
+    # The backstop under the scope check. Held on app state rather than in the
+    # context because `_identify` runs on every authenticated request and must
+    # not have to go through the service container to find it.
+    app.state.rls = RowLevelSecurity(ctx["db"])
     app.state.ctx = ctx
     # Registered BEFORE the session middleware, which puts it INSIDE it: an
     # `add_middleware` added later wraps outside, and a CSRF guard that runs
