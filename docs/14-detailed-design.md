@@ -3079,6 +3079,47 @@ an empty folder.
 
 # Part V — Cross-cutting
 
+### 19.3 The command line, and the three exit codes
+
+The command surface is the easy half of `FR-PLT-002`. What a CLI adds is the place a **pipeline** calls a
+governance platform from, and that is exactly where this platform's argument goes to die: `mypy || true` is
+the defect this codebase is named for, and a CI step that calls MAYA and ignores its exit code is the same
+defect with a nicer name.
+
+So the design decision in `sdk/python/maya_sdk/cli.py` is not the commands. It is that there are **three**
+exit codes and not two:
+
+| | Meaning | What a pipeline should do |
+|---|---|---|
+| **0** | MAYA answered, and the answer was yes | proceed |
+| **1** | MAYA answered, and the answer was **no** | stop; the refusal says why and what to do |
+| **2** | MAYA was **not reached**, or the command was malformed | stop, and do not treat this as a verdict |
+
+The separation of 1 and 2 is the whole contribution. `Refused` and `Unreachable` are already distinct on the
+SDK side for the same reason, and collapsing them at the shell would hand a pipeline the conclusion that
+**an unreachable register is compliance** — a build that goes green because the governance platform was down,
+which is worse than no gate at all because somebody believes it. A malformed command lands on 2 as well: a
+request this tool could not even send is not a governance verdict.
+
+Three further decisions. **No flag suppresses a refusal** — there is no `--force`, no `--yes` and no
+`--ignore-errors`, because a flag that skipped one would be the single bypass in a platform whose argument is
+that a refusal means something, and it would sit in the surface most likely to run unattended. **Only a
+verdict-shaped command gates on its answer**: `ready` does, everything else exits 0 whenever the platform
+answered at all, because *there are four open findings* is a fact and a tool that exits non-zero on a fact is
+a tool people wrap in `|| true`. And the verdict is read from the platform's own field rather than inferred
+from the parts, because a CLI computing readiness would be a second implementation of the rule in the copy
+that ships separately. Credentials come from the environment and there is no `--password`, since a password
+on a command line ends up in a build log.
+
+Notebook integration is narrower than it sounds, and deliberately. A notebook already renders a dict. **What
+a notebook breaks is the refusal**: it arrives as a traceback whose last line happens to contain the
+remediation — the half that says what to do, in the position nobody reads — and people learn from that to
+treat MAYA's refusals as errors. `maya_sdk/notebook.py` puts the three parts at the top and still raises, so
+a scheduled notebook does not go green past a refusal; `Unreachable` renders differently and says it is not a
+verdict, because rendering the two alike is worth nothing when somebody reading a red box concludes MAYA said
+no. It carries its own one-method `Html` rather than importing IPython, so the SDK keeps its empty dependency
+list and the rendering stays testable outside a notebook.
+
 ## 20. Persistence and transactions
 
 `db/` is the only package that knows about storage. `Database` wraps one SQLAlchemy engine; `Repository` is
@@ -3339,8 +3380,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 330 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 391 modules in one
+the 332 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 393 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
