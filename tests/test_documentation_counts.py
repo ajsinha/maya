@@ -77,7 +77,15 @@ def _truth():
         p.read_text(encoding="utf-8") for p in sorted((ROOT / "routes").glob("*.py")))
     mutating = len(re.findall(r"self\.app\.(?:post|put|delete|patch)\(",
                               routes_src))
+    # The case studies, counted from the directories rather than from any
+    # sentence about them. The suite README, the deck, the article and the
+    # LaTeX paper all state this number, and the paper's argument leans on it:
+    # "N demonstrations by the person who built the thing" is the objection it
+    # answers, so the count and the number NOT designed to fit both matter.
+    studies = sorted(d for d in (ROOT / "case_studies").iterdir()
+                     if d.is_dir() and re.match(r"^\d\d_", d.name))
     return {
+        "case studies": len(studies),
         "mutating endpoints": mutating,
         "executable laws": sum(1 for state in law_rows
                                if "Executable" in state or "Enforcing" in state),
@@ -155,6 +163,13 @@ CLAIMS = {
               r"\*\*[Oo]ver ([\d,]+) tests\*\*",
               r"more than ([\d,]+) tests"],
     "help topics": [r"(\d+) help topics"],
+    # Spelled out in every document that mentions them, so the words are
+    # matched rather than digits. `_as_number` already reads both.
+    "case studies": [r"\*\*chapter 26: the (\w+) case studies\*\*",
+                     r"^(\w+) worked models, each registered",
+                     r"(\w+) worked examples by the same person",
+                     r"the objection above applies to the worked examples as "
+                     r"much as to the modules: (\w+) demonstrations"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
     # the rows. This is the claim a reader is most likely to take on trust.

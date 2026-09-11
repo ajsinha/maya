@@ -52,7 +52,7 @@ class Features:
                owner: str, business_definition: str = "",
                source_system: str = "", sensitivity: str = "internal",
                pii: bool = False, protected_basis: bool = False,
-               shape: Any = None,
+               proxy_risk: str = "none", shape: Any = None,
                components: Optional[List[str]] = None,
                defaults: Optional[Dict[str, Any]] = None,
                assertions: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
@@ -87,6 +87,12 @@ class Features:
             "business_definition": business_definition,
             "source_system": source_system, "sensitivity": sensitivity,
             "pii": pii, "protected_basis": protected_basis,
+            # The API has always accepted this and `ContractScreening` screens
+            # on it; the SDK could not set it, so a client using the shorter
+            # path could tag a protected characteristic and NOT tag the proxy
+            # for one — which is the harder of the two and the one a model
+            # discriminates through without any column saying so.
+            "proxy_risk": proxy_risk,
             "shape": shape, "components": components,
             "defaults": defaults or {},
             "assertions": assertions or []})
