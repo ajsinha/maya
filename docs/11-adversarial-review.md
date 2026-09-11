@@ -313,10 +313,24 @@ monitors orphaned; the evidence is retained, which is the important half, and th
 **The attack.** I am a validator scoped to one legal entity. I look for a listing endpoint whose author
 forgot `Scope.filter`.
 
-**The honest answer.** There is no database backstop: **H-5** (row-level security, forced on the table so
-the owner cannot bypass it) is not built, and there is one connection identity, so RLS would have nothing
-to distinguish anyway. Everything rests on `core/authz/scope.py` being called, from `routes/base.py`, on
-every path.
+**Closed, and the blocker named in the old disposition is what moved.** This section used to say *there is
+no database backstop; RLS is not built, and there is one connection identity, so it would have nothing to
+distinguish anyway.* The second half was the real obstacle and it is gone: `routes/base.py::_identify` now
+puts the acting principal's entity scope on the connection the request is using, transaction-scoped so a
+pooled connection carries nothing to the next request, and the policies in `core/security/rls.py` read it.
+
+`core/authz/scope.py` remains **the control** and this is a backstop under it — deliberately, because RLS
+produces *no rows* rather than a refusal, and an empty list is indistinguishable from *there is nothing*.
+What it covers is the case the control cannot: the listing endpoint somebody wrote last week and forgot to
+filter.
+
+Two things make it real rather than decorative, and the second was found by running it against a real
+PostgreSQL 16 rather than by reasoning about it. `FORCE ROW LEVEL SECURITY` binds the table *owner*, and
+with the session variable unset a non-superuser owner reads **zero rows** — the policy holds. But a
+**superuser bypasses row-level security entirely**, `FORCE` or not, so a deployment can apply every
+statement perfectly, connect as `postgres`, and have a backstop that does nothing while the configuration
+looks correct. `GET /api/v1/row-level-security` therefore reports the connecting role's exemption
+alongside the table flags, because that is the fact which decides whether any of the rest of it is true.
 
 Two things make that better than it sounds and neither makes it safe. The first is that the same defect
 already happened and was fixed structurally: listings filtered while directly-addressable pages did not, so
@@ -325,8 +339,17 @@ its versions, alias history, warrant grants and evidence chain. `routes/base.py:
 API's own rule to every page that resolves a named object. The second is that filtering happens **before**
 paging, so page two of a filtered list is not page two of the unfiltered one with holes in it.
 
-What is still missing is the negative test **H-5** actually asked for: a cross-entity read that must return
-zero rows, run in the pipeline. Untested isolation is assumed isolation, and this isolation is untested.
+The negative test **H-5** actually asked for now exists — `tests/test_row_level_security.py`, a
+cross-entity read that must return zero rows. It runs against a real PostgreSQL and **skips loudly**
+without one, which is the honest arrangement rather than a compromise: asserting the policy text is not a
+test of the policy, and a green suite that never ran a cross-entity read would be exactly the assurance
+this finding objected to. `MAYA_TEST_POSTGRES=postgresql://…` runs it; `deploy/compose.yaml` stands up a
+database with the two roles already separated.
+
+What remains open is what row-level security cannot reach: rows that do not *carry* an entity. A version's
+entity is its model's and a finding's is its model's, and expressing that as a policy is a subquery per row
+on every read. `SCOPED_TABLES` is the list rather than a claim of completeness, and everything reached
+through those tables is still the application's job.
 
 ### 4.7 Everything claimed about an engine MAYA does not run is unobserved
 
@@ -533,7 +556,7 @@ everywhere.
 | **H-2** · The warrant plane reads the control-plane schema | **Open.** There is no `warrant_projection` table. `WarrantService.resolve` reads normalised tables one at a time — model, grant, alias, version, findings, and optionally a parameter set — five or more round trips per resolution. Since there is one process and one database, the deployment independence the finding was protecting does not exist either, so the coupling costs nothing *today* and forecloses exactly what it was raised to protect |
 | **H-3** · Immutable evidence versus erasure | **Satisfied in the law, not in the mechanism.** `contains_personal_data` exists as a `Boolean` in `db/schema/tables.py`, rendered to both dialects from that one declaration — and the append path stores an empty payload and hashes what it stored, so the node verifies against itself. There is no `payload_uri`, no per-subject key and no crypto-shredding. There is also no `CHECK` constraint, because the schema has none at all. See [§3.4](#34-a-mechanism-named-but-not-built) |
 | **H-4** · Circular and forward foreign-key references | **Moot for an unintended reason.** There are no foreign-key constraints in either dialect, so there are no cycles and no referential integrity. See [§4.5](#45-immutability-has-no-enforcer) |
-| **H-5** · Row-level security is bypassable by the table owner | **Not built.** Scope is enforced in Python. See [§4.6](#46-scope-is-a-python-call-somebody-has-to-remember) |
+| **H-5** · Row-level security is bypassable by the table owner | **Closed.** `core/security/rls.py`, with `FORCE` so the owner binds, a non-owner application role, a default-deny policy over a per-request session variable, and the cross-entity negative test the finding asked for. The exemption one level below — a superuser bypasses RLS entirely — is *reported* rather than assumed. Scope in Python remains the control; this is the backstop. See [§4.6](#46-scope-is-a-python-call-somebody-has-to-remember) |
 | **H-6** · PIT verification by sampling is presented as proof | **Closed, and the restatement is the part worth keeping.** Three layers exist. Layer 1 rejects rather than samples: `core/features/pit.py::static_check` refuses an assembly missing either bound, and `TrainingSetBuilder` raises `AssemblyRejected` on it. Layer 2 is stratified — strata over label period, entity and *label value*, because a leak confined to a rare high-value segment is where uniform sampling fails and where the damage is greatest — and it recomputes through `DeltaStore.as_of` rather than through the join path, so agreement means something. Layer 3 is adversarial injection in the suite. **The honest qualification the finding demanded is still owed on layer 1:** `static_check` reads two flags off the request rather than analysing a query, and the bound is structurally guaranteed because the assembler builds the join itself — so what it refuses is a caller opting *out*, which is a real refusal and a narrower one than "static analysis of the assembly query" implies |
 | **H-7** · Delta partitioning by `model_urn` explodes | **Moot.** Nothing is partitioned. `DeltaStore.write` passes no `partition_by`; isolation is by directory path — one Delta table per view version, per telemetry stream, per snapshot. No Kafka, no streaming ingest, no compaction; `vacuum_horizon_days` returns a number and vacuums nothing. The partition explosion cannot happen and neither can the scale the finding assumed |
 | **H-8** · Tier gaming through input manipulation | **Open, entirely.** `exposure` is a caller-supplied float on the assessment request. There is no system-of-record binding, no `unsourced` flag, no peer-cohort outlier detection, and no retrospective calibration. What does exist is the audit half: the fact snapshot is stored with every assessment, so *what was claimed* is on the record even though nothing distinguishes a claim from a measurement |

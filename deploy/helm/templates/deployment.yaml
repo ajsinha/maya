@@ -1,0 +1,77 @@
+{{- include "maya.requireSecrets" . -}}
+{{- include "maya.requireWorm" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "maya.fullname" . }}
+  labels: {{- include "maya.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "maya.fullname" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels: {{- include "maya.labels" . | nindent 8 }}
+    spec:
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: maya
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 5006
+          env:
+            - name: MAYA_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.databaseUrlSecret }}
+                  key: {{ .Values.secrets.databaseUrlKey }}
+            - name: MAYA_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.sessionSecret }}
+                  key: {{ .Values.secrets.sessionSecretKey }}
+            - name: MAYA_WARRANTS_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.warrantSigningKeySecret }}
+                  key: {{ .Values.secrets.warrantSigningKeyKey }}
+            # OFF, and the CronJob below drives the batch instead. An
+            # in-process loop with N replicas runs the governance batch N times
+            # a tick — which is not merely wasteful: it is N attestation-lapse
+            # notifications for one lapse, and the fourth one is the one
+            # somebody mutes.
+            - name: MAYA_SCHEDULER_LOOP_ENABLED
+              value: "false"
+          # Readiness asks whether the EVIDENCE CHAIN verifies, not whether the
+          # port answers. A pod serving a broken chain is a pod that should not
+          # take traffic, and a TCP probe cannot tell the difference.
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          # Liveness asks only whether the process is alive. Pointing it at
+          # /health/ready would restart every pod in the fleet the moment the
+          # chain failed verification — turning one detected problem into an
+          # outage, and destroying the instance that could have been read to
+          # find out what happened.
+          livenessProbe:
+            httpGet: {path: /health/live, port: http}
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "maya.fullname" . }}-data
+        - name: tmp
+          emptyDir: {}

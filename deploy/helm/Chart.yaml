@@ -1,0 +1,14 @@
+# MAYA — Model & AI Lifecycle Assurance
+# Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+apiVersion: v2
+name: maya
+description: >-
+  A model and AI lifecycle assurance register. This chart deploys the
+  application only — it does NOT deploy a database, and that is deliberate: a
+  governance register whose evidence chain lives in a StatefulSet the chart
+  also owns is one where a `helm uninstall` can destroy the record. Point it at
+  a database somebody else operates and backs up.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

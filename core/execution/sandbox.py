@@ -177,6 +177,21 @@ def _apply_limits(limits: Limits) -> tuple:
     before Python has imported its own runtime means the child dies importing
     lxml, which is a limit on the platform rather than on the model.
 
+    **Both caps are the process's CURRENT usage plus the budget**, and the CPU
+    one was not. `RLIMIT_AS` was always written that way — `_address_space() +
+    budget` — because address space is a level and capping it at the budget
+    alone would cap the interpreter. `RLIMIT_CPU` is a *cumulative* count from
+    process start, and it was being set to `limits.seconds` flat, so the
+    interpreter's own start-up was spent out of the model's budget.
+
+    That is not a rounding error. `tools/spikes/sandbox_escape` measured a
+    spawned child at **3.3 CPU-seconds just to import this package**, so a
+    warrant stating `max_seconds: 2` killed the artifact with SIGXCPU before it
+    ran a single instruction — and the failure was indistinguishable, in the
+    log and on the evidence chain, from a runaway model. A tighter budget made
+    it *more* likely, which is the opposite of what the author of the warrant
+    was doing.
+
     Returns what was ACTUALLY applied. The caller reports it back to the
     parent, so that "the artifact ran under a 512 MB cap" is something the
     platform observed rather than something it intended — on a system without
@@ -185,7 +200,11 @@ def _apply_limits(limits: Limits) -> tuple:
     if not RLIMITS:
         return ()
     applied = []
-    soft_cpu = max(1, int(limits.seconds))
+    # Cumulative, so the budget starts from what this process has already
+    # spent getting here rather than from zero.
+    spent = resource.getrusage(resource.RUSAGE_SELF)
+    already = int(spent.ru_utime + spent.ru_stime) + 1
+    soft_cpu = already + max(1, int(limits.seconds))
     resource.setrlimit(resource.RLIMIT_CPU, (soft_cpu, soft_cpu + 1))
     applied.append("cpu_seconds")
     if limits.memory_mb:
