@@ -152,7 +152,7 @@ refusing is how an estate goes a month with nothing running.
 
 ## 8. What has been measured, and what has not
 
-`tools/spikes/` turned three of the NFR table's targets into results. Every
+`tools/spikes/` turned four of the NFR table's targets into results. Every
 figure carries the machine it ran on, because a latency figure without conditions
 is a number somebody will quote in a different context.
 
@@ -161,11 +161,25 @@ is a number somebody will quote in a different context.
 | Warrant resolution | warm p99 ≈ 12 ms against a 50 ms target | warm and cold are **close**, because there is no descriptor cache — so the cold target is the only one of the two that means anything |
 | Point-in-time join | ≈ 240,000 picks/second | extrapolates to ≈ 50 TB of process memory at the target size. **The target is not reachable in one process at any speed**, which is why the answer is a distributed assembly rather than a faster loop |
 | Sandbox escape | 4 of 6 attempts stopped; 2 declared open | it found a **defect**: `RLIMIT_CPU` is cumulative and was set to the warrant's budget flat, so a `max_seconds: 2` warrant killed the artifact before it ran — indistinguishable from a runaway model, and a *tighter* budget made it more likely |
+| The register at estate size | list p95 **148 ms** at 10,000 models and **441 ms** at 50,000, against a 500 ms target; detail **1.9 ms**, flat | the paged reads are **sublinear in practice** — a fixed per-request cost dominates below about forty thousand models — but the **fold over the whole estate is not**: `/portfolio` was 8.3 s at 10,000 and did not return inside thirty minutes at 50,000 |
 
-**Not measured, and therefore still targets:** throughput, the 50,000-model
-scale figures, restore time, and anything about a multi-node deployment. A number
-this platform has never observed is a number it should not print as though it
-had.
+`docs/spikes/estate.json` holds that fourth result with its conditions, including
+which reads were **not** taken and why.
+
+**Three things it says about itself, which matter more than the milliseconds.**
+The estate was **seeded as rows**, so the write path and evidence-chain
+verification at that size are untouched — 6,000 chain nodes in
+`tests/test_scale.py` is still the largest this repository has observed. It ran
+**single-process on SQLite** with no concurrency, so every figure is a floor. And
+the machine was **shared**: the 50,000 figures reproduced across runs to within
+1%, while the 10,000 ones varied between 148 and 259 ms for the same read, which
+is why the growth ratio is reported with that caveat rather than as a clean
+slope.
+
+**Still targets, and therefore still unobserved:** throughput, the fold over an
+estate of 50,000, restore time, PostgreSQL, and anything about a multi-node
+deployment. A number this platform has never observed is a number it should not
+print as though it had.
 
 ## 9. Verifying a deployment
 

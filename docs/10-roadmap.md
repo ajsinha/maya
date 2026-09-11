@@ -76,10 +76,17 @@ these are the running of them, and they belong to whoever operates the platform.
 
 ### 2.4 The measurements nobody has taken
 
-Three of the NFR table's targets are now results (`tools/spikes/`, and
-[19 §8](19-deploying-maya.md)). The rest are still targets: throughput, the
-50,000-model scale figures, restore time, and anything about a multi-node
-deployment.
+Four of the NFR table's targets are now results (`tools/spikes/`, and
+[19 §8](19-deploying-maya.md)). The **50,000-model scale figures are the newest**
+and they came back split: the paged reads hold their latency budget at that size
+and the fold over the whole estate does not — `/portfolio` was 8.3 s at ten
+thousand models and did not return inside thirty minutes at fifty thousand.
+
+The rest are still targets: throughput, restore time, PostgreSQL, and anything
+about a multi-node deployment. So is the **write** path at estate size: the spike
+seeds rows, which makes its read figures real and leaves registration, the
+quorum and the serialised evidence append unmeasured — 6,000 chain nodes is still
+the largest verification this repository has observed.
 
 > A number this platform has never observed is a number it should not print as
 > though it had.
