@@ -4,7 +4,7 @@ slug: the-registers-edges
 section: Oversight
 order: 95
 icon: shield-exclamation
-summary: Ten places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
+summary: Eleven places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
 audience: Model risk managers, Platform, Architects, Auditors
 ---
 
@@ -15,7 +15,7 @@ what it works out from what it holds, and what it refuses to conclude. This page
 is about the other kind of place — where the platform is **relying on somebody
 it does not control**, or where somebody is relying on it.
 
-There are ten. The screen is `/admin/perimeter`, and if you read one thing
+There are eleven. The screen is `/admin/perimeter`, and if you read one thing
 before relying on any of them, read this:
 
 > At a boundary, the natural thing to report is the answer you wish you had —
@@ -227,6 +227,34 @@ So there are three answers, not two:
 The third never counts toward a stale figure and is reported on its own. A sweep
 that said *nothing fired* over an estate it could not evaluate would be printing
 its own blindness as an all-clear.
+
+## A tag that nothing reads
+
+The eleventh is this rule pointed inward, and it is the one worth checking for
+in any platform that tags things.
+
+Every feature in your catalogue can carry `protected_basis`, `proxy_risk` and a
+certification level. All three were recorded from the day the catalogue existed
+and **nothing read any of them** — not because nobody wanted a rule, but
+because a policy rule here is a predicate over a *published* vocabulary of
+facts, and that vocabulary could not see what a model version's contract binds.
+
+That is worse than the column being absent:
+
+> An absent column is obviously absent. A **tagged** estate looks governed, and
+> a reviewer who sees `protected_basis: true` reasonably assumes something acts
+> on it.
+
+Five facts are now published at the approval and alias-move gates, so you can
+write the rule. MAYA does not write it for you — *prohibit direct use in
+in-scope credit models while permitting controlled use for fairness testing* is
+not a sentence a platform can evaluate on your behalf, and one refusing on the
+tag alone would refuse the fairness testing the same regulation requires.
+
+**And `/api/v1/contract-screening/estate` tells you whether you wrote it.** It
+counts the models binding a protected characteristic *and* says whether any rule
+in force refuses on one. Publishing a vocabulary and stopping there would leave
+a firm that never wrote the rule exactly where it started.
 
 ## Four of these will not be built
 
