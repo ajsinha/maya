@@ -776,9 +776,11 @@ CREATE TABLE IF NOT EXISTS finding (
     closed_at DOUBLE,
     closure_verified_by TEXT,
     closure_evidence TEXT DEFAULT '{}' NOT NULL,
+    root_id TEXT,
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_finding_open ON finding (model_id, status, severity);
+CREATE INDEX IF NOT EXISTS ix_finding_root ON finding (root_id);
 
 CREATE TABLE IF NOT EXISTS finding_action (
     id TEXT NOT NULL,
@@ -797,6 +799,21 @@ CREATE TABLE IF NOT EXISTS finding_action (
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_finding_action ON finding_action (finding_id, acted_at);
+
+CREATE TABLE IF NOT EXISTS finding_root (
+    id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    status TEXT DEFAULT 'open' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE NOT NULL,
+    addressed_at DOUBLE,
+    addressed_by TEXT DEFAULT '' NOT NULL,
+    addressed_note TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_finding_root_open ON finding_root (status, kind);
 
 CREATE TABLE IF NOT EXISTS idempotency (
     id TEXT NOT NULL,

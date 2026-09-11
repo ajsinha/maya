@@ -91,6 +91,7 @@ from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
+from core.validation.correlation import FindingRoots
 from core.risk.sourcing import FactSourcing
 from core.rules import RuleSetEditor
 from core.security import RowLevelSecurity
@@ -192,7 +193,7 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
-                EstateCostRepository,
+                EstateCostRepository, FindingRootRepository,
                 ExportShareReadRepository, ExportShareRepository,
                 TieringFactSourceRepository,
                 ElicitationRepository, ElicitationResponseRepository,
@@ -564,6 +565,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # What the estate costs, attributed from what the register already knows.
     # MAYA does not run models and cannot observe cost; it takes an attested
     # figure and does the half it can.
+    # One cause, and the findings it produced. Merges nothing — see M-8.
+    finding_roots = FindingRoots(FindingRootRepository(db),
+                                 FindingRepository(db), evidence)
     estate_cost = EstateCost(EstateCostRepository(db), registry, findings,
                              evidence)
     rules = RuleSetEditor(registry, parameters, evidence)
@@ -1308,6 +1312,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "rules": rules, "rule_import": rule_import,
                            "fact_sourcing": fact_sourcing,
                            "estate_cost": estate_cost,
+                           "finding_roots": finding_roots,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

@@ -435,6 +435,12 @@ STATUS: Dict[str, int] = {
     # Attested cost. All 422: each is a well-formed request carrying a figure
     # that cannot be accepted as one, which tells a caller to go and fix the
     # extract rather than retry.
+    # One cause, many findings. `unknown_root` is a 404 and the rest are 422:
+    # a root that is not there is a different problem from one described in a
+    # way the register cannot count.
+    "unknown_root": 404, "unknown_root_kind": 422, "unknown_finding": 404,
+    "root_title_required": 422, "root_detail_required": 422,
+    "root_note_required": 422, "root_already_addressed": 409,
     "cost_currency_required": 422, "cost_period_start_required": 422,
     "cost_period_end_required": 422, "cost_source_required": 422,
     "cost_negative": 422, "cost_period_inverted": 422,

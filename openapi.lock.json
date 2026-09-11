@@ -2759,6 +2759,79 @@
         ]
       }
     },
+    "/api/v1/finding-roots": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:root_id"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "detail!",
+          "findings",
+          "kind!",
+          "title!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/finding-roots/candidates": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:window_hours"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/finding-roots/posture": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/finding-roots/{root_id}/address": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:root_id!",
+          "query:note!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/finding-roots/{root_id}/attach": {
+      "post": {
+        "body": [
+          "findings"
+        ],
+        "parameters": [
+          "path:root_id!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/findings": {
       "get": {
         "body": [],
