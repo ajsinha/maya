@@ -1,0 +1,84 @@
+# MAYA — the values a deployment has to think about, and the ones it must not
+# be allowed to skip.
+#
+# Three of these have NO default on purpose. A chart that ships a working
+# signing key ships a key everybody has, and a deployment that runs is a
+# deployment nobody goes back and fixes — so the template FAILS rather than
+# templating a placeholder. The failure is the control.
+
+image:
+  repository: maya
+  tag: ""            # defaults to .Chart.AppVersion
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+# --------------------------------------------------------------- the secrets
+# Every one of these is a REFERENCE to a Secret this chart does not create.
+# Templating a literal would put it in `helm get values`, in the release
+# history, and in whatever ships the values file into the cluster.
+secrets:
+  # The database URL. Connect as a role that OWNS NOTHING and is not a
+  # superuser — see deploy/postgres-init.sql. Connecting as the owner makes
+  # every row-level security policy decorative, and nothing looks wrong.
+  databaseUrlSecret: ""        # required: name of a Secret
+  databaseUrlKey: "url"
+  # Signs the session cookie. A published default means anybody with the
+  # repository can forge a signed-in session as any user, including admin,
+  # with no password.
+  sessionSecret: ""            # required: name of a Secret
+  sessionSecretKey: "session-secret"
+  # Signs warrants. Per-audience keys are DERIVED from this root, so a leaked
+  # root is every engine's key at once.
+  warrantSigningKeySecret: ""  # required: name of a Secret
+  warrantSigningKeyKey: "warrant-signing-key"
+
+# ------------------------------------------------------------------ the WORM
+# The anchor store, and the one piece of state this chart does own.
+#
+# `ReadWriteOnce` with more than one replica is a deployment where one pod
+# holds the volume and the others cannot anchor — so the chart refuses that
+# combination rather than producing a cluster where anchoring silently happens
+# on one pod out of three. An anchor nobody wrote is worse than no anchoring,
+# because the readiness report would say the chain was anchored.
+worm:
+  enabled: true
+  size: 10Gi
+  storageClass: ""
+  accessMode: ReadWriteMany
+
+# ---------------------------------------------------------------- the batch
+# The governance batch. An instance where nothing runs it is indistinguishable
+# from an estate with nothing outstanding: attestation lapses, silent monitors,
+# overdue findings and evidence anchoring are all recorded by it.
+scheduler:
+  # A CronJob calling the API, rather than an in-process loop, so that N
+  # replicas do not each run the batch N times.
+  enabled: true
+  schedule: "*/15 * * * *"
+
+resources:
+  requests: {cpu: 500m, memory: 512Mi}
+  limits: {cpu: "2", memory: 2Gi}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile: {type: RuntimeDefault}
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: ["ALL"]}
+
+service:
+  type: ClusterIP
+  port: 5006
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  tls: {enabled: true, secretName: ""}

@@ -27,6 +27,19 @@ from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Tuple
 
 
+#: The scope dimensions, and the model column each one reads.
+#:
+#: Published because a second enforcement point exists — `core/security/rls.py`
+#: generates PostgreSQL row-level policies — and two enforcement points written
+#: twice will disagree. The first time somebody adds a dimension both move from
+#: here; hand-written policies would leave one behind, and it would be the one
+#: silently permitting more.
+DIMENSIONS: Tuple[Tuple[str, str], ...] = (
+    ("legal_entities", "legal_entity"),
+    ("domains", "domain"),
+)
+
+
 @dataclass(frozen=True)
 class Scope:
     """The set of models a principal may act on."""

@@ -1,0 +1,78 @@
+# MAYA — Model & AI Lifecycle Assurance
+# Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
+# Proprietary and confidential. See LICENSE and NOTICE at the repository root.
+#
+# One command to a MAYA that behaves like a deployed one rather than like a
+# development machine: PostgreSQL rather than SQLite, a non-owner application
+# role so the row-level security backstop actually binds, and the WORM anchor
+# store on a volume that outlives the container.
+#
+#     docker compose -f deploy/compose.yaml up
+#
+# It is NOT a production topology. There is no TLS, no secret manager, no
+# backup and one replica — see `deploy/helm` for the shape that is, and
+# `docs/10 §2.3` for what remains somebody's operational work either way.
+
+name: maya
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: maya
+      POSTGRES_USER: maya_owner
+      # A development password in a development file. The compose file is in
+      # the repository, so anything here is public — which is exactly why the
+      # Helm chart takes a secret reference instead and refuses to template a
+      # literal.
+      POSTGRES_PASSWORD: maya_dev_password
+    volumes:
+      - db:/var/lib/postgresql/data
+      # Applied once, at first initialisation. It creates the non-owner role
+      # the application connects as, which is the piece that makes FORCE ROW
+      # LEVEL SECURITY bind against anything — the owner bypasses every policy,
+      # and the owner is whoever ran the DDL.
+      - ./postgres-init.sql:/docker-entrypoint-initdb.d/10-maya-roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maya_owner -d maya"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  maya:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # The application connects as the NON-OWNER role. Connecting as the owner
+      # would make every policy in `core/security/rls.py` decorative, and
+      # nothing about the configuration would look wrong.
+      MAYA_DATABASE_URL: postgresql+psycopg://maya_app_login:maya_app_password@db:5432/maya
+      MAYA_SESSION_SECRET: change-me-before-anything-that-matters
+      # Both spellings reach `auth.session_secret`: this one through the
+      # `${...}` substitution in config/application.yaml, and
+      # MAYA_AUTH_SESSION_SECRET through the automatic key mapping. Checked
+      # rather than assumed — a deployer setting a variable that silently does
+      # nothing still has a cookie signed with the published secret.
+      MAYA_WARRANTS_SIGNING_KEY: change-me-too
+    ports:
+      - "5006:5006"
+    volumes:
+      # The WORM anchor store. On a container filesystem it disappears on
+      # restart, and an anchor that disappears is worse than no anchor: the
+      # readiness report would have said the chain was anchored.
+      - data:/app/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  db:
+  data:

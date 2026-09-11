@@ -1,0 +1,21 @@
+{{- if .Values.worm.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "maya.fullname" . }}-data
+  labels: {{- include "maya.labels" . | nindent 4 }}
+  annotations:
+    # Kept on `helm uninstall`. The WORM anchor store is the only check on the
+    # evidence chain that somebody holding the database cannot simply satisfy,
+    # and a chart that deleted it on uninstall would make an accident
+    # indistinguishable from a cover-up.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [{{ .Values.worm.accessMode }}]
+  {{- with .Values.worm.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.worm.size }}
+{{- end }}

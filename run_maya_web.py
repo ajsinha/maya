@@ -91,6 +91,7 @@ from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
 from core.rules import RuleSetEditor
+from core.security import RowLevelSecurity
 from core.rules.importing import RuleSetImport
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
@@ -103,6 +104,7 @@ from core.execution.profiles import WarrantProfileRegister
 from core.authz.breakglass import BreakGlass
 from core import concurrency
 from core.concurrency import IdempotencyStore
+from core.http import conventions
 from core.execution.inference import InferenceLog
 from core.execution.quotas import GrantQuotas
 from core.execution.zones import ComputeZones
@@ -1605,6 +1607,10 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
             swagger_js_url="/static/vendor/swagger-ui/swagger-ui-bundle.js",
             swagger_css_url="/static/vendor/swagger-ui/swagger-ui.css",
             swagger_favicon_url="/static/img/maya-mark-64.png")
+    # The backstop under the scope check. Held on app state rather than in the
+    # context because `_identify` runs on every authenticated request and must
+    # not have to go through the service container to find it.
+    app.state.rls = RowLevelSecurity(ctx["db"])
     app.state.ctx = ctx
     # Registered BEFORE the session middleware, which puts it INSIDE it: an
     # `add_middleware` added later wraps outside, and a CSRF guard that runs
@@ -1671,6 +1677,62 @@ def create_app(cfg: PropertiesConfigurator = None) -> FastAPI:
                        # coded False, so the session cookie never carried
                        # `Secure` even behind TLS and there was no key to set.
                        https_only=cfg.get_bool("auth.session_https_only", False))
+
+    # Registered BEFORE the ETag middleware, which puts it INSIDE: a tag has to
+    # be computed over what was actually served. Tagging the full body and then
+    # narrowing it would hand the caller an ETag for a representation they were
+    # never sent, and their next `If-None-Match` would be answered 304 against a
+    # body that differs from the one they hold.
+    @app.middleware("http")
+    async def narrow_and_age(request, call_next):
+        """`?fields=` on a listing, and `Sunset` on an endpoint being retired.
+
+        **Projection never hides a refusal.** It runs over rows the caller was
+        already entitled to see, and the fields that say a result is partial —
+        `detail`, `gaps`, `not_projected` and their kin — are always kept. A
+        response that looked complete because somebody projected away the
+        sentence saying it was not is the exact failure this codebase spends
+        most of its effort avoiding.
+
+        **Sunset reaches the machine that is calling.** An integration built
+        against a MAYA endpoint is usually a control — a CI gate, a nightly
+        reconciliation, an export feeding a regulatory return — and a
+        deprecation that lives only in a release note is one nobody reads until
+        the control has been silently absent for a month.
+        """
+        response = await call_next(request)
+        # The route TEMPLATE where there is one, so an endpoint carrying an id
+        # is announced for every id rather than for none.
+        route = str(getattr(request.scope.get("route"), "path", None)
+                    or request.url.path)
+        ageing = conventions.sunset_headers(route)
+        fields = request.query_params.get(conventions.FIELDS)
+        if not ageing and not fields:
+            return response
+        content_type = response.headers.get("content-type", "")
+        if (not fields or request.method != "GET"
+                or response.status_code != 200
+                or not content_type.startswith("application/json")
+                or not hasattr(response, "body_iterator")):
+            for name, value in ageing.items():
+                response.headers[name] = value
+            return response
+        captured = b"".join([chunk async for chunk in response.body_iterator])
+        try:
+            narrowed = conventions.project(json.loads(captured), fields)
+        except (ValueError, UnicodeDecodeError):
+            # Served whole rather than narrowed by guesswork. A body that does
+            # not parse is a defect elsewhere, and projecting bytes is not a
+            # thing anybody can have meant.
+            logger.warning("a response from %s declares JSON and does not "
+                           "parse; serving it unprojected", request.url.path)
+            return Response(content=captured, status_code=200,
+                            headers=dict(response.headers))
+        body = json.dumps(narrowed).encode("utf-8")
+        headers = {**dict(response.headers), **ageing}
+        headers.pop("content-length", None)
+        return Response(content=body, status_code=200, headers=headers,
+                        media_type="application/json")
 
     @app.middleware("http")
     async def entity_tags(request, call_next):
