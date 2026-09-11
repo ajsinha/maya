@@ -312,6 +312,50 @@ place and nothing is lost; a withdrawn amendment stays in the history as one.
 the record, the versions, the evidence, the findings. This is what almost every
 situation calls for, and model owners and risk managers can do it.
 
+### Decommissioning: the four facts that go missing
+
+Retirement asks for a reason. Four more things get wanted **months later**, and
+none of them is hard to store — they go missing because retiring a model is the
+moment everybody involved has stopped caring about it, and a form field nobody is
+required to fill in is a field left empty. So the decommissioning form on
+**Model algebra → Lifecycle** refuses the silent versions:
+
+```bash
+POST /api/v1/decommission?urn=maya://model/credit.pd.smallbiz
+{"rationale": "superseded by the 2026 scorecard after the annual review",
+ "replacement": "maya://model/credit.pd.v2",
+ "retention_class": "model_record",
+ "notified": ["maya://model/portfolio.ecl"]}
+```
+
+| It refuses | Because |
+|---|---|
+| `rationale_required` | *superseded* answers nothing in two years. Ten characters is a low bar and it is there to stop `n/a` |
+| `replacement_not_registered` | *replaced by the new scorecard* is a sentence, not a link. Give a URN or the explicit `none` — blank is indistinguishable from nobody having filled it in |
+| `unknown_retention_class` | the classes differ because the obligations do: AI Act Art. 19 over the system's lifetime, SOX over seven years, data protection for *less* time |
+| `consumers_not_notified` | MAYA already knows who reads this model. Retiring into that silently is how a feeder model disappears and four downstream models start reading nulls that somebody turns into zeros |
+
+The last one is **escapable on purpose**: tick *go ahead and record that I looked
+at the list* and the retirement proceeds with the unnotified consumers written
+down. Somebody having looked and decided is a different fact from nobody having
+looked, and MAYA stores them differently.
+
+Everything is checked **before** the transition, so a refusal leaves the model in
+service rather than half-retired with no record of why.
+
+**MAYA notifies nobody and archives nothing.** `notified` records who was *told*,
+as a statement by whoever retired the model — the people who depend on a model
+are reachable through channels the register does not own, and claiming to have
+notified them would be claiming a delivery it never made. A retention class is a
+statement of the *obligation*, and a period is a **floor, never a ceiling**:
+confusing *may now be deleted* with *must now be deleted* is how a register loses
+the record that was about to be asked for.
+
+`GET /api/v1/decommission/estate` gives the one number worth having. *Retired*
+and *decommissioned* are two populations, and every model retired before this
+existed carries a reason and none of the other three facts — a backlog somebody
+can work rather than a defect.
+
 **Deletion is the one act with no workflow, no reversal and no second
 signature**, and it is checked against the **role** as well as the permission:
 

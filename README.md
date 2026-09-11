@@ -317,7 +317,7 @@ current there:
 | Tests | **over 4,800 passing** — about 5,500 including parametrised cases — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to |
 | Foundational laws executable | **18 of 21** — the three that are not are named with the reason, and each is a refusal rather than a gap |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **85 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
+| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **86 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
 | Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
 

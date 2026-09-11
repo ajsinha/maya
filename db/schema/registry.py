@@ -734,3 +734,42 @@ TIERING_FACT_SOURCE = Table(
     Column("recorded_at", Double, nullable=False),
     Index("ix_tiering_fact_source", "model_id", "fact", "recorded_at"),
 )
+
+
+# Taking a model out of service, properly.
+#
+# `retire` was always a governed transition that deletes nothing and requires a
+# reason — the hard half, built first. What `FR-INV-018` asks for on top is four
+# facts, and every one is a thing a firm discovers it needed MONTHS later: why,
+# what does this job now, who was relying on it, and how long do we keep it.
+#
+# None is hard to store. They go missing because retiring a model is the moment
+# everybody involved has stopped caring about it, and a form field nobody is
+# required to fill in is a form field left empty. So this table is separate from
+# the transition and its service refuses the three silent versions.
+#
+# `unnotified` is stored ALONGSIDE `notified` rather than derived at read time.
+# Who depended on the model at the moment it was withdrawn is a fact about that
+# moment; recomputing it later would answer a different question, and would
+# answer it differently every time the graph changed.
+MODEL_DECOMMISSION = Table(
+    "model_decommission", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("urn", Text, nullable=False),
+    Column("rationale", Text, nullable=False),
+    # A registered URN or the literal 'none'. Not free text: *replaced by the
+    # new scorecard* is a sentence, and the question it is meant to answer is
+    # asked in two years by somebody who cannot ask you.
+    Column("replacement", Text, nullable=False),
+    Column("retention_class", Text, nullable=False),
+    Column("notified", Text, nullable=False, server_default=text("'[]'")),
+    Column("unnotified", Text, nullable=False, server_default=text("'[]'")),
+    # Somebody looked at the unnotified list and decided anyway. A different
+    # fact from nobody having looked, and the reason the refusal is escapable.
+    Column("acknowledged", Boolean, nullable=False, server_default=false()),
+    Column("consumers_known", Boolean, nullable=False, server_default=false()),
+    Column("decommissioned_by", Text, nullable=False),
+    Column("decommissioned_at", Double, nullable=False),
+    Index("uq_model_decommission", "model_id", unique=True),
+)

@@ -93,6 +93,7 @@ from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
 from core.validation.correlation import FindingRoots
 from core.features.screening import ContractScreening
+from core.lifecycle.decommission import Decommissioning
 from core.risk.sourcing import FactSourcing
 from core.risk.triggers import RetierTriggers
 from core.rules import RuleSetEditor
@@ -195,7 +196,8 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
-                EstateCostRepository, FindingRootRepository,
+                DecommissionRepository, EstateCostRepository,
+                FindingRootRepository,
                 ExportShareReadRepository, ExportShareRepository,
                 TieringFactSourceRepository,
                 ElicitationRepository, ElicitationResponseRepository,
@@ -636,6 +638,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Activated before the compiler is built, because a document states which
     # supervisors apply and an inactive regime has nothing to say.
     regimes = RegimeEngine(evidence)
+
+    # Taking a model out of service, properly. `retire` was always governed
+    # and always required a reason; the four facts a firm discovers it needed
+    # months later — what replaced it, who was told, how long it is kept —
+    # went missing because retiring a model is the moment everybody involved
+    # has stopped caring about it.
+    decommissioning = Decommissioning(
+        DecommissionRepository(db), registry, composition=composition,
+        lifecycle=lifecycle, evidence=evidence)
 
     # When a tier stopped being the answer to the question it was answering.
     # Six of the seven `FR-TIER-005` triggers were unwatched, and every fact
@@ -1340,6 +1351,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "finding_roots": finding_roots,
                            "retier_triggers": retier_triggers,
                            "contract_screening": contract_screening,
+                           "decommissioning": decommissioning,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

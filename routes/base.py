@@ -438,6 +438,15 @@ STATUS: Dict[str, int] = {
     # One cause, many findings. `unknown_root` is a 404 and the rest are 422:
     # a root that is not there is a different problem from one described in a
     # way the register cannot count.
+    # Taking a model out of service. `replacement_not_registered` is a 422
+    # rather than a 404: the request is well-formed and the model it names is
+    # what does not exist, which tells a caller to register the successor
+    # rather than to check their URL.
+    # `rationale_required` is already mapped below, for the overlay register —
+    # one code, one status, which is what the discipline test is for.
+    "replacement_required": 422,
+    "replacement_not_registered": 422, "unknown_retention_class": 422,
+    "consumers_not_notified": 409,
     "unknown_root": 404, "unknown_root_kind": 422, "unknown_finding": 404,
     "root_title_required": 422, "root_detail_required": 422,
     "root_note_required": 422, "root_already_addressed": 409,

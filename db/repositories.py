@@ -614,6 +614,11 @@ class ExportShareReadRepository(Repository):
     TABLE, ORDER = "export_share_read", "at"
 
 
+class DecommissionRepository(Repository):
+    TABLE, ORDER = "model_decommission", "decommissioned_at"
+    JSON = ("notified", "unnotified")
+
+
 class FindingRootRepository(Repository):
     TABLE, ORDER = "finding_root", "opened_at"
 
