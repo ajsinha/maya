@@ -119,6 +119,74 @@ choosing your own control depth.</p>
     <a href="/model-algebra/version/{{ name }}">version screen</a>.
   </div></div>
 {% endfor %}
+
+<!-- ------------------------------------------ the delegated authority matrix -->
+<div class="card mt-3"><div class="card-header">Who may approve this
+  {% if authority.reached_by == 'deepest_band_because_the_amount_is_unknown' %}
+    <span class="evidence-bad">band reached by absence</span>
+  {% elif authority.band %}<span class="mono">{{ authority.band }}</span>{% endif %}</div>
+  <div class="card-body small">
+    <p class="text-muted mb-2" style="max-width:52rem">The tier decides the
+    quorum, and that is one dimension of three. A $2bn book and a $4m book are
+    not the same decision; authority is granted by an entity&rsquo;s board and
+    does not travel; and a second-line challenge signed before the first line
+    filed anything is a signature about nothing.</p>
+
+    <dl class="maya-terms">
+      <div><dt>Tier</dt><dd>{{ authority.tier or 'not assessed' }}</dd></div>
+      <div><dt>Legal entity</dt>
+        <dd class="mono">{{ authority.legal_entity or '—' }}</dd></div>
+      <div><dt>Amount</dt>
+        <dd>{% if authority.amount is not none %}
+            {{ '{:,.0f}'.format(authority.amount) }}
+            <span class="text-muted">attested from
+              {{ authority.amount_source }}</span>
+          {% else %}<span class="evidence-bad">not attested</span> &mdash;
+            <a href="/model-algebra/risk/{{ name }}">source the exposure</a>
+          {% endif %}</dd></div>
+      <div><dt>Signatures</dt>
+        <dd>{% if authority.stages %}
+            {% for stage in authority.stages %}
+              <span class="mono">{{ stage|join(' + ') }}</span>
+              {% if not loop.last %} <span class="text-muted">then</span> {% endif %}
+            {% endfor %}
+            {% if authority.sequenced %}<div class="text-muted">In that order.
+              A stage does not open until the one before it has closed.</div>
+            {% else %}<div class="text-muted">Either order.</div>{% endif %}
+          {% else %}one authorised person{% endif %}</dd></div>
+    </dl>
+
+    <p class="{{ 'evidence-bad' if authority.reached_by ==
+       'deepest_band_because_the_amount_is_unknown' else 'text-muted' }} mb-2">
+      {{ authority.detail }}</p>
+
+    {% if not published %}
+    <p class="text-muted mb-0">No matrix is published, so the bands below are
+    the tier quorum this platform ships with, restated. Publishing one at
+    <code>POST /api/v1/authority/bands</code> is what makes amount and entity
+    start deciding &mdash; deliberately a decision somebody makes, not a
+    behaviour that changes under an estate on upgrade.</p>
+    {% endif %}
+
+    <table class="table table-sm maya mb-0 mt-2">
+      <thead><tr><th>Band</th><th>Tier</th><th>At or above</th><th>Entity</th>
+        <th>Signs</th></tr></thead>
+      <tbody>
+      {% for band in matrix %}
+        <tr{% if band.name == authority.band %} class="table-active"{% endif %}>
+          <td class="mono">{{ band.name }}</td>
+          <td>{{ band.tier if band.tier is not none else 'any' }}</td>
+          <td class="text-end">{{ '{:,.0f}'.format(band.at_or_above or 0) }}</td>
+          <td class="mono">{{ band.legal_entity or 'any' }}</td>
+          <td style="font-size:.74rem">
+            {% for stage in band.stages %}{{ stage|join(' + ') }}
+              {%- if not loop.last %} <span class="text-muted">then</span> {% endif %}
+            {% endfor %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div></div>
+
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/model-algebra.js"></script>

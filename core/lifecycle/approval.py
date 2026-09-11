@@ -55,15 +55,38 @@ class VersionApproval:
     def __init__(self, approvals: VersionApprovalRepository,
                  signatures: VersionApprovalSignatureRepository,
                  registry, evidence: EvidenceEngine,
-                 quorum: Optional[Dict[int, Sequence[str]]] = None):
+                 quorum: Optional[Dict[int, Sequence[str]]] = None,
+                 authority=None):
         self.approvals, self.signatures = approvals, signatures
         self.registry, self.evidence = registry, evidence
         self.quorum = {int(k): tuple(v) for k, v in (quorum or DEFAULT_QUORUM).items()}
+        # `FR-LC-005`: the tier is one of three dimensions, and the other two —
+        # the amount and the entity — live in `core/lifecycle/authority.py`.
+        # Consulted only where a firm has PUBLISHED a matrix, so that until
+        # somebody does there is one answer to "how many signatures" rather
+        # than two that will eventually disagree.
+        self.authority = authority
 
     # ------------------------------------------------------------ requirement
     def required_for(self, tier: Optional[int]) -> Tuple[str, ...]:
         """Which roles must sign for a version of a model at this tier."""
         return self.quorum.get(int(tier), ()) if tier is not None else ()
+
+    def banded(self, model: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """The authority band this model falls in, where a matrix is published.
+
+        `None` means the tier quorum decides, which is what it has always done.
+        """
+        if self.authority is None or not self.authority.published():
+            return None
+        return self.authority.required_for(model["urn"])
+
+    def roles_for(self, model: Dict[str, Any]) -> Tuple[str, ...]:
+        """Who must sign — the band if one is published, else the tier quorum."""
+        band = self.banded(model)
+        if band is None:
+            return self.required_for(model.get("tier"))
+        return tuple(band["required_roles"])
 
     def describes(self) -> List[Dict[str, Any]]:
         """The whole table, so nobody has to read the configuration to know."""
@@ -76,15 +99,17 @@ class VersionApproval:
     def needed(self, urn: str, semver: str) -> Dict[str, Any]:
         """What this particular version's approval requires, and where it stands."""
         model, version = self._subject(urn, semver)
-        roles = self.required_for(model.get("tier"))
+        band = self.banded(model)
+        roles = self.roles_for(model)
         current = self.approvals.open_for(version["id"])
         return {
             "urn": urn, "semver": semver, "tier": model.get("tier"),
             "quorum_required": bool(roles), "required_roles": list(roles),
-            "status": version["status"],
+            "band": band, "status": version["status"],
             "open_approval": current["id"] if current else None,
             "progress": self.progress(current["id"]) if current else None,
-            "detail": self._requirement_detail(model, roles, version),
+            "detail": band["detail"] if band else
+                      self._requirement_detail(model, roles, version),
         }
 
     @staticmethod
@@ -108,7 +133,7 @@ class VersionApproval:
         """
         model, version = self._subject(urn, semver)
         self._refuse_without_tier(model)
-        roles = self.required_for(model["tier"])
+        roles = self.roles_for(model)
         if not roles:
             return
         complete = [a for a in self.approvals.history(version["id"])
@@ -135,7 +160,7 @@ class VersionApproval:
             raise LifecycleError("already_approved",
                                  f"version {semver} is already approved",
                                  "open an approval for a version that needs one")
-        roles = self.required_for(model["tier"])
+        roles = self.roles_for(model)
         if not roles:
             raise LifecycleError(
                 "no_quorum_required",
@@ -148,8 +173,15 @@ class VersionApproval:
                 f"an approval is already open for version {semver}",
                 "complete or withdraw it before opening another")
 
+        band = self.banded(model)
         row = {"model_id": model["id"], "model_version_id": version["id"],
                "tier": model["tier"], "required_roles": list(roles),
+               # The band NAME is written onto the approval, not recomputed at
+               # signing time: a matrix withdrawn or re-published mid-approval
+               # would otherwise change what an open approval requires, and an
+               # approval whose bar moves while people are signing it is worse
+               # than no bar at all.
+               "band": (band or {}).get("band"),
                "status": OPEN, "statement": statement,
                "opened_by": actor, "opened_at": time.time(), "completed_at": None}
         with self.evidence.recording():
@@ -206,6 +238,23 @@ class VersionApproval:
                 "already_signed_personally",
                 f"{username} has already signed this approval under another role",
                 "a quorum is a number of people, not a number of hats")
+
+        # `FR-LC-005`, the two halves a role list cannot express. The order
+        # first: a second-line challenge signed before the first line filed
+        # anything is a signature about nothing. Then the writ: holding the
+        # role is not the same as holding the authority, and the difference is
+        # the entire content of the phrase *delegated authority*.
+        #
+        # Both are skipped where no matrix and no delegation have been
+        # recorded, which is the state the platform ships in.
+        if self.authority is not None and approval.get("band"):
+            urn = self.registry.version_by_id(
+                approval["model_version_id"])["urn"]
+            signed = [x["role"] for x in
+                      self.signatures.many(version_approval_id=approval_id)
+                      if x["decision"] == APPROVE]
+            self.authority.refuse_out_of_sequence(urn, role, signed)
+            self.authority.refuse_beyond_delegation(urn, principal)
 
         # The two checks above are a read-then-write, and the database is what
         # decides the race.

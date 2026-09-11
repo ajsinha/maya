@@ -19,8 +19,38 @@ from pydantic import Field
 from core.execution.urn import urn_of
 from core.lifecycle import describe
 from core.lifecycle.conditions import ApprovalConditions
+from core.lifecycle.authority import AuthorityMatrix
 from routes.base import Body, Routes
 
+
+
+class AuthorityBandIn(Body):
+    """One row of the delegated authority matrix.
+
+    `stages` is a list of lists: roles that sign together, stages that sign in
+    order. A flat role list cannot say *the second line signs after the first*,
+    and that ordering is the half of `FR-LC-005` a quorum does not cover.
+    """
+    name: str
+    stages: List[List[str]]
+    tier: Optional[int] = None
+    at_or_above: float = 0.0
+    legal_entity: Optional[str] = None
+    note: str = ""
+
+
+class DelegationIn(Body):
+    """What one named person may approve, and under which instrument.
+
+    `instrument` is required. MAYA holds the reference rather than the
+    resolution, and a delegation nobody can trace to a decision is the precise
+    thing an authority matrix exists to prevent.
+    """
+    principal: str
+    ceiling: float
+    instrument: str
+    currency: str = "USD"
+    legal_entity: Optional[str] = None
 
 class DecommissionIn(Body):
     """Taking a model out of service, with the four facts a firm needs later.
@@ -515,6 +545,94 @@ class LifecycleRoutes(Routes):
                 retention_class=body.retention_class,
                 notified=body.notified, acknowledged=body.acknowledged,
                 actor=self.actor(who)))
+
+        # ------------------------------------------ the authority matrix
+        @self.app.get(f"{api}/authority", tags=["lifecycle"])
+        def authority_posture(request: Request):
+            """What the matrix decides, and the one thing it cannot check.
+
+            The dimension worth reading is **amount**. It comes from the
+            sourced exposure fact (`H-8`) and nowhere else, because the figure
+            the tiering assessment was made from is a number typed into a form
+            — using it would let the amount that decides the approval depth be
+            chosen by whoever wants the approval.
+
+            And where no amount is sourced the band is the **deepest the tier
+            admits**, not the shallowest. An amount MAYA does not have is not
+            a small amount, but it compares as less than every floor, so the
+            natural implementation of this quietly approves everything.
+            """
+            self.principal(request)
+            return {**AuthorityMatrix.posture(),
+                    "matrix": self.ctx["authority"].matrix()}
+
+        @self.app.get(f"{api}/authority/model", tags=["lifecycle"])
+        def authority_for_model(request: Request, urn: str):
+            """Which signatures this model's version approval needs, and why."""
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["authority"].required_for(model["urn"]))
+
+        @self.app.get(f"{api}/authority/estate", tags=["lifecycle"])
+        def authority_estate(request: Request):
+            """How much of the estate rests on authority nobody re-attested."""
+            self.authorise(request, "model:read",
+                           estate_wide="reading the authority matrix")
+            return self.guard(
+                lambda: self.ctx["authority"].across_the_estate())
+
+        @self.app.post(f"{api}/authority/bands", status_code=201,
+                       tags=["lifecycle"])
+        def publish_band(request: Request, body: AuthorityBandIn):
+            """Add a band to the matrix.
+
+            Until the first one is published the tier quorum stands exactly as
+            it always has — a feature that deepens every approval in the estate
+            the moment it is deployed is one switched off before anybody reads
+            what it does.
+            """
+            who = self.authorise(request, "policy:publish",
+                                 estate_wide="publishing an authority band")
+            return self.guard(lambda: self.ctx["authority"].publish(
+                body.model_dump(), actor=self.actor(who)))
+
+        @self.app.delete(f"{api}/authority/bands/{{name}}", tags=["lifecycle"])
+        def withdraw_band(request: Request, name: str):
+            """Withdraw a band. Approvals already open keep the band they were
+            opened under."""
+            who = self.authorise(request, "policy:publish",
+                                 estate_wide="withdrawing an authority band")
+            return self.guard(lambda: self.ctx["authority"].withdraw(
+                name, actor=self.actor(who)))
+
+        @self.app.get(f"{api}/authority/delegations", tags=["lifecycle"])
+        def delegations(request: Request, principal: Optional[str] = None):
+            """Live delegations. An expired one is not one."""
+            self.authorise(request, "model:read",
+                           estate_wide="reading delegated authority")
+            engine = self.ctx["authority"]
+            if principal:
+                return {"principal": principal,
+                        "delegations": engine.held_by(principal)}
+            return {"delegations": list(engine.delegations.many())}
+
+        @self.app.post(f"{api}/authority/delegations", status_code=201,
+                       tags=["lifecycle"])
+        def delegate(request: Request, body: DelegationIn):
+            """Record what one named person may approve, and until when.
+
+            It expires, deliberately. MAYA holds a reference to the instrument
+            rather than the instrument, so it cannot tell whether the board
+            resolution behind a delegation still says what it said — and a
+            ceiling with no expiry is a ceiling nobody will ever revisit.
+            """
+            who = self.authorise(request, "policy:publish",
+                                 estate_wide="delegating approval authority")
+            return self.guard(lambda: self.ctx["authority"].delegate(
+                body.principal, ceiling=body.ceiling,
+                instrument=body.instrument, currency=body.currency,
+                legal_entity=body.legal_entity, actor=self.actor(who)))
 
         @self.app.delete(f"{api}/models/{{name:path}}", tags=["lifecycle"])
         def delete(request: Request, name: str, reason: str = ""):

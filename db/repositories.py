@@ -627,6 +627,15 @@ class EstateCostRepository(Repository):
     TABLE, ORDER = "estate_cost", "period_start"
 
 
+class AuthorityBandRepository(Repository):
+    TABLE, ORDER = "authority_band", "published_at"
+    JSON = ("stages",)
+
+
+class AuthorityDelegationRepository(Repository):
+    TABLE, ORDER = "authority_delegation", "granted_at"
+
+
 class TieringFactSourceRepository(Repository):
     TABLE, ORDER = "tiering_fact_source", "recorded_at"
 

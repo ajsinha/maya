@@ -406,6 +406,13 @@ and these are what to use instead.
 | `POST` | `/models/{name}/attest` | `model:attest` | `role` + `decision`, `statement`. One role's half of the quorum |
 | `POST` | `/models/{name}/amend` | `model:amend` | `reason` + `scope`. The only route out of immutability |
 | `POST` | `/models/{name}/retire` | `model:retire` | `reason`. Withdraw from use, keep everything |
+| `GET` | `/authority` | `model:read` | The delegated authority matrix, what it decides, and what it cannot check |
+| `GET` | `/authority/model` | `model:read` | Which signatures this model needs, and whether the band was reached by measurement or by absence |
+| `GET` | `/authority/estate` | `model:read` | How much of the estate rests on authority nobody has re-attested |
+| `POST` | `/authority/bands` | `policy:publish` | `name`, `stages` (roles together, stages in order), `tier`, `at_or_above`, `legal_entity` |
+| `DELETE` | `/authority/bands/{name}` | `policy:publish` | Withdraw a band. Open approvals keep the one they were opened under |
+| `GET` | `/authority/delegations` | `model:read` | Delegations on file; named a principal, only the live ones |
+| `POST` | `/authority/delegations` | `policy:publish` | `principal`, `ceiling`, `instrument` (required), `currency`, `legal_entity`. Expires after a year |
 | `GET` | `/decommission` | `model:read` | What a decommissioning captures, and the two things it does not do. `?urn=` reads one model's record |
 | `GET` | `/decommission/consumers` | `model:read` | Who reads this model, from the register's own typed edges, before anybody retires it |
 | `GET` | `/decommission/estate` | `model:read` | Retired vs decommissioned — two populations, and the gap is a backlog |

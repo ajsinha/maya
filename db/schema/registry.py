@@ -431,6 +431,12 @@ VERSION_APPROVAL = Table(
     Column("model_version_id", Text, nullable=False),
     Column("tier", Integer),
     Column("required_roles", Text, nullable=False, server_default=text("'[]'")),
+    # Which band of the authority matrix this approval was opened under, where
+    # one is published. Written at open time rather than recomputed at signing
+    # time: a matrix withdrawn or re-published mid-approval would otherwise
+    # change what an open approval requires, and a bar that moves while people
+    # are signing is worse than no bar.
+    Column("band", Text, nullable=True),
     Column("status", Text, nullable=False, server_default=text("'open'")),
     Column("statement", Text, nullable=False, server_default=text("''")),
     Column("opened_by", Text, nullable=False),

@@ -4,7 +4,7 @@ slug: the-registers-edges
 section: Oversight
 order: 95
 icon: shield-exclamation
-summary: Eleven places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
+summary: Twelve places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
 audience: Model risk managers, Platform, Architects, Auditors
 ---
 
@@ -15,7 +15,7 @@ what it works out from what it holds, and what it refuses to conclude. This page
 is about the other kind of place — where the platform is **relying on somebody
 it does not control**, or where somebody is relying on it.
 
-There are eleven. The screen is `/admin/perimeter`, and if you read one thing
+There are twelve. The screen is `/admin/perimeter`, and if you read one thing
 before relying on any of them, read this:
 
 > At a boundary, the natural thing to report is the answer you wish you had —
@@ -255,6 +255,45 @@ tag alone would refuse the fairness testing the same regulation requires.
 counts the models binding a protected characteristic *and* says whether any rule
 in force refuses on one. Publishing a vocabulary and stopping there would leave
 a firm that never wrote the rule exactly where it started.
+
+## An amount nobody attested
+
+The twelfth is the only one where the convenient answer is not just incomplete —
+it points the **wrong way**, and that is what makes it worth your attention.
+
+Your delegated authority matrix bands an approval by tier, amount and legal
+entity. MAYA holds the tier and the entity. The amount it usually does not: the
+only current exposure figure it has is one somebody attested to a named system
+of record, and most models have never had that done. The figure on the tiering
+assessment will not do — it is a number typed into a form by the person who
+wants the approval.
+
+So most models arrive at the matrix with no amount, and the obvious thing to do
+with that is the dangerous one:
+
+> Nothing compares as less than every floor, so the model drops into the
+> **shallowest** band. Every approval succeeds. Nobody is refused. The matrix
+> reports itself as enforced, and it is enforcing nothing.
+
+MAYA goes the other way. With no attested exposure, the band is the **deepest
+the tier admits**, and the answer says `reached_by:
+deepest_band_because_the_amount_is_unknown` rather than hiding it in a note:
+
+> **An amount this register does not have is not a small amount.**
+
+The way out is to source the exposure — one call, and it leaves a reference
+somebody can pull — after which the band is decided by measurement. And the same
+absence does not refuse you twice: a signer's ceiling is not tested against an
+amount that does not exist, because refusing twice for one gap teaches people
+the matrix is arbitrary, and a control people think is arbitrary is a control
+they route around.
+
+The delegations themselves have the ordinary kind of edge. A delegation names
+the **instrument** that granted it — a board resolution, a charter, a letter —
+and MAYA holds the reference, not the document. It cannot tell you the
+resolution still says what the row claims. So delegations expire after a year,
+an expired one grants nothing, and `/api/v1/authority/estate` tells you how much
+of your estate is approvable under authority nobody has re-attested.
 
 ## Four of these will not be built
 

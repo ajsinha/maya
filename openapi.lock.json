@@ -687,6 +687,91 @@
         ]
       }
     },
+    "/api/v1/authority": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/authority/bands": {
+      "post": {
+        "body": [
+          "at_or_above",
+          "legal_entity",
+          "name!",
+          "note",
+          "stages!",
+          "tier"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/authority/bands/{name}": {
+      "delete": {
+        "body": [],
+        "parameters": [
+          "path:name!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/authority/delegations": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:principal"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "ceiling!",
+          "currency",
+          "instrument!",
+          "legal_entity",
+          "principal!"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/authority/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/authority/model": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/baseline": {
       "get": {
         "body": [],
