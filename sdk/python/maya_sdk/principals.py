@@ -85,6 +85,53 @@ class Principals:
                                json={"password": password})
 
     # ----------------------------------------------------------- break-glass
+    def recertification(self) -> Dict[str, Any]:
+        """What an access review decides, and how many accounts nobody has
+        looked at.
+
+        The one thing to know before relying on any of it: **it does not time
+        out.** An item nobody answered stays `unreviewed`, closing a campaign
+        decides nothing about it, and `confirmed` and `unreviewed` are never
+        added together — the access nobody looked at is the access most likely
+        to be wrong, because the reviewer did not answer for the same reason
+        the access is stale.
+        """
+        return self._maya.call("GET", "/recertification")
+
+    def review(self, reference: str) -> Dict[str, Any]:
+        """Where one campaign stands, with `unreviewed` as its own number."""
+        return self._maya.call("GET", f"/recertification/{reference}")
+
+    def open_review(self, reference: str, *, reviewer: str, title: str = "",
+                    population: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Open an access review. A blank population reviews everybody active.
+
+        `reviewer` is named rather than derived: MAYA holds no reporting line,
+        and inferring one from roles would put the second line in charge of
+        recertifying the first line's managers.
+        """
+        return self._maya.call("POST", "/recertification", json={
+            "reference": reference, "reviewer": reviewer, "title": title,
+            "population": list(population or [])})
+
+    def recertify(self, reference: str, principal: str, *, state: str,
+                  reason: str = "") -> Dict[str, Any]:
+        """Confirm or revoke one person's access. There is no third answer.
+
+        **Revoking removes roles in MAYA's register and nothing else** — not a
+        directory, not a database grant, not anybody's job. A revocation needs
+        a reason, because a role removed with no reason cannot be told apart
+        afterwards from an administrative mistake.
+        """
+        return self._maya.call("POST",
+                               f"/recertification/{reference}/{principal}",
+                               json={"state": state, "reason": reason})
+
+    def close_review(self, reference: str) -> Dict[str, Any]:
+        """Close a campaign. This decides nothing about what was unreviewed,
+        and the answer says how many that was."""
+        return self._maya.call("POST", f"/recertification/{reference}/close")
+
     def break_glass(self) -> Dict[str, Any]:
         """Every emergency elevation, and the number that matters.
 

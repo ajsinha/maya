@@ -1297,6 +1297,36 @@ CREATE TABLE IF NOT EXISTS principal (
 CREATE INDEX IF NOT EXISTS ix_principal_status ON principal (status);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_principal_username ON principal (username);
 
+CREATE TABLE IF NOT EXISTS recertification (
+    id TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    title TEXT DEFAULT '' NOT NULL,
+    reviewer TEXT NOT NULL,
+    status TEXT DEFAULT 'open' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE PRECISION NOT NULL,
+    closed_at DOUBLE PRECISION,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_recertification ON recertification (reference);
+
+CREATE TABLE IF NOT EXISTS recertification_item (
+    id TEXT NOT NULL,
+    campaign_reference TEXT NOT NULL,
+    principal TEXT NOT NULL,
+    roles TEXT DEFAULT '[]' NOT NULL,
+    legal_entities TEXT DEFAULT '[]' NOT NULL,
+    domains TEXT DEFAULT '[]' NOT NULL,
+    last_seen_at DOUBLE PRECISION,
+    state TEXT DEFAULT 'unreviewed' NOT NULL,
+    reason TEXT DEFAULT '' NOT NULL,
+    answered_by TEXT DEFAULT '' NOT NULL,
+    answered_at DOUBLE PRECISION,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_recertification_item_principal ON recertification_item (principal);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_recertification_item ON recertification_item (campaign_reference, principal);
+
 CREATE TABLE IF NOT EXISTS regulatory_approval (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,

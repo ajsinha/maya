@@ -18,8 +18,28 @@ from pydantic import Field
 
 from core.authz.common import PERMISSIONS
 from core.authz import INCOMPATIBLE_ROLES
+from core.authz.recertification import Recertification
 from routes.base import Body, Routes
 
+
+
+class RecertificationIn(Body):
+    """Open an access review. A blank population reviews everybody active.
+
+    `reviewer` is named rather than derived: MAYA holds no reporting line, and
+    inferring one from roles would put the second line in charge of
+    recertifying the first line's managers.
+    """
+    reference: str
+    reviewer: str
+    title: str = ""
+    population: List[str] = Field(default_factory=list)
+
+
+class RecertifyIn(Body):
+    """One answer. There is no third value and no timeout."""
+    state: str
+    reason: str = ""
 
 
 class BreakGlassIn(Body):
@@ -282,6 +302,79 @@ class PrincipalRoutes(Routes):
                           "built_in ship with the platform and every document "
                           "here names them, so they may be read and not edited",
             }
+
+        # -------------------------------------------- access recertification
+        @self.app.get(f"{api}/recertification", tags=["authorisation"])
+        def recertification_posture(request: Request):
+            """What a recertification decides, and the four things it does not.
+
+            The one worth reading: **it does not time out.** An item nobody
+            answered stays `unreviewed`, closing a campaign decides nothing
+            about it, and `confirmed` and `unreviewed` are never added
+            together. The access nobody looked at is the access most likely to
+            be wrong — the reviewer did not answer because they did not know
+            who this person was.
+            """
+            self.principal(request)
+            return {**Recertification.posture(),
+                    **self.ctx["recertification"].across_the_estate()}
+
+        @self.app.get(f"{api}/recertification/{{reference}}",
+                      tags=["authorisation"])
+        def recertification_status(request: Request, reference: str):
+            """Where a campaign stands, with `unreviewed` as a first-class
+            number rather than a remainder."""
+            self.authorise(request, "principal:read")
+            return self.guard(
+                lambda: self.ctx["recertification"].status(reference))
+
+        @self.app.post(f"{api}/recertification", status_code=201,
+                       tags=["authorisation"])
+        def open_recertification(request: Request, body: RecertificationIn):
+            """Open a review over named accounts, or over everybody active.
+
+            A campaign over nobody is refused: an empty review that closes
+            clean is a control reporting an all-clear over an estate it never
+            saw.
+            """
+            who = self.authorise(
+                request, "principal:manage",
+                estate_wide="opening an access recertification")
+            return self.guard(lambda: self.ctx["recertification"].open(
+                body.reference, reviewer=body.reviewer, title=body.title,
+                population=body.population or None, actor=self.actor(who)))
+
+        @self.app.post(f"{api}/recertification/{{reference}}/{{principal}}",
+                       tags=["authorisation"])
+        def recertify(request: Request, reference: str, principal: str,
+                      body: RecertifyIn):
+            """Confirm or revoke one person's access.
+
+            **Revoking removes roles in this register and nothing else.** It
+            does not touch a directory, a database grant, a VPN profile or
+            anybody's job, and a platform reporting *access removed* would be
+            reporting a removal it cannot see.
+
+            Recertifying your own access is refused. That is the whole failure
+            mode of an access review, and it is not hypothetical.
+            """
+            who = self.authorise(
+                request, "principal:manage",
+                estate_wide="answering an access recertification")
+            return self.guard(lambda: self.ctx["recertification"].answer(
+                reference, principal, state=body.state, reason=body.reason,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/recertification/{{reference}}/close",
+                       tags=["authorisation"])
+        def close_recertification(request: Request, reference: str):
+            """Close the campaign. This decides nothing about what was
+            unreviewed, and the closing record says how many that was."""
+            who = self.authorise(
+                request, "principal:manage",
+                estate_wide="closing an access recertification")
+            return self.guard(lambda: self.ctx["recertification"].close(
+                reference, actor=self.actor(who)))
 
         @self.app.get(f"{api}/principals", tags=["authorisation"])
         def list_principals(request: Request):

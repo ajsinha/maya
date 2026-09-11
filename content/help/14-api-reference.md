@@ -406,6 +406,11 @@ and these are what to use instead.
 | `POST` | `/models/{name}/attest` | `model:attest` | `role` + `decision`, `statement`. One role's half of the quorum |
 | `POST` | `/models/{name}/amend` | `model:amend` | `reason` + `scope`. The only route out of immutability |
 | `POST` | `/models/{name}/retire` | `model:retire` | `reason`. Withdraw from use, keep everything |
+| `GET` | `/recertification` | any | What an access review decides, plus how many active accounts nobody has ever looked at |
+| `GET` | `/recertification/{ref}` | `principal:read` | Where one campaign stands. `unreviewed` is its own number, never folded into `confirmed` |
+| `POST` | `/recertification` | `principal:manage` | `reference`, `reviewer`, optional `population`. Blank population reviews everybody active |
+| `POST` | `/recertification/{ref}/{person}` | `principal:manage` | `state` (`confirmed` or `revoked`) and `reason`. Revoking removes roles **in this register only** |
+| `POST` | `/recertification/{ref}/close` | `principal:manage` | Close it. This decides nothing about what was unreviewed |
 | `GET` | `/authority` | `model:read` | The delegated authority matrix, what it decides, and what it cannot check |
 | `GET` | `/authority/model` | `model:read` | Which signatures this model needs, and whether the band was reached by measurement or by absence |
 | `GET` | `/authority/estate` | `model:read` | How much of the estate rests on authority nobody has re-attested |
