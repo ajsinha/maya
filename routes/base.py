@@ -32,6 +32,7 @@ from core.classification import ClassificationError
 from core.estate.common import EstateError
 from core.events.common import EventError
 from core.evidence.timestamps import TimestampError
+from core.http.conventions import CursorError
 from core.discovery.common import DiscoveryError
 from core.plugins.common import PluginError
 from core.retention.common import RetentionError
@@ -424,6 +425,11 @@ STATUS: Dict[str, int] = {
     # An estate that will not fit in memory. A test that does not decompose is
     # a 422 rather than a 501: nothing is missing, and asking again later will
     # not help — the statistic genuinely is not a sum over partitions.
+    # Paging. All 422 rather than 400: the request is well-formed and the
+    # CURSOR is what cannot be honoured, which is the distinction that tells a
+    # caller to start the listing again rather than to fix their syntax.
+    "cursor_malformed": 422, "cursor_ordering_changed": 422,
+    "cursor_expired": 422,
     "test_does_not_decompose": 422, "test_not_distributable": 422,
     "submission_does_not_meet_the_plan": 422, "bin_count_mismatch": 422,
     "reference_too_small": 409, "no_rows_in_submission": 422,
@@ -736,7 +742,7 @@ class Routes:
                 ReferencedError, ApiKeyError,
                 ClassificationError, EstateError,
                 EventError, RetentionError, PluginError,
-                TimestampError, DiscoveryError) as exc:
+                TimestampError, CursorError, DiscoveryError) as exc:
             # A refusal is normal operation, not a fault — but it is the record of
             # a governance decision, so it is never translated without a trace.
             logger.warning("refused (%s): %s", exc.code, exc)

@@ -1249,7 +1249,25 @@
         ]
       }
     },
+    "/api/v1/conventions": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/data-layer-authorisation": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/deprecations": {
       "get": {
         "body": [],
         "parameters": [],
@@ -1321,6 +1339,21 @@
         "parameters": [],
         "responses": [
           "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/discovery/candidates": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:cursor",
+          "query:limit",
+          "query:outcome",
+          "query:scanner"
+        ],
+        "responses": [
+          "200",
           "422"
         ]
       }
