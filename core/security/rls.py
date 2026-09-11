@@ -81,9 +81,22 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from core.authz.scope import DIMENSIONS as _SCOPE_DIMENSIONS
 from core.log import get_logger
 
 logger = get_logger(__name__)
+
+#: The dimensions this backstop covers, out of the ones `Scope` decides on.
+#:
+#: `legal_entity` only, and the gap is stated rather than left to be found.
+#: `domain` is a scope dimension too and no table outside `model` carries it,
+#: so policing it would buy a second policy on one table — while `Scope` still
+#: applies it everywhere. A backstop narrower than the control is the ordinary
+#: case; a backstop that *looked* as wide as the control would be the problem.
+POLICED = tuple(column for _field, column in _SCOPE_DIMENSIONS
+                if column == "legal_entity")
+UNPOLICED = tuple(column for _field, column in _SCOPE_DIMENSIONS
+                  if column not in POLICED)
 
 #: The session variable the policies read. A custom GUC, so it cannot collide
 #: with anything PostgreSQL owns, and `set_config(..., true)` scopes it to the
@@ -96,13 +109,27 @@ GUC = "maya.entities"
 #: different states and an empty string is how they get confused.
 ESTATE_WIDE = "*"
 
-#: Tables carrying a legal entity directly. Only these can be policed by one:
-#: a version's entity is its model's, and expressing that as a policy is a
-#: subquery per row on every read. What is reached through them stays the
-#: application's job, and saying so is the point of this being a list.
-SCOPED_TABLES: Tuple[Tuple[str, str], ...] = (
-    ("model", "legal_entity"),
-    ("risk_appetite_limit", "legal_entity"),
+#: Which tables carry which scope column, and the GUC each one reads.
+#:
+#: The COLUMNS come from `core.authz.scope.DIMENSIONS` rather than being typed
+#: again here. Two enforcement points written twice will disagree, and the
+#: first time somebody adds a scope dimension the hand-written one is the one
+#: left behind — silently permitting more, which is the direction nobody files
+#: a bug about.
+#:
+#: Only tables carrying a column DIRECTLY can be policed by it. A version's
+#: entity is its model's and a finding's is its model's, and expressing that as
+#: a policy is a subquery per row on every read — a performance cliff, and a
+#: policy on a cliff is a policy somebody disables. What is reached through
+#: these tables stays the application's job, and this list saying so is the
+#: point of it being a list.
+TABLES: Tuple[str, ...] = ("model", "risk_appetite_limit")
+
+SCOPED_TABLES: Tuple[Tuple[str, str], ...] = tuple(
+    (table, column)
+    for table in TABLES
+    for _field, column in _SCOPE_DIMENSIONS
+    if column == "legal_entity"
 )
 
 
@@ -295,6 +322,8 @@ class RowLevelSecurity:
             "is_the_control": False,
             "guc": GUC,
             "scoped_tables": [t for t, _ in SCOPED_TABLES],
+            "policed_dimensions": list(POLICED),
+            "unpoliced_dimensions": list(UNPOLICED),
             "why_not_the_control": (
                 "`core/authz/scope.py` decides, and it produces a refusal "
                 "somebody can act on. RLS produces NO ROWS, which is a much "
@@ -303,7 +332,11 @@ class RowLevelSecurity:
                 "What this covers is the case the control cannot: the endpoint "
                 "somebody wrote last week and forgot to filter"),
             "does_not_reach": (
-                "rows that do not CARRY an entity. A version's entity is its "
+                f"the {', '.join(UNPOLICED)} scope dimension(s), which "
+                f"`core/authz/scope.py` still applies everywhere and no "
+                f"database policy here covers — a backstop narrower than the "
+                f"control is ordinary, and one that LOOKED as wide would be "
+                f"the problem. And rows that do not CARRY an entity. A version's entity is its "
                 "model's and a finding's is its model's, and expressing that "
                 "as a policy is a subquery per row on every read. Those stay "
                 "the application's job, and this list is the list rather than "
