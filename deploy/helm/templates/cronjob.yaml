@@ -1,0 +1,57 @@
+{{- if .Values.scheduler.enabled }}
+# The governance batch, driven from OUTSIDE the pods.
+#
+# An instance where nothing runs this is indistinguishable from an estate with
+# nothing outstanding — attestation lapses, silent monitors, overdue findings
+# and evidence anchoring are all recorded by the batch, and none of them raises
+# itself. A CronJob rather than an in-process loop because N replicas would
+# each run it: not merely wasteful, but N notifications for one lapse, and the
+# fourth is the one somebody mutes.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "maya.fullname" . }}-batch
+  labels: {{- include "maya.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.scheduler.schedule | quote }}
+  # Never two at once. The jobs are idempotent, and overlapping runs would
+  # still double every notification they send.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          securityContext: {{- toYaml .Values.podSecurityContext | nindent 12 }}
+          containers:
+            - name: batch
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              securityContext: {{- toYaml .Values.securityContext | nindent 16 }}
+              command:
+                - python
+                - -c
+                - |
+                  import os, sys, urllib.request, base64
+                  url = "http://{{ include "maya.fullname" . }}:{{ .Values.service.port }}/api/v1/scheduler/run"
+                  token = os.environ["MAYA_BATCH_API_KEY"]
+                  request = urllib.request.Request(
+                      url, data=b"{}", method="POST",
+                      headers={"Content-Type": "application/json",
+                               "Authorization": "Bearer " + token})
+                  with urllib.request.urlopen(request, timeout=600) as answer:
+                      body = answer.read().decode()
+                  print(body)
+                  # A non-zero exit on a refusal, so a failing batch is a
+                  # failing Job rather than a green one with an error in its
+                  # logs. A batch that reports success while refusing is how an
+                  # estate goes a month with nothing running.
+                  sys.exit(0 if answer.status == 200 else 1)
+              env:
+                - name: MAYA_BATCH_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.secrets.sessionSecret }}
+                      key: batch-api-key
+{{- end }}

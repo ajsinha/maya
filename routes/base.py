@@ -634,6 +634,22 @@ def _identify(request: Request, principal: Dict[str, Any]) -> None:
     """
     log.bind_principal(principal["username"])
     request.state.principal = principal["username"]
+    # And onto the database connection, where a PostgreSQL policy can read it.
+    # This is the piece the H-5 disposition said was missing — "there is one
+    # connection identity, so RLS would have nothing to distinguish anyway" —
+    # and it is what turns the policies in `core/security/rls.py` from a
+    # screenshot into a backstop. Transaction-scoped, so a pooled connection
+    # handed to the next request carries nothing.
+    rls = getattr(request.app.state, "rls", None)
+    if rls is not None and rls.available:
+        try:
+            rls.apply(principal.get("legal_entities") or None)
+        except Exception as exc:                 # pragma: no cover - defensive
+            # Logged and not raised. Failing the request would make a database
+            # hiccup look like an authorisation failure, and the Python scope
+            # check — which is the control — still runs either way.
+            logger.warning("could not set the row-level security scope for "
+                           "%s: %s", principal["username"], exc)
 
 
 def current_user(request: Request) -> Optional[str]:

@@ -56,13 +56,36 @@ done.
 | ~~**A Java SDK**~~ **Built** | `sdk/java`, compiled to release 17, **no runtime dependencies** — `java.net.http` has been in the JDK since 11 and the JSON is two hundred lines of `Json.java`. That is a smaller cost than asking a bank's platform team to get Jackson through approval so a service can call the register, and it is the same air-gap reason every front-end asset here is vendored | Closed. The README was written as a *contract* before there was an implementation and is kept in that order, because what a MAYA client must do outlives any one client. `MayaTest.DecidesNothing` is the Java equivalent of the Python suite's source walker: it strips the comments — which argue about governance constantly and should — and fails on a trainability class, a tier table or a local `isApproved` appearing in the **code**. There is deliberately no typed model class and no generated client: a Java object graph mirroring the platform's schemas is a second description of them, and a second description goes stale in the permissive direction |
 | ~~**Rule-set import from what a bank already has**~~ **Built for two of three; the third is refused** | `core/rules/importing.py` reads a CSV decision table and a DMN 1.3 decision table. A **stored procedure** is not translated and will not be: SQL is a general language with control flow, mutation and side effects, so a translator would be a compiler, and a wrong compiler produces a rule set that loads, validates and decides differently from the procedure it claims to be | Mostly closed, and the parser's honesty is the design rather than its coverage. A misread threshold does not *fail* — it produces a rule set nobody can tell is wrong by looking at it. So a cell that is a human judgement is **reported rather than guessed**; a document with any untranslated row is refused **whole**, because the rows a parser finds hard are the judgement calls and those are what a rulebook exists for; a hit policy that cannot map is refused **by name** with what first-match would silently become; and the catch-all is **derived** from first-match semantics rather than inferred from the last row's position. Nothing is imported — a candidate goes through the same check, trial and publish path a hand-written rule set takes, second-person approval included |
 
-### 2.3 Deployment — these are somebody's operational work, not code
+### 2.3 Deployment — mostly artefacts now, and the rest is somebody's operating
 
-Row-level security, IaC, multi-region topology, and the three spikes that were
-never run (a point-in-time join at a billion rows; warrant resolution p99 under
-load; sandbox escape testing). The first two are configuration MAYA exposes and
-does not perform; the spikes are measurements, and their absence is why every
-NFR figure in [03 §7](03-requirements.md) is a target rather than a result.
+This section used to say *row-level security, IaC, multi-region topology and
+three spikes*, all filed as **operational work, not code**. That was true of the
+*operating* and false of the *artefacts*: a firm cannot deploy MAYA safely from
+a README, and every unstated default in a chart is a deployment that runs and is
+quietly wrong.
+
+**Row-level security is built** — `core/security/rls.py`, and it closes finding
+**H-5**, the oldest one open. The blocker the old disposition named was real
+and is gone: the acting principal's entity scope now goes onto the connection
+the request is using, so a PostgreSQL policy has something to read. The scope
+check in Python remains the control; this is the backstop under it, for the
+listing endpoint somebody forgot to filter. The cross-entity negative test the
+finding asked for exists and **skips loudly** without a database, which is the
+honest arrangement: asserting a policy's text is not a test of the policy.
+
+**The artefacts are built** — a `Dockerfile` running as uid 10001 with a
+read-only root, `deploy/compose.yaml` with the owner and application database
+roles already separated, and `deploy/helm`, which **refuses to render** rather
+than templating a placeholder for a signing key or accepting `ReadWriteOnce`
+with several replicas.
+
+**What remains is genuinely somebody's operating.** Multi-region topology,
+backup and restore, TLS termination, a secret manager, and the three spikes
+that were never run: a point-in-time join at a billion rows; warrant resolution
+p99 under load; sandbox escape testing. The spikes are **measurements**, and
+their absence is why every NFR figure in [03 §7](03-requirements.md) is a target
+rather than a result — a number this platform has never observed is a number it
+should not print as though it had.
 
 ---
 

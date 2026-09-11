@@ -294,3 +294,32 @@ class PolicyRoutes(Routes):
                            estate_wide="grading a discovery scanner")
             return self.guard(
                 lambda: self.ctx["scanner_contract"].grade(scanner))
+
+        # ------------------------------------------- the database backstop
+        @self.app.get(f"{api}/row-level-security", tags=["policy"])
+        def row_level_security(request: Request):
+            """Whether a database backstop is in force under the scope check.
+
+            **The scope check is the control.** It decides, it carries the
+            reasoning, and it produces a refusal somebody can act on. This is
+            the backstop for the case the control cannot cover: the endpoint
+            somebody wrote last week and forgot to filter, where the honest
+            outcome is zero rows rather than another entity's models.
+
+            Three things to read, in order. `available` is false on SQLite and
+            there is nothing to be done about that — row-level security is a
+            PostgreSQL feature. `connecting_role_is_exempt` matters more than
+            anything below it: a superuser bypasses RLS entirely, `FORCE` or
+            not, so a deployment that applied every statement perfectly and
+            then connected as `postgres` has a policy that does nothing and a
+            configuration that looks correct. And `forced` rather than
+            `enabled`: enabled-without-forced is the configuration that looks
+            right in a screenshot and lets the table owner read everything.
+            """
+            self.authorise(request, "policy:read",
+                           estate_wide="reading the database backstop")
+            rls = getattr(request.app.state, "rls", None)
+            if rls is None:
+                return {"available": False,
+                        "detail": "no row-level security is wired"}
+            return rls.posture()

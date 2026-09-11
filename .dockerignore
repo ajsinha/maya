@@ -1,0 +1,19 @@
+# Everything that must not reach an image that runs in a bank.
+.git
+.venv
+node_modules
+__pycache__
+*.pyc
+data/
+*.db
+*.sqlite
+.pytest_cache
+.ruff_cache
+htmlcov
+.coverage*
+# Local configuration overlays. `application.local.yaml` is git-ignored and is
+# where a developer puts a real credential; baking one into an image is how a
+# development secret reaches production.
+config/*.local.yaml
+sdk/java/target
+docs/*.pptx
