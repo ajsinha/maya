@@ -88,6 +88,10 @@ def _truth():
         # count drifting was itself the source of a wrong count, in every
         # document that trusted it.
         "tables": len(re.findall(r"^CREATE TABLE IF NOT EXISTS", schema, re.M)),
+        # Collected rather than run. A count derived by executing the suite
+        # would make this test take as long as the suite; collection is the
+        # cheap half and is what the claimed number means anyway.
+        "tests": _collected_tests(),
         "runtimes": len(RUNTIMES),
         # Drifted quietly: the docs said seven jobs against eight, and six
         # lifecycle states against seven — and `baselined` is the state that
@@ -125,7 +129,15 @@ def _truth():
 # narrow on purpose: a loose pattern would match unrelated numbers and the test
 # would be abandoned rather than believed.
 CLAIMS = {
-    "tables": [r"(\d+) tables, no migrations", r"two hand-written schemas, (\d+) tables"],
+    # Three patterns, and the third was added after the README sat on "51
+    # tables" for several milestones while the schema grew past eighty. The
+    # first two require the number and the phrase "no migrations" to be
+    # adjacent; the README put eight words between them. A pattern narrow
+    # enough to need adjacency is a pattern that misses the sentence somebody
+    # actually wrote.
+    "tables": [r"(\d+) tables, no migrations",
+               r"two hand-written schemas, (\d+) tables",
+               r"\*\*(\d+) tables\*\*"],
     # Narrow deliberately. `one of the (\w+)` matched "one of the three" in
     # unrelated prose, and a check that cries wolf is a check that gets deleted.
     "runtimes": [r"\*\*(\w+) runtimes\*\*", r"grammar's (\w+) runtimes",
@@ -135,6 +147,13 @@ CLAIMS = {
                  # entries, and survived because this test read documents only.
                  r"grammar names (\w+)"],
     "permissions": [r"of \*\*(\d+) permissions\*\*"],
+    # The README's own status table, which is the number most readers see
+    # first and the one that had drifted furthest — "over 2,300 passing"
+    # against a suite of five and a half thousand. `over` and `more than` both,
+    # because the phrase moved between them at some point.
+    "tests": [r"\*\*over ([\d,]+) passing\*\*",
+              r"\*\*[Oo]ver ([\d,]+) tests\*\*",
+              r"more than ([\d,]+) tests"],
     "help topics": [r"(\d+) help topics"],
     "warrant examples": [r"(\w+) worked examples in `examples/warrants/`"],
     # Counted from the table itself, so the prose around it cannot drift from
@@ -233,6 +252,20 @@ DOCUMENTS = (list((ROOT / "docs").rglob("*.md"))
              + [ROOT / "README.md", ROOT / "config" / "application.yaml"]
              + [p for d in ("core", "routes", "db", "sdk", "tools")
                 for p in (ROOT / d).rglob("*.py")])
+
+
+def _collected_tests() -> int:
+    """How many tests there are, counted from the source.
+
+    Counting `def test_` across `tests/` rather than asking pytest: invoking
+    pytest from inside pytest is a recursion nobody wants, and a parametrised
+    case is one test as a reader means it — the README says "over N", and over
+    is true of either reading.
+    """
+    total = 0
+    for path in (ROOT / "tests").rglob("test_*.py"):
+        total += len(re.findall(r"^\s*def test_", path.read_text(), re.M))
+    return total
 
 
 def _as_number(token: str):

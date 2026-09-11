@@ -106,7 +106,7 @@ container orchestration, no second process for anything.
               ┌───────────────┴───────────────┐
               ▼                               ▼
     ┌──────────────────┐            ┌──────────────────┐
-    │  db/  —  51 tables│            │  Delta on disk   │
+    │  db/  —  85 tables│            │  Delta on disk   │
     │  SQLite | Postgres│            │  feature values, │
     │  no migrations    │            │  telemetry,      │
     └──────────────────┘            │  snapshots       │
