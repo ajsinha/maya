@@ -227,6 +227,12 @@ There is no streaming collector and no automatic reference-window management.
 Something outside still has to post the batches, and the reference window is
 named on the evaluation rather than chosen for you.
 
+There is also **no cluster**, and there will not be one — see *When the estate
+will not fit in one process* below. What moves off the platform is the scan;
+the arithmetic from statistics to metric, the reference, the threshold and the
+comparison all stay here, which is why a distributed result can be replayed and
+an external observation cannot.
+
 Nor does anything evaluate a due monitor on your behalf. The cadence is recorded
 and queryable, and something outside has to call `evaluate` — though it no
 longer has to carry the data to do it. What the platform *does* do is notice

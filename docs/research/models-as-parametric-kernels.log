@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  10 SEP 2026 22:26
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025/Debian) (preloaded format=pdflatex 2026.9.9)  11 SEP 2026 00:49
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1258,7 +1258,7 @@ anged.
 Here is how much of TeX's memory you used:
  33539 strings out of 467533
  661140 string characters out of 5422139
- 1140710 words of memory out of 5000000
+ 1140708 words of memory out of 5000000
  61068 multiletter control sequences out of 15000+600000
  695707 words of font info for 444 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -1295,7 +1295,7 @@ super/sfti0900.pfb></usr/share/texmf/fonts/type1/public/cm-super/sfti1000.pfb><
 /usr/share/texmf/fonts/type1/public/cm-super/sfti1095.pfb></usr/share/texmf/fon
 ts/type1/public/cm-super/sftt0900.pfb></usr/share/texmf/fonts/type1/public/cm-s
 uper/sftt1000.pfb></usr/share/texmf/fonts/type1/public/cm-super/sftt1095.pfb>
-Output written on models-as-parametric-kernels.pdf (38 pages, 838054 bytes).
+Output written on models-as-parametric-kernels.pdf (38 pages, 838056 bytes).
 PDF statistics:
  1125 PDF objects out of 1200 (max. 8388607)
  972 compressed objects within 10 object streams

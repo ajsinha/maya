@@ -539,10 +539,22 @@ already carry versions. There is no second editor for them here.
 
 ## What is not built
 
-There is no PDF renderer, no house template and no signature page. The output is
-markdown and JSON; turning that into whatever your firm's document standard
-requires is a rendering problem, and deliberately outside the part MAYA is
-trying to get right.
+There is no PDF renderer, no house template and no signature page, and each is
+now refused **by name with its reason** at `GET /api/v1/document-rendering/
+formats` rather than being simply absent.
+
+What *is* emitted, besides markdown and JSON, is **typesetting source** —
+LaTeX — with the citations intact. That is the part worth having. A section of a
+compiled document names the evidence nodes it rested on, and a PDF produced by
+flattening that away is a document whose claims can no longer be traced, which
+is the state every hand-written model document in every bank is already in.
+Coverage gaps go **into** the output under a heading of their own, because a
+rendering that dropped them would produce something that *looks* complete.
+
+Rendering it needs a TeX distribution or a browser engine — a large attack
+surface for a formatting need — and a house template, which is your firm's
+document standard rather than a register's decision. Three renderings of one
+document are three things that can disagree.
 
 Two laws touching documentation are stated and do **not** run. **L-6**
 (abstraction soundness) needs a replay that checks a document's quantitative
