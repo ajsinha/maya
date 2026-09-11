@@ -92,6 +92,7 @@ from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
 from core.validation.correlation import FindingRoots
+from core.features.screening import ContractScreening
 from core.risk.sourcing import FactSourcing
 from core.risk.triggers import RetierTriggers
 from core.rules import RuleSetEditor
@@ -1090,9 +1091,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # deployment.
     policies = PolicyRegister(PolicyRuleRepository(db), evidence)
     # The facts the gates judge on, from the registers that hold them.
+    # What a version's feature contract binds, as facts a policy rule can read.
+    # `protected_basis`, `proxy_risk` and `certification` have been columns on
+    # every feature since the catalogue was built, and nothing in the gate
+    # vocabulary could see them — so no rule could be written about them
+    # however much a firm wanted one.
+    contract_screening = ContractScreening(
+        ContractRepository(db), FeatureViewRepository(db),
+        FeatureViewVersionRepository(db), FeatureRepository(db),
+        registry=registry, policies=policies)
+
     gate_facts = GateFacts(findings=findings, documents=documents,
                            validation=validation, approvals=approvals,
-                           parameters=parameters, attachments=attachments)
+                           parameters=parameters, attachments=attachments,
+                           screening=contract_screening)
     registry.attach_policy(PolicyGate(policies, RegistryError), gate_facts)
     warrants.policy = PolicyGate(policies)
     warrants.facts = gate_facts
@@ -1327,6 +1339,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "estate_cost": estate_cost,
                            "finding_roots": finding_roots,
                            "retier_triggers": retier_triggers,
+                           "contract_screening": contract_screening,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

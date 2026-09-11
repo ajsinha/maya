@@ -14,7 +14,7 @@ derives from what it holds, and what it refuses to conclude. This one is about
 the places where the record is **not MAYA's own**: where the platform relies on
 a party it does not control, or where a party relies on it.
 
-There are ten such places. They were built at different times, for different
+There are eleven such places. They were built at different times, for different
 requirements, by different arguments, and it took building them all to notice
 they are one problem:
 
@@ -49,7 +49,7 @@ So the state is three-valued and the third value is inhabited. No sentence in a
 manual would have done that work, because the two collapses happen at the moment
 somebody writes a status column with two possible values.
 
-The same move, ten times:
+The same move, eleven times:
 
 | Boundary | The convenient answer | The wider type |
 |---|---|---|
@@ -63,8 +63,9 @@ The same move, ten times:
 | A bank's rulebook | a rule set | a **candidate**, with untranslated cells named |
 | Attested cost | a total | attributed, with the **unattributed share** |
 | A control with nothing to compare | *nothing fired* | `cannot_check`, counted separately |
+| A tag the platform records | a governed estate | the facts, **plus whether any rule reads them** |
 
-## 3. The ten, and what each declines to claim
+## 3. The eleven, and what each declines to claim
 
 Each is specified in [14 §26](14-detailed-design.md). What follows is the
 boundary itself, stated once, so a reader can see the shape rather than the
@@ -263,6 +264,30 @@ that reason, and a `cannot_check` never counts toward the stale figure.
 
 Which is the rule of this document arriving one more time, from a direction
 nobody was looking: **widen the type**.
+
+## 3.11 A fact the platform records and nothing reads
+
+The eleventh is the rule pointed inward, and it is the one most likely to be
+somewhere else in any platform that has this shape.
+
+Every feature in the catalogue carries `protected_basis`, `proxy_risk` and a
+`certification` level. All three were recorded from the day the catalogue was
+built, and **nothing read any of them**. Not because nobody wanted a rule — the
+requirement asks for one in plain words — but because a rule here is a predicate
+over a closed vocabulary of *published facts*, and the vocabulary could not see
+what a version's contract binds.
+
+The tag is worse than an absent column would have been:
+
+> An absent column is obviously absent. A **tagged** estate looks governed, and
+> a reviewer who sees `protected_basis: true` reasonably assumes something acts
+> on it.
+
+So the facts are published, the rule stays the firm's — *prohibit direct use in
+in-scope credit models while permitting controlled use for fairness testing* is
+not a sentence a platform can evaluate on a bank's behalf — and, crucially,
+**the exposure is reported whether or not a rule exists**. Publishing a
+vocabulary and stopping there would recreate the same defect one level up.
 
 ## 4. The boundaries that are refusals
 
