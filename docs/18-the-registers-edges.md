@@ -14,8 +14,8 @@ derives from what it holds, and what it refuses to conclude. This one is about
 the places where the record is **not MAYA's own**: where the platform relies on
 a party it does not control, or where a party relies on it.
 
-There are nine such places. They were built at different times, for different
-requirements, by different arguments, and it took building all nine to notice
+There are ten such places. They were built at different times, for different
+requirements, by different arguments, and it took building them all to notice
 they are one problem:
 
 > **At a boundary, the natural report is the answer you wish you had — and the
@@ -49,7 +49,7 @@ So the state is three-valued and the third value is inhabited. No sentence in a
 manual would have done that work, because the two collapses happen at the moment
 somebody writes a status column with two possible values.
 
-The same move, nine times:
+The same move, ten times:
 
 | Boundary | The convenient answer | The wider type |
 |---|---|---|
@@ -62,8 +62,9 @@ The same move, nine times:
 | A compiled document | a PDF | typesetting source with the citations intact |
 | A bank's rulebook | a rule set | a **candidate**, with untranslated cells named |
 | Attested cost | a total | attributed, with the **unattributed share** |
+| A control with nothing to compare | *nothing fired* | `cannot_check`, counted separately |
 
-## 3. The nine, and what each declines to claim
+## 3. The ten, and what each declines to claim
 
 Each is specified in [14 §26](14-detailed-design.md). What follows is the
 boundary itself, stated once, so a reader can see the shape rather than the
@@ -233,6 +234,35 @@ What it still cannot see is whether the job read the population it claims. A
 arithmetically perfect and describe the wrong population — so the predicate and
 the row count are recorded, and the population is **attested rather than
 observed**.
+
+## 3.10 A control that cannot be evaluated
+
+The ninth is the one the others taught. `core/risk/triggers.py` watches for
+assessments whose facts have changed — and its first trigger, *has the exposure
+moved*, turned out not to be answerable at all unless somebody had **sourced**
+the exposure.
+
+The register holds no standing exposure column. An exposure is supplied at
+assessment time and stored in that assessment's own facts, so outside it the
+only figure MAYA has is the one the assessment was made from. Comparing it
+against itself answers nothing.
+
+So the trigger reports **cannot check**, and that is a third state beside
+*fired* and *did not fire*:
+
+| | |
+|---|---|
+| fired | the facts changed |
+| did not fire | the facts were compared and had not changed |
+| **cannot check** | there was nothing to compare against |
+
+Collapsing the third into the second is the convenient move, and it produces a
+sweep that reports *nothing fired* over an estate it cannot evaluate — its own
+blindness, printed as an all-clear. The estate view counts them separately for
+that reason, and a `cannot_check` never counts toward the stale figure.
+
+Which is the rule of this document arriving one more time, from a direction
+nobody was looking: **widen the type**.
 
 ## 4. The boundaries that are refusals
 

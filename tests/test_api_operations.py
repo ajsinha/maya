@@ -147,6 +147,12 @@ class TestSchedulerApi:
                 # A sweep that runs and is never triaged is worse than no
                 # sweep: the estate believes it has a discovery programme.
                 "discovery.backlog",
+                # Six of the seven re-tiering triggers were unwatched, so a
+                # Tier 3 assessed once held for two years however much moved
+                # underneath it. This re-tiers NOTHING — the failure it catches
+                # is not an under-tiered model but an under-tiered model
+                # nobody knows is under-tiered.
+                "tiering.stale",
                 # A firm reporting model use under a permission it no longer
                 # holds is not a housekeeping error.
                 "approvals.expire",

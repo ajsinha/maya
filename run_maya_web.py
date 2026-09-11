@@ -93,6 +93,7 @@ from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
 from core.validation.correlation import FindingRoots
 from core.risk.sourcing import FactSourcing
+from core.risk.triggers import RetierTriggers
 from core.rules import RuleSetEditor
 from core.security import RowLevelSecurity
 from core.rules.importing import RuleSetImport
@@ -634,6 +635,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # Activated before the compiler is built, because a document states which
     # supervisors apply and an inactive regime has nothing to say.
     regimes = RegimeEngine(evidence)
+
+    # When a tier stopped being the answer to the question it was answering.
+    # Six of the seven `FR-TIER-005` triggers were unwatched, and every fact
+    # they need was already here — it had to be looked at rather than acquired.
+    # It detects and reports; it never re-tiers, because an automatic re-tier
+    # is the platform changing a governance decision nobody made.
+    retier_triggers = RetierTriggers(
+        RiskRepository(db), registry,
+        uses=ModelUseRepository(db), breaches=BreachRepository(db),
+        regimes=regimes, sourcing=fact_sourcing, findings=findings,
+        roots=finding_roots, evidence=evidence)
     for key in cfg.get_list("regimes.active", ["sr-26-2"]):
         regimes.activate(key)
 
@@ -1273,6 +1285,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                    notifications=notifications,
                    finding_workflow=finding_workflow,
                    evidence=evidence, risk=RiskRepository(db),
+                   retier_triggers=retier_triggers,
                    waivers=waivers,
                    uses=use_reconciliation,
                    pipeline=pipeline_health,
@@ -1313,6 +1326,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "fact_sourcing": fact_sourcing,
                            "estate_cost": estate_cost,
                            "finding_roots": finding_roots,
+                           "retier_triggers": retier_triggers,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
