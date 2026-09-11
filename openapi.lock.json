@@ -4944,6 +4944,68 @@
         ]
       }
     },
+    "/api/v1/recertification": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "population",
+          "reference!",
+          "reviewer!",
+          "title"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/recertification/{reference}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/recertification/{reference}/close": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/recertification/{reference}/{principal}": {
+      "post": {
+        "body": [
+          "reason",
+          "state!"
+        ],
+        "parameters": [
+          "path:principal!",
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/references": {
       "get": {
         "body": [],

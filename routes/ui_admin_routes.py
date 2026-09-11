@@ -121,6 +121,14 @@ class AdminRoutes(Routes):
                 incompatible=[{"roles": [a, b], "reason": reason}
                               for a, b, reason in INCOMPATIBLE_ROLES],
                 segregation=authz.segregation.describe(),
+                # `FR-SEC-005`'s other half, on the same screen as the roles it
+                # is about. The number that matters is how many active accounts
+                # nobody has ever looked at — a review that has not run is not
+                # a review that found nothing.
+                recertification=self.ctx["recertification"].across_the_estate(),
+                recertified={row["username"]:
+                             self.ctx["recertification"].of(row["username"])
+                             for row in rows},
                 # The entities and domains already in use, so the scope fields
                 # offer what the estate actually contains rather than an empty
                 # box. A free-typed `LE-UK-2` beside an existing `LE-UK-02` is
