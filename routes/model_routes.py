@@ -1461,6 +1461,70 @@ class ModelRoutes(Routes):
 
 
 
+
+        # ------------------------------- when a tier stopped being the answer
+        @self.app.get(f"{self.api}/retier-triggers", tags=["risk"])
+        def retier_posture(request: Request):
+            """The seven `FR-TIER-005` triggers, and the one thing this will
+            not do.
+
+            **It never re-tiers.** An automatic re-tier would be the platform
+            changing a governance decision nobody made, in the direction the
+            arithmetic happened to point, at a moment nobody chose. The tier is
+            somebody's assessment; a trigger says it was made against facts
+            that have since changed, and names which.
+            """
+            self.principal(request)
+            return self.ctx["retier_triggers"].posture()
+
+        @self.app.get(f"{self.api}/retier-triggers/estate", tags=["risk"])
+        def retier_estate(request: Request, now: Optional[float] = None):
+            """How much of this estate's tiering was made against stale facts.
+
+            A fact about the tiering **programme** rather than about any one
+            model. An estate where a third of the assessments are out of date
+            is one whose tier column means less than it looks like it means —
+            and the tier decides the approval quorum, the review cadence, the
+            monitoring depth and the warrant's time to live.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading re-tiering triggers")
+            return self.guard(
+                lambda: self.ctx["retier_triggers"].across_the_estate(now))
+
+        @self.app.get(f"{self.api}/retier-triggers/model", tags=["risk"])
+        def retier_of(request: Request, urn: str,
+                      now: Optional[float] = None):
+            """Which triggers have fired for one model since its assessment.
+
+            A query parameter rather than a path under `/models`, for the
+            reason the findings route gives: the model segment is a greedy
+            `:path` and swallows any suffix.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(urn_of(urn)))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["retier_triggers"].of(model["urn"], now))
+
+        @self.app.post(f"{self.api}/retier-triggers/sweep", tags=["risk"])
+        def retier_sweep(request: Request, now: Optional[float] = None):
+            """Raise a finding per stale assessment, **correlated by cause**.
+
+            A regulatory change fires on every in-scope model at once. Fifty
+            findings with fifty owners, each seeing a problem they cannot fix,
+            is the exact shape of `M-8` — so findings from a shared cause are
+            raised under one named root, and the board pack can say they are
+            one problem.
+
+            Still nothing is re-tiered.
+            """
+            who = self.authorise(request, "risk:assess",
+                                 estate_wide="sweeping for stale assessments")
+            return self.guard(lambda: self.ctx["retier_triggers"].sweep(
+                actor=self.actor(who), now=now))
+
+
     def _approvals_below_quorum(self, model: Dict[str, Any],
                                 tier: int) -> List[str]:
         """Approved versions whose approval would not satisfy this tier.

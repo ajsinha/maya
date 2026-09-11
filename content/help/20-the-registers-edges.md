@@ -4,7 +4,7 @@ slug: the-registers-edges
 section: Oversight
 order: 95
 icon: shield-exclamation
-summary: Nine places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
+summary: Ten places where the record is not MAYA's own — an authority's clock, a firm's own package, another system's export, somebody else's scanner, a pack that left the building. Each is narrower than its name suggests, and this page is where that is said out loud.
 audience: Model risk managers, Platform, Architects, Auditors
 ---
 
@@ -15,7 +15,7 @@ what it works out from what it holds, and what it refuses to conclude. This page
 is about the other kind of place — where the platform is **relying on somebody
 it does not control**, or where somebody is relying on it.
 
-There are nine. The screen is `/admin/perimeter`, and if you read one thing
+There are ten. The screen is `/admin/perimeter`, and if you read one thing
 before relying on any of them, read this:
 
 > At a boundary, the natural thing to report is the answer you wish you had —
@@ -203,6 +203,30 @@ the row count are recorded, and the population is **attested rather than
 observed**.
 
 ---
+
+## A control with nothing to compare against
+
+The tenth is the one the others taught, and it is worth knowing because it
+changes how you read every *nothing to report* in this platform.
+
+MAYA watches for tier assessments whose facts have changed — and the first
+thing it watches, *has the exposure moved*, turned out not to be answerable
+unless somebody had **sourced** that model's exposure. The register holds no
+standing exposure figure: it is supplied when a model is assessed and stored in
+that assessment, so outside it the only number MAYA has is the one the
+assessment was made from.
+
+So there are three answers, not two:
+
+| | |
+|---|---|
+| **fired** | the facts changed |
+| **did not fire** | the facts were compared, and had not changed |
+| **cannot check** | there was nothing to compare against |
+
+The third never counts toward a stale figure and is reported on its own. A sweep
+that said *nothing fired* over an estate it could not evaluate would be printing
+its own blindness as an all-clear.
 
 ## Four of these will not be built
 
