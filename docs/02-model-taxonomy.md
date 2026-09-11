@@ -276,7 +276,24 @@ is one somebody turns off, and the real ones go with it.
 Nothing computes above-the-line and below-the-line testing or a rule-fire distribution — the third
 column of the T8 row is still a specification of what the fibre needs, and the `trial` endpoint's
 per-rule fire counts over sample rows are an author's sanity check before approval, not a monitoring
-result. And MAYA still holds the T8 population; it does not find it (§11).
+result.
+
+**What has changed is the getting-in.** The gap that decided whether T8 coverage was a demonstration
+or a programme was never the register: it was that a bank's rulebook is a decision table four people
+maintain in a spreadsheet, and typing it in is the whole migration. `core/rules/importing.py` reads a
+CSV decision table and a DMN 1.3 table into a **candidate** — which takes the same check, trial and
+publish path a hand-written rule set does, second-person approval included.
+
+The refusals are the reason it is safe to use. **A misread threshold does not fail**: it produces a
+rule set that loads, validates, publishes and then decides differently from the rulebook it claims to
+be, and nobody finds that by looking at it. So a cell that is a human judgement is reported rather
+than guessed at and the document is refused *whole*; a hit policy that cannot map onto first-match is
+refused *by name* with what the approximation would silently become; and the catch-all is **derived**
+from first-match semantics rather than inferred from a row's position. A stored procedure is not
+translated and will not be.
+
+MAYA still holds the T8 population and does not find it (§11) — though the contract a scanner must
+meet is now published, and a reference scanner ships in `tools/scanner/`.
 
 ### How a run says which point of `P` it is running at
 
