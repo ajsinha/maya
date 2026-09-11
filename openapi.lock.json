@@ -6126,6 +6126,27 @@
         ]
       }
     },
+    "/api/v1/warrant-signing": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/warrant-signing/key": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:audience!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/warrants": {
       "get": {
         "body": [],

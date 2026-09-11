@@ -117,8 +117,14 @@ class WarrantBuilder:
         that the document is authentic and not that it is usable, and engines
         would reasonably read it as both.
         """
-        doc["signature"] = {"alg": self.signer.ALGORITHM,
-                            "key_id": self.signer.key_id, "value": ""}
+        # The key id names the audience's key, not the root's. It is computed
+        # from the document being sealed rather than read off the signer,
+        # because the signer serves every engine and a descriptor is for one.
+        doc["signature"] = {
+            "alg": self.signer.ALGORITHM,
+            "key_id": self.signer.label_for_audience(
+                self.signer.audience_of(doc)),
+            "value": ""}
         report = self.validator.validate(doc)
         if not report.valid:
             raise WarrantError(

@@ -37,7 +37,7 @@ done.
 
 | | Why it is not built | What it costs while absent |
 |---|---|---|
-| **Asymmetric warrant signatures** | **Deliberately deprioritised, 2026-09-10.** HMAC-SHA256 ships; RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and this was the top of the list for two revisions of this document | Verifying a warrant requires holding a key that could **mint** one. Two things have changed the size of that. First, the honest scope: the shape is wrong for an engine outside the firm's trust boundary, and MAYA's engines are inside it — this is a segregation problem between teams, not a public-key problem between institutions. Second, **most of the isolation is available without key management**: a per-engine HMAC key means a compromised engine can forge only its own warrants, which is the property the asymmetric scheme was wanted for, at none of the custody, rotation and revocation cost. What genuinely still requires asymmetry is **non-repudiation** — proving MAYA and only MAYA issued a warrant, to somebody who is not MAYA — and that is a narrower and much rarer requirement than *"the single largest gap in the execution story"*, which is what this row used to say and which was an overstatement |
+| ~~**Asymmetric warrant signatures**~~ **Dropped as a requirement; the problem it named is solved** | The row led this table for two revisions on the argument that verifying a warrant requires holding a key that could **mint** one. That was true and the proposed fix was wrong for it. The defect has two halves that were being treated as one: *who can forge*, which is operational, and *who can prove authorship to a third party*, which needs public-key cryptography and which nobody had asked for | **Closed by derivation, not by asymmetry.** `core/execution/signing.py` derives each audience's key from the root and the audience's own principal — `HMAC(root, "maya/warrant/v<gen>/" ‖ audience)` — so a compromised engine forges warrants for **itself and nobody else**, and the derivation is one-way, so holding one key yields no other. The audience is read from the document being verified, so redirecting a warrant to another principal breaks its signature rather than needing a separate check somebody remembered. Rotation is a generation counter in the key id. `GET /warrant-signing` publishes what a signature proves and, in the same object, that it does **not** prove authorship to a third party: a verifier holds the key it verifies with, so a descriptor is evidence to the bank and not to anybody outside it. If a firm ever does need non-repudiation to an external party, that is a new requirement with its own argument, and it is not this one |
 | ~~**A third-party time source for the anchors**~~ **Built** | `core/evidence/timestamps.py`. It takes an RFC 3161 token over an anchored head, and the design is in what it declines: MAYA is not the authority **and does not verify**, because checking a token means holding a certificate chain and choosing which roots to trust — a decision the firm's security function has already made. What remains is not code: an authority has to be *chosen and wired*, and the platform reports itself as **arguing from its own clock** until one is | Closed, with the bound stated in the interface rather than in a footnote. A token bounds a head **from above only** — it proves this hash existed no later than that time, which is what stops a chain being rewritten and dated before the fact. It says nothing about how early the head existed, nothing about deletion, and nothing at all about the period before the first token. `unverified` is a third state that never collapses into either neighbour. Finding **C-4**'s third disposition is now closed |
 | **Three foundational laws** | `L-6`, `L-11`, `L-13` — each named in [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) with the reason. `L-14` and `L-17` were on this list and now run | The strongest claim the design makes is that the laws are the acceptance criteria. Eighteen of twenty-one run; a law stated and not executed prevented nothing |
 | ~~**`entry_points` discovery for fibres**~~ **Built** | `core/plugins/discovery.py` reads `entry_points(group="maya.extensions")` across every open axis, fibres included | Closed, and the seam is the control rather than the convenience: discovery **imports nothing**, so a package is *seen* from its metadata and *enabled* only when configuration names it. A control that switched itself on when somebody bumped a dependency is a control nobody turned on. `not_installed` and `not_enabled` are separate refusals — the second is the safe state; the first means somebody believes a control is running. A third-party fibre may **add** obligations and never remove one, checked at load |
@@ -68,18 +68,27 @@ NFR figure in [03 §7](03-requirements.md) is a target rather than a result.
 
 ## 3. The order, and the argument for it
 
-**This section has been rewritten, and the rewrite is the more useful part of
-it.** For two revisions the order began *asymmetric signatures before anything
-else*, on the argument that everything downstream of the warrant is weaker while
-verification requires the minting key. That ordering was challenged on
-2026-09-10 and did not survive the challenge, which is worth recording rather
-than quietly editing away: the threat it addressed is an engine outside the
-firm's trust boundary, MAYA's engines are inside it, and **a per-engine HMAC key
-already gives the isolation that mattered** — a compromised engine can forge
-only its own warrants — without any of the custody, rotation and revocation cost
-that a key hierarchy brings. What asymmetry uniquely buys is *non-repudiation to
-a third party*, and nobody had asked for that. A roadmap item can be wrong about
-its own size, and this one was.
+**This section has been rewritten twice, and the second rewrite is the more
+useful part of it.** For two revisions the order began *asymmetric signatures
+before anything else*, on the argument that everything downstream of the warrant
+is weaker while verification requires the minting key. That ordering was
+challenged on 2026-09-10 and did not survive, and then the requirement itself
+did not survive either — because looking at it properly showed it was the wrong
+fix for a real defect rather than the right fix for an imagined one.
+
+The defect was real: one estate-wide HMAC secret means any engine that can
+*verify* a warrant can *mint* one, for any model and any principal. But the fix
+it demanded was containment, not asymmetry, and containment is a **key
+derivation**: sign each audience's warrants with a key derived from the root and
+that audience's own principal. A compromised engine then forges warrants for
+itself and for nobody else, at none of the custody, rotation and revocation cost
+a public-key hierarchy brings. That is built.
+
+What asymmetry uniquely buys is *non-repudiation to a third party* — showing
+somebody who is not the bank that only MAYA could have issued a descriptor — and
+nobody had asked for it. The platform now says so in the interface rather than
+carrying it as debt. A roadmap item can be wrong about its own size; this one
+was also wrong about its own shape.
 
 **Everything that was ahead of it is now built.** Chain timestamping,
 `entry_points` discovery, the connectors, the share, the scanner contract and

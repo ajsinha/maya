@@ -16,9 +16,12 @@ A detailed design earns its name only when a reader can go from a section to the
 the thing the section promised. The previous version could not, in enough places to matter: it described a
 Kafka event stream, a Redis descriptor cache, a Celery worker fleet, a Spark job, Postgres row-level
 security, an online feature store, Ed25519 signing, a plugin loader, and a browser front end built on
-server-side DataTables and a Cytoscape graph. **None of those exists.** Some are on the roadmap, some were
-abandoned, and one — the graph page — was described so confidently that a reader would have gone looking for
-a vendored library in a repository whose whole asset budget is six files.
+server-side DataTables and a Cytoscape graph. **None of those existed.** Some have since been built —
+the plugin loader is `core/plugins/discovery.py` — some were abandoned, one was replaced by something
+better (Ed25519 signing became a per-audience key derivation, §26.7, which buys the containment it was
+wanted for without a key hierarchy), and one — the graph page — was described so confidently that a
+reader would have gone looking for a vendored library in a repository whose whole asset budget is six
+files.
 
 So one rule governs every sentence below, and it is the same rule [08](08-ui-ux.md) adopted for the same
 reason:
@@ -3386,6 +3389,67 @@ rendering that dropped them would produce something that *looks* complete, and
 looking complete is the failure mode — a document whose thin sections are
 invisible is worse than a short one.
 
+### 26.7 A signature an engine can check without being able to forge
+
+The five subjects above are places where MAYA relies on somebody else. This one
+is the mirror image: a place where somebody else relies on **MAYA**, and where
+the honest description of what they are getting is narrower than the word
+*signed* suggests.
+
+A descriptor is a bearer credential, HMAC-SHA256 over its canonical form. For
+two revisions the documented position was *asymmetric signing, not built*, which
+deferred a real defect to a key hierarchy nobody had and left the defect in
+place. The defect was that one estate-wide secret means any engine that can
+**verify** a warrant can **mint** one — for any model, any principal, any use —
+so the blast radius of one compromised consumer was the entire estate.
+
+That is two questions being treated as one. *Who can forge* is operational.
+*Who can prove authorship to a third party* needs public-key cryptography, and
+it is much rarer: it is showing somebody who is not the bank that only MAYA
+could have issued a descriptor. Nobody had asked for the second.
+
+The first needs no asymmetry at all. It needs the key derived from the audience:
+
+```
+k_audience = HMAC(root, "maya/warrant/v<generation>/" ‖ audience)
+```
+
+MAYA holds the root and derives every audience key; an engine is handed its own
+and can derive nothing, because the step is one-way. A stolen key forges
+warrants for **one principal**, which is containment — and containment is what
+the shared secret was costing.
+
+Three details carry it.
+
+**The audience is read from the document being verified**, not from the signer.
+An attacker who re-points a warrant they legitimately hold at another principal
+has changed the key it should have been signed under, so the substitution fails
+inside `verify()` rather than depending on a separate check somebody remembered
+to write.
+
+**A warrant with no principal gets an audience no principal can hold**, rather
+than falling back to the root. The fallback would restore the estate-wide key
+silently and only for the malformed cases, which is the worst of both.
+
+**`key_id` is `<root>.g<generation>.<audience digest>`**, both halves one-way.
+The root half makes rotation legible; the generation is what lets a warrant
+issued under an earlier key be *distinguishable* rather than mysteriously
+invalid; the audience half makes it obvious at a glance that two engines are not
+sharing a key.
+
+Distribution is one route, `POST /warrant-signing/key`, and it is the only
+endpoint in MAYA that returns a secret. It is a `POST` although it reads,
+because the act is a disclosure and belongs on the evidence chain rather than in
+a cacheable `GET`. The caller must be the audience or hold `principal:manage`.
+The node records who, for whom, and under which generation — and **not the key**,
+because writing a secret into an append-only chain would publish it to every
+holder of `evidence:read`, which is the defect `key_id` was fixed for.
+
+And `GET /warrant-signing` publishes what this does not do, in the same object
+as what it does: a verifier holds the key it verifies with, so **a descriptor is
+evidence to the bank and not to anybody outside it.** If a firm ever needs the
+other half, it is a new requirement with its own argument.
+
 ## 27. Infrastructure the design assumes and the build does not have
 
 | Designed | Why it is not built, and what its absence costs |
@@ -3398,7 +3462,7 @@ invisible is worse than a short one.
 | **Postgres row-level security**, forced, with a non-owner application role and a cross-entity negative test | H-5. Scope is enforced in Python and the database offers no backstop |
 | **A separate audit database**, read replicas, monthly partitioning | H-9. One database, one identity, one flat evidence table |
 | ~~**WORM anchoring and an RFC-3161 timestamp** on the daily chain head~~ | **Both built** — anchoring in `core/evidence/anchor.py`, timestamping in `core/evidence/timestamps.py` (§26.1). C-4 disposition 2 is closed. What remains is not code: an authority has to be chosen and wired, and until one is the platform reports itself as arguing from its own clock rather than showing a tick |
-| **Asymmetric warrant signing** | HMAC-SHA256 ships. RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and the gap is key management — verifying a warrant currently requires holding a key that could mint one. **Deprioritised deliberately** (see [10 §2.1](10-roadmap.md)): MAYA's engines are inside the firm's trust boundary, and a per-engine HMAC key already confines a compromised engine to forging its own warrants. What asymmetry uniquely buys is non-repudiation to a third party, which nobody has asked for |
+| ~~**Asymmetric warrant signing**~~ | **No longer a requirement, and the defect it named is closed** — see §26.7. Each audience's key is derived from the root and that audience's own principal, so a compromised engine forges warrants for itself and nobody else. That is containment, which is what the shared secret was actually costing. Asymmetry would additionally buy non-repudiation *to a third party*, which is a different requirement nobody has raised; `GET /warrant-signing` states that a descriptor is evidence to the bank and not to anybody outside it, rather than letting *signed* be read as more |
 | ~~**A plugin loader and a fibre registry**~~ | **Both built** — the fibration over the derived trainability class with a start-up totality gate, and `entry_points` discovery in `core/plugins/discovery.py` (§26.2). `L-15` runs at every start-up. The base had to change for it to be checkable at all: totality over a free-text `model_class` is either a closed vocabulary or a gate defeated by a typo |
 | **Continuous integration** | Seven of the nine gates in [12 §7](12-implementation-plan.md) now run. What remains is DAST, a generated client and an accessibility run; migration rehearsal is not applicable, because there are no migrations |
 
@@ -3441,7 +3505,7 @@ invisible is worse than a short one.
 | [§17](#17-the-http-surface)–[§19](#19-the-interface-and-the-sdk) Interfaces | `FR-PLT-*`; ADR-008, ADR-011; [08](08-ui-ux.md), [09 §1](09-security-compliance.md) |
 | [§20](#20-persistence-and-transactions)–[§21](#21-concurrency-and-idempotency) | `NFR-DATA-*`; [05](05-data-model.md); finding M-3 |
 | [§22](#22-refusals)–[§25](#25-testing-design) | `NFR-OPS-*`, `NFR-MNT-*`; ADR-010 |
-| [§26](#26-the-registers-edges) The register's edges | `FR-SEC-004`, `FR-SEC-008`, `FR-INV-012`, `FR-INV-013`, `FR-AI-012`, `FR-PLT-004`, `FR-DOC-010`; `INT-001`, `INT-002`, `INT-017`; finding C-4 |
+| [§26](#26-the-registers-edges) The register's edges | `FR-SEC-004`, `FR-SEC-008`, `FR-INV-012`, `FR-INV-013`, `FR-AI-012`, `FR-PLT-004`, `FR-DOC-010`, `FR-WARRANT-*`; `INT-001`, `INT-002`, `INT-017`; findings C-4, §4.3 |
 
 ---
 

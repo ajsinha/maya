@@ -45,6 +45,7 @@ class WarrantService:
 
     def __init__(self, repo: WarrantRepository, registry: ModelRegistry,
                  evidence: EvidenceEngine, signing_key: str = "maya-dev-key", key_id: Optional[str] = None,
+                 per_audience_keys: bool = True, key_generation: int = 1,
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None,
@@ -75,7 +76,9 @@ class WarrantService:
         # Set at wiring time; see core/policy/wiring.py.
         self.facts = None
         self.grants = WarrantGrants(repo, registry, evidence, ttl_by_tier, grace_by_tier)
-        self.signer = WarrantSigner(signing_key, key_id, jitter_pct)
+        self.signer = WarrantSigner(signing_key, key_id, jitter_pct,
+                                    per_audience=per_audience_keys,
+                                    generation=key_generation)
         self.builder = WarrantBuilder(self.signer)
 
     @property

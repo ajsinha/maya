@@ -495,3 +495,84 @@ class WarrantRoutes(Routes):
                 body.urn, body.environment, body.principal,
                 declared_use=body.declared_use, mirrors=body.mirrors,
                 share=body.share, until=body.until, actor=self.actor(who)))
+
+        # ---------------------------------------------- the signing posture
+        @self.app.get(f"{self.api}/warrant-signing", tags=["warrants"])
+        def signing_posture(request: Request):
+            """What a MAYA signature proves, and what it does not.
+
+            Published for the same reason the timestamp posture is: *signed*
+            is a word a reader fills in generously, and the gap between what
+            it means here and what somebody will assume is exactly where an
+            assurance stops being true.
+
+            The sentence that matters is under `does_not_prove`. A verifier
+            holds the key it verifies with, so a descriptor is evidence **to
+            the bank** and not to anybody outside it.
+            """
+            self.principal(request)
+            return self.ctx["warrants"].signer.posture()
+
+        @self.app.post(f"{self.api}/warrant-signing/key", tags=["warrants"])
+        def signing_key(request: Request, audience: str):
+            """Hand one audience the key its own warrants are signed with.
+
+            **This returns a secret, and it is the only endpoint in MAYA that
+            does.** Three things follow from that.
+
+            It is a `POST` although it reads: the act is a disclosure, and a
+            disclosure belongs in the evidence chain rather than in a `GET`
+            somebody's proxy might cache.
+
+            The caller must either **be** the audience or hold
+            `principal:manage`. An engine collecting its own key is the
+            ordinary case; anybody collecting somebody else's is an
+            administrator provisioning a deployment, and both are recorded
+            with the audience named.
+
+            And what it hands over confines rather than proves. The key signs
+            warrants for this audience and no other, so an engine that loses
+            it has exposed itself and nothing else. MAYA cannot tell whether
+            the engine stored it safely, and says so here rather than letting
+            the disclosure read as an assurance.
+            """
+            audience = (audience or "").strip()
+            who = self.principal(request)
+            if self.actor(who) != audience:
+                who = self.authorise(
+                    request, "principal:manage",
+                    estate_wide=f"collecting the warrant signing key for "
+                                f"{audience}")
+            signer = self.ctx["warrants"].signer
+            # Derived before anything is recorded, so a blank audience is
+            # refused by the signer rather than producing an evidence node
+            # about a disclosure that did not happen.
+            material = self.guard(lambda: signer.key_material_for(audience))
+            with self.ctx["evidence"].recording():
+                self.ctx["evidence"].append(
+                    "warrant_signing_key_disclosed", "principal", audience,
+                    {"audience": audience, "generation": signer.generation,
+                     "key_id": signer.label_for_audience(audience),
+                     "per_audience": signer.per_audience},
+                    actor=self.actor(who))
+            return {
+                "audience": audience,
+                "alg": signer.ALGORITHM,
+                "key_id": signer.label_for_audience(audience),
+                "generation": signer.generation,
+                "key": material,
+                "verifies": (
+                    "warrants whose authority.principal is exactly this "
+                    "audience. The audience is read from the document being "
+                    "verified, so a warrant redirected to another principal "
+                    "fails the signature rather than needing a separate check"
+                    if signer.per_audience else
+                    "EVERY warrant this platform issues. Per-audience keys "
+                    "are switched off, so this is the estate-wide secret and "
+                    "whoever holds it can mint a warrant for any model, any "
+                    "principal and any use"),
+                "maya_cannot_see": (
+                    "whether you stored this safely, whether you rotated it, "
+                    "or whether anybody else now has it. The disclosure is on "
+                    "the evidence chain; the custody is yours"),
+            }

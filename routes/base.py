@@ -409,6 +409,10 @@ STATUS: Dict[str, int] = {
     # first is a decision this firm has not taken and the second is a
     # package that is not there, and they need different fixes.
     "not_enabled": 403, "not_installed": 404,
+    # Naming no audience would be asking for the estate-wide secret the
+    # per-audience derivation exists to remove. 422 rather than 400: the
+    # request is well-formed and the content is what cannot be served.
+    "audience_required": 422,
     "fibre_narrows_obligations": 409,
     "unknown_source": 422, "unreadable_export": 422,
     "sweep_does_not_meet_the_contract": 422,

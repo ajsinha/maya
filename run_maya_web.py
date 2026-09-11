@@ -450,6 +450,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     warrants = WarrantService(WarrantRepository(db), registry, evidence,
                         signing_key=cfg.get("warrants.signing_key", "maya-dev-key"),
+                        # A warrant is signed with a key derived from the
+                        # principal it is issued to, so a compromised engine
+                        # can forge warrants for itself and for nobody else.
+                        # Off is the old estate-wide secret and is a downgrade;
+                        # it exists so a deployment mid-migration can verify
+                        # descriptors issued before the change.
+                        per_audience_keys=cfg.get_bool(
+                            "warrants.per_audience_keys", True),
+                        key_generation=cfg.get_int("warrants.key_generation", 1),
                         ttl_by_tier=_tier_map(cfg, "warrants.ttl_seconds",
                                               {1: 60, 2: 300, 3: 3600, 4: 3600}),
                         grace_by_tier=_tier_map(cfg, "warrants.grace_seconds",
