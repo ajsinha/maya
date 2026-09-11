@@ -103,7 +103,7 @@ fall behind again.
 | `maya.attachments` | attach a file, list, download, review |
 | `maya.documents` | compile, read, the dossier, a training record |
 | `maya.packages` | cut an evidence package, its manifest |
-| `maya.principals` | people, services, roles, permissions, suspend and reinstate |
+| `maya.principals` | people, services, roles, permissions, suspend and reinstate, and **access recertification** — an unanswered item never becomes a confirmed one |
 | `maya.api_keys` | issue, list, revoke — how a service authenticates |
 | `maya.whoami()` | who you are and what you may do — from the platform, never derived here |
 | `maya.health()`, `maya.verify_evidence()` | is it up, and does the chain still verify |

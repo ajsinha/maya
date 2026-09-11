@@ -460,6 +460,16 @@ STATUS: Dict[str, int] = {
     "principal_required": 422, "ceiling_required": 422,
     "instrument_required": 422,
     "out_of_sequence": 409, "beyond_delegated_authority": 409,
+
+    # Access recertification. `self_recertification` is a 403 and not a 409:
+    # unlike the two above, what refuses the caller IS who they are, and no
+    # change to the campaign's state would let them answer this row.
+    # `campaign_closed`, `empty_population` and `reference_required` are
+    # already mapped below, for the attestation campaigns — one code, one
+    # status, which is what the discipline test is for.
+    "campaign_exists": 409, "unknown_recertification": 404,
+    "unknown_answer": 422, "not_in_population": 404,
+    "self_recertification": 403,
     "no_delegated_authority": 409, "entity_out_of_delegation": 409,
     "unknown_root": 404, "unknown_root_kind": 422, "unknown_finding": 404,
     "root_title_required": 422, "root_detail_required": 422,

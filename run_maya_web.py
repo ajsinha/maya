@@ -93,6 +93,7 @@ from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
 from core.validation.correlation import FindingRoots
 from core.features.screening import ContractScreening
+from core.authz.recertification import Recertification
 from core.lifecycle.authority import AuthorityMatrix
 from core.lifecycle.decommission import Decommissioning
 from core.risk.sourcing import FactSourcing
@@ -198,6 +199,7 @@ from db import (ServingAttestationRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
                 AuthorityBandRepository, AuthorityDelegationRepository,
+                RecertificationItemRepository, RecertificationRepository,
                 DecommissionRepository, EstateCostRepository,
                 FindingRootRepository,
                 ExportShareReadRepository, ExportShareRepository,
@@ -396,6 +398,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
         PrincipalRepository(db), evidence,
         iterations=cfg.get_int("auth.kdf_iterations", 200_000),
         verification_ttl=cfg.get_float("auth.verification_ttl_seconds", 60.0))
+    # `FR-SEC-005`, the half the rule engine cannot reach. Incompatible role
+    # pairs are refused at grant time; what nothing catches is access that was
+    # right when it was granted and stopped being right afterwards, because a
+    # secondment ending changes no role. An item nobody answered stays
+    # `unreviewed` — there is no timeout, because the access nobody looked at
+    # is the access most likely to be wrong.
+    recertification = Recertification(
+        RecertificationRepository(db), RecertificationItemRepository(db),
+        principals, evidence=evidence)
     authz = AuthorizationPolicy(SegregationPolicy(evidence))
     # Roles live in the register, seeded from the eight this platform ships.
     # Both the policy and the principal service are pointed at the same store,
@@ -1368,6 +1379,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "contract_screening": contract_screening,
                            "decommissioning": decommissioning,
                            "authority": authority,
+                           "recertification": recertification,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
