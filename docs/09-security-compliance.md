@@ -28,6 +28,7 @@ around the distinction that would have caught all four, and every control table 
 | **Code** | Enforced by this repository, with a named file and, where one exists, a named test | The control operates wherever MAYA is deployed |
 | **Deployment** | The code exposes the setting or the shape; somebody has to configure or operate it | Nothing, until an operator has done it — so it is an obligation, not a control |
 | **Not built** | Designed and absent | Nothing. Plan as if it does not exist, because it does not |
+| **Refused** | Designed, considered, and deliberately *not* built | A position rather than a gap. It closes only by making something else untrue, and the row says which thing |
 
 A control in the third column is not a failure of honesty; it is the part of this document worth
 reading first. §8 is the threat model, and it comes **after** the controls rather than before them,
@@ -64,7 +65,7 @@ every engine and script — which is how a security control ends up switched off
 
 | Property | Detail | Where it runs |
 |---|---|---|
-| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **222 mutating endpoints**, and a control 125 places have to remember will be missing from the 126th | Code (`core/authz/csrf.py`) |
+| Enforcement point | One middleware in `run_maya_web.py`, not a check in each route. There are **228 mutating endpoints**, and a control 125 places have to remember will be missing from the 126th | Code (`core/authz/csrf.py`) |
 | Exemptions | **Exact paths, never prefixes.** A prefix exemption grows silently as routes are added beneath it — asserted in `tests/test_web_security.py` | Code |
 | Token lifetime | **Per session, not per form.** A single-use token breaks the back button, breaks two tabs, and breaks every page that posts more than once. A control people route around is worse than one they never had, because it also reports success | Code |
 | Minting | Lazily, on first render — so a session predating the control gets a token instead of silently skipping the check. There is no upgrade step whose absence disables it | Code |
@@ -257,11 +258,29 @@ It filters **listings as well as detail reads**, which is the property that matt
 scope is invisible rather than merely unopenable, because the existence of a model can itself be
 sensitive — and because a count that does not add up discloses it anyway.
 
-> **Row-level security is not built.** Earlier drafts described three independent layers with Postgres
-> RLS as the last. The shipped schema has no RLS, no session variables and no separate application
-> role, so **there is one layer, in the application**. Business unit, geography and classification are
-> not scope dimensions. A reader planning a multi-entity deployment should treat defence in depth here
-> as **unbuilt** rather than as configured.
+> **Row-level security is built, and it is a backstop rather than the control.**
+> `core/security/rls.py` generates the PostgreSQL policies, `routes/base.py::_identify` puts the
+> acting principal's entity scope on the connection the request is using (transaction-scoped, so a
+> pooled connection carries nothing to the next request), and `GET /api/v1/row-level-security`
+> reports whether it is actually in force. The blocker named in earlier drafts — *one connection
+> identity, so a policy would have nothing to distinguish* — is what that change removed.
+>
+> **The application layer remains the control**, deliberately. RLS produces *no rows* rather than a
+> refusal, and an empty list is indistinguishable from *there is nothing* — so making it primary
+> would trade a legible refusal for silence. What it covers is the case the control cannot: the
+> listing endpoint somebody wrote last week and forgot to filter.
+>
+> Three things a deployer has to know, in descending order of importance. **A superuser bypasses
+> row-level security entirely**, `FORCE` or not — verified against a real PostgreSQL 16, not
+> reasoned about — so a deployment can apply every policy perfectly, connect as `postgres`, and have
+> nothing, with a configuration that looks correct; the posture endpoint reports the connecting
+> role's exemption above everything else for that reason. **`FORCE ROW LEVEL SECURITY` is what binds
+> the table owner**, and enabled-without-forced is the configuration that looks right in a
+> screenshot. And **only `legal_entity` is policed**: `domain` is a scope dimension the application
+> still applies everywhere and no policy covers, and the columns are derived from
+> `core.authz.scope.DIMENSIONS` so that adding a dimension puts it in one of two published lists
+> rather than silently in neither. Business unit, geography and classification remain outside the
+> scope model altogether.
 
 ### 2.5 Segregation of duties
 
@@ -465,11 +484,25 @@ checkpoint trusts that the chain was intact where it was last verified and check
 after, which is a strictly weaker claim and is labelled as one in the response (`"scope":
 "incremental"`).
 
-> **The checkpoint is not an anchor.** It lives in the same database as the chain, so an attacker who
-> can rewrite the chain can rewrite the checkpoint. Writing the daily chain head to WORM storage and
-> to an RFC-3161 timestamping authority remains **not built**, and until it exists, verification
-> compares the chain against itself — and self-consistency of a chain an attacker controls proves
-> less than it appears to.
+> **The checkpoint is not an anchor**, and both halves that answer it are now built. The checkpoint
+> lives in the same database as the chain, so an attacker who can rewrite the chain can rewrite the
+> checkpoint — that has not changed and cannot. What has changed is that there are two further
+> checks, and each is a *different* question.
+>
+> **The anchor** (`core/evidence/anchor.py`) writes chain heads to WORM storage outside the database.
+> Comparing against it is the only check here that somebody holding the database cannot simply
+> satisfy. The shipped store is a directory, which buys separation of medium rather than enforcement,
+> and the control cannot see behind its own first anchor.
+>
+> **The timestamp** (`core/evidence/timestamps.py`) takes an RFC 3161 token over an anchored head —
+> the first statement about this chain that MAYA did not author. Read what it proves before relying
+> on it: a token bounds a head **from above only**, which is exactly what defeats writing a chain
+> after the fact and dating it before, and says nothing about how early the head existed, nothing
+> about deletion, and nothing about the period before the first token. MAYA is not the authority and
+> **does not verify** — checking a token means holding a certificate chain and choosing which roots
+> to trust, a decision a firm's security function has already made — so `unverified` is a third state
+> that never collapses into either neighbour, and a deployment with no authority wired reports itself
+> as arguing from its own clock rather than showing a tick.
 
 ### 4.4 The log is not the audit trail, and is what makes it usable
 
@@ -635,7 +668,7 @@ middle column are taken at exactly their stated strength.
 | **T8** | **Evidence poisoning by an assistant** — machine-created evidence supporting a machine-made claim | Agents may **propose**; only humans and instrumented systems create evidence. A generation is `drafted` until a person other than the requester attests it | Trust is a column on the node and is propagated by the trust semiring; nothing sets it below 1.0 for AI output today |
 | **T9** | **Automation bias** — a usually-correct queue trains reviewers to approve without looking | Edit distance recorded on attestation and its **trend** reported; a deterministic sample of accepted generations pulled for independent review regardless of how good they look (`FR-AI-015`, `FR-AI-016`) | Nothing acts on a falling edit distance automatically; somebody has to ask |
 | **T10** | **Supply-chain compromise of MAYA itself** | Dependencies pinned; every front-end asset vendored, so there is no CDN in the trust boundary | SBOM per release, signed images, SLSA L3, SCA in CI and reproducible builds are **not built** |
-| **T11** | **Cross-entity data leakage** in a multi-entity deployment | Scope filtering in the application, on legal entity and domain, applied to listings as well as detail reads, and to **pages** as well as API calls (§2.4, [08 §1](08-ui-ux.md)) | **Single-layer.** Postgres RLS is designed and not built |
+| **T11** | **Cross-entity data leakage** in a multi-entity deployment | Scope filtering in the application, on legal entity and domain, applied to listings as well as detail reads, and to **pages** as well as API calls (§2.4, [08 §1](08-ui-ux.md)) — **and a PostgreSQL row-level policy underneath it**, forced, default-deny, over a per-request session variable, with the cross-entity negative test the finding asked for | **Two layers on `legal_entity`, one on `domain`.** The database layer needs three deployment facts to be true — a non-owner role, `FORCE`, and a connecting role that is not a superuser — and `GET /api/v1/row-level-security` reports all three rather than assuming them |
 | **T12** | **Session forgery** | The cookie is signed, `SameSite=Strict`, and CSRF-guarded (§1) | The signing secret and the `Secure` flag are both **deployment obligations**, and four published secrets are accepted with a warning rather than refused |
 | **T13** | **Denial of the warrant plane** | Warrant resolution is independent of the control plane; descriptors carry a grace window | Independent scaling, regional failover and static fallback are deployment topology, not code |
 | **T14** | **Compromised signing key** | Descriptors are signed; the SDK pins a key set | KMS/HSM custody, 90-day rotation with overlapping validity and emergency revocation are **deployment obligations** |
@@ -770,7 +803,7 @@ whole section as a design target rather than as a control that operates.
 | Warrant plane unavailable in a region | Regional failover; the SDK's grace window covers the switch |
 | Total outage beyond the grace window | Documented manual break-glass: pre-authorised static descriptors for a named set of Tier 1 production models, held in escrow, dual-controlled, with mandatory post-hoc review of every use |
 | Data loss | Postgres PITR; Delta time travel; object-store versioning and cross-region replication; quarterly restore tests with evidence |
-| Ransomware | Immutable backups with object lock; a WORM evidence tier; offline chain-head anchors (which §4.3 records as not built) |
+| Ransomware | Immutable backups with object lock; a WORM evidence tier; offline chain-head anchors, **which are built** (`core/evidence/anchor.py`) though the shipped store is a directory rather than an appliance — separation of medium rather than enforcement, and §4.3 says which |
 | Loss of a key person | No single-person dependency: ownership is a role with a deputy, and policy and configuration are code in git |
 
 **Recovery objectives:** control plane RTO 4 h / RPO 15 min; warrant plane RTO 15 min / RPO 0; the

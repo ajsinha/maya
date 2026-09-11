@@ -96,7 +96,13 @@ FINDING = Table(
     Column("closed_at", Double),
     Column("closure_verified_by", Text),
     Column("closure_evidence", Text, nullable=False, server_default=text("'{}'")),
+    # The shared cause, when somebody named one. NULL is the ordinary state:
+    # most findings are about one model and have no root, and correlation is
+    # ASSERTED rather than inferred — a guess that grouped two unrelated
+    # findings would hide one behind the other's closure.
+    Column("root_id", Text),
     Index("ix_finding_open", "model_id", "status", "severity"),
+    Index("ix_finding_root", "root_id"),
 )
 
 
@@ -460,4 +466,40 @@ APPROVAL_CONDITION = Table(
     Column("discharge_reason", Text, nullable=False, server_default=text("''")),
     Index("ix_approval_condition_model", "model_id", "state"),
     Index("uq_approval_condition_reference", "reference", unique=True),
+)
+
+
+# A cause, named once, with the findings it produced hanging off it.
+#
+# **M-8** was answered honestly and at the wrong layer: suppression at the last
+# hop, one digest per person per run. That damped the storm where it REACHED A
+# PERSON rather than where it was generated, and left the findings as twelve
+# independent facts about twelve models — so the ageing report counts twelve
+# overdue items and the board pack shows twelve open findings in one domain,
+# which reads as twelve problems.
+#
+# This table is the cause. It does NOT merge anything: the findings keep their
+# own owners, models and due dates, and `finding.root_id` points here. A model
+# whose feature stopped landing has a real problem whatever caused it, and
+# dissolving twelve findings into one would leave eleven models with a live
+# defect and nothing in their own record saying so.
+#
+# `status` reaching `addressed` closes no finding, and the service says so in
+# the answer. A root that closed its children would be one act discharging
+# obligations several different people owe.
+FINDING_ROOT = Table(
+    "finding_root", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("title", Text, nullable=False),
+    # A closed list, because the estate view counts by it and free text is how
+    # a taxonomy becomes forty spellings of one word.
+    Column("kind", Text, nullable=False),
+    Column("detail", Text, nullable=False),
+    Column("status", Text, nullable=False, server_default=text("'open'")),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    Column("addressed_at", Double),
+    Column("addressed_by", Text, nullable=False, server_default=text("''")),
+    Column("addressed_note", Text, nullable=False, server_default=text("''")),
+    Index("ix_finding_root_open", "status", "kind"),
 )

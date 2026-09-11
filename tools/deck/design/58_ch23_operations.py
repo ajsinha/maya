@@ -21,7 +21,7 @@ runs(tf, [("That is the honest state of DR-4. ", CRIMSON, True),
      size=10.5, first=True, space_after=9, line=1.24)
 runs(tf, [("No outbox, no broker, no migrations. ", CRIMSON, True),
           ("No domain event leaves the process; consumers integrate by polling the API. Schema evolution is "
-           "expand-and-contract from one typed schema, 51 tables, one database and one flat evidence "
+           "expand-and-contract from one typed schema, 85 tables, one database and one flat evidence "
            "chain — there is no separate audit database, for the reason chapter 7 gives.", INK, False)],
      size=10.5, line=1.24)
 x = ML + CW * 0.56

@@ -1150,7 +1150,7 @@ And a test had been passing on that wrong sentence.
 ### And the part that's for practitioners
 
 The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
-serves neither. The system carries a second register of the same content with no notation in it — nineteen
+serves neither. The system carries a second register of the same content with no notation in it — twenty
 help pages and eight walkthroughs — including one called *What MAYA refuses to do*, which is the
 derive/declare boundary written as fourteen refusals and what each one protects. If you want the argument
 without the algebra, start there.

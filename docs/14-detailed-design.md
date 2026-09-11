@@ -106,7 +106,7 @@ container orchestration, no second process for anything.
               ┌───────────────┴───────────────┐
               ▼                               ▼
     ┌──────────────────┐            ┌──────────────────┐
-    │  db/  —  51 tables│            │  Delta on disk   │
+    │  db/  —  85 tables│            │  Delta on disk   │
     │  SQLite | Postgres│            │  feature values, │
     │  no migrations    │            │  telemetry,      │
     └──────────────────┘            │  snapshots       │
@@ -197,10 +197,17 @@ because a design rule nothing enforces is the thing this document exists to stop
 | **DR-7** | **A refusal explains itself.** `error`, `detail`, `remediation` — the last naming what to do, not what went wrong | Enforced by the shape of every domain error class |
 | **DR-8** | **Nothing is fetched at runtime.** No CDN, no external call, no network dependency in a governance path | Every asset vendored; the SSO verifier's RS256 is written against the standard library so an air-gapped deployment can use it |
 
-Two rules from the previous version are **targets and not descriptions**, and saying so is the point of
+One rule from the previous version is a **target and not a description**, and saying so is the point of
 this table. *"The API is the only interface"* is not true: `routes/ui_routes.py` makes fifty-one direct
-in-process service calls, and reads never traverse `/api/v1`. *"Every write path is idempotent given an
-`Idempotency-Key`"* is not true either: there is no such header and no replay window. What idempotence
+in-process service calls, and reads never traverse `/api/v1`.
+
+The second one *was* a target and now is not. *"Every write path is idempotent given an
+`Idempotency-Key`"* said **there is no such header and no replay window**; there is now
+(`core/concurrency/idempotency.py`). Two properties make it worth having rather than merely present:
+the same key over a **different body** is refused rather than replayed — without that check a client
+reusing a key by accident receives somebody else's answer as its own — and `in_flight` is a real
+state, so a retry arriving while the first request is still running is refused rather than
+re-executed. It is still not *every* write path, which is why the rule stays a target. What else
 exists is narrower and is described where it lives, in [§21](#21-concurrency-and-idempotency).
 
 ## 3. Core domain
@@ -3217,8 +3224,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 322 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 383 modules in one
+the 325 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 386 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3618,11 +3625,11 @@ says, in words, that the population is *attested* rather than observed.
 | **Eight screens** — dependency and blast-radius explorer, validation workbench, discovery triage, use reconciliation, examiner portal, campaigns, admin, schema-driven metadata form | The administration screens exist, including `/admin/perimeter`, which puts §26.2–§26.5 in front of the people who own the question *what are we relying on somebody else for*. The examiner portal is refused rather than pending (§26.5). The rest do not exist; the `input_to` edges are typed and stored and nothing draws them |
 | **API conventions** — `ETag`/`If-Match`, `Idempotency-Key`, `?expand=`/`?fields=`, `?as_of=`, keyset cursors, SSE on `/events`, `Sunset` headers, `/derivations/{id}` | **This row said "none built" for several releases while five of the eight were running, which is the kind of documentation defect that makes a reader distrust the rest of the table.** Built: `ETag`/`If-None-Match`/`If-Match` (`core/concurrency/etags.py`, and a path with no GET to evaluate against **refuses** rather than dropping the header), `Idempotency-Key` (`core/concurrency/idempotency.py`, with a key replayed over a different body refused rather than replayed), `?as_of=` (`core/registry/asat.py`, folding the evidence chain), SSE (the live log), `?fields=` and keyset cursors and `Sunset` (`core/http/conventions.py`). **Offsets and cursors are both correct and for different lists** — an offset is what says *page four* to a person, and a cursor is what survives a queue being written to while somebody drains it; `core/domain/paging.py` and `core/http/conventions.py` each say which they are for. `?expand=` is not built and `/derivations/{id}` is a helper rather than a route |
 | **Composite warrants** and the interaction premium | `L-21` now gives `L-14` a derived composite schema to quantify over, and `shared_dependencies` computes the obstruction. The aggregate `ρ` is not built, so the question supervisors actually ask has a definition and no computation |
-| **Correlated findings** — one root finding with impact records | M-8. The `finding` table has no root, parent or correlation column. Suppression happens at delivery instead |
-| **Fact sourcing for tiering** — exposure bound to a system of record, an `unsourced` flag, peer-cohort outlier detection, retrospective calibration | H-8, open in full |
+| **Correlated findings** | **Built** — `core/validation/correlation.py` and `finding.root_id`. A cause named once with its findings hanging off it, and three refusals that make it safe: it merges nothing, it infers nothing (candidates are *suggested* and a person decides), and addressing a root closes no finding. Delivery-side suppression still runs; this damps the storm where it is **counted** rather than where it reaches a person |
+| **Fact sourcing for tiering** | **Mostly built** — `core/risk/sourcing.py`. A fact is attested to a named system of record with a reference somebody can check; `sourced`/`asserted`/`stale` are three states rather than a flag, because a figure that aged is not a figure nobody measured. Peer-cohort comparison is a **question and raises no finding**. It fetches nothing and refuses nothing: a register that cannot be registered into produces unregistered models. Retrospective calibration is not built |
 | **Crypto-shredded personal data** — payload in Delta under a per-subject key, key destroyed on erasure | H-3's mechanism. What runs discards the payload instead, which satisfies `L-18` by making retrieval impossible. There is no `payload_uri` column |
 | **Legal hold, tombstones and a retention state machine** | M-7. Deletion is administrators-only, reasoned and evidenced, and cascades to nothing |
-| **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
+| **Cost attribution** | **Built** — `core/estate/cost.py`. Attested rather than observed (MAYA does not run models), attributed from the register's ownership rather than the bill's, and reporting the **unattributed share** as the headline. Budgets raise findings and enforce nothing, because MAYA is not on the serving path. Cost as a *monitored metric* is not built: it would be an external observation like any other, and the monitor machinery already takes those |
 | **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | **Built as the receiving half** (§26.3, §26.4). Each parses an export rather than calling an API, and produces candidates for triage rather than registrations. SageMaker, Vertex, SAS metadata and CMDB have none, and nothing sweeps: the contract a scanner must meet is published, and running one is somebody else's job |
 | **PDF and DOCX rendering** | **Refused by name with the reason** (§26.6). What is emitted is typesetting source with the citations intact — a PDF that flattened them away is a document whose claims can no longer be traced |
 | ~~**A Java SDK**~~ | **Built** — `sdk/java`, release 17, no runtime dependencies. No typed model class and no generated client: a Java object graph mirroring the platform's schemas is a second description of them, and a second description goes stale in the permissive direction |
