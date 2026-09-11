@@ -79,13 +79,32 @@ roles already separated, and `deploy/helm`, which **refuses to render** rather
 than templating a placeholder for a signing key or accepting `ReadWriteOnce`
 with several replicas.
 
-**What remains is genuinely somebody's operating.** Multi-region topology,
-backup and restore, TLS termination, a secret manager, and the three spikes
-that were never run: a point-in-time join at a billion rows; warrant resolution
-p99 under load; sandbox escape testing. The spikes are **measurements**, and
-their absence is why every NFR figure in [03 §7](03-requirements.md) is a target
-rather than a result — a number this platform has never observed is a number it
-should not print as though it had.
+**The three spikes have been run** — `tools/spikes/`, one module each, and each
+writes the machine it ran on into its own result because a latency figure
+without conditions is a number somebody will quote in a different context.
+
+*Resolution latency* measures warm p99 at about 12 ms against a 50 ms target,
+and reports that warm and cold are close — which is the finding rather than a
+pass, since the target distinguishes cached from cold and this platform has no
+cache. *The point-in-time join* runs at roughly 240,000 picks per second and
+extrapolates, **labelled as an extrapolation**, to about 50 TB of process
+memory at the target size: the figure that matters is not the clock but that
+the target cannot be reached in one process at any speed.
+
+*The sandbox spike found a defect*, which is the best argument for having run
+it. `RLIMIT_CPU` is cumulative from process start and was being set to the
+warrant's budget flat, while a spawned child spends about **three CPU-seconds
+importing this package** — so a warrant stating `max_seconds: 2` killed the
+artifact with SIGXCPU before it ran an instruction, and in the log and on the
+evidence chain that is indistinguishable from a runaway model. A *tighter*
+budget made it more likely. `RLIMIT_AS` had always been written as *current
+usage plus budget*; the CPU limit now is too.
+
+**What remains is genuinely somebody's operating**: multi-region topology,
+backup and restore, TLS termination, a secret manager, and an annual
+penetration test — which the sandbox spike is explicitly not, and says so. It
+is a regression suite for a boundary the module already documents, and its
+value is that those sentences stop being unexamined.
 
 ---
 

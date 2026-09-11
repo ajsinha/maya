@@ -59,6 +59,15 @@ ALLOWED = {
     # nothing. Excusing the test rather than weakening the pattern is the right
     # way round — the patterns are the product.
     "tests/test_upload_scanning.py",
+    # The development compose file, whose database password is also in
+    # `deploy/postgres-init.sql` beside it. It is a PUBLISHED default in the
+    # same sense as `config/application.yaml`: the file is in the repository,
+    # so anything in it is public, and the file says so in a comment rather
+    # than implying otherwise. The Helm chart — the one that would be used
+    # somewhere that matters — takes a SECRET REFERENCE and refuses to render
+    # without one, which is the actual answer to this class of finding.
+    "deploy/compose.yaml",
+    "deploy/postgres-init.sql",
 }
 
 SKIP_DIRS = {".git", ".venv", "__pycache__", "node_modules", "web/static/vendor",

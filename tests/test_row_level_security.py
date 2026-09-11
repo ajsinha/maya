@@ -42,6 +42,16 @@ PG_URL = os.environ.get("MAYA_TEST_POSTGRES", "")
 psycopg = pytest.importorskip("psycopg", reason="no PostgreSQL driver")
 
 
+def _as_app(url: str) -> str:
+    """The same database, as the non-owner application role."""
+    from urllib.parse import urlsplit, urlunsplit
+    parts = urlsplit(url)
+    host = parts.hostname or "127.0.0.1"
+    port = f":{parts.port}" if parts.port else ""
+    return urlunsplit((parts.scheme, f"maya_app_login:apppw@{host}{port}",
+                       parts.path, parts.query, parts.fragment))
+
+
 class TestTheStatementsSayWhatTheyMust:
     """Checks on the DDL. Not a test of the isolation — see the module note."""
 
@@ -122,9 +132,13 @@ class TestTheCrossEntityReadReturnsZeroRows:
         owner.execute("CREATE ROLE maya_app_login LOGIN PASSWORD 'apppw' "
                       "IN ROLE maya_app")
         owner.execute("GRANT USAGE ON SCHEMA public TO maya_app")
-        app_url = PG_URL.replace("postgres:", "maya_app_login:", 1) \
-            if "postgres:" in PG_URL else PG_URL
-        yield owner, psycopg.connect(app_url)
+        # Rebuilt rather than string-substituted. The first version replaced
+        # only the USERNAME and left the owner's password in place, which
+        # passed against a container started with
+        # POSTGRES_HOST_AUTH_METHOD=trust — a test connecting as the
+        # application role while actually authenticating as anybody, which is
+        # the sort of thing this file exists to catch in the product.
+        yield owner, psycopg.connect(_as_app(PG_URL))
         owner.close()
 
     @staticmethod
@@ -190,3 +204,34 @@ class TestTheCrossEntityReadReturnsZeroRows:
         assert out["connecting_role_is_exempt"] is True
         assert "exempt from row-level security entirely" in out["detail"]
         assert out["forced"] == len(SCOPED_TABLES)
+
+
+class TestTheTwoEnforcementPointsShareOneRule:
+    """`docs/14` argues that two enforcement points written twice will
+    disagree, and that the first time somebody adds a scope dimension the
+    hand-written one is left behind — silently permitting more, which is the
+    direction nobody files a bug about."""
+
+    def test_the_columns_come_from_scope_rather_than_being_retyped(self):
+        from core.authz.scope import DIMENSIONS
+        from core.security.rls import POLICED, UNPOLICED
+        columns = {column for _field, column in DIMENSIONS}
+        assert set(POLICED) | set(UNPOLICED) == columns
+
+    def test_adding_a_dimension_cannot_be_missed_here(self):
+        """If somebody adds one to `Scope` it appears in one of the two lists
+        immediately — policed, or named as unpoliced. It cannot be silently
+        absent, which is the failure this arrangement prevents."""
+        from core.authz.scope import DIMENSIONS
+        from core.security.rls import POLICED, UNPOLICED
+        for _field, column in DIMENSIONS:
+            assert column in POLICED or column in UNPOLICED
+
+    def test_the_unpoliced_dimension_is_named_rather_than_omitted(self, db):
+        """A backstop narrower than the control is ordinary. One that LOOKED
+        as wide as the control would be the problem."""
+        from core.security.rls import UNPOLICED
+        out = RowLevelSecurity(db).posture()
+        assert "domain" in out["unpoliced_dimensions"]
+        assert UNPOLICED
+        assert "would be the problem" in out["does_not_reach"]
