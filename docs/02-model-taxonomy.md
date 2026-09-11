@@ -224,7 +224,7 @@ would make the analysis unsound, and unsound is the one thing it must not be.
 
 #### An editor, and why it is not a breach of the boundary
 
-[10 §7](10-roadmap.md#7-what-maya-deliberately-will-not-own) says MAYA does not train models and does
+[10 §8](10-roadmap.md#8-what-maya-deliberately-will-not-own) says MAYA does not train models and does
 not run them, and an authoring surface looks like a straight breach of that. It is not, and the
 distinction is what keeps the rest of the boundary intact.
 

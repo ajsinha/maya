@@ -628,3 +628,83 @@ class TestTheTypefacesAreHere:
         for token in ("--sans", "--serif", "--code"):
             line = re.search(rf"{token}:([^;]+);", base).group(1)
             assert "," in line, f"{token} has no fallback stack"
+
+
+# ---------------------------------------------------------------------------
+# The structural checks an axe run would make, made from the templates.
+#
+# `docs/12 §7` gate 9 said "no axe run", and the honest reading of that is
+# narrower than it looks. axe-core finds four families of defect: names on
+# controls, contrast, document structure, and things only a rendered DOM shows
+# (focus order, ARIA state, live regions). The first two are already asserted
+# above, from the source, which catches them earlier than a browser would.
+#
+# What was missing is the third, and it is checkable from the templates because
+# it is a property of the markup rather than of the render. The fourth needs a
+# browser and is not claimed here — `test_documentation_counts` would catch
+# this comment if it drifted into claiming otherwise.
+# ---------------------------------------------------------------------------
+import re as _re
+
+PAGES = [p for p in TEMPLATES.glob("*.html")
+         if "{% extends" in p.read_text(encoding="utf-8")]
+
+
+def _body(path: pathlib.Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
+def test_every_image_carries_alt_text(page) -> None:
+    """An `<img>` with no `alt` is read out as its filename.
+
+    Empty `alt=""` is correct and is what a decorative image should have — it
+    tells a screen reader to skip it. The defect is the attribute being
+    *absent*, which leaves the reader guessing.
+    """
+    for tag in _re.findall(r"<img\b[^>]*>", _body(page)):
+        assert "alt=" in tag, f"{page.name}: <img> with no alt — {tag[:80]}"
+
+
+@pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
+def test_every_page_has_exactly_one_h1(page) -> None:
+    """The heading that says what the page is.
+
+    Two `<h1>`s make a screen reader's heading list ambiguous about which one
+    is the page; none makes it empty at the top level. Both are ordinary and
+    both are invisible to somebody reading with their eyes.
+    """
+    body = _body(page)
+    if "{% block content %}" not in body:
+        pytest.skip("not a content page")
+    count = len(_re.findall(r"<h1\b", body))
+    assert count <= 1, f"{page.name}: {count} <h1> elements"
+
+
+def test_the_base_template_provides_the_landmarks() -> None:
+    """`<nav>` and `<main>`, so a keyboard user can skip the navigation.
+
+    Asserted on the base rather than on every page, because every content page
+    extends it — and a per-page assertion would be thirty copies of one fact
+    that can only be true or false once.
+    """
+    base = _body(TEMPLATES / "base.html")
+    assert "<nav" in base, "no <nav> landmark"
+    assert "<main" in base or 'role="main"' in base, "no <main> landmark"
+
+
+def test_a_link_that_opens_a_new_tab_says_so() -> None:
+    """`target="_blank"` with no warning moves somebody's focus to a window
+    they did not ask for, and the back button no longer works."""
+    for page in PAGES + [TEMPLATES / "base.html"]:
+        body = _body(page)
+        for tag in _re.findall(r"<a\b[^>]*target=\"_blank\"[^>]*>", body):
+            assert "aria-label" in tag or "title" in tag or "rel=" in tag, (
+                f"{page.name}: a new-tab link with nothing saying so — "
+                f"{tag[:90]}")
+
+
+def test_the_page_declares_its_language() -> None:
+    """Without `lang`, a screen reader guesses the pronunciation — and guesses
+    from the user's locale rather than the document's."""
+    assert _re.search(r"<html[^>]*\blang=", _body(TEMPLATES / "base.html"))
