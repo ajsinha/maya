@@ -614,6 +614,10 @@ class ExportShareReadRepository(Repository):
     TABLE, ORDER = "export_share_read", "at"
 
 
+class TieringFactSourceRepository(Repository):
+    TABLE, ORDER = "tiering_fact_source", "recorded_at"
+
+
 class ElicitationRepository(Repository):
     TABLE, ORDER = "elicitation", "opened_at"
     JSON = ("panel",)

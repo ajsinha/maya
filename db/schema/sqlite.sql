@@ -1425,6 +1425,20 @@ CREATE TABLE IF NOT EXISTS test_result (
 );
 CREATE INDEX IF NOT EXISTS ix_test_result_validation ON test_result (validation_id, test_key);
 
+CREATE TABLE IF NOT EXISTS tiering_fact_source (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    fact TEXT NOT NULL,
+    source TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    value TEXT DEFAULT '' NOT NULL,
+    as_at DOUBLE NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_tiering_fact_source ON tiering_fact_source (model_id, fact, recorded_at);
+
 CREATE TABLE IF NOT EXISTS validation (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,

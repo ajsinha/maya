@@ -90,6 +90,7 @@ from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
+from core.risk.sourcing import FactSourcing
 from core.rules import RuleSetEditor
 from core.security import RowLevelSecurity
 from core.rules.importing import RuleSetImport
@@ -191,6 +192,7 @@ from db import (ServingAttestationRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
                 ExportShareReadRepository, ExportShareRepository,
+                TieringFactSourceRepository,
                 ElicitationRepository, ElicitationResponseRepository,
                 RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
@@ -551,6 +553,12 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # and adds no authority of its own — publishing is `parameters.record` with
     # a validated document, so the set still lands `proposed` and still needs a
     # second person.
+    # Where a tiering fact came from. `exposure` decides the tier and the tier
+    # decides how many signatures an approval needs, so the difference between
+    # a measurement and somebody's number is the difference between a control
+    # and a form field.
+    fact_sourcing = FactSourcing(TieringFactSourceRepository(db), registry,
+                                 evidence)
     rules = RuleSetEditor(registry, parameters, evidence)
     # Reading a rulebook a bank already has. It holds the editor so a candidate
     # can be validated against a real version's schemas, and it never writes
@@ -1291,6 +1299,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules, "rule_import": rule_import,
+                           "fact_sourcing": fact_sourcing,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

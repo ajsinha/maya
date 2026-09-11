@@ -261,6 +261,24 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT id, fact, source, reference "
+                "FROM tiering_fact_source WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "tiering_fact_source", row["id"],
+                f"{row['fact']} from {row['source']}",
+                ("the attestation that this model's "
+                 f"{row['fact']} came from {row['source']} "
+                 f"({row['reference']}) rather than from somebody's estimate. "
+                 "Deleting the model deletes the only record distinguishing "
+                 "its tier from a number typed into a form"),
+                # Never live-blocking. A source record is evidence about a
+                # decision already made, and a deletion that had to wait for
+                # somebody to un-source a fact would be a deletion nobody can
+                # perform — which is how orphan rows get left behind instead.
+                False))
+
+        for row in self.db.query(
                 "SELECT id, reference, recipient, status, expires_at "
                 "FROM export_share WHERE model_id = :m", {"m": model_id}):
             live = row["status"] == "open"
