@@ -386,7 +386,8 @@ class TelemetryBatchRepository(Repository):
 
 class VersionApprovalRepository(Repository):
     """Approvals that need more than one signature."""
-    TABLE, JSON, ORDER = "version_approval", ("required_roles",), "opened_at"
+    TABLE, ORDER = "version_approval", "opened_at"
+    JSON = ("required_roles", "stages")
 
     def open_for(self, model_version_id: str):
         return self.one(model_version_id=model_version_id, status="open")

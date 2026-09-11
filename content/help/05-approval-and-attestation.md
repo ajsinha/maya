@@ -317,8 +317,15 @@ refuses you is the state of this approval, not who you are.
 **Nothing changes until you publish your first band.** Until then the tier quorum
 stands exactly as it always has. A feature that deepens every approval in your
 estate the moment you upgrade is a feature switched off before anybody reads what
-it does. And the band is written onto an approval when it opens, so withdrawing
-or re-publishing a row cannot move the bar under people who are already signing.
+it does. The band **and the order it requires** are both written onto an approval
+when it opens, so withdrawing or re-publishing a row cannot move the bar under
+people who are already signing.
+
+**One currency.** A ceiling has a currency; an exposure does not — nothing in the
+register records one, and neither do the tiering bands. So every figure here is
+read as your estate's reporting currency, and a delegation in any other one is
+recorded but its ceiling is **not compared** (`ceiling_not_comparable`).
+Comparing them anyway is how a ¥500m ceiling authorises a $200m exposure.
 
 #### Where the amount comes from, and what happens when there isn't one
 
@@ -635,11 +642,30 @@ quarter's review still describes last quarter's access. And each is flagged with
 into, one dormant more than 90 days, one holding no roles at all. A reviewer
 handed a ranked list reviews the top of it.
 
+**Only the named reviewer may answer a campaign** (`not_the_reviewer`, 403). A
+campaign anybody could answer is one whose `reviewer` column is decoration. Hand
+it over deliberately:
+
+```bash
+POST /api/v1/recertification/ACC-2026-Q3/reassign
+{"to": "j.okafor", "reason": "s.iqbal is in the population"}
+```
+
+Reviewers leave, go on secondment, and turn out to be in the population they were
+asked to review. A campaign that cannot be handed over is one somebody answers
+under the previous reviewer's account.
+
 MAYA does not choose who reviews whom. It holds no reporting line, and inferring
 one from roles would put the second line in charge of recertifying the first
 line's managers because that is what the permissions happen to look like. The
 cadence is reported and never enforced, for the same reason: it does not know
-your policy.
+your policy — but `overdue` is a population of its own alongside
+`never_recertified`, because an answer from two years ago should not read like
+yesterday's.
+
+**Revoking the last administrator is refused** (`last_administrator`). Give
+somebody else `principal:manage` first; a register with nobody who can grant a
+role has no route back but an `UPDATE` against the database.
 
 The screen is **Admin → People and roles**.
 

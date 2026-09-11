@@ -1631,6 +1631,7 @@ CREATE TABLE IF NOT EXISTS version_approval (
     tier INTEGER,
     required_roles TEXT DEFAULT '[]' NOT NULL,
     band TEXT,
+    stages TEXT DEFAULT '[]' NOT NULL,
     status TEXT DEFAULT 'open' NOT NULL,
     statement TEXT DEFAULT '' NOT NULL,
     opened_by TEXT NOT NULL,

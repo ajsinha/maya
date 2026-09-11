@@ -58,6 +58,14 @@ removal it cannot see.
 opened. MAYA holds no reporting line, and inferring one from roles would put the
 second line in charge of recertifying the first line's managers because that is
 what the permissions happen to look like.
+
+It does, however, **hold somebody to the name they were given**. The first
+version recorded `reviewer` and never read it, so anybody holding
+`principal:manage` could answer any campaign and the field was decoration — the
+same defect as a feature tag nothing evaluates, pointed at this module's own
+column. A campaign names one reviewer, that reviewer answers it, and handing it
+to somebody else is `reassign`: an act with a reason, rather than a thing that
+happens by nobody noticing.
 """
 from __future__ import annotations
 
@@ -214,6 +222,14 @@ class Recertification:
                 f"{principal} is not in this campaign",
                 "review the accounts the campaign was opened over; adding one "
                 "midway would change what the review covered after it started")
+        if actor != campaign["reviewer"]:
+            raise AuthzError(
+                "not_the_reviewer",
+                f"{reference} names {campaign['reviewer']} as its reviewer, "
+                f"not {actor}",
+                "a campaign that anybody may answer is a campaign whose "
+                "`reviewer` column is decoration. Hand it over deliberately "
+                "with `reassign`, which records who passed it on and why")
         if actor == principal:
             raise AuthzError(
                 "self_recertification",
@@ -257,6 +273,40 @@ class Recertification:
                 f"REGISTER: {', '.join(removed) or 'none'}. MAYA does not "
                 f"touch a directory, a database grant or anybody's job — "
                 f"whether the rest followed is somebody else's record")
+
+    def reassign(self, reference: str, to: str, reason: str,
+                 actor: str = "system") -> Dict[str, Any]:
+        """Hand a campaign to a different reviewer, on the record.
+
+        Reviewers leave, go on secondment, and turn out to be in the population
+        they were asked to review. None of that is unusual, and a campaign that
+        cannot be handed over is one somebody answers under the previous
+        reviewer's account.
+        """
+        campaign = self.require(reference)
+        if campaign["status"] != "open":
+            raise AuthzError("campaign_closed",
+                             f"'{reference}' is already {campaign['status']}",
+                             "")
+        if not str(reason).strip():
+            raise AuthzError(
+                "reason_required", "a reassignment needs a reason",
+                "who reviewed what and why it moved is the whole audit trail "
+                "of a review; a handover with no reason cannot be told apart "
+                "from somebody quietly taking it over")
+        self.principals.require(to)
+        was = campaign["reviewer"]
+        self.campaigns.set({"reviewer": to}, id=campaign["id"])
+        if self.evidence is not None:
+            self.evidence.append(
+                "recertification_reassigned", "platform", reference,
+                {"from": was, "to": to, "reason": str(reason).strip()},
+                actor=actor)
+        logger.info("reassigned recertification %s from %s to %s",
+                    reference, was, to)
+        return {"reference": reference, "reviewer": to, "was": was,
+                "detail": (f"{was} handed {reference} to {to}: "
+                           f"{str(reason).strip()}")}
 
     # ----------------------------------------------------------------- close
     def close(self, reference: str, actor: str = "system",
@@ -363,10 +413,22 @@ class Recertification:
         moment = now if now is not None else time.time()
         active = [p for p in self.principals.list()
                   if p.get("status") == "active"]
-        answered = {i["principal"] for i in self.items.many()
-                    if i["state"] in ANSWERS}
+        # The LATEST answer per account, not merely whether there was one.
+        # Counting "ever answered" makes a 2019 confirmation read exactly like
+        # yesterday's, which is the shape of every access review that is run
+        # once and reported as a standing control.
+        latest: Dict[str, float] = {}
+        for item in self.items.many():
+            if item["state"] not in ANSWERS:
+                continue
+            when = float(item.get("answered_at") or 0)
+            if when > latest.get(item["principal"], -1.0):
+                latest[item["principal"]] = when
+        stale_before = moment - EXPECTED_EVERY_DAYS * 86400
         never = sorted(p["username"] for p in active
-                       if p["username"] not in answered)
+                       if p["username"] not in latest)
+        overdue = sorted(p["username"] for p in active
+                         if latest.get(p["username"], moment) < stale_before)
         campaigns = list(self.campaigns.many())
         recent = [c for c in campaigns
                   if moment - float(c.get("opened_at") or 0)
@@ -374,7 +436,8 @@ class Recertification:
         return {
             "accounts": len(active), "campaigns": len(campaigns),
             "campaigns_this_period": len(recent),
-            "never_recertified": never,
+            "never_recertified": never, "overdue": overdue,
+            "last_answered": latest,
             "open": [c["reference"] for c in campaigns
                      if c["status"] == "open"],
             "detail": (
@@ -383,6 +446,10 @@ class Recertification:
                 + (". A review nobody has run is not a review that found "
                    "nothing" if never else
                    ". Every active account has been looked at at least once")
+                + (f". A further {len(overdue)} were last answered more than "
+                   f"{EXPECTED_EVERY_DAYS} days ago — an answer that old "
+                   f"describes access as it stood then, not access as it "
+                   f"stands" if overdue else "")
                 + (f". No campaign has been opened in the last "
                    f"{EXPECTED_EVERY_DAYS} days — MAYA reports the cadence "
                    f"and does not enforce it, because it does not know this "

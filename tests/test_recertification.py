@@ -243,6 +243,69 @@ class TestAccountsWorthASecondLook:
         assert any("grants nothing" in w for w in why)
 
 
+class TestWhatTheAdversarialPassFound:
+    def test_only_the_named_reviewer_may_answer(self, review):
+        """`reviewer` was recorded and never read, so anybody holding
+        `principal:manage` could answer any campaign — the same defect as a
+        feature tag nothing evaluates, pointed at this module's own column."""
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        with pytest.raises(AuthzError) as e:
+            review.answer("ACC-2026-Q3", "a.mehta", state=CONFIRMED,
+                          actor="j.okafor")
+        assert e.value.code == "not_the_reviewer"
+        assert "is decoration" in e.value.remediation
+
+    def test_handing_it_over_is_an_act_with_a_reason(self, review):
+        """Reviewers leave, go on secondment, and turn out to be in the
+        population they were asked to review. A campaign that cannot be handed
+        over is one somebody answers under the previous reviewer's account."""
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        out = review.reassign("ACC-2026-Q3", "j.okafor",
+                              "s.iqbal is in the population", actor="s.iqbal")
+        assert out["reviewer"] == "j.okafor" and out["was"] == "s.iqbal"
+        review.answer("ACC-2026-Q3", "a.mehta", state=CONFIRMED,
+                      actor="j.okafor")
+
+    def test_a_handover_with_no_reason_is_refused(self, review):
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        with pytest.raises(AuthzError) as e:
+            review.reassign("ACC-2026-Q3", "j.okafor", "  ")
+        assert e.value.code == "reason_required"
+
+    def test_revoking_the_last_administrator_is_refused(self, review,
+                                                        staffed):
+        """`suspend` always guarded this; `set_roles` did not, and revoking
+        calls `set_roles`. Taking the last `principal:manage` role away leaves
+        exactly the state suspension refuses to create — nobody who can put
+        anybody back."""
+        staffed.create("root", "root", ["admin"],
+                       password=PEOPLE["s.iqbal"][1])
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        with pytest.raises(AuthzError) as e:
+            review.answer("ACC-2026-Q3", "root", state=REVOKED,
+                          reason="left the firm in June", actor="s.iqbal")
+        assert e.value.code == "last_administrator"
+        assert staffed.require("root")["roles"] == ["admin"]
+
+    def test_an_old_answer_does_not_read_like_a_fresh_one(self, review):
+        """Counting *ever answered* makes a 2019 confirmation read exactly like
+        yesterday's, which is the shape of every access review that is run once
+        and reported as a standing control."""
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        review.answer("ACC-2026-Q3", "a.mehta", state=CONFIRMED,
+                      actor="s.iqbal", now=time.time() - 900 * 86400)
+        out = review.across_the_estate()
+        assert "a.mehta" not in out["never_recertified"]
+        assert "a.mehta" in out["overdue"]
+        assert "not access as it stands" in out["detail"]
+
+    def test_a_recent_answer_is_not_overdue(self, review):
+        review.open("ACC-2026-Q3", reviewer="s.iqbal")
+        review.answer("ACC-2026-Q3", "a.mehta", state=CONFIRMED,
+                      actor="s.iqbal")
+        assert review.across_the_estate()["overdue"] == []
+
+
 class TestTheEstateNumber:
     def test_it_counts_accounts_nobody_has_ever_looked_at(self, review):
         out = review.across_the_estate()

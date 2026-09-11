@@ -271,7 +271,7 @@ the third is the point:
 |---|---|---|
 | **0** | MAYA answered, and the answer was yes | proceed |
 | **1** | MAYA answered, and the answer was **no** | stop — the refusal says why and what to do |
-| **2** | MAYA was **not reached**, or the command was malformed | stop, and do not treat this as a verdict |
+| **2** | MAYA was **not reached**, the command was malformed, or the answer carried **no verdict** this tool can read | stop, and do not treat this as a verdict |
 
 If you collapse 1 and 2, your build goes green whenever the governance platform
 is down. That is worse than having no gate at all, because somebody believes it.
@@ -459,9 +459,11 @@ and these are what to use instead.
 | `GET` | `/recertification/{ref}` | `principal:read` | Where one campaign stands. `unreviewed` is its own number, never folded into `confirmed` |
 | `POST` | `/recertification` | `principal:manage` | `reference`, `reviewer`, optional `population`. Blank population reviews everybody active |
 | `POST` | `/recertification/{ref}/{person}` | `principal:manage` | `state` (`confirmed` or `revoked`) and `reason`. Revoking removes roles **in this register only** |
+| `POST` | `/recertification/{ref}/reassign` | `principal:manage` | `to` and `reason`. Only the named reviewer may answer a campaign, so this is how it moves |
 | `POST` | `/recertification/{ref}/close` | `principal:manage` | Close it. This decides nothing about what was unreviewed |
 | `GET` | `/authority` | `model:read` | The delegated authority matrix, what it decides, and what it cannot check |
 | `GET` | `/authority/model` | `model:read` | Which signatures this model needs, and whether the band was reached by measurement or by absence |
+| `GET` | `/authority/sequence` | `model:read` | What this model's **next** approval would be sequenced as. A read, never the check |
 | `GET` | `/authority/estate` | `model:read` | How much of the estate rests on authority nobody has re-attested |
 | `POST` | `/authority/bands` | `policy:publish` | `name`, `stages` (roles together, stages in order), `tier`, `at_or_above`, `legal_entity` |
 | `DELETE` | `/authority/bands/{name}` | `policy:publish` | Withdraw a band. Open approvals keep the one they were opened under |

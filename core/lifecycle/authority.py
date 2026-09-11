@@ -59,11 +59,30 @@ grants nothing, and `across_the_estate()` reports how much of the estate is
 approvable under authority that has not been re-attested — because a matrix
 enforced confidently from a register nobody has revisited is worse than no
 matrix, which at least does not tell you it is working.
+
+## The currency nobody had written down
+
+A ceiling has a currency. **A sourced exposure does not** — `tiering_fact_source`
+holds a number and no unit, and so do the tiering bands it is graded against. The
+register has therefore always read every exposure as being in one implicit
+currency, the estate's reporting currency, and nothing said so anywhere.
+
+That was harmless while nothing compared an exposure to anything but a band
+configured in the same units. A delegation ceiling breaks it: `500,000,000` JPY
+against an exposure of `200,000,000` is a comparison of two numbers whose units
+are not known to agree, and it passes silently in the permitting direction.
+
+So `reporting_currency` is stated, a delegation in any other currency is recorded
+but its ceiling **cannot be compared**, and the signature is refused by name
+rather than allowed. This is the estate-wide assumption made visible; the tiering
+bands share it and this is the first place it had to be written down.
 """
 from __future__ import annotations
 
 import time
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from sqlalchemy.exc import IntegrityError
 
 from core.lifecycle.common import LifecycleError
 from core.log import get_logger, swallowed
@@ -80,6 +99,13 @@ STANDS_FOR_DAYS = 366
 #: MAYA does not have is NOT a small amount, and the shallowest band is what
 #: every natural implementation of this falls to.
 BY_ABSENCE = "deepest_band_because_the_amount_is_unknown"
+
+#: The currency every exposure in the register is read as being in. Stated here
+#: because it had never been stated anywhere: `tiering_fact_source` records a
+#: number with no unit, and so do the tiering bands. A ceiling is the first thing
+#: with a currency of its own, and comparing the two silently is how a JPY
+#: ceiling authorises a USD exposure.
+REPORTING_CURRENCY = "USD"
 
 #: What a delegation must carry. `instrument` is the one that gets left out, and
 #: it is the one the matrix exists for.
@@ -111,11 +137,13 @@ class AuthorityMatrix:
     """The band an approval falls in, and whether the signer's writ reaches it."""
 
     def __init__(self, bands, delegations, registry, sourcing=None,
-                 evidence=None, stands_for_days: int = STANDS_FOR_DAYS):
+                 evidence=None, stands_for_days: int = STANDS_FOR_DAYS,
+                 reporting_currency: str = REPORTING_CURRENCY):
         self.bands, self.delegations = bands, delegations
         self.registry, self.sourcing = registry, sourcing
         self.evidence = evidence
         self.stands_for = stands_for_days * 86400.0
+        self.reporting_currency = str(reporting_currency or "").upper()
 
     # --------------------------------------------------------------- posture
     @staticmethod
@@ -139,6 +167,15 @@ class AuthorityMatrix:
                 "closed, so a second-line challenge cannot be signed before "
                 "there is anything to challenge"),
             "delegations_expire_after_days": STANDS_FOR_DAYS,
+            "reporting_currency": REPORTING_CURRENCY,
+            "why_one_currency": (
+                "a sourced exposure carries a number and no unit, and so do "
+                "the tiering bands it is graded against — so the register has "
+                "always read every exposure as being in one currency. A "
+                "ceiling is the first thing here with a currency of its own, "
+                "and a ceiling in another one is recorded but NOT compared: "
+                "500,000,000 JPY against an exposure of 200,000,000 passes "
+                "silently in the permitting direction"),
             "cannot_check": (
                 "whether the instrument says what the delegation claims. MAYA "
                 "holds a reference, not the resolution — so delegations expire "
@@ -187,7 +224,21 @@ class AuthorityMatrix:
                "stages": [list(s) for s in stages],
                "note": str(band.get("note") or ""),
                "published_by": actor, "published_at": time.time()}
-        self._record(row, "authority_band_published", actor)
+        # The check above is a read-then-write and the database is what decides
+        # the race. `uq_authority_band` refuses the loser, and losing a race is
+        # not a different answer from being told the name is taken — an
+        # untranslated IntegrityError would be a 500 where a refusal belongs.
+        try:
+            self._record(row, "authority_band_published", actor)
+        except IntegrityError as exc:
+            swallowed(logger, exc, f"published the band '{name}'",
+                      detail="the uniqueness constraint refused it, which "
+                             "means another request published that name first")
+            raise LifecycleError(
+                "band_exists", f"a band called '{name}' is already published",
+                "withdraw it before publishing another under that name; two "
+                "rows with one name is how a matrix stops being readable"
+            ) from exc
         logger.info("published authority band %s: tier=%s floor=%s entity=%s",
                     name, row["tier"], floor, row["legal_entity"])
         return self.bands.one(name=name)
@@ -341,27 +392,40 @@ class AuthorityMatrix:
                 "as_at": latest.get("as_at")}
 
     # --------------------------------------------------------- the sequence
-    def stage_open(self, urn: str, signed_roles: Sequence[str]) -> Dict[str, Any]:
+    #
+    # Every one of these takes the STAGES, not a urn. That is the whole point
+    # of the fix: sequencing used to be recomputed from the live matrix at
+    # signing time, so withdrawing a band moved the bar under an approval
+    # people were already signing — while the `band` column's own comment
+    # claimed it could not. The bar an approval is held to is the one written
+    # onto it when it opened, and these functions cannot reach anything else.
+    @staticmethod
+    def stage_open(stages: Sequence[Sequence[str]],
+                   signed_roles: Sequence[str]) -> Dict[str, Any]:
         """Which stage is open, given what has been signed.
 
         Sequencing is the half of `FR-LC-005` that a set of required roles
         cannot express: a quorum collected in any order lets the second line
         sign its challenge before the first line has filed anything.
         """
-        need = self.required_for(urn)
+        ordered = [list(stage) for stage in stages or ()]
         done = set(signed_roles or ())
-        for index, stage in enumerate(need["stages"]):
+        for index, stage in enumerate(ordered):
             if not set(stage) <= done:
-                return {**need, "stage": index, "stage_roles": list(stage),
+                return {"stages": ordered, "stage": index,
+                        "stage_roles": list(stage),
                         "outstanding": sorted(set(stage) - done),
-                        "complete": False}
-        return {**need, "stage": len(need["stages"]), "stage_roles": [],
-                "outstanding": [], "complete": True}
+                        "sequenced": len(ordered) > 1, "complete": False}
+        return {"stages": ordered, "stage": len(ordered), "stage_roles": [],
+                "outstanding": [], "sequenced": len(ordered) > 1,
+                "complete": True}
 
-    def refuse_out_of_sequence(self, urn: str, role: str,
-                               signed_roles: Sequence[str]) -> None:
+    @classmethod
+    def refuse_out_of_sequence(cls, stages: Sequence[Sequence[str]], role: str,
+                               signed_roles: Sequence[str],
+                               band: str = "") -> None:
         """Raises where this role's stage has not opened yet."""
-        state = self.stage_open(urn, signed_roles)
+        state = cls.stage_open(stages, signed_roles)
         if state["complete"] or not state["sequenced"]:
             return
         if role in state["stage_roles"]:
@@ -372,12 +436,22 @@ class AuthorityMatrix:
             return
         raise LifecycleError(
             "out_of_sequence",
-            f"'{role}' signs after {', '.join(state['stage_roles'])} on band "
-            f"'{state['band']}', and {', '.join(state['outstanding'])} have "
-            f"not signed yet",
+            f"'{role}' signs after {', '.join(state['stage_roles'])}"
+            + (f" on band '{band}'" if band else "")
+            + f", and {', '.join(state['outstanding'])} have not signed yet",
             "the order is the control: a challenge signed before the thing it "
             "challenges was filed is a signature about nothing. Have the "
             "outstanding roles sign first")
+
+    def sequence_for(self, urn: str) -> Dict[str, Any]:
+        """What a model's NEXT approval would be sequenced as.
+
+        A read, never the check. An approval already open carries its own
+        stages and is held to those; this answers the question somebody asks
+        before opening one.
+        """
+        need = self.required_for(urn)
+        return {**need, **self.stage_open(need["stages"], ())}
 
     # ---------------------------------------------------------- delegations
     def delegate(self, principal: str, *, ceiling: float, instrument: str,
@@ -476,7 +550,31 @@ class AuthorityMatrix:
             logger.info("%s signs for %s with no sourced amount to test "
                         "against a ceiling", username, model["urn"])
             return
-        highest = max(d["ceiling"] for d in reaching)
+        # Two numbers whose units are not known to agree. The exposure carries
+        # no currency — nothing in the register does — so it is read as the
+        # estate's reporting currency, and a ceiling in any other one cannot be
+        # compared to it. Refused rather than passed: the silent direction here
+        # is the permitting one.
+        foreign = sorted({str(d.get("currency") or "?").upper()
+                          for d in reaching
+                          if str(d.get("currency") or "").upper()
+                          != self.reporting_currency})
+        comparable = [d for d in reaching
+                      if str(d.get("currency") or "").upper()
+                      == self.reporting_currency]
+        if not comparable:
+            raise LifecycleError(
+                "ceiling_not_comparable",
+                f"{username}'s authority is delegated in "
+                f"{', '.join(foreign)} and this model's "
+                f"attested exposure has no currency of its own",
+                f"nothing in the register records a currency on an exposure — "
+                f"the tiering bands do not either — so every figure here is "
+                f"read as {self.reporting_currency}. Record the delegation in "
+                f"{self.reporting_currency}, or have somebody whose ceiling is "
+                f"in it sign. Comparing the two numbers anyway is how a "
+                f"ceiling authorises an exposure many times its size")
+        highest = max(d["ceiling"] for d in comparable)
         if amount["value"] > highest:
             raise LifecycleError(
                 "beyond_delegated_authority",

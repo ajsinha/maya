@@ -883,11 +883,27 @@ has revisited is worse than no matrix, which at least does not tell you it is wo
 Two decisions about how it switches on. Nothing changes until a firm **publishes** a band: until then the
 tier quorum stands exactly as it did, because a feature that deepens every approval in the estate the moment
 it is deployed is one switched off before anybody reads what it does — and there would be two answers to the
-same question, which is the defect the module removes. And the band is **written onto the approval at open
-time** rather than recomputed at signing time, so a matrix withdrawn or re-published mid-approval cannot
-move the bar under people who are signing. `out_of_sequence` and `beyond_delegated_authority` are 409s and
-not 403s: the caller holds the permission and holds the role, and what refuses them is the state of this
-approval. Sending 403 would send somebody to an administrator to be granted what they already have.
+same question, which is the defect the module removes. And the band **and the order it required** are both
+written onto the approval when it opens.
+
+The second half of that was learned the hard way, in [11 §6a.1](11-adversarial-review.md). Writing the band
+*name* down and recomputing the sequence from the live matrix at signing time meant withdrawing a band
+silently relaxed the order an approval already in flight was held to — while the column's own comment said
+it could not. Freezing the name of a rule does not freeze the rule. The **stages travel with the approval**,
+`refuse_out_of_sequence` is a pure function over them that cannot reach the matrix, and the read that
+answers *what would this be sequenced as* is a separate method.
+
+`out_of_sequence` and `beyond_delegated_authority` are 409s and not 403s: the caller holds the permission
+and holds the role, and what refuses them is the state of this approval. Sending 403 would send somebody to
+an administrator to be granted what they already have.
+
+**One currency, stated at last.** A ceiling has a currency; a sourced exposure does not, and neither do the
+tiering bands it is graded against. The register has therefore always read every exposure as being in the
+estate's **reporting currency**, and nothing said so — harmless until a ceiling was compared to one, at
+which point `500,000,000` JPY silently authorised an exposure of `200,000,000`. That is the platform's own
+position on currencies (§16, `core/estate/cost.py` sums none of them) violated in the permitting direction.
+A delegation in any other currency is recorded and its ceiling is **not compared**:
+`ceiling_not_comparable`, which names both currencies and says what to do.
 
 ### 9.5 Taking a model out of service
 
@@ -3027,6 +3043,13 @@ run is not a review that found nothing.
 | The roles are **copied onto the item** | The answer has to stay readable after the roles change, which is the entire point of asking. A join would make last quarter's review describe today's access |
 | The reviewer is **named, not derived** | MAYA holds no reporting line, and inferring one from roles would put the second line in charge of recertifying the first line's managers because that is what the permissions happen to look like |
 | Flags are **reasons, not a score** | A conflict is the rule engine's own answer and dormancy is an observation; a reviewer handed a ranked list reviews the top of it |
+| Only the **named reviewer** may answer | Recorded and never read, `reviewer` was decoration — the §26 defect pointed at this module's own column. Handing a campaign over is `reassign`, an act with a reason, because reviewers leave and sometimes appear in the population they were asked to review |
+| `overdue` is its own population | Counting *ever answered* makes a 2019 confirmation read exactly like yesterday's, which is the shape of every access review run once and reported afterwards as a standing control |
+
+One thing revoking found on its way past. `suspend` has always refused to remove the last principal who can
+administer principals; `set_roles` did not, and revoking calls `set_roles`. The guard was a year old and the
+hole was invisible until something new walked into it — recertification is the first caller that runs over a
+population including the administrators. Fixed in `set_roles`, which closes it for every future caller too.
 
 **And revoking removes roles in this register and nothing else.** It does not touch a directory, a database
 grant, a VPN profile or anybody's job. A platform reporting *access removed* would be reporting a removal it
@@ -3094,6 +3117,11 @@ exit codes and not two:
 | **0** | MAYA answered, and the answer was yes | proceed |
 | **1** | MAYA answered, and the answer was **no** | stop; the refusal says why and what to do |
 | **2** | MAYA was **not reached**, or the command was malformed | stop, and do not treat this as a verdict |
+
+There is a third state inside the first two, and missing it was the module's own defect
+([11 §6a.7](11-adversarial-review.md)): a verdict-shaped command whose verdict field is **absent** exited
+**0**, which is reading an unreadable answer as a yes — the identical failure to reading an outage as
+compliance, one layer in. An absent verdict is `UNDETERMINED` and exits 2.
 
 The separation of 1 and 2 is the whole contribution. `Refused` and `Unreachable` are already distinct on the
 SDK side for the same reason, and collapsing them at the shell would hand a pipeline the conclusion that
