@@ -541,7 +541,14 @@ class ModelAlgebraRoutes(Routes):
                 history={v["semver"]: approvals.history(urn, v["semver"])
                          for v in versions},
                 may_open=self.may_view(request, "version:approve", model),
-                may_sign=self.may_view(request, "version:sign", model))
+                may_sign=self.may_view(request, "version:sign", model),
+                # The tier is one dimension of three. The band this model
+                # falls in — and, where no exposure is attested, the fact that
+                # it was reached by absence rather than by measurement — is
+                # the part a table of tier quorums cannot show.
+                authority=self.ctx["authority"].required_for(urn),
+                matrix=self.ctx["authority"].matrix(),
+                published=self.ctx["authority"].published())
 
         # -------------------------------------------------------------- risk
         @self.app.get("/model-algebra/risk/{name:path}",

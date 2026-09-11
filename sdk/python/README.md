@@ -41,7 +41,8 @@ fall behind again.
 | `maya.models` | register, read, assess a tier, submit, approve, attest, relate, blast radius, shared dependencies |
 | `maya.versions` | create, approve, open and sign a quorum, promote an alias |
 | `maya.approvals` | the quorum a tier needs, what is still outstanding, withdraw |
-| `maya.lifecycle` | the state machine, submit, approve, send back, attest, amend, retire, delete |
+| `maya.lifecycle` | the state machine, submit, approve, send back, attest, amend, retire, **decommission** (why, what replaced it, who was told, how long it is kept), delete |
+| `maya.authority` | who may approve this by tier, **amount** and legal entity, in what order, and the delegations behind it |
 | `maya.relations` | what a model derives from and what it feeds, and removing an edge |
 | `maya.artifacts` | put, get, verify a digest, where each is used |
 | `maya.parameters` | fit, record a fitted set, review it, provenance |

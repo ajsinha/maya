@@ -447,6 +447,20 @@ STATUS: Dict[str, int] = {
     "replacement_required": 422,
     "replacement_not_registered": 422, "unknown_retention_class": 422,
     "consumers_not_notified": 409,
+
+    # The delegated authority matrix. `out_of_sequence` and
+    # `beyond_delegated_authority` are 409 rather than 403: the caller holds
+    # the permission and holds the role, and what refuses them is the state of
+    # this particular approval — which is a conflict, not an identity problem.
+    # Sending 403 would send somebody to an administrator to be granted
+    # something they already have.
+    # `unknown_tier` is already mapped below, for the advisory register.
+    "band_name_required": 422, "stages_required": 422,
+    "negative_floor": 422, "band_exists": 409, "unknown_band": 404,
+    "principal_required": 422, "ceiling_required": 422,
+    "instrument_required": 422,
+    "out_of_sequence": 409, "beyond_delegated_authority": 409,
+    "no_delegated_authority": 409, "entity_out_of_delegation": 409,
     "unknown_root": 404, "unknown_root_kind": 422, "unknown_finding": 404,
     "root_title_required": 422, "root_detail_required": 422,
     "root_note_required": 422, "root_already_addressed": 409,
