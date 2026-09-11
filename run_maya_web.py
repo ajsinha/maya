@@ -90,6 +90,7 @@ from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
+from core.estate.cost import EstateCost
 from core.risk.sourcing import FactSourcing
 from core.rules import RuleSetEditor
 from core.security import RowLevelSecurity
@@ -191,6 +192,7 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
+                EstateCostRepository,
                 ExportShareReadRepository, ExportShareRepository,
                 TieringFactSourceRepository,
                 ElicitationRepository, ElicitationResponseRepository,
@@ -559,6 +561,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # and a form field.
     fact_sourcing = FactSourcing(TieringFactSourceRepository(db), registry,
                                  evidence)
+    # What the estate costs, attributed from what the register already knows.
+    # MAYA does not run models and cannot observe cost; it takes an attested
+    # figure and does the half it can.
+    estate_cost = EstateCost(EstateCostRepository(db), registry, findings,
+                             evidence)
     rules = RuleSetEditor(registry, parameters, evidence)
     # Reading a rulebook a bank already has. It holds the editor so a candidate
     # can be validated against a real version's schemas, and it never writes
@@ -1300,6 +1307,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules, "rule_import": rule_import,
                            "fact_sourcing": fact_sourcing,
+                           "estate_cost": estate_cost,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

@@ -3217,8 +3217,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 323 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 384 modules in one
+the 324 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 385 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3622,7 +3622,7 @@ says, in words, that the population is *attested* rather than observed.
 | **Fact sourcing for tiering** | **Mostly built** — `core/risk/sourcing.py`. A fact is attested to a named system of record with a reference somebody can check; `sourced`/`asserted`/`stale` are three states rather than a flag, because a figure that aged is not a figure nobody measured. Peer-cohort comparison is a **question and raises no finding**. It fetches nothing and refuses nothing: a register that cannot be registered into produces unregistered models. Retrospective calibration is not built |
 | **Crypto-shredded personal data** — payload in Delta under a per-subject key, key destroyed on erasure | H-3's mechanism. What runs discards the payload instead, which satisfies `L-18` by making retrieval impossible. There is no `payload_uri` column |
 | **Legal hold, tombstones and a retention state machine** | M-7. Deletion is administrators-only, reasoned and evidenced, and cascades to nothing |
-| **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
+| **Cost attribution** | **Built** — `core/estate/cost.py`. Attested rather than observed (MAYA does not run models), attributed from the register's ownership rather than the bill's, and reporting the **unattributed share** as the headline. Budgets raise findings and enforce nothing, because MAYA is not on the serving path. Cost as a *monitored metric* is not built: it would be an external observation like any other, and the monitor machinery already takes those |
 | **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | **Built as the receiving half** (§26.3, §26.4). Each parses an export rather than calling an API, and produces candidates for triage rather than registrations. SageMaker, Vertex, SAS metadata and CMDB have none, and nothing sweeps: the contract a scanner must meet is published, and running one is somebody else's job |
 | **PDF and DOCX rendering** | **Refused by name with the reason** (§26.6). What is emitted is typesetting source with the citations intact — a PDF that flattened them away is a document whose claims can no longer be traced |
 | ~~**A Java SDK**~~ | **Built** — `sdk/java`, release 17, no runtime dependencies. No typed model class and no generated client: a Java object graph mirroring the platform's schemas is a second description of them, and a second description goes stale in the permissive direction |

@@ -832,3 +832,45 @@ EXPORT_SHARE_READ = Table(
     Column("detail", Text, nullable=False, server_default=text("''")),
     Index("ix_export_share_read", "share_id", "at"),
 )
+
+
+# One attested cost figure, attributed from the register.
+#
+# **M-6**, and the shape is forced by what MAYA is: it does not run models, so
+# it cannot observe what one costs. A figure arrives attested — from a named
+# source, over a stated period — the same way an external monitoring
+# observation does, and MAYA does the half it can: attribution, from ownership
+# the register already holds.
+#
+# `owner`, `legal_entity` and `domain` are COPIED from the model at record time
+# rather than joined at read time, and that is deliberate. A showback report for
+# last quarter must say who owned the model last quarter; joining live would
+# re-attribute a historical cost to whoever holds it today, which is how a cost
+# report quietly stops agreeing with the one issued three months ago.
+#
+# `state` carries `unattributed` as a first-class outcome. A bill line nobody
+# can tie to a registered model is the finding this whole table exists to
+# surface, and refusing the row would delete it.
+ESTATE_COST = Table(
+    "estate_cost", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text),
+    Column("urn", Text, nullable=False, server_default=text("''")),
+    Column("amount", Double, nullable=False),
+    # Stated rather than assumed. An estate spanning entities spans currencies,
+    # and a total summed across them silently is wrong by the exchange rate.
+    Column("currency", Text, nullable=False),
+    Column("period_start", Double, nullable=False),
+    Column("period_end", Double, nullable=False),
+    Column("source", Text, nullable=False),
+    Column("reference", Text, nullable=False, server_default=text("''")),
+    Column("owner", Text, nullable=False, server_default=text("''")),
+    Column("legal_entity", Text, nullable=False, server_default=text("''")),
+    Column("domain", Text, nullable=False, server_default=text("''")),
+    Column("state", Text, nullable=False,
+           server_default=text("'attributed'")),
+    Column("recorded_by", Text, nullable=False),
+    Column("recorded_at", Double, nullable=False),
+    Index("ix_estate_cost_period", "period_start", "period_end"),
+    Index("ix_estate_cost_model", "model_id", "period_start"),
+)

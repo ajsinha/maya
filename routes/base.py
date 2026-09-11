@@ -432,6 +432,13 @@ STATUS: Dict[str, int] = {
     # unfalsifiable, and the whole value of the record is that somebody can go
     # and look — so both are 422 rather than 400: the request is well-formed
     # and what it carries is what cannot be accepted.
+    # Attested cost. All 422: each is a well-formed request carrying a figure
+    # that cannot be accepted as one, which tells a caller to go and fix the
+    # extract rather than retry.
+    "cost_currency_required": 422, "cost_period_start_required": 422,
+    "cost_period_end_required": 422, "cost_source_required": 422,
+    "cost_negative": 422, "cost_period_inverted": 422,
+    "unknown_cost_dimension": 422,
     "not_a_sourceable_fact": 422, "source_required": 422,
     "reference_required": 422,
     "cursor_malformed": 422, "cursor_ordering_changed": 422,

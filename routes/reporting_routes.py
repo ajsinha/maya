@@ -24,6 +24,30 @@ from core.reporting.views import SavedViews
 from routes.base import Body, Routes
 
 
+class CostIn(Body):
+    """One attested cost figure.
+
+    `urn` is optional and its absence is the interesting case: a bill line
+    nobody can tie to a registered model is the finding this exists to surface.
+    """
+    amount: float
+    currency: str
+    period_start: float
+    period_end: float
+    source: str
+    urn: str = ""
+    reference: str = ""
+
+
+class BudgetIn(Body):
+    """Declared budgets, by one of the register's own ownership dimensions."""
+    budgets: Dict[str, float] = Field(default_factory=dict)
+    by: str = "owner"
+    since: Optional[float] = None
+    until: Optional[float] = None
+    raise_findings: bool = False
+
+
 class AppetiteIn(Body):
     metric: str
     limit: float
@@ -399,3 +423,77 @@ class ReportingRoutes(Routes):
             return self.guard(
                 lambda: self.ctx["concentration"].single_points_of_failure(
                     now=now))
+
+        # ------------------------------------------------- what it all costs
+        @self.app.get(f"{api}/cost", tags=["reporting"])
+        def cost_posture(request: Request):
+            """What this computes, and the two things it will not claim.
+
+            **It does not observe cost.** MAYA does not run models, so a figure
+            it computed would be a price somebody typed multiplied by a call
+            count it also did not observe, printed as a measurement.
+
+            **It does not enforce a budget.** MAYA is not on the serving path
+            and cannot decline a model's next invocation, so a budget claiming
+            to enforce would be claiming a control it has no way to exercise.
+            A breach raises a finding, with an owner.
+            """
+            self.principal(request)
+            from core.estate.cost import EstateCost
+            return EstateCost.posture()
+
+        @self.app.get(f"{api}/cost/showback", tags=["reporting"])
+        def showback(request: Request, by: str = "owner",
+                     since: Optional[float] = None,
+                     until: Optional[float] = None):
+            """The estate's attested cost, cut by a dimension the register knows.
+
+            Read `unattributed_share` first. It is the number this exists to
+            produce: a bill is complete by construction, so a cost nobody has
+            tied to a registered model looks exactly like an attributed one
+            until somebody asks who owns it. The total is available from the
+            bill and nobody needs a governance register to add it up.
+
+            Currencies are **not converted**. A total summed across them is
+            wrong by the exchange rate, MAYA holds no rate, and the mixture is
+            reported rather than flattened into a number somebody would put in
+            a board pack.
+            """
+            self.authorise(request, "report:read",
+                           estate_wide="reading estate cost")
+            return self.guard(lambda: self.ctx["estate_cost"].showback(
+                by, since=since, until=until))
+
+        @self.app.post(f"{api}/cost", status_code=201, tags=["reporting"])
+        def record_cost(request: Request, body: CostIn):
+            """Take one attested cost figure and attribute it.
+
+            The attribution comes from the **register** rather than from the
+            cost record: a cost attributed by whoever produced the bill is
+            attributed to whatever they thought the ownership was.
+
+            A line naming no model, or naming one that is not registered,
+            lands `unattributed` rather than being refused. That line is the
+            finding, and refusing it would delete the finding.
+            """
+            who = self.authorise(request, "report:read",
+                                 estate_wide="recording estate cost")
+            return self.guard(lambda: self.ctx["estate_cost"].record(
+                amount=body.amount, currency=body.currency,
+                period_start=body.period_start, period_end=body.period_end,
+                source=body.source, urn=body.urn, reference=body.reference,
+                actor=self.actor(who)))
+
+        @self.app.post(f"{api}/cost/budgets", tags=["reporting"])
+        def against_budget(request: Request, body: BudgetIn):
+            """Compare attested cost with declared budgets.
+
+            **Nothing is blocked and nothing will be.** What a breach does is
+            raise a finding with an owner, through the register that already
+            does that — weaker than a hard stop, and what is true.
+            """
+            who = self.authorise(request, "report:read",
+                                 estate_wide="comparing cost with budgets")
+            return self.guard(lambda: self.ctx["estate_cost"].against_budget(
+                body.budgets, body.by, since=body.since, until=body.until,
+                raise_findings=body.raise_findings, actor=self.actor(who)))
