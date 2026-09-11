@@ -114,6 +114,16 @@ is a **rule set**, whose provenance *is* its authorship — so MAYA edits a
 parameter object it already held, and publishing is the ordinary parameter-set
 record with the ordinary second person. See [Rule sets](/help/rule-sets).
 
+**It does not observe what it cannot see, and does not pretend to.** It does not
+run your models, so it cannot measure what one costs or what it computed; it
+does not hold your general ledger, so it cannot check an exposure; it does not
+crawl your drives, so it cannot find an unregistered spreadsheet. In every one
+of those places it takes an **attested** fact from a named source, marks it as
+attested, and reports how much of the estate rests on somebody's word — because
+a register that could not tell a claim from a measurement would present both
+with the same confidence. See [The register's edges](/help/administering-maya)
+and `/admin/perimeter`.
+
 **It is not legal or regulatory advice.** It implements controls that map onto
 published supervisory expectations. The three supervisory encodings that ship are
 illustrative, not complete. Whether your implementation satisfies your supervisor
@@ -132,6 +142,7 @@ is a judgement your second line and your regulator make.
 | `/board-pack` | Risk appetite against the estate, for a committee |
 | `/policies` | What is in force on each gate |
 | `/telemetry` · `/notifications` | Delivered predictions and outcomes; digests of what needs doing |
+| `/admin/perimeter` | **What this platform is relying on somebody else for** — a firm's own extension, another system's export, somebody else's scanner, a pack that left the building — and how narrow each answer is |
 
 ## The rest of this library
 

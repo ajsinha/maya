@@ -510,6 +510,27 @@ CREATE TABLE IF NOT EXISTS elicitation_response (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_elicitation_response ON elicitation_response (elicitation_id, round, panellist);
 
+CREATE TABLE IF NOT EXISTS estate_cost (
+    id TEXT NOT NULL,
+    model_id TEXT,
+    urn TEXT DEFAULT '' NOT NULL,
+    amount DOUBLE NOT NULL,
+    currency TEXT NOT NULL,
+    period_start DOUBLE NOT NULL,
+    period_end DOUBLE NOT NULL,
+    source TEXT NOT NULL,
+    reference TEXT DEFAULT '' NOT NULL,
+    owner TEXT DEFAULT '' NOT NULL,
+    legal_entity TEXT DEFAULT '' NOT NULL,
+    domain TEXT DEFAULT '' NOT NULL,
+    state TEXT DEFAULT 'attributed' NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_estate_cost_model ON estate_cost (model_id, period_start);
+CREATE INDEX IF NOT EXISTS ix_estate_cost_period ON estate_cost (period_start, period_end);
+
 CREATE TABLE IF NOT EXISTS event_subscription (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,
@@ -755,9 +776,11 @@ CREATE TABLE IF NOT EXISTS finding (
     closed_at DOUBLE,
     closure_verified_by TEXT,
     closure_evidence TEXT DEFAULT '{}' NOT NULL,
+    root_id TEXT,
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_finding_open ON finding (model_id, status, severity);
+CREATE INDEX IF NOT EXISTS ix_finding_root ON finding (root_id);
 
 CREATE TABLE IF NOT EXISTS finding_action (
     id TEXT NOT NULL,
@@ -776,6 +799,21 @@ CREATE TABLE IF NOT EXISTS finding_action (
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_finding_action ON finding_action (finding_id, acted_at);
+
+CREATE TABLE IF NOT EXISTS finding_root (
+    id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    detail TEXT NOT NULL,
+    status TEXT DEFAULT 'open' NOT NULL,
+    opened_by TEXT NOT NULL,
+    opened_at DOUBLE NOT NULL,
+    addressed_at DOUBLE,
+    addressed_by TEXT DEFAULT '' NOT NULL,
+    addressed_note TEXT DEFAULT '' NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_finding_root_open ON finding_root (status, kind);
 
 CREATE TABLE IF NOT EXISTS idempotency (
     id TEXT NOT NULL,
@@ -1424,6 +1462,20 @@ CREATE TABLE IF NOT EXISTS test_result (
     PRIMARY KEY (id)
 );
 CREATE INDEX IF NOT EXISTS ix_test_result_validation ON test_result (validation_id, test_key);
+
+CREATE TABLE IF NOT EXISTS tiering_fact_source (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    fact TEXT NOT NULL,
+    source TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    value TEXT DEFAULT '' NOT NULL,
+    as_at DOUBLE NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_tiering_fact_source ON tiering_fact_source (model_id, fact, recorded_at);
 
 CREATE TABLE IF NOT EXISTS validation (
     id TEXT NOT NULL,

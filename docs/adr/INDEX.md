@@ -22,6 +22,9 @@ and this index previously omitted 011 altogether while showing 008 as accepted.
 | [009](ADR-009-no-untrusted-deserialisation.md) | Sandbox-only artifact loading and a format policy | accepted |
 | [010](ADR-010-laws-as-tests.md) | The laws enforced by tests in CI | accepted |
 | [011](ADR-011-decoupled-frontend.md) | Front end and backend as separate processes | accepted — **not built** |
+| [012](ADR-012-per-audience-warrant-keys.md) | Per-audience warrant keys instead of asymmetric signing | accepted — **supersedes** the asymmetric-signing item that led the roadmap |
+| [013](ADR-013-cursors-and-offsets.md) | Offsets for people, cursors for queues | accepted |
+| [014](ADR-014-attested-not-observed.md) | Attested, not observed — the rule under five capabilities | accepted |
 
 ---
 

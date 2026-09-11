@@ -27,6 +27,20 @@ from core.waivers import STATUSES as WAIVER_STATUSES
 from core.registry.versions import latest_version
 
 
+class FactSourceIn(Body):
+    """A tiering fact attested to a named system of record.
+
+    `reference` is required and is not paperwork: "finance said so" cannot be
+    checked by whoever relies on it a year later, and the whole value of the
+    record is that somebody can go and look.
+    """
+    fact: str
+    source: str
+    reference: str
+    value: str = ""
+    as_at: float = 0.0
+
+
 class RelateIn(Body):
     """One model's standing to another. `from` is a Python keyword, so the
     field is `from_urn` and the shape says so rather than being clever."""
@@ -1357,6 +1371,95 @@ class ModelRoutes(Routes):
                                  estate_wide="timestamping the evidence chain")
             return self.guard(lambda: self.ctx["chain_timestamps"].stamp(
                 seq, actor=self.actor(who)))
+
+
+        # ---------------------------------------- where a tiering fact came from
+        @self.app.get(f"{self.api}/fact-sourcing", tags=["risk"])
+        def fact_sourcing_posture(request: Request):
+            """What a source is here, and the two things this refuses to be.
+
+            It **fetches nothing** — a governance register holding read
+            credentials to the general ledger is one that has to be trusted
+            with more than it needs — and it **refuses no unsourced fact**,
+            because a register nobody can register into produces unregistered
+            models, which is strictly worse than a tiered-from-a-guess one.
+            What it does is make the difference between a claim and a
+            measurement visible and countable.
+            """
+            self.principal(request)
+            from core.risk.sourcing import FactSourcing
+            return FactSourcing.posture()
+
+        @self.app.get(f"{self.api}/fact-sourcing/estate", tags=["risk"])
+        def fact_sourcing_estate(request: Request):
+            """How much of this estate's tiering rests on somebody's word.
+
+            The number this exists to produce. An estate where sixty percent
+            of exposures are asserted is a finding about the tiering
+            *programme*, and it is invisible the moment a claim and a
+            measurement print identically.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading how tiering facts are sourced")
+            return self.guard(
+                lambda: self.ctx["fact_sourcing"].across_the_estate())
+
+        @self.app.get(f"{self.api}/fact-sourcing/model", tags=["risk"])
+        def fact_sourcing_of(request: Request, urn: str):
+            """Which of this model's tiering facts are sourced.
+
+            A query parameter rather than a path nested under `/models`, for
+            the reason the findings route gives: the model segment is a greedy
+            `:path` — URNs contain dots and slashes — and it swallows any
+            suffix, so the nested spelling answers 405 on the POST and looks
+            like a method problem rather than a routing one.
+
+            Three states, and `stale` is not a demotion to `asserted`: a figure
+            that WAS measured and has aged is a different thing from one nobody
+            ever measured, and the remedy is different too — refresh the
+            extract, rather than go and find out.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(urn_of(urn)))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["fact_sourcing"].of(model["id"], model))
+
+        @self.app.post(f"{self.api}/fact-sourcing/model", status_code=201,
+                       tags=["risk"])
+        def source_a_fact(request: Request, urn: str, body: FactSourceIn):
+            """Attest that a tiering fact came from a named system of record.
+
+            MAYA does not fetch it and does not check it. What changes is that
+            a reader can tell this figure from one somebody typed into a form,
+            and can go and look.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(urn_of(urn)))
+            who = self.authorise(request, "risk:assess", model=model)
+            return self.guard(lambda: self.ctx["fact_sourcing"].record(
+                model["id"], body.fact, source=body.source,
+                reference=body.reference, value=body.value,
+                as_at=body.as_at, actor=self.actor(who)))
+
+        @self.app.get(f"{self.api}/fact-sourcing/cohort", tags=["risk"])
+        def exposure_cohort(request: Request, urn: str):
+            """How this model's stated exposure compares with its peers.
+
+            A **question**, never an alarm, and it raises no finding. A cohort
+            of four is not a distribution, business lines genuinely differ by
+            orders of magnitude, and a control that cried wolf at every small
+            book would be switched off — taking the real signal with it. The
+            cohort size is reported beside the comparison, and when it is too
+            small to mean anything the answer says so instead of comparing.
+            """
+            model = self.guard(
+                lambda: self.ctx["registry"].require(urn_of(urn)))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["fact_sourcing"].outliers(model["urn"]))
+
+
 
     def _approvals_below_quorum(self, model: Dict[str, Any],
                                 tier: int) -> List[str]:

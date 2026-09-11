@@ -63,7 +63,7 @@ signature.
 | ✅ | **Feature platform** (`core/features/`) | **Complete** | Bitemporal Delta storage, version-namespaced serving (fixes C-2), PIT assembly with three-layer verification, contracts, retirement guard |
 | ✅ | **HTTP surface** (`routes/`) | **Complete** | Inventory, versions, aliases, risk, warrants, features, health. RFC-9457-shaped refusals carrying remediation |
 | ✅ | **Web interface** (`web/`) | **Complete** | Landing, login, about, help, dashboard, model detail. The model page shows versions, pinned feature contracts, validation episodes, findings, warrants and evidence. Every asset vendored — no CDN |
-| ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 19 help topics in 7 sections (~69,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
+| ✅ | **Content system** (`core/content/`) | **Complete** | Help and about pages are markdown under `content/`, rendered server-side and cached on modification time. 20 help topics in 7 sections (~69,000 words) plus a competitive analysis on About. Versioned and reviewable in a pull request alongside the behaviour they describe |
 | ✅ | **Validation & findings** (`core/validation/`) | **Complete** | Eight-test catalogue computed from first definitions; independence attested and enforced; approval refused over a failed test or an open blocking finding; findings register whose blocking flag gates both alias promotion and warrant resolution; digest-based reproducibility replay that distinguishes *unchecked* from *reproduced*. A finding also has a workflow between being raised and being closed: it can be handed over with a reason, must be accepted by its owner with a plan before its date can be moved, and its date can only be moved by somebody who does not own it, with a reason, counted — past the limit the extension becomes a finding of its own. Ageing, overdue-ness, acceptance and escalation are **derived from the acts**, so there is no status table to disagree with the register, and the ageing profile a committee asks for (severity, age distribution, overdue, extension counts) is computed rather than assembled by hand |
 | ✅ | **Documentation compiler** (`core/docs/`) | **Complete** | Four document kinds compiled from the register and the evidence graph by fifteen lenses. Every section records the evidence it rested on, so citation soundness is a Boolean evaluation rather than a claim. Staleness is *computed* from the chain head at compile time, not remembered. A lens that cannot fill its section says so in the document, so a gap in the model's evidence is visible rather than blank. Rendered through the same markdown pipeline as the help system |
 | ✅ | **Monitoring** (`core/monitoring/`) | **Complete** | Four monitor kinds, each admitting only the tests that can answer it, checked at definition time. Delayed labels are first-class: a performance monitor must declare its outcome window, maturity is decided per row, and evaluation over an immature cohort is refused with the date it becomes measurable. A breach raises a finding, escalating with persistence; recovery closes the breach and deliberately leaves the finding open |
@@ -103,6 +103,18 @@ signature.
 | ✅ | **Attached documents** (`core/attachments/`) | **Complete** | The other half of documentation: the papers people wrote, as against the ones MAYA compiled. Filed against the *version* they describe rather than the model, because a development document describes the coefficients it printed and not their replacement; model-level filing exists but has to be asked for. Stored under the SHA-256 of their bytes, so the same file is stored once, cannot be edited in place, and is re-hashed on the way out — what an approver accepted is what a reader fetches, checked rather than assumed. Review is segregated twice: by role grant, and again in the register, so the person who filed a document cannot accept it even if their role would let them. Rejection requires a reason and the rejected document stays on file. Supersession names what it replaces, so "which MDD was in force in March" is answerable. Each attachment records whether its bytes are text the platform can genuinely read, so later machine review knows what has actually been read and what has only been stored |
 | ✅ | **Engine isolation** (`core/execution/sandbox.py`) | **Complete** | Artifact-backed runtimes (ONNX, PMML) load and run in a child process with CPU and address-space limits read from the warrant's `constraints.resources`. The memory budget is additive to the interpreter's own footprint, and the runtime's dependencies are imported *before* the limit is applied, so a library's import cost is never charged to the model's budget. The boundary is published rather than implied: `describe()` states what it protects against — a runaway loop, an allocation storm, a hard crash — and what it does not, which is a hostile artifact. That needs a container or a VM, and saying so is better than implying an isolation the process model does not provide. Bound callables run in process by construction and are named as such |
 | ✅ | **Baseline import** (`core/baseline/`) | **Complete** | Closes adversarial finding C-5, judged the single most likely cause of total failure. Imported models enter a `baselined` lifecycle state — governed going forward, mutable so their debt can be closed — carrying explicit dated debt for each of thirteen gaps *computed from the register rather than declared*, so an importer cannot under-declare. Debt closes by itself when the evidence arrives, making the burn-down a measurement rather than a self-report, and expires into a finding at its board-approved date. Debt and breach are reported separately everywhere. One bad row does not stop the batch |
+| ✅ | **The register's edges** (`core/evidence/timestamps.py`, `core/plugins/discovery.py`, `core/discovery/connectors.py`, `core/discovery/contract.py`, `core/export/sharing.py`, `core/docs/rendering.py`, `core/rules/importing.py`) | **Complete** | Nine places where the record is not MAYA's own — [18](18-the-registers-edges.md) is the account. Each is defined by what it declines to claim: MAYA is not the timestamping authority *and does not verify*; discovery **imports nothing**, so installed and enabled are two states; a connector reads an **export** and produces candidates, never registrations; a sweep is admitted **whole** or refused whole; a share points at a content digest and is published as *not a portal*; a document leaves as typesetting source with its citations intact; a rulebook cell that is a human judgement is reported rather than guessed at |
+| ✅ | **Per-audience warrant keys** (`core/execution/signing.py`) | **Complete** | [ADR-012](adr/ADR-012-per-audience-warrant-keys.md). `HMAC(root, "maya/warrant/v<gen>/" ‖ audience)`, so a compromised engine forges warrants for **itself and nobody else**. The audience is read from the document being verified, so re-pointing a warrant breaks its signature rather than needing a separate check. What it does not claim — non-repudiation to a third party — is published at `GET /warrant-signing` |
+| ✅ | **Row-level security** (`core/security/rls.py`) | **Complete** | Closes **H-5**, the oldest open finding. The blocker its old disposition named — *one connection identity, so a policy would have nothing to distinguish* — is what `routes/base.py::_identify` removed. A **backstop**, not the control: RLS produces no rows rather than a refusal, and an empty list is indistinguishable from *there is nothing*. `FORCE` binds the owner; a **superuser bypasses it entirely**, and the posture reports the connecting role's exemption above everything else |
+| ✅ | **Distributed monitoring** (`core/monitoring/distributed.py`) | **Complete** | An estate-wide sweep without putting Spark in MAYA. PSI, AUC, Gini and KS are functions of **sufficient statistics**, which add across partitions — so the scan runs where the data is and **MAYA computes the metric and compares it to the threshold**, which is why this result can be *replayed* and an external observation cannot. A statistic that does not decompose is refused by name |
+| ✅ | **Fact sourcing for tiering** (`core/risk/sourcing.py`) | **Complete** | Closes **H-8**. `exposure` decides the tier and the tier decides how many signatures an approval needs, so the audit half always worked and the missing half was the difference between a **claim and a measurement**. Three states, a required reference somebody can check, and an estate view whose headline is how much of the tiering rests on somebody's word |
+| ✅ | **Cost attribution** (`core/estate/cost.py`) | **Complete** | Closes **M-6**, in the only shape this platform can honestly take: attested rather than observed, attributed from the **register's** ownership rather than the bill's, with the **unattributed share** as the headline. Budgets raise findings and enforce nothing, because MAYA is not on the serving path |
+| ✅ | **Correlated findings** (`core/validation/correlation.py`) | **Complete** | Closes **M-8** at the layer the first answer could not reach. A cause named once, with the findings it produced hanging off it — and three refusals that make it safe: it merges nothing, it infers nothing, and addressing a root closes no finding |
+| ✅ | **HTTP conventions** (`core/http/conventions.py`, `core/concurrency/`) | **Complete** | `ETag`/`If-Match`, `Idempotency-Key`, keyset cursors, `?fields=` and `Sunset`. Two of them are about correctness under retry and concurrency; the rest are about what happens to an API over the years somebody depends on it. Projection **never removes the fields that say an answer is partial** |
+| ✅ | **A Java client** (`sdk/java/`) | **Complete** | Release 17, no runtime dependencies. A `POST` is never retried and the timeout exception says so; `Unreachable` deliberately does not extend `Refused`, because a client that collapsed them treats an outage as a governance verdict |
+| ✅ | **A reference EUC scanner** (`tools/scanner/`) | **Complete** | Runs **outside** the platform, imports nothing from `core/`, and needs nothing installed. What it drops is counted — unreadable files, files over the size limit, matches below the floor, and the floor itself travels on the sweep |
+| ✅ | **Deployment artefacts** (`Dockerfile`, `deploy/`) | **Complete** | [19](19-deploying-maya.md). Two stages, uid 10001, read-only root; PostgreSQL with the owner and application roles already separated; and a chart that **refuses to render** rather than templating a placeholder for a secret or accepting an anchor volume only one replica can write |
+| ✅ | **The three spikes** (`tools/spikes/`) | **Complete** | The difference between a target and a result. Each writes the machine it ran on into its own answer, and the extrapolation is **labelled as one**. The sandbox spike found a real defect: `RLIMIT_CPU` is cumulative, so a tight `max_seconds` killed the artifact before it ran |
 
 ---
 
@@ -183,8 +195,39 @@ would otherwise rot:
 | `test_deck_geometry` | no slide has overlapping or escaping content |
 | `test_ui_tables` | every HTML table has a header, and pagination where it needs one |
 | `test_laws` | the foundational laws, run as tests, with the three that do not run named |
+| `test_atomicity_discipline` | a write and its evidence node happen in one `with evidence.recording()`, so a crash between them cannot leave a governance act unrecorded |
+| `test_scope_discipline` | every per-model permission check passes `model=`, because a scope check that forgot the model is a check that permits everything |
+| `test_ui_reachability` | no page is orphaned. A screen nobody can click to is not built, whatever the route table says |
+| `test_ui_accessibility` | every form control has a `for`/`id` pair |
+| `test_sdk_java` | the Java client is held to the same *decides nothing* rule as the Python one, from the suite that actually runs in CI — a client checked only by Maven is a client that rots quietly |
+| `test_deployment` | the chart refuses what cannot be safe, the image runs as nobody, and liveness and readiness ask different questions |
 
 Each exists because the rule it holds had already been broken once.
+
+### A refusal code assembled at runtime
+
+Four times now, and the fourth was during the last wave. A refusal raised as
+`f"cost_{field}_required"` is **invisible to `test_refusal_discipline`**, which
+walks the source looking for literal codes — so the code reaches the caller as a
+bare 400 with no indication of who must act, and the test that exists to prevent
+exactly that reports nothing.
+
+It recurs because interpolation is the natural way to write four nearly
+identical refusals, and the fix — four literal `raise` sites — reads as
+duplication to anybody who does not know why. It is in this list so the next
+person knows why.
+
+### A route appended outside the function that registers it
+
+Also four times. `routes/*.py` register their endpoints inside a `register()`
+method, and appending a block to the end of the file puts it inside whatever
+method happens to be last. Ruff catches it when the block references a local
+that is out of scope; when it does not, the routes simply **do not exist**, and
+the symptom is a 404 that looks like a path typo.
+
+`tools/ci/spec_lock.py` catches it now — a route that did not register is a path
+missing from the lock — which is the second thing that file has turned out to be
+for.
 
 ---
 
@@ -198,7 +241,7 @@ Each exists because the rule it holds had already been broken once.
 | E4 | **Two processes, always.** Front end and backend build, test, release and fail independently. | Separate pipelines; no shared build step |
 | E5 | **The laws are the acceptance criteria.** Eighteen of the twenty-one foundational laws are executable today, along with all fourteen warrant-admissibility laws; a failing law fails the build, and [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) states by name which of the rest are not yet executable. | The law tests live beside the code they constrain, not in a `tests/laws/` package; the whole suite runs on every commit |
 | E6 | **Domain code is framework-free.** `core/domain/` imports no web framework and no ORM. | `test_import_discipline.py::test_the_domain_depends_on_nothing_in_maya` |
-| E7 | **Every migration is reversible and rehearsed.** Expand/contract, tested against production-shaped data. | Migration test suite in CI |
+| E7 | **~~Every migration is reversible and rehearsed.~~ There are no migrations.** One typed schema, `--repair-schema`, and a drift check on `/admin/evidence` — because the DDL is applied with `CREATE TABLE IF NOT EXISTS`, so an existing table is skipped and a column added in a later release is never created. A position rather than a gap; [19 §4](19-deploying-maya.md) says what a deployer does instead. | Migration test suite in CI |
 | E8 | **Silence is never enforcement.** Integrity controls raise; they do not discard. | Review checklist; finding C-3 |
 
 ---
@@ -490,7 +533,7 @@ line is the only place it says so.
 
 | | Gate | State |
 |---|---|---|
-| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 322 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 383 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
+| 1 | Lint, format, type check (`ruff`, `mypy`) | **Runs** — `ruff check .` with a rule set chosen in `pyproject.toml` rather than inherited, and `tools/ci/typecheck.py`, which gates on the 325 modules that check cleanly and carries the other 61 in `mypy_backlog.txt`. Not `--strict`: adopting it across 386 modules in one release produces a blanket ignore, which is the same thing as `mypy \|\| true` wearing a hat |
 | 2 | Import contracts pass | **Runs** — `tests/test_import_discipline.py` walks the imports |
 | 3 | Unit, laws, integration green | **Runs** — the laws in their own job, the suite in four shards |
 | 4 | Coverage thresholds met | **Runs** — the four shards upload their data, a `coverage` job combines them, and `fail_under = 90` is a floor set just under where the suite sits (93%). Chosen after measuring: 80 would have caught nothing |

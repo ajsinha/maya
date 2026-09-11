@@ -697,3 +697,40 @@ ELICITATION_RESPONSE = Table(
     Index("uq_elicitation_response", "elicitation_id", "round", "panellist",
           unique=True),
 )
+
+
+# Where a tiering fact came from.
+#
+# `exposure` is a float on the assessment request and the tier is a monotone
+# function of it — so the number deciding how many signatures an approval needs
+# is typed in by the person the controls apply to. That is **H-8**, and the
+# audit half already worked: the fact snapshot is stored with every assessment,
+# so *what was claimed* is on the record.
+#
+# What was missing is the difference between a claim and a measurement. This
+# table is that difference, and it is deliberately an ATTESTATION rather than a
+# fetch: MAYA holds no connection to a general ledger and acquiring one would
+# be the same standing-access objection the connectors answer.
+#
+# `reference` is NOT NULL for a reason that is not tidiness. "Finance said so"
+# cannot be checked by the person who has to rely on it a year later, and the
+# whole value of the row is that somebody can go and look.
+#
+# Append-only in practice: a fact re-sourced is a new row, so the history of
+# what was claimed when survives a correction. The read takes the latest.
+TIERING_FACT_SOURCE = Table(
+    "tiering_fact_source", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("model_id", Text, nullable=False),
+    Column("fact", Text, nullable=False),
+    Column("source", Text, nullable=False),
+    Column("reference", Text, nullable=False),
+    Column("value", Text, nullable=False, server_default=text("''")),
+    # When the figure was TRUE, as against when somebody recorded it here. A
+    # twelve-month-old ledger extract is not a measurement of today's exposure,
+    # and this column is what lets the read say `stale` rather than `sourced`.
+    Column("as_at", Double, nullable=False),
+    Column("recorded_by", Text, nullable=False),
+    Column("recorded_at", Double, nullable=False),
+    Index("ix_tiering_fact_source", "model_id", "fact", "recorded_at"),
+)

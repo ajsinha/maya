@@ -303,8 +303,9 @@ lifecycle with quorum attestation, authorisation with segregation of duties read
 chain, monitoring with delayed labels, compiled documentation and the documentation graph, the
 overlay register, supervisory regimes as institutions, machine assistance, baseline import with
 compliance debt, the content-addressed artifact store, export packs, risk appetite with the board
-pack, rule sets for the T8 estate with the runtime that executes them, and a dependency-free Python
-SDK.
+pack, rule sets for the T8 estate with the runtime that executes them, dependency-free Python **and
+Java** SDKs, and **the register's edges** — the nine places where the record is not MAYA's own, each
+defined by what it declines to claim ([18](docs/18-the-registers-edges.md)).
 
 Build status, what is genuinely working, and the honest gaps are recorded in one place and kept
 current there:
@@ -313,11 +314,12 @@ current there:
 
 | | |
 |---|---|
-| Tests | **over 2,300 passing**, plus a scale suite excluded by default |
-| Foundational laws executable | **16 of 21** — the five that are not are named with the reason |
+| Tests | **over 4,800 passing** — about 5,500 including parametrised cases — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to |
+| Foundational laws executable | **18 of 21** — the three that are not are named with the reason, and each is a refusal rather than a gap |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **51 tables**, DDL generated per dialect, no migrations |
-| Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped |
+| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **85 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
+| Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
+| Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
 
 ---
 
@@ -415,7 +417,9 @@ registered properly.
 | **15** | [X and P](docs/15-featuresets-and-parameters.md) | The two letters that are not the kernel: featuresets, derived features on the provenance polynomial, and the parameter object |
 | **16** | [Five Things a Feature Is Not](docs/16-features-composed-and-shaped.md) | Not a number, not defined in one place, not mutable, not permanent, not its author's — and what happens between the store and the model |
 | **17** | [The Algebra](docs/17-feature-and-model-algebra.md) | One order for four questions; the `AsOf` operator and its saturation law; derived features on the provenance polynomial; typed composition; the documentation graph |
-| — | [ADRs](docs/adr/INDEX.md) | Eleven architecture decision records |
+| **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The nine places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
+| **19** | [Deploying MAYA](docs/19-deploying-maya.md) | The image, the two database roles, the chart's refusals, the batch — and the five things that must be true, in order |
+| — | [ADRs](docs/adr/INDEX.md) | Fourteen architecture decision records |
 
 ---
 

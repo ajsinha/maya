@@ -90,6 +90,9 @@ from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.monitoring.distributed import DistributedEvaluation
+from core.estate.cost import EstateCost
+from core.validation.correlation import FindingRoots
+from core.risk.sourcing import FactSourcing
 from core.rules import RuleSetEditor
 from core.security import RowLevelSecurity
 from core.rules.importing import RuleSetImport
@@ -190,7 +193,9 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
+                EstateCostRepository, FindingRootRepository,
                 ExportShareReadRepository, ExportShareRepository,
+                TieringFactSourceRepository,
                 ElicitationRepository, ElicitationResponseRepository,
                 RetrainPolicyRepository, RunRepository,
                 IntakeProposalRepository,
@@ -551,6 +556,20 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # and adds no authority of its own — publishing is `parameters.record` with
     # a validated document, so the set still lands `proposed` and still needs a
     # second person.
+    # Where a tiering fact came from. `exposure` decides the tier and the tier
+    # decides how many signatures an approval needs, so the difference between
+    # a measurement and somebody's number is the difference between a control
+    # and a form field.
+    fact_sourcing = FactSourcing(TieringFactSourceRepository(db), registry,
+                                 evidence)
+    # What the estate costs, attributed from what the register already knows.
+    # MAYA does not run models and cannot observe cost; it takes an attested
+    # figure and does the half it can.
+    # One cause, and the findings it produced. Merges nothing — see M-8.
+    finding_roots = FindingRoots(FindingRootRepository(db),
+                                 FindingRepository(db), evidence)
+    estate_cost = EstateCost(EstateCostRepository(db), registry, findings,
+                             evidence)
     rules = RuleSetEditor(registry, parameters, evidence)
     # Reading a rulebook a bank already has. It holds the editor so a candidate
     # can be validated against a real version's schemas, and it never writes
@@ -1291,6 +1310,9 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules, "rule_import": rule_import,
+                           "fact_sourcing": fact_sourcing,
+                           "estate_cost": estate_cost,
+                           "finding_roots": finding_roots,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

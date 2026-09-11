@@ -428,6 +428,25 @@ STATUS: Dict[str, int] = {
     # Paging. All 422 rather than 400: the request is well-formed and the
     # CURSOR is what cannot be honoured, which is the distinction that tells a
     # caller to start the listing again rather than to fix their syntax.
+    # Where a tiering fact came from. A source with no reference is
+    # unfalsifiable, and the whole value of the record is that somebody can go
+    # and look — so both are 422 rather than 400: the request is well-formed
+    # and what it carries is what cannot be accepted.
+    # Attested cost. All 422: each is a well-formed request carrying a figure
+    # that cannot be accepted as one, which tells a caller to go and fix the
+    # extract rather than retry.
+    # One cause, many findings. `unknown_root` is a 404 and the rest are 422:
+    # a root that is not there is a different problem from one described in a
+    # way the register cannot count.
+    "unknown_root": 404, "unknown_root_kind": 422, "unknown_finding": 404,
+    "root_title_required": 422, "root_detail_required": 422,
+    "root_note_required": 422, "root_already_addressed": 409,
+    "cost_currency_required": 422, "cost_period_start_required": 422,
+    "cost_period_end_required": 422, "cost_source_required": 422,
+    "cost_negative": 422, "cost_period_inverted": 422,
+    "unknown_cost_dimension": 422,
+    "not_a_sourceable_fact": 422, "source_required": 422,
+    "reference_required": 422,
     "cursor_malformed": 422, "cursor_ordering_changed": 422,
     "cursor_expired": 422,
     "test_does_not_decompose": 422, "test_not_distributable": 422,

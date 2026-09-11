@@ -261,6 +261,40 @@ class ReferenceIndex:
                 live))
 
         for row in self.db.query(
+                "SELECT id, urn, amount, currency, source "
+                "FROM estate_cost WHERE model_id = :m", {"m": model_id}):
+            found.append(Reference(
+                "estate_cost", row["id"],
+                f"{row['amount']:,.2f} {row['currency']} from {row['source']}",
+                ("an attested cost attributed to this model. The ownership on "
+                 "it was copied from the register at record time so that a "
+                 "report for last quarter says who owned it last quarter — "
+                 "deleting the model leaves the figure with an owner nothing "
+                 "can any longer explain"),
+                # Not live-blocking: a historical cost line is evidence about a
+                # period already closed, and a deletion that waited for it
+                # would be a deletion nobody can perform.
+                False))
+
+        for row in self.db.query(
+                "SELECT id, fact, source, reference "
+                "FROM tiering_fact_source WHERE model_id = :m",
+                {"m": model_id}):
+            found.append(Reference(
+                "tiering_fact_source", row["id"],
+                f"{row['fact']} from {row['source']}",
+                ("the attestation that this model's "
+                 f"{row['fact']} came from {row['source']} "
+                 f"({row['reference']}) rather than from somebody's estimate. "
+                 "Deleting the model deletes the only record distinguishing "
+                 "its tier from a number typed into a form"),
+                # Never live-blocking. A source record is evidence about a
+                # decision already made, and a deletion that had to wait for
+                # somebody to un-source a fact would be a deletion nobody can
+                # perform — which is how orphan rows get left behind instead.
+                False))
+
+        for row in self.db.query(
                 "SELECT id, reference, recipient, status, expires_at "
                 "FROM export_share WHERE model_id = :m", {"m": model_id}):
             live = row["status"] == "open"
