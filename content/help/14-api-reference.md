@@ -250,6 +250,55 @@ arithmetic, no client-side approval check, no copy of the vocabularies; ask
 `maya.warrants.grammar()` and `maya.whoami()` instead, so a client cannot go
 stale and be confidently wrong. See `sdk/README.md`.
 
+## Or use the command line
+
+Installing the SDK installs `maya`:
+
+```bash
+maya models
+maya ready maya://model/credit.pd.smallbiz --transition attest
+maya call GET /findings --json '{}'
+```
+
+Credentials come from `MAYA_URL`, `MAYA_USER`, `MAYA_PASSWORD` and `MAYA_TOKEN`
+— there is no `--password`, because a password on a command line ends up in a
+build log.
+
+**Read this before putting it in a pipeline.** There are three exit codes, and
+the third is the point:
+
+| | Meaning | What your pipeline should do |
+|---|---|---|
+| **0** | MAYA answered, and the answer was yes | proceed |
+| **1** | MAYA answered, and the answer was **no** | stop — the refusal says why and what to do |
+| **2** | MAYA was **not reached**, or the command was malformed | stop, and do not treat this as a verdict |
+
+If you collapse 1 and 2, your build goes green whenever the governance platform
+is down. That is worse than having no gate at all, because somebody believes it.
+
+`ready` is the command whose *answer* is a verdict, so its exit code is one.
+Everything else exits 0 whenever MAYA answered — "there are four open findings"
+is a fact, and a tool that exited non-zero on a fact is a tool you would wrap in
+`|| true` by Thursday.
+
+**No flag suppresses a refusal.** There is no `--force`, no `--yes` and no
+`--ignore-errors`. A refusal prints all three parts, remediation included, to
+stderr.
+
+### In a notebook
+
+```python
+from maya_sdk import notebook
+notebook.install()
+```
+
+A notebook already renders a dict. What it breaks is the **refusal** — it
+arrives as a traceback whose last line happens to contain the remediation, which
+is the half that tells you what to do, in the position nobody reads. This puts
+the three parts at the top. It still raises, so a scheduled notebook does not go
+green past a refusal, and `Unreachable` renders differently and says it is not a
+verdict.
+
 ## Paging, search and sorting
 
 Every list endpoint takes `limit`, `offset` and — where it makes sense — `q`.
