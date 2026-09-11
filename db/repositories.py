@@ -614,6 +614,10 @@ class ExportShareReadRepository(Repository):
     TABLE, ORDER = "export_share_read", "at"
 
 
+class EstateCostRepository(Repository):
+    TABLE, ORDER = "estate_cost", "period_start"
+
+
 class TieringFactSourceRepository(Repository):
     TABLE, ORDER = "tiering_fact_source", "recorded_at"
 

@@ -1258,6 +1258,61 @@
         ]
       }
     },
+    "/api/v1/cost": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      },
+      "post": {
+        "body": [
+          "amount!",
+          "currency!",
+          "period_end!",
+          "period_start!",
+          "reference",
+          "source!",
+          "urn"
+        ],
+        "parameters": [],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/cost/budgets": {
+      "post": {
+        "body": [
+          "budgets",
+          "by",
+          "raise_findings",
+          "since",
+          "until"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/cost/showback": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:by",
+          "query:since",
+          "query:until"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/data-layer-authorisation": {
       "get": {
         "body": [],

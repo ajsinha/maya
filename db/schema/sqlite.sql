@@ -510,6 +510,27 @@ CREATE TABLE IF NOT EXISTS elicitation_response (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_elicitation_response ON elicitation_response (elicitation_id, round, panellist);
 
+CREATE TABLE IF NOT EXISTS estate_cost (
+    id TEXT NOT NULL,
+    model_id TEXT,
+    urn TEXT DEFAULT '' NOT NULL,
+    amount DOUBLE NOT NULL,
+    currency TEXT NOT NULL,
+    period_start DOUBLE NOT NULL,
+    period_end DOUBLE NOT NULL,
+    source TEXT NOT NULL,
+    reference TEXT DEFAULT '' NOT NULL,
+    owner TEXT DEFAULT '' NOT NULL,
+    legal_entity TEXT DEFAULT '' NOT NULL,
+    domain TEXT DEFAULT '' NOT NULL,
+    state TEXT DEFAULT 'attributed' NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_estate_cost_model ON estate_cost (model_id, period_start);
+CREATE INDEX IF NOT EXISTS ix_estate_cost_period ON estate_cost (period_start, period_end);
+
 CREATE TABLE IF NOT EXISTS event_subscription (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,
