@@ -334,5 +334,54 @@ screen that re-implemented any of them would be a second implementation that
 disagrees with the first eventually, in the direction of permitting more.
 {% else %}Changing any of this needs <span class="mono">principal:manage</span>,
 which you do not hold.{% endif %}</p>
+<!-- ------------------------------------------------ access recertification -->
+<div class="card mt-3"><div class="card-header">Access recertification
+  {% if recertification.never_recertified %}
+    <span class="evidence-bad">{{ recertification.never_recertified|length }}
+      never looked at</span>{% endif %}</div>
+  <div class="card-body small">
+    <p class="text-muted mb-2" style="max-width:52rem">The incompatible-role
+    check above fires when access is granted. What it cannot catch is access
+    that was right when it was granted and stopped being right afterwards
+    &mdash; somebody moved desk, a secondment ended, a project closed. None of
+    that changes a role, so nothing above ever fires.</p>
+
+    <p class="{{ 'evidence-bad' if recertification.never_recertified
+                 else 'text-muted' }}">{{ recertification.detail }}</p>
+
+    <table class="table table-sm maya mb-2">
+      <thead><tr><th>Account</th><th>Roles</th><th>Last recertified</th>
+        <th>By</th></tr></thead>
+      <tbody>
+      {% for row in people %}
+        {% set seen = recertified[row.username] %}
+        <tr><td class="mono">{{ row.username }}</td>
+          <td class="mono" style="font-size:.72rem">
+            {{ (row.roles or [])|join(', ') or '—' }}</td>
+          <td>{% if seen.recertified %}{{ seen.at|when }}
+              <span class="{{ 'evidence-bad' if seen.state == 'revoked'
+                              else 'evidence-ok' }}">{{ seen.state }}</span>
+            {% else %}<span class="evidence-bad">never</span>{% endif %}</td>
+          <td>{{ seen.by if seen.recertified else '—' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    {% if recertification.open %}
+    <p class="mb-2">Open: {% for ref in recertification.open %}
+      <span class="mono">{{ ref }}</span>{% if not loop.last %}, {% endif %}
+      {% endfor %} &mdash; answer at
+      <code>POST /api/v1/recertification/&lt;ref&gt;/&lt;person&gt;</code>.</p>
+    {% endif %}
+
+    <p class="text-muted mb-0"><strong>It does not time out.</strong> An item
+    nobody answered stays <span class="mono">unreviewed</span>, closing a
+    campaign decides nothing about it, and confirmed and unreviewed are never
+    added together &mdash; the access nobody looked at is the access most likely
+    to be wrong. <strong>And revoking removes roles in this register only:</strong>
+    it does not touch a directory, a database grant, a VPN profile or anybody's
+    job, so whether the rest followed is somebody else's record.</p>
+  </div></div>
+
 <script src="/static/js/admin-principals.js"></script>
 {% endblock %}

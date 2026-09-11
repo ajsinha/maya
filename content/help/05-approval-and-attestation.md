@@ -589,6 +589,60 @@ closure, and closure evidence is required. *Did you raise it* and *do you own it
 are two questions and a person can fail either. See [Validation and
 findings](/help/validation).
 
+### Access recertification
+
+The incompatible-roles check fires when access is **granted**. What it cannot
+catch is access that was right when it was granted and stopped being right
+afterwards — somebody moved desk, a secondment ended, a project closed. None of
+that changes a role, so none of it ever trips the rule above.
+
+Open a review over everybody active, or over named accounts:
+
+```bash
+POST /api/v1/recertification
+{"reference": "ACC-2026-Q3", "reviewer": "s.iqbal"}
+```
+
+Each account gets confirmed or revoked. There is no third answer, and **there is
+no timeout**:
+
+> Every access review tool in the world times out. Some close an unanswered item
+> as confirmed, some close it silently, and both report a completed review. The
+> access nobody looked at is the access most likely to be wrong — the reviewer
+> did not answer for the same reason the access is stale: they did not know who
+> this person was.
+
+So an unanswered item stays `unreviewed`, closing the campaign decides nothing
+about it, and `confirmed` and `unreviewed` are never added together. The closing
+record says how many were left, and `GET /api/v1/recertification` reports active
+accounts **nobody has ever looked at** — because a review that has not run is not
+a review that found nothing.
+
+| It refuses | Because |
+|---|---|
+| `self_recertification` | this is the whole failure mode of an access review. A reviewer assigned their own row confirms it, because there is nothing to think about |
+| `reason_required` on a revocation | a role removed with no reason cannot be told apart afterwards from an administrative mistake, and the person whose access went is the one who asks |
+| `empty_population` | an empty review that closes clean is a control reporting an all-clear over an estate it never saw |
+
+**Revoking removes roles in MAYA's register and nothing else.** Not a directory,
+not a database grant, not a VPN profile, not anybody's job. The answer tells you
+which roles went here and says the rest is somebody else's record — a platform
+reporting *access removed* would be reporting a removal it cannot see.
+
+Each row carries the roles **as they stood when the campaign opened**, so last
+quarter's review still describes last quarter's access. And each is flagged with
+*reasons* rather than a score — an incompatible pair, an account never signed
+into, one dormant more than 90 days, one holding no roles at all. A reviewer
+handed a ranked list reviews the top of it.
+
+MAYA does not choose who reviews whom. It holds no reporting line, and inferring
+one from roles would put the second line in charge of recertifying the first
+line's managers because that is what the permissions happen to look like. The
+cadence is reported and never enforced, for the same reason: it does not know
+your policy.
+
+The screen is **Admin → People and roles**.
+
 ## Signing in
 
 The interface uses a signed session cookie. Services and scripts use HTTP Basic

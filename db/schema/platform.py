@@ -925,3 +925,50 @@ AUTHORITY_DELEGATION = Table(
     Column("expires_at", Double, nullable=False),
     Index("ix_authority_delegation_principal", "principal", "expires_at"),
 )
+
+
+# --------------------------------------------------------------------------
+# FR-SEC-005. Periodic access recertification — the half of the requirement the
+# rule engine cannot cover. Incompatible role pairs are refused at grant time;
+# what nothing catches is access that was correct when granted and stopped
+# being correct afterwards, because a secondment ending changes no role.
+RECERTIFICATION = Table(
+    "recertification", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("reference", Text, nullable=False),
+    Column("title", Text, nullable=False, server_default=text("''")),
+    # Named when the campaign opens. MAYA holds no reporting line, and
+    # inferring one from roles would put the second line in charge of
+    # recertifying the first line's managers.
+    Column("reviewer", Text, nullable=False),
+    Column("status", Text, nullable=False, server_default=text("'open'")),
+    Column("opened_by", Text, nullable=False),
+    Column("opened_at", Double, nullable=False),
+    # Closing decides NOTHING about what was unreviewed. There is no timeout
+    # and no setting that adds `unreviewed` to `confirmed`.
+    Column("closed_at", Double),
+    Index("uq_recertification", "reference", unique=True),
+)
+
+RECERTIFICATION_ITEM = Table(
+    "recertification_item", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("campaign_reference", Text, nullable=False),
+    Column("principal", Text, nullable=False),
+    # What the access WAS when somebody looked. Copied rather than joined,
+    # because the answer has to stay readable after the roles change — which is
+    # the entire point of asking.
+    Column("roles", Text, nullable=False, server_default=text("'[]'")),
+    Column("legal_entities", Text, nullable=False, server_default=text("'[]'")),
+    Column("domains", Text, nullable=False, server_default=text("'[]'")),
+    Column("last_seen_at", Double),
+    # 'unreviewed' is the absence of an answer, and the absence of an answer is
+    # the finding. It never becomes 'confirmed'.
+    Column("state", Text, nullable=False, server_default=text("'unreviewed'")),
+    Column("reason", Text, nullable=False, server_default=text("''")),
+    Column("answered_by", Text, nullable=False, server_default=text("''")),
+    Column("answered_at", Double),
+    Index("uq_recertification_item", "campaign_reference", "principal",
+          unique=True),
+    Index("ix_recertification_item_principal", "principal"),
+)

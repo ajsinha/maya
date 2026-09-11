@@ -2999,6 +2999,39 @@ in the break-glass log — it is in what is missing from it. `unglassed` counts 
 administrator that fell inside no open window, folded from the evidence chain rather than reported by the
 people it is about. It is the one number on that screen an examiner should read before any of the others.
 
+### 18.3 The access review, and the answer that must never be inferred
+
+The incompatible-roles engine fires when access is **granted**. What nothing catches is access that was
+correct when it was granted and stopped being correct afterwards — somebody moved desk, a secondment ended,
+a project closed. None of that changes a role, so `FR-SEC-005`'s rule-engine half never fires on any of it,
+and recertification is the control for exactly that gap.
+
+`core/authz/recertification.py` opens a campaign over a population, a named reviewer answers each account,
+and the design turns on one question: what does an item nobody answered mean?
+
+> Every access review tool times out. Some close an unanswered item as confirmed, some close it silently,
+> and both report a completed review. **The access nobody looked at is the access most likely to be wrong**,
+> because the reviewer did not answer for the same reason the access is stale — they did not know who this
+> person was.
+
+So `unreviewed` is a first-class value, closing a campaign decides nothing about what is in it, and there is
+no setting that adds `unreviewed` to `confirmed`. The closing evidence node records how many were left, and
+`across_the_estate()` reports active accounts **nobody has ever looked at** — because a review that has not
+run is not a review that found nothing.
+
+| Decision | Why |
+|---|---|
+| A reviewer may not answer their **own** row | The whole failure mode of an access review, and not hypothetical: a reviewer assigned their own access confirms it, because there is nothing to think about |
+| A revocation needs a **reason** | A role removed with no reason cannot be told apart afterwards from an administrative mistake, and the person whose access went is the one who asks |
+| A campaign over **nobody** is refused | An empty review that closes clean is a control reporting an all-clear over an estate it never saw |
+| The roles are **copied onto the item** | The answer has to stay readable after the roles change, which is the entire point of asking. A join would make last quarter's review describe today's access |
+| The reviewer is **named, not derived** | MAYA holds no reporting line, and inferring one from roles would put the second line in charge of recertifying the first line's managers because that is what the permissions happen to look like |
+| Flags are **reasons, not a score** | A conflict is the rule engine's own answer and dormancy is an observation; a reviewer handed a ranked list reviews the top of it |
+
+**And revoking removes roles in this register and nothing else.** It does not touch a directory, a database
+grant, a VPN profile or anybody's job. A platform reporting *access removed* would be reporting a removal it
+cannot see, so the answer says what MAYA did and leaves the rest as somebody else's record.
+
 ## 19. The interface and the SDK
 
 ### 19.1 The interface
@@ -3306,8 +3339,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 329 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 390 modules in one
+the 330 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 391 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

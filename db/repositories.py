@@ -636,6 +636,15 @@ class AuthorityDelegationRepository(Repository):
     TABLE, ORDER = "authority_delegation", "granted_at"
 
 
+class RecertificationRepository(Repository):
+    TABLE, ORDER = "recertification", "opened_at"
+
+
+class RecertificationItemRepository(Repository):
+    TABLE, ORDER = "recertification_item", "principal"
+    JSON = ("roles", "legal_entities", "domains")
+
+
 class TieringFactSourceRepository(Repository):
     TABLE, ORDER = "tiering_fact_source", "recorded_at"
 
