@@ -941,6 +941,23 @@ CREATE TABLE IF NOT EXISTS model_assumption (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_model_assumption_model_version_id_reference ON model_assumption (model_version_id, reference);
 
+CREATE TABLE IF NOT EXISTS model_decommission (
+    id TEXT NOT NULL,
+    model_id TEXT NOT NULL,
+    urn TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    replacement TEXT NOT NULL,
+    retention_class TEXT NOT NULL,
+    notified TEXT DEFAULT '[]' NOT NULL,
+    unnotified TEXT DEFAULT '[]' NOT NULL,
+    acknowledged BOOLEAN DEFAULT false NOT NULL,
+    consumers_known BOOLEAN DEFAULT false NOT NULL,
+    decommissioned_by TEXT NOT NULL,
+    decommissioned_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_model_decommission ON model_decommission (model_id);
+
 CREATE TABLE IF NOT EXISTS model_edge (
     id TEXT NOT NULL,
     from_model TEXT NOT NULL,

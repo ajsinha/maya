@@ -99,3 +99,37 @@
     });
   }
 }());
+
+/* Decommissioning. Posted whole rather than field by field: the refusals are
+   about the record being complete, and a form that validated the rationale
+   before the consumer list would teach the wrong lesson about which of them
+   matters. The consumer list is pre-filled with whoever reads this model, so
+   the default act is *tell them*, and going ahead anyway is a tick somebody
+   has to make. */
+(function () {
+  "use strict";
+  var form = document.getElementById("decommission-form");
+  if (!form) { return; }
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var A = window.mayaAlgebra;
+    var urn = "maya://model/" + form.getAttribute("data-name");
+    var notified = document.getElementById("dc-notified").value
+      .split(",").map(function (s) { return s.trim(); })
+      .filter(function (s) { return s.length > 0; });
+    A.post("/api/v1/decommission?urn=" + encodeURIComponent(urn), {
+      rationale: document.getElementById("dc-rationale").value,
+      replacement: document.getElementById("dc-replacement").value,
+      retention_class: document.getElementById("dc-retention").value,
+      notified: notified,
+      acknowledged: document.getElementById("dc-acknowledged").checked
+    })
+      .done(function () {
+        A.accept("#decommission-result",
+                 "Recorded, and the model is out of service. Nothing was " +
+                 "archived and nothing was deleted.");
+        window.setTimeout(function () { window.location.reload(); }, 1200);
+      })
+      .fail(function (xhr) { A.refuse("#decommission-result", xhr); });
+  });
+}());

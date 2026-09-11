@@ -22,6 +22,19 @@ from core.lifecycle.conditions import ApprovalConditions
 from routes.base import Body, Routes
 
 
+class DecommissionIn(Body):
+    """Taking a model out of service, with the four facts a firm needs later.
+
+    `replacement` is a registered URN or the literal `none`. Blank is refused
+    because blank is indistinguishable from nobody having filled it in.
+    """
+    rationale: str
+    replacement: str
+    retention_class: str
+    notified: List[str] = Field(default_factory=list)
+    acknowledged: bool = False
+
+
 class CampaignIn(Body):
     """A round of asking.
 
@@ -419,9 +432,89 @@ class LifecycleRoutes(Routes):
 
         @self.app.post(f"{api}/models/{{name:path}}/retire", tags=["lifecycle"])
         def retire(request: Request, name: str, body: ReasonIn):
+            """Withdraw a model from use, keeping the record.
+
+            This is the transition and nothing else. `POST /decommission`
+            records what a retirement *is* — what replaced it, who was told,
+            how long it is kept — and refuses the silent versions. Both exist
+            because a model retired before that endpoint did has a reason and
+            none of the other three facts, and pretending otherwise would make
+            a backlog invisible.
+            """
             model = model_of(name)
             who = self.authorise(request, "model:retire", model=model)
             return self.guard(lambda: lifecycle.retire(model, self.actor(who), body.reason))
+
+        @self.app.get(f"{api}/decommission", tags=["lifecycle"])
+        def decommission_posture(request: Request, urn: Optional[str] = None):
+            """What a decommissioning captures — or one model's record.
+
+            Two things it does **not** do. It **notifies nobody**: `notified`
+            records who was *told*, as an attestation, because the people who
+            depend on a model are reachable through channels MAYA does not own
+            and claiming to have notified them would be claiming a delivery it
+            never made. And it **archives nothing and deletes nothing**: a
+            retention class states the obligation, and retiring a model does
+            not move a byte.
+            """
+            self.principal(request)
+            engine = self.ctx["decommissioning"]
+            if urn is None:
+                from core.lifecycle.decommission import Decommissioning
+                return Decommissioning.posture()
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(lambda: engine.of(model["urn"]))
+
+        @self.app.get(f"{api}/decommission/consumers", tags=["lifecycle"])
+        def decommission_consumers(request: Request, urn: str):
+            """Who reads this model, before anybody retires it.
+
+            Computed from the typed `input_to` edges the register already
+            holds, so it is the register's answer rather than somebody's
+            recollection.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["decommissioning"].consumers(model["urn"]))
+
+        @self.app.get(f"{api}/decommission/estate", tags=["lifecycle"])
+        def decommission_estate(request: Request):
+            """Retired models, and how many were decommissioned properly.
+
+            *Retired* and *decommissioned* are two different populations, and
+            the gap between them is a backlog somebody can work.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading decommissioning records")
+            return self.guard(
+                lambda: self.ctx["decommissioning"].across_the_estate())
+
+        @self.app.post(f"{api}/decommission", status_code=201,
+                       tags=["lifecycle"])
+        def decommission(request: Request, urn: str, body: DecommissionIn):
+            """Record the decommissioning, then retire.
+
+            Everything is validated **before** the transition, so a refusal
+            leaves the model in service rather than half-retired with no
+            record of why.
+
+            Three refusals. A replacement that is not registered is a sentence
+            rather than a link. A retention class MAYA does not have would be
+            a schedule nobody can act on. And a retirement with **unnotified
+            live consumers** is refused — escapably, because `acknowledged`
+            records that somebody looked at the list and decided, which is a
+            different fact from nobody having looked.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            who = self.authorise(request, "model:retire", model=model)
+            return self.guard(lambda: self.ctx["decommissioning"].decommission(
+                model["urn"], rationale=body.rationale,
+                replacement=body.replacement,
+                retention_class=body.retention_class,
+                notified=body.notified, acknowledged=body.acknowledged,
+                actor=self.actor(who)))
 
         @self.app.delete(f"{api}/models/{{name:path}}", tags=["lifecycle"])
         def delete(request: Request, name: str, reason: str = ""):

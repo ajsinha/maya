@@ -121,7 +121,7 @@ crawl your drives, so it cannot find an unregistered spreadsheet. In every one
 of those places it takes an **attested** fact from a named source, marks it as
 attested, and reports how much of the estate rests on somebody's word — because
 a register that could not tell a claim from a measurement would present both
-with the same confidence. See [The register's edges](/help/administering-maya)
+with the same confidence. See [The register's edges](/help/the-registers-edges)
 and `/admin/perimeter`.
 
 **It is not legal or regulatory advice.** It implements controls that map onto

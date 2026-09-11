@@ -277,6 +277,25 @@ class ReferenceIndex:
                 False))
 
         for row in self.db.query(
+                "SELECT id, replacement, retention_class, decommissioned_by "
+                "FROM model_decommission WHERE model_id = :m", {"m": model_id}):
+            found.append(Reference(
+                "model_decommission", row["id"],
+                f"decommissioned by {row['decommissioned_by']}, kept under "
+                f"'{row['retention_class']}'",
+                ("the record of why this model was taken out of service, what "
+                 "does its job now and how long it is kept. It exists BECAUSE "
+                 "those questions get asked years later by somebody who cannot "
+                 "ask anybody — and deleting the model deletes the answer "
+                 "along with the retention obligation that was the reason for "
+                 "keeping it"),
+                # Live-blocking, and the only one of these that is. Everything
+                # else here is evidence about a period already closed; this is
+                # an undischarged retention obligation, and deleting the row it
+                # attaches to is the specific act it exists to prevent.
+                True))
+
+        for row in self.db.query(
                 "SELECT id, fact, source, reference "
                 "FROM tiering_fact_source WHERE model_id = :m",
                 {"m": model_id}):
