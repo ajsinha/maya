@@ -109,7 +109,13 @@ class AliasService:
                 "refinement_holds": bool(proof["refinement"]["holds"]),
                 "variance_ok": bool(proof["variance"]["ok"]),
                 "attested": m.get("status") == "attested",
-                **(self.facts.alias_move(m) if self.facts else {})},
+                # `new` is the version the alias would point AT, and the
+                # sensitivity facts are about ITS contract. Passing the model
+                # alone would supply them false and a rule keyed on them could
+                # never fire on a move — which is the move that puts a model
+                # into production.
+                **(self.facts.alias_move(m, version=new) if self.facts
+                   else {})},
                 f"{urn} {environment}/{name}")
 
         now = time.time()
