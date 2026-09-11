@@ -1900,6 +1900,64 @@
         ]
       }
     },
+    "/api/v1/fact-sourcing": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/fact-sourcing/cohort": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/fact-sourcing/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/fact-sourcing/model": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "as_at",
+          "fact!",
+          "reference!",
+          "source!",
+          "value"
+        ],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
     "/api/v1/feature-contracts": {
       "post": {
         "body": [

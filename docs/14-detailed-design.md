@@ -3217,8 +3217,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 322 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 383 modules in one
+the 323 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 384 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3619,7 +3619,7 @@ says, in words, that the population is *attested* rather than observed.
 | **API conventions** — `ETag`/`If-Match`, `Idempotency-Key`, `?expand=`/`?fields=`, `?as_of=`, keyset cursors, SSE on `/events`, `Sunset` headers, `/derivations/{id}` | **This row said "none built" for several releases while five of the eight were running, which is the kind of documentation defect that makes a reader distrust the rest of the table.** Built: `ETag`/`If-None-Match`/`If-Match` (`core/concurrency/etags.py`, and a path with no GET to evaluate against **refuses** rather than dropping the header), `Idempotency-Key` (`core/concurrency/idempotency.py`, with a key replayed over a different body refused rather than replayed), `?as_of=` (`core/registry/asat.py`, folding the evidence chain), SSE (the live log), `?fields=` and keyset cursors and `Sunset` (`core/http/conventions.py`). **Offsets and cursors are both correct and for different lists** — an offset is what says *page four* to a person, and a cursor is what survives a queue being written to while somebody drains it; `core/domain/paging.py` and `core/http/conventions.py` each say which they are for. `?expand=` is not built and `/derivations/{id}` is a helper rather than a route |
 | **Composite warrants** and the interaction premium | `L-21` now gives `L-14` a derived composite schema to quantify over, and `shared_dependencies` computes the obstruction. The aggregate `ρ` is not built, so the question supervisors actually ask has a definition and no computation |
 | **Correlated findings** — one root finding with impact records | M-8. The `finding` table has no root, parent or correlation column. Suppression happens at delivery instead |
-| **Fact sourcing for tiering** — exposure bound to a system of record, an `unsourced` flag, peer-cohort outlier detection, retrospective calibration | H-8, open in full |
+| **Fact sourcing for tiering** | **Mostly built** — `core/risk/sourcing.py`. A fact is attested to a named system of record with a reference somebody can check; `sourced`/`asserted`/`stale` are three states rather than a flag, because a figure that aged is not a figure nobody measured. Peer-cohort comparison is a **question and raises no finding**. It fetches nothing and refuses nothing: a register that cannot be registered into produces unregistered models. Retrospective calibration is not built |
 | **Crypto-shredded personal data** — payload in Delta under a per-subject key, key destroyed on erasure | H-3's mechanism. What runs discards the payload instead, which satisfies `L-18` by making retrieval impossible. There is no `payload_uri` column |
 | **Legal hold, tombstones and a retention state machine** | M-7. Deletion is administrators-only, reasoned and evidenced, and cascades to nothing |
 | **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
