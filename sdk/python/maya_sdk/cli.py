@@ -20,7 +20,7 @@ So the interesting design decision here is not the command surface. It is the
 |---|---|---|
 | **0** | MAYA answered, and the answer was yes | proceed |
 | **1** | MAYA answered, and the answer was **no** | stop; the refusal says why and what to do |
-| **2** | MAYA was **not reached**, or the command was wrong | stop, and do not treat this as a verdict |
+| **2** | MAYA was **not reached**, the command was wrong, or the answer carried no verdict this tool can read | stop, and do not treat this as a verdict |
 
 The separation between 1 and 2 is the whole point. `Refused` and `Unreachable`
 are already distinct on the SDK side for the same reason, and collapsing them
@@ -60,8 +60,14 @@ from maya_sdk.errors import MayaError, Refused, Unreachable
 #: cannot tell it from a crash will eventually ship past one.
 REFUSED = 1
 
-#: MAYA was not reached, or the command was malformed. Never a verdict.
+#: MAYA was not reached, the command was malformed, or a verdict-shaped command
+#: came back in a shape this tool cannot read. Never a verdict.
 UNREACHABLE = 2
+
+#: The fields a verdict-shaped answer may carry its decision in. If none of them
+#: is present the answer is UNDETERMINED, not affirmative — reading an absent
+#: verdict as a yes is the same defect as reading an outage as compliance.
+VERDICT_FIELDS: Tuple[str, ...] = ("ready", "permitted", "ok", "passed")
 
 #: Read from the environment so a pipeline holds credentials where it already
 #: holds credentials, rather than in a command line that ends up in a build log.
@@ -278,7 +284,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return UNREACHABLE
 
     print(render(answer, args.as_json))
-    if getattr(args, "decides", False) and not _says_yes(answer):
+    if not getattr(args, "decides", False):
+        return 0
+    verdict = _verdict(answer)
+    if verdict is None:
+        # A verdict-shaped command whose verdict field is absent. NOT zero:
+        # this tool could not determine what the platform decided, which is the
+        # same position as not having reached it — and treating an unreadable
+        # answer as a yes is the identical failure to treating an unreachable
+        # register as compliance, one layer in.
+        print(f"UNDETERMINED  this command asks for a verdict and the answer "
+              f"carried none of {', '.join(VERDICT_FIELDS)}\n"
+              f"  → not a yes. The platform answered, but not in a shape this "
+              f"tool can read, so nothing has been established either way",
+              file=sys.stderr)
+        return UNREACHABLE
+    if not verdict:
         # The command's ANSWER was no. Not an error and not a crash: the
         # platform was reached, it decided, and the decision was negative —
         # which is exactly what a pipeline asked it for.
@@ -286,19 +307,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     return 0
 
 
-def _says_yes(answer: Any) -> bool:
-    """Whether a verdict-shaped answer was affirmative.
+def _verdict(answer: Any) -> Optional[bool]:
+    """The platform's own verdict, or `None` where there is not one.
 
-    Reads the platform's own field rather than inferring anything: `ready` is
-    the answer `/lifecycle-readiness` gives, and a CLI deciding readiness from
-    the parts would be a second implementation of the rule.
+    Reads the platform's field rather than inferring anything: `ready` is the
+    answer `/lifecycle-readiness` gives, and a CLI deciding readiness from the
+    parts would be a second implementation of the rule in the copy that ships
+    separately. `None` is a third value on purpose — an absent verdict is not a
+    negative one, and it is certainly not an affirmative one.
     """
     if not isinstance(answer, dict):
-        return True
-    for field in ("ready", "permitted", "ok", "passed"):
+        return None
+    for field in VERDICT_FIELDS:
         if field in answer:
             return bool(answer[field])
-    return True
+    return None
 
 
 if __name__ == "__main__":               # pragma: no cover - console entry

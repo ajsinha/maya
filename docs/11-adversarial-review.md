@@ -615,6 +615,118 @@ were attacked deliberately and held.
 
 ---
 
+## 6a. The third pass: attacking four controls the week they shipped
+
+The two earlier passes reviewed a design. This one attacked **four modules built in a single wave** —
+decommissioning (`FR-INV-018`), the delegated authority matrix (`FR-LC-005`), access recertification
+(`FR-SEC-005`) and the CLI (`FR-PLT-002`) — before anything but their own suites had touched them. Ten
+hypotheses were written as failing tests; **nine reproduced**.
+
+That hit rate is the finding underneath the findings. Every one of the four modules is *about* a control
+that looks enforced and is not; each shipped with a defect of exactly that shape. A module argues its own
+correctness most persuasively in the paragraph where it is wrong.
+
+### 6a.1 Withdrawing a band moved the bar under an approval people were signing
+
+The `version_approval.band` column carried a comment saying the bar could not move mid-approval. It moved.
+`required_roles` was frozen onto the approval, but **sequencing was re-derived from the live matrix at
+signing time** — so withdrawing or re-publishing a band silently changed the order an open approval was held
+to, and an administrator could relax second-line challenge on an approval already in flight without touching
+it.
+
+The fix is the one the column was reaching for: the **stages travel with the approval**, and
+`refuse_out_of_sequence` is now a pure function over them that cannot reach the matrix at all. The read that
+answers *what would this be sequenced as* is a separate method, `sequence_for`, and only the read consults
+the matrix.
+
+> The general lesson: freezing the *name* of a rule does not freeze the rule. Either the decision travels
+> with the record, or it will be recomputed against whatever is true later.
+
+### 6a.2 A ceiling in one currency authorised an exposure in another
+
+`delegate()` stores a currency. A sourced exposure has none — `tiering_fact_source` holds a number and no
+unit, **and so do the tiering bands it is graded against**. So `500,000,000` JPY was compared against an
+exposure of `200,000,000` as bare numbers, silently, in the permitting direction.
+
+This is the platform's own position violated: `core/estate/cost.py` refuses to sum currencies for exactly
+this reason. The fix states the assumption that had been load-bearing and unwritten since tiering was
+built — every exposure in the register is read as the estate's **reporting currency** — and refuses the
+comparison by name (`ceiling_not_comparable`) where a delegation is in any other. The tiering bands share
+the blindness; this is the first place it had to be written down.
+
+### 6a.3 A decommissioning record for a model still in service
+
+The module's own docstring promises that everything is validated **before** the transition, so a refusal
+leaves the model in service. It validated the four *facts* before the transition, then wrote the record and
+attempted the retirement as two acts. `retire` is not reachable from `submitted` or `amending` — so the
+record landed, the transition raised, and the register held a decommissioning for a model still in force.
+
+Legality is now checked first, from the state machine rather than from a list repeated here, so a seventh
+state cannot be added without this seeing it. A second decommissioning is refused as
+`already_decommissioned` rather than arriving as an `IntegrityError`: *why was this taken out* is not a
+question that may have two answers.
+
+### 6a.4 The reviewer column nothing read
+
+`recertification.reviewer` was recorded on every campaign and **never consulted**. Anybody holding
+`principal:manage` could answer any campaign, and the column was decoration — which is precisely the
+eleventh edge ([18 §3.11](18-the-registers-edges.md)) pointed at this repository's own new code, three days
+after that section was written.
+
+The named reviewer is now the only person who may answer, and handing a campaign over is `reassign`: an act
+with a reason, because reviewers leave, go on secondment, and turn out to be in the population they were
+asked to review.
+
+### 6a.5 Revoking the last administrator, through a door the guard did not cover
+
+`suspend` has always refused to remove the last principal who can administer principals. `set_roles` did
+not — and revoking an access recertification calls `set_roles`. The guard existed, the second caller did
+not exist when it was written, and recertification is the first thing that calls it over a population
+including the administrators.
+
+Fixed in `set_roles`, not in the caller, which closes it for every future caller too. **This is the whole
+argument for building the thing that exercises an old control**: the hole was a year old and invisible
+until something new walked into it.
+
+### 6a.6 An answer from 2019 read exactly like yesterday's
+
+`across_the_estate()` counted whether an account had **ever** been answered. A confirmation two and a half
+years old was indistinguishable from one made this morning, which is the shape of every access review run
+once and reported afterwards as a standing control. `overdue` is now its own population, keyed on the
+latest answer per account against the expected cadence.
+
+### 6a.7 An unreadable verdict exited zero
+
+The CLI's contribution is that 1 (*MAYA refused*) and 2 (*MAYA was not reached*) are different, so a
+pipeline cannot read an outage as compliance. A verdict-shaped command whose verdict field was **absent**
+exited **0** — the identical defect one layer in, and the module's own test asserted that it should.
+
+An absent verdict is now `UNDETERMINED`, exit 2. Not a yes.
+
+### 6a.8 What did not reproduce, and the two that were races
+
+One hypothesis failed to reproduce: a lapsed delegation already named expiry in its remediation. Two others
+were the familiar read-then-write shape — a duplicate band name and a duplicate decommissioning both
+surfaced as `IntegrityError`, i.e. a 500 where a refusal belonged. That is the same class as the dual-hat
+quorum race found in the second pass, and finding it twice says the pattern needs a habit rather than a
+fix: **any check that reads before it writes needs the unique index behind it and the `IntegrityError`
+translated back into the refusal the reader was going to get anyway.**
+
+### 6a.9 What this pass says about the method
+
+[§8](#8-what-this-review-method-gets-wrong) claims the findings that change the platform most are found by
+*building the next thing*, never by re-reading a document. This pass is the counter-example and the
+qualification at once. The nine were found by re-reading — but only by re-reading **code written days
+earlier against the documents that describe what it should do**, where the prose was fresh enough to be
+checked line by line against the implementation and specific enough to be falsified. Two of the nine are
+literally the module contradicting its own docstring.
+
+The transferable rule: **attack a module in the paragraph where it is most confident.** Every one of these
+four modules is about a control that reports itself as enforced while enforcing nothing, and every one of
+them shipped with a defect of that exact shape.
+
+---
+
 ## 7. Disposition, as it stands
 
 | | Findings | Control in the source today | Open or moot |
@@ -623,6 +735,7 @@ were attacked deliberately and held.
 | **High** | H-1 … H-9 | H-5, H-6, H-8 | H-2 and H-9 open; H-1, H-4, H-7 moot because the thing they were about was not built |
 | **Medium / low** | M-1 … M-8, F-1 … F-4 | M-1, M-2, F-1 … F-4 | M-4, M-6 not built; M-7, M-8 partial; M-3, M-5 moot |
 | **New** | [§4](#4-the-open-attacks) | — | Ten, of which [§4.1](#41-there-is-one-database-one-identity-and-a-generic-update-on-every-table), [§4.2](#42-the-revocation-floor-cannot-fire), [§4.4](#44-no-transaction-spans-a-governance-act) and [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build) are the ones that would change what MAYA can claim |
+| **Third pass** | [§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped) | all nine | Ten hypotheses, nine reproduced, nine fixed and pinned by regression tests |
 
 **The four to fix first**, and the argument for that order. **A build** first, because it is a day's work
 and every other assurance in this repository is currently a habit rather than a gate. **The revocation

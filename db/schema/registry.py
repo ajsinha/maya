@@ -432,11 +432,15 @@ VERSION_APPROVAL = Table(
     Column("tier", Integer),
     Column("required_roles", Text, nullable=False, server_default=text("'[]'")),
     # Which band of the authority matrix this approval was opened under, where
-    # one is published. Written at open time rather than recomputed at signing
-    # time: a matrix withdrawn or re-published mid-approval would otherwise
-    # change what an open approval requires, and a bar that moves while people
-    # are signing is worse than no bar.
+    # one is published, and the ORDER that band required.
+    #
+    # Both written at open time. The name alone was not enough: sequencing was
+    # recomputed from the live matrix at signing time, so withdrawing the band
+    # silently changed the order an open approval was held to — the exact thing
+    # this column's first version claimed to prevent. The stages travel with
+    # the approval so that nothing at signing time needs to consult the matrix.
     Column("band", Text, nullable=True),
+    Column("stages", Text, nullable=False, server_default=text("'[]'")),
     Column("status", Text, nullable=False, server_default=text("'open'")),
     Column("statement", Text, nullable=False, server_default=text("''")),
     Column("opened_by", Text, nullable=False),

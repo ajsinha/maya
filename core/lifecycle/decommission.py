@@ -65,6 +65,7 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 
 from core.lifecycle.common import LifecycleError
 from core.log import get_logger
+from core.lifecycle.states import RETIRED, transition
 from core.retention import CLASSES
 
 logger = get_logger(__name__)
@@ -172,6 +173,15 @@ class Decommissioning:
         moment = now if now is not None else time.time()
         why = dict(REQUIRED)
 
+        if self.repo.one(model_id=model["id"]) is not None:
+            raise LifecycleError(
+                "already_decommissioned",
+                f"{model['urn']} already carries a decommissioning record",
+                "read it at GET /decommission?urn=. A second record would "
+                "make *why was this taken out* a question with two answers, "
+                "which is worse than the one answer being wrong")
+        self._refuse_if_it_cannot_be_retired(model)
+
         if not str(rationale).strip() or len(str(rationale).strip()) < 10:
             raise LifecycleError(
                 "rationale_required",
@@ -242,6 +252,36 @@ class Decommissioning:
         return {**row, "status": retired.get("status", "retired"),
                 "retention": self._retention_note(retention_class),
                 "detail": self._detail(row, reading)}
+
+    def _refuse_if_it_cannot_be_retired(self, model: Dict[str, Any]) -> None:
+        """Checked BEFORE anything is written, and this is the second half of
+        that promise.
+
+        The first version validated the four facts before the transition and
+        then wrote the record and attempted the retirement as two acts. A model
+        in `submitted` or `amending` cannot be retired — `retire` is reachable
+        from `attested`, `approved`, `draft` and `baselined` — so the record
+        landed, the transition raised, and the register held a decommissioning
+        for a model still in service. That is the exact failure this module
+        claims in its own docstring not to have.
+
+        The legality comes from the state machine rather than from a list
+        repeated here, so a seventh state cannot be added without this seeing
+        it.
+        """
+        if self.lifecycle is None or model.get("status") == RETIRED:
+            return
+        move = transition("retire")
+        if move is None or model.get("status") in move.sources:
+            return
+        raise LifecycleError(
+            "illegal_transition",
+            f"a model in '{model.get('status')}' cannot be retired, so it "
+            f"cannot be decommissioned either",
+            f"retirement is reachable from "
+            f"{', '.join(sorted(move.sources))}. Finish or withdraw what "
+            f"is in flight first — a decommissioning record for a model still "
+            f"in service is worse than no record")
 
     def _require_registered(self, urn: str) -> None:
         try:
