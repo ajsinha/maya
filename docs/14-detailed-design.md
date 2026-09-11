@@ -3224,8 +3224,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 326 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 387 modules in one
+the 327 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 388 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3647,6 +3647,68 @@ that is the threshold, and a threshold with a number in it is a judgement made o
 a firm's behalf, so it is stated, configurable, and defaults high. A trigger that
 fires on every rounding is one somebody switches off, taking the real ones with
 it.
+
+### 26.11 A tag that nothing reads (`core/features/screening.py`)
+
+Two requirements were marked *Partial* with almost the same sentence.
+`FR-FEA-013` tags protected characteristics and known proxies, and **no policy
+enforced anything**. `FR-FEA-014` has certification levels with their own
+lifecycle act, and **no policy keyed on them**.
+
+This belongs in §26 rather than in the feature platform because it is the same
+failure the rest of this section is about, pointed inward. A `protected_basis`
+column that nothing reads is a control that exists in a screenshot — and it is
+**worse than an absent column**, because the absent one is obviously absent. A
+tagged estate looks governed, and a reviewer who sees the tag reasonably assumes
+something acts on it.
+
+**What was missing was not a rule. It was the facts.** A rule in `core/policy/`
+is a predicate over a *closed vocabulary of published facts*, and that
+vocabulary could not see what a version's contract binds — the sensitivity lives
+on the features, the contract pins views, and nothing walked between them. So no
+rule could be written about it however much a firm wanted one.
+
+Five facts are now published at `version:approve` and `alias:move`, computed by
+walking contract → **pinned** view version → features. Pinned, because a view
+that gained a protected characteristic after this contract was bound has not
+changed what this version reads, and reporting it would be a finding about a
+model that never saw the column.
+
+`proxy_risk` is separate from `protected_basis` for a reason worth stating: a
+proxy is not obviously a protected characteristic, so **a model built on one is
+discriminating without any column saying so**. And `lowest_certification` is the
+*weakest* among everything bound — a model is no better certified than its least
+certified input — with `deprecated` ranked below `experimental`, because
+experimental is *nobody has vouched for this yet* and deprecated is *somebody
+has vouched against it*.
+
+**No default rule ships**, and the requirement's own wording is the argument:
+*prohibit direct use in in-scope credit models while permitting controlled use
+for fairness testing*. Which models are in scope, and what counts as fairness
+testing, are facts about an institution's obligations under its own regulator. A
+platform refusing on `protected_basis` alone would refuse the fairness testing
+the same regulation requires.
+
+Three further decisions.
+
+**The facts are not published at `warrant:resolve`.** Refusing a resolution for
+a feature the model was *approved* with would take a model out of production for
+a decision somebody already made, at the worst possible moment.
+
+**A screening failure leaves the flags false**, which is the opposite of the
+conservative reading used everywhere else in `core/policy/wiring.py`. A rule
+written as *refuse when `binds_protected_basis`* would fire on every version if
+the default were true, and a gate that refuses everything is switched off within
+a day — taking the real refusals with it. The risk is logged instead, which is
+the findable place for it.
+
+**And the exposure is reported whether or not a rule exists.** That is the
+answer to the defect one level up: a platform that published facts and stopped
+would leave a firm that never wrote the rule exactly where it started. So
+`across_the_estate` counts the models binding a protected characteristic **and
+says whether any rule in force refuses on it** — *nineteen approved models bind
+a protected characteristic, and no rule refuses one* is a sentence a second line
+can act on, and it does not exist in a platform that only offers a vocabulary.
 
 ## 27. Infrastructure the design assumes and the build does not have
 

@@ -398,3 +398,59 @@ class FeatureRoutes(Routes):
             return self.guard(
                 lambda: self.ctx["feature_impact"].of_restatement(
                     view, version, now=now))
+
+        # ------------------------------- what a contract actually depends on
+        @self.app.get(f"{self.api}/contract-screening", tags=["features"])
+        def screening_posture(request: Request):
+            """What this computes, and the decision it refuses to make.
+
+            `protected_basis`, `proxy_risk` and `certification` have been
+            columns on every feature since the catalogue was built, and
+            **nothing enforced them**. What was missing was not a rule — it
+            was the facts: nothing in the policy vocabulary could see what a
+            version's contract binds, so no rule could be written about them
+            however much a firm wanted one.
+
+            It ships **no default rule**, and the requirement's own wording is
+            why: *prohibit direct use in in-scope credit models while
+            permitting controlled use for fairness testing*. A platform
+            refusing on `protected_basis` alone would refuse the fairness
+            testing the same regulation requires.
+            """
+            self.principal(request)
+            from core.features.screening import ContractScreening
+            return ContractScreening.posture()
+
+        @self.app.get(f"{self.api}/contract-screening/version", tags=["features"])
+        def screening_of(request: Request, urn: str, semver: str):
+            """The five facts, for one version's contract.
+
+            Walked at the **pinned** view versions. A view that gained a
+            protected characteristic after this contract was bound has not
+            changed what this version reads, and reporting it would be a
+            finding about a model that never saw the column.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            version = self.ctx["registry"].version(urn, semver)
+            if version is None:
+                raise self.not_found(f"{urn} has no version {semver}")
+            return self.guard(lambda: self.ctx["contract_screening"]
+                              .facts_for(version["id"]))
+
+        @self.app.get(f"{self.api}/contract-screening/estate", tags=["features"])
+        def screening_estate(request: Request):
+            """How exposed this estate is, **and whether any rule refuses on it**.
+
+            The second half is the point. A platform that published facts and
+            left it there would leave a firm that never wrote the rule exactly
+            where it started — tagged and unenforced — with no way to find
+            out. *Nineteen approved models bind a protected characteristic and
+            no rule in force refuses one* is a sentence a second line can act
+            on, and it does not exist in a platform that only offers a
+            vocabulary.
+            """
+            self.authorise(request, "feature:read",
+                           estate_wide="reading contract screening")
+            return self.guard(
+                lambda: self.ctx["contract_screening"].across_the_estate())

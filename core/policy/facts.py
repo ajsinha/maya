@@ -36,6 +36,30 @@ FACTS: Dict[str, Dict[str, str]] = {
         "documents": "how many documents are on file against this model",
         "accepted_documents": "how many of those a second person accepted",
         "quorum_signatures": "signatures gathered on the open approval, if any",
+        # What the version's feature contract BINDS, as against what the
+        # version says about itself. These four were the missing half of
+        # `FR-FEA-013` and `FR-FEA-014`: a feature has carried
+        # `protected_basis`, `proxy_risk` and `certification` since the
+        # catalogue was built, and nothing in this vocabulary could see them —
+        # so no rule could be written about them however much a firm wanted
+        # one. A tag nothing reads is a control that exists in a screenshot.
+        #
+        # Computed by walking the contract's PINNED view versions, so a view
+        # that gained a protected characteristic after this contract was bound
+        # does not retroactively change what this version reads.
+        "binds_protected_basis": "whether the version's feature contract binds "
+                                 "a feature tagged as a protected "
+                                 "characteristic",
+        "binds_proxy_risk": "whether it binds a known proxy for one. Separate "
+                            "from the above because a proxy is the harder "
+                            "case: a model built on one is discriminating "
+                            "without any column saying so",
+        "binds_pii": "whether it binds a feature carrying personal data",
+        "binds_uncertified": "whether it binds a feature that is not "
+                             "`certified`",
+        "lowest_certification": "the weakest certification among everything "
+                                "the contract binds. A model is no better "
+                                "certified than its least certified input",
         "actor_roles": "the roles held by whoever is asking",
     },
     "alias:move": {
@@ -48,6 +72,30 @@ FACTS: Dict[str, Dict[str, str]] = {
         "refinement_holds": "whether the new contract refines the incumbent's",
         "variance_ok": "whether the schemas satisfy the variance rule",
         "attested": "whether the model record is currently attested",
+        # What the version's feature contract BINDS, as against what the
+        # version says about itself. These four were the missing half of
+        # `FR-FEA-013` and `FR-FEA-014`: a feature has carried
+        # `protected_basis`, `proxy_risk` and `certification` since the
+        # catalogue was built, and nothing in this vocabulary could see them —
+        # so no rule could be written about them however much a firm wanted
+        # one. A tag nothing reads is a control that exists in a screenshot.
+        #
+        # Computed by walking the contract's PINNED view versions, so a view
+        # that gained a protected characteristic after this contract was bound
+        # does not retroactively change what this version reads.
+        "binds_protected_basis": "whether the version's feature contract binds "
+                                 "a feature tagged as a protected "
+                                 "characteristic",
+        "binds_proxy_risk": "whether it binds a known proxy for one. Separate "
+                            "from the above because a proxy is the harder "
+                            "case: a model built on one is discriminating "
+                            "without any column saying so",
+        "binds_pii": "whether it binds a feature carrying personal data",
+        "binds_uncertified": "whether it binds a feature that is not "
+                             "`certified`",
+        "lowest_certification": "the weakest certification among everything "
+                                "the contract binds. A model is no better "
+                                "certified than its least certified input",
         "actor_roles": "the roles held by whoever is asking",
     },
     "model:mutate": {

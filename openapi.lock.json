@@ -1249,6 +1249,37 @@
         ]
       }
     },
+    "/api/v1/contract-screening": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/contract-screening/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/contract-screening/version": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:semver!",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/conventions": {
       "get": {
         "body": [],
