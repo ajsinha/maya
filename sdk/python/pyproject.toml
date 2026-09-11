@@ -28,5 +28,11 @@ classifiers = [
 # suite and drive the real application in-process.
 test = ["pytest"]
 
+[project.scripts]
+# The CLI. Exit 0 = yes, 1 = MAYA refused, 2 = MAYA was not reached — and the
+# separation of the last two is the point: a build that went green because the
+# governance platform was down is worse than one with no gate at all.
+maya = "maya_sdk.cli:main"
+
 [tool.setuptools.packages.find]
 include = ["maya_sdk*"]
