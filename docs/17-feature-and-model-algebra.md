@@ -419,14 +419,20 @@ the `AsOf` law is tested, and composition type-checks.
 Stated here as well as in [00 §12](00-mathematical-foundations.md), because a gap
 recorded in one place is a gap somebody has to go looking for.
 
+Two rows below are **struck through**, and two more say *refused* rather than
+*not built*. That distinction is the one this table is now most useful for: a
+gap closes with effort, and a refusal closes only by making something else
+untrue. `L-14`'s premium and `L-11`'s `put` are in the second category, and
+building either would be building the wrong thing to make a law pass.
+
 | | |
 |---|---|
 | **`L-6`** abstraction soundness | needs a replay that checks a document's quantitative claims against the register; the replay exists for validation episodes, not for documents |
 | **`L-11`** lens laws | needs a `put`; the compiler regenerates whole documents |
 | **`L-13`** evidence gluing | no consistency radius is computed anywhere |
-| **`L-14`** interaction premium | §6 gives it something to quantify over; the aggregate `ρ` and composite warrants are not built |
+| **`L-14`** interaction premium | **The law runs; the aggregate `ρ` is refused.** Composite warrants are built — a chain resolves as one unit and its tier is the **join** of its nodes', which is what the theorem permits and no more. `ρ` as a magnitude is not coming: a network that *copies* a dependency and one that *duplicates* it produce identical component ratings, so any single figure over them is blind to exactly what it would exist to find. What composes is the **order** |
 | ~~**`L-15`**~~ | **now executable** — `core/fibres/`, gated at start-up, indexed by the derived trainability class rather than the declared `model_class` |
-| **`L-17`** contract–serving agreement | needs an online store. Half exists: `serving_namespaces` computes what serving *must* read |
+| ~~**`L-17`**~~ contract–serving agreement | **now executable**, and the blocker was the wrong one. It was thought to need an online store; [04 §8](04-architecture.md) says MAYA will never sit on the serving path, so the law had been made to depend on something the architecture forbids. **The engine attests** which namespaces it read and MAYA compares (`core/features/serving.py`). A store would buy *observation* rather than attestation, which is a smaller claim |
 | Featureset morphisms (`Δ/Σ/Π`) | §9; vocabulary borrowed, machinery not built |
 | The two diagrams | §7 |
 | Full coverage checking for rule sets | the shipped analysis decides whether a **single** earlier rule shadows a later one, never a union of them. Decidable, and a solver; see [02](02-model-taxonomy.md#t8-the-fibre-that-was-least-served) |
