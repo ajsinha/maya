@@ -541,7 +541,7 @@ discovers the difference by looking for a service that is not there.
 | Eventing | Kafka with CloudEvents | **not used** |
 | Policy | OPA/Rego | `core/policy/`: a rule is a predicate over a **closed vocabulary** of published facts — comparison, membership, boolean connectives, `any`/`all` and six other functions; no loops, no assignment, no attribute access — checked at the AST. Rego is a general language, and a gate written in one is a program a reviewer has to *run* rather than reason about |
 | Auth | OIDC + SAML + SCIM + MFA | OIDC authorisation code with PKCE, state and nonce; HTTP Basic and a session cookie for people; CSRF on cookie authority. **No SAML, no SCIM, no MFA, no Authlib.** RS256 verification is in the standard library (`core/authz/jws.py`) for the air-gap reason: it *constructs* the padded block the signature should have produced and compares the whole of it, and decides the algorithm itself rather than reading `alg` from the token |
-| Warrant signing | Ed25519 | HMAC-SHA256. Ed25519 remains the target |
+| Warrant signing | Ed25519 | HMAC-SHA256 with the key **derived per audience** — a compromised engine forges warrants for itself and nobody else. Ed25519 is not the target any more: asymmetry would buy non-repudiation to a *third party*, which is a requirement nobody has raised, and the containment it was wanted for is what the derivation provides |
 | Artifact signing | Sigstore/cosign, in-toto | **not used** |
 | Sandboxing | gVisor / Kata on Kubernetes | a `spawn`ed child with `RLIMIT_CPU` and `RLIMIT_AS` from the warrant — §5, and honestly scoped |
 | Search | Postgres FTS + `pgvector` | **not used.** No semantic matching, no duplicate-feature detection |

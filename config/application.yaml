@@ -207,6 +207,16 @@ warrants:
     4: 900
   jitter_pct: 20
   signing_key_id: maya-dev-key
+  # Each audience's signing key is DERIVED from the root and its own principal,
+  # so a compromised engine can forge warrants for itself and for nobody else.
+  # Turning this off restores one estate-wide secret — which any holder can use
+  # to mint a warrant for any model, any principal and any use — and exists only
+  # so a deployment mid-migration can still verify descriptors issued before it.
+  per_audience_keys: true
+  # Raise to re-key every audience at once without changing the root. The
+  # generation is in the key id, so warrants issued under an earlier one are
+  # distinguishable rather than mysteriously invalid.
+  key_generation: 1
 
 # MAYA manages models and issues warrants. It does not execute models. A captive
 # engine is bundled as a reference CONSUMER of the public warrant API, so that a

@@ -20,9 +20,10 @@ control.
 
 **MAYA verifies attestations; it does not mint them.** Signing happens in a build
 system, with keys a build system holds. A governance platform that signed
-artifacts would hold the key that could forge one — which is the same objection
-it already makes about its own warrant signing, and the reason asymmetric warrant
-signing is designed and not built. So an attestation arrives, and the register
+artifacts would hold the key that could forge one — the same objection it makes
+about its own warrant signing, which is why a warrant's key is derived from the
+audience it is issued to rather than shared across the estate. So an attestation
+arrives, and the register
 checks it against a **trusted identity** the firm configured, records the answer,
 and refuses at resolution if the firm asked it to.
 
