@@ -1,11 +1,59 @@
 # MAYA — Java SDK
 
-**Not built.** This file says what it has to do, so that when it is built it is a
-client rather than a second implementation of the platform.
+**Built.** `mvn -q test` — 17 tests, no runtime dependencies.
 
-Stated rather than sketched, deliberately: a stub that compiles and does the
-wrong thing is worse than an empty folder, because the folder is honest about
-where the work is.
+This file was the contract before there was an implementation, and it is kept in
+that order deliberately: what follows is what a MAYA client *must* do, and the
+implementation is held to it rather than described by it.
+
+```java
+Maya maya = Maya.withApiKey("https://maya.internal", System.getenv("MAYA_API_KEY"));
+
+Map<String, Object> descriptor = maya.resolve(
+    "maya://model/credit.pd.smallbiz#champion", "prod",
+    "svc/origination", "origination_decision");
+
+try (var sink = Files.newOutputStream(Path.of("training.parquet"))) {
+    maya.streamFeaturesetData("credit.origination", 3, "parquet", sink);
+}
+```
+
+## Building it
+
+Requires a JDK with a compiler — JDK 21 or 17. A JRE-only install will fail at
+`maven-compiler-plugin` with *release version 17 not supported*, which reads as
+a Maven problem and is not one:
+
+```
+JAVA_HOME=/path/to/a/jdk mvn -q test
+```
+
+Compiled to **release 17**, because that is the LTS most banks are on, and not
+because anything here wants to be old. `HttpClient.close()` is 21-only and is
+therefore not used.
+
+## No dependencies, and that is the design
+
+`java.net.http` has been in the JDK since 11, and the JSON this client needs is
+small enough to read and write by hand — `Json.java`, about two hundred lines.
+That is a smaller cost than asking a bank's platform team to get Jackson through
+an approval process so a service can call the register, and it is the same
+reason every front-end asset in this repository is vendored: a governance
+platform that cannot be deployed air-gapped is one somebody works around, and an
+SDK with a dependency tree moves that problem into the client's build rather
+than solving it.
+
+JUnit is the exception and reaches only the test classpath.
+
+## What a caller gets back
+
+`Map<String, Object>`, with the platform's own field names — the names in its
+documentation, its OpenAPI document and its error messages.
+
+There is deliberately **no typed model class** and no generated client. A Java
+object graph mirroring the platform's schemas is a second description of them,
+and a second description goes stale in the permissive direction. The Python SDK
+made the same choice for the same reason.
 
 ## The contract
 
@@ -85,9 +133,33 @@ No enumeration of trainability classes, verbs, runtimes or bindings — fetch
 that grows does not leave every client stale and confidently wrong.
 
 The Python SDK's test suite asserts this by walking its own source for a
-trainability class appearing in code rather than in prose. Whatever the
-equivalent is in Java, write it: this is the rule most likely to be broken by
-somebody being helpful.
+trainability class appearing in code rather than in prose. `MayaTest`
+`DecidesNothing` is the Java equivalent: it walks `src/main/java`, strips the
+comments — which argue about governance constantly and should — and fails on a
+trainability class, a tier table or a local `isApproved` appearing in the
+**code**. This is the rule most likely to be broken by somebody being helpful.
+
+## What the tests assert, and what they cannot
+
+The Python suite runs against the real application in-process, because a mock of
+the thing under test proves only that the mock agrees with itself. Java cannot
+reach that seam without standing a server up, so these tests take the other half
+of the job: the properties that are **local to the client**, and that are the
+ones a Java client gets wrong.
+
+That a `POST` says *do not retry me* and a `GET` says it is safe. That an
+outage is not a `Refused` and cannot be caught as one. That the remediation
+survives into the exception message, including when FastAPI has nested the
+problem document under `detail` — a client reading only the top level reports
+every such refusal with no remediation at all. That a proxy's HTML is kept
+rather than thrown over. That the digest is computed from the file and matches a
+**constant**, not a second computation, because two implementations of the same
+mistake agree.
+
+What they do not assert is that any endpoint exists or behaves as expected. That
+is what `sdk/python`'s suite is for, and duplicating it here would be a second
+set of expectations about the platform — which is the same failure as a second
+set of rules, one layer up.
 
 ## Reference
 

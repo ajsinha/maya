@@ -16,9 +16,12 @@ A detailed design earns its name only when a reader can go from a section to the
 the thing the section promised. The previous version could not, in enough places to matter: it described a
 Kafka event stream, a Redis descriptor cache, a Celery worker fleet, a Spark job, Postgres row-level
 security, an online feature store, Ed25519 signing, a plugin loader, and a browser front end built on
-server-side DataTables and a Cytoscape graph. **None of those exists.** Some are on the roadmap, some were
-abandoned, and one — the graph page — was described so confidently that a reader would have gone looking for
-a vendored library in a repository whose whole asset budget is six files.
+server-side DataTables and a Cytoscape graph. **None of those existed.** Some have since been built —
+the plugin loader is `core/plugins/discovery.py` — some were abandoned, one was replaced by something
+better (Ed25519 signing became a per-audience key derivation, §26.8, which buys the containment it was
+wanted for without a key hierarchy), and one — the graph page — was described so confidently that a
+reader would have gone looking for a vendored library in a repository whose whole asset budget is six
+files.
 
 So one rule governs every sentence below, and it is the same rule [08](08-ui-ux.md) adopted for the same
 reason:
@@ -3214,8 +3217,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 316 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 377 modules in one
+the 318 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 379 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3320,6 +3323,24 @@ triage somebody performed is then lost — which is how a discovery queue comes
 back next month the same size. Confidence is capped well below certainty for the
 same reason it is capped in §26.4.
 
+**And a present field with the right word on it is worse than an absent one.**
+`must_still_be_established` protects against an absence, and an absence is the
+easy case: somebody notices. `do_not_read_as` names the other kind — SageMaker's
+`ModelApprovalStatus` of `Approved`, which means a pipeline step passed;
+MLflow's `Production`, which is a deployment stage; a Unity Catalog owner, which
+is a read grant. Nobody goes looking for the difference between two things
+called *approved*, so the connector states it on every candidate that carries
+one.
+
+Seven sources have a connector, and the two that earn the section are the two an
+ML-platform connector never reaches. **SAS metadata** reaches a bank's oldest
+credit, capital and ALM models — built before anybody used the word platform,
+never in an ML registry, and the first thing a supervisor asks about. The
+**CMDB** holds the business service a thing supports, which is the nearest
+anything in the bank comes to materiality; it is carried as evidence and is
+still not materiality, because it tells a triager where to go and ask, which is
+worth a great deal and is not an answer.
+
 ### 26.4 What a scanner has to send (`core/discovery/contract.py`)
 
 MAYA does not sweep drives; §26.3's argument applies with more force, since a
@@ -3386,6 +3407,193 @@ rendering that dropped them would produce something that *looks* complete, and
 looking complete is the failure mode — a document whose thin sections are
 invisible is worse than a short one.
 
+### 26.7 Reading a rulebook the bank already has (`core/rules/importing.py`)
+
+A T8 model's parameter object is a rule set: authored rather than fitted, so
+authorship is its provenance. The register can hold one, version it, require a
+second person to approve it and explain every decision back to the rule that
+made it — on rule sets somebody typed in. A bank's actual rulebook is a decision
+table in a spreadsheet or a DMN file out of a BPM suite, and the distance
+between those two facts is the whole difference between a demonstration and a
+migration.
+
+The difficulty is not the parsing. It is that **a misread threshold does not
+fail.** It produces a rule set that loads, validates, publishes and then decides
+differently from the rulebook it claims to be, and nobody finds that by looking
+at it. Three refusals follow from that, and they are the design.
+
+**A cell that is a human judgement is reported, never guessed.** `>=650` parses;
+`good credit` does not. An import with any untranslated row is refused as a
+whole document rather than offered without those rows, because the rows a parser
+finds hard are the judgement calls, and the judgement calls are what a rulebook
+exists for.
+
+**A hit policy that does not map is refused by name**, with what first-match
+would silently become. `COLLECT` aggregates across every matching row, so
+first-match would return the first row's outcome and **agree with the source on
+most inputs** — which is worse than disagreeing on all of them. `PRIORITY`
+orders by output priority rather than row order, so reading it top-down inverts
+the rulebook on exactly the overlapping cases it was written to resolve.
+
+**The catch-all is derived, not invented.** A last row that constrains no input
+matches everything, and by the semantics of first-match that *is* the
+`otherwise` — lifting it is a derivation, not an inference from its position.
+The same row anywhere else makes every row below it unreachable, which is
+reported as a defect in the source table.
+
+Nothing is imported: what comes back is a rule set *document* for the same
+`check`, `trial` and `publish` path a hand-written one takes, second-person
+approval included. An importer that wrote into the register would be authoring a
+parameter set on somebody else's behalf, which is the one thing the rules editor
+was careful not to do.
+
+A **stored procedure** is the third format the roadmap named and it is refused.
+SQL is a general language with control flow, mutation and side effects, a
+translator would be a compiler, and the failure mode of a wrong compiler is a
+rule set that is subtly not the thing the bank has been running. The refusal
+names a route to what the caller wanted: a decision table extracted by somebody
+who understands the procedure.
+
+One security note, because the DMN reader is the only place in this codebase
+that parses untrusted XML. **A `DOCTYPE` is refused outright** and the document
+is size-bounded. Every XML attack worth the name arrives through a DOCTYPE —
+external entities, or entity expansion turning two kilobytes into two gigabytes
+— a decision table has no legitimate use for one, and refusing the construct
+removes the class. That is a better answer than a parser *configured* to be
+careful, because the careful configuration is what somebody later copies
+without. `defusedxml` would do the same and is not used for the reason nothing
+else here is: a governance platform that cannot be deployed air-gapped is one
+somebody works around, and this is nine lines.
+
+### 26.8 A signature an engine can check without being able to forge
+
+The five subjects above are places where MAYA relies on somebody else. This one
+is the mirror image: a place where somebody else relies on **MAYA**, and where
+the honest description of what they are getting is narrower than the word
+*signed* suggests.
+
+A descriptor is a bearer credential, HMAC-SHA256 over its canonical form. For
+two revisions the documented position was *asymmetric signing, not built*, which
+deferred a real defect to a key hierarchy nobody had and left the defect in
+place. The defect was that one estate-wide secret means any engine that can
+**verify** a warrant can **mint** one — for any model, any principal, any use —
+so the blast radius of one compromised consumer was the entire estate.
+
+That is two questions being treated as one. *Who can forge* is operational.
+*Who can prove authorship to a third party* needs public-key cryptography, and
+it is much rarer: it is showing somebody who is not the bank that only MAYA
+could have issued a descriptor. Nobody had asked for the second.
+
+The first needs no asymmetry at all. It needs the key derived from the audience:
+
+```
+k_audience = HMAC(root, "maya/warrant/v<generation>/" ‖ audience)
+```
+
+MAYA holds the root and derives every audience key; an engine is handed its own
+and can derive nothing, because the step is one-way. A stolen key forges
+warrants for **one principal**, which is containment — and containment is what
+the shared secret was costing.
+
+Three details carry it.
+
+**The audience is read from the document being verified**, not from the signer.
+An attacker who re-points a warrant they legitimately hold at another principal
+has changed the key it should have been signed under, so the substitution fails
+inside `verify()` rather than depending on a separate check somebody remembered
+to write.
+
+**A warrant with no principal gets an audience no principal can hold**, rather
+than falling back to the root. The fallback would restore the estate-wide key
+silently and only for the malformed cases, which is the worst of both.
+
+**`key_id` is `<root>.g<generation>.<audience digest>`**, both halves one-way.
+The root half makes rotation legible; the generation is what lets a warrant
+issued under an earlier key be *distinguishable* rather than mysteriously
+invalid; the audience half makes it obvious at a glance that two engines are not
+sharing a key.
+
+Distribution is one route, `POST /warrant-signing/key`, and it is the only
+endpoint in MAYA that returns a secret. It is a `POST` although it reads,
+because the act is a disclosure and belongs on the evidence chain rather than in
+a cacheable `GET`. The caller must be the audience or hold `principal:manage`.
+The node records who, for whom, and under which generation — and **not the key**,
+because writing a secret into an append-only chain would publish it to every
+holder of `evidence:read`, which is the defect `key_id` was fixed for.
+
+And `GET /warrant-signing` publishes what this does not do, in the same object
+as what it does: a verifier holds the key it verifies with, so **a descriptor is
+evidence to the bank and not to anybody outside it.** If a firm ever needs the
+other half, it is a new requirement with its own argument.
+
+### 26.9 An estate that will not fit in this process (`core/monitoring/distributed.py`)
+
+`evaluate_from_telemetry` reads a cohort into memory. Fine at hundreds of models
+and a few million rows a night; not at an estate-wide sweep over billions, where
+the read either exhausts the process or takes until lunchtime.
+
+The obvious answer is *put Spark in MAYA*, and it is wrong twice over: the
+governance platform would own a cluster, which §7 says it will not, and it would
+sit on the compute path for every model in the bank. A register that is down
+should stop issuing warrants, not stop a hundred teams' nightly batch.
+
+The next answer is §26's own pattern — take somebody else's number, refuse their
+verdict — which `core/monitoring/external.py` already does. It solves the
+compute problem and gives something real up: an external observation **cannot be
+replayed**, because MAYA holds neither the population nor a derivation. For an
+estate-wide sweep that means the whole sweep is unreproducible, which is a large
+price for a scaling problem.
+
+There is a better trade, and it rests on an ordinary fact about these metrics:
+**they are functions of sufficient statistics, not of rows.**
+
+| Metric | What a partition returns | Why it combines |
+|---|---|---|
+| PSI | the count of rows in each of the reference's bins | shares are counts over a total, and counts add |
+| AUC / Gini | the positives' rank sum, and the two class counts | the Mann-Whitney identity is arithmetic over those three numbers |
+| KS | bounded quantile buckets for each class | the two cumulative curves are sums of bucket counts |
+
+So the scan runs where the data is, on a cluster MAYA does not own, and what
+comes back is a few hundred numbers — while **MAYA computes the metric and
+compares it to the threshold.** That is the distinction this module holds that
+`external.py` cannot: it gives up only the *scan* and keeps both the derivation
+and the judgement. A submission carrying `psi: 0.31` would be an external
+observation wearing a better name; one carrying bin counts is a measurement this
+platform redoes, and does redo, whenever anybody asks.
+
+The tests assert the thing that makes it a measurement rather than an
+approximation: **the distributed value equals the in-process value exactly**,
+and the partitioning does not change it. If it did, the number would depend on
+how somebody's cluster happened to split the data — a metric nobody could
+reproduce and everybody would quote.
+
+Three refusals carry the rest.
+
+**The reference is the register's.** The plan carries bin edges derived from the
+sample MAYA holds, with a digest, and a submission quoting a different digest is
+refused. PSI against edges somebody else chose is a different measurement, and
+the two are indistinguishable once both are a number on a slide.
+
+**A global ranking is not a partition ranking.** A rank sum over one partition's
+rows is a rank sum in the wrong ordering, and summing those produces a number
+that looks like an AUC and is not — with nothing in the result to show it. So
+the job must *assert* that it ranked across the whole window, which makes a
+silent error into a stated claim.
+
+**A statistic that does not decompose is refused by name.** Hosmer-Lemeshow's
+deciles depend on the global distribution, so a per-partition decile is a
+different partitioning of a different population and the sum of the statistics
+is not the statistic. Brier is subtler and worth the entry: it decomposes
+arithmetically, and its *useful* form — the reliability/resolution/uncertainty
+split — does not, so submitting the scalar alone would hide which of the three
+moved, which is the only thing anybody asks it.
+
+And what the register cannot check is named rather than glossed. **A `WHERE`
+clause that quietly excluded a segment produces statistics that are
+arithmetically perfect and describe the wrong population.** Nothing here can see
+that, so the predicate and the claimed row count are recorded and the result
+says, in words, that the population is *attested* rather than observed.
+
 ## 27. Infrastructure the design assumes and the build does not have
 
 | Designed | Why it is not built, and what its absence costs |
@@ -3393,12 +3601,12 @@ invisible is worse than a short one.
 | **Redis descriptor cache**, with pre-warm-before-invalidate, single-flight coalescing and stale-while-revalidate | Finding H-1's stampede cannot occur because there is no cache. TTL jitter — the one piece that only matters *once* a cache exists — is built. Without a cache, every resolution reads four to six tables and the p99 targets in 03 are unreachable |
 | **Kafka event stream** (`maya.model.*`, `maya.warrant.*`, …) and a transactional **outbox** | There are no domain events leaving the process. Consumers integrate by polling the API |
 | **`warrant_projection` read model** | H-2's disposition. The warrant path reads normalised tables. The coupling costs nothing with one process and forecloses the deployment independence it was raised to protect |
-| **Spark** for point-in-time joins and monitor evaluation | Assembly and evaluation are in-process over pandas and Delta. Fine at hundreds of models; not at an estate-wide nightly sweep |
+| **Spark** for point-in-time joins | Assembly is in-process over pandas and Delta. **Monitor evaluation no longer needs it here** — §26.9 moves the scan to whatever the firm already runs and keeps the arithmetic, so the metric stays reproducible. The point-in-time join at assembly is the part still bounded by one process |
 | **An online feature store**, namespaced by view version, with dual-write and governed namespace retirement | `L-17` has nothing to compare against, so training–serving skew is undetectable. This is the one absence that makes a whole law inert. `serving_namespaces()` computes the half that can exist without a store |
 | **Postgres row-level security**, forced, with a non-owner application role and a cross-entity negative test | H-5. Scope is enforced in Python and the database offers no backstop |
 | **A separate audit database**, read replicas, monthly partitioning | H-9. One database, one identity, one flat evidence table |
 | ~~**WORM anchoring and an RFC-3161 timestamp** on the daily chain head~~ | **Both built** — anchoring in `core/evidence/anchor.py`, timestamping in `core/evidence/timestamps.py` (§26.1). C-4 disposition 2 is closed. What remains is not code: an authority has to be chosen and wired, and until one is the platform reports itself as arguing from its own clock rather than showing a tick |
-| **Asymmetric warrant signing** | HMAC-SHA256 ships. RS256 verification already exists in `core/authz/jws.py` for OIDC, so the primitive is here and the gap is key management — verifying a warrant currently requires holding a key that could mint one. **Deprioritised deliberately** (see [10 §2.1](10-roadmap.md)): MAYA's engines are inside the firm's trust boundary, and a per-engine HMAC key already confines a compromised engine to forging its own warrants. What asymmetry uniquely buys is non-repudiation to a third party, which nobody has asked for |
+| ~~**Asymmetric warrant signing**~~ | **No longer a requirement, and the defect it named is closed** — see §26.8. Each audience's key is derived from the root and that audience's own principal, so a compromised engine forges warrants for itself and nobody else. That is containment, which is what the shared secret was actually costing. Asymmetry would additionally buy non-repudiation *to a third party*, which is a different requirement nobody has raised; `GET /warrant-signing` states that a descriptor is evidence to the bank and not to anybody outside it, rather than letting *signed* be read as more |
 | ~~**A plugin loader and a fibre registry**~~ | **Both built** — the fibration over the derived trainability class with a start-up totality gate, and `entry_points` discovery in `core/plugins/discovery.py` (§26.2). `L-15` runs at every start-up. The base had to change for it to be checkable at all: totality over a free-text `model_class` is either a closed vocabulary or a gate defeated by a typo |
 | **Continuous integration** | Seven of the nine gates in [12 §7](12-implementation-plan.md) now run. What remains is DAST, a generated client and an accessibility run; migration rehearsal is not applicable, because there are no migrations |
 
@@ -3417,7 +3625,7 @@ invisible is worse than a short one.
 | **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
 | **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | **Built as the receiving half** (§26.3, §26.4). Each parses an export rather than calling an API, and produces candidates for triage rather than registrations. SageMaker, Vertex, SAS metadata and CMDB have none, and nothing sweeps: the contract a scanner must meet is published, and running one is somebody else's job |
 | **PDF and DOCX rendering** | **Refused by name with the reason** (§26.6). What is emitted is typesetting source with the citations intact — a PDF that flattened them away is a document whose claims can no longer be traced |
-| **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not |
+| ~~**A Java SDK**~~ | **Built** — `sdk/java`, release 17, no runtime dependencies. No typed model class and no generated client: a Java object graph mirroring the platform's schemas is a second description of them, and a second description goes stale in the permissive direction |
 
 ---
 
@@ -3441,7 +3649,7 @@ invisible is worse than a short one.
 | [§17](#17-the-http-surface)–[§19](#19-the-interface-and-the-sdk) Interfaces | `FR-PLT-*`; ADR-008, ADR-011; [08](08-ui-ux.md), [09 §1](09-security-compliance.md) |
 | [§20](#20-persistence-and-transactions)–[§21](#21-concurrency-and-idempotency) | `NFR-DATA-*`; [05](05-data-model.md); finding M-3 |
 | [§22](#22-refusals)–[§25](#25-testing-design) | `NFR-OPS-*`, `NFR-MNT-*`; ADR-010 |
-| [§26](#26-the-registers-edges) The register's edges | `FR-SEC-004`, `FR-SEC-008`, `FR-INV-012`, `FR-INV-013`, `FR-AI-012`, `FR-PLT-004`, `FR-DOC-010`; `INT-001`, `INT-002`, `INT-017`; finding C-4 |
+| [§26](#26-the-registers-edges) The register's edges | `FR-SEC-004`, `FR-SEC-008`, `FR-INV-012`, `FR-INV-013`, `FR-AI-012`, `FR-PLT-004`, `FR-DOC-010`, `FR-WARRANT-*`; `INT-001`, `INT-002`, `INT-017`; findings C-4, §4.3 |
 
 ---
 

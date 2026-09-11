@@ -436,12 +436,13 @@ card(sl, ML, y, half, 3.35, "BUILT AND RUNNING",
      "The AI framework: tiers, oracles, grounding, mandatory review sampling.")
 card(sl, ML + half + 0.34, y, half, 3.35, "NOT BUILT — SAY SO",
      "What would still be a programme",
-     "Connectors to MLflow, Unity Catalog and git. Bulk import exists; models "
-     "already in an ML platform are entered by hand.\n\n"
-     "Discovery. The inventory is what somebody registered — it finds nothing "
-     "nobody declared.\n\n"
-     "Asymmetric warrant signatures. Verifying a warrant today means holding "
-     "the key that could mint one; this is the largest gap.\n\n"
+     "An EUC sweep. MAYA publishes the contract a scanner must meet and "
+     "takes delivery; it does not crawl the bank's drives, and nobody here "
+     "runs a scanner yet.\n\n"
+     "Connectors past MLflow, Unity Catalog and git — SageMaker, Vertex, SAS, "
+     "the CMDB — and the push-status-back direction of all of them.\n\n"
+     "Rule-set import from a spreadsheet or a DMN file. This is the work that "
+     "decides whether the EUC estate is a demonstration or a programme.\n\n"
      "Scale beyond a single process, and every performance figure in the "
      "documents is a target rather than a measurement.")
 
@@ -508,8 +509,10 @@ h = table(sl, [
      "a name on it"],
     ["Q3", "The remaining books; connectors to whichever ML platform dominates",
      "The spreadsheet is decommissioned, not shadowed"],
-    ["Q4", "Asymmetric signatures; an examination rehearsal end to end",
-     "A warrant can be verified by somebody who could not mint one"],
+    ["Q4", "A discovery sweep against the published contract; an examination "
+     "rehearsal end to end",
+     "The inventory includes what nobody declared, and a supervisor's request "
+     "is answered from the register rather than assembled"],
 ], ML, y, CW, col_w=[1.0, 5.4, 5.25], row_h=0.34, fs=11, hfs=11)
 tf = txt(sl, ML, y + h + 0.32, CW, 1.4)
 runs(tf, [("“Done” is not a percentage of models registered. ", CRIMSON, True),
@@ -565,7 +568,7 @@ for line in ["Adopt MAYA as the register of record",
 tf = txt(sl, ML + CW * 0.58, 3.70, CW * 0.42, 2.4)
 para(tf, "WHERE TO LOOK NEXT", size=10, color=RGBColor(0xE0, 0xA8, 0xB2),
      bold=True, first=True, space_after=10)
-for line in ["The design deck — 127 slides, chapter 26 is the case studies",
+for line in ["The design deck — 128 slides, chapter 26 is the case studies",
              "case_studies/ — thirteen models, runnable in a minute each",
              "docs/11 — the adversarial review, written against this platform"]:
     para(tf, line, size=12, color=RGBColor(0xF6, 0xE6, 0xE9), space_after=8,

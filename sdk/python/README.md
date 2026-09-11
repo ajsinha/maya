@@ -71,6 +71,7 @@ fall behind again.
 | `maya.validations` | open, record a test, conclude, replay |
 | `maya.findings` | raise, assign, acknowledge, plan, extend, close, ageing, escalation |
 | `maya.monitors` | define, evaluate, evaluate from telemetry, observations |
+| `maya.distributed_monitoring` | an estate that will not fit in one process. A job computes **sufficient statistics** where the data is; MAYA computes the metric from them and compares it. Unlike an external observation, the result **can be replayed** |
 | `maya.reports` | query the semantic layer, save and run views, export, regulatory returns |
 | `maya.validation_aid` | vendor document coverage, challenge questions, untested assumptions |
 | `maya.regime_encoding` | propose an encoding from regulatory text; never activates |
@@ -118,6 +119,8 @@ says so in narrower words than the name suggests
 | `maya.scanner_contract` | what somebody else's discovery scanner has to send. Precision is computable; **recall is not**, and the grade says so |
 | `maya.shares` | a time-boxed link to a **content digest**, for a reader with no login. Not a portal, and it establishes no identity |
 | `maya.rendering` | a compiled document as typesetting source with its citations intact. MAYA runs no typesetter, and coverage gaps are written *into* the output |
+| `maya.rule_import` | a CSV decision table or a DMN file, read into a rule set **candidate**. Read `untranslated` first — a document with any entry there is refused whole, because a parser finds the judgement calls hard and the judgement calls are what a rulebook exists for |
+| `maya.warrant_signing` | what a signature proves, and the key an engine verifies its **own** warrants with. `posture()` says plainly that it does not prove authorship to a third party; `key()` is the only call here that returns a secret |
 
 ## Three things worth knowing before you use it
 

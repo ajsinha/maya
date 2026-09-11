@@ -1012,8 +1012,8 @@ all, because the paper said "reference implementation" four times and never name
 It's called **MAYA**, and it's at **[github.com/ajsinha/maya](https://github.com/ajsinha/maya)**.
 
 It isn't a demo built to illustrate the argument. The argument is the account of what building it required.
-At the revision this article describes: 316 Python modules that type-check clean, 82 tables in one typed
-schema that generates both dialects' DDL, 487 locked HTTP paths, and 5,279 tests that run on every push.
+At the revision this article describes: 318 Python modules that type-check clean, 82 tables in one typed
+schema that generates both dialects' DDL, 494 locked HTTP paths, and 5,394 tests that run on every push.
 
 Each of the four derivations is a module, not a proposal:
 
@@ -1152,7 +1152,7 @@ And a test had been passing on that wrong sentence.
 The mathematical audience and the model-risk audience barely overlap, and a paper that serves both usually
 serves neither. The system carries a second register of the same content with no notation in it — nineteen
 help pages and eight walkthroughs — including one called *What MAYA refuses to do*, which is the
-derive/declare boundary written as thirteen refusals and what each one protects. If you want the argument
+derive/declare boundary written as fourteen refusals and what each one protects. If you want the argument
 without the algebra, start there.
 
 ---

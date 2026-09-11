@@ -486,3 +486,54 @@ Overlays are a required section of every compiled model development document and
 Annex IV pack. A post-model adjustment is part of the number the model produces,
 so a document that omits them describes a model nobody runs. See
 [Documentation](/help/documentation).
+
+## When the estate will not fit in one process
+
+`evaluate_from_telemetry` reads the cohort into memory. That is fine at hundreds
+of models and a few million rows a night, and it is not fine at an estate-wide
+sweep over billions.
+
+MAYA does not solve that by running a cluster. Owning one would put the
+governance platform on the compute path for every model in the bank, which is
+the coupling the whole architecture avoids — a register that is down should stop
+issuing warrants, not stop a hundred teams' nightly batch.
+
+What moves is **the scan, and only the scan**. PSI, AUC, Gini and KS are
+functions of *sufficient statistics* rather than of rows: bin counts against the
+reference's edges, a rank sum and two class counts, bounded quantile buckets.
+All of those add across partitions. So a job on whatever the firm already runs
+computes them where the data is, a few hundred numbers come back, and **MAYA
+computes the metric and compares it to the threshold your second line set**.
+
+That is deliberately different from an [external
+observation](#numbers-you-already-compute-somewhere-else). Both refuse the other system's
+verdict. Only this one can be **replayed** — the statistics are what was
+recorded, and the metric is recomputed from them whenever anybody asks.
+
+**How to run one.** `GET /api/v1/monitors/{id}/distributed-plan` is the
+contract: the statistics to return, the window, the partitioning, and — for a
+drift monitor — the reference bin edges with a digest of the sample they came
+from. Compute against *those* edges. PSI against edges somebody else chose is a
+different measurement that prints the same, and a submission quoting a different
+digest is refused.
+
+Then `POST /api/v1/monitors/{id}/distributed-submit`. Every problem is reported
+at once and the whole submission is refused rather than part of it, because a
+metric computed over the partitions that happened to be well-formed is a
+measurement of a population nobody chose.
+
+**Two things to watch.** For AUC and Gini the plan sets
+`global_ranking_required`: a rank sum over one partition's rows is a rank sum in
+the *wrong ordering*, and summing those gives a number that looks like an AUC
+and is not, with nothing in the result to show it — so the job has to rank
+across the whole window and say that it did. And a statistic that does not
+decompose is refused by name: Hosmer-Lemeshow's deciles depend on the global
+distribution, so per-partition deciles are a different partitioning of a
+different population.
+
+**What MAYA cannot check, and says so.** Whether the job read the population it
+claims. A `WHERE` clause that quietly excluded a segment produces statistics
+that are arithmetically perfect and describe the wrong population. The predicate
+and the row count are recorded, and the result says the population is
+**attested** rather than observed.
+

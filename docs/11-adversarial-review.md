@@ -245,16 +245,25 @@ describe a floor and the code cannot reach one.
 **The attack.** I am an execution engine MAYA does not control. To verify a descriptor I need the HMAC
 secret; with it I can mint any descriptor I like, for any principal, any use, any expiry.
 
-**The honest answer: known, stated, unbuilt.** `core/execution/signing.py` is `HMAC-SHA256` and says so.
-RS256 verification already exists in `core/authz/jws.py` for OIDC, written carefully — it constructs the
-padded block rather than parsing what it recovers, and decides the algorithm itself rather than reading
-`alg` — so the primitive is present and the gap is key management rather than cryptography. It is first in
-the order in [10 §3](10-roadmap.md).
+**Closed, and not the way this finding proposed.** For two revisions the disposition here was *known,
+stated, unbuilt — asymmetric signing is first in the order in [10 §3]*. That deferred a real defect to a
+key hierarchy nobody had, and the deferral was the problem: the attack above is about **blast radius**,
+and the proposed fix was about **provenance to a third party**. They are different problems and only one
+of them was mine.
 
-Until then, the accurate claim is that a warrant is **tamper-evident to the platform and to anybody the
-platform has trusted with the secret**, which is a narrower claim than a signature usually implies. The
-`descriptor_only` flavour makes it narrower still: those engines hold the secret precisely because they are
-the ones MAYA does not run.
+The blast radius is now contained without asymmetry. `core/execution/signing.py` derives each audience's
+key from the root and that audience's own principal — `HMAC(root, "maya/warrant/v<gen>/" ‖ audience)` — so
+the engine in the attack above holds a key that signs warrants **for itself and for nobody else**. The
+derivation is one-way, so it cannot walk back to the root and cannot reach another engine's key. The
+audience is read from the document being verified, so re-pointing a warrant I legitimately hold at another
+principal breaks its signature rather than needing a check somebody remembered to write.
+
+What remains true, and is now published at `GET /warrant-signing` rather than buried in this document: a
+verifier holds the key it verifies with, so **a descriptor proves authorship to the bank and not to
+anybody outside it**. That is non-repudiation, it is a different requirement from this finding, and no
+reader of MAYA has asked for it. The `descriptor_only` flavour is no longer the aggravating factor it was
+described as here — those engines hold their own key precisely because they are the ones MAYA does not
+run, and that is now the point rather than the exposure.
 
 ### 4.4 No transaction spans a governance act
 

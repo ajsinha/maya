@@ -4,14 +4,14 @@ slug: what-maya-refuses
 section: Start here
 order: 80
 icon: hand-raised
-summary: Thirteen places where the platform declines to build the thing that was asked for — managed serving, converting an artifact, submitting a training job, editing a compiled document, configuring the state graph, promoting a challenger, verifying its own timestamp, rendering your PDF — and why each refusal is what makes every other control in the register mean anything.
+summary: Fourteen places where the platform declines to build the thing that was asked for — managed serving, converting an artifact, submitting a training job, editing a compiled document, configuring the state graph, promoting a challenger, verifying its own timestamp, rendering your PDF — and why each refusal is what makes every other control in the register mean anything.
 audience: Model risk managers, Platform, Architects, Auditors
 ---
 
 # What MAYA refuses to do
 
 Most of this documentation is about what the platform does. This page is about
-the thirteen places it deliberately does not — and it is the page to read if you are
+the fourteen places it deliberately does not — and it is the page to read if you are
 deciding whether MAYA belongs in your architecture, because **the refusals are
 load-bearing**. Take any one of them away and several controls elsewhere quietly
 stop meaning anything.
@@ -279,12 +279,39 @@ thin sections are invisible is worse than a short one.
 
 ---
 
-## What the thirteen have in common
+## 14. It will not translate your stored procedure
+
+The rulebook a bank runs lives in three places: a decision table in a
+spreadsheet, a DMN file from a BPM suite, and a stored procedure nobody has
+opened since its author left. Two of the three can be read. The third will not
+be.
+
+SQL is a general language — control flow, mutation, side effects — so a
+translator would be a compiler. And the failure mode of a wrong compiler here is
+specific and bad: a rule set that loads, validates, publishes and then decides
+differently from the procedure the bank has actually been running. Nobody finds
+that by reading it.
+
+The same caution runs through the two formats that *are* read. A cell holding
+`good credit` is reported rather than guessed at, and a document with any such
+cell is refused whole — the rows a parser finds hard are the judgement calls,
+and the judgement calls are what a rulebook exists for. A `COLLECT` hit policy
+is refused rather than approximated, because first-match would agree with the
+source on most inputs, which is worse than disagreeing on all of them. And the
+catch-all is derived from first-match semantics rather than inferred from the
+last row's position.
+
+Refusing names the route: extract a decision table from the procedure with
+somebody who understands it, and import that.
+
+---
+
+## What the fourteen have in common
 
 Each one is a place where building the requested thing would have made a
 different, quieter thing untrue.
 
-The last four are the same sentence pointed outward rather than inward. Where the
+The last five are the same sentence pointed outward rather than inward. Where the
 first nine are about MAYA declining to perform an act it also authorises, these
 are about MAYA declining to **claim more than it holds at a boundary** — and the
 overstatement would be invisible precisely because nobody can see past the
@@ -305,6 +332,7 @@ boundary to check it.
 | Register what a connector found | Ownership, purpose, entity and materiality as things somebody decided |
 | Enable a plugin on install | Every control's answer to *who turned this on* |
 | Render the PDF | The citation under each sentence, and the gaps under their own heading |
+| Translate a stored procedure | The rule set being the thing the bank actually runs |
 
 When you are evaluating a governance platform, the useful question is not what it
 can do. It is **what it declines to do, and whether it can tell you why** — and

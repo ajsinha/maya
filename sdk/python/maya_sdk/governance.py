@@ -392,6 +392,74 @@ class Relations:
             "reason": reason})
 
 
+class DistributedMonitoring:
+    """Monitoring an estate that will not fit in one process.
+
+    The scan moves off the platform; nothing else does. A job computes
+    **sufficient statistics** where the data is — bin counts, a rank sum, class
+    counts — and MAYA does the arithmetic from those to the metric and compares
+    it to the threshold this firm's second line set.
+
+    That is the difference between this and `maya.call` on the external
+    observations endpoint. An external observation cannot be replayed, because
+    MAYA does not hold the population and cannot re-derive the value. This one
+    can: the statistics are what was recorded, and the metric is recomputed
+    from them whenever anybody asks.
+
+    What MAYA still cannot see is whether the job read the population it says
+    it did. The predicate and the row count are recorded, and the answer says
+    the population is *attested* rather than observed.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def posture(self):
+        """What this moves, what it does not, and the two things it cannot check."""
+        return self._maya.call("GET", "/distributed-evaluation")
+
+    def plan(self, monitor_id, *, since=None, until=None, partitions=64):
+        """The contract one job must satisfy.
+
+        For a drift monitor it carries the **reference bin edges and a digest
+        of the sample they came from**. Compute against those edges: PSI
+        against edges somebody else chose is a different measurement that
+        prints the same, and a submission quoting a different digest is
+        refused.
+
+        Read `global_ranking_required`. For AUC and Gini a rank sum over one
+        partition's rows is a rank sum in the wrong ordering, and summing those
+        produces a number that looks like an AUC and is not.
+        """
+        return self._maya.call(
+            "GET", f"/monitors/{monitor_id}/distributed-plan",
+            params={"since": since, "until": until, "partitions": partitions})
+
+    def submit(self, monitor_id, partitions, *, predicate, engine="",
+               reference_digest="", ranked_globally=False, window=None,
+               now=None):
+        """Submit statistics. **Never a metric.**
+
+        A submission carrying `psi: 0.31` would be an external observation
+        wearing a better name; one carrying bin counts is something the
+        register recomputes.
+
+        `predicate` is required and is not paperwork: the one thing MAYA cannot
+        check is whether the job read the population it claims, so an unstated
+        predicate makes the attestation unfalsifiable.
+
+        Every problem is reported at once and the whole submission is refused —
+        a metric computed over the partitions that happened to be well-formed
+        is a measurement of a population nobody chose.
+        """
+        return self._maya.call(
+            "POST", f"/monitors/{monitor_id}/distributed-submit",
+            json={"partitions": list(partitions), "predicate": predicate,
+                  "engine": engine, "reference_digest": reference_digest,
+                  "ranked_globally": ranked_globally,
+                  "window": window or {}, "now": now})
+
+
 class Rules:
     """The rule-set editor: four verbs and a vocabulary.
 
