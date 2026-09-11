@@ -844,6 +844,43 @@ a refusal**: by the time it is known the run has happened, and refusing there wo
 you is that the authorisation and the execution have come apart, which is worth knowing whichever of them
 was wrong.
 
+### 9.5 Taking a model out of service
+
+`retire` was already a governed transition: it deletes nothing, requires a reason and appends an evidence
+node. That was the hard half and it was built first. `FR-INV-018` asks for four more facts, and the thing
+they have in common is that **each one is discovered to be needed months later** — *why was this taken out*,
+*what does this job now*, *who was relying on it*, and *how long do we keep it*. None is hard to store. They
+go missing because retiring a model is the moment everybody involved has stopped caring about it, and a form
+field nobody is required to fill in is a field left empty. So `core/lifecycle/decommission.py` is mostly
+refusals.
+
+**A retirement with unnotified consumers is refused**, and the register computes the list itself —
+`blast_radius` already walks the typed `input_to` edges. Retiring into that silently is how a feeder model
+disappears and four downstream models start reading nulls that somebody turns into zeros. The refusal is
+**escapable on purpose**: `acknowledged` records that somebody looked at the list and decided, which is a
+different fact from nobody having looked, and the two are stored differently.
+
+**A replacement that is not registered is refused.** *Replaced by the new scorecard* is a sentence, not a
+link, and the question it answers is asked in two years by somebody who cannot ask you. The two honest
+answers are a URN or `none` — genuinely nothing does this job now — and `none` is recorded as a deliberate
+statement rather than inferred from a blank.
+
+**A retention class MAYA does not have is refused by name**, because the classes exist to carry different
+obligations: AI Act Art. 19 over the system's lifetime, SOX over seven years of what supported a financial
+statement, data protection for *less* time. Free text here would be a retention schedule nobody can act on.
+What is stored is the *statement of the obligation*; `core/retention/` separately reports the gap between the
+backing a class requires and the backing the deployment has. **Retiring a model moves no bytes** — and the
+note on every record says the period is a floor, never a ceiling, because confusing *may now be deleted*
+with *must now be deleted* is how a register loses the record that was about to be asked for.
+
+Everything is validated **before** the transition, so a refusal leaves the model in service rather than
+half-retired with no record of why. And **MAYA notifies nobody**: `notified` is an attestation by whoever
+retired the model, not a delivery — the people who depend on a model are reachable through channels the
+register does not own, and claiming otherwise would be claiming a delivery it never made. This is the
+eleventh edge in the sense of §26, and it produces the one number worth reading: `across_the_estate()`
+reports **retired** and **decommissioned** as two populations, and the models retired before this existed —
+carrying a reason and none of the other three facts — as a backlog somebody can work.
+
 ## 10. Validation and findings
 
 `core/validation/` — `catalogue`, `service`, `findings`, `workflow`, `ageing`, `replay`, `storage`,
@@ -3224,8 +3261,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 327 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 388 modules in one
+the 328 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 389 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

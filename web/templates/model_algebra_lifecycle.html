@@ -135,6 +135,89 @@ did they say it&rdquo;.</p>
       before submitting{% endif %}
     </div>
   </div></div>
+
+<!-- ------------------------------------------------- taking it out of service -->
+<div class="card mt-3"><div class="card-header">Taking it out of service
+  {% if decommission.decommissioned %}<span class="evidence-ok">recorded</span>
+  {% elif model.status == 'retired' %}<span class="evidence-bad">retired without a record</span>
+  {% endif %}</div>
+  <div class="card-body small">
+    <p class="text-muted mb-2" style="max-width:52rem"><code>retire</code> is the
+    move in the table above: it deletes nothing, keeps every reference readable
+    and demands a reason. Four more facts go missing every time, and not because
+    they are hard to store &mdash; <em>{{ posture.detail }}</em>.</p>
+
+    {% if decommission.decommissioned %}
+    <dl class="maya-terms">
+      <div><dt>Why</dt><dd>{{ decommission.rationale }}</dd></div>
+      <div><dt>What does this job now</dt>
+        <dd>{% if decommission.replacement == 'none' %}<span class="evidence-bad">nothing</span>
+          &mdash; recorded deliberately rather than left blank
+          {% else %}<a class="mono" href="/model-algebra/lifecycle/{{ decommission.replacement.replace('maya://model/', '') }}">{{ decommission.replacement }}</a>{% endif %}</dd></div>
+      <div><dt>Who was told</dt>
+        <dd>{% if decommission.notified %}{{ decommission.notified|join(', ') }}
+          {% else %}nobody is listed{% endif %}
+          {% if decommission.unnotified %}<br><span class="evidence-bad">not told:</span>
+            <span class="mono">{{ decommission.unnotified|join(', ') }}</span>
+            &mdash; {{ decommission.decommissioned_by }} acknowledged the list
+            and went ahead, which is a different fact from nobody having looked
+          {% endif %}</dd></div>
+      <div><dt>Kept how long</dt>
+        <dd class="mono">{{ decommission.retention_class }}</dd></div>
+      <div><dt>Recorded</dt>
+        <dd>{{ decommission.decommissioned_at|when }} by
+          {{ decommission.decommissioned_by }}</dd></div>
+    </dl>
+    <p class="text-muted mb-0">{{ decommission.retention.note }}</p>
+    {% else %}
+    <div id="decommission-consumers" class="mb-2">
+      {% if not reading.known %}<span class="evidence-bad">Who depends on this is
+        unknown</span> &mdash; the model graph is not wired here, which is not
+        the same as nobody depending on it.
+      {% elif reading.live %}<span class="evidence-bad">{{ reading.live|length }}
+        live model(s) read this one</span>:
+        <span class="mono">{{ reading.live|join(', ') }}</span>. Retiring into
+        that silently is how a feeder model disappears and four downstream
+        models start reading nulls that somebody turns into zeros.
+      {% else %}<span class="evidence-ok">Nothing downstream reads this one.</span>
+      {% endif %}
+    </div>
+    <form id="decommission-form" class="row g-2" data-name="{{ name }}">
+      <div class="col-md-12"><label class="form-label" for="dc-rationale">Why is
+        it being taken out?</label>
+        <input class="form-control form-control-sm" id="dc-rationale"
+               name="rationale" placeholder="superseded by &hellip; after the annual review">
+        <div class="form-text">&ldquo;Superseded&rdquo; answers nothing in two years.</div></div>
+      <div class="col-md-6"><label class="form-label" for="dc-replacement">What
+        does this job now?</label>
+        <input class="form-control form-control-sm mono" id="dc-replacement"
+               name="replacement" value="none">
+        <div class="form-text">A registered URN, or <code>none</code>. A name
+          that is not in the register is a sentence, not a link.</div></div>
+      <div class="col-md-6"><label class="form-label" for="dc-retention">Kept
+        under which obligation?</label>
+        <select class="form-select form-select-sm" id="dc-retention" name="retention_class">
+          {% for c in posture.retention_classes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+        <div class="form-text">The classes differ because the obligations do.</div></div>
+      <div class="col-md-12"><label class="form-label" for="dc-notified">Which
+        consumers have been told?</label>
+        <input class="form-control form-control-sm mono" id="dc-notified"
+               name="notified" placeholder="comma-separated URNs"
+               value="{{ reading.live|join(', ') if reading.live else '' }}">
+        <div class="form-text">MAYA sends nothing &mdash; {{ posture.why_not_notify }}.</div></div>
+      <div class="col-md-12"><div class="form-check">
+        <input class="form-check-input" type="checkbox" id="dc-acknowledged" name="acknowledged">
+        <label class="form-check-label" for="dc-acknowledged">Go ahead without
+          telling them, and record that I looked at the list</label></div></div>
+      <div class="col-12"><button class="btn btn-sm btn-outline-danger" type="submit">
+        Record the decommissioning and retire</button></div>
+    </form>
+    <div id="decommission-result" class="mt-2"></div>
+    {% endif %}
+    <p class="text-muted mt-2 mb-0"><strong>It archives nothing and deletes
+    nothing:</strong> {{ posture.why_not_archive }}.</p>
+  </div></div>
 {% endblock %}
 {% block scripts %}
 <script src="/static/js/model-algebra.js"></script>

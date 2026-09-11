@@ -1353,6 +1353,55 @@
         ]
       }
     },
+    "/api/v1/decommission": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      },
+      "post": {
+        "body": [
+          "acknowledged",
+          "notified",
+          "rationale!",
+          "replacement!",
+          "retention_class!"
+        ],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/decommission/consumers": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/decommission/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/deprecations": {
       "get": {
         "body": [],
