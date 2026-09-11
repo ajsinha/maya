@@ -207,7 +207,12 @@ core/
 │   ├── contracts.py     assume–guarantee: refines, compose, conjoin, quotient (L-7),
 │   │                    over Bound.meet and Bound.join, both partial
 │   ├── identity.py      probe-relative equivalence (Yoneda), version semantics
-│   └── paging.py        keyset paging, so a listing cannot be a full scan
+│   └── paging.py        OFFSET paging with a cap, so a listing cannot be a full
+│                        scan. Offsets on purpose: a register is read by people
+│                        who want page four. `core/http/conventions.py` holds the
+│                        KEYSET cursor, which is for the other case — a queue
+│                        being written to while somebody drains it, where an
+│                        offset silently skips a row
 ├── registry/        models, immutable versions, governed aliases
 │   └── composition.py   the model graph, and `input_to` TYPE-CHECKED (L-21)
 ├── rules/           the T8 parameter object, given a shape: a condition tree with no
@@ -518,9 +523,9 @@ that is true today, stated as three tiers rather than as an aspiration.
 
 | | |
 |---|---|
-| **No `entry_points` discovery** | a bank's own fibre ships in `core/fibres/library.py` rather than as a separate package. The fibration itself exists — nine fibres over the trainability classes, with a start-up gate that refuses to serve on a partial one (`L-15`) — so what is missing is third-party packaging, not the structure or the gate |
+| ~~**No `entry_points` discovery**~~ **Built** — `core/plugins/discovery.py` reads `entry_points(group="maya.extensions")` and **imports nothing**: a package is *seen* from its metadata and *enabled* only when configuration names it, because a control that switched itself on when somebody bumped a dependency is a control nobody turned on. What follows was the state before that, and the fibration part is unchanged | the fibration itself exists — nine fibres over the trainability classes, with a start-up gate that refuses to serve on a partial one (`L-15`) — so what is missing is third-party packaging, not the structure or the gate |
 | **No fibre-specific evidence schema** | a class carries no JSON Schema, so class-specific evidence is not validated against anything |
-| **No connectors** | there is no `connectors/` package. Nothing imports from MLflow, SageMaker, Vertex or SAS |
+| ~~**No connectors**~~ **Built, reading an export rather than an API** | `core/discovery/connectors.py` parses MLflow, Unity Catalog, git, SageMaker, Vertex, SAS metadata and a CMDB extract. It holds **no credential** and calls no API: a governance register with read access to every ML platform in the bank holds the broadest standing access anybody has, granted to the system whose whole argument is that it holds none. And what it produces is **candidates for triage, never registrations** — five governance facts are in no ML platform anywhere |
 
 ---
 
@@ -546,8 +551,8 @@ discovers the difference by looking for a service that is not there.
 | Sandboxing | gVisor / Kata on Kubernetes | a `spawn`ed child with `RLIMIT_CPU` and `RLIMIT_AS` from the warrant — §5, and honestly scoped |
 | Search | Postgres FTS + `pgvector` | **not used.** No semantic matching, no duplicate-feature detection |
 | Observability | OpenTelemetry, Prometheus, Grafana | structured JSON logging with request id and principal on every line (`core/log.py`). The rest does not ship |
-| Testing | pytest, Hypothesis, schemathesis, testcontainers | pytest and Hypothesis. The executable laws live beside the code they constrain, plus the discipline walkers of §4.2 and §4.4 — tests that walk the source and hold a rule a review would not catch |
-| Packaging | uv/Poetry, Docker, Helm, Terraform | `requirements.txt` |
+| Testing | pytest, Hypothesis, schemathesis, testcontainers | pytest and Hypothesis, plus a Docker build and a real PostgreSQL behind opt-in environment variables — both **skip loudly** rather than passing quietly, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to. The executable laws live beside the code they constrain, plus the discipline walkers of §4.2 and §4.4 — tests that walk the source and hold a rule a review would not catch |
+| Packaging | uv/Poetry, Docker, Helm, Terraform | `requirements.txt`, a two-stage **`Dockerfile`** running as uid 10001 with a read-only root, **`deploy/compose.yaml`** with the owner and application database roles already separated, and **`deploy/helm`**, which *refuses to render* rather than templating a placeholder for a secret or accepting `ReadWriteOnce` with several replicas. No Terraform, and no Poetry |
 | Clients | Python and JVM SDKs, CLI, notebook and CI plugins | `sdk/python/maya_sdk` — **standard library only**, no dependencies at all, because an SDK with a dependency tree moves the air-gap problem into the client's build pipeline rather than solving it. `sdk/java/` honours the same rule — `java.net.http` and a two-hundred-line `Json.java`, release 17, JUnit on the test classpath only. Its README was written as the **contract a JVM client must honour** before there was an implementation and is kept in that order, because what a MAYA client must do outlives any one client. **No CLI, no notebook plugin and no CI plugin** |
 
 ### 9.1 What deployment actually looks like

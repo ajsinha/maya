@@ -363,17 +363,21 @@ today by rendering server-side.
 
 ## 9. Screens specified and not built
 
-Each of these was designed against a real need. None exists.
+Each of these was designed against a real need. **Two of the eight have since
+been answered rather than built** — the examiner portal is a refusal with its
+reason, and the admin screens exist for everything except authoring — and the
+rest do not exist. The column says which, because a list that reads as eight
+absences when two of them are decisions is a list that overstates the gap.
 
 | Screen | What it would answer | The need it comes from |
 |---|---|---|
 | **Dependency / blast-radius explorer** | *What breaks if I change this feeder model, and who do I have to tell?* Selected node, downstream depth, tier filter, and a generated notification list | Aggregate risk is legible only as a graph, and `input_to` is a typed composition rather than a drawing |
 | **Validation workbench** | Plan completeness per section, evidence per test, replay in the sandbox, challenger fitting, independent recode, slice explorer, sensitivity sweep | Validators are the scarcest resource in model risk, and clerical work is what they spend it on |
-| **Discovery triage** | Unregistered models found by connectors, with the artifact each proposal points at | Inventory completeness is the top adoption risk. Scope it narrowly: a queue with poor precision is worse than no queue, because it creates the appearance of coverage |
+| **Discovery triage** | Unregistered models found by connectors and scanners, with the artifact each candidate points at | Inventory completeness is the top adoption risk. Scope it narrowly: a queue with poor precision is worse than no queue, because it creates the appearance of coverage. **The API half is built** — `GET /api/v1/discovery/candidates` pages the queue by keyset cursor for exactly the reason above — and no screen reads it |
 | **Use reconciliation** | Approved use against actual use, as exceptions | An approved model used for an unapproved purpose is T3 in the threat model |
-| **Examiner portal** | Read-only, as-at-date, request packs | The export pack does this today, without a login |
+| **Examiner portal** | Read-only, as-at-date, request packs | **Refused rather than pending** — see [14 §26.5](14-detailed-design.md). Handing a pack over *is* built: a time-boxed link to a content digest, revocable, recording every read including the refused ones. A portal authenticates a third party INTO the register, and whatever that session can reach they can reach |
 | **Campaigns** | Periodic revalidation and attestation cycles, with SLA | The scheduler runs the jobs; nothing shows the cycle |
-| **Admin — the remainder** | Model classes, lifecycle definitions, document templates and the test catalogue, edited rather than read | People, roles, policies, regimes, the batch, evidence integrity and the runtime grammar are **built** — §2.4. What is left is the authoring half: these screens read the platform's configuration and do not yet change it |
+| **Admin — the remainder** | Model classes, lifecycle definitions, document templates and the test catalogue, edited rather than read | People, roles, policies, regimes, the batch, evidence integrity, the runtime grammar and **the register's edges** (`/admin/perimeter`) are built — §2.4. What is left is the authoring half: these screens read the platform's configuration and do not yet change it |
 | **Schema-driven metadata form** | A model class adds a fibre on the backend and its capture form appears with no front-end change — a T1 pricing model asked for calibration instruments and tolerance, a T5 asked for autonomy mode and eval set | The fibration reaching the UI. `/models/new` renders a fixed form today |
 
 ## 10. Conventions the API would have to offer
@@ -383,12 +387,13 @@ The decoupled client would depend on these. Some exist; the column says which.
 | Convention | Purpose | Today |
 |---|---|---|
 | `problem+json`-shaped errors | One error shape, rendered consistently; `deny_reason` and remediation surfaced inline | **Built** — every refusal returns `error` / `detail` / `remediation` at the top level, mapped in one table (`routes/base.py`) |
-| Server-Sent Events on `/events` | Live task inbox, breach alerts, job progress, without polling | Not built |
-| Keyset pagination with `next_cursor` | Stable paging over 50,000 models | Not built; listings return whole |
-| `ETag` + `If-Match` on mutations | Optimistic concurrency, so a conflict is a dialog rather than a silent overwrite | Not built |
-| `Idempotency-Key` on `POST` | Safe retry on a flaky network | Not built |
-| `?expand=` and `?fields=` | One request per screen instead of N+1 chatter | Not built |
-| `/derivations/{id}` on every derived value | Powers the universal `[why?]` affordance (`P8`) | Not built as an endpoint; tiering stores its derivation |
+| Server-Sent Events | Live task inbox, breach alerts, job progress, without polling | **Built for the live log** (`routes/ui_log_routes.py`, `text/event-stream`, resuming from the client's last id). Not offered as a general `/events` bus, because there is no domain event stream behind one — see [14 §27](14-detailed-design.md) |
+| Keyset pagination with `next_cursor` | Stable paging over a queue somebody is draining while it is filled | **Built** — `core/http/conventions.py`, on the discovery queue. Note what it is *for*: offsets are correct for a register a person pages through wanting page four, and `core/domain/paging.py` still uses them. A cursor is for a list **being written to while somebody walks it**, where an offset silently skips a row — the insert shifts everything down, page 2 starts one past where page 1 ended, and the caller receives a complete-looking queue with a hole in it |
+| `ETag` + `If-Match` on mutations | Optimistic concurrency, so a conflict is a dialog rather than a silent overwrite | **Built** — `core/concurrency/etags.py`. A weak `ETag` derived from the representation itself rather than a stored version column, and a mutating request carrying `If-Match` against a path with no GET to evaluate it is **refused by name**: silently dropping a precondition is worse than not supporting one, because the client then believes it has optimistic concurrency and has none |
+| `Idempotency-Key` on `POST` | Safe retry on a flaky network | **Built** — `core/concurrency/idempotency.py`. The same key over a *different* body is refused rather than replayed, and `in_flight` is a real state: a retry arriving while the first request is still running is refused rather than re-executed |
+| `?expand=` and `?fields=` | One request per screen instead of N+1 chatter | **`?fields=` is built**; `?expand=` is not. The projection never removes the fields that say an answer is partial — `detail`, `gaps`, `not_projected` and their kin survive every narrowing, because a response that looked complete because somebody projected away the sentence saying it was not is the failure this platform spends most of its effort avoiding |
+| `Sunset` headers | An endpoint on its way out warns the machine that is calling | **Built and currently empty**, which is the correct state. The mechanism ships before the first retirement on purpose: adding it when something is being retired means the first endpoint to go is the one nobody was warned about. `GET /api/v1/deprecations` is askable rather than only announced |
+| `/derivations/{id}` on every derived value | Powers the universal `[why?]` affordance (`P8`) | Still not an endpoint. The derivations exist — tiering, remediation, concentration each carry their working — and `core/http/conventions.derivation_of` finds one in an answer; what is missing is a stable address to cite |
 
 ---
 
