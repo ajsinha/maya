@@ -9,7 +9,7 @@ data = [["Concern", "Today", "Why, or why not yet"],
         ["Authentication", "Session cookie for the interface; HTTP Basic against the same principal register for services", "One identity store, not two"],
         ["CSRF", "A token on any state-changing method whose authority came from the cookie, enforced in middleware", "228 mutating endpoints is 126 chances to forget one"],
         ["Refusals", "error / detail / remediation at the top level, 312 codes mapped onto 14 statuses in ONE table", "DR-6 and DR-7 — blocking must always explain"],
-        ["Pagination", "?limit= and ?offset=, applied AFTER scope filtering", "Page two of a filtered list must not be page two of the unfiltered one with holes in it"],
+        ["Pagination", "?limit= and ?offset= applied AFTER scope filtering, and a KEYSET cursor for a queue being drained while it is filled", "Page two of a filtered list must not be page two of the unfiltered one with holes in it \u2014 and an offset over a list growing at the head silently skips a row"],
         ["Time travel", "?as_of= on the feature and warrant surfaces", "Examiner questions about a past date"],
         ["NOT BUILT", "ETag / If-Match · Idempotency-Key · ?expand= · ?fields= · keyset cursors · SSE on /events · Sunset headers · /derivations/{id}", "Each is designed in docs/14 §28 and none of it runs. Listings return whole; a retry is not idempotent"]]
 th = table(sl, data, ML, y, CW, col_w=[1.5, 5.4, 4.7], row_h=0.30, fs=9.5, hfs=10,
@@ -19,7 +19,7 @@ runs(tf, [("One surface, and the interface reaches it the way anybody else does.
           ("Models · versions · aliases · risk · features · runs · validation · overlays · monitoring · "
            "warrants · documents · policy · assistance · admin — all behind /api/v1, in one FastAPI "
            "process that also renders the pages. The two-process, generated-client front end is an "
-           "accepted design and is not built.", INK, False)],
+           "accepted design and is not built \u2014 ADR-011.", INK, False)],
      size=10.5, first=True, space_after=0, line=1.24)
 
 sl, y = content("Single sign-on — and the part of it that is not mechanical",

@@ -87,10 +87,10 @@ tf = txt(sl, x, y, CW * 0.48, 0.32)
 para(tf, "Not built — and named rather than implied", size=12, color=CRIMSON,
      bold=True, font=SERIF, first=True, space_after=0)
 data = [["Claimed elsewhere", "Here"],
-        ["SLOs and error budgets", "Every performance figure in the requirements is a TARGET. No load test has been run and no p99 has been measured under concurrency"],
+        ["SLOs and error budgets", "THREE are now measurements \u2014 tools/spikes/ \u2014 and one is a negative result worth more than a number: a point-in-time assembly at the target size does not fit in one process at ANY speed. Throughput, the scale figures and restore time are still targets"],
         ["Golden signals, dashboards", "No Prometheus, no OpenTelemetry, no metrics endpoint. What exists is three health probes and a live log at /admin/logs — the last lines the process wrote, filtered by module, request or principal, with every line of one request joined by its id"],
         ["Runbooks", "There are none. Of the ten the design lists, three name a subsystem or a topology that does not exist — outbox lag, cache stampede, regional failover"],
-        ["A build that fails", "CI runs the suite in four shards, the seven discipline walkers, the laws, both SQL dialects, ruff and a type checker gating 203 modules, on every push and pull request. Still absent: a coverage gate and any security scanning"]]
+        ["A build that fails", "CI runs the suite in four shards, thirteen discipline walkers, the laws, both SQL dialects, ruff (including bandit's S rules), a type checker, a spec-shape lock and a secret scanner, on every push. Coverage gates at 90%. Still absent: DAST and a generated client"]]
 th2 = table(sl, data, x, y + 0.36, CW * 0.48, col_w=[1.6, 4.4], row_h=0.30,
             fs=9, hfs=9.5, bold_col0=True, first_col_color=CRIMSON)
 cy = y + 0.36 + max(th, th2) + 0.24
