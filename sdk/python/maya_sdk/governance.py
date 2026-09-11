@@ -291,6 +291,63 @@ class Lifecycle:
         return self._maya.call("POST", f"/models/{short(urn)}/retire",
                                json={"reason": reason})
 
+    def decommission(self, urn: str, *, rationale: str, replacement: str,
+                     retention_class: str,
+                     notified: Optional[List[str]] = None,
+                     acknowledged: bool = False) -> Dict[str, Any]:
+        """Retire it, and record the four facts that otherwise go missing.
+
+        Why, what does this job now, who was relying on it, and how long the
+        record is kept. Every one of those is discovered to be needed months
+        later, and they go missing because retiring a model is the moment
+        everybody involved has stopped caring about it.
+
+        `replacement` is a registered URN or the literal `"none"` — blank is
+        indistinguishable from nobody having filled it in. An unnotified live
+        consumer refuses the retirement; `acknowledged=True` records that
+        somebody looked at the list and decided, which is a different fact from
+        nobody having looked.
+
+        MAYA notifies nobody and archives nothing. `notified` is a statement by
+        whoever retired the model, and the retention class states an obligation
+        rather than moving a byte.
+        """
+        return self._maya.call("POST", "/decommission", params={"urn": urn},
+                               json={"rationale": rationale,
+                                     "replacement": replacement,
+                                     "retention_class": retention_class,
+                                     "notified": list(notified or []),
+                                     "acknowledged": bool(acknowledged)})
+
+    def consumers(self, urn: str) -> Dict[str, Any]:
+        """Who reads this model, before anybody retires it.
+
+        From the register's own typed edges. An unwired graph answers *unknown*
+        rather than *none* — retiring into a silence you have not checked is
+        how a feeder model disappears and four downstream models start reading
+        nulls that somebody turns into zeros.
+        """
+        return self._maya.call("GET", "/decommission/consumers",
+                               params={"urn": urn})
+
+    def decommissioned(self, urn: str) -> Dict[str, Any]:
+        """One model's decommissioning record, or the honest absence of one.
+
+        A model retired before this existed reads back as `decommissioned:
+        false` with a reason and none of the other three facts, which is not
+        the same as a model still in service — and the answer says which.
+        """
+        return self._maya.call("GET", "/decommission", params={"urn": urn})
+
+    def decommissioning_estate(self) -> Dict[str, Any]:
+        """*Retired* and *decommissioned*, counted separately.
+
+        Two populations. The gap between them is every model retired before
+        this existed, and it is a backlog somebody can work rather than a
+        defect.
+        """
+        return self._maya.call("GET", "/decommission/estate")
+
     def delete(self, urn: str, *, reason: str = "") -> Dict[str, Any]:
         """Administrators only, and the evidence chain survives it.
 
@@ -350,6 +407,90 @@ class VersionApprovals:
         """
         return self._maya.call("POST",
                                f"/version-approvals/{approval_id}/withdraw")
+
+
+class Authority:
+    """Who may approve this, by tier, amount and legal entity — and in order.
+
+    The quorum by tier is the spine and it is enforced. What a tier cannot say
+    is that a $2bn book and a $4m book are different decisions, that authority
+    is granted by an entity's board and does not travel, or that a second-line
+    challenge signed before the first line filed anything is a signature about
+    nothing.
+
+    **The one thing worth knowing before you call any of this.** The amount
+    comes from the sourced exposure fact and nowhere else, so most models do not
+    have one — and where there is none the band is the *deepest* the tier
+    admits, not the shallowest. An amount this register does not hold is not a
+    small amount, but it compares as less than every floor, which is how an
+    amount-banded matrix quietly approves everything while reporting itself as
+    enforced.
+    """
+
+    def __init__(self, maya):
+        self._maya = maya
+
+    def posture(self) -> Dict[str, Any]:
+        """What the matrix decides, the whole matrix, and what it cannot check."""
+        return self._maya.call("GET", "/authority")
+
+    def of(self, urn: str) -> Dict[str, Any]:
+        """Which signatures this model's version approval needs, and why.
+
+        Read `reached_by`. `"match"` means a band was chosen by measurement;
+        anything else means it was chosen by absence.
+        """
+        return self._maya.call("GET", "/authority/model", params={"urn": urn})
+
+    def estate(self) -> Dict[str, Any]:
+        """How much of the estate rests on authority nobody has re-attested."""
+        return self._maya.call("GET", "/authority/estate")
+
+    def publish(self, name: str, *, stages: List[List[str]],
+                tier: Optional[int] = None, at_or_above: float = 0.0,
+                legal_entity: Optional[str] = None,
+                note: str = "") -> Dict[str, Any]:
+        """Add a band. Until the first one, the tier quorum stands as it was.
+
+        `stages` is a list of lists: roles that sign together, stages that sign
+        in order. A flat role list cannot say *the second line signs after the
+        first*, and that ordering is the half of this a quorum does not cover.
+        """
+        return self._maya.call("POST", "/authority/bands", json={
+            "name": name, "stages": [list(s) for s in stages], "tier": tier,
+            "at_or_above": at_or_above, "legal_entity": legal_entity,
+            "note": note})
+
+    def withdraw(self, name: str) -> Dict[str, Any]:
+        """Withdraw a band. Open approvals keep the band they were opened under."""
+        return self._maya.call("DELETE", f"/authority/bands/{name}")
+
+    def delegate(self, principal: str, *, ceiling: float, instrument: str,
+                 currency: str = "USD",
+                 legal_entity: Optional[str] = None) -> Dict[str, Any]:
+        """What one named person may approve, and until when.
+
+        `instrument` is required and it is the field that gets left out: MAYA
+        holds a reference to the board resolution rather than the resolution,
+        so a delegation nobody can trace to a decision is exactly what an
+        authority matrix exists to prevent. It expires for the same reason —
+        the platform cannot tell whether the instrument still says what it said.
+        """
+        return self._maya.call("POST", "/authority/delegations", json={
+            "principal": principal, "ceiling": ceiling,
+            "instrument": instrument, "currency": currency,
+            "legal_entity": legal_entity})
+
+    def delegations(self, principal: str = "") -> Dict[str, Any]:
+        """Delegations on file. Named a principal, only the live ones.
+
+        The platform decides which of those two answers a blank principal
+        means, because *live* is a governance fact — an expired delegation
+        grants nothing — and a client deciding it locally would be a second
+        implementation of the expiry rule.
+        """
+        return self._maya.call("GET", "/authority/delegations",
+                               params={"principal": principal})
 
 
 class Relations:

@@ -844,6 +844,51 @@ a refusal**: by the time it is known the run has happened, and refusing there wo
 you is that the authorisation and the execution have come apart, which is worth knowing whichever of them
 was wrong.
 
+### 9.2a Who may approve this, by amount and by entity
+
+Version approval is a quorum whose depth follows the tier, which is law `L-5` and is enforced. `FR-LC-005`
+asks for three things a tier cannot express. A $2bn book and a $4m book are not the same decision — the tier
+grades the *model*, the amount grades the consequence of it being wrong. Authority is granted by an entity's
+board and **does not travel**. And a quorum collected in any order lets the second line sign its challenge
+before the first line has filed anything to challenge.
+
+So `core/lifecycle/authority.py` holds a **matrix of bands**: a tier, an amount floor, optionally an entity,
+and the roles that must sign — in **stages**, where a stage does not open until the one before it has
+closed. Bands are matched most-specific-first, entity beating amount beating tier, so a firm adds a row for
+one entity without restating the estate. Two tables rather than one, because a band is a rule the firm
+published and a **delegation** is an authority a named person holds; conflating them produces the failure
+this exists to prevent, a matrix that looks enforced because everybody in it holds a role.
+
+**The amount comes from the sourced exposure fact (`H-8`) and nowhere else.** The register holds no standing
+exposure column, and the figure the tiering assessment was made from is a number typed into a form — using
+it would let the amount that decides the approval depth be chosen by the person seeking the approval.
+
+**Which means most models have no amount, and that is the whole design problem.** The natural
+implementation falls back to the shallowest band, because an unknown amount compares as less than every
+floor. That is exactly backwards and it is invisible: every approval succeeds, nobody is refused, and the
+matrix reports itself as enforced. So where the exposure is not sourced the band is the **deepest the tier
+admits**, and the answer carries `reached_by: deepest_band_because_the_amount_is_unknown` rather than a
+footnote. **An amount MAYA does not have is not a small amount** — the twelfth edge in the sense of §26, and
+the same move as all of them: widen the type rather than add a caveat. The escape is one call that leaves a
+reference behind.
+
+A **delegation** names a person, a ceiling, an entity and an **instrument** — the board resolution, charter
+or letter that granted it. The instrument is required at record time, because a delegation nobody can trace
+to a decision is the precise thing an authority matrix exists to prevent. What MAYA cannot check is whether
+that instrument says what the row claims: it holds a reference, not the resolution. So delegations
+**expire** after a year, an expired one grants nothing, and the estate view reports how much of the estate
+is approvable under authority nobody has re-attested — a matrix enforced confidently from a register nobody
+has revisited is worse than no matrix, which at least does not tell you it is working.
+
+Two decisions about how it switches on. Nothing changes until a firm **publishes** a band: until then the
+tier quorum stands exactly as it did, because a feature that deepens every approval in the estate the moment
+it is deployed is one switched off before anybody reads what it does — and there would be two answers to the
+same question, which is the defect the module removes. And the band is **written onto the approval at open
+time** rather than recomputed at signing time, so a matrix withdrawn or re-published mid-approval cannot
+move the bar under people who are signing. `out_of_sequence` and `beyond_delegated_authority` are 409s and
+not 403s: the caller holds the permission and holds the role, and what refuses them is the state of this
+approval. Sending 403 would send somebody to an administrator to be granted what they already have.
+
 ### 9.5 Taking a model out of service
 
 `retire` was already a governed transition: it deletes nothing, requires a reason and appends an evidence
@@ -3261,8 +3306,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 328 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 389 modules in one
+the 329 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 390 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
