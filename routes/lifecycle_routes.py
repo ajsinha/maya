@@ -574,6 +574,19 @@ class LifecycleRoutes(Routes):
             return self.guard(
                 lambda: self.ctx["authority"].required_for(model["urn"]))
 
+        @self.app.get(f"{api}/authority/sequence", tags=["lifecycle"])
+        def authority_sequence(request: Request, urn: str):
+            """What this model's NEXT approval would be sequenced as.
+
+            A read, never the check. An approval already open carries its own
+            stages and is held to those — withdrawing or re-publishing a band
+            cannot move the bar under people who are already signing.
+            """
+            model = self.guard(lambda: self.ctx["registry"].require(urn))
+            self.authorise(request, "model:read", model=model)
+            return self.guard(
+                lambda: self.ctx["authority"].sequence_for(model["urn"]))
+
         @self.app.get(f"{api}/authority/estate", tags=["lifecycle"])
         def authority_estate(request: Request):
             """How much of the estate rests on authority nobody re-attested."""

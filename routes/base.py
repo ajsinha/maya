@@ -468,6 +468,13 @@ STATUS: Dict[str, int] = {
     # already mapped below, for the attestation campaigns — one code, one
     # status, which is what the discipline test is for.
     "campaign_exists": 409, "unknown_recertification": 404,
+    # `not_the_reviewer` is a 403 alongside `self_recertification`: what
+    # refuses the caller is who they are, and no change to the campaign's state
+    # would let them answer. The way forward is `reassign`, which is an act.
+    "not_the_reviewer": 403,
+    # `already_decommissioned` and `ceiling_not_comparable` are conflicts: the
+    # request is well-formed and it is the register's state that refuses it.
+    "already_decommissioned": 409, "ceiling_not_comparable": 409,
     "unknown_answer": 422, "not_in_population": 404,
     "self_recertification": 403,
     "no_delegated_authority": 409, "entity_out_of_delegation": 409,

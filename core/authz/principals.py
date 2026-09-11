@@ -223,6 +223,23 @@ class PrincipalService:
             raise AuthzError("incompatible_roles",
                              f"{username} would hold incompatible roles: {'; '.join(found)}",
                              "split the duties between two principals")
+        # The lockout `suspend` has always refused, reachable by a second door.
+        #
+        # `suspend` guards the last administrator; `set_roles` did not, and
+        # taking the last `principal:manage` role away leaves exactly the state
+        # suspension refuses to create — nobody who can put anybody back. It
+        # went unnoticed while `set_roles` was only ever called by an
+        # administrator editing somebody else; access recertification calls it
+        # to revoke, over a population that includes the administrators.
+        if "principal:manage" not in self._permissions_for(roles) \
+                and self._is_last_administrator(username):
+            raise AuthzError(
+                "last_administrator",
+                f"{username} is the only principal who can administer "
+                f"principals, and these roles would take that away",
+                "give somebody else `principal:manage` first. A register with "
+                "nobody who can grant a role is one whose only route back is "
+                "an UPDATE against the database")
         with self.evidence.recording():
             self.principals.set({"roles": roles}, id=row["id"])
             self.evidence.append("principal_roles_changed", "principal", row["id"],

@@ -176,12 +176,14 @@ class VersionApproval:
         band = self.banded(model)
         row = {"model_id": model["id"], "model_version_id": version["id"],
                "tier": model["tier"], "required_roles": list(roles),
-               # The band NAME is written onto the approval, not recomputed at
-               # signing time: a matrix withdrawn or re-published mid-approval
-               # would otherwise change what an open approval requires, and an
-               # approval whose bar moves while people are signing it is worse
-               # than no bar at all.
+               # The band name AND the order it required, written onto the
+               # approval rather than recomputed at signing time. The name
+               # alone was not enough: sequencing was being re-derived from the
+               # live matrix, so withdrawing a band moved the bar under people
+               # who were already signing — which is precisely what writing the
+               # band down was supposed to prevent.
                "band": (band or {}).get("band"),
+               "stages": [list(s) for s in (band or {}).get("stages") or ()],
                "status": OPEN, "statement": statement,
                "opened_by": actor, "opened_at": time.time(), "completed_at": None}
         with self.evidence.recording():
@@ -248,12 +250,17 @@ class VersionApproval:
         # Both are skipped where no matrix and no delegation have been
         # recorded, which is the state the platform ships in.
         if self.authority is not None and approval.get("band"):
-            urn = self.registry.version_by_id(
-                approval["model_version_id"])["urn"]
             signed = [x["role"] for x in
                       self.signatures.many(version_approval_id=approval_id)
                       if x["decision"] == APPROVE]
-            self.authority.refuse_out_of_sequence(urn, role, signed)
+            # From the approval's OWN stages. Nothing here reads the matrix, so
+            # withdrawing or re-publishing a band cannot change the order an
+            # open approval is held to.
+            self.authority.refuse_out_of_sequence(
+                approval.get("stages") or [], role, signed,
+                band=approval["band"])
+            urn = self.registry.version_by_id(
+                approval["model_version_id"])["urn"]
             self.authority.refuse_beyond_delegation(urn, principal)
 
         # The two checks above are a read-then-write, and the database is what

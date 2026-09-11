@@ -204,6 +204,48 @@ class TestTheRecord:
         assert "does not move bytes" in out["detail"]
 
 
+class TestWhatTheAdversarialPassFound:
+    """Both holes were in the promise this module makes in its own docstring:
+    that validation happens before the transition, so a refusal leaves the
+    model in service."""
+
+    def test_a_second_decommissioning_is_refused_rather_than_a_five_hundred(
+            self, db, registry, evidence, a_model, lifecycle):
+        engine = Decommissioning(DecommissionRepository(db), registry,
+                                 composition=None, lifecycle=lifecycle,
+                                 evidence=evidence)
+        engine.decommission(a_model["urn"], **GOOD)
+        with pytest.raises(LifecycleError) as e:
+            engine.decommission(a_model["urn"], **GOOD)
+        assert e.value.code == "already_decommissioned"
+        assert "two answers" in e.value.remediation
+
+    def test_a_transition_that_cannot_happen_writes_nothing(
+            self, db, registry, evidence, a_model, lifecycle, kernel_spec,
+            contract_spec):
+        """`retire` is not reachable from `submitted`. The four facts were
+        validated, the record was written, and THEN the transition raised —
+        leaving a decommissioning record for a model still in service, which is
+        exactly what this module says cannot happen."""
+        registry.create_version(a_model["urn"], "1.0.0", kernel_spec,
+                                contract_spec,
+                                artifact_digest="sha256:" + "f" * 64)
+        registry.approve_version(a_model["urn"], "1.0.0")
+        lifecycle.submit(registry.get(a_model["urn"]), "j.okafor")
+        engine = Decommissioning(DecommissionRepository(db), registry,
+                                 composition=None, lifecycle=lifecycle,
+                                 evidence=evidence)
+        with pytest.raises(LifecycleError) as e:
+            engine.decommission(a_model["urn"], **GOOD)
+        assert e.value.code == "illegal_transition"
+        assert DecommissionRepository(db).one(model_id=a_model["id"]) is None
+
+    def test_the_legal_states_come_from_the_machine_not_a_second_list(self):
+        from core.lifecycle.states import transition
+        assert set(transition("retire").sources) == {
+            "attested", "approved", "draft", "baselined"}
+
+
 class TestRetiredAndDecommissionedAreTwoPopulations:
     """A retirement recorded before this existed carries a reason and nothing
     else, so the gap between the two is a backlog somebody can work."""

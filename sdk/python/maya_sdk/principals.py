@@ -127,6 +127,19 @@ class Principals:
                                f"/recertification/{reference}/{principal}",
                                json={"state": state, "reason": reason})
 
+    def reassign_review(self, reference: str, *, to: str,
+                        reason: str) -> Dict[str, Any]:
+        """Hand a campaign to a different reviewer, with a reason.
+
+        Only the named reviewer may answer a campaign, so this is how it moves.
+        Reviewers leave, go on secondment, and turn out to be in the population
+        they were asked to review; a campaign that cannot be handed over is one
+        somebody answers under the previous reviewer's account.
+        """
+        return self._maya.call("POST",
+                               f"/recertification/{reference}/reassign",
+                               json={"to": to, "reason": reason})
+
     def close_review(self, reference: str) -> Dict[str, Any]:
         """Close a campaign. This decides nothing about what was unreviewed,
         and the answer says how many that was."""

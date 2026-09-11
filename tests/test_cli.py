@@ -137,8 +137,18 @@ class TestItDecidesNothing:
         """Not inferred from the parts. A CLI deciding readiness from what it
         found would be a second implementation of the rule."""
         monkeypatch.setitem(HANDLERS, "ready",
-                            lambda _m, _a: {"missing": ["tier", "owner"]})
+                            lambda _m, _a: {"ready": True, "missing": []})
         assert run("ready", "maya://model/x")[0] == 0
+
+    def test_an_unreadable_verdict_is_not_a_yes(self, run, monkeypatch):
+        """The same defect as treating an outage as compliance, one layer in:
+        a verdict-shaped command whose verdict field is absent used to exit 0,
+        and this test used to assert that it should."""
+        monkeypatch.setitem(HANDLERS, "ready",
+                            lambda _m, _a: {"missing": ["tier", "owner"]})
+        code, _out, err = run("ready", "maya://model/x")
+        assert code == UNREACHABLE
+        assert "not a yes" in err
 
 
 class TestTheEscapeHatch:
