@@ -317,12 +317,19 @@ and not a comfortable one.
   drifts, and would have to be registered under the rules this platform enforces.
   Shipping an unregistered model to search its own registry would be ridiculous.
 - **Scale.** The design targets a large estate; it has been exercised at
-  thousands of evidence nodes, not at a bank's whole inventory over years. The
-  one performance bug found so far was found by running it bigger, which is
-  suggestive in both directions.
+  thousands of evidence nodes, not at a bank's whole inventory over years. Three
+  of the performance targets are now measurements rather than targets, and one
+  of those measurements is a **negative result worth more than a number**: a
+  point-in-time assembly over a billion rows and five hundred features does not
+  fit in one process at any speed, which is why the answer is a distributed
+  assembly rather than a faster loop. The rest remain targets, and a figure this
+  platform has never observed is one it does not print as though it had.
 - **Ecosystem.** Databricks and Domino arrive with connectors, an installed base
-  and a support organisation. This is a single-author project with a Python SDK,
-  a Java contract written down and not built, and no partner network.
+  and a support organisation. This is a single-author project. It now has a
+  Python SDK **and a Java one**, both dependency-free, and connectors for seven
+  sources — but they read an **export** rather than calling an API, which is a
+  narrower thing than what an incumbent means by the word and is narrower on
+  purpose. There is no partner network and no support organisation.
 
 The bet is that everything on that list is **work**, and that the commitments
 above it are **architecture** — that a platform built on evidence, refusal and a
