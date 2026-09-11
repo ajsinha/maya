@@ -71,6 +71,7 @@ fall behind again.
 | `maya.validations` | open, record a test, conclude, replay |
 | `maya.findings` | raise, assign, acknowledge, plan, extend, close, ageing, escalation |
 | `maya.monitors` | define, evaluate, evaluate from telemetry, observations |
+| `maya.distributed_monitoring` | an estate that will not fit in one process. A job computes **sufficient statistics** where the data is; MAYA computes the metric from them and compares it. Unlike an external observation, the result **can be replayed** |
 | `maya.reports` | query the semantic layer, save and run views, export, regulatory returns |
 | `maya.validation_aid` | vendor document coverage, challenge questions, untested assumptions |
 | `maya.regime_encoding` | propose an encoding from regulatory text; never activates |

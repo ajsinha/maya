@@ -1341,6 +1341,15 @@
         ]
       }
     },
+    "/api/v1/distributed-evaluation": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/document-kinds": {
       "get": {
         "body": [],
@@ -3747,6 +3756,41 @@
         "parameters": [],
         "responses": [
           "201",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/distributed-plan": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:monitor_id!",
+          "query:partitions",
+          "query:since",
+          "query:until"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/monitors/{monitor_id}/distributed-submit": {
+      "post": {
+        "body": [
+          "engine",
+          "now",
+          "partitions",
+          "predicate",
+          "ranked_globally",
+          "reference_digest",
+          "window"
+        ],
+        "parameters": [
+          "path:monitor_id!"
+        ],
+        "responses": [
+          "200",
           "422"
         ]
       }

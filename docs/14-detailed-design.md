@@ -3217,8 +3217,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 317 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 378 modules in one
+the 318 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 379 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3526,6 +3526,74 @@ as what it does: a verifier holds the key it verifies with, so **a descriptor is
 evidence to the bank and not to anybody outside it.** If a firm ever needs the
 other half, it is a new requirement with its own argument.
 
+### 26.9 An estate that will not fit in this process (`core/monitoring/distributed.py`)
+
+`evaluate_from_telemetry` reads a cohort into memory. Fine at hundreds of models
+and a few million rows a night; not at an estate-wide sweep over billions, where
+the read either exhausts the process or takes until lunchtime.
+
+The obvious answer is *put Spark in MAYA*, and it is wrong twice over: the
+governance platform would own a cluster, which §7 says it will not, and it would
+sit on the compute path for every model in the bank. A register that is down
+should stop issuing warrants, not stop a hundred teams' nightly batch.
+
+The next answer is §26's own pattern — take somebody else's number, refuse their
+verdict — which `core/monitoring/external.py` already does. It solves the
+compute problem and gives something real up: an external observation **cannot be
+replayed**, because MAYA holds neither the population nor a derivation. For an
+estate-wide sweep that means the whole sweep is unreproducible, which is a large
+price for a scaling problem.
+
+There is a better trade, and it rests on an ordinary fact about these metrics:
+**they are functions of sufficient statistics, not of rows.**
+
+| Metric | What a partition returns | Why it combines |
+|---|---|---|
+| PSI | the count of rows in each of the reference's bins | shares are counts over a total, and counts add |
+| AUC / Gini | the positives' rank sum, and the two class counts | the Mann-Whitney identity is arithmetic over those three numbers |
+| KS | bounded quantile buckets for each class | the two cumulative curves are sums of bucket counts |
+
+So the scan runs where the data is, on a cluster MAYA does not own, and what
+comes back is a few hundred numbers — while **MAYA computes the metric and
+compares it to the threshold.** That is the distinction this module holds that
+`external.py` cannot: it gives up only the *scan* and keeps both the derivation
+and the judgement. A submission carrying `psi: 0.31` would be an external
+observation wearing a better name; one carrying bin counts is a measurement this
+platform redoes, and does redo, whenever anybody asks.
+
+The tests assert the thing that makes it a measurement rather than an
+approximation: **the distributed value equals the in-process value exactly**,
+and the partitioning does not change it. If it did, the number would depend on
+how somebody's cluster happened to split the data — a metric nobody could
+reproduce and everybody would quote.
+
+Three refusals carry the rest.
+
+**The reference is the register's.** The plan carries bin edges derived from the
+sample MAYA holds, with a digest, and a submission quoting a different digest is
+refused. PSI against edges somebody else chose is a different measurement, and
+the two are indistinguishable once both are a number on a slide.
+
+**A global ranking is not a partition ranking.** A rank sum over one partition's
+rows is a rank sum in the wrong ordering, and summing those produces a number
+that looks like an AUC and is not — with nothing in the result to show it. So
+the job must *assert* that it ranked across the whole window, which makes a
+silent error into a stated claim.
+
+**A statistic that does not decompose is refused by name.** Hosmer-Lemeshow's
+deciles depend on the global distribution, so a per-partition decile is a
+different partitioning of a different population and the sum of the statistics
+is not the statistic. Brier is subtler and worth the entry: it decomposes
+arithmetically, and its *useful* form — the reliability/resolution/uncertainty
+split — does not, so submitting the scalar alone would hide which of the three
+moved, which is the only thing anybody asks it.
+
+And what the register cannot check is named rather than glossed. **A `WHERE`
+clause that quietly excluded a segment produces statistics that are
+arithmetically perfect and describe the wrong population.** Nothing here can see
+that, so the predicate and the claimed row count are recorded and the result
+says, in words, that the population is *attested* rather than observed.
+
 ## 27. Infrastructure the design assumes and the build does not have
 
 | Designed | Why it is not built, and what its absence costs |
@@ -3533,7 +3601,7 @@ other half, it is a new requirement with its own argument.
 | **Redis descriptor cache**, with pre-warm-before-invalidate, single-flight coalescing and stale-while-revalidate | Finding H-1's stampede cannot occur because there is no cache. TTL jitter — the one piece that only matters *once* a cache exists — is built. Without a cache, every resolution reads four to six tables and the p99 targets in 03 are unreachable |
 | **Kafka event stream** (`maya.model.*`, `maya.warrant.*`, …) and a transactional **outbox** | There are no domain events leaving the process. Consumers integrate by polling the API |
 | **`warrant_projection` read model** | H-2's disposition. The warrant path reads normalised tables. The coupling costs nothing with one process and forecloses the deployment independence it was raised to protect |
-| **Spark** for point-in-time joins and monitor evaluation | Assembly and evaluation are in-process over pandas and Delta. Fine at hundreds of models; not at an estate-wide nightly sweep |
+| **Spark** for point-in-time joins | Assembly is in-process over pandas and Delta. **Monitor evaluation no longer needs it here** — §26.9 moves the scan to whatever the firm already runs and keeps the arithmetic, so the metric stays reproducible. The point-in-time join at assembly is the part still bounded by one process |
 | **An online feature store**, namespaced by view version, with dual-write and governed namespace retirement | `L-17` has nothing to compare against, so training–serving skew is undetectable. This is the one absence that makes a whole law inert. `serving_namespaces()` computes the half that can exist without a store |
 | **Postgres row-level security**, forced, with a non-owner application role and a cross-entity negative test | H-5. Scope is enforced in Python and the database offers no backstop |
 | **A separate audit database**, read replicas, monthly partitioning | H-9. One database, one identity, one flat evidence table |
@@ -3557,7 +3625,7 @@ other half, it is a new requirement with its own argument.
 | **Cost attribution** — per-model and per-business-unit budgets, showback, cost as a monitored metric | M-6. Not built in any form |
 | **Connectors** — MLflow, Unity Catalog, git — and EUC discovery | **Built as the receiving half** (§26.3, §26.4). Each parses an export rather than calling an API, and produces candidates for triage rather than registrations. SageMaker, Vertex, SAS metadata and CMDB have none, and nothing sweeps: the contract a scanner must meet is published, and running one is somebody else's job |
 | **PDF and DOCX rendering** | **Refused by name with the reason** (§26.6). What is emitted is typesetting source with the citations intact — a PDF that flattened them away is a document whose claims can no longer be traced |
-| **A Java SDK** | The contract it must honour is written down in `sdk/java/README.md`; the implementation is not |
+| ~~**A Java SDK**~~ | **Built** — `sdk/java`, release 17, no runtime dependencies. No typed model class and no generated client: a Java object graph mirroring the platform's schemas is a second description of them, and a second description goes stale in the permissive direction |
 
 ---
 

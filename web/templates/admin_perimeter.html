@@ -183,6 +183,36 @@ and a narrowness nobody has read is the same as one that is not there.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">An estate that will not fit in this process</div>
+  <div class="card-body py-3 small">
+    <p class="mb-2">{{ distributed.still_here }}</p>
+    <p class="mb-2">What moves off the platform is
+    <strong>{{ distributed.moves_off_the_platform }}</strong>. MAYA runs no
+    cluster: owning one would put the governance platform on the compute path
+    for every model in the bank.</p>
+    <div class="row g-3 mb-2">
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Distributable, and what each needs</strong></div>
+        <dl class="mb-0">{% for row in distributed.distributable %}
+          <dt class="mono small">{{ row.test }}</dt>
+          <dd class="text-muted small">{{ row.needs|join(", ") }} — {{ row.why }}</dd>
+        {% endfor %}</dl>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="small"><strong>Not distributable, and why</strong></div>
+        <dl class="mb-0">{% for row in distributed.not_distributable %}
+          <dt class="mono small">{{ row.test }}</dt>
+          <dd class="text-muted small">{{ row.why }}</dd>
+        {% endfor %}</dl>
+      </div>
+    </div>
+    <p class="mb-2"><strong>Replayable.</strong> {{ distributed.replayable }}</p>
+    <ul class="text-muted mb-0">{% for line in distributed.cannot_check %}
+      <li>{{ line }}</li>{% endfor %}</ul>
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">What a warrant signature proves</div>
   <div class="card-body py-3 small">
     <div class="row g-3 mb-2">

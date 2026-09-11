@@ -89,6 +89,7 @@ from core import log
 from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
+from core.monitoring.distributed import DistributedEvaluation
 from core.rules import RuleSetEditor
 from core.rules.importing import RuleSetImport
 from core.lifecycle import (AmendmentService, AttestationService,
@@ -744,6 +745,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # every "push your metrics to us" API has.
     external_monitoring = ExternalObservations(monitoring, registry, catalogue,
                                                evidence)
+    # An estate-wide nightly sweep will not fit in this process, and the answer
+    # is not to put a cluster inside the register. What moves is the SCAN: a
+    # job computes sufficient statistics where the data is, and MAYA does the
+    # arithmetic from those to the metric and compares it to the threshold —
+    # so unlike an external observation, this one can be replayed.
+    distributed_monitoring = DistributedEvaluation(monitoring.registry,
+                                                   registry, evidence)
 
     # What arrives before a model is a model. Kept apart from the register,
     # because a register that admits everything is one nobody can read — and
@@ -1281,6 +1289,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
                            "rules": rules, "rule_import": rule_import,
+                           "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
                            "export": export, "dossier": dossier,
