@@ -28,10 +28,14 @@ made it *more* likely.
 from __future__ import annotations
 
 import resource
+from pathlib import Path
 
 import pytest
 
-from tools.spikes import common, pit_join, resolution, sandbox_escape
+ROOT = Path(__file__).resolve().parents[1]
+
+from tools.spikes import (common, estate, pit_join, resolution,
+                          sandbox_escape)
 
 
 class TestEveryResultCarriesItsConditions:
@@ -238,3 +242,100 @@ class TestTheResolutionSpikeKnowsItsOwnWeaknesses:
         out = resolution._detail(common.percentiles([0.01] * 200),
                                  common.percentiles([0.011] * 200))
         assert "no descriptor cache" in out
+
+
+class TestTheEstateSpikeReportsASlopeAndItsOwnBlindSpots:
+    """The fourth spike, against `NFR-PERF-001` and `NFR-PERF-005`.
+
+    A latency figure from one estate size is a number; two are a slope, and the
+    slope is the finding — `list_models` filters in process, so its cost is
+    linear in the estate on every request including the ones returning twenty
+    rows. No amount of headroom at today's size says where that stops working.
+    """
+
+    def test_it_measures_at_the_size_the_target_is_stated_at(self):
+        assert estate.STATED_AT == 10_000
+        assert estate.ASKED_FOR == 50_000
+
+    def test_the_targets_come_from_the_requirement(self):
+        assert estate.LIST_TARGET_MS == 500.0
+        assert estate.DETAIL_TARGET_MS == 800.0
+
+    def test_it_compares_p95_against_a_p95_target(self):
+        """Comparing a p99 against a p95 target is how a figure gets quoted as
+        a miss it is not."""
+        out = estate._targets({"10000": {
+            "list": {"p95_ms": 120.0, "p99_ms": 900.0, "max_ms": 950.0},
+        }})
+        assert out["list@10000"]["measured_p95_ms"] == 120.0
+        assert out["list@10000"]["met"] is True
+
+    def test_a_missed_target_says_by_how_much(self):
+        out = estate._targets({"50000": {
+            "list": {"p95_ms": 640.0, "p99_ms": 700.0, "max_ms": 810.0},
+        }})
+        assert out["list@50000"]["met"] is False
+        assert "OVER by 140.0" in out["list@50000"]["detail"]
+
+    def test_linear_growth_reads_as_one(self):
+        """1.0 is linear — each model costs what the last one did. The ratio is
+        the point: below 1 is an index doing its job, above 1 is the estate
+        getting more expensive per model as it grows."""
+        out = estate._growth(
+            {"10000": {"list": {"p95_ms": 100.0}},
+             "50000": {"list": {"p95_ms": 500.0}}}, (10_000, 50_000))
+        assert out["list"]["ratio"] == 1.0
+
+    def test_a_read_that_does_not_grow_reads_well_below_one(self):
+        out = estate._growth(
+            {"10000": {"list": {"p95_ms": 100.0}},
+             "50000": {"list": {"p95_ms": 100.0}}}, (10_000, 50_000))
+        assert out["list"]["ratio"] == 0.2
+
+    def test_superlinear_growth_is_called_out_as_worse_than_slow(self):
+        detail = estate._detail(
+            {"10000": {}, "50000": {}},
+            {"list": {"ratio": 2.0}},
+            {"list@10000": {"met": True, "detail": ""}})
+        assert "grew faster than the estate did" in detail
+        assert "worse than" in detail
+
+    def test_the_detail_puts_the_slope_above_either_number(self):
+        detail = estate._detail({"10000": {}}, {}, {})
+        assert "SLOPE" in detail
+        assert "works until it does not" in detail
+
+    def test_it_names_what_it_did_not_measure(self):
+        """A scale figure travels, and the things it does not cover travel less
+        well than the number does."""
+        blob = " ".join(estate.NOT_MEASURED)
+        for absent in ("write path", "evidence chain verification",
+                       "concurrency", "PostgreSQL", "multi-node"):
+            assert absent in blob
+
+    def test_the_chain_at_estate_size_is_named_as_still_a_target(self):
+        """The seeded register has no evidence chain. A spike that quietly
+        skipped that would be reporting an estate-size result for the one
+        operation it did not run."""
+        blob = " ".join(estate.NOT_MEASURED)
+        assert "6,000 nodes" in blob and "tests/test_scale.py" in blob
+
+    def test_the_version_row_is_shaped_from_the_service_not_invented(self):
+        """A column added in `create_version` and forgotten here should show up
+        as a failing read rather than as a fast one."""
+        from db.schema.registry import MODEL_VERSION
+        columns = {c.name for c in MODEL_VERSION.columns}
+        seeded = set(estate.VERSION) | {"model_id", "id", "created_at"}
+        assert not columns - seeded, \
+            f"the seeded version row is missing {sorted(columns - seeded)}"
+
+    def test_it_reads_the_page_a_reviewer_asks_for_rather_than_only_page_one(
+            self):
+        """Offsets are ordinary rather than cursors BECAUSE a register is read
+        by people who want page four, so a deep page is part of the claim."""
+        source = (ROOT / "tools" / "spikes" / "estate.py").read_text(
+            encoding="utf-8")
+        assert "deep_page" in source
+        assert "offset=int(size * 0.8)" in source, \
+            "a fixed offset reads past the end of the smaller estate, which " \
+            "compares an empty page against a real one"
