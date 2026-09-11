@@ -9,7 +9,7 @@
 
 ## 1. What this document is for
 
-`docs/10 §2.3` used to file deployment under *somebody's operational work, not
+`docs/10` used to file deployment under *somebody's operational work, not
 code*. That was true of the **operating** and false of the **artefacts**: a firm
 cannot deploy a governance register safely from a README, and every unstated
 default in a chart is a deployment that runs and is quietly wrong.

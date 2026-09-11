@@ -541,28 +541,39 @@ line is the only place it says so.
 | 6 | Fibre totality (`L-15`) | **Runs** — in the laws job, and again at every application start-up |
 | 7 | Security: SAST, SCA, secret scan, SBOM | **Runs** — bandit's rules through `ruff`'s `S` set (which found a server-side request forgery on its first run), `pip-audit` against `requirements.txt`, `tools/ci/scan_secrets.py`, and a CycloneDX SBOM uploaded per build. No DAST |
 | 8 | Migration up/down rehearsed | **Not applicable** — there are no migrations; the DDL is re-applied |
-| 9 | Client matches the spec; accessibility | **Not built** — no generated client, no axe run |
+| 9 | Client matches the spec; accessibility | **Partly runs, and the honest reading of the gap is narrower than "no axe run".** axe-core finds four families of defect. **Names on controls** and **contrast** are asserted from the source in `tests/test_ui_accessibility.py` — every control has a `for`/`id` pair, no two share an id, and every text pair clears AA in every theme, which catches them earlier than a browser would. **Document structure** is now asserted too: one `<h1>` per page, `alt` on every image, `<nav>` and `<main>` landmarks, `lang` on the document. What is **not** covered is the fourth family — focus order, ARIA state, live regions — which needs a rendered DOM and is not claimed. There is still no generated client, and [ADR-011](adr/ADR-011-decoupled-frontend.md) is what would need one |
 
 Release additionally requires: performance suite green, full adversarial suite green, the ten acceptance
 criteria green, and signed images with SLSA provenance. **None of those run**, and the performance one
-cannot until the three spikes in [10 §2.3](10-roadmap.md) are performed — which is why every NFR figure
-in [03 §7](03-requirements.md) is a target rather than a result.
+cannot until the performance work in [10 §2.4](10-roadmap.md) is done.
+
+The **three spikes** that document used to name have since been run —
+`tools/spikes/`, with what each measured in [19 §8](19-deploying-maya.md) —
+and one of them found a real defect rather than a number. What remains
+unmeasured is throughput, the 50,000-model scale figures and restore time,
+which is why those rows in [03 §7](03-requirements.md) are still targets
+rather than results.
 
 ---
 
 ## 8. Environments
 
-**None of these exist.** There is one deployment shape today: a single process, run by hand or by a
-container image somebody builds, against SQLite or PostgreSQL. No `local` compose stack, no `ci`
-environment beyond the GitHub runner, no `dev`, `uat` or `prod` — and therefore no blue/green, no
-independently deployed warrant plane and no masked copy of a real inventory. The table is the target
-that [10](10-roadmap.md) sequences, kept here because the *shape* is a design decision (the warrant
-plane deploying independently is a claim about coupling, not about hosting) and deleting it would lose
-the argument along with the fiction.
+**One of these now exists.** `deploy/compose.yaml` is the `local` row: PostgreSQL with the owner and
+application database roles already separated, the anchor store on a named volume, and the container
+read-only with no capabilities. `deploy/helm` is the shape of the rest, and it deliberately refuses to
+render rather than templating a placeholder for a secret — [19](19-deploying-maya.md) is the account.
+
+There is still no `dev`, `uat` or `prod`, no blue/green, no independently deployed warrant plane and no
+masked copy of a real inventory. Those are **deployments somebody operates** rather than artefacts this
+repository can contain, which is the distinction §2.3 of the roadmap used to blur.
+
+The table is kept because the *shape* is a design decision — the warrant plane deploying independently
+is a claim about coupling, not about hosting — and deleting it would lose the argument along with the
+fiction.
 
 | Environment | Purpose | Data | Notes |
 |---|---|---|---|
-| `local` | Development | Synthetic seed, ~50 models | Compose; API mock available for front-end-only work |
+| `local` | Development | Synthetic seed, ~50 models | **Built** — `deploy/compose.yaml`. No API mock: the front end is server-rendered, so there is nothing to mock against |
 | `ci` | Automated verification | Generated fixtures | Ephemeral, torn down per run |
 | `dev` | Integration with real connectors | Masked subset | First place plugins are loaded from `maya-ext-*` |
 | `uat` | Business validation, training | **Baseline-imported** copy of the real inventory, masked | Where C-5 baseline import is rehearsed with real users |
