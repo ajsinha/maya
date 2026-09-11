@@ -12,6 +12,7 @@ from pydantic import Field
 
 from core.execution.urn import urn_of
 from core.domain import paging
+from core.http import conventions
 from routes.base import Body, Routes
 from core.features.rendering import to_latex, to_python
 from core.assumptions import KIND_MEANING as ASSUMPTION_KIND_MEANING
@@ -937,6 +938,37 @@ class ModelRoutes(Routes):
             self.authorise(request, "model:read")
             return self.guard(
                 lambda: self.ctx["discovery"].across_the_estate())
+
+        @self.app.get(f"{self.api}/discovery/candidates", tags=["registry"])
+        def discovery_candidates(request: Request, outcome: Optional[str] = None,
+                                 scanner: Optional[str] = None,
+                                 limit: int = 100,
+                                 cursor: Optional[str] = None):
+            """The queue itself, paged by **keyset cursor** rather than offset.
+
+            This is the largest list in the platform by construction — the
+            canonical number in these documents is four thousand spreadsheets —
+            and it is also the one being written to while somebody works down
+            it, which is exactly where `LIMIT/OFFSET` fails: a candidate
+            arriving above your position shifts everything down, page 2 starts
+            one past where page 1 ended, and you skip a row. Nothing errors.
+            You receive a complete-looking queue with a hole in it, and the
+            hole is a model nobody triaged.
+
+            Pass `next_cursor` back as `cursor`. It names the last row you saw
+            rather than a position, so a write above it changes nothing.
+            """
+            self.authorise(request, "model:read",
+                           estate_wide="reading the discovery queue")
+            filters = {k: v for k, v in (("outcome", outcome),
+                                         ("scanner", scanner)) if v}
+            rows = self.guard(
+                lambda: self.ctx["discovery"].repo.many(**filters))
+            return self.guard(lambda: {
+                **conventions.page(rows, order="found_at", desc=True,
+                                   limit=limit, cursor=cursor),
+                "filters": filters or None,
+            })
 
         @self.app.post(f"{self.api}/discovery", status_code=201,
                        tags=["registry"])

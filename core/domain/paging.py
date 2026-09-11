@@ -20,10 +20,16 @@ Three decisions worth stating, because each of them is a trade:
     to a page, because then page two of a filtered list is page two of the
     unfiltered one with holes in it — and a model out of scope becomes
     discoverable by a count that does not add up.
-  * **Offsets, not cursors.** A cursor is better for a feed that grows at the
-    head; a governance register is read by people who want page four, and an
-    offset says what it means. Where a stream genuinely needs a cursor -- bulk
-    feature transfer -- that path already has one.
+  * **Offsets here, cursors where the list grows at the head.** A governance
+    register is mostly read by people who want page four, and an offset is what
+    says "page four". That argument holds for every listing this module covers
+    and stops exactly where the list is being **written to while somebody walks
+    it** — the discovery queue, where a scanner posts candidates while a triager
+    works down them. There an offset silently skips a row: the insert shifts
+    everything down, page two starts one past where page one ended, and the
+    caller receives a complete-looking queue with a hole in it. `core/http/
+    conventions.py` holds the keyset cursor for those, and bulk feature
+    transfer already had one.
 """
 from __future__ import annotations
 
