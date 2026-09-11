@@ -14,7 +14,7 @@ derives from what it holds, and what it refuses to conclude. This one is about
 the places where the record is **not MAYA's own**: where the platform relies on
 a party it does not control, or where a party relies on it.
 
-There are eleven such places. They were built at different times, for different
+There are twelve such places. They were built at different times, for different
 requirements, by different arguments, and it took building them all to notice
 they are one problem:
 
@@ -49,7 +49,7 @@ So the state is three-valued and the third value is inhabited. No sentence in a
 manual would have done that work, because the two collapses happen at the moment
 somebody writes a status column with two possible values.
 
-The same move, eleven times:
+The same move, twelve times:
 
 | Boundary | The convenient answer | The wider type |
 |---|---|---|
@@ -64,8 +64,9 @@ The same move, eleven times:
 | Attested cost | a total | attributed, with the **unattributed share** |
 | A control with nothing to compare | *nothing fired* | `cannot_check`, counted separately |
 | A tag the platform records | a governed estate | the facts, **plus whether any rule reads them** |
+| An amount nobody attested | a small amount | the **deepest** band, marked as reached by absence |
 
-## 3. The eleven, and what each declines to claim
+## 3. The twelve, and what each declines to claim
 
 Each is specified in [14 §26](14-detailed-design.md). What follows is the
 boundary itself, stated once, so a reader can see the shape rather than the
@@ -288,6 +289,50 @@ in-scope credit models while permitting controlled use for fairness testing* is
 not a sentence a platform can evaluate on a bank's behalf — and, crucially,
 **the exposure is reported whether or not a rule exists**. Publishing a
 vocabulary and stopping there would recreate the same defect one level up.
+
+## 3.12 An amount nobody attested
+
+The twelfth is the only one where the convenient answer is not merely
+incomplete — it is **the wrong direction**, and that is what makes it worth
+reading.
+
+A delegated authority matrix (`FR-LC-005`) bands an approval by tier, amount and
+legal entity. Two of those the register holds. The amount it usually does not:
+there is no standing exposure column, and the only current figure MAYA has is
+one somebody attested to a named system of record, which most models do not
+have. The figure on the tiering assessment will not serve, because it is a
+number typed into a form by the person who wants the approval.
+
+So most models reach the matrix with no amount, and every natural implementation
+does the same thing with that:
+
+> `None` compares as less than every floor, so the model falls into the
+> **shallowest** band. Every approval succeeds. Nobody is refused. The matrix
+> reports itself as enforced, and it is enforcing nothing.
+
+The wider type is the direction. Where no exposure is attested, the band is the
+**deepest the tier admits**, and the answer carries `reached_by:
+deepest_band_because_the_amount_is_unknown` rather than a footnote somewhere:
+
+> **An amount this register does not have is not a small amount.**
+
+Two consequences worth naming. The refusal is **escapable by doing the right
+thing** — source the exposure and the band is decided by measurement, in one
+call that leaves a reference behind — so the safe direction is not a dead end.
+And the same absence does not refuse twice: the deepening already happened when
+the band was chosen, so a signer's delegation ceiling is not tested against an
+amount that does not exist. Refusing twice for one absence teaches that the
+matrix is arbitrary, and a control people believe is arbitrary is a control they
+route around.
+
+The delegations behind the matrix have an edge of their own, and it is the
+ordinary kind. A delegation names an **instrument** — a board resolution, a
+charter, a letter — and MAYA holds the reference, not the document. It cannot
+tell whether the resolution still says what the row claims. So delegations
+expire, an expired one grants nothing, and the estate view reports how much of
+the estate is approvable under authority nobody has re-attested. A matrix
+enforced confidently from a register nobody has revisited is worse than no
+matrix, which at least does not tell you it is working.
 
 ## 4. The boundaries that are refusals
 

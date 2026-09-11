@@ -874,3 +874,54 @@ ESTATE_COST = Table(
     Index("ix_estate_cost_period", "period_start", "period_end"),
     Index("ix_estate_cost_model", "model_id", "period_start"),
 )
+
+
+# --------------------------------------------------------------------------
+# FR-LC-005. The delegated authority matrix, and what an amount MAYA does not
+# have counts as.
+#
+# Two tables because they are two different kinds of fact. A BAND is a rule the
+# firm published — which signatures a decision of this shape needs. A
+# DELEGATION is an authority a named person holds, granted by an instrument
+# MAYA cannot read. Conflating them produces the thing this feature exists to
+# prevent: a matrix that looks enforced because everyone in it holds a role.
+AUTHORITY_BAND = Table(
+    "authority_band", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("name", Text, nullable=False),
+    # NULL means every tier. The dimensions are nullable on purpose: a firm
+    # adds a row for one entity without restating the estate, and bands are
+    # matched most-specific-first.
+    Column("tier", Integer, nullable=True),
+    Column("at_or_above", Double, nullable=False, server_default=text("0")),
+    Column("legal_entity", Text, nullable=True),
+    # A list of lists: roles that sign together, stages that sign in order. A
+    # flat role list cannot express sequencing, and sequencing is the half of
+    # this requirement a quorum does not cover.
+    Column("stages", Text, nullable=False, server_default=text("'[]'")),
+    Column("note", Text, nullable=False, server_default=text("''")),
+    Column("published_by", Text, nullable=False),
+    Column("published_at", Double, nullable=False),
+    Index("uq_authority_band", "name", unique=True),
+)
+
+AUTHORITY_DELEGATION = Table(
+    "authority_delegation", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("principal", Text, nullable=False),
+    Column("ceiling", Double, nullable=False),
+    Column("currency", Text, nullable=False, server_default=text("'USD'")),
+    # NULL means every entity. Authority is granted by an entity's board and
+    # does not travel, so a row scoped to one is the normal case.
+    Column("legal_entity", Text, nullable=True),
+    # The resolution, charter or letter. Required, because MAYA holds the
+    # reference rather than the document, and a delegation with no reference is
+    # indistinguishable from somebody's recollection.
+    Column("instrument", Text, nullable=False),
+    Column("granted_by", Text, nullable=False),
+    Column("granted_at", Double, nullable=False),
+    # An expired delegation grants nothing. MAYA cannot check whether the
+    # instrument still says what it said, so the register makes somebody look.
+    Column("expires_at", Double, nullable=False),
+    Index("ix_authority_delegation_principal", "principal", "expires_at"),
+)

@@ -119,6 +119,7 @@ class Maya:
         # SDK already had, which reads to a new joiner as *the SDK cannot do
         # this* rather than *nobody wired it up*.
         self.approvals = governance.VersionApprovals(self)
+        self.authority = governance.Authority(self)
         self.relations = governance.Relations(self)
         self.catalogue = governance.FeatureCatalogue(self)
         self.views = governance.FeatureViews(self)

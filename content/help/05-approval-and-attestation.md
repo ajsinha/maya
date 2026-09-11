@@ -291,6 +291,80 @@ One decline closes the approval with the statement attached. A declined round
 stays in the history and the next attempt is a new approval, so *"how many times
 did this fail second-line review"* has an answer.
 
+### By amount, by entity, and in order
+
+The tier is one dimension of three, and the other two matter for the same reason
+the tier does. A $2bn book and a $4m book are not the same decision. Authority is
+granted by an entity's board and **does not travel**. And a quorum collected in
+any order lets the second line sign its challenge before the first line has filed
+anything to challenge.
+
+The **delegated authority matrix** is a set of bands, matched most-specific-first
+— entity beats amount beats tier, so you add a row for one entity without
+restating the estate:
+
+```bash
+POST /api/v1/authority/bands
+{"name": "tier-1-large", "tier": 1, "at_or_above": 1000000000,
+ "stages": [["model_risk_manager"], ["validator"]]}
+```
+
+`stages` is a list of lists: roles that sign together, stages that sign in order.
+A signature offered before its stage has opened is refused as `out_of_sequence`
+— **409, not 403**: you hold the permission and you hold the role, and what
+refuses you is the state of this approval, not who you are.
+
+**Nothing changes until you publish your first band.** Until then the tier quorum
+stands exactly as it always has. A feature that deepens every approval in your
+estate the moment you upgrade is a feature switched off before anybody reads what
+it does. And the band is written onto an approval when it opens, so withdrawing
+or re-publishing a row cannot move the bar under people who are already signing.
+
+#### Where the amount comes from, and what happens when there isn't one
+
+**The sourced exposure fact and nowhere else.** MAYA holds no standing exposure
+column, and the figure your tiering assessment was made from is a number typed
+into a form by somebody who wants the approval. So the amount has to be attested
+to a named system of record, with a reference somebody can pull.
+
+Which means most models have no amount. Read this before publishing a band with a
+floor in it:
+
+> Nothing compares as less than every floor, so the obvious implementation drops
+> an unsourced model into the **shallowest** band — every approval succeeds,
+> nobody is refused, and the matrix reports itself as enforced.
+
+MAYA goes the other way. With no attested exposure the band is the **deepest the
+tier admits**, and `GET /api/v1/authority/model?urn=…` returns `reached_by:
+deepest_band_because_the_amount_is_unknown`. **An amount this register does not
+have is not a small amount.** Source the exposure and the band is decided by
+measurement instead.
+
+#### Delegations
+
+A band says what a decision of this shape needs. A **delegation** says what one
+named person may approve:
+
+```bash
+POST /api/v1/authority/delegations
+{"principal": "s.iqbal", "ceiling": 500000000, "legal_entity": "LE-US-01",
+ "instrument": "Board resolution BR-2026-04"}
+```
+
+`instrument` is required, and it is the field that gets left out. MAYA holds a
+reference to the resolution, not the resolution — a delegation nobody can trace
+to a decision is the precise thing an authority matrix exists to prevent, and it
+is why delegations **expire after a year** and an expired one grants nothing.
+
+Signing beyond your ceiling is `beyond_delegated_authority`; signing for an
+entity your writ does not reach is `entity_out_of_delegation`. Both are 409s, and
+both name the attested figure and its source, so the disagreement is between your
+delegation and a system of record rather than between two opinions. Until
+somebody records the first delegation, none of this refuses anything — a control
+that refuses the whole estate the day it is switched on is a control switched off
+the same day, and `GET /api/v1/authority/estate` is where that absence is
+reported instead.
+
 ## Amendments, retirement and deletion
 
 An **amendment** is a declared act. It says what is changing and why, returns the

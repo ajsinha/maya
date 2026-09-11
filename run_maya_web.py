@@ -93,6 +93,7 @@ from core.monitoring.distributed import DistributedEvaluation
 from core.estate.cost import EstateCost
 from core.validation.correlation import FindingRoots
 from core.features.screening import ContractScreening
+from core.lifecycle.authority import AuthorityMatrix
 from core.lifecycle.decommission import Decommissioning
 from core.risk.sourcing import FactSourcing
 from core.risk.triggers import RetierTriggers
@@ -196,6 +197,7 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
+                AuthorityBandRepository, AuthorityDelegationRepository,
                 DecommissionRepository, EstateCostRepository,
                 FindingRootRepository,
                 ExportShareReadRepository, ExportShareRepository,
@@ -1055,10 +1057,23 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # The quorum records its outcome through the registry, and the registry
     # refuses a single signature where the quorum applies. Connected explicitly
     # in both directions rather than through a circular constructor.
+    # `FR-LC-005`. The tier decides the quorum and always has; the amount and
+    # the legal entity are the two dimensions it cannot express, and sequencing
+    # is the third thing a set of roles cannot say. Consulted only where a firm
+    # has published a matrix, so the shipped behaviour is unchanged until
+    # somebody makes a decision — and the amount comes from the sourced
+    # exposure fact rather than from the tiering assessment's own figure,
+    # because otherwise the number deciding the approval depth is chosen by
+    # whoever wants the approval.
+    authority = AuthorityMatrix(
+        AuthorityBandRepository(db), AuthorityDelegationRepository(db),
+        registry, sourcing=fact_sourcing, evidence=evidence)
+
     approvals = VersionApproval(
         VersionApprovalRepository(db), VersionApprovalSignatureRepository(db),
         registry, evidence,
-        quorum=_tier_roles(cfg, "lifecycle.version_approval.quorum"))
+        quorum=_tier_roles(cfg, "lifecycle.version_approval.quorum"),
+        authority=authority)
     registry.attach_quorum(approvals.refuse_without_quorum)
 
     debts = DebtRegister(DebtRepository(db), evidence, findings)
@@ -1352,6 +1367,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "retier_triggers": retier_triggers,
                            "contract_screening": contract_screening,
                            "decommissioning": decommissioning,
+                           "authority": authority,
                            "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,

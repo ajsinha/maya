@@ -231,6 +231,34 @@ CREATE INDEX IF NOT EXISTS ix_signature_attestation ON attestation_signature (at
 CREATE UNIQUE INDEX IF NOT EXISTS uq_signature_attestation_principal ON attestation_signature (attestation_id, principal);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_signature_attestation_role ON attestation_signature (attestation_id, role);
 
+CREATE TABLE IF NOT EXISTS authority_band (
+    id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    tier INTEGER,
+    at_or_above DOUBLE PRECISION DEFAULT 0 NOT NULL,
+    legal_entity TEXT,
+    stages TEXT DEFAULT '[]' NOT NULL,
+    note TEXT DEFAULT '' NOT NULL,
+    published_by TEXT NOT NULL,
+    published_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_authority_band ON authority_band (name);
+
+CREATE TABLE IF NOT EXISTS authority_delegation (
+    id TEXT NOT NULL,
+    principal TEXT NOT NULL,
+    ceiling DOUBLE PRECISION NOT NULL,
+    currency TEXT DEFAULT 'USD' NOT NULL,
+    legal_entity TEXT,
+    instrument TEXT NOT NULL,
+    granted_by TEXT NOT NULL,
+    granted_at DOUBLE PRECISION NOT NULL,
+    expires_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE INDEX IF NOT EXISTS ix_authority_delegation_principal ON authority_delegation (principal, expires_at);
+
 CREATE TABLE IF NOT EXISTS baseline_import (
     id TEXT NOT NULL,
     reference TEXT NOT NULL,
@@ -1572,6 +1600,7 @@ CREATE TABLE IF NOT EXISTS version_approval (
     model_version_id TEXT NOT NULL,
     tier INTEGER,
     required_roles TEXT DEFAULT '[]' NOT NULL,
+    band TEXT,
     status TEXT DEFAULT 'open' NOT NULL,
     statement TEXT DEFAULT '' NOT NULL,
     opened_by TEXT NOT NULL,
