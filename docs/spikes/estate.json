@@ -1,0 +1,205 @@
+{
+  "against_target": {
+    "detail@10000": {
+      "detail": "detail at 10000 models: p95 1.87 ms against 800.0 ms, 798.1 ms of headroom. The slowest single call was 2.444 ms",
+      "measured_p95_ms": 1.87,
+      "met": true,
+      "target_p95_ms": 800.0
+    },
+    "detail@50000": {
+      "detail": "detail at 50000 models: p95 2.337 ms against 800.0 ms, 797.7 ms of headroom. The slowest single call was 3.789 ms",
+      "measured_p95_ms": 2.337,
+      "met": true,
+      "target_p95_ms": 800.0
+    },
+    "list@10000": {
+      "detail": "list at 10000 models: p95 147.993 ms against 500.0 ms, 352.0 ms of headroom. The slowest single call was 181.259 ms",
+      "measured_p95_ms": 147.993,
+      "met": true,
+      "target_p95_ms": 500.0
+    },
+    "list@50000": {
+      "detail": "list at 50000 models: p95 441.485 ms against 500.0 ms, 58.5 ms of headroom. The slowest single call was 467.188 ms",
+      "measured_p95_ms": 441.485,
+      "met": true,
+      "target_p95_ms": 500.0
+    },
+    "search@10000": {
+      "detail": "search at 10000 models: p95 150.084 ms against 500.0 ms, 349.9 ms of headroom. The slowest single call was 159.488 ms",
+      "measured_p95_ms": 150.084,
+      "met": true,
+      "target_p95_ms": 500.0
+    },
+    "search@50000": {
+      "detail": "search at 50000 models: p95 428.953 ms against 500.0 ms, 71.0 ms of headroom. The slowest single call was 478.71 ms",
+      "measured_p95_ms": 428.953,
+      "met": true,
+      "target_p95_ms": 500.0
+    }
+  },
+  "by_size": {
+    "10000": {
+      "clock_bound": [],
+      "deep_page": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 156.454,
+        "mean_ms": 64.796,
+        "min_ms": 46.34,
+        "p50_ms": 51.791,
+        "p95_ms": 140.658,
+        "p99_ms": 151.705
+      },
+      "detail": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 2.444,
+        "mean_ms": 1.593,
+        "min_ms": 1.382,
+        "p50_ms": 1.543,
+        "p95_ms": 1.87,
+        "p99_ms": 2.146
+      },
+      "list": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 181.259,
+        "mean_ms": 68.304,
+        "min_ms": 45.819,
+        "p50_ms": 52.929,
+        "p95_ms": 147.993,
+        "p99_ms": 154.779
+      },
+      "models": 10000,
+      "search": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 159.488,
+        "mean_ms": 67.893,
+        "min_ms": 48.246,
+        "p50_ms": 54.474,
+        "p95_ms": 150.084,
+        "p99_ms": 159.409
+      },
+      "seed_seconds": 0.84
+    },
+    "50000": {
+      "clock_bound": [],
+      "deep_page": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 418.505,
+        "mean_ms": 343.797,
+        "min_ms": 240.058,
+        "p50_ms": 362.869,
+        "p95_ms": 396.332,
+        "p99_ms": 409.915
+      },
+      "detail": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 3.789,
+        "mean_ms": 1.715,
+        "min_ms": 1.316,
+        "p50_ms": 1.576,
+        "p95_ms": 2.337,
+        "p99_ms": 2.933
+      },
+      "list": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 467.188,
+        "mean_ms": 351.627,
+        "min_ms": 236.177,
+        "p50_ms": 367.939,
+        "p95_ms": 441.485,
+        "p99_ms": 460.966
+      },
+      "models": 50000,
+      "search": {
+        "bound_by": "samples",
+        "budget": 60,
+        "count": 60,
+        "max_ms": 478.71,
+        "mean_ms": 360.866,
+        "min_ms": 249.292,
+        "p50_ms": 379.806,
+        "p95_ms": 428.953,
+        "p99_ms": 465.901
+      },
+      "seed_seconds": 4.94
+    }
+  },
+  "complete": true,
+  "conditions": {
+    "cpu_count": 24,
+    "note": "a measurement on this machine under this load. Not a capacity plan: a single-process figure extrapolated to an estate is arithmetic rather than evidence",
+    "platform": "Linux-7.0.11-76070011-generic-x86_64-with-glibc2.43",
+    "processor": "x86_64",
+    "python": "3.13.15",
+    "shared_machine": "other agent sessions were running on this machine throughout. The 50,000 figures reproduced across runs to within 1%; the 10,000 ones varied between 148 and 259 ms for the same read, which is why the ratio is reported with that caveat rather than as a clean slope",
+    "sizes": [
+      10000,
+      50000
+    ],
+    "store": "sqlite"
+  },
+  "detail": "measured at 10000, 50000 models. 6 of 6 target comparisons met. The figure to read is the SLOPE rather than either number: a read whose cost grows with the estate is one that works until it does not, and no amount of headroom at today's size tells you where that is",
+  "growth": {
+    "deep_page": {
+      "linear_would_be": 1.0,
+      "p95_at_10000": 140.658,
+      "p95_at_50000": 396.332,
+      "ratio": 0.564
+    },
+    "detail": {
+      "linear_would_be": 1.0,
+      "p95_at_10000": 1.87,
+      "p95_at_50000": 2.337,
+      "ratio": 0.25
+    },
+    "list": {
+      "linear_would_be": 1.0,
+      "p95_at_10000": 147.993,
+      "p95_at_50000": 441.485,
+      "ratio": 0.597
+    },
+    "search": {
+      "linear_would_be": 1.0,
+      "p95_at_10000": 150.084,
+      "p95_at_50000": 428.953,
+      "ratio": 0.572
+    }
+  },
+  "not_measured": [
+    "the write path. The estate is seeded as rows, so registration, the approval quorum and the serialised evidence append are not timed here at any size",
+    "evidence chain verification at estate size. The seeded register has no chain; 6,000 nodes in `tests/test_scale.py` is the largest this repository has observed, and `NFR-PERF-005` is asking about 50,000 models' worth",
+    "concurrency. One process, one request at a time \u2014 a p95 under load is a different number and this is the floor under it",
+    "PostgreSQL. Measured on SQLite, where the whole estate is one file on local disk. A network round trip per query moves every figure here",
+    "anything multi-node: failover, replica reads, RTO and RPO (`NFR-AVAIL-001`, `NFR-AVAIL-003`) are untouched by this"
+  ],
+  "only": [
+    "list",
+    "deep_page",
+    "search",
+    "detail"
+  ],
+  "reads_not_taken": {
+    "dashboard": "not established. The first attempt measured a SIGN-IN page: `/dashboard` answers 200 to HTTP Basic because the interface takes a session cookie, so a status check does not catch it. The harness now asserts on content and the corrected run did not complete",
+    "portfolio": "measured once at 10,000 models at 8,258 ms p95 over 7 samples, and NOT reproduced here. Over 50,000 models a single call did not return in more than thirty minutes, twice. The floor is the result"
+  },
+  "sample_budget": 60,
+  "seconds_per_read": 45.0,
+  "sizes": [
+    10000,
+    50000
+  ],
+  "spike": "estate"
+}
