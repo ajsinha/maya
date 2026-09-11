@@ -137,9 +137,19 @@ consistent — because a check that quietly ignores what it cannot judge reports
 the cases it was least able to judge. A model drafting an encoding is the most likely author of a
 `custom` sentence, so that report is precisely the list a reviewer of machine output needs.
 
-Neither `L-16` nor `L-8` is in `ORACLES`, because the capability they would back — a regulatory
-encoding assistant (§9) — is not built. The checks are ready and the generator is not, which is the
-right way round.
+Neither `L-16` nor `L-8` is in `ORACLES`, and the encoding assistant (§9) **is** built —
+`core/assist/encoding.py`. That is not an oversight, and the reason is worth stating because it is
+the distinction `ORACLES` exists to hold.
+
+An oracle answers *is this particular output acceptable*, mechanically, for one generation. `L-16`
+and `L-8` answer whether an encoding is **well-formed** — that its obligations compose and that its
+satisfaction condition holds over the pairs. Neither answers whether the encoding says what the
+regulator meant, and nothing can.
+
+So the assistant **activates nothing**. A proposal sits until a person publishes it, and publishing
+runs the laws. The check is at the right place and the capability is registered without a
+per-generation oracle, which is the honest arrangement rather than a gap — an oracle that checked
+well-formedness and was read as checking *correctness* would be worse than none.
 
 ---
 
@@ -364,17 +374,31 @@ retire the claim:
 
 ---
 
-## 9. What the criterion admits, and nobody has built
+## 9. What the criterion admits
 
-Everything in this section is design. The ordering is by **oracle strength**, not by value, which is
-the whole argument of this document applied to its own roadmap.
+This section used to be titled *what the criterion admits, and nobody has built*, and everything in
+it was design. Six of the ten have since been built, and **the way they were built is the more
+interesting result than the fact that they were**.
+
+Four of them turned out not to need a generative model at all. Probe-set generation is arithmetic
+over a declared domain. Remediation planning is a shortest path in the tropical semiring. Discovery
+is regular expressions with the matched text carried so a human can check it in seconds. Finding
+correlation is a person naming a cause, with a deliberately weak suggestion underneath.
+
+That is the criterion working as intended rather than being circumvented. **Where an oracle is
+strong, it is usually strong because the answer was computable**, and once it is computable the
+generator adds proposal quality and nothing else — which is worth having only when the proposal is
+the hard part.
+
+The ordering is still by **oracle strength** rather than by value, which is the whole argument of
+this document applied to its own roadmap.
 
 | | Capability | Tier | Its oracle | State |
 |---|---|---|---|---|
 | **1** | Feature deduplication and semantic search over the catalogue | A | A human adjudicates each proposed duplicate in seconds; the proposal points at two real rows | Not built. The catalogue's search is deliberately not embedding-based |
 | **2** | Natural-language query over the inventory | A | The generated query parses and returns, or does not — and the user sees the query | Not built |
-| **3** | Probe-set generation | A | A probe either executes and discriminates, or does not | Not built. This attacks an acknowledged weakness — [00 §5.3](00-mathematical-foundations.md) is candid that behavioural equivalence is only as strong as the probe set, and thin probe sets are the norm |
-| **4** | Regulatory institution encoding | A | `L-16` then `L-8`, both of which run today (§3.1) | Not built, and the closest to ready. It converts the extensibility guarantee from *possible* to *cheap*, which is the difference between a guarantee and a claim |
+| **3** | Probe-set generation | A | A probe either executes and discriminates, or does not | **Built** — `core/assist/probes.py`, and it attacks an acknowledged weakness: [00 §5.3](00-mathematical-foundations.md) is candid that behavioural equivalence is only as strong as the probe set. The design turns on one observation — **the interior of the input domain is where two implementations agree** — so a probe set assembled from rows that were lying around samples the ordinary cases and discriminates nothing |
+| **4** | Regulatory institution encoding | A | `L-16` then `L-8`, both of which run today (§3.1) | **Built, and it activates nothing** — `core/assist/encoding.py`. It *proposes* an encoding from regulatory text and the proposal goes nowhere until somebody publishes it, because the oracle here (`L-16` then `L-8`) says whether an encoding is well-formed, not whether it is what the regulator meant. It converts the extensibility guarantee from *possible* to *cheap*, which is the difference between a guarantee and a claim |
 | **5** | Format migration — re-expressing an artifact so it can enter production under the format policy | A | Run both artifacts over the probe set and assert numerical equivalence within tolerance. If equivalence fails, nothing ships | Not built |
 | **6** | Remediation planning | A | *None needed.* The tropical semiring `(ℝ⁺∪{∞}, min, +)` computes the cheapest path to close a gap, in person-days, over the actual evidence structure. The **plan comes from the algebra**; an agent would only coordinate, so there is nothing for it to be creatively wrong about | Not built |
 | **7** | Documentation drafting with grounding verification | B | Citation soundness — currently existence, ideally minimal support (§3) | **The path is built** (§4); no capability is registered against it in this repository |
