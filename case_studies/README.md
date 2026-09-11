@@ -1,11 +1,11 @@
 # MAYA case studies
 
-Fourteen worked models, each registered in MAYA end to end, each with a script
+Fifteen worked models, each registered in MAYA end to end, each with a script
 you can run in front of an audience and a README written to be talked through.
 
-Thirteen of them were designed to exercise the platform. The fourteenth was not
-— it is a failure taken from the public record, and it is the only one whose
-closing section is a list of what the platform does not reach.
+Thirteen of them were designed to exercise the platform. **Two were not** — they
+are failures taken from the public record, and they are the ones whose closing
+section is a list of what the platform does not reach.
 
 | | Model | Class | What it is for showing |
 |---|---|---|---|
@@ -22,19 +22,32 @@ closing section is a list of what the platform does not reach.
 | **11** | [RAG customer assistant](11_rag_assistant_config/) | **T5** — configured | **Generative AI.** The system prompt is a parameter. Then the vendor reversions, the bank changes nothing, and the guardrail pass rate falls from 100% to 57% — so the provider change becomes a formal amendment |
 | **12** | [Climate transition scorecard](12_climate_transition_elicited/) | **T7** — elicited | **Climate risk.** Weights from a panel, because the transition has not happened and there is nothing to estimate from. The dissent is on the parameter set, priced — and a judgment claiming to have been *fitted* is refused |
 | **13** | [Load forecast network](13_load_forecast_trained/) | **T3** — trained | **Energy.** The opacity has to be EARNED: the linear incumbent is registered too, and beating it by 85% is the evidence. The artifact's digest is the model's identity — same code, new seed, different model |
-| **14** | [VaR model swapped mid-crisis](14_var_model_change/) | **T2** — estimated | **The one not designed to fit.** Reconstructed from the public record of the 2012 London Whale losses. Six governance questions, five answered, and a section listing the four links in the failure chain MAYA does not reach |
+| **14** | [VaR model swapped mid-crisis](14_var_model_change/) | **T2** — estimated | **Not designed to fit.** Reconstructed from the public record of the 2012 London Whale losses. Six governance questions, five answered, and a section listing the four links in the failure chain MAYA does not reach |
+| **15** | [Benefit risk model that used nationality](15_benefit_risk_scoring/) | **T2** — estimated | **Not designed to fit, and not a bank.** Reconstructed from the Dutch childcare benefits affair. The register *sees* the protected characteristic and cannot act on it unless somebody wrote the rule — and deleting the column leaves two-thirds of the disparity behind in a proxy |
 
 **Order matters twice.** Run 4 before 5, and 2 before 6 — each of those pairs
 shares features and an `input_to` edge. Everything else is independent.
 
-**Case study 14 is different in kind and should be read that way.** The other
-thirteen were designed by the author of the platform, which is the weakness the
-research paper names as its principal missing evidence: a demonstration built
-by its own author shows sufficiency and little else, and you cannot fix that by
-building a fourteenth the same way. Number 14 takes a failure from the public
-record instead and walks it into whatever the platform happens to do — including
-one refusal the script's author did not expect, and a closing list of the four
-links in that failure chain MAYA does not reach.
+**Case studies 14 and 15 are different in kind and should be read that way.**
+The other thirteen were designed by the author of the platform, which is the
+weakness the research paper names as its principal missing evidence: a
+demonstration built by its own author shows sufficiency and little else, and you
+cannot fix that by building a fourteenth the same way. These two take failures
+from the public record instead and walk them into whatever the platform happens
+to do.
+
+They were chosen to fail in **different places**, because one outside scenario is
+an anecdote. **14** is about a change nobody was made to justify, and it found a
+refusal its author had not planned for. **15** is about a fact the register can
+*see and cannot act on*, it leaves financial services altogether — which is the
+only way to test whether controls argued from banking supervision transfer — and
+it found a **limitation** rather than a control: `policy_decision` is the highest
+purpose class the platform has, and a model that ruined twenty-six thousand
+households still tiers below a mid-sized pricing model, because the other axis of
+the lattice is exposure denominated in money.
+
+Both close with a list of what the platform does not reach. In 15 that list is
+most of the harm.
 
 Every README opens with a **theory** section: the mathematics of the model, its
 assumptions, and where it is known to be wrong — before any of the governance.

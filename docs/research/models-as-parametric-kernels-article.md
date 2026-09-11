@@ -1082,13 +1082,16 @@ about the **epistemic status of what it holds** — and at a boundary, that stat
 Making the unknown state *representable*, instead of reporting it as its nearest convenient neighbour,
 isn't a consequence of anything proved in the paper. It's an obligation the practice added.
 
-### The one case study I didn't design
+### The two case studies I didn't design
 
 Everything above has a problem I can't argue my way out of: I wrote the platform
-*and* the demonstrations of it. Fourteen worked examples by the same person prove
+*and* the demonstrations of it. Fifteen worked examples by the same person prove
 that the thing is self-consistent and almost nothing else.
 
-So the fourteenth is taken from the public record instead. It reconstructs the
+So two of them are taken from the public record instead — and I picked them to
+fail in *different places*, because one outside scenario is an anecdote.
+
+#### The first: a change nobody was made to justify It reconstructs the
 model governance failure at the centre of the 2012 JPMorgan Chief Investment
 Office losses — the London Whale — from the firm's own Management Task Force
 report and the Senate Permanent Subcommittee report. **The sequence is theirs.
@@ -1146,6 +1149,56 @@ intended. The supervisory register reported an internal plan landing five months
 past a regulatory commitment as `-163 day(s) apart, inside the 14 days closure
 verification needs` — arithmetically true, and it reads as a near miss. It isn't.
 And a test had been passing on that wrong sentence.
+
+#### The second: a fact MAYA can see and can't act on
+
+The fifteenth leaves banking altogether, which is the only way to find out
+whether controls argued from banking supervision transfer. It reconstructs the
+Dutch childcare benefits affair: a self-learning risk model selected benefit
+claims for review, nationality was one of its indicators, and roughly 26,000
+families were wrongly treated as fraudulent. The data protection authority found
+the processing unlawful and discriminatory; a parliamentary inquiry was followed
+by the government's resignation. The figures in my script are a reconstruction
+and no applicant data is used.
+
+MAYA *knows* the model reads a protected characteristic — computed by walking the
+feature contract to the pinned view versions, not taken on anybody's word — and
+it knows separately that the model reads a **proxy** for one. It shows that
+deleting the protected column isn't a remedy: in the reconstruction it removes
+about two-thirds of the selection disparity and leaves the rest sitting in
+postcode.
+
+**And then it declines to refuse.** A rule saying *prohibit direct use in
+in-scope decisions while permitting controlled use for fairness testing* is not
+something a platform can evaluate on an institution's behalf, and one refusing on
+the tag alone would refuse the fairness testing the same regulation requires. So
+the facts are published at the gates, the rule stays the institution's, and the
+estate view reports **whether any rule reads them**. MAYA says it about itself:
+
+```
+No rule in force refuses on `binds_protected_basis`, so the tag is recorded and
+nothing acts on it — which is a control that exists in a screenshot, and worse
+than an absent column because a tagged estate looks governed.
+```
+
+The honest headline is that MAYA would have made the nationality binding visible
+and would not, by itself, have stopped it.
+
+**This one found a limitation rather than a control**, which is the other thing
+an outside scenario is for. `policy_decision` is the highest purpose class I
+have, and the model still tiers below the top band — because the other axis of
+the tiering lattice is **exposure, denominated in money**. A model that ruins
+twenty-six thousand households without moving a balance sheet sits beneath a
+mid-sized pricing model. I built that lattice for an estate where consequence is
+currency. It's recorded rather than repaired, because repairing it by bolting on
+a second unit of account is a design decision I haven't argued for.
+
+The closing list on that case study is longer than MAYA's contribution to it. The
+recovery policy that turned a selection into a debt was policy, not a model. The
+blacklist was a list. Whether anybody read the finding is a management act. The
+harm isn't a governance artefact at all. Most of that failure is outside what any
+register holds, and a demonstration that didn't say so would be the thing this
+whole section exists to avoid.
 
 ### And the part that's for practitioners
 

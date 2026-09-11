@@ -649,6 +649,77 @@ class TestFeatureContractsAndTrainingSets:
                        items=[{"view": "sb_financials", "version": 1}])
         assert contracts.namespaces(version["id"])["namespaces"]
 
+    def test_binding_the_same_contract_again_is_a_no_op(self, as_person,
+                                                        people):
+        """It used to be a 500. `bind` went straight at a table with a unique
+        index on `model_version_id`, so the second call raised an
+        IntegrityError — found by running case study 15 twice."""
+        dev, version = self._bound(as_person, people)
+        again = governance.FeatureContracts(dev).bind(
+            model_version_id=version["id"],
+            items=[{"view": "sb_financials", "version": 1}])
+        assert again["digest"]
+
+    def test_a_different_contract_on_the_same_version_is_refused(
+            self, as_person, people):
+        """The half that matters. A contract is what `L-17` compares serving
+        against and what the approval was given on, so rewriting it in place
+        would change what a version reads without changing the version."""
+        dev, version = self._bound(as_person, people)
+        dev.features.define(name="ltv", entity="customer", dtype="numeric",
+                            description="Loan to value",
+                            owner="person/d.raman")
+        dev.features.create_view(name="sb_collateral", entity="customer",
+                                 owner="person/d.raman", features=["ltv"])
+        governance.FeatureViews(dev).materialise("sb_collateral", rows=[
+            {"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 2.0, "ltv": 0.7}])
+        with pytest.raises(Refused) as refusal:
+            governance.FeatureContracts(dev).bind(
+                model_version_id=version["id"],
+                items=[{"view": "sb_collateral", "version": 1}])
+        assert "already bound to a different" in str(refusal.value)
+
+    @staticmethod
+    def _bound(as_person, people):
+        dev = as_person(people["d.raman"])
+        owner = as_person(people["j.okafor"])
+        owner.models.register(urn=URN, name="SB PD", model_class="c",
+                              domain="credit", owner="person/j.okafor",
+                              legal_entity="LE-1", purpose="p")
+        version = dev.versions.create(URN, semver="1.0.0", kernel=KERNEL)
+        dev.features.define(name="dscr", entity="customer", dtype="numeric",
+                            description="Debt service coverage",
+                            owner="person/d.raman")
+        dev.features.create_view(name="sb_financials", entity="customer",
+                                 owner="person/d.raman", features=["dscr"])
+        governance.FeatureViews(dev).materialise("sb_financials", rows=[
+            {"entity_id": "C1", "event_ts": 1.0, "ingest_ts": 2.0,
+             "dscr": 1.2}])
+        governance.FeatureContracts(dev).bind(
+            model_version_id=version["id"],
+            items=[{"view": "sb_financials", "version": 1}])
+        return dev, version
+
+    def test_the_sdk_can_set_the_proxy_flag_the_platform_screens_on(
+            self, as_person, people):
+        """The API has always accepted `proxy_risk` and `ContractScreening`
+        screens on it; `features.define` had no such argument, so a client
+        using the shorter path could tag a protected characteristic and
+        silently fail to tag the proxy for one — which is the harder of the
+        two. Found by case study 15."""
+        dev = as_person(people["d.raman"])
+        dev.features.define(
+            name="postcode_deprivation", entity="customer", dtype="numeric",
+            description="deprivation decile", owner="person/d.raman",
+            proxy_risk="high")
+        # Read back from the catalogue rather than from the create response:
+        # what matters is that the register HOLDS it, not what the write
+        # echoed.
+        listed = dev.call("GET", "/features")
+        rows = listed.get("features") or listed.get("items") or []
+        held = next(r for r in rows if r["name"] == "postcode_deprivation")
+        assert held["proxy_risk"] == "high"
+
     def test_a_training_set_is_bounded_on_both_clocks(self, as_person, people):
         """Valid time asks what was true; transaction time asks what was known.
         Dropping the second lets a restatement rewrite history."""

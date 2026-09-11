@@ -18,8 +18,11 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.evidence import EvidenceEngine
 from core.features.common import FeatureError
 from core.features.views import ViewManager
+from core.log import get_logger
 from db import ContractRepository, FeatureViewVersionRepository
 from db.database import digest as canonical_digest
+
+logger = get_logger(__name__)
 
 
 class ContractBinder:
@@ -40,7 +43,37 @@ class ContractBinder:
                 raise FeatureError(f"'{item['view']}' has no version {item['version']}")
             item["feature_view_id"] = view["id"]
             item["namespace"] = self.views.namespace_of(view, item["version"])
-        row = {"model_version_id": model_version_id, "digest": canonical_digest(items),
+        digest = canonical_digest(items)
+
+        # A version binds ONE contract, and what happens on a second call is a
+        # governance question rather than a plumbing one.
+        #
+        # It used to be neither: `add` went straight at a table with a unique
+        # index on `model_version_id`, so re-binding raised an IntegrityError
+        # and the caller got a 500. Case study 15 found it by being run twice.
+        #
+        # The same contract again is a no-op: the caller is asking for a state
+        # the register is already in, and that is not an error. A DIFFERENT
+        # contract is refused, and this is the half that matters — the contract
+        # is what `L-17` compares serving against and what the approval was
+        # given on. Letting it be rewritten in place would change what a version
+        # reads without changing the version, which is the shape of every
+        # silent-change failure in this repository.
+        existing = self.contracts.one(model_version_id=model_version_id)
+        if existing is not None:
+            if existing.get("digest") == digest:
+                logger.info("contract for %s is already bound to %s",
+                            model_version_id, digest[:12])
+                return existing
+            raise FeatureError(
+                f"version {model_version_id} is already bound to a different "
+                f"feature contract",
+                remediation="a contract says what this version reads and is "
+                            "what the approval was given on, so it does not "
+                            "change in place. Create a new version, or open an "
+                            "amendment if the model record is attested")
+
+        row = {"model_version_id": model_version_id, "digest": digest,
                "items": items, "created_at": time.time()}
         with self.evidence.recording():
             self.contracts.add(row)
