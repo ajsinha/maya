@@ -4921,6 +4921,31 @@
         ]
       }
     },
+    "/api/v1/rule-import": {
+      "post": {
+        "body": [
+          "document!",
+          "format!",
+          "note",
+          "semver",
+          "urn"
+        ],
+        "parameters": [],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/rule-import/formats": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/rulesets": {
       "post": {
         "body": [

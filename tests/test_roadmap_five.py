@@ -206,7 +206,7 @@ class TestAConnectorRegistersNothing:
 
     def test_an_unknown_source_is_refused(self):
         with pytest.raises(DiscoveryError) as e:
-            Connectors(None).read("sagemaker", {})
+            Connectors(None).read("databricks_jobs", {})
         assert e.value.code == "unknown_source"
 
     def test_a_malformed_export_is_the_sources_problem(self):

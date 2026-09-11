@@ -4,7 +4,7 @@ slug: rule-sets
 section: Features and data
 order: 75
 icon: list-ol
-summary: The parameter object of a T8 model is a rule set somebody wrote, and it used to be an opaque blob. It now has a structure, four checks that are impossible over a free expression, an English rendering, an editor that mints no authority — and a runtime that finally runs it.
+summary: The parameter object of a T8 model is a rule set somebody wrote, and it used to be an opaque blob. It now has a structure, four checks that are impossible over a free expression, an English rendering, an editor that mints no authority, an importer for the decision table you already have — and a runtime that finally runs it.
 audience: Model owners, Policy owners, Model risk, Engineers
 ---
 
@@ -263,6 +263,8 @@ return an outcome nobody authored.
 | `POST` | `/rulesets/trial` | `model:read` | Run a draft against sample rows. Reports each outcome, how many times each rule fired, which fired on nothing, and how many rows fell through to `otherwise`. **Records nothing, decides nothing** |
 | `POST` | `/rulesets` | `parameter:record` | Publish. Validates, then records a parameter set that lands `proposed` |
 | `GET` | `/rulesets/{parameter_set_id}` | `model:read` | An approved rule set in English |
+| `GET` | `/rule-import/formats` | auth | What can be read, what cannot, and what to do instead |
+| `POST` | `/rule-import` | `model:read` | Read a decision table or a DMN file into a **candidate**. Writes nothing. Pass `urn` and `semver` to have it validated against a version's schemas as well as parsed |
 
 `check` needs only `model:read` on purpose: checking a draft changes nothing, and
 requiring the recording permission to *look* at whether a document is valid would
@@ -320,9 +322,9 @@ the ordering, and the ordering is not the mistake.
 no discovery sweep, so the population arrives by whatever route a bank already
 uses.
 
-**It does not import them either.** A decision table in a spreadsheet, a DMN
-file, a stored procedure — each would be a parser, and each a parser that can be
-subtly wrong. The rules are typed in, or posted as a document.
+**It imports two of the three formats, and refuses the third.** A CSV decision
+table and a DMN 1.3 decision table are read — see *Importing what you already
+have* below. A **stored procedure** is not translated and will not be.
 
 **The coverage analysis is single-rule.** Stated above, and stated again here
 because it is the limit a reader is most likely to over-read.
@@ -348,6 +350,68 @@ reports are an author's sanity check before approval, not a monitoring result.
 human judgment, and `because` is where the author writes down which policy each
 rule is claiming to implement. The platform checks that the claim was made, never
 that it is true.
+
+---
+
+## Importing what you already have
+
+Your rulebook is not typed into anything. It is a decision table four people
+maintain in a spreadsheet, or a DMN file exported from a BPM suite. `POST
+/rule-import` reads either into a rule set **candidate** — and *candidate* is
+the operative word: nothing is written, and what comes back goes through the
+same `check`, `trial` and `publish` path a hand-written rule set takes,
+including the approval by somebody other than its author. An importer that wrote
+into the register would be authoring a parameter set on your behalf.
+
+**What a decision table has to look like.** One header row. Input columns named
+plainly. Outcome columns prefixed `out:` — the prefix exists because a table
+whose outcome columns are guessed from position breaks the first time somebody
+inserts a column. A `because` column, because the register requires a reason on
+every rule. `id`, `priority` and `hit policy` are read if present. A blank cell,
+or `-`, or `any`, matches anything.
+
+Cells are read as comparisons (`>=720`), ranges (`[650..719]`, and an exclusive
+end becomes the pair of comparisons it actually is rather than being rounded),
+lists (`"retail","sme"`), literals, and `null` / `not null`.
+
+**Then read the refusals, because they are the point.** A parser over your
+rulebook is frightening for one reason: a misread threshold does not *fail*. It
+produces a rule set that loads, validates, publishes and then decides
+differently from the rulebook it claims to be, and nobody finds that by looking
+at it. So:
+
+*A cell that is a human judgement is reported, never guessed.* `>=650` parses;
+`good credit` does not. It comes back under `untranslated` with the cell that
+stopped it — and **a document with any untranslated row is refused whole**. The
+rows a parser finds hard are the judgement calls, and the judgement calls are
+what a rulebook exists for.
+
+*A hit policy that does not map is refused by name.* `FIRST` is first-match
+exactly. `UNIQUE` and `ANY` are carried as first-match and *checked*, because
+the rule set's own shadowing analysis reports any row a rule above it already
+covers — which is those policies' claim failing. `COLLECT` and `PRIORITY` are
+refused: COLLECT aggregates across every matching row, so first-match would
+return the first row's outcome and **agree with your table on most inputs**,
+which is worse than disagreeing on all of them; PRIORITY orders by output
+priority rather than row order, so reading it top-down inverts the rulebook on
+exactly the overlapping cases it was written to resolve.
+
+*The catch-all is derived, not invented.* A last row constraining no input
+matches everything, and by first-match semantics that **is** your `otherwise` —
+it is lifted because the language has a slot for it, not because it happened to
+be last. The same row anywhere else makes every row below it unreachable, and
+that is reported as a defect in your table. If there is no such row, the answer
+says so rather than manufacturing one: guessing wrong produces a rule set that
+decides confidently on exactly the inputs nobody thought about.
+
+**And a stored procedure is refused with a route.** SQL is a general language
+with control flow, mutation and side effects, so a translator would be a
+compiler, and a wrong compiler is undetectable by reading its output. Extract a
+decision table from the procedure with somebody who understands it, and import
+that. Drools and PMML scorecards are refused too, each with its own reason — a
+DRL is a production-rule program with chaining, and a PMML scorecard is a
+*model* rather than a rule set, so importing one would put an authored-parameter
+provenance on something that was fitted.
 
 ---
 

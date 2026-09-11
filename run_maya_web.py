@@ -90,6 +90,7 @@ from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
 from core.rules import RuleSetEditor
+from core.rules.importing import RuleSetImport
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantService
@@ -548,6 +549,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # a validated document, so the set still lands `proposed` and still needs a
     # second person.
     rules = RuleSetEditor(registry, parameters, evidence)
+    # Reading a rulebook a bank already has. It holds the editor so a candidate
+    # can be validated against a real version's schemas, and it never writes
+    # through it: an importer that authored a parameter set on somebody's
+    # behalf would be the one thing the rules editor was careful not to do.
+    rule_import = RuleSetImport(rules)
 
     # How one model stands to another. Separate from the registry because the
     # registry is about a model in isolation and this is about the estate.
@@ -1274,7 +1280,7 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "table_store": table_store,
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
-                           "rules": rules,
+                           "rules": rules, "rule_import": rule_import,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
                            "export": export, "dossier": dossier,

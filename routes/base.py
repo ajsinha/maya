@@ -413,6 +413,14 @@ STATUS: Dict[str, int] = {
     # per-audience derivation exists to remove. 422 rather than 400: the
     # request is well-formed and the content is what cannot be served.
     "audience_required": 422,
+    # Reading a rulebook a bank already has. All 422: in every case the
+    # request is well-formed and the DOCUMENT is what cannot be served, which
+    # is the distinction that tells a caller to go and fix the export rather
+    # than to retry.
+    "format_not_translated": 422, "unknown_import_format": 422,
+    "hit_policy_not_mappable": 422, "no_outcome_columns": 422,
+    "no_decision_table": 422, "unreadable_dmn": 422,
+    "dmn_declares_a_doctype": 422, "dmn_too_large": 413,
     "fibre_narrows_obligations": 409,
     "unknown_source": 422, "unreadable_export": 422,
     "sweep_does_not_meet_the_contract": 422,

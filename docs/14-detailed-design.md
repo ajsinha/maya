@@ -18,7 +18,7 @@ Kafka event stream, a Redis descriptor cache, a Celery worker fleet, a Spark job
 security, an online feature store, Ed25519 signing, a plugin loader, and a browser front end built on
 server-side DataTables and a Cytoscape graph. **None of those existed.** Some have since been built —
 the plugin loader is `core/plugins/discovery.py` — some were abandoned, one was replaced by something
-better (Ed25519 signing became a per-audience key derivation, §26.7, which buys the containment it was
+better (Ed25519 signing became a per-audience key derivation, §26.8, which buys the containment it was
 wanted for without a key hierarchy), and one — the graph page — was described so confidently that a
 reader would have gone looking for a vendored library in a repository whose whole asset budget is six
 files.
@@ -3217,8 +3217,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 316 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 377 modules in one
+the 317 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 378 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3323,6 +3323,24 @@ triage somebody performed is then lost — which is how a discovery queue comes
 back next month the same size. Confidence is capped well below certainty for the
 same reason it is capped in §26.4.
 
+**And a present field with the right word on it is worse than an absent one.**
+`must_still_be_established` protects against an absence, and an absence is the
+easy case: somebody notices. `do_not_read_as` names the other kind — SageMaker's
+`ModelApprovalStatus` of `Approved`, which means a pipeline step passed;
+MLflow's `Production`, which is a deployment stage; a Unity Catalog owner, which
+is a read grant. Nobody goes looking for the difference between two things
+called *approved*, so the connector states it on every candidate that carries
+one.
+
+Seven sources have a connector, and the two that earn the section are the two an
+ML-platform connector never reaches. **SAS metadata** reaches a bank's oldest
+credit, capital and ALM models — built before anybody used the word platform,
+never in an ML registry, and the first thing a supervisor asks about. The
+**CMDB** holds the business service a thing supports, which is the nearest
+anything in the bank comes to materiality; it is carried as evidence and is
+still not materiality, because it tells a triager where to go and ask, which is
+worth a great deal and is not an answer.
+
 ### 26.4 What a scanner has to send (`core/discovery/contract.py`)
 
 MAYA does not sweep drives; §26.3's argument applies with more force, since a
@@ -3389,7 +3407,65 @@ rendering that dropped them would produce something that *looks* complete, and
 looking complete is the failure mode — a document whose thin sections are
 invisible is worse than a short one.
 
-### 26.7 A signature an engine can check without being able to forge
+### 26.7 Reading a rulebook the bank already has (`core/rules/importing.py`)
+
+A T8 model's parameter object is a rule set: authored rather than fitted, so
+authorship is its provenance. The register can hold one, version it, require a
+second person to approve it and explain every decision back to the rule that
+made it — on rule sets somebody typed in. A bank's actual rulebook is a decision
+table in a spreadsheet or a DMN file out of a BPM suite, and the distance
+between those two facts is the whole difference between a demonstration and a
+migration.
+
+The difficulty is not the parsing. It is that **a misread threshold does not
+fail.** It produces a rule set that loads, validates, publishes and then decides
+differently from the rulebook it claims to be, and nobody finds that by looking
+at it. Three refusals follow from that, and they are the design.
+
+**A cell that is a human judgement is reported, never guessed.** `>=650` parses;
+`good credit` does not. An import with any untranslated row is refused as a
+whole document rather than offered without those rows, because the rows a parser
+finds hard are the judgement calls, and the judgement calls are what a rulebook
+exists for.
+
+**A hit policy that does not map is refused by name**, with what first-match
+would silently become. `COLLECT` aggregates across every matching row, so
+first-match would return the first row's outcome and **agree with the source on
+most inputs** — which is worse than disagreeing on all of them. `PRIORITY`
+orders by output priority rather than row order, so reading it top-down inverts
+the rulebook on exactly the overlapping cases it was written to resolve.
+
+**The catch-all is derived, not invented.** A last row that constrains no input
+matches everything, and by the semantics of first-match that *is* the
+`otherwise` — lifting it is a derivation, not an inference from its position.
+The same row anywhere else makes every row below it unreachable, which is
+reported as a defect in the source table.
+
+Nothing is imported: what comes back is a rule set *document* for the same
+`check`, `trial` and `publish` path a hand-written one takes, second-person
+approval included. An importer that wrote into the register would be authoring a
+parameter set on somebody else's behalf, which is the one thing the rules editor
+was careful not to do.
+
+A **stored procedure** is the third format the roadmap named and it is refused.
+SQL is a general language with control flow, mutation and side effects, a
+translator would be a compiler, and the failure mode of a wrong compiler is a
+rule set that is subtly not the thing the bank has been running. The refusal
+names a route to what the caller wanted: a decision table extracted by somebody
+who understands the procedure.
+
+One security note, because the DMN reader is the only place in this codebase
+that parses untrusted XML. **A `DOCTYPE` is refused outright** and the document
+is size-bounded. Every XML attack worth the name arrives through a DOCTYPE —
+external entities, or entity expansion turning two kilobytes into two gigabytes
+— a decision table has no legitimate use for one, and refusing the construct
+removes the class. That is a better answer than a parser *configured* to be
+careful, because the careful configuration is what somebody later copies
+without. `defusedxml` would do the same and is not used for the reason nothing
+else here is: a governance platform that cannot be deployed air-gapped is one
+somebody works around, and this is nine lines.
+
+### 26.8 A signature an engine can check without being able to forge
 
 The five subjects above are places where MAYA relies on somebody else. This one
 is the mirror image: a place where somebody else relies on **MAYA**, and where
@@ -3462,7 +3538,7 @@ other half, it is a new requirement with its own argument.
 | **Postgres row-level security**, forced, with a non-owner application role and a cross-entity negative test | H-5. Scope is enforced in Python and the database offers no backstop |
 | **A separate audit database**, read replicas, monthly partitioning | H-9. One database, one identity, one flat evidence table |
 | ~~**WORM anchoring and an RFC-3161 timestamp** on the daily chain head~~ | **Both built** — anchoring in `core/evidence/anchor.py`, timestamping in `core/evidence/timestamps.py` (§26.1). C-4 disposition 2 is closed. What remains is not code: an authority has to be chosen and wired, and until one is the platform reports itself as arguing from its own clock rather than showing a tick |
-| ~~**Asymmetric warrant signing**~~ | **No longer a requirement, and the defect it named is closed** — see §26.7. Each audience's key is derived from the root and that audience's own principal, so a compromised engine forges warrants for itself and nobody else. That is containment, which is what the shared secret was actually costing. Asymmetry would additionally buy non-repudiation *to a third party*, which is a different requirement nobody has raised; `GET /warrant-signing` states that a descriptor is evidence to the bank and not to anybody outside it, rather than letting *signed* be read as more |
+| ~~**Asymmetric warrant signing**~~ | **No longer a requirement, and the defect it named is closed** — see §26.8. Each audience's key is derived from the root and that audience's own principal, so a compromised engine forges warrants for itself and nobody else. That is containment, which is what the shared secret was actually costing. Asymmetry would additionally buy non-repudiation *to a third party*, which is a different requirement nobody has raised; `GET /warrant-signing` states that a descriptor is evidence to the bank and not to anybody outside it, rather than letting *signed* be read as more |
 | ~~**A plugin loader and a fibre registry**~~ | **Both built** — the fibration over the derived trainability class with a start-up totality gate, and `entry_points` discovery in `core/plugins/discovery.py` (§26.2). `L-15` runs at every start-up. The base had to change for it to be checkable at all: totality over a free-text `model_class` is either a closed vocabulary or a gate defeated by a typo |
 | **Continuous integration** | Seven of the nine gates in [12 §7](12-implementation-plan.md) now run. What remains is DAST, a generated client and an accessibility run; migration rehearsal is not applicable, because there are no migrations |
 

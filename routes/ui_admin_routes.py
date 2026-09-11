@@ -42,6 +42,7 @@ from core.docs.rendering import DocumentRendering
 from core.export.sharing import ExportSharing
 from core.execution.grammar import vocabulary
 from core.plugins.discovery import PluginDiscovery
+from core.rules.importing import RuleSetImport
 from core.log import get_logger
 from routes.base import Routes, login_required
 
@@ -309,6 +310,13 @@ class AdminRoutes(Routes):
                 grade=self.ctx["scanner_contract"].grade(),
                 shares=self.ctx["export_sharing"].across_the_estate(),
                 share_posture=ExportSharing.posture(),
+                # Two more edges. The rule importer is a parser over somebody
+                # else's document, which is the same shape of risk as the
+                # connectors; the signing posture is the mirror image — the
+                # one place where somebody relies on MAYA rather than the
+                # other way round.
+                rule_import=RuleSetImport.formats(),
+                signing=self.ctx["warrants"].signer.posture(),
                 rendering=DocumentRendering.formats())
 
 
