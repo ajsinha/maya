@@ -378,10 +378,9 @@ ever populated, the instance should not have started.
 
 `/admin/perimeter` — needs `policy:read`
 
-Everywhere else in MAYA the record is MAYA's own. This screen is the four places
-where it is not, and each is **narrower than its name suggests** — which is the
-reason there is a screen rather than an API and a paragraph in a design
-document.
+Everywhere else in MAYA the record is MAYA's own. This screen is the places where
+it is not, and each is **narrower than its name suggests** — which is the reason
+there is a screen rather than an API and a paragraph in a design document.
 
 **Installed is not enabled.** A firm's own package can add a test type, a metric
 type, a template, a notification channel or a fibre, declared under the
@@ -418,6 +417,34 @@ digest* and never to a path — a link to a location serves whatever is at that
 location later. It is **not an examiner portal** and establishes no identity, and
 both facts are published rather than left ambiguous. Revoking one ends access and
 does not unsend a document; the record keeps what it already served.
+
+**A rulebook the bank already has.** A decision table exported as CSV, or a DMN
+file out of a BPM suite, read into a rule set **candidate**. Nothing is
+imported: what comes back goes through the same check, trial and publish path a
+hand-written rule set takes, second-person approval included. The refusals are
+the part to read. A cell that is a human judgement — *good credit*, *as agreed*
+— is reported rather than guessed at, and a document with any such cell is
+refused **whole**, because the rows a parser finds hard are the judgement calls
+and those are what a rulebook exists for. A hit policy that cannot map onto
+first-match is refused by name with what the approximation would silently
+become. And a catch-all is derived from first-match semantics rather than
+inferred from the last row's position. A **stored procedure** is not translated
+and will not be: SQL is a general language, a translator would be a compiler,
+and a wrong compiler produces a rule set nobody can tell is wrong by reading it.
+
+**What a warrant signature proves.** The one panel here that runs the other way:
+somebody relies on MAYA rather than MAYA relying on them. Each audience's
+signing key is *derived* from its own principal, so a compromised engine can
+forge warrants for itself and for nobody else. Read the *does not prove* column
+as well: a verifier holds the key it verifies with, so a descriptor is evidence
+**to the bank** and not to anybody outside it. If the panel says this instance
+signs with a published default key, stop and set `warrants.signing_key` — anyone
+with a copy of the repository can forge a warrant it will verify.
+
+An engine collects its own key with `POST /api/v1/warrant-signing/key`. That is
+the only endpoint in MAYA that returns a secret; the disclosure is recorded on
+the evidence chain, the key is not, and MAYA cannot tell whether the engine
+stored it safely.
 
 ---
 

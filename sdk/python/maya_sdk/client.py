@@ -154,6 +154,8 @@ class Maya:
         self.scanner_contract = perimeter.ScannerContract(self)
         self.shares = perimeter.ExportShares(self)
         self.rendering = perimeter.DocumentRendering(self)
+        self.rule_import = perimeter.RuleImport(self)
+        self.warrant_signing = perimeter.WarrantSigning(self)
 
     # ------------------------------------------------------------- the wire
     def call(self, method: str, path: str, *, json: Any = None,

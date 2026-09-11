@@ -97,7 +97,7 @@ class TestAConnectorProducesCandidates:
 
     def test_an_unknown_source_is_refused_by_name(self, maya):
         with pytest.raises(Refused) as e:
-            maya.connectors.read("sagemaker", {})
+            maya.connectors.read("databricks_jobs", {})
         assert e.value.code == "unknown_source"
 
     def test_describe_names_the_facts_no_source_holds(self, maya):
