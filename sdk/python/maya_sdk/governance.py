@@ -442,6 +442,16 @@ class Authority:
         """
         return self._maya.call("GET", "/authority/model", params={"urn": urn})
 
+    def sequence(self, urn: str) -> Dict[str, Any]:
+        """What this model's NEXT approval would be sequenced as.
+
+        A read, never the check. An approval already open carries its own
+        stages and is held to those, so withdrawing or re-publishing a band
+        cannot move the bar under people who are already signing.
+        """
+        return self._maya.call("GET", "/authority/sequence",
+                               params={"urn": urn})
+
     def estate(self) -> Dict[str, Any]:
         """How much of the estate rests on authority nobody has re-attested."""
         return self._maya.call("GET", "/authority/estate")

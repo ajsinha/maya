@@ -190,23 +190,20 @@ class TestPublishingARow:
 
 
 class TestSequenceIsTheControl:
-    def test_the_second_stage_does_not_open_first(self, authority, a_model):
-        authority.publish(BIG)
+    def test_the_second_stage_does_not_open_first(self, authority):
         with pytest.raises(LifecycleError) as e:
-            authority.refuse_out_of_sequence(a_model["urn"], "validator", [])
+            AuthorityMatrix.refuse_out_of_sequence(BIG["stages"], "validator",
+                                                   [])
         assert e.value.code == "out_of_sequence"
         assert "a signature about nothing" in e.value.remediation
 
-    def test_the_first_stage_signs_freely(self, authority, a_model):
-        authority.publish(BIG)
-        authority.refuse_out_of_sequence(a_model["urn"], "model_risk_manager",
-                                         [])
+    def test_the_first_stage_signs_freely(self):
+        AuthorityMatrix.refuse_out_of_sequence(BIG["stages"],
+                                               "model_risk_manager", [])
 
-    def test_once_the_first_stage_closes_the_second_opens(self, authority,
-                                                          a_model):
-        authority.publish(BIG)
-        authority.refuse_out_of_sequence(a_model["urn"], "validator",
-                                         ["model_risk_manager"])
+    def test_once_the_first_stage_closes_the_second_opens(self):
+        AuthorityMatrix.refuse_out_of_sequence(BIG["stages"], "validator",
+                                               ["model_risk_manager"])
 
     def test_a_single_stage_band_is_not_sequenced(self, authority, sourcing,
                                                   a_model):
@@ -215,13 +212,20 @@ class TestSequenceIsTheControl:
         _expose(sourcing, a_model, 10_000)
         out = authority.required_for(a_model["urn"])
         assert out["sequenced"] is False
-        authority.refuse_out_of_sequence(a_model["urn"], "validator", [])
+        AuthorityMatrix.refuse_out_of_sequence(out["stages"], "validator", [])
 
-    def test_it_reports_which_stage_is_open(self, authority, a_model):
-        authority.publish(BIG)
-        out = authority.stage_open(a_model["urn"], [])
+    def test_it_reports_which_stage_is_open(self):
+        out = AuthorityMatrix.stage_open(BIG["stages"], [])
         assert out["stage"] == 0 and out["outstanding"] == ["model_risk_manager"]
         assert out["complete"] is False
+
+    def test_sequencing_reads_the_stages_and_never_the_matrix(self, authority,
+                                                              a_model):
+        """The read that answers *what would this be sequenced as* is separate
+        from the check, and only the read consults the matrix."""
+        authority.publish(BIG)
+        out = authority.sequence_for(a_model["urn"])
+        assert out["band"] == "tier-1-large" and out["sequenced"] is True
 
 
 class TestDelegationsAreTraceableOrTheyAreNotDelegations:
@@ -361,6 +365,83 @@ class TestThroughVersionApproval:
                              {"username": "a.mehta", "roles": ["validator"]},
                              "validator")
         assert out["status"] == "approved"
+
+
+class TestWhatTheAdversarialPassFound:
+    """Four holes, found by attacking this module after it shipped.
+
+    Three of them are the same shape: a control that reports itself as enforced
+    while something quietly relaxes it.
+    """
+
+    def test_withdrawing_a_band_cannot_move_the_bar_under_an_open_approval(
+            self, db, registry, evidence, authority, a_model, kernel_spec,
+            contract_spec):
+        """The `band` column's own comment claimed this could not happen, and
+        it could: sequencing was re-derived from the LIVE matrix at signing
+        time, so an administrator could relax the order people were already
+        signing under. The stages travel with the approval now."""
+        authority.publish(BIG)
+        approvals = _approvals(db, registry, evidence, authority)
+        registry.create_version(a_model["urn"], "1.0.0", kernel_spec,
+                                contract_spec,
+                                artifact_digest="sha256:" + "e" * 64)
+        row = approvals.open(a_model["urn"], "1.0.0", actor="s.iqbal")
+        assert row["stages"] == [["model_risk_manager"], ["validator"]]
+        authority.publish({"name": "flat", "tier": 1,
+                           "stages": [["validator", "model_risk_manager"]]})
+        authority.withdraw("tier-1-large")
+        with pytest.raises(LifecycleError) as e:
+            approvals.sign(row["id"],
+                           {"username": "a.mehta", "roles": ["validator"]},
+                           "validator")
+        assert e.value.code == "out_of_sequence"
+
+    def test_a_ceiling_in_another_currency_is_not_compared(self, authority,
+                                                           sourcing, a_model):
+        """500,000,000 JPY silently authorised a 200,000,000 exposure. Nothing
+        in the register records a currency on an exposure — the tiering bands
+        do not either — so the estate-wide assumption is now stated and a
+        ceiling outside it refuses rather than passes."""
+        authority.delegate("s.iqbal", ceiling=5e8, instrument="BR-2026-04",
+                           currency="JPY")
+        _expose(sourcing, a_model, 2e8)
+        with pytest.raises(LifecycleError) as e:
+            authority.refuse_beyond_delegation(a_model["urn"],
+                                               {"username": "s.iqbal"})
+        assert e.value.code == "ceiling_not_comparable"
+        assert "many times its size" in e.value.remediation
+
+    def test_a_ceiling_in_the_reporting_currency_still_compares(self,
+                                                                authority,
+                                                                sourcing,
+                                                                a_model):
+        authority.delegate("s.iqbal", ceiling=5e8, instrument="BR-2026-04")
+        _expose(sourcing, a_model, 2e8)
+        authority.refuse_beyond_delegation(a_model["urn"],
+                                           {"username": "s.iqbal"})
+
+    def test_the_posture_states_the_currency_every_exposure_is_read_as(self):
+        out = AuthorityMatrix.posture()
+        assert out["reporting_currency"] == "USD"
+        assert "no unit" in out["why_one_currency"]
+
+    def test_losing_the_publish_race_is_a_refusal_not_a_five_hundred(
+            self, db, registry, sourcing, evidence):
+        """The check is a read-then-write and the unique index decides it.
+        Losing a race is not a different answer from being told the name is
+        taken."""
+        matrix = AuthorityMatrix(AuthorityBandRepository(db),
+                                 AuthorityDelegationRepository(db), registry,
+                                 sourcing=sourcing, evidence=evidence)
+        matrix.publish(BIG)
+        blind = AuthorityMatrix(AuthorityBandRepository(db),
+                                AuthorityDelegationRepository(db), registry,
+                                sourcing=sourcing, evidence=evidence)
+        blind.bands.one = lambda **_k: None
+        with pytest.raises(LifecycleError) as e:
+            blind.publish(BIG)
+        assert e.value.code == "band_exists"
 
 
 class TestTheEstateView:

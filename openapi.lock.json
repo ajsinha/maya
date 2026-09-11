@@ -772,6 +772,18 @@
         ]
       }
     },
+    "/api/v1/authority/sequence": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/baseline": {
       "get": {
         "body": [],
@@ -4981,6 +4993,21 @@
     "/api/v1/recertification/{reference}/close": {
       "post": {
         "body": [],
+        "parameters": [
+          "path:reference!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/recertification/{reference}/reassign": {
+      "post": {
+        "body": [
+          "reason!",
+          "to!"
+        ],
         "parameters": [
           "path:reference!"
         ],

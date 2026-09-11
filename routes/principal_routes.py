@@ -42,6 +42,12 @@ class RecertifyIn(Body):
     reason: str = ""
 
 
+class ReassignReviewIn(Body):
+    """Hand a campaign to a different reviewer, on the record."""
+    to: str
+    reason: str
+
+
 class BreakGlassIn(Body):
     reason: str
     principal: str = ""
@@ -364,6 +370,24 @@ class PrincipalRoutes(Routes):
             return self.guard(lambda: self.ctx["recertification"].answer(
                 reference, principal, state=body.state, reason=body.reason,
                 actor=self.actor(who)))
+
+        @self.app.post(f"{api}/recertification/{{reference}}/reassign",
+                       tags=["authorisation"])
+        def reassign_recertification(request: Request, reference: str,
+                                     body: ReassignReviewIn):
+            """Hand a campaign to a different reviewer, with a reason.
+
+            A campaign names one reviewer and only that reviewer may answer it
+            — otherwise the column is decoration. Reviewers leave, go on
+            secondment, and turn out to be in the population they were asked to
+            review, and a campaign that cannot be handed over is one somebody
+            answers under the previous reviewer's account.
+            """
+            who = self.authorise(
+                request, "principal:manage",
+                estate_wide="reassigning an access recertification")
+            return self.guard(lambda: self.ctx["recertification"].reassign(
+                reference, body.to, body.reason, actor=self.actor(who)))
 
         @self.app.post(f"{api}/recertification/{{reference}}/close",
                        tags=["authorisation"])
