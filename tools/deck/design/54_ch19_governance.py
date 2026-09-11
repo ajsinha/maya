@@ -59,8 +59,8 @@ note(sl, x, y + 2.60, CW * 0.40, 2.05,
      "And its four limits, stated in the code. ",
      "A directory is separation of medium, not enforcement — the read-only bit stops an accident, not an adversary. "
      "The medium is a deployment choice behind two ports, so S3 Object Lock changes nothing above the seam. Nothing "
-     "before the first anchor can be contradicted. And RFC-3161 timestamping by an authority holding a key nobody here "
-     "holds is not built.")
+     "before the first anchor can be contradicted. And an RFC-3161 token bounds a head from ABOVE only \u2014 "
+     "MAYA is not the authority and does not verify it.")
 
 sl, y = content("One engine, six questions", "Governance · semiring evaluation")
 h = code(sl, ML, y, CW * 0.55, [
