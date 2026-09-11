@@ -197,10 +197,17 @@ because a design rule nothing enforces is the thing this document exists to stop
 | **DR-7** | **A refusal explains itself.** `error`, `detail`, `remediation` — the last naming what to do, not what went wrong | Enforced by the shape of every domain error class |
 | **DR-8** | **Nothing is fetched at runtime.** No CDN, no external call, no network dependency in a governance path | Every asset vendored; the SSO verifier's RS256 is written against the standard library so an air-gapped deployment can use it |
 
-Two rules from the previous version are **targets and not descriptions**, and saying so is the point of
+One rule from the previous version is a **target and not a description**, and saying so is the point of
 this table. *"The API is the only interface"* is not true: `routes/ui_routes.py` makes fifty-one direct
-in-process service calls, and reads never traverse `/api/v1`. *"Every write path is idempotent given an
-`Idempotency-Key`"* is not true either: there is no such header and no replay window. What idempotence
+in-process service calls, and reads never traverse `/api/v1`.
+
+The second one *was* a target and now is not. *"Every write path is idempotent given an
+`Idempotency-Key`"* said **there is no such header and no replay window**; there is now
+(`core/concurrency/idempotency.py`). Two properties make it worth having rather than merely present:
+the same key over a **different body** is refused rather than replayed — without that check a client
+reusing a key by accident receives somebody else's answer as its own — and `in_flight` is a real
+state, so a retry arriving while the first request is still running is refused rather than
+re-executed. It is still not *every* write path, which is why the rule stays a target. What else
 exists is narrower and is described where it lives, in [§21](#21-concurrency-and-idempotency).
 
 ## 3. Core domain
