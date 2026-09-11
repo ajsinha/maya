@@ -5006,6 +5006,52 @@
         ]
       }
     },
+    "/api/v1/retier-triggers": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/retier-triggers/estate": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retier-triggers/model": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:now",
+          "query:urn!"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/retier-triggers/sweep": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:now"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
     "/api/v1/retraining": {
       "get": {
         "body": [],

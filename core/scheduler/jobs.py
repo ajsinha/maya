@@ -76,6 +76,7 @@ class JobContext:
     discovery: Any = None
     approvals: Any = None
     health: Any = None
+    retier_triggers: Any = None
     actor: str = "scheduler"
 
     def models(self) -> List[Dict[str, Any]]:
@@ -180,6 +181,33 @@ def review_overdue(ctx: JobContext) -> Dict[str, Any]:
             actor=ctx.actor)
         raised.append(model["urn"])
     return {"raised": raised, "count": len(raised)}
+
+
+# ---------------------------------------------------------------------------
+# Assessments made against facts that have since changed
+# ---------------------------------------------------------------------------
+def tiering_stale(ctx: JobContext) -> Dict[str, Any]:
+    """Sweep for tiers whose assessment no longer matches the register.
+
+    **It re-tiers nothing**, and that is the design rather than a limitation.
+    An automatic re-tier would be the platform changing a governance decision
+    nobody made, in the direction the arithmetic happened to point, at a moment
+    nobody chose.
+
+    Findings from a **shared** cause are raised under one root. A regulatory
+    change fires on every in-scope model at once, and fifty findings with fifty
+    owners each seeing a problem they cannot fix is the exact shape of `M-8`.
+    """
+    if not (ctx.retier_triggers and ctx.findings):
+        return {"skipped": "re-tiering triggers or findings not available"}
+    out = ctx.retier_triggers.sweep(actor=ctx.actor, now=ctx.now)
+    return {
+        "stale": out["stale"], "raised": len(out.get("raised") or []),
+        "roots": len(out.get("roots") or []),
+        "cannot_check": out.get("cannot_check") or {},
+        "re_tiered": 0,
+        "detail": out["detail"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -848,6 +876,15 @@ JOBS: Dict[str, Job] = {j.key: j for j in (
         "is badly behaved and one scoring badly because nothing about it is "
         "measurable need opposite work and print the same",
         health_declining),
+    Job("tiering.stale",
+        "reports assessments made against facts that have since changed",
+        "the tier decides the approval quorum, the review cadence, the "
+        "monitoring depth and the warrant's time to live \u2014 and only ONE of "
+        "the seven re-tiering triggers was watched, so a Tier 3 assessed once "
+        "held for two years however much moved underneath it. Nothing is "
+        "re-tiered: the failure this catches is not an under-tiered model but "
+        "an under-tiered model nobody knows is under-tiered",
+        tiering_stale),
     Job("discovery.backlog",
         "reports discovery candidates nobody has triaged",
         "a sweep that runs and is never triaged is worse than no sweep: the "

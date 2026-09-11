@@ -2489,7 +2489,7 @@ date per tier: eighteen months for Tier 1, thirty for Tier 2, thirty-six below. 
 reported separately everywhere, because a Tier 1 model with baseline debt and a Tier 1 model with a missed
 validation must never render the same colour. One bad row does not stop the batch.
 
-### 16.3 25 idempotent jobs
+### 16.3 26 idempotent jobs
 
 `core/scheduler/` turns computed conditions into recorded consequences:
 
@@ -3224,8 +3224,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 325 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 386 modules in one
+the 326 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 387 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four
@@ -3600,6 +3600,53 @@ clause that quietly excluded a segment produces statistics that are
 arithmetically perfect and describe the wrong population.** Nothing here can see
 that, so the predicate and the claimed row count are recorded and the result
 says, in words, that the population is *attested* rather than observed.
+
+### 26.10 When a tier stopped being the answer (`core/risk/triggers.py`)
+
+The tier is not a label. It decides the approval quorum, the review cadence, the
+monitoring depth and the warrant's time to live. `FR-TIER-005` asks for seven
+re-tiering triggers and **one was watched** — elapsed time — so a model assessed
+once at Tier 3 held that tier until its review date fell due, which for a Tier 3
+is two years.
+
+Every fact the other six need was already in the register. Nothing had to be
+observed, ingested or inferred; it had to be *looked at*.
+
+**It detects and reports. It never re-tiers.** An automatic re-tier would be the
+platform changing a governance decision nobody made, in the direction the
+arithmetic happened to point, at a moment nobody chose. The failure this is
+really against is not an under-tiered model; it is an under-tiered model
+**nobody knows is under-tiered**, because the assessment looks as current as the
+day it was made.
+
+**Building it produced a finding sharper than the feature.** The register holds
+no standing exposure column. An exposure is a fact supplied *at assessment time*
+and stored in that assessment's facts — so outside the assessment, the only
+figure MAYA has is the one the assessment was made from, and comparing it
+against itself answers nothing. `core/risk/sourcing.py` — the `H-8` work — is the
+first place a *current* exposure exists at all.
+
+So the first trigger is answerable only where the exposure has been sourced, and
+where it has not, this reports **cannot check** rather than not firing. That
+distinction is load-bearing: a `cannot_check` never counts as fired, so it
+cannot inflate a stale count, and the estate view reports it separately — a
+sweep reporting *nothing fired* over an estate it cannot evaluate is reporting
+its own blindness as an all-clear.
+
+**And a sweep correlates.** A regulatory change fires on every in-scope model at
+once; fifty findings with fifty owners, each seeing a problem they cannot fix,
+is the exact shape of `M-8`. Findings from a shared cause are raised under one
+named root, and the shared causes are **computed** rather than hard-coded, so a
+trigger added later is correlated without anybody remembering to.
+
+Two things it will not tell you, both stated in `posture()`. **Whether the tier
+would change** — re-running τ over the new facts would answer that, and the
+complexity facts are *declared*, so re-deriving from stale declarations produces
+a confident number over inputs nobody re-stated. **Whether the change matters** —
+that is the threshold, and a threshold with a number in it is a judgement made on
+a firm's behalf, so it is stated, configurable, and defaults high. A trigger that
+fires on every rounding is one somebody switches off, taking the real ones with
+it.
 
 ## 27. Infrastructure the design assumes and the build does not have
 
