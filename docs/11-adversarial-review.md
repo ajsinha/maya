@@ -194,7 +194,7 @@ walk agrees with it.
 write the row cannot recompute the hash"*, and the hash is unkeyed, unsigned and unanchored. What was
 supposed to close this is C-4 disposition 2 — anchoring the daily head to WORM storage and an RFC-3161
 timestamping authority, so back-dating needs two systems under different control — and it is not built and
-is named as not built in [10 §2.1](10-roadmap.md). Disposition 4, an application role holding only
+is named in [10 §2](10-roadmap.md). Disposition 4, an application role holding only
 `INSERT`/`SELECT` with retention deletion under a separate dual-controlled role, is also not built: there
 is no `GRANT`, `REVOKE` or `CREATE ROLE` anywhere in either schema file, `db/database.py` opens one engine
 with one identity, and `EvidenceRepository` inherits `Repository.remove()` unchanged.
