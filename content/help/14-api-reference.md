@@ -751,6 +751,10 @@ what it declines to claim as well as what it holds.
 | `GET` | `/export-shares/posture` | `document:read` | `is_a_portal` and `establishes_identity` are both false, and published rather than implied |
 | `GET` | `/document-rendering/formats` | `document:read` | What is emitted, and `pdf`, `docx`, `html` refused by name with the reason |
 | `GET` | `/document-rendering/{document_id}?format=` | `document:read` | Typesetting source with the citations intact. Coverage gaps are written **into** the output |
+| `GET` | `/rule-import/formats` | auth | What a rulebook can be read from, and what is refused with the reason |
+| `POST` | `/rule-import` | `model:read` | A decision table or DMN file into a rule set **candidate**. Refused *whole* if any row could not be translated |
+| `GET` | `/warrant-signing` | auth | What a signature proves, and — read this one — what it does not |
+| `POST` | `/warrant-signing/key?audience=` | self, or `principal:manage` | The key this audience verifies **its own** warrants with. The only endpoint here that returns a secret, which is why it records |
 
 ## The refusals you are most likely to hit
 

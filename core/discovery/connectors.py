@@ -56,6 +56,7 @@ from core.log import get_logger
 logger = get_logger(__name__)
 
 MLFLOW, UNITY, GIT = "mlflow", "unity_catalog", "git"
+SAGEMAKER, VERTEX, SAS, CMDB = "sagemaker", "vertex", "sas", "cmdb"
 
 #: What each connector reads, and what a firm has to produce for it. Named so
 #: the operational dependency is visible before anybody wires one: this is a
@@ -87,6 +88,83 @@ SOURCES: Dict[str, Dict[str, str]] = {
                            "pulled source would be holding somebody's code as "
                            "well as claims about it",
     },
+    SAGEMAKER: {
+        "reads": "a SageMaker Model Registry export — the JSON "
+                 "`list-model-packages` and `describe-model-package` produce, "
+                 "by package group",
+        "produced_by": "a scheduled job in the AWS account that owns the "
+                       "registry, with that account's own role",
+        "why_not_the_api": "cross-account read into every ML account in the "
+                           "bank is a standing trust relationship, and a "
+                           "governance register is the worst place to hold "
+                           "one. An approval status in SageMaker is also not "
+                           "an approval in the bank's sense, and reading it "
+                           "live would invite exactly that confusion",
+    },
+    VERTEX: {
+        "reads": "a Vertex AI Model Registry export — the JSON "
+                 "`gcloud ai models list` produces, with version aliases",
+        "produced_by": "a scheduled job in the project that owns the models",
+        "why_not_the_api": "the same standing-credential objection, per "
+                           "project. Vertex also scopes models by region, so a "
+                           "live reader would silently see one region's estate "
+                           "and report it as the estate",
+    },
+    SAS: {
+        "reads": "a SAS metadata extract — the model manager inventory, or the "
+                 "`_metadata` tables a SAS 9 platform exposes",
+        "produced_by": "a SAS administrator, from the metadata server",
+        "why_not_the_api": "there is frequently no API worth the name, and the "
+                           "estate this reaches is the one that matters most: "
+                           "a bank's oldest credit and capital models live "
+                           "here, they were never in an ML platform, and they "
+                           "are the models a supervisor asks about first",
+    },
+    CMDB: {
+        "reads": "a configuration-management extract — CIs of a model or "
+                 "analytics class, with their owners and the service they "
+                 "support",
+        "produced_by": "a scheduled report from the CMDB, which somebody in "
+                       "IT service management already owns",
+        "why_not_the_api": "a CMDB is the one source here that holds something "
+                           "governance genuinely wants — the **service** a "
+                           "thing supports, which is the nearest thing anybody "
+                           "has to materiality — and it is also the source "
+                           "most likely to be stale. Reading it on a schedule "
+                           "makes the staleness visible; reading it live would "
+                           "make it invisible",
+    },
+}
+
+#: Fields a source carries that LOOK like governance facts and are not. Naming
+#: them is the point: `must_still_be_established` protects against an absence,
+#: and an absence is the easy case — somebody notices. The hard case is a
+#: present field with the right word on it, because nobody goes looking for the
+#: difference between two things called "approved".
+LOOKS_LIKE_BUT_IS_NOT: Dict[str, Tuple[Tuple[str, str], ...]] = {
+    SAGEMAKER: ((
+        "sagemaker_approval_status",
+        "`Approved` in SageMaker means a pipeline step passed. Approval here "
+        "means a named person accepted a model at a tier that decided how many "
+        "signatures it needed. Reading one as the other gives the register a "
+        "column of approvals nobody gave"),),
+    MLFLOW: ((
+        "stage",
+        "`Production` is a deployment stage, not an authorisation. A model can "
+        "sit in Production having been promoted by whoever had the button"),
+        ("mlflow_user",
+         "whoever last pushed, which is not an accountable owner. The register "
+         "means a named individual who answers for the model, and an ML "
+         "platform has no field for that because it is not its question")),
+    CMDB: ((
+        "business_service",
+        "the nearest thing in the bank to materiality, and still not "
+        "materiality. It tells a triager where to go and ask, which is worth a "
+        "great deal and is not an answer"),),
+    UNITY: ((
+        "catalog_owner",
+        "a catalogue grant, which is who may read the object rather than who "
+        "answers for the model"),),
 }
 
 #: What governance needs that an ML platform does not have. Published, because
@@ -119,7 +197,8 @@ class Connectors:
         if source not in SOURCES:
             raise DiscoveryError(
                 "unknown_source", f"'{source}' is not a connector",
-                f"the three are {', '.join(SOURCES)} — each reads a document "
+                f"the connectors are {', '.join(SOURCES)} — each reads a "
+                f"document "
                 f"the source system exports, because MAYA holds credentials to "
                 f"none of them")
         rows = getattr(self, f"_read_{source}")(document)
@@ -151,6 +230,13 @@ class Connectors:
             out += (f". {len(known)} already correspond to something in the "
                     f"register and are reported so the triage can be a "
                     f"reconciliation rather than a duplicate")
+        misread = sum(len(c["do_not_read_as"]) for c in rows)
+        if misread:
+            out += (f". {misread} field(s) across these candidates carry a "
+                    f"governance-sounding name and do not mean what it says — "
+                    f"each is listed under `do_not_read_as` with the "
+                    f"difference, because an absent fact is the easy case and "
+                    f"a present one with the right word on it is not")
         out += (f". {len(NOT_IN_THE_SOURCE)} governance facts are not in this "
                 f"export and cannot be — materiality, an accountable "
                 f"individual, an approved use, independent challenge and "
@@ -271,6 +357,172 @@ class Connectors:
                 }))
         return out
 
+    def _read_sagemaker(self, document: Any) -> List[Dict[str, Any]]:
+        """SageMaker model packages, by group.
+
+        `ModelApprovalStatus` is read and carried as evidence, and it is
+        deliberately **not** mapped onto anything in the register. `Approved`
+        in SageMaker means a pipeline step passed; approval here means a named
+        person accepted a model at a tier that decided how many signatures it
+        needed. Treating them as the same field is how an inventory acquires a
+        column of approvals nobody gave.
+        """
+        payload = _as_json(document)
+        groups = payload.get("ModelPackageSummaryList") \
+            or payload.get("model_packages") \
+            or (payload if isinstance(payload, list) else [])
+        out = []
+        for entry in groups:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("ModelPackageGroupName")
+                       or entry.get("ModelPackageName") or "").strip()
+            if not name:
+                continue
+            arn = str(entry.get("ModelPackageArn") or "").strip()
+            containers = entry.get("InferenceSpecification", {}).get(
+                "Containers") or []
+            digest = ""
+            for container in containers:
+                if isinstance(container, dict) and container.get("ImageDigest"):
+                    digest = str(container["ImageDigest"])
+                    break
+            out.append(self._candidate(
+                SAGEMAKER, name,
+                location=arn or f"sagemaker://model-packages/{name}",
+                digest=digest,
+                evidence={
+                    "artifact_digest": digest or None,
+                    "version": entry.get("ModelPackageVersion"),
+                    # Carried, never mapped. See the docstring.
+                    "sagemaker_approval_status": entry.get(
+                        "ModelApprovalStatus"),
+                    "created_at": entry.get("CreationTime"),
+                    "description": entry.get("ModelPackageDescription"),
+                }))
+        return out
+
+    def _read_vertex(self, document: Any) -> List[Dict[str, Any]]:
+        """Vertex AI models.
+
+        The **region** is carried on every candidate rather than dropped,
+        because a Vertex estate is regional and an export that covered one
+        region looks exactly like an export that covered all of them. A
+        candidate that did not say which region it came from would let an
+        incomplete sweep read as a complete one.
+        """
+        payload = _as_json(document)
+        rows = payload.get("models") or (payload if isinstance(payload, list)
+                                         else [])
+        out = []
+        for entry in rows:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("displayName") or entry.get("display_name")
+                       or entry.get("name") or "").strip()
+            if not name:
+                continue
+            resource = str(entry.get("name") or "").strip()
+            region = ""
+            if "/locations/" in resource:
+                region = resource.split("/locations/", 1)[1].split("/", 1)[0]
+            out.append(self._candidate(
+                VERTEX, name,
+                location=resource or f"vertex://models/{name}",
+                digest=str(entry.get("artifactUri") or "").strip(),
+                evidence={
+                    "artifact_digest": entry.get("artifactUri"),
+                    "region": region or None,
+                    "version_id": entry.get("versionId")
+                    or entry.get("version_id"),
+                    "aliases": entry.get("versionAliases")
+                    or entry.get("version_aliases"),
+                    "labels": entry.get("labels"),
+                }))
+        return out
+
+    def _read_sas(self, document: Any) -> List[Dict[str, Any]]:
+        """A SAS metadata extract.
+
+        The estate this reaches is the one that matters most and the one an ML
+        connector never sees: a bank's oldest credit, capital and ALM models,
+        built before anybody used the word platform, and the first thing a
+        supervisor asks about. There is usually no digest, so confidence sits
+        at the lower band and the triage does more work — which is correct,
+        because a SAS metadata row is a much weaker claim that something is a
+        model than an entry in a model registry is.
+        """
+        payload = _as_json(document)
+        rows = payload.get("models") or payload.get("entries") \
+            or (payload if isinstance(payload, list) else [])
+        out = []
+        for entry in rows:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("name") or entry.get("Name") or "").strip()
+            if not name:
+                continue
+            folder = str(entry.get("folder") or entry.get("library")
+                         or "").strip()
+            out.append(self._candidate(
+                SAS, f"{folder}/{name}" if folder else name,
+                location=f"sas://{folder}/{name}" if folder
+                else f"sas://{name}",
+                digest="",
+                evidence={
+                    "artifact_digest": None,
+                    "folder": folder or None,
+                    "sas_type": entry.get("type") or entry.get("Type"),
+                    "modified_at": entry.get("modified")
+                    or entry.get("MetadataUpdated"),
+                    "modified_by": entry.get("modifiedBy"),
+                    "project": entry.get("project"),
+                }))
+        return out
+
+    def _read_cmdb(self, document: Any) -> List[Dict[str, Any]]:
+        """Configuration items of a model or analytics class.
+
+        The one source here that holds something governance genuinely wants:
+        the **business service** a thing supports, which is the nearest thing
+        any system in the bank has to materiality. It is carried as evidence
+        and it is still not materiality — a service name tells a triager where
+        to go and ask, which is worth a great deal and is not the same as an
+        answer.
+
+        It is also the source most likely to be stale, so `last_reviewed` is
+        carried when the extract has it. A CI nobody has looked at in three
+        years is a different candidate from one reviewed last month, and the
+        difference belongs in front of whoever triages it.
+        """
+        payload = _as_json(document)
+        rows = payload.get("items") or payload.get("cis") \
+            or (payload if isinstance(payload, list) else [])
+        out = []
+        for entry in rows:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("name") or entry.get("ci_name") or "").strip()
+            if not name:
+                continue
+            out.append(self._candidate(
+                CMDB, name,
+                location=str(entry.get("sys_id") or entry.get("id")
+                             or f"cmdb://{name}"),
+                digest="",
+                evidence={
+                    "artifact_digest": None,
+                    "ci_class": entry.get("ci_class") or entry.get("class"),
+                    "business_service": entry.get("business_service")
+                    or entry.get("service"),
+                    "support_group": entry.get("support_group"),
+                    "assigned_to": entry.get("assigned_to"),
+                    "environment": entry.get("environment"),
+                    "last_reviewed": entry.get("last_reviewed")
+                    or entry.get("sys_updated_on"),
+                }))
+        return out
+
     @staticmethod
     def _candidate(source: str, name: str, *, location: str, digest: str,
                    evidence: Dict[str, Any]) -> Dict[str, Any]:
@@ -295,6 +547,13 @@ class Connectors:
             "confidence": 0.6 if digest else 0.4,
             "evidence": {k: v for k, v in evidence.items() if v is not None},
             "must_still_be_established": [f for f, _ in NOT_IN_THE_SOURCE],
+            # Only for fields this candidate actually carries: a warning about
+            # something that is not there is noise, and noise is how a reader
+            # learns to skip the section that matters.
+            "do_not_read_as": [
+                {"field": field, "why": why}
+                for field, why in LOOKS_LIKE_BUT_IS_NOT.get(source, ())
+                if evidence.get(field) is not None],
         }
 
     # ------------------------------------------------------------------ what
@@ -302,7 +561,11 @@ class Connectors:
     def describe() -> Dict[str, Any]:
         """What each connector reads, and what no connector can bring."""
         return {
-            "sources": [{"source": k, **v} for k, v in SOURCES.items()],
+            "sources": [
+                {"source": k, **v,
+                 "do_not_read_as": [{"field": f, "why": w}
+                                    for f, w in LOOKS_LIKE_BUT_IS_NOT.get(k, ())]}
+                for k, v in SOURCES.items()],
             "not_in_the_source": [{"field": f, "why": w}
                                   for f, w in NOT_IN_THE_SOURCE],
             "registers_anything": False, "holds_credentials": False,

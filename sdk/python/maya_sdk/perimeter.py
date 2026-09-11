@@ -38,6 +38,19 @@ recall is unknown. A sweep that misses the contract is refused whole.
 time-boxed, points at a content digest rather than a path, and every read is
 recorded — including the refused ones, because "the link had expired" is a fact
 somebody will need in a year.
+
+**Rule import.** A bank's rulebook is a spreadsheet four people maintain or a
+DMN file out of a BPM suite, and it is a parser that reads it. A misread
+threshold does not fail; it produces a rule set that loads, validates and then
+decides differently from the rulebook it claims to be. So a cell that is a
+human judgement is reported rather than guessed at, and a document with any
+such cell is refused whole.
+
+**Warrant signing.** The one subject here that runs the other way: somebody
+relies on MAYA. Each audience's key is derived from its own principal, so a
+compromised engine forges warrants for itself and nobody else — and the posture
+says plainly that this is containment rather than non-repudiation, because a
+verifier holds the key it verifies with.
 """
 from __future__ import annotations
 
@@ -269,5 +282,89 @@ class DocumentRendering:
                                params={"format": fmt})
 
 
+class WarrantSigning:
+    """What a MAYA signature proves, and the key an engine verifies with."""
+
+    def __init__(self, maya: Any):
+        self._maya = maya
+
+    def posture(self) -> Dict[str, Any]:
+        """Read `does_not_prove` first.
+
+        A verifier holds the key it verifies with, so a descriptor is evidence
+        **to the bank** and not to anybody outside it. What the signature does
+        give is containment: each audience's key is derived from its own
+        principal, so a compromised engine forges warrants for itself and for
+        nobody else.
+        """
+        return self._maya.call("GET", "/warrant-signing")
+
+    def key(self, audience: str) -> Dict[str, Any]:
+        """Collect one audience's signing key.
+
+        **The only call in this SDK that returns a secret.** It is a POST
+        although it reads, because the disclosure goes on the evidence chain
+        rather than into a cacheable GET. You must either be the audience or
+        hold `principal:manage`.
+
+        What comes back verifies warrants whose `authority.principal` is
+        exactly this audience — and nothing else, which is the point. MAYA
+        cannot tell whether you stored it safely and says so in the reply
+        rather than letting the disclosure read as an assurance.
+        """
+        return self._maya.call("POST", "/warrant-signing/key",
+                               params={"audience": audience})
+
+
+class RuleImport:
+    """Reading a rulebook the bank already has, as a candidate.
+
+    This belongs with the edges rather than with the rule-set editor because
+    it is the same kind of thing: a parser over somebody else's document,
+    where the temptation is to report what you wish you had read.
+
+    A misread threshold does not fail. It produces a rule set that loads,
+    validates, publishes and then decides differently from the rulebook it
+    claims to be, and nobody finds that by looking at it. So the interesting
+    half of every answer here is what was **not** translated.
+    """
+
+    def __init__(self, maya: Any):
+        self._maya = maya
+
+    def formats(self) -> Dict[str, Any]:
+        """What can be read, what cannot, and what to do instead.
+
+        The refused list is the useful half. A stored procedure is not
+        translated and will not be: SQL is a general language, a translator
+        would be a compiler, and a wrong compiler is undetectable by reading
+        its output.
+        """
+        return self._maya.call("GET", "/rule-import/formats")
+
+    def read(self, fmt: str, document: str, *, note: str = "",
+             urn: str = "", semver: str = "") -> Dict[str, Any]:
+        """Parse a decision table or a DMN file into a rule set candidate.
+
+        Nothing is written. What comes back goes through the same
+        `maya.rules.check`, `.trial` and `.publish` path a hand-written rule
+        set takes, including the second-person approval — an importer that
+        wrote into the register would be authoring a parameter set on
+        somebody's behalf.
+
+        Read `untranslated` before anything else. A document with any entry
+        there is refused **whole**: a parser finds the judgement calls hard,
+        and the judgement calls are what a rulebook exists for.
+
+        Pass `urn` and `semver` to validate against that version's schemas as
+        well as parse. Parsing says the document was readable; validation says
+        whether it is usable, and only the second is the question you have.
+        """
+        return self._maya.call("POST", "/rule-import", json={
+            "format": fmt, "document": document, "note": note,
+            "urn": urn, "semver": semver})
+
+
 __all__ = ["ChainTimestamps", "Connectors", "DocumentRendering",
-           "ExportShares", "Plugins", "ScannerContract"]
+           "ExportShares", "Plugins", "RuleImport", "ScannerContract",
+           "WarrantSigning"]

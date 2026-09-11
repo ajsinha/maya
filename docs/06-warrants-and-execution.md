@@ -251,11 +251,35 @@ rather than discovered.
 before the block existed and one signed after therefore produce the same digest over the same
 content, which is what stops a signature that verifies in one place and fails in another.
 
-**`alg` is `HMAC-SHA256`, and that is what ships.** Ed25519 with an overlapping key set is the
-production target and appears in §11 as such. The distinction matters to a deployer: HMAC is a
-shared secret, so a descriptor's authenticity can be *verified* only by a party that could also have
-*minted* it. Asymmetric signing is what would make client-side verification meaningful, and until it
-lands, a consumer's signature check is a check against a key it must be trusted with.
+**`alg` is `HMAC-SHA256`, and the key is derived per audience.** For two revisions this paragraph
+said the target was Ed25519, on the argument that a shared secret cannot distinguish a verifier from
+a minter. The argument was right about the defect and wrong about the fix.
+
+The defect has two halves. *Who can forge* is operational: under one estate-wide secret, an engine
+compromised today mints a warrant for any model, any principal, any use, and the blast radius of one
+compromised consumer is the whole estate. *Who can prove authorship to a third party* is the half
+that needs public-key cryptography, and it is the rarer requirement by a wide margin — it is showing
+somebody who is **not the bank** that only MAYA could have issued a descriptor.
+
+The first half does not need asymmetry. It needs the key to be derived from the audience:
+
+    k_audience = HMAC(root, "maya/warrant/v<gen>/" ‖ audience)
+
+MAYA holds the root and derives every audience key; an engine is handed its own and can derive
+nothing, because the step is one-way. A stolen key now forges warrants **for one principal**, which
+is containment — and containment is what the shared secret was actually costing.
+
+Two consequences worth stating. The audience is read from **the document being verified**, so an
+attacker who re-points a legitimately held warrant at another principal changes the key it should
+have been signed under and the signature fails here, rather than depending on a separate check
+somebody remembered to write. And `key_id` becomes `<root>.g<generation>.<audience digest>`: both
+halves one-way, the root half making rotation legible and the audience half making it obvious at a
+glance that two engines are not sharing a key.
+
+**What this does not claim is non-repudiation**, and `GET /warrant-signing` says so in those words.
+A verifier holds the key it verifies with, so a descriptor is evidence **to the bank** and not to
+anybody outside it. If a firm ever needs the other half, it is a new requirement with its own
+argument rather than a deferred item on this one.
 
 ---
 
@@ -712,7 +736,8 @@ an engine can decline to honour — which is §10.3 restated as a table.
 | Replay resistance | short-lived, bound to principal and environment, and carrying the revocation epoch at issue |
 | Confidentiality | the descriptor carries no secrets — schemas, digests and references, resolved by the caller's own credentials |
 | Auditability | granting and revoking append to the hash-chained evidence record as `warrant_issued` and `warrant_revoked`. **A resolution does not**: there is no `warrant_resolved` node, so the chain records who was entitled and when it was withdrawn, and not how often the entitlement was exercised. Execution writes nothing at all |
-| **Target, not built** | Ed25519 with an overlapping key set and a 90-day rotation. This is the one change that would make third-party verification meaningful, because a shared secret cannot distinguish a verifier from a minter |
+| Containment | the signing key is **derived per audience** from the root and the principal the warrant is for, so a compromised engine forges warrants for itself and for nobody else. One-way, so holding one key yields no other. Rotation is a generation counter carried in the key id, so a warrant issued under an earlier generation is distinguishable rather than mysteriously invalid |
+| **Not claimed** | non-repudiation to a third party. A verifier holds the key it verifies with, so a descriptor proves authorship **to the bank** and not to anybody outside it. `GET /warrant-signing` publishes that sentence beside what a signature does prove, rather than letting *signed* be read as more than it is |
 
 ---
 

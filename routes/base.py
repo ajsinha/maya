@@ -409,6 +409,25 @@ STATUS: Dict[str, int] = {
     # first is a decision this firm has not taken and the second is a
     # package that is not there, and they need different fixes.
     "not_enabled": 403, "not_installed": 404,
+    # Naming no audience would be asking for the estate-wide secret the
+    # per-audience derivation exists to remove. 422 rather than 400: the
+    # request is well-formed and the content is what cannot be served.
+    "audience_required": 422,
+    # Reading a rulebook a bank already has. All 422: in every case the
+    # request is well-formed and the DOCUMENT is what cannot be served, which
+    # is the distinction that tells a caller to go and fix the export rather
+    # than to retry.
+    "format_not_translated": 422, "unknown_import_format": 422,
+    "hit_policy_not_mappable": 422, "no_outcome_columns": 422,
+    "no_decision_table": 422, "unreadable_dmn": 422,
+    "dmn_declares_a_doctype": 422, "dmn_too_large": 413,
+    # An estate that will not fit in memory. A test that does not decompose is
+    # a 422 rather than a 501: nothing is missing, and asking again later will
+    # not help — the statistic genuinely is not a sum over partitions.
+    "test_does_not_decompose": 422, "test_not_distributable": 422,
+    "submission_does_not_meet_the_plan": 422, "bin_count_mismatch": 422,
+    "reference_too_small": 409, "no_rows_in_submission": 422,
+    "one_class_absent": 422,
     "fibre_narrows_obligations": 409,
     "unknown_source": 422, "unreadable_export": 422,
     "sweep_does_not_meet_the_contract": 422,

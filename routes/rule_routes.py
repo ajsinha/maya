@@ -30,6 +30,20 @@ class ExtensionIn(Body):
     owner: str
     does: str
 
+class RuleImportIn(Body):
+    """A rulebook as the bank already holds it.
+
+    `document` is text — a CSV decision table or a DMN file — rather than a
+    parsed object, because the whole point is to read what the source system
+    exported without anybody retyping it in between.
+    """
+    format: str
+    document: str
+    note: str = ""
+    urn: str = ""
+    semver: str = ""
+
+
 class RuleSetIn(Body):
     urn: str
     semver: str
@@ -154,3 +168,53 @@ class RuleRoutes(Routes):
             """
             self.authorise(request, "model:read")
             return self.guard(lambda: self.ctx["rules"].explain(parameter_set_id))
+
+
+        # ----------------------------------------------- importing a rulebook
+        @self.app.get(f"{api}/rule-import/formats", tags=["rules"])
+        def import_formats(request: Request):
+            """What can be read, what cannot, and what to do instead.
+
+            The refused list is the useful half. A stored procedure is not
+            translated and will not be: SQL is a general language, a
+            translator would be a compiler, and a wrong compiler produces a
+            rule set that loads, validates and decides differently from the
+            procedure it claims to be — which nobody finds by reading it.
+            """
+            self.principal(request)
+            from core.rules.importing import RuleSetImport
+            return RuleSetImport.formats()
+
+        @self.app.post(f"{api}/rule-import", tags=["rules"])
+        def import_rulebook(request: Request, body: RuleImportIn):
+            """Read a decision table or a DMN file into a rule set **candidate**.
+
+            Nothing is written. What comes back is a document for the same
+            `check`, `trial` and `publish` path a hand-written rule set takes,
+            including the second-person approval — because an importer that
+            wrote into the register would be authoring a parameter set on
+            somebody else's behalf, which is the one thing the rules editor
+            was careful not to do.
+
+            Rows that could not be translated are named with the cell that
+            stopped them, and a document with any of them is refused **as a
+            whole**. A parser finds the judgement calls hard, and the
+            judgement calls are what a rulebook exists for.
+
+            Pass `urn` and `semver` to have the result validated against that
+            version's schemas as well as parsed. Parsing says the document was
+            readable; validation says whether it is usable, and only the
+            second is the question somebody importing a rulebook has.
+            """
+            self.authorise(request, "model:read")
+            engine = self.ctx["rule_import"]
+            if body.urn and body.semver:
+                model = self.guard(
+                    lambda: self.ctx["registry"].require(body.urn))
+                self.authorise(request, "model:read", model=model)
+                return self.guard(lambda: engine.check(
+                    body.urn, body.semver, body.format, body.document,
+                    note=body.note))
+            return self.guard(
+                lambda: engine.read(body.format, body.document,
+                                    note=body.note))

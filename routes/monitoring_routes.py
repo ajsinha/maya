@@ -19,6 +19,22 @@ from core.monitoring.health import COMPONENTS, GOOD_AT, WATCH_AT
 from routes.base import Body, Routes
 
 
+class DistributedIn(Body):
+    """Statistics a job computed where the data is.
+
+    Never a metric. A submission carrying `psi: 0.31` would be an external
+    observation wearing a better name; one carrying bin counts is something
+    this register recomputes.
+    """
+    partitions: List[Dict[str, Any]] = Field(default_factory=list)
+    predicate: str = ""
+    engine: str = ""
+    reference_digest: str = ""
+    ranked_globally: bool = False
+    window: Dict[str, Any] = Field(default_factory=dict)
+    now: Optional[float] = None
+
+
 class MonitoringPlanIn(Body):
     urn: str
     semver: str
@@ -363,3 +379,58 @@ class MonitoringRoutes(Routes):
                 model=self.model_behind(
                     self.guard(lambda: monitors.require(monitor_id))))
             return self.guard(lambda: external.provenance(monitor_id))
+
+
+        # ------------------------------- an estate that will not fit in memory
+        @self.app.get(f"{api}/distributed-evaluation", tags=["monitoring"])
+        def distributed_posture(request: Request):
+            """What a distributed evaluation moves, and what it does not.
+
+            The scan moves off the platform; the arithmetic from statistics to
+            metric, the reference, the threshold and the comparison all stay
+            here. A metric that does not decompose is refused **by name** —
+            approximating one would produce a number that agrees with the real
+            one most of the time, which is the worst property a control can
+            have.
+            """
+            self.principal(request)
+            from core.monitoring.distributed import DistributedEvaluation
+            return DistributedEvaluation.posture()
+
+        @self.app.get(f"{api}/monitors/{{monitor_id}}/distributed-plan",
+                      tags=["monitoring"])
+        def distributed_plan(request: Request, monitor_id: str,
+                             since: Optional[float] = None,
+                             until: Optional[float] = None,
+                             partitions: int = 64):
+            """The contract one job must satisfy for one monitor.
+
+            It names the statistics, the window, the partitioning and — for a
+            drift monitor — the **reference bin edges with a digest of the
+            sample they came from**, so a submission cannot quietly have
+            measured against different edges. PSI against edges somebody else
+            chose is a different measurement that prints the same.
+            """
+            self.authorise(request, "monitor:read")
+            return self.guard(lambda: self.ctx["distributed_monitoring"].plan(
+                monitor_id, since=since, until=until, partitions=partitions))
+
+        @self.app.post(f"{api}/monitors/{{monitor_id}}/distributed-submit",
+                       tags=["monitoring"])
+        def distributed_submit(request: Request, monitor_id: str,
+                               body: DistributedIn):
+            """Take the statistics, compute the metric here, judge it here.
+
+            Every problem with a submission is reported at once and the whole
+            submission is refused — a metric computed over the partitions that
+            happened to be well-formed is a measurement of a population nobody
+            chose.
+            """
+            who = self.authorise(
+                request, "monitor:evaluate",
+                model=self.model_behind(
+                    self.guard(lambda: monitors.require(monitor_id))))
+            return self.guard(
+                lambda: self.ctx["distributed_monitoring"].submit(
+                    monitor_id, body.model_dump(), now=body.now,
+                    actor=self.actor(who)))

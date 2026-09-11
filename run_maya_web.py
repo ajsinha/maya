@@ -89,7 +89,9 @@ from core import log
 from core.log import configure, get_logger, swallowed
 from core.features import FeatureRegistry
 from core.fibres import FibreRegistry
+from core.monitoring.distributed import DistributedEvaluation
 from core.rules import RuleSetEditor
+from core.rules.importing import RuleSetImport
 from core.lifecycle import (AmendmentService, AttestationService,
                             LifecycleService, VersionApproval)
 from core.execution import WarrantService
@@ -450,6 +452,15 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
 
     warrants = WarrantService(WarrantRepository(db), registry, evidence,
                         signing_key=cfg.get("warrants.signing_key", "maya-dev-key"),
+                        # A warrant is signed with a key derived from the
+                        # principal it is issued to, so a compromised engine
+                        # can forge warrants for itself and for nobody else.
+                        # Off is the old estate-wide secret and is a downgrade;
+                        # it exists so a deployment mid-migration can verify
+                        # descriptors issued before the change.
+                        per_audience_keys=cfg.get_bool(
+                            "warrants.per_audience_keys", True),
+                        key_generation=cfg.get_int("warrants.key_generation", 1),
                         ttl_by_tier=_tier_map(cfg, "warrants.ttl_seconds",
                                               {1: 60, 2: 300, 3: 3600, 4: 3600}),
                         grace_by_tier=_tier_map(cfg, "warrants.grace_seconds",
@@ -539,6 +550,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # a validated document, so the set still lands `proposed` and still needs a
     # second person.
     rules = RuleSetEditor(registry, parameters, evidence)
+    # Reading a rulebook a bank already has. It holds the editor so a candidate
+    # can be validated against a real version's schemas, and it never writes
+    # through it: an importer that authored a parameter set on somebody's
+    # behalf would be the one thing the rules editor was careful not to do.
+    rule_import = RuleSetImport(rules)
 
     # How one model stands to another. Separate from the registry because the
     # registry is about a model in isolation and this is about the estate.
@@ -729,6 +745,13 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # every "push your metrics to us" API has.
     external_monitoring = ExternalObservations(monitoring, registry, catalogue,
                                                evidence)
+    # An estate-wide nightly sweep will not fit in this process, and the answer
+    # is not to put a cluster inside the register. What moves is the SCAN: a
+    # job computes sufficient statistics where the data is, and MAYA does the
+    # arithmetic from those to the metric and compares it to the threshold —
+    # so unlike an external observation, this one can be replayed.
+    distributed_monitoring = DistributedEvaluation(monitoring.registry,
+                                                   registry, evidence)
 
     # What arrives before a model is a model. Kept apart from the register,
     # because a register that admits everything is one nobody can read — and
@@ -1265,7 +1288,8 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
                            "table_store": table_store,
                            "aggregate": aggregate,
                            "registry": registry, "composition": composition, "fibres": fibres,
-                           "rules": rules,
+                           "rules": rules, "rule_import": rule_import,
+                           "distributed_monitoring": distributed_monitoring,
                            "artifacts": artifacts,
                            "warrant_profiles": warrant_profiles,
                            "export": export, "dossier": dossier,
