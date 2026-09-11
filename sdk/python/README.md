@@ -151,3 +151,36 @@ test proves only that the mock agrees with itself.
 ```bash
 .venv/bin/python -m pytest tests/test_sdk.py -q
 ```
+
+## The command line
+
+Installing the package installs `maya`:
+
+```bash
+export MAYA_URL=https://maya.internal MAYA_TOKEN=…
+maya models
+maya ready maya://model/credit.pd.smallbiz
+maya call GET /health/ready --absolute
+```
+
+**Three exit codes, and the third is the point.** `0` MAYA answered yes, `1`
+MAYA answered **no**, `2` MAYA was **not reached** or the command was malformed.
+A pipeline that collapses 1 and 2 goes green whenever the governance platform is
+down — worse than no gate at all, because somebody believes it.
+
+`ready` is the only command whose *answer* is a verdict, so its exit code is one.
+Everything else exits 0 whenever MAYA answered, because a tool that exits
+non-zero on a fact is a tool you wrap in `|| true`. No flag suppresses a refusal,
+and refusals print all three parts to stderr.
+
+## In a notebook
+
+```python
+from maya_sdk import notebook
+notebook.install()
+```
+
+A notebook renders a dict fine. What it breaks is the refusal — a traceback whose
+last line happens to hold the remediation. This puts the three parts at the top,
+still raises so a scheduled notebook does not go green past one, and renders
+`Unreachable` differently because it is not a verdict.
