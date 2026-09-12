@@ -189,6 +189,42 @@ estate of 50,000, restore time, PostgreSQL, and anything about a multi-node
 deployment. A number this platform has never observed is a number it should not
 print as though it had.
 
+## 8a. Backing it up, and proving the audit trail came back
+
+`tools/ops/` — and the argument for it is one sentence: a filesystem snapshot
+copies the bytes correctly and cannot tell you whether the **evidence chain**
+survived.
+
+```bash
+python -m tools.ops.backup  --config application.yaml --out /backups/2026-09-12
+python -m tools.ops.restore --from /backups/2026-09-12 --config application.yaml
+```
+
+| It refuses | Because |
+|---|---|
+| a backup of a chain that **does not verify** | restored six months later it is indistinguishable from a chain that broke *during* the restore, so the investigation starts on the wrong day — and it is a backup somebody will use, since the alternative is nothing. `--even-if-broken` takes a forensic copy that says so in its manifest |
+| a restore **over a database holding evidence** | two chains do not interleave, so there is no merge and the act is irreversible |
+| **PostgreSQL** | `pg_dump` and `pg_basebackup` are better than anything here and are what you already have. It names them, without needing the driver installed to do so |
+
+**An instance is five stores, not one**: the control database, `data/artifacts/`,
+`data/attachments/`, `data/delta/` and `data/worm/`. The last is the one a
+hand-written script forgets and the one whose absence is least visible — the
+chain still verifies *against itself* without the anchors.
+
+**The check nothing else performs** is the second of three on restore: the chain
+head against **the head the backup recorded**. A chain that verifies against
+itself at a different head is a restore of a different backup, or of a database
+somebody wrote to in between, and nothing about the filesystem would say so. The
+restore exits non-zero when the chain is wrong, because it runs inside a script
+whose next step is usually *start serving*.
+
+> These tools found their own worst defect on their first round trip. The
+> emptiness probe opened a connection, which created the target database and its
+> write-ahead log; replacing the file underneath that handle gave a chain at
+> **seq 0** — every byte correct, the digest matching, and the audit trail
+> apparently empty. A stale WAL replayed over a restored database is the
+> quietest way there is to lose a chain.
+
 ## 9. Verifying a deployment
 
 In order, and each answers a question the previous one cannot.

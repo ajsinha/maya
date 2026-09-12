@@ -71,9 +71,18 @@ only to make a law pass.
 
 ### 2.3 The operating
 
-Multi-region topology, backup and restore, TLS termination, a secret manager, and
-an annual penetration test. The **artefacts** are built ([19](19-deploying-maya.md));
+Multi-region topology, TLS termination, a secret manager, and an annual
+penetration test. The **artefacts** are built ([19](19-deploying-maya.md));
 these are the running of them, and they belong to whoever operates the platform.
+
+**Backup and restore have come off this list**, because half of the problem was
+never the operator's. Storage is theirs and verification is not: a filesystem
+snapshot copies bytes correctly and cannot say whether the **evidence chain**
+survived — and a broken chain does not fail closed, it reads as *no evidence*,
+which is indistinguishable from nothing having happened. `tools/ops/` refuses to
+call a broken chain a backup, and on restore checks the chain against **the head
+the backup recorded** rather than only against itself. It does not back up
+PostgreSQL, and says so.
 
 ### 2.4 The measurements nobody has taken
 
