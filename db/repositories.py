@@ -105,12 +105,21 @@ class Repository:
         return (" AND ".join(f"{k} = :{k}" for k in filters), dict(filters))
 
     def one(self, **filters) -> Optional[Dict[str, Any]]:
+        folded = self._from_fold({k: v for k, v in filters.items()
+                                  if v is not None})
+        if folded is not None:
+            return folded[0] if folded else None
         clause, params = self._where(filters)
         return self._decode(self.db.query_one(
             f"SELECT * FROM {self.TABLE} WHERE {clause} LIMIT 1", params))
 
     def many(self, order: Optional[str] = None, desc: bool = False,
              limit: Optional[int] = None, **filters) -> List[Dict[str, Any]]:
+        if order is None and limit is None:
+            folded = self._from_fold({k: v for k, v in filters.items()
+                                      if v is not None})
+            if folded is not None:
+                return folded
         clause, params = self._where({k: v for k, v in filters.items() if v is not None})
         sql = f"SELECT * FROM {self.TABLE} WHERE {clause}"
         by = order or self.ORDER
@@ -124,16 +133,40 @@ class Repository:
         rows = self.many(order=order, desc=desc, limit=1, **filters)
         return rows[0] if rows else None
 
+    def _from_fold(self, filters: Dict[str, Any]) -> Optional[List[Dict[str, Any]]]:
+        """Rows from the estate-fold index, or None to go to the database.
+
+        Deliberately narrow. Equality filters only, no ordering and no limit —
+        anything else falls through, because a read this cannot answer
+        correctly is one it must not answer at all. `None` values are excluded
+        by the caller and an empty filter means "everything", which the index
+        has no reason to serve.
+        """
+        if not filters:
+            return None
+        columns = sorted(filters)
+        rows = self.db.folded(self.TABLE, columns, [filters[c] for c in columns])
+        if rows is None:
+            return None
+        decoded = [self._decode(r) for r in rows]
+        if self.ORDER:
+            decoded.sort(key=lambda r: (r.get(self.ORDER) is None,
+                                        r.get(self.ORDER)))
+        return decoded
+
     def add(self, row: Dict[str, Any]) -> Dict[str, Any]:
+        self.db._refuse_write_while_folding(self.TABLE)
         row.setdefault("id", new_id())
         self.db.insert(self.TABLE, self._encode(row))
         return row
 
     def set(self, values: Dict[str, Any], **filters) -> int:
+        self.db._refuse_write_while_folding(self.TABLE)
         clause, params = self._where(filters)
         return self.db.update(self.TABLE, clause, params, self._encode(values))
 
     def remove(self, **filters) -> int:
+        self.db._refuse_write_while_folding(self.TABLE)
         clause, params = self._where(filters)
         return self.db.execute(f"DELETE FROM {self.TABLE} WHERE {clause}", params)
 

@@ -144,7 +144,7 @@
     "platform": "Linux-7.0.11-76070011-generic-x86_64-with-glibc2.43",
     "processor": "x86_64",
     "python": "3.13.15",
-    "shared_machine": "other agent sessions were running on this machine throughout. The 50,000 figures reproduced across runs to within 1%; the 10,000 ones varied between 148 and 259 ms for the same read, which is why the ratio is reported with that caveat rather than as a clean slope",
+    "shared_machine": "other agent sessions were running on this machine throughout, and this session left orphaned processes of its own. That is the most likely explanation for two runs in which a read that takes 33 s did not return in half an hour, and it is a reason to trust the DIRECT measurements in `docs/10 \u00a72.4a` over anything this spike reports about the heavy reads",
     "sizes": [
       10000,
       50000
@@ -192,8 +192,8 @@
     "detail"
   ],
   "reads_not_taken": {
-    "dashboard": "not established. The first attempt measured a SIGN-IN page: `/dashboard` answers 200 to HTTP Basic because the interface takes a session cookie, so a status check does not catch it. The harness now asserts on content and the corrected run did not complete",
-    "portfolio": "measured once at 10,000 models at 8,258 ms p95 over 7 samples, and NOT reproduced here. Over 50,000 models a single call did not return in more than thirty minutes, twice. The floor is the result"
+    "dashboard": "not taken by this spike. Measured separately: 1,714 ms at 2,000 models, which is the same fold as `/portfolio` \u2014 the dashboard assembles the worklist across the estate. Session authentication is NOT the cost: `/models` is 12 ms under a session against 24 ms under HTTP Basic",
+    "portfolio": "8,258 ms p95 over 7 samples at 10,000 models in this spike. Measured directly afterwards, the fold was 33.4 s at 50,000 and LINEAR at 0.67 ms per model \u2014 the spike's failure to return at that size was an artefact of a shared machine, not a property of the fold, and an earlier version of this file said otherwise. The fold is now 7.6 s at 50,000; see `docs/10 \u00a72.4a`. These figures predate that fix"
   },
   "sample_budget": 60,
   "seconds_per_read": 45.0,
