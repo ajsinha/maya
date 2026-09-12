@@ -6,7 +6,7 @@
 
 ## Context
 
-The schema declares ninety tables and **zero** foreign-key constraints in
+The schema declares ninety-one tables and **zero** foreign-key constraints in
 either dialect. Adversarial review [§4.5](../11-adversarial-review.md) found
 this while attacking immutability, and the two halves of that finding have had
 different fates. The immutability half is closed: `db/schema/immutable.py`

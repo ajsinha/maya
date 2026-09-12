@@ -49,8 +49,12 @@ class WarrantService:
                  ttl_by_tier: Optional[Dict[int, int]] = None,
                  grace_by_tier: Optional[Dict[int, int]] = None,
                  jitter_pct: int = 20, blocking: Optional[BlockingSource] = None,
-                 featuresets=None, parameters=None):
+                 featuresets=None, parameters=None, provenance=None):
         self.registry, self.blocking = registry, blocking
+        # Optional, and off unless the firm asked for it. `require_verified`
+        # is checked before the lookup, so an instance that has not wired a
+        # verifier in pays nothing on the resolution path.
+        self.provenance = provenance
         # A fit warrant names a featureset, and whether that featureset provides
         # what the kernel declares it reads is a question with an answer. Left
         # unchecked it becomes a claim, and the model is fitted over a different
@@ -116,6 +120,7 @@ class WarrantService:
                     f"Discharge it, renew it, or approve the model outright")
         version = self._version(m["urn"], environment, semver,
                                 aliasname or grant["alias_name"], urn)
+        self._refuse_unverified_provenance(version)
         if self.policy is not None:
             self.policy.check("warrant:resolve", {
                 "tier": m.get("tier"), "environment": environment,
@@ -133,6 +138,33 @@ class WarrantService:
         return self.builder.build(urn, m, version, grant, principal,
                                   declared_use, environment, self.epoch, verb=verb,
                                   parameter_set=self._point_of_p(urn, version))
+
+    def _refuse_unverified_provenance(self, version: Dict[str, Any]) -> None:
+        """Refuse to authorise an artifact whose provenance the firm requires.
+
+        `ArtifactProvenance.check_at_resolution` existed, was configurable, was
+        published in the posture endpoint, and **had no caller** — so a firm
+        that set `require_verified` bought a flag and no refusal. Found by
+        sweeping for gate-shaped methods nothing calls; see
+        `docs/11 §6b.1`.
+
+        Wiring it needed the state to be somewhere. Provenance was verified and
+        written to the evidence chain and nowhere else, so the only value this
+        could ever have been handed was `absent` — switching the flag on would
+        have refused the whole estate, which is why it stayed unwired rather
+        than being wrong. `artifact_provenance` holds the current verdict per
+        digest now.
+
+        **Off costs nothing.** The flag is checked before the lookup, so an
+        instance that has not asked for this does not pay a read on the
+        critical path — resolution is on the serving path of everything and
+        `NFR-PERF-002` is written in milliseconds.
+        """
+        if self.provenance is None or not self.provenance.require_verified:
+            return
+        digest = version.get("artifact_digest")
+        self.provenance.check_at_resolution(
+            digest, self.provenance.state_of(digest))
 
     def _point_of_p(self, urn: str, version: Dict[str, Any]):
         """The approved parameter set this run should be at, if there is one.

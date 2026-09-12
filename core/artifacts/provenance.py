@@ -40,6 +40,8 @@ made differently.
 """
 from __future__ import annotations
 
+import time
+
 from typing import Any, Dict, List, Optional
 
 from core.artifacts.common import ArtifactError
@@ -76,7 +78,7 @@ class ArtifactProvenance:
     """Checks who built an artifact, against identities the firm trusts."""
 
     def __init__(self, verifier=None, trusted: Optional[List[str]] = None,
-                 evidence=None, require_verified: bool = False):
+                 evidence=None, require_verified: bool = False, repo=None):
         # The verification port. `None` means nothing can be checked, which is
         # REPORTED — never treated as verified. Shipping a client would be
         # shipping a trust-root decision a bank's security function has already
@@ -88,6 +90,13 @@ class ArtifactProvenance:
         # that has not wired a verifier in would otherwise find every model
         # refusing on the day this shipped.
         self.require_verified = require_verified
+        # Where the verdict is kept, so that resolution has something to read.
+        #
+        # Without it `check_at_resolution` could only ever be handed `absent`,
+        # which is why it had no caller: switching `require_verified` on would
+        # have refused every model in the estate. Provenance was verified,
+        # written to the evidence chain, and then forgotten.
+        self.repo = repo
 
     # --------------------------------------------------------------- record
     def attest(self, *, artifact_digest: str, predicate: str,
@@ -116,6 +125,7 @@ class ArtifactProvenance:
                     {"predicate": predicate, "identity": identity,
                      "state": verdict["state"],
                      "builder": verdict.get("builder")}, actor=actor)
+        self._remember(artifact_digest, predicate, verdict, actor)
         if verdict["state"] == UNVERIFIED:
             logger.warning("provenance for %s could not be verified: %s",
                            artifact_digest[:20], verdict["why"])
@@ -163,6 +173,38 @@ class ArtifactProvenance:
         return {"state": VERIFIED, "builder": builder or None,
                 "why": (f"checked against {builder or 'a trusted identity'}"),
                 "means": STATES[VERIFIED]}
+
+    def _remember(self, artifact_digest: str, predicate: str,
+                  verdict: Dict[str, Any], actor: str) -> None:
+        """Keep the verdict, replacing any earlier one for the same bytes.
+
+        Replaced rather than appended: provenance is a fact about the bytes,
+        and the current answer is the one resolution needs. The history is on
+        the evidence chain, which is where a history belongs.
+        """
+        if self.repo is None:
+            return
+        row = {"artifact_digest": artifact_digest, "state": verdict["state"],
+               "predicate": predicate, "builder": verdict.get("builder"),
+               "why": verdict.get("why", ""), "recorded_by": actor,
+               "recorded_at": time.time()}
+        held = self.repo.one(artifact_digest=artifact_digest)
+        if held is None:
+            self.repo.add(row)
+        else:
+            self.repo.set(row, id=held["id"])
+
+    def state_of(self, artifact_digest: str) -> str:
+        """`verified`, `unverified`, or `absent` when nobody attested.
+
+        `absent` is not stored and is not a failure — it is the answer for an
+        artifact nobody made a statement about, and it is a different fact from
+        one whose statement could not be checked.
+        """
+        if self.repo is None or not artifact_digest:
+            return ABSENT
+        held = self.repo.one(artifact_digest=artifact_digest)
+        return (held or {}).get("state") or ABSENT
 
     # ------------------------------------------------------------ resolution
     def check_at_resolution(self, artifact_digest: str,
