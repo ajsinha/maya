@@ -24,9 +24,19 @@ is.
 **What it found**, in `docs/spikes/estate.json`: the paged reads hold the
 `NFR-PERF-001` budget at fifty thousand models (list 441 ms against 500 ms) and
 are sublinear in practice, because a fixed per-request cost dominates below about
-forty thousand. The **fold** over the whole estate does not: `/portfolio` was
-8.3 s at ten thousand and did not return inside thirty minutes at fifty
-thousand.
+forty thousand.
+
+**And the fold over the whole estate is the part worth reading twice, because
+this file got it wrong first.** The spike reported that `/portfolio` *did not
+return inside thirty minutes* at fifty thousand models. Measured directly
+afterwards it returns in **33.4 seconds**, linear at 0.67 ms per model — the
+spike was competing with other work on a shared machine, and the number it
+produced was about the machine. It is now **7.6 s**, after the fold stopped
+asking nine questions per model ([10 §2.4a](../../docs/10-roadmap.md)).
+
+That sequence is the argument for everything below: a number measured carelessly
+is worse than a target honestly labelled, because the target does not claim to be
+evidence.
 
 Two things the spike learned about itself, both kept in its docstring because
 they are the kind of mistake a benchmark makes quietly. It **timed a login page**
