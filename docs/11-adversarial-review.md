@@ -306,10 +306,27 @@ constraints in either dialect — the schema contains zero of each. What `db/sch
 is a comment: *"Versions are immutable. There is no UPDATE path other than status."* That is a description
 of current callers, written where a reader expects a constraint.
 
-**The honest answer.** C-3's disposition — a `BEFORE UPDATE` trigger raising on any change to an immutable
-column — is not built, and [00 §12](00-mathematical-foundations.md#12-the-laws-maya-enforces) already says
-so in the `L-2` row. What holds today is that only one call site updates the table, and it updates
-`status`. That is a convention, and conventions are what this platform exists to replace with proofs.
+**Built, in the half that was being claimed.** C-3's disposition — a `BEFORE UPDATE` trigger raising on any
+change to an immutable column — now exists in both dialects, generated from `db/schema/immutable.py` and
+**applied by `Database._apply_enforcement`** rather than only rendered into the `.sql` files. That last
+part is the one worth checking in any similar fix: `create_all` builds from the typed metadata and never
+reads those files, so a trigger living only in the rendered schema would have been the same defect one
+level along — a constraint where a reader expects one, enforced by nothing.
+
+Fourteen columns of `model_version` are guarded and `status` deliberately is not, because it is the one
+field the lifecycle moves and the comment this replaces said so. `evidence_node` is append-only against
+both `UPDATE` and `DELETE`. Every trigger **raises**: C-3 was raised against a rule that silently discarded
+the write, and design rule E8 — *silence is never an acceptable enforcement mechanism* — is what survived
+it. `tests/test_immutability_enforcer.py` attacks each declared column individually, because declared and
+rendered is not enforced.
+
+**What this does not close.** There are still **no foreign keys**, so referential integrity remains the
+application's business and a generic `DELETE` still reaches most tables. And the trigger is **defence in
+depth rather than the control** on the chain: a mutated row can still arrive by a path it does not cover —
+a restore from a backup taken before it existed, a replica fed by something that does not carry triggers,
+a database whose role could not create one, which `_apply_enforcement` warns about and carries on from.
+`verify_chain` is still what detects that, and the evidence suite still proves it by standing the trigger
+down to make the row it then catches.
 
 The absence of foreign keys deserves its own sentence, because it silently resolves **H-4**. That finding
 was about circular and forward references making the DDL uncreatable, dispositioned as
@@ -510,9 +527,10 @@ now been used for both.
 
 ### C-3 · `model_version` immutability is enforced by a rule that silently discards writes
 
-**Open, and the shipped state is different from the one the finding described.** The Postgres
-`RULE ... DO INSTEAD NOTHING` was never built, so its silent-success defect never shipped. Neither was the
-replacement trigger. See [§4.5](#45-immutability-has-no-enforcer). The principle the finding established —
+**Closed, and the shipped state was never the one the finding described.** The Postgres
+`RULE ... DO INSTEAD NOTHING` was never built, so its silent-success defect never shipped. The replacement
+trigger was not built either, for a milestone, and now is — raising rather than discarding, in both
+dialects. See [§4.5](#45-immutability-has-no-enforcer). The principle the finding established —
 **silence is never an acceptable enforcement mechanism for an integrity control** — did survive and is
 design rule E8 in [12 §2](12-implementation-plan.md).
 
@@ -761,20 +779,19 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 
 | | Closed, with the control in the source | Moot | Open |
 |---|---|---|---|
-| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-4 disposition 2** (anchoring is built) | — | C-3 (no enforcer, [§4.5](#45-immutability-has-no-enforcer)); C-4 dispositions 3–4; C-6, four of five mitigations |
+| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built) | — | C-4 dispositions 3–4; C-6, four of five mitigations |
 | **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2; H-3 (satisfied in the law, not the mechanism); H-9 |
 | **Medium / low** | M-1, M-2, **M-6**, **M-7** (the deleter now asks the hold), **M-8**, F-1 … F-4 | M-3, M-5 | M-4 (composite warrants are not built either); M-7's tombstone and cascade |
-| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2 | — | §4.5 (no foreign keys, no triggers, in either dialect); §4.9; §4.10 |
+| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5's immutability half** (triggers in both dialects, applied not just rendered) | — | §4.5's referential half (still no foreign keys); §4.9; §4.10 |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
 
 **What is genuinely left, in the order it is worth doing.**
 
-**§4.5, immutability has no enforcer**, first. There are **zero** foreign keys and **zero** triggers in
-either dialect, so an attested `model_version` is immutable by Python convention and a generic `UPDATE`
-reaches it. This is the largest remaining gap between what the documents say and what the database
-enforces, and it is C-3's principle — *silence is never an acceptable enforcement mechanism* — still
-unowned at the storage layer.
+**§4.5's referential half**, first, and it is now the only structural one left: there are still **zero**
+foreign keys, so referential integrity is the application's business and a generic `DELETE` reaches most
+tables. The immutability half is closed — sixteen triggers in SQLite, four statements in PostgreSQL,
+applied at schema time and attacked column by column in the suite.
 
 **H-2 and H-9** next, and together: both are about the warrant plane sharing a schema and a primary with
 the control plane. Neither costs anything today, because there is one process and one database — and that

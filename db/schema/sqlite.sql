@@ -1719,3 +1719,127 @@ CREATE TABLE IF NOT EXISTS warrant_profile (
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_warrant_profile_name_version ON warrant_profile (name, version);
+
+-- --------------------------------------------------------------------------
+-- ENFORCEMENT
+--
+-- Until these existed, "versions are immutable" was a COMMENT in tables.py and
+-- nothing in either dialect stopped a generic UPDATE. Adversarial review 4.5
+-- named that: a convention written where a reader expects a constraint.
+--
+-- Every one of these RAISES. Finding C-3 was raised against a rule that
+-- silently discarded the write instead, and design rule E8 is what survived it:
+-- silence is never an acceptable enforcement mechanism for an integrity
+-- control. A caller that tries to rewrite history is told, with the column
+-- named.
+-- --------------------------------------------------------------------------
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_model_id
+BEFORE UPDATE OF model_id ON model_version
+FOR EACH ROW WHEN OLD.model_id IS NOT NEW.model_id
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.model_id is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_semver
+BEFORE UPDATE OF semver ON model_version
+FOR EACH ROW WHEN OLD.semver IS NOT NEW.semver
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.semver is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_manifest
+BEFORE UPDATE OF manifest ON model_version
+FOR EACH ROW WHEN OLD.manifest IS NOT NEW.manifest
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.manifest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_manifest_digest
+BEFORE UPDATE OF manifest_digest ON model_version
+FOR EACH ROW WHEN OLD.manifest_digest IS NOT NEW.manifest_digest
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.manifest_digest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_trainability_class
+BEFORE UPDATE OF trainability_class ON model_version
+FOR EACH ROW WHEN OLD.trainability_class IS NOT NEW.trainability_class
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.trainability_class is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_parameter_kind
+BEFORE UPDATE OF parameter_kind ON model_version
+FOR EACH ROW WHEN OLD.parameter_kind IS NOT NEW.parameter_kind
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.parameter_kind is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_fit_procedure
+BEFORE UPDATE OF fit_procedure ON model_version
+FOR EACH ROW WHEN OLD.fit_procedure IS NOT NEW.fit_procedure
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.fit_procedure is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_deterministic
+BEFORE UPDATE OF deterministic ON model_version
+FOR EACH ROW WHEN OLD.deterministic IS NOT NEW.deterministic
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.deterministic is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_input_schema
+BEFORE UPDATE OF input_schema ON model_version
+FOR EACH ROW WHEN OLD.input_schema IS NOT NEW.input_schema
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.input_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_parameter_schema
+BEFORE UPDATE OF parameter_schema ON model_version
+FOR EACH ROW WHEN OLD.parameter_schema IS NOT NEW.parameter_schema
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.parameter_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_output_schema
+BEFORE UPDATE OF output_schema ON model_version
+FOR EACH ROW WHEN OLD.output_schema IS NOT NEW.output_schema
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.output_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_artifact_digest
+BEFORE UPDATE OF artifact_digest ON model_version
+FOR EACH ROW WHEN OLD.artifact_digest IS NOT NEW.artifact_digest
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.artifact_digest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_created_at
+BEFORE UPDATE OF created_at ON model_version
+FOR EACH ROW WHEN OLD.created_at IS NOT NEW.created_at
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.created_at is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS immutable_model_version_created_by
+BEFORE UPDATE OF created_by ON model_version
+FOR EACH ROW WHEN OLD.created_by IS NOT NEW.created_by
+BEGIN
+    SELECT RAISE(ABORT, 'model_version.created_by is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version');
+END;
+
+CREATE TRIGGER IF NOT EXISTS append_only_evidence_node_update
+BEFORE UPDATE ON evidence_node
+BEGIN
+    SELECT RAISE(ABORT, 'evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not evidence. Append a correcting node instead');
+END;
+
+CREATE TRIGGER IF NOT EXISTS append_only_evidence_node_delete
+BEFORE DELETE ON evidence_node
+BEGIN
+    SELECT RAISE(ABORT, 'evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not evidence. Append a correcting node instead');
+END;

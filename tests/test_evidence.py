@@ -6,6 +6,8 @@ import json
 
 import pytest
 
+from tests.conftest import without_append_only
+
 from core.evidence import (BOOLEAN, COST, COUNTING, FRESHNESS, TRUST, WHY, Derivation)
 
 CLAIM = {"authorised": Derivation("authorised",
@@ -21,20 +23,41 @@ def tamper(db, seq: int, **columns) -> None:
     repository would let it, which is no longer true and was never the threat.
 
     The threat is somebody with the database, and this is what that looks like:
-    an UPDATE the application never issued and cannot prevent. Every test below
-    that verifies tamper *evidence* has to get there this way, or it is checking
-    the wrong door.
+    an UPDATE the application never issued. Every test below that verifies
+    tamper *evidence* has to get there this way, or it is checking the wrong
+    door.
+
+    **And it now has to drop the trigger to do it**, which is the point rather
+    than an inconvenience. `db/schema/immutable.py` makes `evidence_node`
+    append-only in the database, so this door is shut to anything connecting
+    here. It is not shut to every path a mutated row can arrive by: a restore
+    from a backup taken before the trigger existed, a replica fed by something
+    that does not carry triggers, a database where the application's role could
+    not create one — `Database._apply_enforcement` logs a warning and carries
+    on precisely so that a deployment can be in that state and know it.
+
+    So **detection is still the control and the trigger is defence in depth**,
+    and dropping it here is how these tests keep saying so. A suite that
+    deleted them because the trigger exists would be asserting that the only
+    way into the table is the one MAYA owns.
     """
     sets = ", ".join(f"{c} = :{c}" for c in columns)
     values = {c: (json.dumps(v) if isinstance(v, (dict, list)) else v)
               for c, v in columns.items()}
-    db.execute(f"UPDATE evidence_node SET {sets} WHERE seq = :seq",
-               {**values, "seq": seq})
+    with without_append_only(db):
+        db.execute(f"UPDATE evidence_node SET {sets} WHERE seq = :seq",
+                   {**values, "seq": seq})
+
+
+def remove_node(db, seq: int) -> None:
+    """Delete a node the same way, and for the same reason as `tamper`."""
+    with without_append_only(db):
+        db.execute("DELETE FROM evidence_node WHERE seq = :seq", {"seq": seq})
 
 
 def erase(db, seq: int) -> None:
     """Delete an evidence row behind the application's back. See `tamper`."""
-    db.execute("DELETE FROM evidence_node WHERE seq = :seq", {"seq": seq})
+    remove_node(db, seq)
 
 
 class TestAppendChain:
@@ -396,13 +419,21 @@ class TestTheChainRefusesToBeEdited:
         assert "correcting entry" in exc.value.remediation
         assert exc.value.code == "append_only"
 
-    def test_it_does_not_claim_to_make_the_table_immutable(self, repos, evidence):
-        """The honest limit. Anything holding the connection can still issue an
-        UPDATE — which is exactly how every tamper test in this file works — so
-        what this removes is the *accident*, not the capability. A deployment
-        wanting the guarantee enforced needs a role with INSERT and SELECT and
-        nothing else.
-        """
+    def test_the_database_now_refuses_it_too(self, repos, evidence):
+        """The limit has moved. This used to be the honest statement that
+        anything holding the connection could still issue an UPDATE; since
+        `db/schema/immutable.py` it cannot, and the repository's refusal is no
+        longer the only thing standing there."""
+        evidence.append("model_registered", "model", "m1", {"a": 1})
+        with pytest.raises(Exception, match="append-only"):
+            repos["evidence"].db.execute(
+                "UPDATE evidence_node SET trust = 0.1 WHERE seq = 1")
+
+    def test_detection_is_still_the_control(self, repos, evidence):
+        """Because the trigger is not the only way a mutated row arrives — a
+        restore, a replica, or a database whose role could not create one. A
+        suite that stopped checking detection because a trigger exists would be
+        asserting that the only door is the one MAYA owns."""
         evidence.append("model_registered", "model", "m1", {"a": 1})
         tamper(repos["evidence"].db, 1, trust=0.1)
         assert repos["evidence"].one(seq=1)["trust"] == 0.1
