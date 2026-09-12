@@ -100,7 +100,17 @@ class WarrantBuilder:
                 "environment": environment, "granted_at": now,
                 "expires_at": now + ttl,
                 "grace_seconds": grant["grace_seconds"],
-                "revocation": {"epoch": epoch, "check": "required"},
+                # `check` says what an engine is expected to do with the
+                # epoch, and for a long time it said `required` while nothing
+                # anywhere compared it. The reference engine now refuses a
+                # descriptor stamped BELOW an epoch it has already seen, which
+                # is the part of the check that works without reaching MAYA.
+                # It is `monotonic` rather than `required` because the platform
+                # does not run engines and cannot push a revocation to one: an
+                # engine that never sees a newer descriptor honours this one
+                # until it expires, and the severity-scaled TTL is what bounds
+                # that.
+                "revocation": {"epoch": epoch, "check": "monotonic"},
             },
 
             "governance": governance or {

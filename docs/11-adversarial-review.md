@@ -208,37 +208,47 @@ Until the head is anchored somewhere MAYA cannot write, the correct statement is
 **accident and casual tampering** and not a determined insider — and that sentence should appear wherever
 the chain is described.
 
-### 4.2 The revocation floor cannot fire
+### 4.2 The revocation floor — two thirds of this finding aged out, and the third was real
 
-**The attack.** MAYA revokes a warrant. My engine holds a descriptor with grace remaining and is
-partitioned from the control plane. C-1's disposition says a locally persisted revocation list refuses it
-regardless of grace state.
+**The attack, as first written.** MAYA revokes a warrant. My engine holds a descriptor with grace remaining
+and is partitioned from the control plane. C-1's disposition says a locally persisted revocation list
+refuses it regardless of grace state. There is no such list: `_revoked_locally` is an unpersisted in-memory
+`set`, `note_revocation` is called from no production code, the identifier it compares against is
+regenerated on every resolve so the branch cannot be taken, and `revocation.epoch` starts at `0`, resets on
+restart, and is compared by nothing.
 
-There is no such list. `CaptiveEngine._revoked_locally` is an unpersisted in-memory `set` of descriptor
-identifiers on one engine object; `note_revocation` is called from no production code; and, as
-[§3.2](#32-the-branch-it-guards-is-unreachable) records, the identifier it compares against is regenerated
-on every resolve, so the branch cannot be taken. The `revocation.epoch` carried in every descriptor's
-`authority` block — C-1 disposition 3 — is a per-process integer that starts at `0`, is incremented in
-`WarrantGrants.revoke`, resets on restart while the persisted `warrant.epoch` values do not, and is compared
-by nothing anywhere. The descriptor field says `"check": "required"` and no code performs a check.
+**Re-checked against the source. Two of those five claims were fixed and this section did not notice**,
+which is the same drift it exists to find and is worth recording rather than quietly correcting:
 
-**The honest answer, in two halves.** What genuinely stops a revoked warrant is the control-plane check in
-`WarrantService.resolve`, which reads `grant["revoked"]` and refuses. That is real, it is tested end to end,
-and it is why `test_revocation_stops_execution` passes. But it is a check made **by asking MAYA**, which is
-the one thing an engine in a partition cannot do — so what exists is the mechanism C-1 said was
-insufficient, and the mechanism C-1 added is inert.
+| The claim | Now |
+|---|---|
+| the compared identifier is regenerated, so the branch cannot fire | **Wrong.** `note_revocation` keys on the model URN, which survives a re-resolve, and `execute` checks the URN as well as the warrant id. The branch fires |
+| the epoch resets on restart | **Wrong.** `WarrantGrants._highest_epoch` seeds it from `MAX(epoch)` in the register |
+| the epoch is compared by nothing | **Right, and this was the live half** |
+| `_revoked_locally` is unpersisted | **Still true**, and now stated rather than claimed away |
+| `note_revocation` is called from no production code | **Still true.** MAYA has no channel to call it on |
 
-The other half is that severity-scaled TTL, disposition 2, **is** built and is the reason the residual is
-small: `DEFAULT_TTL = {1: 60, 2: 300, 3: 3600, 4: 3600}` and `DEFAULT_GRACE = {1: 0, 2: 0, 3: 900, 4: 900}`
-in `core/execution/grants.py`, applied per model tier at issue and honoured in
-`WarrantSigner.is_expired`. A Tier 1 descriptor lives sixty seconds with no grace, so for the models the
-finding was about, the floor has almost nothing to do. That is a good reason for the residual being
-tolerable and not a reason for a control that reports success while unable to fire.
+**What was built, and it is narrower than C-1 asked for.** The epoch is stamped on every descriptor and
+advances on every revocation, and *nothing read it* — a field on every warrant that nobody consults, which
+is the defect this platform names as its own worst kind. So `CaptiveEngine._refuse_stale_epoch` compares it:
+an engine shown epoch 7 refuses a descriptor stamped 5, because that descriptor was minted before at least
+one withdrawal of authority. It is a genuine **offline** refusal — the comparison needs nothing but what the
+engine has already been handed — and it catches a replay and a descriptor that waited in a queue across a
+revocation.
 
-**Disposition.** C-1 is reopened. The floor should either be built — persisted, keyed on something stable,
-refreshed on every response, with a test that executes and expects `revoked` — or removed, with the TTL
-argument stated as the whole answer. What must not stand is the present arrangement, where three documents
-describe a floor and the code cannot reach one.
+**And the claim C-1 made is withdrawn rather than met.** The descriptor said `"check": "required"` and now
+says `"check": "monotonic"`, because *required* was a claim the platform cannot back. **MAYA does not run
+engines and has no channel to push a withdrawal down one**, so an engine that never sees a newer descriptor
+will honour a revoked warrant until it expires. A persisted local list would not change that: the list
+would still only contain what somebody told the engine, and MAYA is not the somebody.
+
+**Disposition. C-1 closes as a narrowed control plus a withdrawn claim.** What bounds the residual is the
+severity-scaled TTL, and it is stated as the whole answer rather than as a footnote: `DEFAULT_TTL = {1: 60,
+2: 300, 3: 3600, 4: 3600}` with `DEFAULT_GRACE = {1: 0, 2: 0, 3: 900, 4: 900}`, so a Tier 1 descriptor
+lives sixty seconds with no grace and for the models this finding was about there is almost nothing for a
+floor to do. `tests/test_revocation_floor.py` pins both halves — what it refuses, and what it is not
+allowed to claim. What does not stand, and no longer does, is three documents describing a floor the code
+could not reach.
 
 ### 4.3 Nothing verifies a warrant without holding the key that mints one
 
@@ -727,23 +737,48 @@ them shipped with a defect of that exact shape.
 
 ---
 
-## 7. Disposition, as it stands
+## 7. Disposition, re-derived from the source
 
-| | Findings | Control in the source today | Open or moot |
+**This table was wrong, and how it was wrong is the useful part.** It is a summary of sections that were
+themselves kept current, and it drifted from them: it recorded M-6 as *not built* while [§5.3](#53-the-medium-and-low-findings)
+said **Built** and `core/estate/cost.py` had existed for a milestone; it recorded M-8 as *partial* after
+`core/validation/correlation.py` closed it at both layers; it omitted H-3 from every column; and its
+priority list opened with *build a CI pipeline* while [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build)'s
+own heading already said there was one.
+
+`tests/test_documentation_counts.py` catches a number that drifts. Nothing catches a **disposition** that
+drifts, and a review whose summary is stale is worse than one with no summary, because the summary is what
+gets read. Every row below was re-checked against the code on 2026-09-12.
+
+| | Closed, with the control in the source | Moot | Open |
 |---|---|---|---|
-| **Critical** | C-1 … C-6 | C-2, C-4 (partly), C-5 | C-1 reopened; C-3 open; C-4 dispositions 2–4 open; C-6 four of five mitigations unbuilt |
-| **High** | H-1 … H-9 | H-5, H-6, H-8 | H-2 and H-9 open; H-1, H-4, H-7 moot because the thing they were about was not built |
-| **Medium / low** | M-1 … M-8, F-1 … F-4 | M-1, M-2, F-1 … F-4 | M-4, M-6 not built; M-7, M-8 partial; M-3, M-5 moot |
-| **New** | [§4](#4-the-open-attacks) | — | Ten, of which [§4.1](#41-there-is-one-database-one-identity-and-a-generic-update-on-every-table), [§4.2](#42-the-revocation-floor-cannot-fire), [§4.4](#44-no-transaction-spans-a-governance-act) and [§4.8](#48-the-laws-are-the-acceptance-criteria-and-there-is-now-a-build) are the ones that would change what MAYA can claim |
-| **Third pass** | [§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped) | all nine | Ten hypotheses, nine reproduced, nine fixed and pinned by regression tests |
+| **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)) | — | C-3 (no enforcer, [§4.5](#45-immutability-has-no-enforcer)); C-4 dispositions 2–4; C-6, four of five mitigations |
+| **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2; H-3 (satisfied in the law, not the mechanism); H-9 |
+| **Medium / low** | M-1, M-2, **M-6**, **M-8**, F-1 … F-4 | M-3, M-5 | M-4 (composite warrants are not built either); M-7 (partly) |
+| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2 | — | §4.5 (no foreign keys, no triggers, in either dialect); §4.9; §4.10 |
+| **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
+| **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
 
-**The four to fix first**, and the argument for that order. **A build** first, because it is a day's work
-and every other assurance in this repository is currently a habit rather than a gate. **The revocation
-floor** second — build it or delete it, but not the present state, where three documents describe a control
-the code cannot reach. **A transaction around a governance act** third, because the mechanism exists,
-nothing uses it, and the failure it leaves open is the one that lets a developer approve their own version.
-**Chain anchoring** fourth, and only fourth because it depends on infrastructure somebody has to provide
-rather than on effort.
+**What is genuinely left, in the order it is worth doing.**
+
+**§4.5, immutability has no enforcer**, first. There are **zero** foreign keys and **zero** triggers in
+either dialect, so an attested `model_version` is immutable by Python convention and a generic `UPDATE`
+reaches it. This is the largest remaining gap between what the documents say and what the database
+enforces, and it is C-3's principle — *silence is never an acceptable enforcement mechanism* — still
+unowned at the storage layer.
+
+**H-2 and H-9** next, and together: both are about the warrant plane sharing a schema and a primary with
+the control plane. Neither costs anything today, because there is one process and one database — and that
+is precisely the point, since the independence they were raised to protect is what a single deployment
+forecloses.
+
+**§4.10** last and deliberately: the session secret falls back to a published constant with a loud warning
+rather than a refusal, because refusing to start would be worse on a workstation. That is a decision, not
+an omission, and the argument is in `run_maya_web.py::_session_secret`.
+
+**C-6 and M-4** are not work items in the ordinary sense: `descriptor_only` honesty and composite warrants
+are both about capabilities this platform deliberately does not have. They stay listed because a reader who
+finds them elsewhere should find them here too.
 
 ---
 

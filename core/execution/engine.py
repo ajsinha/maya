@@ -101,6 +101,14 @@ class CaptiveEngine:
         # deployments of the captive engine do not use.
         self.parameters = parameters
         self._revoked_locally: set = set()
+        # The furthest revocation epoch this engine has ever been shown.
+        #
+        # Every descriptor carries the epoch it was minted at, and the epoch is
+        # bumped by every revocation and persisted. Nothing compared it — a
+        # field stamped on every warrant and read by nobody, which is the
+        # defect this platform names as its own worst kind. See
+        # `_refuse_stale_epoch` for what comparing it does and does not buy.
+        self._seen_epoch: int = 0
 
     def register_runtime(self, version_id: str, fn: Callable[[Dict[str, Any]], Any]) -> None:
         """Bind a callable to a version, for development and for tests."""
@@ -183,6 +191,48 @@ class CaptiveEngine:
         """
         self._revoked_locally.add(subject)
 
+    def _refuse_stale_epoch(self, warrant: Dict[str, Any]) -> None:
+        """Refuse a descriptor minted before a revocation this engine has seen.
+
+        **What this buys, exactly.** The epoch advances on every revocation and
+        is stamped on every descriptor. An engine that has been handed epoch 7
+        knows somebody withdrew authority seven times; a descriptor arriving
+        stamped 5 was minted before the sixth, so presenting it now is either a
+        replay or a descriptor that has been sitting in a queue across a
+        revocation. Either way it is refused, and refused **offline** — the
+        comparison needs nothing but what the engine has already been shown.
+
+        **What it does not buy, which is the larger half.** It cannot see a
+        revocation the engine has not been told about, and *MAYA does not tell
+        it*: the platform does not run engines and has no channel to push a
+        withdrawal down one. So an engine that never sees a newer descriptor
+        will honour a revoked warrant until it expires.
+
+        The bound on that residual is the **severity-scaled TTL**, and it is
+        the honest whole answer rather than a footnote to this check: a Tier 1
+        descriptor lives sixty seconds with no grace
+        (`grants.DEFAULT_TTL`/`DEFAULT_GRACE`), so for the models the original
+        finding was about there is almost nothing for a floor to do. What
+        finding C-1 described — a locally persisted list that refuses
+        regardless of grace — is not built and is not claimed; see
+        `docs/11 §4.2`.
+        """
+        stamped = (((warrant.get("authority") or {}).get("revocation") or {})
+                   .get("epoch"))
+        if stamped is None:
+            return
+        stamped = int(stamped)
+        if stamped < self._seen_epoch:
+            raise WarrantError(
+                "revoked_epoch",
+                f"this descriptor was minted at revocation epoch {stamped} and "
+                f"this engine has already seen epoch {self._seen_epoch}, so it "
+                f"predates at least one withdrawal of authority",
+                "re-resolve the warrant. A descriptor older than a revocation "
+                "you have already been shown is either a replay or one that "
+                "waited in a queue across it")
+        self._seen_epoch = max(self._seen_epoch, stamped)
+
     def _constraints(self, warrant: Dict[str, Any]) -> Contract:
         """The operating boundary, read from where the grammar puts it."""
         boundary = (warrant.get("constraints") or {}).get("operating_boundary") or {}
@@ -220,6 +270,7 @@ class CaptiveEngine:
                 "revoked",
                 f"{sorted(revoked)[0]} is on the local revocation list",
                 "stop; grace never extends revocation ignorance")
+        self._refuse_stale_epoch(warrant)
         if self.warrants.is_expired(warrant):
             raise WarrantError("expired", "warrant has expired beyond its grace window",
                             "re-resolve the warrant")
