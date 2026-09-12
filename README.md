@@ -394,8 +394,8 @@ registered properly.
 
 | | |
 |---|---|
-| [**Help**](content/help/) | Seventeen topics in seven sections, rendered in the interface at `/help` |
-| [**Tutorials**](content/tutorials/) | Six walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — and one end to end. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
+| [**Help**](content/help/) | Twenty topics in seven sections, rendered in the interface at `/help` |
+| [**Tutorials**](content/tutorials/) | Eight walkthroughs, rendered at `/tutorials`. One per subsystem — defining a model, features, featuresets, warrants and training, the model package — one end to end, one on **governing what you cannot see**, and one on **what MAYA refuses to do**, which is the argument this whole platform rests on. Each shows the **UI, the SDK and curl** for every step, and every command in them was executed against a running instance before it was written down |
 
 ### Specifying it
 
@@ -419,9 +419,9 @@ registered properly.
 | **15** | [X and P](docs/15-featuresets-and-parameters.md) | The two letters that are not the kernel: featuresets, derived features on the provenance polynomial, and the parameter object |
 | **16** | [Five Things a Feature Is Not](docs/16-features-composed-and-shaped.md) | Not a number, not defined in one place, not mutable, not permanent, not its author's — and what happens between the store and the model |
 | **17** | [The Algebra](docs/17-feature-and-model-algebra.md) | One order for four questions; the `AsOf` operator and its saturation law; derived features on the provenance polynomial; typed composition; the documentation graph |
-| **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The eleven places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
+| **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The twelve places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
 | **19** | [Deploying MAYA](docs/19-deploying-maya.md) | The image, the two database roles, the chart's refusals, the batch — and the five things that must be true, in order |
-| — | [ADRs](docs/adr/INDEX.md) | Fourteen architecture decision records |
+| — | [ADRs](docs/adr/INDEX.md) | Fifteen architecture decision records |
 | — | [CONTRIBUTING](CONTRIBUTING.md) | The five preflight gates, the discipline tests that walk the source, and the two mistakes this repository keeps making |
 
 ---

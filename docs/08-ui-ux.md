@@ -82,7 +82,7 @@ Fifty-two routes render a page. Seven are reachable without a session; forty-fiv
 | `/` | `landing.html` | The argument, and a live count of registered models |
 | `/about` | `about.html` | What this is and what it is not |
 | `/help`, `/help/{slug}` | `help.html`, `help_topic.html` | 20 help topics, markdown on disk rendered at request time |
-| `/tutorials`, `/tutorials/{slug}` | same two templates | Six walkthroughs, the same renderer, one dictionary entry apart |
+| `/tutorials`, `/tutorials/{slug}` | same two templates | Eight walkthroughs, the same renderer, one dictionary entry apart |
 | `/login` | `login.html` | The only page that establishes a session |
 
 Help and tutorials are **files under `content/`, not templates**. They are versioned, reviewable in
