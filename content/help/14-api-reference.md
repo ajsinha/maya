@@ -4,7 +4,7 @@ slug: api-reference
 section: Reference
 order: 140
 icon: code-slash
-summary: The five request shapes the API actually uses, why a model name is a query parameter and not a path segment, every endpoint grouped by what it is for, what each HTTP status class tells you about who must act next, the refusals you are most likely to hit — and how the platform is configured.
+summary: The five request shapes the API actually uses, why a model name is a query parameter and not a path segment, the endpoints you are most likely to want grouped by what they are for — with the complete list generated at /docs — what each HTTP status class tells you about who must act next, the refusals you are most likely to hit, and how the platform is configured.
 audience: Engineers, Operators, Model owners
 ---
 
@@ -14,6 +14,15 @@ The interface is a client, not a privileged path: everything a page does is
 available here. Interactive documentation is at **[`/docs`](/docs)** — the
 generated Swagger UI, where every endpoint below can be called against this
 instance — and the OpenAPI document itself at `/api/v1/openapi.json`.
+
+**This page is curated; `/docs` is complete.** There are over four hundred paths
+under `/api/v1` and the tables below cover the ones somebody reaches for, grouped
+by what they are for and annotated with the thing a generated list cannot tell
+you — which permission, which refusal, and why the shape is what it is. A page
+that mechanically listed all of them would be a worse copy of a document the
+platform already generates from the source and locks in CI. **When you cannot
+find something here, it is in `/docs`, and its absence here is an editorial
+judgement rather than evidence it does not exist.**
 
 Swagger UI is **vendored**, beside bootstrap and jquery. FastAPI's default
 `/docs` loads it from `cdn.jsdelivr.net`, and this platform's
@@ -772,6 +781,41 @@ decision, and a test reads the OpenAPI document to keep it that way.
 | `GET` | `/notifications/history` | `principal:read` | Deliveries, failures kept |
 | `GET` | `/notifications/preview` | auth | The digest **you** would receive |
 | `POST` | `/notifications/run` | `scheduler:run` | `channel`, `dry_run`. One of the scheduler's jobs |
+
+### Campaigns, supervisory matters and intake
+
+The rounds of work a model risk function spends most of its time on, and the
+matters a supervisor raises. Explained in
+[Estate and worklist](/help/estate-and-worklist).
+
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| `GET` | `/campaigns/kinds` | `model:read` | The kinds a campaign may be, and what each is for |
+| `GET` `POST` | `/campaigns` | `model:read` / `model:attest` | The population is derived at launch and **frozen**, so completion cannot improve on its own |
+| `POST` | `/campaigns/{reference}/respond` | `model:attest` | One model's answer |
+| `POST` | `/campaigns/{reference}/reassign` | `model:attest` | Hand an item over, with a reason |
+| `POST` | `/campaigns/{reference}/close` | `model:attest` | Closing does not answer what was unanswered |
+| `GET` | `/supervisory-matters` | `finding:read` | A matter has a **scope**, not a model, and two dates — your plan's and the one you committed to |
+| `POST` | `/supervisory-matters` | `validation:open` | Raising one is a second-line act |
+| `GET` | `/supervisory-matters/kinds` | `validation:read` | MRA, MRIA, s166 and the rest |
+| `POST` | `/supervisory-matters/{reference}/close` | `validation:open` | Requires the findings under the scope to be closed first |
+| `GET` `POST` | `/intake` | `model:read` / `risk:assess` | Proposals, before they are models |
+| `POST` | `/intake/{reference}/triage` | `risk:assess` | In scope or out, with a rationale |
+| `POST` | `/intake/{reference}/register` | `model:register` | Cross from proposal to model. Refused before triage |
+
+### Waivers, legal holds and vendor assessments
+
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| `GET` `POST` | `/waivers` | `waiver:read` / `waiver:propose` | A control not met, bounded and compensated, with an expiry |
+| `POST` | `/waivers/{reference}/close` | `waiver:propose` | A waiver that lapses becomes a finding rather than disappearing |
+| `GET` `POST` | `/legal-holds` | `evidence:read` / `hold:place` | Stop things being deleted, for a stated matter. **Deleting a model asks this and is refused** |
+| `POST` | `/legal-holds/{reference}/lift` | `hold:place` | With a reason, on the record. There is deliberately no override at the deletion |
+| `GET` `POST` | `/vendor-assessments` | `validation:read` / `validation:record` | What a vendor asserted, marked as asserted |
+| `GET` | `/portfolio` | `report:read` | The register cut by one dimension, ordered by what is owed |
+| `GET` | `/portfolio/heatmap` `…/trend` `…/aggregate` | `report:read` | Shaded by what is owed rather than by count |
+| `GET` `POST` | `/break-glass` | auth | Ask for elevation; authorising and reviewing are the administrator's act |
+| `GET` `POST` | `/elicitations` | `parameter:record` | Judgement as a parameter object — a panel, and the dissent priced |
 
 ### Identity and authorisation
 

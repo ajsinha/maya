@@ -128,6 +128,67 @@ One further detail: a subsystem that is unavailable or refusing does not blank
 the list. Its items are skipped, the reason is logged, and everything else still
 appears.
 
+## Campaigns — asking the same question of everybody
+
+An attestation round, an annual inventory certification, a *confirm your model's
+limitations are still accurate* exercise. This is most of what a model risk
+function actually does, and it is usually run out of a spreadsheet, because a
+register that holds models does not obviously hold **rounds of asking about
+models**. The screen is **Campaigns and intake**.
+
+```bash
+POST /api/v1/campaigns
+{"reference": "ATT-2026-H1", "kind": "attestation",
+ "title": "Half-year attestation", "derivation": {"tier": 1}}
+```
+
+**The population is derived when the campaign launches and then frozen**, with
+the derivation kept beside it. That is the whole design, and the reason is a
+number nobody watches:
+
+> A campaign whose population is a live query silently changes size. A model
+> retired in week three turns *47 of 50* into *47 of 49*, and the completion
+> figure **goes up without anybody having done anything.** Completion is the one
+> number a campaign exists to produce.
+
+So two numbers are reported and they are not the same: how many of the population
+answered, and how many of the population still exist. A model that left the
+estate mid-round is counted as *gone*, not as *done*.
+
+Answers come back per model — `POST /api/v1/campaigns/{reference}/respond` — and
+an item can be handed to somebody else with `…/reassign`, with a reason, because
+the person who should answer is not always the person who was asked.
+
+## Supervisory matters — and the two dates that are not the same date
+
+An MRA, an MRIA, a s166 finding. These look like findings and are not, in two
+structural ways that every register storing them as findings gets wrong. The
+screen is **Supervisory matters**.
+
+**A supervisory matter is not about one model.** Every finding here hangs off a
+model, and a thematic MRA about model documentation reaches forty at once. File
+it against one of them and the other thirty-nine are invisible; file it forty
+times and the firm reports forty remediation programmes to a supervisor who
+raised one. So a matter is **its own object with a scope**, and the findings
+under it are derived from that scope. Closing them one at a time is real work;
+closing the *matter* is a separate act that requires all of it.
+
+**And it carries two dates.** Your internal remediation plan has one. The date
+you **committed to the supervisor** is the other, and conflating them is how a
+firm discovers on the day that its plan runs past its promise:
+
+```bash
+POST /api/v1/supervisory-matters
+{"reference": "MRA-2026-03", "kind": "mra", "supervisor": "PRA",
+ "scope": {"domain": "credit"}, "committed_at": 1788000000}
+```
+
+A matter whose findings are now due **after** its committed date is reported **at
+risk**, and that is the report worth reading before any completion percentage. A
+plan that misses a regulatory commitment by five months is not a near miss — the
+register says so in those words, because an earlier version of it reported the
+overrun arithmetically and it read like one.
+
 ## Bringing an existing estate in
 
 ### The problem this exists for
