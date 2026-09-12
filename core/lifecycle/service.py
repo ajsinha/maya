@@ -38,9 +38,16 @@ class LifecycleService:
     """Moves model records through their states, and refuses changes to frozen ones."""
 
     def __init__(self, registry: ModelRegistry, amendments: AmendmentService,
-                 attestations: AttestationService, evidence: EvidenceEngine):
+                 attestations: AttestationService, evidence: EvidenceEngine,
+                 holds=None):
         self.registry, self.amendments = registry, amendments
         self.attestations, self.evidence = attestations, evidence
+        # Legal holds. `LegalHolds.held` has always documented itself as "the
+        # question a deleter asks", and no deleter asked it: holds were
+        # consulted by the inference log and the retention schedule and not by
+        # the one act they exist to stop. A hold that does not reach the
+        # irreversible act is a hold in a screenshot.
+        self.holds = holds
 
     # ------------------------------------------------------------ the gate
     def may_mutate(self, model_id: str) -> Tuple[bool, str]:
@@ -180,6 +187,10 @@ class LifecycleService:
                 "from use and keeps the record")
         if not reason.strip():
             raise LifecycleError("reason_required", "deleting a model requires a reason", "")
+        # Asked BEFORE the evidence node, so a refused deletion leaves no
+        # `model_deleted` in the chain saying somebody destroyed a record they
+        # did not destroy.
+        self._refuse_under_legal_hold(model)
 
         # Appended BEFORE the rows go, so the chain records the intent even if
         # the removal fails halfway.
@@ -191,6 +202,36 @@ class LifecycleService:
         logger.warning("model %s deleted by %s: %s", model["urn"], actor, reason)
         return {"deleted": bool(removed), "urn": model["urn"], "reason": reason,
                 "evidence_retained": True}
+
+    def _refuse_under_legal_hold(self, model: Dict[str, Any]) -> None:
+        """Refuse to destroy a record somebody has placed a hold over.
+
+        A legal hold is the instruction not to destroy evidence while a matter
+        is live, and the act it exists to stop is exactly this one — the only
+        act in this platform with no workflow, no reversal and no second
+        signature. Deleting through a hold is spoliation, and it is not
+        something a register should be able to do by accident.
+
+        Held open rather than overridable: there is no `force`. A matter that
+        has ended is lifted with a reason, by somebody, on the record — which
+        is a different act from a deletion quietly ignoring it.
+        """
+        if self.holds is None:
+            return
+        covering = self.holds.applies(artifact_class="model_record",
+                                      model_id=model["id"],
+                                      legal_entity=model.get("legal_entity"))
+        if not covering:
+            return
+        matters = ", ".join(sorted(h.get("reference", "?") for h in covering))
+        raise LifecycleError(
+            "under_legal_hold",
+            f"{model['urn']} is covered by {len(covering)} active legal "
+            f"hold(s): {matters}",
+            "lift the hold first, with a reason and on the record. Destroying "
+            "a record while a matter is live is spoliation, and there is "
+            "deliberately no override here — a hold that a deletion could "
+            "step over would not be a hold")
 
     # ----------------------------------------------------------------- query
     def state(self, urn: str) -> Dict[str, Any]:
