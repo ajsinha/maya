@@ -97,7 +97,10 @@ STATUS: Dict[str, int] = {
     "no_entitlement": 403, "use_not_approved": 403, "signature_invalid": 403,
     "registry_refused": 409, "feature_refused": 409, "restricted": 423,
     "validation_refused": 409,
-    "revoked": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
+    # `revoked_epoch` sits beside `revoked` at 410: the authority this
+    # descriptor carried is gone, and the difference between the two is
+    # only how the engine found out.
+    "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
     # authorisation
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,
     "segregation_of_duties": 403, "incompatible_roles": 409,
