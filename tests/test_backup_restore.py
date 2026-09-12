@@ -210,7 +210,9 @@ class TestItDoesNotPretendToDoPostgres:
         config.write_text(
             CONFIG.format(root=tmp_path).replace(
                 f'sqlite:///{tmp_path}/data/sqlite/maya.db',
-                "postgresql://u:p@localhost:1/nothing"), encoding="utf-8")
+                # No credentials: the refusal is about the DIALECT, and a URL carrying
+                # a user and password would trip the secret scanner for nothing.
+                "postgresql://localhost:1/nothing"), encoding="utf-8")
         with pytest.raises(SystemExit) as refusal:
             backup.run(str(config), str(tmp_path / "copy"))
         message = str(refusal.value)
