@@ -2,6 +2,7 @@
 MAYA — test fixtures.
 Copyright © 2026 Ashutosh Sinha <ajsinha@gmail.com>. All rights reserved.
 """
+import contextlib
 import sys
 from pathlib import Path
 
@@ -794,3 +795,31 @@ def aggregate_shared(registry, composition, tiering):
     composition.relate(common, target, "input_to", "macro into the stack")
     composition.relate(source, target, "input_to", "the PD term")
     return AggregateRisk(registry.catalogue, composition), source, target
+
+
+@contextlib.contextmanager
+def without_append_only(db):
+    """Stand the `evidence_node` append-only triggers down, and put them back.
+
+    `db/schema/immutable.py` makes the chain append-only in the database, which
+    shuts the door every tamper test in this suite goes through. Those tests
+    still matter: the trigger is **defence in depth** and detection is the
+    control, because a mutated row can also arrive by a path the trigger does
+    not cover — a restore from a backup taken before it existed, a replica fed
+    by something that does not carry triggers, or a database whose role could
+    not create one (`Database._apply_enforcement` warns and carries on for
+    exactly that case).
+
+    Restored in a `finally`, so a failing assertion cannot leave the rest of
+    the suite running against an unprotected table and turn one red test into a
+    green one somewhere else.
+    """
+    names = [r["name"] for r in db.query(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+        "AND name LIKE 'append_only_evidence_node%'")]
+    for name in names:
+        db.execute(f"DROP TRIGGER IF EXISTS {name}")
+    try:
+        yield
+    finally:
+        db._apply_enforcement()

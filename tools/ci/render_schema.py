@@ -28,6 +28,7 @@ from sqlalchemy.schema import CreateIndex, CreateTable
 ROOT = pathlib.Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
+from db.schema.immutable import postgres_statements, sqlite_statements
 from db.schema.tables import METADATA
 
 HEADER = """\
@@ -62,9 +63,30 @@ HEADER = """\
 """
 
 DIALECTS = {
-    "sqlite.sql": (sqlite.dialect(), "SQLite schema (development default)", "DOUBLE"),
-    "postgres.sql": (postgresql.dialect(), "PostgreSQL schema", "DOUBLE PRECISION"),
+    "sqlite.sql": (sqlite.dialect(), "SQLite schema (development default)",
+                   "DOUBLE", sqlite_statements),
+    "postgres.sql": (postgresql.dialect(), "PostgreSQL schema",
+                     "DOUBLE PRECISION", postgres_statements),
 }
+
+#: What the enforcement block says about itself, above the triggers. The schema
+#: is read by people who are not going to open `db/schema/immutable.py`.
+ENFORCEMENT = """\
+-- --------------------------------------------------------------------------
+-- ENFORCEMENT
+--
+-- Until these existed, "versions are immutable" was a COMMENT in tables.py and
+-- nothing in either dialect stopped a generic UPDATE. Adversarial review 4.5
+-- named that: a convention written where a reader expects a constraint.
+--
+-- Every one of these RAISES. Finding C-3 was raised against a rule that
+-- silently discarded the write instead, and design rule E8 is what survived it:
+-- silence is never an acceptable enforcement mechanism for an integrity
+-- control. A caller that tries to rewrite history is told, with the column
+-- named.
+-- --------------------------------------------------------------------------
+
+"""
 
 
 def _tidy(ddl: str) -> str:
@@ -76,7 +98,7 @@ def _tidy(ddl: str) -> str:
                      for line in ddl.splitlines())
 
 
-def render(dialect) -> str:
+def render(dialect, enforcement=None) -> str:
     out = []
     for name in sorted(METADATA.tables):
         table = METADATA.tables[name]
@@ -87,15 +109,18 @@ def render(dialect) -> str:
                             .compile(dialect=dialect))
             out.append(_tidy(statement).strip().rstrip(";") + ";")
         out.append("")
+    if enforcement is not None:
+        out.append(ENFORCEMENT + "\n\n".join(enforcement()) + "\n")
     return "\n".join(out)
 
 
 def main() -> int:
     check = "--check" in sys.argv
     stale = []
-    for filename, (dialect, title, double) in DIALECTS.items():
+    for filename, (dialect, title, double, enforcement) in DIALECTS.items():
         path = ROOT / "db" / "schema" / filename
-        body = HEADER.format(title=title, double=double) + render(dialect)
+        body = (HEADER.format(title=title, double=double)
+                + render(dialect, enforcement))
         if check:
             if not path.is_file() or path.read_text() != body:
                 stale.append(filename)

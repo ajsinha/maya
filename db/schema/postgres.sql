@@ -1719,3 +1719,82 @@ CREATE TABLE IF NOT EXISTS warrant_profile (
 );
 CREATE INDEX IF NOT EXISTS ix_warrant_profile ON warrant_profile (retired, specificity);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_warrant_profile_name_version ON warrant_profile (name, version);
+
+-- --------------------------------------------------------------------------
+-- ENFORCEMENT
+--
+-- Until these existed, "versions are immutable" was a COMMENT in tables.py and
+-- nothing in either dialect stopped a generic UPDATE. Adversarial review 4.5
+-- named that: a convention written where a reader expects a constraint.
+--
+-- Every one of these RAISES. Finding C-3 was raised against a rule that
+-- silently discarded the write instead, and design rule E8 is what survived it:
+-- silence is never an acceptable enforcement mechanism for an integrity
+-- control. A caller that tries to rewrite history is told, with the column
+-- named.
+-- --------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION maya_immutable_model_version()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.model_id IS DISTINCT FROM OLD.model_id THEN
+        RAISE EXCEPTION 'model_version.model_id is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.semver IS DISTINCT FROM OLD.semver THEN
+        RAISE EXCEPTION 'model_version.semver is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.manifest IS DISTINCT FROM OLD.manifest THEN
+        RAISE EXCEPTION 'model_version.manifest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.manifest_digest IS DISTINCT FROM OLD.manifest_digest THEN
+        RAISE EXCEPTION 'model_version.manifest_digest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.trainability_class IS DISTINCT FROM OLD.trainability_class THEN
+        RAISE EXCEPTION 'model_version.trainability_class is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.parameter_kind IS DISTINCT FROM OLD.parameter_kind THEN
+        RAISE EXCEPTION 'model_version.parameter_kind is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.fit_procedure IS DISTINCT FROM OLD.fit_procedure THEN
+        RAISE EXCEPTION 'model_version.fit_procedure is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.deterministic IS DISTINCT FROM OLD.deterministic THEN
+        RAISE EXCEPTION 'model_version.deterministic is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.input_schema IS DISTINCT FROM OLD.input_schema THEN
+        RAISE EXCEPTION 'model_version.input_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.parameter_schema IS DISTINCT FROM OLD.parameter_schema THEN
+        RAISE EXCEPTION 'model_version.parameter_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.output_schema IS DISTINCT FROM OLD.output_schema THEN
+        RAISE EXCEPTION 'model_version.output_schema is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.artifact_digest IS DISTINCT FROM OLD.artifact_digest THEN
+        RAISE EXCEPTION 'model_version.artifact_digest is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+        RAISE EXCEPTION 'model_version.created_at is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
+        RAISE EXCEPTION 'model_version.created_by is immutable: it describes what the version IS, and changing it would leave the register describing a model nobody approved. Create a new version';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS immutable_model_version ON model_version;
+CREATE TRIGGER immutable_model_version BEFORE UPDATE ON model_version
+FOR EACH ROW EXECUTE FUNCTION maya_immutable_model_version();
+
+CREATE OR REPLACE FUNCTION maya_append_only_evidence_node()
+RETURNS trigger AS $$
+BEGIN
+    RAISE EXCEPTION 'evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not evidence. Append a correcting node instead';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS append_only_evidence_node ON evidence_node;
+CREATE TRIGGER append_only_evidence_node
+BEFORE UPDATE OR DELETE ON evidence_node
+FOR EACH ROW EXECUTE FUNCTION maya_append_only_evidence_node();
