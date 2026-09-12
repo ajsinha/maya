@@ -32,11 +32,11 @@ four; the fifth needs a person.
 
 | | What | If it is wrong |
 |---|---|---|
-| **1** | The **signing key and session secret** are not the published defaults | Anybody with a copy of this repository can forge a warrant, or a signed-in session as `admin` with no password. Both are warned about at start-up, loudly, every time |
+| **1** | The **signing key and session secret** are not the published defaults | Anybody with a copy of this repository can forge a warrant, or a signed-in session as `admin` with no password. A published **session secret on an address other machines can reach now refuses to start**, because a warning on the one instance where it matters is the weakest control shape there is; bound to `127.0.0.1` it still starts and still warns, since a workstation is not the deployment this protects. The **warrant signing key** is still a warning only |
 | **2** | The application connects as a role that **owns nothing and is not a superuser** | Every row-level policy is decorative and nothing about the configuration looks wrong |
 | **3** | The **WORM anchor store is durable** and, with several replicas, shared | An anchor written to a container filesystem disappears on restart. Worse than no anchoring, because the readiness report said the chain was anchored |
 | **4** | **Something runs the governance batch** | An instance where nothing runs it is indistinguishable from an estate with nothing outstanding. Attestation lapses, silent monitors, overdue findings and anchoring are all recorded by it, and none raises itself |
-| **5** | Somebody **reads the start-up warnings** | Every one of the above says so at boot. They scroll past once |
+| **5** | Somebody **reads the start-up warnings** | Every one of the above says so at boot. They scroll past once — which is the argument that turned the session secret from a warning into a refusal, and the argument for doing the same to anything else on this list that can name the condition under which it is dangerous |
 
 ## 3. The image
 
