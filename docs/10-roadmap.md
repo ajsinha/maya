@@ -42,7 +42,8 @@ survives.
 
 ## 2. What is genuinely left
 
-Four things, and only one of them is code this repository would contain.
+Four things, and none of them is now code this repository would contain — §2.4a
+was, and it is closed.
 
 ### 2.1 A sweep somebody actually runs
 
@@ -78,9 +79,9 @@ these are the running of them, and they belong to whoever operates the platform.
 
 Four of the NFR table's targets are now results (`tools/spikes/`, and
 [19 §8](19-deploying-maya.md)). The **50,000-model scale figures are the newest**
-and they came back split: the paged reads hold their latency budget at that size
-and the fold over the whole estate does not — `/portfolio` was 8.3 s at ten
-thousand models and did not return inside thirty minutes at fifty thousand.
+and they came back split: the paged reads hold their latency budget at that size,
+and the fold over the whole estate is **linear and far too slow to put in front
+of a person** — see §2.4a, which is now an item of its own.
 
 The rest are still targets: throughput, restore time, PostgreSQL, and anything
 about a multi-node deployment. So is the **write** path at estate size: the spike
@@ -88,8 +89,54 @@ seeds rows, which makes its read figures real and leaves registration, the
 quorum and the serialised evidence append unmeasured — 6,000 chain nodes is still
 the largest verification this repository has observed.
 
-> A number this platform has never observed is a number it should not print as
-> though it had.
+**And a correction worth keeping, because it is the failure mode this section
+exists to prevent.** The first write-up of this measurement said the fold *did
+not return inside thirty minutes* at fifty thousand models. It does: 33.4
+seconds, reproducibly. The spike that reported otherwise was competing with other
+processes on a shared machine, and the number it produced was about the machine
+rather than about the platform. A measurement taken carelessly is worse than a
+target honestly labelled, because the target does not claim to be evidence.
+
+### 2.4a The estate fold — measured, fixed, and what it cost
+
+**This was the one measured defect on this page. It is now closed**, and the
+sequence is worth keeping because the first three attempts at it were wrong.
+
+`Portfolio.by()` and `WorkList.across()` both loop `WorkList.for_model`, which
+consults **nine sources, each with at least one query**. A cut of fifty thousand
+models was most of half a million round trips:
+
+| | before | after |
+|---|---|---|
+| 20,000 models | 13.4 s | **3.0 s** |
+| 50,000 models | 33.4 s | **7.6 s** |
+| per model | 0.67 ms | **0.15 ms** |
+
+**The obvious fix was the wrong one.** A batched twin of each source is a second
+definition of *what a model owes*, and a second implementation of a governance
+judgement eventually disagrees with the first — in the direction of reporting
+less outstanding work, because that is the direction in which nobody files a
+bug. So **no source was changed.** `Database.folding()` builds one index per
+table for the duration of a fold and the sources' existing reads are served from
+it. `tests/test_estate_fold.py` pins the folded answer equal to the unfolded one,
+which is the whole licence for the optimisation.
+
+Three properties make a read cache safe enough to put under a control plane. It
+is **opt-in and scoped** — nothing is cached outside the `with`, and the caller
+names the tables, so a dashboard cannot pull a telemetry table into memory. It
+is **read-only** — a write to a folded table raises rather than invalidating
+quietly, because a fold that silently re-read half its answers would be worse
+than a slow one. And it serves **equality reads only**, indexed on the exact
+column set asked for; anything ordered, limited or unfiltered falls through to
+the database, because a read it cannot answer exactly is one it must not answer
+at all.
+
+**What is still true:** the fold is still linear, and 7.6 s is still too long to
+put in front of a person at fifty thousand models. What changed is the constant,
+by 4.4×. Closing the rest means asking narrower questions rather than faster
+ones — `_attestation` calls `lifecycle.state()`, which assembles *everything the
+interface and an examiner need* when the worklist reads three of its fields —
+and that is a design change to the sources rather than to their plumbing.
 
 ---
 

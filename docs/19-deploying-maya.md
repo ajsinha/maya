@@ -161,10 +161,17 @@ is a number somebody will quote in a different context.
 | Warrant resolution | warm p99 ≈ 12 ms against a 50 ms target | warm and cold are **close**, because there is no descriptor cache — so the cold target is the only one of the two that means anything |
 | Point-in-time join | ≈ 240,000 picks/second | extrapolates to ≈ 50 TB of process memory at the target size. **The target is not reachable in one process at any speed**, which is why the answer is a distributed assembly rather than a faster loop |
 | Sandbox escape | 4 of 6 attempts stopped; 2 declared open | it found a **defect**: `RLIMIT_CPU` is cumulative and was set to the warrant's budget flat, so a `max_seconds: 2` warrant killed the artifact before it ran — indistinguishable from a runaway model, and a *tighter* budget made it more likely |
-| The register at estate size | list p95 **148 ms** at 10,000 models and **441 ms** at 50,000, against a 500 ms target; detail **1.9 ms**, flat | the paged reads are **sublinear in practice** — a fixed per-request cost dominates below about forty thousand models — but the **fold over the whole estate is not**: `/portfolio` was 8.3 s at 10,000 and did not return inside thirty minutes at 50,000 |
+| The register at estate size | list p95 **148 ms** at 10,000 models and **441 ms** at 50,000, against a 500 ms target; detail **1.9 ms**, flat | the paged reads are **sublinear in practice** — a fixed per-request cost dominates below about forty thousand models — and the **fold over the whole estate was 33.4 s at 50,000** because it asked nine questions of every model. Now **7.6 s**, by serving those nine questions from one index per table rather than by rewriting any of them ([10 §2.4a](10-roadmap.md)) |
 
 `docs/spikes/estate.json` holds that fourth result with its conditions, including
 which reads were **not** taken and why.
+
+**A correction, kept rather than tidied away.** The first write-up of this said
+the fold *did not return inside thirty minutes*. It returns in 33 seconds. The
+spike that reported otherwise was sharing a machine with other work, and it is
+the clearest available illustration of the rule above the table: a number
+measured carelessly is worse than a target honestly labelled, because the target
+does not claim to be evidence.
 
 **Three things it says about itself, which matter more than the milliseconds.**
 The estate was **seeded as rows**, so the write path and evidence-chain

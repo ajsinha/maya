@@ -14,7 +14,8 @@ from pathlib import Path
 from contextlib import contextmanager
 import logging
 from contextvars import ContextVar
-from typing import Any, ClassVar, Dict, List, Optional, Set
+from typing import (Any, ClassVar, Dict, List, Optional, Sequence,
+                    Set)
 
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.schema import CreateTable
@@ -141,6 +142,11 @@ class Database:
     BUSY_TIMEOUT_MS = 30_000
 
     def __init__(self, url: str = "sqlite:///data/sqlite/maya.db", echo: bool = False):
+        # The estate-fold index, or None when there is no fold open. See
+        # `folding()`: it exists so that nine per-model sources can keep their
+        # exact logic while a cut of the whole register stops being half a
+        # million round trips.
+        self._fold: Optional[Dict[str, Dict[Any, Dict[Any, List[Dict[str, Any]]]]]] = None
         self.url = url
         options: Dict[str, Any] = {}
         if url.startswith("sqlite:///") and ":memory:" not in url:
@@ -731,6 +737,81 @@ class Database:
                 f"SELECT pg_advisory_xact_lock({self._ADVISORY_LOCKS[name]})")
 
     # ------------------------------------------------------------------ access
+    # ----------------------------------------------------------- folding
+    #
+    # An estate fold asks the same shape of question of every model, and the
+    # register answers it one model at a time. `WorkList.for_model` consults
+    # nine sources; `Portfolio.by` calls it per model; so a cut of fifty
+    # thousand models is most of half a million round trips and takes 33
+    # seconds. The shape is wrong rather than any one query being slow — the
+    # per-model cost is flat at about 0.67 ms across sizes.
+    #
+    # The obvious fix is a batched twin of each source, and it is the wrong
+    # one: a second implementation of *what a model owes* is a second
+    # governance judgement, and the two eventually disagree. So the sources are
+    # left exactly as they are and their READS are served from an index built
+    # once per fold.
+    #
+    # Three rules make this safe enough to put under a control plane.
+    #
+    #   * It is **opt-in and scoped**. Nothing is cached outside the `with`,
+    #     and the caller names the tables, so a fold cannot accidentally pull
+    #     a telemetry table into memory.
+    #   * It is **read-only**. A write inside a fold raises rather than
+    #     invalidating quietly, because a fold that silently re-read half its
+    #     answers would be worse than a slow one.
+    #   * It serves only **single-column equality** reads. Anything else falls
+    #     through to the database, so a query this cannot answer correctly is
+    #     one it does not answer at all.
+    @contextmanager
+    def folding(self, tables: Sequence[str]):
+        """Serve single-column equality reads on these tables from memory."""
+        if self._fold is not None:
+            # Nesting would make the inner scope's exit drop the outer scope's
+            # index, and the bug that produces is a read that is correct on
+            # Tuesday. One fold at a time.
+            yield
+            return
+        self._fold = {t: {} for t in tables}
+        try:
+            yield
+        finally:
+            self._fold = None
+
+    def folded(self, table: str, columns: Sequence[str],
+               values: Sequence[Any]) -> Optional[List[Dict[str, Any]]]:
+        """Rows matching `table.columns = values`, or None outside a fold.
+
+        Indexed on the exact column SET the caller asked for. A single index
+        per table would not do: the sources filter on one column and on two —
+        `model_id` alone, and `model_id` with a status — and answering a
+        two-column question from a one-column index would mean filtering in
+        Python, which is the same work this exists to remove.
+
+        Every key is an equality, so the index answers exactly what the SQL
+        would have. Anything else never reaches here; see
+        `Repository._from_fold`.
+        """
+        if self._fold is None or table not in self._fold:
+            return None
+        key = tuple(columns)
+        index = self._fold[table].get(key)
+        if index is None:
+            index = {}
+            for row in self.query(f"SELECT * FROM {table}"):
+                index.setdefault(tuple(row.get(c) for c in key), []).append(row)
+            self._fold[table][key] = index
+        return list(index.get(tuple(values), ()))
+
+    def _refuse_write_while_folding(self, table: str) -> None:
+        if self._fold is not None and table in self._fold:
+            raise RuntimeError(
+                f"'{table}' was written during an estate fold. A fold serves "
+                f"reads from an index built once; writing to a folded table "
+                f"would make the rest of the fold answer from before the "
+                f"write, and a governance read that is half-stale is worse "
+                f"than a slow one")
+
     def execute(self, sql: str, params: Optional[Dict[str, Any]] = None) -> int:
         conn = _CONNECTION.get()
         if conn is not None:

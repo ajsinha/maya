@@ -3202,6 +3202,41 @@ the evidence chain — *who added the test everybody has been passing* is a ques
 **never silently replaces a name**: doing so would change what a recorded result *means* without changing its
 name, and every measurement taken under the old one would still say it was taken under this.
 
+### 20.1 Folding the estate, and why no source was batched
+
+`WorkList.for_model` consults nine sources and `Portfolio.by` calls it for every model, so a cut of fifty
+thousand models was most of half a million round trips and took **33.4 seconds**. The per-model cost was
+flat across sizes, which is the useful part of the measurement: **the shape was wrong rather than any one
+query being slow**, and no single source dominated — `_attestation` was 30% of it, `_upstream_moved` 15%,
+and six others about 5% each.
+
+The obvious fix is a batched variant of each source. It is the wrong one, for the reason this codebase
+gives everywhere else: **a second implementation of a governance judgement eventually disagrees with the
+first**, and it disagrees in the direction of reporting less outstanding work, because that is the
+direction in which nobody files a bug. *What a model owes* has one definition and it stays in
+`for_model`.
+
+So nothing about the sources changed. `Database.folding(tables)` builds one index per table for the
+duration of a fold, and the sources' existing reads are served from it — 33.4 s to **7.6 s**, 0.67 ms per
+model to 0.15 ms.
+
+A read cache under a control plane needs an argument, and this one has three parts.
+
+| Property | Why it is not optional |
+|---|---|
+| **Opt-in and scoped** | Nothing is cached outside the `with`, and the caller names the tables — so a dashboard cannot pull a telemetry table into memory by accident |
+| **Read-only** | A write to a folded table **raises**. A fold that silently re-read half its answers would be worse than a slow one, and invalidating quietly is how a read becomes correct only on Tuesday |
+| **Equality only** | Indexed on the exact column set asked for. Anything ordered, limited or unfiltered falls through to the database: a read this cannot answer *exactly* is one it must not answer at all |
+
+`tests/test_estate_fold.py` asserts the folded answer equals the unfolded one, per model and across an
+estate. That test is the entire licence for the optimisation — without it this is a cache in front of a
+control, which is a thing to be afraid of.
+
+**And it is still linear.** 7.6 s at fifty thousand models is a smaller constant, not a different shape.
+Closing the rest means asking *narrower* questions rather than faster ones: `_attestation` calls
+`lifecycle.state()`, which assembles everything an examiner needs while the worklist reads three fields of
+it. That is a change to what the sources ask, and it is not made here.
+
 ## 21. Concurrency and idempotency
 
 | Hazard | What actually holds |
