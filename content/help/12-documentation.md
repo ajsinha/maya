@@ -404,6 +404,48 @@ rejected, which kinds are present, and how many are not machine-readable. Two
 `accepted_documentation` (documents on file but none accepted by a second
 person — filing is not review).
 
+## Finding one
+
+A register that can serve a document and cannot find one is a filing cabinet with
+a URL. The screen is **Documents → Search**, and the endpoint is
+`GET /api/v1/document-search?q=`.
+
+```bash
+GET /api/v1/document-search?q=prepayment%20assumption
+```
+
+It needs `document:read`, and returns the attachments whose text contains your
+terms — with the **line the term is on** rather than only the document's name — because the question a
+supervisor asks is *show me where you said that*, and a list of filenames does
+not answer it.
+
+**Retrieval is exact, and that is a decision rather than a shortfall.** The
+requirement asks for full-text *and semantic* search. Semantic search means an
+embedding model: something that runs, that has a version, that drifts, and that
+would have to be registered under the very rules this platform enforces. A MAYA
+that shipped an unregistered model in order to search its own registry would be
+ridiculous. So it matches terms, and says so.
+
+**Two things it will not do.**
+
+It **searches only what you can already see.** Results are filtered by the same
+scope and permission that decide whether you could open the document directly, so
+search is not a way around a scope — a search that returned a title you may not
+read would be a leak wearing a result's clothes.
+
+And it **only finds what was indexed**. `attachment.text_indexed` is set when a
+document is uploaded in a format the platform can read; a scanned PDF, an image
+or an unsupported format is on file and not searchable. That is why the answer
+carries a **coverage** figure:
+
+```bash
+GET /api/v1/document-search/coverage
+```
+
+> Read that before you read a result count. *Nothing matched* and *nothing
+> matched among the sixty per cent we could read* are different sentences, and
+> only one of them means you can stop looking.
+
 ## Export packs
 
 A compiled document answers a question. An **export pack** answers the person: a
