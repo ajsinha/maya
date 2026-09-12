@@ -320,8 +320,15 @@ the write, and design rule E8 — *silence is never an acceptable enforcement me
 it. `tests/test_immutability_enforcer.py` attacks each declared column individually, because declared and
 rendered is not enforced.
 
-**What this does not close.** There are still **no foreign keys**, so referential integrity remains the
-application's business and a generic `DELETE` still reaches most tables. And the trigger is **defence in
+**The referential half is now a decision rather than a gap** — [ADR-015](adr/ADR-015-no-foreign-keys.md).
+There are no foreign keys and there will not be: `core/references/index.py` refuses a deletion that
+anything still refers to and *names what refers to it*, where a constraint would say `FOREIGN KEY
+constraint failed` and leave somebody guessing which of twenty tables objected; and with
+`CREATE TABLE IF NOT EXISTS` and no migrations, a constraint added later would reach a fresh install and
+never a deployed one, which is worse than none. What it costs is stated in the ADR rather than here: orphan
+rows are possible by any path that does not go through the index, and nothing in the database will say so.
+
+**And the trigger is defence in
 depth rather than the control** on the chain: a mutated row can still arrive by a path it does not cover —
 a restore from a backup taken before it existed, a replica fed by something that does not carry triggers,
 a database whose role could not create one, which `_apply_enforcement` warns about and carries on from.
@@ -460,10 +467,19 @@ the count is not one `tests/test_documentation_counts.py` derives. Fifty-one is 
 enumerates the four values that ship in the repository and `_session_secret` logs a warning naming exactly
 this attack. Refusing to start was considered and rejected because it would make a workstation unusable.
 
-That is a defensible trade and it is the weakest control shape in the platform: a warning in a log that
-nobody reads on the one instance where it matters. It belongs in this list because *"we decided to accept
+That was a defensible trade and it was the weakest control shape in the platform: a warning in a log that
+nobody reads on the one instance where it matters. It belonged in this list because *"we decided to accept
 it"* and *"nobody has looked at it since"* are indistinguishable from the outside, and the second is how a
 platform ends up in production on a public key.
+
+**Closed by taking the warning's own condition seriously.** The warning already named it — *before this
+instance is reachable by anybody else* — so that is the refusal:
+`_refuse_published_secret_on_a_reachable_address` stops the process before the app is built when a
+published secret meets a bind address another machine can reach. Bound to loopback, a published secret
+still starts and still warns, so the trade that rejected refusing outright survives intact: a developer on
+`127.0.0.1` is not the deployment this protects. Neither half alone is the finding — a published secret on
+a workstation is a workstation, and a real secret on a public interface is a deployment — and
+`tests/test_published_secret.py` pins both.
 
 ---
 
@@ -782,29 +798,34 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 | **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built) | — | C-4 dispositions 3–4; C-6, four of five mitigations |
 | **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2; H-3 (satisfied in the law, not the mechanism); H-9 |
 | **Medium / low** | M-1, M-2, **M-6**, **M-7** (the deleter now asks the hold), **M-8**, F-1 … F-4 | M-3, M-5 | M-4 (composite warrants are not built either); M-7's tombstone and cascade |
-| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5's immutability half** (triggers in both dialects, applied not just rendered) | — | §4.5's referential half (still no foreign keys); §4.9; §4.10 |
+| **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start) | — | **§4.9 accepted**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md) and answered by ADR-011, which is accepted and not built |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
 
 **What is genuinely left, in the order it is worth doing.**
 
-**§4.5's referential half**, first, and it is now the only structural one left: there are still **zero**
-foreign keys, so referential integrity is the application's business and a generic `DELETE` reaches most
-tables. The immutability half is closed — sixteen triggers in SQLite, four statements in PostgreSQL,
-applied at schema time and attacked column by column in the suite.
+**Nothing structural is left open.** §4.5 is closed in both halves: immutability is enforced by sixteen
+triggers in SQLite and four statements in PostgreSQL, applied at schema time and attacked column by column
+in the suite; and the referential half is a recorded decision rather than a gap
+([ADR-015](adr/ADR-015-no-foreign-keys.md)) — the reference index is the control, it gives a better refusal
+than a constraint would, and a constraint added under `CREATE TABLE IF NOT EXISTS` with no migrations would
+reach only new databases.
 
-**H-2 and H-9** next, and together: both are about the warrant plane sharing a schema and a primary with
-the control plane. Neither costs anything today, because there is one process and one database — and that
-is precisely the point, since the independence they were raised to protect is what a single deployment
-forecloses.
-
-**§4.10** last and deliberately: the session secret falls back to a published constant with a loud warning
-rather than a refusal, because refusing to start would be worse on a workstation. That is a decision, not
-an omission, and the argument is in `run_maya_web.py::_session_secret`.
+**H-2, H-9 and §4.9 are one finding in three costumes, and none of them is a defect to fix here.** All
+three are about a boundary that a single-process, single-database deployment has not drawn: the warrant
+plane reads the control-plane schema, there is one primary, and the interface reads in-process rather than
+through its own API. Every one of them costs **nothing today** and forecloses something later, and the
+thing they foreclose is *deployment independence* — which is a topology decision
+([19](19-deploying-maya.md)), not a code change. They stay open rather than being marked accepted, because
+the day the platform is deployed as more than one process they all become real at once, and a reader
+planning that deployment needs to find them.
 
 **C-6 and M-4** are not work items in the ordinary sense: `descriptor_only` honesty and composite warrants
 are both about capabilities this platform deliberately does not have. They stay listed because a reader who
 finds them elsewhere should find them here too.
+
+**Nothing else is open.** Every remaining row in the table above is closed, moot, or a recorded decision
+with the cost of closing it written down.
 
 ---
 

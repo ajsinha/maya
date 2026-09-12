@@ -25,6 +25,7 @@ and this index previously omitted 011 altogether while showing 008 as accepted.
 | [012](ADR-012-per-audience-warrant-keys.md) | Per-audience warrant keys instead of asymmetric signing | accepted — **supersedes** the asymmetric-signing item that led the roadmap |
 | [013](ADR-013-cursors-and-offsets.md) | Offsets for people, cursors for queues | accepted |
 | [014](ADR-014-attested-not-observed.md) | Attested, not observed — the rule under five capabilities | accepted |
+| [015](ADR-015-no-foreign-keys.md) | No foreign keys — the reference index is the control, and what that costs | accepted |
 
 ---
 
