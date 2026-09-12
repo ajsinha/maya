@@ -370,3 +370,63 @@ class TestThePaperAgreesWithTheTable:
             for phrase in ("five that do not", "Five do not", "five do not run",
                            "lists it among the six"):
                 assert phrase not in body, f"{path.name}: '{phrase}'"
+
+
+# --------------------------------------------------------------------- review
+#
+# A count that drifts is caught above. A DISPOSITION that drifts was caught by
+# nobody, and it drifted: `docs/11 §7` recorded M-6 as "not built" while §5.3
+# of the same document said **Built** and `core/estate/cost.py` had existed for
+# a milestone. M-8 was "partial" after correlation closed it at both layers.
+# H-3 was in no column at all.
+#
+# A review whose summary contradicts its own detail is worse than one with no
+# summary, because the summary is what gets read.
+REVIEW = ROOT / "docs" / "11-adversarial-review.md"
+
+#: A detail row opening with one of these is a finding the document considers
+#: answered. Deliberately short: "Partly built" and "Satisfied in the law, not
+#: in the mechanism" are NOT here, because they belong in neither column
+#: without a human deciding which.
+ANSWERED = ("**Closed", "**Built", "**Mostly closed", "**Answered")
+
+
+def _review_sections():
+    """Each finding id, and the verdict its own detail row opens with."""
+    text = REVIEW.read_text(encoding="utf-8")
+    out = {}
+    for match in re.finditer(r"^(?:### |\| )\*{0,2}([CHMF]-\d+)\*{0,2}"
+                             r"[^\n|]*(?:\||\n)(.*?)(?=\n)", text, re.M):
+        out.setdefault(match.group(1), match.group(2).strip())
+    return out
+
+
+def test_the_reviews_summary_agrees_with_its_own_detail():
+    """No finding may be answered in its section and open in the table."""
+    text = REVIEW.read_text(encoding="utf-8")
+    summary = text[text.index("## 7. Disposition"):
+                   text.index("## 8. What this review method")]
+    # The last column of that table is the open one.
+    open_cells = " ".join(row.rsplit("|", 2)[-2]
+                          for row in summary.splitlines()
+                          if row.startswith("|") and row.count("|") >= 4)
+    wrong = []
+    for finding, verdict in _review_sections().items():
+        if not verdict.startswith(ANSWERED):
+            continue
+        if re.search(rf"\b{re.escape(finding)}\b", open_cells):
+            wrong.append(f"{finding} reads '{verdict[:40]}…' in its own "
+                         f"section and is listed as open in §7")
+    assert not wrong, (
+        "the review's summary contradicts the sections it summarises:\n    "
+        + "\n    ".join(wrong))
+
+
+def test_every_source_file_the_review_names_exists():
+    """A review citing a module that has been deleted or renamed is a review
+    whose evidence cannot be checked — and checking it is the whole point."""
+    text = REVIEW.read_text(encoding="utf-8")
+    named = set(re.findall(r"`((?:core|db|routes|tools|tests)/[\w/]+\.py)`",
+                           text))
+    missing = sorted(p for p in named if not (ROOT / p).exists())
+    assert not missing, f"the review names files that do not exist: {missing}"
