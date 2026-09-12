@@ -3202,6 +3202,43 @@ the evidence chain — *who added the test everybody has been passing* is a ques
 **never silently replaces a name**: doing so would change what a recorded result *means* without changing its
 name, and every measurement taken under the old one would still say it was taken under this.
 
+### 20.0 What the database refuses, and why it took a trigger to mean it
+
+`db/schema/tables.py` carried the sentence **"Versions are immutable. There is no UPDATE path other than
+status"**, written where a reader expects a constraint. It described the callers accurately and was
+enforced by nothing: `Repository.set()` is generic, `VersionRepository` overrode nothing, and there were
+**zero** triggers and **zero** foreign keys in either dialect across ninety-one tables. Adversarial review
+[§4.5](11-adversarial-review.md) gave the attack in one line — *I call `versions.set({"manifest_digest":
+…})`. Nothing stops me.*
+
+`db/schema/immutable.py` declares two shapes and `tools/ci/render_schema.py` emits both dialects from them.
+**Immutable columns**: fourteen on `model_version`, `status` deliberately excluded because it is the one
+field the lifecycle moves. **Append-only tables**: `evidence_node`, against `UPDATE` and `DELETE` alike.
+
+Three decisions are the content of this.
+
+**Every trigger raises.** Finding C-3 was raised against a Postgres `RULE ... DO INSTEAD NOTHING` — an
+update that appeared to succeed and silently changed nothing. The defect never shipped; the principle did,
+and it is design rule E8: *silence is never an acceptable enforcement mechanism for an integrity control.*
+The refusal names the column and says what to do instead, because a trigger that says "constraint
+violated" sends somebody to read the schema.
+
+**They are applied, not only rendered.** `Database.apply_schema` builds from the typed metadata with
+`create_all` and **never reads the `.sql` files**, so a trigger living only in the rendered schema would
+have reproduced the original defect one level along. `_apply_enforcement` executes them at schema time, and
+warns rather than failing when the connecting role cannot create a trigger — a deployment can be in that
+state, and needs to know it rather than discover it the day somebody rewrites a version.
+
+**And it is defence in depth on the chain, not the control.** `verify_chain` still detects a mutated
+evidence node, and still has to, because a mutated row can arrive by a path no trigger covers: a restore
+from a backup taken before it existed, a replica fed by something that does not carry triggers, a database
+whose role could not create one. The evidence suite proves detection by standing the trigger down to make
+the row it then catches — a suite that deleted those tests because a trigger exists would be asserting that
+the only door into the table is the one MAYA owns.
+
+What this does **not** close is the referential half: there are still no foreign keys, so integrity between
+tables is the application's business and a generic `DELETE` still reaches most of them.
+
 ### 20.1 Folding the estate, and why no source was batched
 
 `WorkList.for_model` consults nine sources and `Portfolio.by` calls it for every model, so a cut of fifty
@@ -3443,8 +3480,8 @@ where that was argued, and it was right. `.github/workflows/ci.yml` now runs sev
 suite in four shards, a combined coverage floor, and PostgreSQL.
 
 Two of them are worth naming for how they are drawn rather than what they run. The type check gates on
-the 332 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
-always passes — the defect this codebase is named for — and `--strict` across 393 modules in one
+the 333 modules that pass and carries 61 in a backlog file, because `mypy || true` is a step that
+always passes — the defect this codebase is named for — and `--strict` across 394 modules in one
 release produces a blanket ignore, which is the same step wearing a hat. And the linter's rule set is
 **chosen**: the default reports three thousand findings, nearly all of them that the codebase writes
 `Dict[str, Any]` rather than `dict[str, Any]`, which is a house style applied consistently across four

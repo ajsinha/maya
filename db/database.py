@@ -227,10 +227,48 @@ class Database:
         """
         METADATA.create_all(self.engine, checkfirst=True)
         added = self._create_missing_indexes()
+        self._apply_enforcement()
         logger.info("schema applied from db/schema/tables.py — %d tables%s (%s)",
                     len(METADATA.tables),
                     f", {added} index(es) added" if added else "", self.dialect)
         self.check_drift()
+
+    def _apply_enforcement(self) -> int:
+        """The triggers that make immutability a constraint rather than a comment.
+
+        Applied HERE and not only rendered into the `.sql` files, because
+        `create_all` builds from the typed metadata and never reads those
+        files — so a trigger that existed only in the rendered schema would be
+        exactly the defect it was written to close: a constraint where a reader
+        expects one, enforced by nothing. `db/schema/immutable.py` explains
+        what they guard.
+
+        Idempotent by construction — `IF NOT EXISTS` on SQLite, `CREATE OR
+        REPLACE` plus `DROP TRIGGER IF EXISTS` on PostgreSQL — so applying to a
+        database that already has them is a no-op, like everything else here.
+        """
+        from db.schema.immutable import (postgres_statements,
+                                         sqlite_statements)
+        statements = (postgres_statements() if self.dialect == "postgresql"
+                      else sqlite_statements())
+        applied = 0
+        for statement in statements:
+            try:
+                with self.engine.begin() as conn:
+                    conn.execute(text(statement))
+                applied += 1
+            except Exception as exc:            # pragma: no cover - defensive
+                # Reported rather than swallowed. A deployment whose database
+                # user cannot create a trigger has the convention and not the
+                # constraint, and it needs to know that rather than discover it
+                # the day somebody rewrites a version.
+                logger.warning(
+                    "could not apply an integrity trigger, so that protection "
+                    "is a convention on this database rather than a "
+                    "constraint: %s", exc)
+        logger.info("%d integrity trigger(s) applied (%s)", applied,
+                    self.dialect)
+        return applied
 
     def _create_missing_indexes(self) -> int:
         """Create declared indexes that an EXISTING table does not have.
