@@ -232,8 +232,11 @@ the same term (**L-16**).
 they were minted under, so an engine can tell a stale credential from a current
 one.
 
-**Revocation floor** — the rule that a revoked warrant is refused regardless of
-grace state.
+**Revocation floor** — an engine refuses a descriptor stamped with a revocation
+epoch older than one it has already seen. Offline, and narrower than it sounds:
+MAYA does not run engines and cannot push a withdrawal to one, so an engine that
+never sees a newer descriptor honours a revoked warrant until it expires. The
+severity-scaled TTL is what bounds that. See [Warrants](/help/warrants).
 
 **Risk appetite** — a declared threshold over a metric the platform derives, so
 utilisation is arithmetic and a breach is a fact. Versioned, never edited, and a

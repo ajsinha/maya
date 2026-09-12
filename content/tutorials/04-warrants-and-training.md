@@ -254,7 +254,7 @@ abridged only where a block repeats what you already sent:
   "authority": {"principal": "svc/model-lab", "declared_use": "model_development",
                 "environment": "lab", "granted_at": 1788643831.988,
                 "expires_at": 1788644131.988, "grace_seconds": 0,
-                "revocation": {"epoch": 0, "check": "required"}},
+                "revocation": {"epoch": 0, "check": "monotonic"}},
 
   "governance": {"tier": 2, "model_status": "draft", "version_status": "approved"},
 
@@ -564,7 +564,7 @@ whatever ran the model, against the boundary the warrant carried.
 ```json
 "authority": {"principal": "svc/origination", "declared_use": "origination_decision",
               "environment": "prod", "expires_at": 1788644132.2,
-              "grace_seconds": 0, "revocation": {"epoch": 0, "check": "required"}}
+              "grace_seconds": 0, "revocation": {"epoch": 0, "check": "monotonic"}}
 ```
 
 Withdraw everything with one call. It is the kill switch and it is the only
