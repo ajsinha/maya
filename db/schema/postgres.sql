@@ -174,6 +174,19 @@ CREATE TABLE IF NOT EXISTS approval_condition (
 CREATE INDEX IF NOT EXISTS ix_approval_condition_model ON approval_condition (model_id, state);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_approval_condition_reference ON approval_condition (reference);
 
+CREATE TABLE IF NOT EXISTS artifact_provenance (
+    id TEXT NOT NULL,
+    artifact_digest TEXT NOT NULL,
+    state TEXT NOT NULL,
+    predicate TEXT DEFAULT '' NOT NULL,
+    builder TEXT,
+    why TEXT DEFAULT '' NOT NULL,
+    recorded_by TEXT NOT NULL,
+    recorded_at DOUBLE PRECISION NOT NULL,
+    PRIMARY KEY (id)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_artifact_provenance ON artifact_provenance (artifact_digest);
+
 CREATE TABLE IF NOT EXISTS attachment (
     id TEXT NOT NULL,
     model_id TEXT NOT NULL,

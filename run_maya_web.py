@@ -198,6 +198,7 @@ from db import (ServingAttestationRepository,
                 InferenceRepository,
                 CampaignItemRepository, CampaignRepository,
                 DocumentCommentRepository,
+                ArtifactProvenanceRepository,
                 AuthorityBandRepository, AuthorityDelegationRepository,
                 RecertificationItemRepository, RecertificationRepository,
                 DecommissionRepository, EstateCostRepository,
@@ -996,7 +997,17 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     provenance = ArtifactProvenance(
         trusted=cfg.get("artifacts.trusted_builders", []) or [],
         evidence=evidence,
-        require_verified=cfg.get_bool("artifacts.require_provenance", False))
+        require_verified=cfg.get_bool("artifacts.require_provenance", False),
+        # Where the verdict is kept. Without it the resolution check could only
+        # ever be handed `absent`, which is why it had no caller for a
+        # milestone: turning the flag on would have refused the estate.
+        repo=ArtifactProvenanceRepository(db))
+    # Resolution asks it, and only when the firm has asked to be asked. The
+    # method existed and nothing called it, so `require_provenance` bought a
+    # configuration entry and a truthful-looking posture endpoint. Attached
+    # here rather than at construction because the warrant service is built
+    # first and reordering either would move half this file.
+    warrants.provenance = provenance
 
     # A permission a supervisor gave, with what it covers and when it lapses.
     # Recorded BESIDE the tier and never folded into it.

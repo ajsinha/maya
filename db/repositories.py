@@ -661,6 +661,10 @@ class EstateCostRepository(Repository):
     TABLE, ORDER = "estate_cost", "period_start"
 
 
+class ArtifactProvenanceRepository(Repository):
+    TABLE, ORDER = "artifact_provenance", "recorded_at"
+
+
 class AuthorityBandRepository(Repository):
     TABLE, ORDER = "authority_band", "published_at"
     JSON = ("stages",)

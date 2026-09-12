@@ -774,7 +774,7 @@ them shipped with a defect of that exact shape.
 
 ---
 
-## 6b. Two more controls that exist and nobody consults
+## 6b. Two more controls that existed and nobody consulted
 
 Three times in the third pass a control turned out to be built, wired, documented
 and **never called**: the feature sensitivity facts nothing evaluated, the
@@ -810,12 +810,36 @@ it looks like one*. It has **no callers and no tests**, and nothing else guards
 the case: `ephemeral` is read when destroying a feature or a featureset, and
 never when a durable featureset or feature contract pins one.
 
-### Not fixed here, deliberately
+### Both are now closed, and one needed more than wiring
 
-Both wire into hot paths — one into warrant resolution, the other into the
-featureset fill and contract bind. Neither is a change to make as the last act of
-a long session, and both are recorded rather than half-done. The sweep that found
-them is worth re-running after any wave that adds a control.
+**§6b.2** was wiring, and it went where `_refuse_leakage` already sits — on the
+bindings **as asked for**, before anything is resolved. The precedent is in the
+same method and the argument is the same: *"that feature is ephemeral"* is a
+better message than *"no view supplies that"*, and a caller should not have to
+materialise a view to be told they may not pin it. An **ephemeral** featureset
+may still pin an ephemeral feature; what is refused is durable depending on
+temporary, which is the direction the harm runs in.
+
+**§6b.1 needed a table**, which is why it had stayed unwired rather than being
+wrong. Provenance was verified, written to the evidence chain and **stored
+nowhere**, so the only value `check_at_resolution` could ever have been handed
+was `absent` — turning `require_verified` on would have refused the entire
+estate on the day it shipped. `artifact_provenance` now holds the current
+verdict per digest, keyed on the **digest** rather than on a version because
+provenance is a fact about bytes: the same artifact under two versions has one
+provenance, and two rows could disagree. `absent` is deliberately never stored —
+it is what the read returns when nobody attested, and a digest nobody made a
+statement about is a different fact from one whose statement failed.
+
+The flag is checked **before** the lookup, so an instance that has not asked for
+this pays nothing on the resolution path, which is on the serving path of
+everything and has an NFR written in milliseconds.
+
+**And the sweep is now a test.** `tests/test_uncalled_controls.py` fails on a
+gate-shaped method in `core/` that nothing in the product calls, with an
+`ALLOWED` set carrying a reason per entry rather than a suppression list. Five
+instances of this in one session is a pattern, and the sixth should be found by
+a suite rather than by somebody noticing.
 
 ---
 
@@ -846,7 +870,7 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 | **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start) | — | **§4.9 accepted**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md) and answered by ADR-011, which is accepted and not built |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
-| **The sweep** ([§6b](#6b-two-more-controls-that-exist-and-nobody-consults)) | — | three false positives | **§6b.1** provenance at resolution; **§6b.2** ephemeral pins |
+| **The sweep** ([§6b](#6b-two-more-controls-that-exist-and-nobody-consults)) | both — and the sweep itself is now `tests/test_uncalled_controls.py` | three false positives | — |
 
 **What is genuinely left, in the order it is worth doing.**
 
