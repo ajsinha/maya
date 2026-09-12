@@ -167,11 +167,12 @@ is a number somebody will quote in a different context.
 which reads were **not** taken and why.
 
 **A correction, kept rather than tidied away.** The first write-up of this said
-the fold *did not return inside thirty minutes*. It returns in 33 seconds. The
-spike that reported otherwise was sharing a machine with other work, and it is
-the clearest available illustration of the rule above the table: a number
-measured carelessly is worse than a target honestly labelled, because the target
-does not claim to be evidence.
+the fold *did not return inside thirty minutes*. It returned in **33.4 seconds**,
+and it now returns in **7.6** — the figure in the table above. The spike that
+reported otherwise was sharing a machine with other work, and the number it
+produced was about the machine. That is the clearest available illustration of
+the rule under this table: a number measured carelessly is worse than a target
+honestly labelled, because the target does not claim to be evidence.
 
 **Three things it says about itself, which matter more than the milliseconds.**
 The estate was **seeded as rows**, so the write path and evidence-chain

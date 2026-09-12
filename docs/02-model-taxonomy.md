@@ -322,7 +322,7 @@ discipline and were removed rather than left standing as prose nobody had
 executed. Their links stayed here for two milestones, pointing at files that had
 been deleted.
 
-What exists is six walkthroughs, each run end to end:
+What exists is eight walkthroughs, each run end to end:
 
 | Tutorial | What it works through |
 |---|---|

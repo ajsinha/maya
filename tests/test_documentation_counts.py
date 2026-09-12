@@ -29,7 +29,13 @@ import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
+# `_as_number` returns None for anything absent here and the caller SKIPS it,
+# so a missing entry is a wrong count that passes silently. That happened:
+# "a hundred and seventeen mutating endpoints" matched the pattern, parsed to
+# None, and was never compared. Spelled-out hundreds go here as they appear.
 WORDS = {21: "twenty-one", 114: "a hundred and fourteen",
+         117: "a hundred and seventeen", 150: "a hundred and fifty",
+         203: "two hundred and three", 232: "two hundred and thirty-two",
          1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six",
          7: "seven", 8: "eight", 9: "nine", 10: "ten", 11: "eleven",
          12: "twelve", 13: "thirteen", 14: "fourteen", 15: "fifteen",
@@ -86,6 +92,12 @@ def _truth():
                      if d.is_dir() and re.match(r"^\d\d_", d.name))
     return {
         "case studies": len(studies),
+        "tutorials": len(list((ROOT / "content" / "tutorials").glob("*.md"))),
+        # The twelve edges, counted from the sections that state them rather
+        # than from a list — `docs/18 §3.1` … `§3.12`.
+        "edges": len(re.findall(
+            r"^#{2,3} 3\.\d+ ", (ROOT / "docs" / "18-the-registers-edges.md")
+            .read_text(encoding="utf-8"), re.M)),
         "mutating endpoints": mutating,
         "executable laws": sum(1 for state in law_rows
                                if "Executable" in state or "Enforcing" in state),
@@ -162,7 +174,17 @@ CLAIMS = {
     "tests": [r"\*\*over ([\d,]+) passing\*\*",
               r"\*\*[Oo]ver ([\d,]+) tests\*\*",
               r"more than ([\d,]+) tests"],
-    "help topics": [r"(\d+) help topics"],
+    "help topics": [r"(\d+) help topics", r"(\w+) topics in seven sections"],
+    # Each of these was wrong somewhere when a documentation audit went looking,
+    # and every one of them is a number the code already knows. `ADRs` was the
+    # sharpest: the truth was computed in `_truth()` and consumed by no pattern
+    # at all, so the guard held a correct number and compared it to nothing.
+    "ADRs": [r"(\w+) architecture decision records"],
+    "tutorials": [r"(\w+) walkthroughs"],
+    "edges": [r"[Tt]he (\w+) places where the record is not MAYA's own",
+              r"[Tt]he (\w+) places the record is not MAYA's own",
+              r"[Tt]here are (\w+) such places",
+              r"the same move, (\w+) times"],
     # Spelled out in every document that mentions them, so the words are
     # matched rather than digits. `_as_number` already reads both.
     "case studies": [r"\*\*chapter 26: the (\w+) case studies\*\*",
@@ -233,7 +255,11 @@ CLAIMS = {
     # total — a check that cries wolf is a check that gets deleted.
     "foundational laws": [r"of the ([\w-]+) foundational laws"],
     "mutating endpoints": [r"(\d+|a hundred and \w+) mutating endpoints"],
-    "scheduler jobs": [r"(\w+) idempotent jobs", r"[Tt]he (\w+) jobs",
+    # `[Tt]he (\w+) jobs` is broad, and joining lines made it broader: it began
+    # matching "lists the seven CI jobs" in `docs/12`, which is a different
+    # kind of job entirely. The document now says "CI gates" and this stays
+    # narrow enough to mean one thing.
+    "scheduler jobs": [r"(\w+) idempotent jobs", r"[Tt]he (\w+) scheduled jobs",
                        r"(\w+) scheduler jobs"],
     "lifecycle states": [r"(\w+)-state record machine",
                          r"(\w+) lifecycle states"],
@@ -300,13 +326,18 @@ def test_every_stated_count_matches_the_code(subject):
         if not path.exists():
             continue
         text = path.read_text(encoding="utf-8")
-        # Line by line, which is a real blind spot: a claim wrapped across two
-        # lines — "a hundred and four\nmutating endpoints" — is invisible here,
-        # and three of them survived a count change that way. Left line-based
-        # because matching across a join would need the whole file normalised,
-        # and a check that reports positions nobody can find is worse than one
-        # with a stated gap. Grep for the bare number when a count changes.
-        for line_number, line in enumerate(text.splitlines(), 1):
+        # Line by line AND across a two-line join.
+        #
+        # Line-based alone was a stated blind spot here for several milestones,
+        # and it was not theoretical: a documentation audit found three wrong
+        # "mutating endpoints" counts hiding in exactly that gap, where the
+        # number ended one line and the noun began the next. The stated reason
+        # for leaving it was that a joined match reports a position nobody can
+        # find — so each line is checked joined to its SUCCESSOR, and reported
+        # against the line the number is on, which is the line somebody edits.
+        lines = text.splitlines()
+        joined = [f"{a} {b}" for a, b in zip(lines, lines[1:] + [""])]
+        for line_number, line in enumerate(joined, 1):
             for pattern in CLAIMS[subject]:
                 # Case-insensitive. `docs/14 §17` opened with "A hundred and
                 # four mutating endpoints" while §17.2 of the same file said a

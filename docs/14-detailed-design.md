@@ -1977,7 +1977,7 @@ findings. No `warrant_projection` read model, so the warrant path reads the same
 everything else — which costs nothing today, with one process, and forecloses exactly the independence
 finding **H-2** was protecting. And the local revocation floor is present in `CaptiveEngine` and
 **unreachable**; the `revocation.epoch` on every descriptor is a per-process counter that nothing compares.
-Both are [11 §4.2](11-adversarial-review.md#42-the-revocation-floor-cannot-fire).
+Both are [11 §4.2](11-adversarial-review.md#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real).
 
 ### 14.4 The captive engine, the runtimes and the sandbox
 
@@ -2839,7 +2839,7 @@ dashboard that goes blank when one model is malformed is a dashboard nobody trus
 
 One FastAPI application, 232 route registrations across thirty modules in `routes/`. Two hundred and three sit
 under `/api/v1`; the other twenty-nine are three health endpoints, five authentication endpoints and
-twenty-one further pages — twenty-two page routes in all, since `GET /login` is both. A hundred and fourteen
+twenty-one further pages — twenty-two page routes in all, since `GET /login` is both. two hundred and thirty-seven
 mutating endpoints — `POST`, `PUT`, `PATCH`, `DELETE` — and the rest are reads.
 
 ### 17.1 Conventions, and which of them exist
@@ -2877,7 +2877,7 @@ state-changing method whose authority came from the cookie. Requiring one from a
 would protect nothing, since the browser never sends that header unprompted, while breaking every service
 client, which is how a control ends up switched off in configuration.
 
-Three implementation decisions carry weight. It is enforced in **middleware**, because a hundred and fourteen
+Three implementation decisions carry weight. It is enforced in **middleware**, because two hundred and thirty-seven
 mutating endpoints is a hundred and fourteen chances to forget. Exemptions are **exact paths rather than
 prefixes**, so the exempt set cannot grow as routes are added beneath it. And the ordering is load-bearing:
 the guard registers *before* the session middleware, which places it *inside* it, since Starlette wraps
@@ -3207,7 +3207,7 @@ name, and every measurement taken under the old one would still say it was taken
 `db/schema/tables.py` carried the sentence **"Versions are immutable. There is no UPDATE path other than
 status"**, written where a reader expects a constraint. It described the callers accurately and was
 enforced by nothing: `Repository.set()` is generic, `VersionRepository` overrode nothing, and there were
-**zero** triggers and **zero** foreign keys in either dialect across ninety-one tables. Adversarial review
+**zero** triggers and **zero** foreign keys in either dialect across ninety tables. Adversarial review
 [§4.5](11-adversarial-review.md) gave the attack in one line — *I call `versions.set({"manifest_digest":
 …})`. Nothing stops me.*
 
@@ -3290,8 +3290,8 @@ one process those are cheap to add and currently absent.
 
 ### 21.1 Idempotency keys and entity tags
 
-`core/concurrency/`, both halves as middleware for the reason the CSRF guard is: there are over a hundred
-and fifty mutating endpoints, and a control that many places have to remember is one that will be missing
+`core/concurrency/`, both halves as middleware for the reason the CSRF guard is: there are two hundred
+and thirty-seven mutating endpoints, and a control that many places have to remember is one that will be missing
 from the next one.
 
 **Idempotency.** A client whose connection dropped mid-POST does not know whether the act happened. Its

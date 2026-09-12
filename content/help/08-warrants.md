@@ -567,11 +567,27 @@ configured. Without it, a fleet issued warrants at deploy time expires in lockst
 and stampedes the resolver at the worst possible moment — synchronised expiry was
 adversarial finding **H-1**.
 
-**The revocation floor** is the rule grace never overrides: a warrant on the
-local revocation list is refused regardless of grace state. Grace extends how
-long an *authorisation* stays current when the platform is unreachable; it never
-extends how long a consumer may stay ignorant of a withdrawal it has already been
-told about. This was finding **C-1**.
+**The revocation floor** is narrower than finding **C-1** asked for, and the
+difference matters to anybody relying on it.
+
+Every descriptor is stamped with a **revocation epoch**, which advances each time
+authority is withdrawn. An engine that has been shown epoch 7 refuses a
+descriptor stamped 5, because that descriptor was minted before at least one
+withdrawal. That refusal is **offline** — it needs nothing but what the engine
+has already been handed — and it catches a replay, or a descriptor that waited in
+a queue across a revocation.
+
+**What it does not do, and MAYA does not claim to.** It cannot see a revocation
+the engine has not been told about, and *MAYA does not tell it*: the platform
+does not run engines and has no channel to push a withdrawal down one. So an
+engine that never sees a newer descriptor will honour a revoked warrant **until
+it expires**. C-1 described a locally persisted revocation list that refused
+regardless of grace; that is not built and is not claimed, and the descriptor
+says `"check": "monotonic"` rather than `"required"` for exactly that reason.
+
+**What bounds the residual is the TTL**, and it is the whole answer rather than a
+footnote. A Tier 1 descriptor lives sixty seconds with no grace at all, so for
+the models this was raised about there is very little for a floor to do.
 
 The signing secret comes from `warrants.signing_key`. The `key_id` in the
 signature block is *derived* one way from that secret rather than configured, so
@@ -589,13 +605,16 @@ POST /api/v1/warrants/revoke
 The kill switch: every grant on the model is withdrawn and the revocation epoch
 is bumped, so warrants already in flight can be recognised as stale by any engine
 that checks. Warrants carry the epoch they were minted under, and the section
-that carries it says the check is **required**.
+that carries it says the check is **monotonic**.
 
 ## What an engine must check, before it touches the artifact
 
 1. **Verify the signature.** An unsigned or tampered warrant is not a warrant.
-2. **Check the local revocation list** — before expiry, because of the revocation
-   floor: a revoked warrant is refused regardless of grace state.
+2. **Compare the revocation epoch** against the highest you have seen, before
+   checking expiry. A descriptor stamped below it predates a withdrawal you
+   already know about, so refuse it whatever its grace says. Keeping a local
+   list of revocations you have been told about directly is worth doing on top —
+   MAYA cannot send you one.
 3. **Check expiry, including grace.** Past `expires_at + grace_seconds`, refuse.
 4. **Check the operating boundary.** Inputs outside the contract's assumptions
    mean the guarantees are void. Refuse rather than produce a number nobody
@@ -640,7 +659,7 @@ execution:
 
 ### What it implements
 
-**Five runtime implementations, answering for six of the grammar's eighteen
+**Five runtime implementations, answering for six of the grammar's nineteen
 runtimes**, and it is precise about which:
 
 | Runtime value | What it does |

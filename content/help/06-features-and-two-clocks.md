@@ -385,8 +385,8 @@ Binding to a version that does not exist is refused: `'sb_financials' has no
 version 3`.
 
 Law **L-17** — contract–serving agreement — is the rule that what serving *must*
-read equals what it *did* read. **It does not run.** It is one of the six
-foundational laws named as not executable, because checking it needs an online
+read equals what it *did* read. **It does not run.** It is one of the three
+laws named as not executable, because checking it needs an online
 store to compare against. Half of it exists: `serving_namespaces` computes what
 serving must read, and nothing yet observes what it did.
 

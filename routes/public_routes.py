@@ -55,7 +55,7 @@ class PublicRoutes(Routes):
         }
 
         # The OTHER area, so each index points at its sibling. The bar carries
-        # Help and not Tutorials, which would otherwise leave six walkthroughs
+        # Help and not Tutorials, which would otherwise leave eight walkthroughs
         # reachable only by typing the URL — the same way eight screens were
         # unreachable until somebody went looking for them.
         SIBLING = {"help": "tutorials", "tutorials": "help"}
