@@ -25,7 +25,9 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, replace
-from typing import Any, Callable, Dict, List, Optional, Sequence
+from contextlib import contextmanager
+from typing import (Any, Callable, Dict, List, Optional, Sequence,
+                    Tuple)
 
 from core.log import get_logger
 
@@ -72,6 +74,39 @@ ORDER = {"overdue": 0, "due": 1, "open": 2}
 
 # Worst first, so the summarised debt item can name the most material gap.
 _MATERIALITY = ("Critical", "High", "Medium", "Low", "Observation")
+
+
+#: The tables an estate fold reads from, and nothing else.
+#:
+#: Named explicitly rather than derived, for two reasons. A fold loads each of
+#: these ONCE and holds it, so a table that does not belong here — telemetry,
+#: measurements, the evidence chain — would be pulled into memory by a
+#: dashboard. And the list is the honest statement of what `for_model`
+#: actually consults: nine sources, these tables.
+FOLDED: Tuple[str, ...] = (
+    # `model` earns its place: `lifecycle.state` begins with
+    # `registry.require(urn)`, so a cut of the estate looked every model up by
+    # urn one at a time having just listed them all.
+    "model", "model_version", "model_edge", "risk_assessment",
+    "attestation", "attestation_signature", "amendment",
+    "finding", "finding_action", "monitor", "overlay", "document",
+    "compliance_debt", "version_approval",
+)
+
+
+class _NoFold:
+    """What a worklist with no database underneath folds with: nothing.
+
+    The worklist is constructed from services rather than from a `Database`,
+    and in a unit test several of them are absent. A fold that required one
+    would make this module untestable in exactly the configuration its own
+    `_safely` exists to tolerate.
+    """
+
+    @staticmethod
+    @contextmanager
+    def folding(_tables):
+        yield
 
 
 class WorkList:
@@ -329,11 +364,34 @@ class WorkList:
     # -------------------------------------------------------------- the estate
     def across(self, models: Sequence[Dict[str, Any]],
                now: Optional[float] = None) -> List[Item]:
+        """Every model's work, folded.
+
+        The loop is unchanged and every source still answers per model — what
+        changes is where their reads come from. `Database.folding` builds one
+        index per table for the whole estate, so nine questions per model stop
+        being nine round trips per model.
+
+        **Not a batched reimplementation**, deliberately: a second definition of
+        what a model owes is a second governance judgement, and the two would
+        eventually disagree in the direction of reporting less outstanding
+        work. `tests/test_estate_fold.py` pins the two answers equal.
+        """
         moment = now if now is not None else time.time()
         items: List[Item] = []
-        for model in models:
-            items.extend(self.for_model(model, moment))
+        with self._folding():
+            for model in models:
+                items.extend(self.for_model(model, moment))
         return sorted(items, key=lambda i: (ORDER[i.urgency], i.due_at or 0, i.urn))
+
+    def _folding(self):
+        """The database this worklist's sources read through, if it has one."""
+        for service in (self.findings, self.monitoring, self.overlays,
+                        self.lifecycle, self.registry):
+            db = getattr(getattr(service, "repo", None), "db", None) \
+                or getattr(service, "db", None)
+            if db is not None and hasattr(db, "folding"):
+                return db.folding(FOLDED)
+        return _NoFold.folding(FOLDED)
 
     def mine(self, principal: Dict[str, Any], authz,
              models: Sequence[Dict[str, Any]],

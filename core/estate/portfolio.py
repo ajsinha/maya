@@ -86,19 +86,23 @@ class Portfolio:
         moment = now if now is not None else time.time()
         rows = list(models if models is not None else self.registry.list())
         buckets: Dict[str, Dict[str, Any]] = {}
-        for model in rows:
-            key = self._value(model, dimension)
-            bucket = buckets.setdefault(key, {
-                "value": key, "models": 0, "owed": 0, "urns": [],
-                "exposure": 0.0, "exposure_known": 0})
-            bucket["models"] += 1
-            bucket["urns"].append(model.get("urn"))
-            owed = self._owed(model, moment)
-            bucket["owed"] += owed
-            exposure = self._exposure(model)
-            if exposure is not None:
-                bucket["exposure"] += exposure
-                bucket["exposure_known"] += 1
+        # One index per table for the whole cut rather than nine round trips
+        # per model. `_owed` and `_exposure` are unchanged — what changes is
+        # where their reads come from. See `core/estate/worklist.py::FOLDED`.
+        with self._folding():
+            for model in rows:
+                key = self._value(model, dimension)
+                bucket = buckets.setdefault(key, {
+                    "value": key, "models": 0, "owed": 0, "urns": [],
+                    "exposure": 0.0, "exposure_known": 0})
+                bucket["models"] += 1
+                bucket["urns"].append(model.get("urn"))
+                owed = self._owed(model, moment)
+                bucket["owed"] += owed
+                exposure = self._exposure(model)
+                if exposure is not None:
+                    bucket["exposure"] += exposure
+                    bucket["exposure_known"] += 1
 
         cells = sorted(buckets.values(), key=lambda b: (-b["owed"], b["value"]))
         return {
@@ -107,6 +111,19 @@ class Portfolio:
             "owed": sum(c["owed"] for c in cells),
             "detail": self._cut_detail(dimension, cells, rows),
         }
+
+    def _folding(self):
+        """The database the cut's reads go through, if there is one.
+
+        Taken from the risk repository because that is the collaborator the
+        portfolio always has when it has any; a `Portfolio` built without one
+        folds with nothing and still works, which is how the unit tests use it.
+        """
+        from core.estate.worklist import FOLDED, _NoFold
+        db = getattr(self.risk, "db", None)
+        if db is not None and hasattr(db, "folding"):
+            return db.folding(FOLDED)
+        return _NoFold.folding(FOLDED)
 
     def heatmap(self, rows: str = "domain", columns: str = "tier",
                 now: Optional[float] = None) -> Dict[str, Any]:
