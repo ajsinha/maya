@@ -774,6 +774,51 @@ them shipped with a defect of that exact shape.
 
 ---
 
+## 6b. Two more controls that exist and nobody consults
+
+Three times in the third pass a control turned out to be built, wired, documented
+and **never called**: the feature sensitivity facts nothing evaluated, the
+recertification reviewer nothing read, and a legal hold the deleter never asked
+about. That is a pattern rather than three accidents, so it was worth searching
+for mechanically rather than waiting to trip over the fourth.
+
+Sweeping `core/` for gate-shaped methods — `refuse_*`, `require_*`, `check_*`,
+`may_*`, `applies`, `held` — and counting call sites in `core/`, `routes/` and
+the wiring turned up seven candidates. Three are false positives (passed as a
+callable, or a convenience wrapper around a predicate that *is* called). **Two
+are real.**
+
+### 6b.1 `ArtifactProvenance.check_at_resolution` — a configurable control with no call site
+
+`core/artifacts/provenance.py` offers a refusal for a firm that requires verified
+artifact provenance, correctly defaulted **off** so that turning it on is a
+decision. `ArtifactProvenance` is constructed in `run_maya_web.py`, the posture
+publishes `required_at_resolution`, and **nothing anywhere calls the method**. So
+a firm that sets `require_verified` gets a configuration flag, a truthful-looking
+posture endpoint, and no refusal.
+
+That is worse than the control being absent, for the reason this document keeps
+returning to: an absent control is visibly absent, and a *configured* one reads
+as enforced.
+
+### 6b.2 `Lifecycle.refuse_if_ephemeral` — nothing governed may depend on something that will be destroyed
+
+`core/features/lifecycle.py` states the rule in its own docstring and raises a
+refusal whose wording is exactly right — *a pin to something that will be
+destroyed resolves today and dangles tomorrow, which is worse than no pin because
+it looks like one*. It has **no callers and no tests**, and nothing else guards
+the case: `ephemeral` is read when destroying a feature or a featureset, and
+never when a durable featureset or feature contract pins one.
+
+### Not fixed here, deliberately
+
+Both wire into hot paths — one into warrant resolution, the other into the
+featureset fill and contract bind. Neither is a change to make as the last act of
+a long session, and both are recorded rather than half-done. The sweep that found
+them is worth re-running after any wave that adds a control.
+
+---
+
 ## 7. Disposition, re-derived from the source
 
 **This table was wrong, and how it was wrong is the useful part.** It is a summary of sections that were
@@ -801,6 +846,7 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 | **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start) | — | **§4.9 accepted**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md) and answered by ADR-011, which is accepted and not built |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
+| **The sweep** ([§6b](#6b-two-more-controls-that-exist-and-nobody-consults)) | — | three false positives | **§6b.1** provenance at resolution; **§6b.2** ephemeral pins |
 
 **What is genuinely left, in the order it is worth doing.**
 
