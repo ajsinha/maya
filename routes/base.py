@@ -100,6 +100,10 @@ STATUS: Dict[str, int] = {
     # `revoked_epoch` sits beside `revoked` at 410: the authority this
     # descriptor carried is gone, and the difference between the two is
     # only how the engine found out.
+    # A legal hold is a refusal to destroy, not an authorisation problem:
+    # 423 Locked, the same status the platform already uses for a record
+    # held open by something other than who is asking.
+    "under_legal_hold": 423,
     "revoked": 410, "revoked_epoch": 410, "expired": 410, "blocked": 423, "boundary_violation": 422, "no_runtime": 501,
     # authorisation
     "unauthenticated": 401, "forbidden": 403, "out_of_scope": 403,

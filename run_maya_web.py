@@ -1025,6 +1025,11 @@ def build_context(cfg: PropertiesConfigurator) -> Dict[str, Any]:
     # overrides the platform's own deletion, which is why the inference log
     # asks it from inside its own expiry rather than beside it.
     legal_holds = LegalHolds(LegalHoldRepository(db), evidence, registry)
+    # Deleting a model is the act a legal hold exists to stop, and the deleter
+    # was not asking. Attached here rather than at construction because the
+    # holds register is built after the lifecycle service, and moving either
+    # would reorder half this file.
+    lifecycle.holds = legal_holds
     retention = RetentionSchedule(worm=getattr(evidence, "anchors", None),
                                   holds=legal_holds)
 
