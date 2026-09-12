@@ -1528,6 +1528,42 @@ PUBLISHED_SESSION_SECRETS = frozenset({
     "maya-development-secret", "maya-development-secret-change-me", "", "changeme"})
 
 
+#: Addresses that reach only this machine. A published signing secret on one of
+#: these is a workstation; on anything else it is an open door.
+LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost", ""})
+
+
+def _refuse_published_secret_on_a_reachable_address(cfg) -> None:
+    """Refuse to start where a published secret is reachable from elsewhere.
+
+    Adversarial review `§4.10` accepted the warning below as a defensible trade
+    and then said the thing that makes it worth revisiting: **"we decided to
+    accept it" and "nobody has looked at it since" are indistinguishable from
+    the outside**, and the second is how a platform ends up in production on a
+    public key. A warning in a log nobody reads is the weakest control shape
+    here.
+
+    What the warning already names is the condition — *before this instance is
+    reachable by anybody else*. So that becomes the refusal, and it costs a
+    workstation nothing: bound to loopback, a published secret still starts and
+    still warns. Bound to anything that another machine can reach, it does not
+    start at all.
+    """
+    if cfg.get("auth.session_secret", "maya-development-secret") \
+            not in PUBLISHED_SESSION_SECRETS:
+        return
+    host = str(cfg.get("server.host", "0.0.0.0") or "").strip()
+    if host in LOOPBACK:
+        return
+    raise SystemExit(
+        f"refusing to start: the session cookie would be signed with a "
+        f"PUBLISHED secret on {host}, which other machines can reach. Anyone "
+        f"with a copy of this repository could forge a signed-in session as "
+        f"any user, including admin, with no password.\n\n"
+        f"Set auth.session_secret (or MAYA_SESSION_SECRET), or bind to "
+        f"127.0.0.1 if this is a workstation.")
+
+
 def _session_secret(cfg) -> str:
     """The cookie-signing secret, and a loud complaint if it is a published one.
 
@@ -2166,6 +2202,9 @@ def main() -> None:
         return
 
     logger.info("starting from %s", path)
+    # Before the app is built, so the refusal is the first thing that happens
+    # rather than something logged after a port is already open.
+    _refuse_published_secret_on_a_reachable_address(cfg)
     uvicorn.run(create_app(cfg), host=cfg.get("server.host", "0.0.0.0"),
                 port=cfg.get_int("server.port", 5006))
 
