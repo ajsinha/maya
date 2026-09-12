@@ -972,3 +972,32 @@ RECERTIFICATION_ITEM = Table(
           unique=True),
     Index("ix_recertification_item_principal", "principal"),
 )
+
+
+# The state of an artifact's provenance, per content digest.
+#
+# `ArtifactProvenance` verified statements and appended them to the evidence
+# chain, and stored nothing — so `check_at_resolution` had no state to be given
+# and, correspondingly, no caller. A firm that set `require_verified` got a
+# configuration flag, a posture endpoint reporting it, and no refusal anywhere:
+# a control that reads as enforced and is not.
+#
+# Keyed on the digest rather than on a model version because provenance is a
+# fact about BYTES. The same artifact under two versions has one provenance,
+# and recording it twice would allow the two to disagree.
+ARTIFACT_PROVENANCE = Table(
+    "artifact_provenance", METADATA,
+    Column("id", Text, primary_key=True),
+    Column("artifact_digest", Text, nullable=False),
+    # verified | unverified. `absent` is never stored — it is what the READ
+    # returns when there is no row, and the distinction is the point: a digest
+    # nobody attested and a digest whose attestation failed are different
+    # facts, and only one of them is somebody having tried.
+    Column("state", Text, nullable=False),
+    Column("predicate", Text, nullable=False, server_default=text("''")),
+    Column("builder", Text),
+    Column("why", Text, nullable=False, server_default=text("''")),
+    Column("recorded_by", Text, nullable=False),
+    Column("recorded_at", Double, nullable=False),
+    Index("uq_artifact_provenance", "artifact_digest", unique=True),
+)

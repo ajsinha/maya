@@ -3207,7 +3207,7 @@ name, and every measurement taken under the old one would still say it was taken
 `db/schema/tables.py` carried the sentence **"Versions are immutable. There is no UPDATE path other than
 status"**, written where a reader expects a constraint. It described the callers accurately and was
 enforced by nothing: `Repository.set()` is generic, `VersionRepository` overrode nothing, and there were
-**zero** triggers and **zero** foreign keys in either dialect across ninety tables. Adversarial review
+**zero** triggers and **zero** foreign keys in either dialect across ninety-one tables. Adversarial review
 [§4.5](11-adversarial-review.md) gave the attack in one line — *I call `versions.set({"manifest_digest":
 …})`. Nothing stops me.*
 

@@ -428,6 +428,11 @@ class FeaturesetRegistry:
         # happens to be materialised, and "you cannot train on the answer" is a
         # better message than "no view supplies that".
         self._refuse_leakage(featureset, bindings, label)
+        # Checked on what was ASKED FOR too, and for the same reason as the
+        # line above: "that feature is ephemeral" is a better message than "no
+        # view supplies that", and a caller should not have to materialise a
+        # view to be told they may not pin it.
+        self._refuse_ephemeral_pins(featureset, bindings)
 
         resolved = {slot: self._resolve(slot, slots[slot], bindings[slot])
                     for slot in slots}
@@ -449,6 +454,38 @@ class FeaturesetRegistry:
                                  actor=actor)
         logger.info("published %s@v%d over %d slots", name, number, len(resolved))
         return self.versions.one(id=row["id"])
+
+    def _refuse_ephemeral_pins(self, featureset: Dict[str, Any],
+                               bindings: Dict[str, Any]) -> None:
+        """A durable featureset may not pin a feature that will be destroyed.
+
+        `Lifecycle.refuse_if_ephemeral` has stated this rule in its own
+        docstring since it was written and had **no caller and no test** —
+        found by sweeping for gate-shaped methods nothing calls, which is the
+        fifth control this platform turned out to own and never consult.
+        Nothing else covered it: `ephemeral` was read when *destroying* a
+        feature and never when a durable thing pinned one.
+
+        The pin is what makes it matter. A featureset version resolves to exact
+        Delta versions so that the same version always yields the same bytes —
+        and a pin to something with an expiry resolves today and dangles
+        tomorrow, which is worse than no pin because it looks like one.
+
+        **An ephemeral featureset may pin an ephemeral feature**, and that is
+        not an oversight: a scratch set built on scratch data is the case the
+        ephemeral flag exists for. What is refused is durable depending on
+        temporary, which is the direction the harm runs in.
+        """
+        if featureset.get("ephemeral"):
+            return
+        for slot, binding in sorted(bindings.items()):
+            name = binding if isinstance(binding, str) else binding.get("feature")
+            feature = self.catalogue.get(name) if name else None
+            if feature is None:
+                continue
+            self.lifecycle.refuse_if_ephemeral(
+                feature, f"fill slot '{slot}' of the durable featureset "
+                         f"'{featureset['name']}'")
 
     def _next_version(self, featureset_id: str) -> int:
         latest = self.versions.latest(featureset_id)
