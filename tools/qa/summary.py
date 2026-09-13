@@ -53,7 +53,14 @@ def executed() -> Dict[str, str]:
         except ValueError:
             continue
         for row in payload.get("results", []):
-            out[row["id"]] = row["verdict"]
+            verdict = row["verdict"]
+            # NEEDS-CASE is not a verdict about the platform — it is the
+            # replay saying it could not construct the situation the case
+            # describes. It must never displace a result from a method that
+            # could.
+            if verdict == "NEEDS-CASE" and row["id"] in out:
+                continue
+            out[row["id"]] = verdict
     return out
 
 
@@ -67,22 +74,26 @@ def main() -> int:
                      sum(1 for v in done.values() if v == "PASS"),
                      sum(1 for v in done.values() if v == "FAIL"),
                      sum(1 for v in done.values() if v == "BLOCKED"),
-                     sum(1 for v in done.values() if v == "UNPROVEN")))
+                     sum(1 for v in done.values() if v == "UNPROVEN"),
+                     sum(1 for v in done.values() if v == "NEEDS-CASE")))
     width = max(len(r[0]) for r in rows)
     print(f"{'section'.ljust(width)}  {'cases':>6} {'run':>6} {'pass':>6} "
-          f"{'fail':>5} {'block':>6} {'unprv':>6}")
-    for title, total, run, ok, bad, blocked, unproven in rows:
+          f"{'fail':>5} {'block':>6} {'unprv':>6} {'needs':>6}")
+    for title, total, run, ok, bad, blocked, unproven, needs in rows:
         print(f"{title.ljust(width)}  {total:>6} {run:>6} {ok:>6} {bad:>5} "
-              f"{blocked:>6} {unproven:>6}")
+              f"{blocked:>6} {unproven:>6} {needs:>6}")
     total, run = len(known), len({c for c in ran if c in known})
     ok = sum(1 for c, v in ran.items() if c in known and v == "PASS")
     bad = sum(1 for c, v in ran.items() if c in known and v == "FAIL")
     blocked = sum(1 for c, v in ran.items() if c in known and v == "BLOCKED")
     unproven = sum(1 for c, v in ran.items() if c in known and v == "UNPROVEN")
+    needs = sum(1 for c, v in ran.items() if c in known and v == "NEEDS-CASE")
     print(f"{'TOTAL'.ljust(width)}  {total:>6} {run:>6} {ok:>6} {bad:>5} "
-          f"{blocked:>6} {unproven:>6}")
-    print(f"\n{run} of {total} published cases executed "
-          f"({100.0 * run / total:.0f}%), {total - run} not yet run")
+          f"{blocked:>6} {unproven:>6} {needs:>6}")
+    settled = run - needs
+    print(f"\n{settled} of {total} published cases have a settled verdict "
+          f"({100.0 * settled / total:.0f}%); {needs} were reached by the "
+          f"replay and need a hand-written case; {total - run} not yet run")
     # The sweep is reported SEPARATELY and never added to the coverage
     # figure. It asks a different question — is this property true
     # everywhere — over ids nobody published, and folding it in would let a
