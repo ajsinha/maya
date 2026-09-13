@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-3305",
+   "title": "The estate view separates a poor score from a thin one",
+   "verdict": "PASS",
+   "evidence": "the estate view reports ['by_band', 'capped', 'count', 'detail', 'models', 'thin_coverage']"
+  }
+ ]
+}

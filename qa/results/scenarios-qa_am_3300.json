@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-3300",
+   "title": "The weights are data, and they sum to one",
+   "verdict": "PASS",
+   "evidence": "6 components, weights sum to 1, each asking something"
+  }
+ ]
+}

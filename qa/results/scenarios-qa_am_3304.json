@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-3304",
+   "title": "The verdict wins over the arithmetic",
+   "verdict": "PASS",
+   "evidence": "band, arithmetic_band and caps are all reported"
+  }
+ ]
+}
