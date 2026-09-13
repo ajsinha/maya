@@ -3,7 +3,7 @@
   "NEEDS-CASE": 185,
   "PASS": 31
  },
- "seconds": 1.8,
+ "seconds": 2.7,
  "results": [
   {
    "id": "QA-GOV-001",
@@ -291,7 +291,7 @@
    "reached": "POST /api/v1/authority/bands",
    "expected": "stages_required",
    "got": 201,
-   "evidence": "POST /api/v1/authority/bands -> 201 {\"id\":\"01a09ad4d7e6abdf6e3fefbc0040\",\"name\":\"qa\",\"tier\":null,\"at_or_above\":0.0,\"legal_entity\":null,\"stages\":[[\"qa\"]],\"no"
+   "evidence": "POST /api/v1/authority/bands -> 201 {\"id\":\"01a09adc1d82ad10488b0e4e6d22\",\"name\":\"qa\",\"tier\":null,\"at_or_above\":0.0,\"legal_entity\":null,\"stages\":[[\"qa\"]],\"no"
   },
   {
    "id": "QA-GOV-118",
@@ -715,7 +715,7 @@
    "reached": "GET /api/v1/evidence/chain",
    "expected": "accepted",
    "got": 200,
-   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:2ff4f4598c2be06a41f8157518b226d3496d1ca91018e3bcc8ccda14a1441bab\",\"scope\":\"full"
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:bddc62981f9412bc506a5758566a13fffd807e7aff50eac655ac65a461c82baa\",\"scope\":\"full"
   },
   {
    "id": "QA-GOV-302",
@@ -723,7 +723,7 @@
    "reached": "GET /api/v1/evidence/chain",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:2ff4f4598c2be06a41f8157518b226d3496d1ca91018e3bcc8ccda14a1441bab\",\"scope\":\"full"
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":13,\"head\":\"sha256:bddc62981f9412bc506a5758566a13fffd807e7aff50eac655ac65a461c82baa\",\"scope\":\"full"
   },
   {
    "id": "QA-GOV-306",
@@ -1067,7 +1067,7 @@
    "reached": "POST /api/v1/validation-capacity",
    "expected": "validation_refused",
    "got": 201,
-   "evidence": "POST /api/v1/validation-capacity -> 201 {\"id\":\"01a09ad4d87347743f557e436518\",\"validator\":\"qa\",\"episodes_per_quarter\":1.0,\"note\":\"\",\"declared_by\":\"admin\",\"declar"
+   "evidence": "POST /api/v1/validation-capacity -> 201 {\"id\":\"01a09adc1e5c49c82bba97cea6f8\",\"validator\":\"qa\",\"episodes_per_quarter\":1.0,\"note\":\"\",\"declared_by\":\"admin\",\"declar"
   },
   {
    "id": "QA-AM-166",
@@ -1107,7 +1107,7 @@
    "reached": "POST /api/v1/scheduler/run",
    "expected": "accepted",
    "got": 200,
-   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.4510674,\"results\":[{\"id\":\"01a09ad4d87bd72c163d40952ef1\",\"job\":\"immaterial.condition"
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304512.1025412,\"results\":[{\"id\":\"01a09adc1e66ee9b4e0be233cd24\",\"job\":\"immaterial.condition"
   },
   {
    "id": "QA-AM-190",
@@ -1355,7 +1355,7 @@
    "reached": "GET /api/v1/portfolio/trend",
    "expected": "accepted",
    "got": 200,
-   "evidence": "GET /api/v1/portfolio/trend -> 200 {\"points\":[{\"at\":1757768035.5077348,\"models\":0,\"by_status\":{},\"by_tier\":{},\"chain_seq\":null,\"chain_hash\":null},{\"at\":176"
+   "evidence": "GET /api/v1/portfolio/trend -> 200 {\"points\":[{\"at\":1757768512.157647,\"models\":0,\"by_status\":{},\"by_tier\":{},\"chain_seq\":null,\"chain_hash\":null},{\"at\":1760"
   },
   {
    "id": "QA-AM-336",
@@ -1379,7 +1379,7 @@
    "reached": "POST /api/v1/board-packs",
    "expected": "accepted",
    "got": 201,
-   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304035.518287,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":\""
+   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304512.1703875,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":"
   },
   {
    "id": "QA-AM-353",
@@ -1395,7 +1395,7 @@
    "reached": "POST /api/v1/board-packs",
    "expected": "accepted",
    "got": 201,
-   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304035.5229824,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":"
+   "evidence": "POST /api/v1/board-packs -> 201 {\"period\":\"2026-Q09\",\"scope\":{},\"as_at\":1789304512.1743035,\"models\":0,\"indicators\":[{\"metric\":\"models_untiered\",\"means\":"
   },
   {
    "id": "QA-AM-368",
@@ -1443,7 +1443,7 @@
    "reached": "POST /api/v1/scheduler/run",
    "expected": "accepted",
    "got": 200,
-   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.5335045,\"results\":[{\"id\":\"01a09ad4d8cdf620eedb1b31ba76\",\"job\":\"immaterial.condition"
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304512.1850893,\"results\":[{\"id\":\"01a09adc1eb9f32d842b4d4133c3\",\"job\":\"immaterial.condition"
   },
   {
    "id": "QA-PLT-011",
@@ -1451,7 +1451,7 @@
    "reached": "GET /health/ready",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-013",
@@ -1459,7 +1459,7 @@
    "reached": "GET /health/ready",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-014",
@@ -1467,7 +1467,7 @@
    "reached": "GET /health/ready",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-019",
@@ -1475,7 +1475,7 @@
    "reached": "GET /health/ready",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-026",
@@ -1483,7 +1483,7 @@
    "reached": "GET /health/ready",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-038",
@@ -1507,7 +1507,7 @@
    "reached": "GET /api/v1/evidence/chain",
    "expected": "?",
    "got": 200,
-   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":75,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a52630361500c6a84b7110ba\",\"scope\":\"full"
+   "evidence": "GET /api/v1/evidence/chain -> 200 {\"valid\":true,\"length\":75,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a624b0a1c78d292d3722e5\",\"scope\":\"full"
   },
   {
    "id": "QA-PLT-111",
@@ -1611,7 +1611,7 @@
    "reached": "GET /health/ready",
    "expected": "accepted",
    "got": 200,
-   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:a82aeaefe01f2ed4004da6e72ae86ca8ea5d8fc9a526"
+   "evidence": "GET /health/ready -> 200 {\"status\":\"ready\",\"evidence_chain\":{\"valid\":true,\"length\":10,\"head\":\"sha256:4d32e1b3e3a7e85e63f9da04c66db73bfa469dc007a6"
   },
   {
    "id": "QA-PLT-237",
@@ -1619,7 +1619,7 @@
    "reached": "POST /api/v1/scheduler/run",
    "expected": "accepted",
    "got": 200,
-   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.5932007,\"results\":[{\"id\":\"01a09ad4d909197a4f0623eebde6\",\"job\":\"immaterial.condition"
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304512.2473702,\"results\":[{\"id\":\"01a09adc1ef7a48c7d8ea52e9555\",\"job\":\"immaterial.condition"
   },
   {
    "id": "QA-PLT-241",
@@ -1627,7 +1627,7 @@
    "reached": "POST /api/v1/scheduler/run",
    "expected": "unknown_job",
    "got": 200,
-   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304035.6083744,\"results\":[{\"id\":\"01a09ad4d918dda71bfa664b1407\",\"job\":\"immaterial.condition"
+   "evidence": "POST /api/v1/scheduler/run -> 200 {\"ran\":27,\"failed\":0,\"at\":1789304512.2621093,\"results\":[{\"id\":\"01a09adc1f0637ab97bd563da3c8\",\"job\":\"immaterial.condition"
   },
   {
    "id": "QA-PLT-244",
