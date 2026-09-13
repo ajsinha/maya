@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 2.4,
+ "results": [
+  {
+   "id": "QA-PLT-085",
+   "title": "A truth-valued column written as a Python `bool`",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 2.3,
+ "results": [
+  {
+   "id": "QA-PLT-068",
+   "title": "The same immutability attacks against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  }
+ ]
+}

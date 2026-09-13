@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 7,
+  "total": 9,
   "pass": 6,
   "fail": 1,
-  "blocked": 0
+  "blocked": 2
  },
- "seconds": 0.8,
+ "seconds": 1.2,
  "results": [
   {
    "id": "QA-PLT-060",
@@ -29,7 +29,7 @@
    "id": "QA-PLT-063",
    "title": "A read-then-write check under concurrency",
    "verdict": "FAIL",
-   "evidence": "3 of 4 racing writes answered 500 with no code: Internal Server Error"
+   "evidence": "1 of 4 racing writes answered 500 with no code: Internal Server Error"
   },
   {
    "id": "QA-PLT-064",
@@ -48,6 +48,18 @@
    "title": "An append-only table against UPDATE and DELETE",
    "verdict": "PASS",
    "evidence": "1 append-only table(s) refuse both"
+  },
+  {
+   "id": "QA-PLT-068",
+   "title": "The same immutability attacks against PostgreSQL",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
+  },
+  {
+   "id": "QA-PLT-069",
+   "title": "A cross-entity read with row-level security in force",
+   "verdict": "BLOCKED",
+   "evidence": "set MAYA_QA_POSTGRES to a live PostgreSQL to run this; an untested backstop is an assumed one"
   }
  ]
 }
