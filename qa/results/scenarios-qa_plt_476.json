@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 3.9,
+ "results": [
+  {
+   "id": "QA-PLT-4760",
+   "title": "`recorded_by` rewritten on a node",
+   "verdict": "PASS",
+   "evidence": "broken at seq 11: content_hash mismatch: the node's payload, kind or subject is not what was recorded"
+  },
+  {
+   "id": "QA-PLT-4761",
+   "title": "`trust` re-weighted on a node",
+   "verdict": "PASS",
+   "evidence": "re-weighting trust breaks the chain"
+  },
+  {
+   "id": "QA-PLT-4762",
+   "title": "Anchor the same head twice, then with a different hash",
+   "verdict": "PASS",
+   "evidence": "same hash is a no-op at seq 11; a different one raises 'anchor_disagreement'"
+  },
+  {
+   "id": "QA-PLT-4763",
+   "title": "The evidence table refuses an UPDATE and a DELETE",
+   "verdict": "PASS",
+   "evidence": "both verbs refused as AppendOnlyViolation, row intact"
+  }
+ ]
+}

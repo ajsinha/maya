@@ -4189,6 +4189,10 @@ repository's own `data/`.
 | QA-PLT-6305 | `regression` | The genesis constant is not a node | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-6305` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-6306 | `regression` | The chain report states its scope | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-6306` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-6307 | `regression` | Appending is what moves the head | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-6307` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4760 | `regression` | `recorded_by` rewritten on a node | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4760` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4761 | `regression` | `trust` re-weighted on a node | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4761` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4762 | `regression` | Anchor the same head twice, then with a different hash | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4762` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4763 | `regression` | The evidence table refuses an UPDATE and a DELETE | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4763` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
