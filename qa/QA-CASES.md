@@ -3538,6 +3538,8 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-5200 | `regression` | The recommendation vocabulary never says promote | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5200` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-5201 | `regression` | The materiality threshold is declared, never inferred | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5201` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-5202 | `regression` | Every portfolio dimension says what it is | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-5202` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4700 | `regression` | Define two monitors with the same name on two models | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4700` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4701 | `regression` | Every label-dependent kind demands a delay | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4701` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->

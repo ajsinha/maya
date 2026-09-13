@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-4700",
+   "title": "Define two monitors with the same name on two models",
+   "verdict": "PASS",
+   "evidence": "one name, two models, both defined"
+  },
+  {
+   "id": "QA-AM-4701",
+   "title": "Every label-dependent kind demands a delay",
+   "verdict": "PASS",
+   "evidence": "performance, calibration demand a delay; input_drift, score_drift do not"
+  }
+ ]
+}
