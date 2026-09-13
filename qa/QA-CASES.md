@@ -4228,6 +4228,10 @@ repository's own `data/`.
 | QA-PLT-4790 | `regression` | The default limit when none is asked for | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4790` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4791 | `regression` | The detail line tells a caller how to ask for more | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4791` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4792 | `regression` | A page is a slice of what was already filtered | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4792` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4910 | `regression` | Resuming a suspended subscription | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4910` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4911 | `regression` | A new subscription starts at the head | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4911` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4912 | `regression` | A subscription with no name and one with no owner | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4912` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4913 | `regression` | The estate view says an instance with no subscriptions is at rest | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4913` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->

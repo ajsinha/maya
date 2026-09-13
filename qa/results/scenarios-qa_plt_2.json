@@ -1,0 +1,287 @@
+{
+ "summary": {
+  "total": 46,
+  "pass": 41,
+  "fail": 5,
+  "blocked": 0
+ },
+ "seconds": 7.7,
+ "results": [
+  {
+   "id": "QA-PLT-200",
+   "title": "Zero claims versus every claim rejected",
+   "verdict": "FAIL",
+   "evidence": "both refuse 'nothing_grounded', so a cautious generation and a wholly unsupported one are one fact"
+  },
+  {
+   "id": "QA-PLT-201",
+   "title": "Set a budget of zero",
+   "verdict": "PASS",
+   "evidence": "zero refused on tokens, cost and steps"
+  },
+  {
+   "id": "QA-PLT-2100",
+   "title": "Writing the same object twice is not an overwrite",
+   "verdict": "PASS",
+   "evidence": "identical content, accepted twice"
+  },
+  {
+   "id": "QA-PLT-2101",
+   "title": "A held object is read-only after writing",
+   "verdict": "PASS",
+   "evidence": "written objects are read-only on disk"
+  },
+  {
+   "id": "QA-PLT-2102",
+   "title": "The store lists nothing when it holds nothing",
+   "verdict": "PASS",
+   "evidence": "empty lists nothing; one write lists one"
+  },
+  {
+   "id": "QA-PLT-2103",
+   "title": "A staging file is not listed as an object",
+   "verdict": "PASS",
+   "evidence": "staging files are not objects"
+  },
+  {
+   "id": "QA-PLT-218",
+   "title": "A backup round-trips and the chain arrives intact",
+   "verdict": "PASS",
+   "evidence": "backed up and restored, exit 0"
+  },
+  {
+   "id": "QA-PLT-220",
+   "title": "Back up into a directory that already holds something",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-224",
+   "title": "Restore over an instance that holds evidence",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-228",
+   "title": "A store's digest differs from the manifest",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-230",
+   "title": "A manifest missing a required section",
+   "verdict": "PASS",
+   "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-237",
+   "title": "Run the whole batch twice",
+   "verdict": "PASS",
+   "evidence": "27 jobs both times, 0 failed"
+  },
+  {
+   "id": "QA-PLT-239",
+   "title": "A job that raises",
+   "verdict": "PASS",
+   "evidence": "27 ran, 0 failed, each result carrying ok and error"
+  },
+  {
+   "id": "QA-PLT-241",
+   "title": "One valid job name and one invalid",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_job', naming the known jobs"
+  },
+  {
+   "id": "QA-PLT-242",
+   "title": "Run with no body at all",
+   "verdict": "PASS",
+   "evidence": "all 27 jobs ran"
+  },
+  {
+   "id": "QA-PLT-243",
+   "title": "Run the notifications batch with no body",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error'"
+  },
+  {
+   "id": "QA-PLT-244",
+   "title": "The scheduler that has never run",
+   "verdict": "PASS",
+   "evidence": "27 jobs, each stating what and why; health {'jobs': 27, 'ever_run': 27, 'never_run': [], 'last_run_at':"
+  },
+  {
+   "id": "QA-PLT-247",
+   "title": "A subscription to `*`",
+   "verdict": "PASS",
+   "evidence": "refused 'wildcard_refused'; an empty list refuses separately"
+  },
+  {
+   "id": "QA-PLT-248",
+   "title": "A subscription to a plain-HTTP URL",
+   "verdict": "PASS",
+   "evidence": "http refused naming the local exception; file and ftp refused"
+  },
+  {
+   "id": "QA-PLT-249",
+   "title": "A subscription that fails five times in a row",
+   "verdict": "PASS",
+   "evidence": "suspended at 5, cursor kept at 119, and it counted down first"
+  },
+  {
+   "id": "QA-PLT-250",
+   "title": "The subscription secret after creation",
+   "verdict": "PASS",
+   "evidence": "returned once at creation and absent from every read after"
+  },
+  {
+   "id": "QA-PLT-2500",
+   "title": "A flagged row cannot carry the content it flags",
+   "verdict": "PASS",
+   "evidence": "1 flagged table(s) refuse content"
+  },
+  {
+   "id": "QA-PLT-2501",
+   "title": "The same key with a different body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  },
+  {
+   "id": "QA-PLT-2502",
+   "title": "The same key with the same body, keys reordered",
+   "verdict": "PASS",
+   "evidence": "reordered keys are the same request"
+  },
+  {
+   "id": "QA-PLT-2600",
+   "title": "A comment asking for something that is not an ask",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_ask', naming the 5 asks"
+  },
+  {
+   "id": "QA-PLT-2601",
+   "title": "A comment with no body",
+   "verdict": "PASS",
+   "evidence": "refused 'body_required'"
+  },
+  {
+   "id": "QA-PLT-2602",
+   "title": "Somebody else may close it",
+   "verdict": "PASS",
+   "evidence": "somebody other than the raiser closed it"
+  },
+  {
+   "id": "QA-PLT-2603",
+   "title": "A plain comment may be closed by its raiser",
+   "verdict": "PASS",
+   "evidence": "a 'comment' closes without a second person"
+  },
+  {
+   "id": "QA-PLT-2604",
+   "title": "Resolve with no resolution",
+   "verdict": "PASS",
+   "evidence": "refused 'resolution_required'"
+  },
+  {
+   "id": "QA-PLT-266",
+   "title": "One bad row among ninety-nine good ones",
+   "verdict": "PASS",
+   "evidence": "the offending row is named by index"
+  },
+  {
+   "id": "QA-PLT-267",
+   "title": "A sweep reporting confidence 1.0",
+   "verdict": "PASS",
+   "evidence": "refused at 1.0"
+  },
+  {
+   "id": "QA-PLT-268",
+   "title": "A sweep with recall unknown, stated",
+   "verdict": "FAIL",
+   "evidence": "a sweep saying nothing about recall was admitted. The contract tests `\"recall_known\" not in sweep`, and the route model declares it `Optional[bool] = None`, so `model_dump()` always supplies the key and the absence can never be observed over HTTP \u2014 the check fires when the key is genuinely absent, so it is the route that defeats it"
+  },
+  {
+   "id": "QA-PLT-269",
+   "title": "A sweep with several problems",
+   "verdict": "PASS",
+   "evidence": "4 problems reported together"
+  },
+  {
+   "id": "QA-PLT-270",
+   "title": "The same candidate ingested twice",
+   "verdict": "PASS",
+   "evidence": "deduplicated on the fingerprint"
+  },
+  {
+   "id": "QA-PLT-2700",
+   "title": "Every duties comparison asks identity the same way",
+   "verdict": "FAIL",
+   "evidence": "10 duties comparison(s) use `==`/`!=` on an identity rather than `same_person`, so each is stepped around by writing the same human the other way: core/authz/breakglass.py:151 if actor == row[\"requested_by\"] and not unilateral:; core/authz/breakglass.py:158 if actor != row[\"requested_by\"] and unilateral:; core/authz/breakglass.py:248 if actor == row[\"principal\"]:; core/authz/principals.py:267 if u"
+  },
+  {
+   "id": "QA-PLT-2701",
+   "title": "same_person itself is right",
+   "verdict": "PASS",
+   "evidence": "prefix, case and space collapse; different names do not"
+  },
+  {
+   "id": "QA-PLT-2702",
+   "title": "Break-glass dual authorisation under two spellings",
+   "verdict": "FAIL",
+   "evidence": "the person who asked for a break-glass elevation authorised it by writing their name as 'person/risk' instead of 'risk'. Dual authorisation with one person is one person, and the check is `==`"
+  },
+  {
+   "id": "QA-PLT-2703",
+   "title": "The refusal codes for one-person duties are distinct",
+   "verdict": "PASS",
+   "evidence": "10 distinct codes: already_signed_personally, author_may_not_approve, not_the_reviewer, proposer_may_not_approve, raiser_may_not_close, reviewed_by_the_user, same_person, self_approval, self_extension, self_suspension"
+  },
+  {
+   "id": "QA-PLT-271",
+   "title": "A candidate with no fingerprint",
+   "verdict": "PASS",
+   "evidence": "refused, naming the fingerprint"
+  },
+  {
+   "id": "QA-PLT-272",
+   "title": "Triage the same candidate twice",
+   "verdict": "PASS",
+   "evidence": "refused 'already_triaged'"
+  },
+  {
+   "id": "QA-PLT-273",
+   "title": "Precision on a scanner with too few triaged candidates",
+   "verdict": "PASS",
+   "evidence": "floor 20 published; 1 scanner(s) with triaged output. qa-scanner-1 has fewer than 20 judged candidat"
+  },
+  {
+   "id": "QA-PLT-274",
+   "title": "Recall on any scanner",
+   "verdict": "PASS",
+   "evidence": "no recall is computed anywhere"
+  },
+  {
+   "id": "QA-PLT-2800",
+   "title": "Every refusal code the platform raises has a status",
+   "verdict": "PASS",
+   "evidence": "all 591 refusal codes are mapped to a status"
+  },
+  {
+   "id": "QA-PLT-2801",
+   "title": "Every actionable refusal says what to do instead",
+   "verdict": "FAIL",
+   "evidence": "28 actionable refusal code(s) of 773 raise sites carry an explicitly empty remediation, so a caller who did something they could have done differently is told what and not what instead: already_decided, already_recorded, already_registered, already_revoked, approval_closed, bad_digest, bad_signature, campaign_closed, channel_not_built, different_version, discovery_incomplete, duplicate_capability"
+  },
+  {
+   "id": "QA-PLT-2802",
+   "title": "Every refusal type reaches HTTP as a refusal",
+   "verdict": "PASS",
+   "evidence": "all 48 refusal types reach HTTP as refusals: duck-typed, adapted by `guard`, caught by name in a route, or raised only at start-up"
+  },
+  {
+   "id": "QA-PLT-2803",
+   "title": "No refusal code is raised under two spellings",
+   "verdict": "PASS",
+   "evidence": "codes raised from many modules, each a place the condition must genuinely be the same: reason_required (16), rationale_required (7), note_required (5), owner_required (5)"
+  }
+ ]
+}

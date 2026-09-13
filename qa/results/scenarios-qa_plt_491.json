@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-PLT-4910",
+   "title": "Resuming a suspended subscription",
+   "verdict": "PASS",
+   "evidence": "active, failures reset, cursor still 8"
+  },
+  {
+   "id": "QA-PLT-4911",
+   "title": "A new subscription starts at the head",
+   "verdict": "PASS",
+   "evidence": "cursor starts at the head, 11"
+  },
+  {
+   "id": "QA-PLT-4912",
+   "title": "A subscription with no name and one with no owner",
+   "verdict": "PASS",
+   "evidence": "both refused on whitespace, each by its own code"
+  },
+  {
+   "id": "QA-PLT-4913",
+   "title": "The estate view says an instance with no subscriptions is at rest",
+   "verdict": "PASS",
+   "evidence": "no egress reported as the resting state: nothing subscribes to this register's events. Webhooks are an egress and this pl"
+  }
+ ]
+}
