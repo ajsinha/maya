@@ -94,10 +94,22 @@ def expect_absent(response, needle: str) -> Result:
 #: id -> (title, callable). Populated by the section modules.
 REGISTRY: Dict[str, Tuple[str, Callable[[Ctx], Result]]] = {}
 
+#: Cases that must not share a database with anything else.
+#:
+#: A tamper case leaves the chain broken, and every case after it then sees an
+#: already-invalid chain and "detects" its own tampering without doing
+#: anything. QA-PLT-006 reported that truncation was caught — a better result
+#: than the case expected — and it was reading damage a previous case had
+#: done. The same shape as section B's malformed posts making twenty-six of
+#: section C's cases look broken.
+ISOLATED: set = set()
 
-def case(case_id: str, title: str):
+
+def case(case_id: str, title: str, *, isolated: bool = False):
     def register(fn):
         REGISTRY[case_id] = (title, fn)
+        if isolated:
+            ISOLATED.add(case_id)
         return fn
     return register
 
