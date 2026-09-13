@@ -19,7 +19,13 @@ say "1. people and a role"
 post "$API/roles" '{"name":"feature_curator","description":"defines and loads features, nothing else","permissions":["feature:read","feature:define","feature:materialise","featureset:define"]}' >/dev/null
 post "$API/principals" '{"username":"q.tester","display_name":"Q Tester","roles":["feature_curator"],"password":"qa-password-long"}' >/dev/null
 post "$API/principals" '{"username":"svc/qa-runner","display_name":"QA runner","kind":"service","roles":["service"]}' >/dev/null
-echo "   q.tester (feature_curator), svc/qa-runner (service)"
+# The people sections 8 to 11 sign in as. Without them every command from the
+# approval workflow onwards answers 401, which is what this script used to do.
+post "$API/principals" '{"username":"s.iqbal","display_name":"S Iqbal","roles":["model_risk_manager"],"password":"mrm-password-long"}' >/dev/null
+post "$API/principals" '{"username":"j.okafor","display_name":"J Okafor","roles":["model_owner"],"password":"owner-password-long"}' >/dev/null
+post "$API/principals" '{"username":"a.mehta","display_name":"A Mehta","roles":["validator"],"password":"val-password-long"}' >/dev/null
+post "$API/principals" '{"username":"d.raman","display_name":"D Raman","roles":["model_developer"],"password":"dev-pw-long-enough"}' >/dev/null
+echo "   q.tester, svc/qa-runner, s.iqbal, j.okafor, a.mehta, d.raman"
 
 say "2. features — a scalar, a 12-element array, a 3x3 matrix, and a label"
 post "$API/features" '{"name":"dscr","entity":"borrower","dtype":"numeric","description":"debt service coverage ratio","owner":"person/d.raman"}' >/dev/null
@@ -48,8 +54,10 @@ echo "   qa_pd_inputs v1 — coverage->dscr, leverage->ltv, defaulted->defaulted
 
 say "5. a model, tiered, with a formula kernel"
 post "$API/models" '{"urn":"maya://model/qa.pd.scorecard","name":"QA PD scorecard","model_class":"credit.pd.scorecard","domain":"credit","owner":"person/j.okafor","legal_entity":"LE-US-01","purpose":"12-month probability of default at origination"}' >/dev/null
+# The version first: `assess` reads the trainability class off the latest
+# version and refuses where the tier would turn on a class it cannot see.
+post "$API/models/qa.pd.scorecard/versions" '{"semver":"1.0.0","kernel":{"runtime":"formula","parameter_kind":"estimated_coefficients","fit_procedure":"estimate","entry":{"expression":"1 / (1 + exp(-(intercept + beta_dscr * dscr + beta_ltv * ltv)))","target":"pd_12m"},"input_schema":[{"name":"dscr","dtype":"numeric","symbol":"\\mathrm{DSCR}","unit":"ratio"},{"name":"ltv","dtype":"numeric","symbol":"\\mathrm{LTV}","unit":"ratio"}],"parameter_schema":[{"name":"intercept","dtype":"numeric","symbol":"\\alpha"},{"name":"beta_dscr","dtype":"numeric","symbol":"\\beta_{1}"},{"name":"beta_ltv","dtype":"numeric","symbol":"\\beta_{2}"}],"output_schema":[{"name":"pd_12m","dtype":"numeric","unit":"probability"}]}}' >/dev/null
 post "$API/models/qa.pd.scorecard/assess" '{"exposure":250000000,"purpose_class":"credit_decision","feature_count":3,"uses_alternative_data":false,"interpretable":true}' >/dev/null
-post "$API/models/qa.pd.scorecard/versions" '{"semver":"1.0.0","kernel":{"runtime":"formula","parameter_kind":"estimated_coefficients","fit_procedure":"estimate","entry":{"expression":"1 / (1 + exp(-(intercept + beta_dscr * dscr + beta_ltv * ltv)))","target":"pd_12m"},"input_schema":[{"name":"dscr","dtype":"numeric","symbol":"\\mathrm{DSCR}","unit":"ratio"},{"name":"ltv","dtype":"numeric","symbol":"\\mathrm{LTV}","unit":"ratio"},{"name":"intercept","dtype":"numeric","symbol":"\\alpha"},{"name":"beta_dscr","dtype":"numeric","symbol":"\\beta_{1}"},{"name":"beta_ltv","dtype":"numeric","symbol":"\\beta_{2}"}],"output_schema":[{"name":"pd_12m","dtype":"numeric","unit":"probability"}]}}' >/dev/null
 echo "   maya://model/qa.pd.scorecard @ 1.0.0"
 
 say "done"

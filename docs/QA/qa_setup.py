@@ -97,11 +97,44 @@ def load_once(maya, view: str, rows: list) -> None:
     done(f"{view}: {len(rows)} row(s) loaded as v1")
 
 
+def tier_once(maya, name: str) -> None:
+    """Assess the tier, unless this model already has one.
+
+    The second step that is not naturally idempotent, and for a better reason
+    than the first. Re-sending the same facts is refused — *"these are the same
+    facts as the last assessment, so re-running the formula moves the review
+    date without anything having been reviewed"* — and that refusal is right:
+    a periodic review discharged by re-POSTing last year's numbers is the
+    failure it exists to stop.
+
+    So this does not route around it with a canned `review_note` saying a
+    review happened. It asks whether the model is tiered and does nothing if it
+    is, which is the same shape as `load_once` above and the only honest answer
+    for a setup script: re-running one is not a review.
+    """
+    tier = (maya.models.get(f"maya://model/{name}") or {}).get("model", {}).get("tier")
+    if tier is not None:
+        done(f"{name}: already tiered, Tier {tier} — not re-assessing, because "
+             f"re-running the formula is not a review")
+        return
+    out = maya.models.assess(name, exposure=250_000_000,
+                             purpose_class="credit_decision", feature_count=3,
+                             uses_alternative_data=False, interpretable=True)
+    done(f"{name}: Tier {out['tier']} — {out['rationale']}")
+
+
 def _is_duplicate(exc: Refused) -> bool:
     text = f"{exc.code} {exc.detail}".lower()
     return any(word in text for word in
                ("already", "duplicate", "exists", "taken"))
 
+
+#: The sign-in credentials the cheatsheet's "Sign-in accounts" table publishes.
+#: Held here so the table and the script cannot drift apart.
+PASSWORDS = {"s.iqbal": "mrm-password-long",
+             "j.okafor": "owner-password-long",
+             "a.mehta": "val-password-long",
+             "d.raman": "dev-pw-long-enough"}
 
 ROWS_BORROWER = [
     # C1 and C2 as first known. Both clocks on every row, always: `event_ts` is
@@ -137,11 +170,25 @@ KERNEL = {
     "entry": {"expression": "1 / (1 + exp(-(intercept + beta_dscr * dscr "
                             "+ beta_ltv * ltv)))",
               "target": "pd_12m"},
+    # X — what the featureset must supply. The coefficients are NOT here.
+    #
+    # They were, and it made section 9 of the cheatsheet impossible to
+    # complete: L-W10 asks whether the featureset provides everything
+    # `input_schema` names, so a kernel declaring its own coefficients as
+    # inputs demanded a featureset carrying `intercept`, `beta_dscr` and
+    # `beta_ltv` — columns no training set has, because they are what the
+    # training produces. Every fit warrant for this estate was refused
+    # `schema_not_satisfied`, and the cheatsheet's note explaining that
+    # refusal blamed the slot names.
     "input_schema": [
         {"name": "dscr", "dtype": "numeric", "symbol": r"\mathrm{DSCR}",
          "unit": "ratio"},
         {"name": "ltv", "dtype": "numeric", "symbol": r"\mathrm{LTV}",
          "unit": "ratio"},
+    ],
+    # P — the coefficients, which arrive from an approved parameter set. The
+    # shape every case study in this repository uses.
+    "parameter_schema": [
         {"name": "intercept", "dtype": "numeric", "symbol": r"\alpha"},
         {"name": "beta_dscr", "dtype": "numeric", "symbol": r"\beta_{1}"},
         {"name": "beta_ltv", "dtype": "numeric", "symbol": r"\beta_{2}"},
@@ -180,7 +227,26 @@ def main() -> int:
     attempt("svc/qa-runner", lambda: maya.principals.create(
         username="svc/qa-runner", display_name="QA runner",
         kind="service", roles=["service"]))
-    done("q.tester (feature_curator), svc/qa-runner (service)")
+    # The four the cheatsheet signs in as from section 8 onwards, and which it
+    # listed in a table without ever creating.
+    #
+    # Everything from the approval workflow to alias promotion is about a
+    # SECOND person: `s.iqbal` approves what `admin` created, `j.okafor` owns
+    # the model and completes its attestation, `a.mehta` signs the validator
+    # half of a Tier 1 quorum. None of them existed, so every command in
+    # sections 8 through 11 answered 401 — and the one thing this estate is
+    # for, showing segregation of duties refuse an act, could not be reached.
+    for username, display, role in (
+            ("s.iqbal", "S Iqbal", "model_risk_manager"),
+            ("j.okafor", "J Okafor", "model_owner"),
+            ("a.mehta", "A Mehta", "validator"),
+            ("d.raman", "D Raman", "model_developer")):
+        attempt(username, lambda u=username, d=display, r=role:
+                maya.principals.create(username=u, display_name=d, roles=[r],
+                                       password=PASSWORDS[u]))
+    done("q.tester (feature_curator), svc/qa-runner (service), "
+         "s.iqbal (model_risk_manager), j.okafor (model_owner), "
+         "a.mehta (validator), d.raman (model_developer)")
 
     # -------------------------------------------------------- 2. features
     say("2.", "features — a scalar, a 12-element array, a 3x3 matrix, a label")
@@ -239,14 +305,19 @@ def main() -> int:
         model_class="credit.pd.scorecard", domain="credit",
         owner="person/j.okafor", legal_entity="LE-US-01",
         purpose="12-month probability of default at origination"))
-    attempt("its risk tier", lambda: maya.models.assess(
-        "qa.pd.scorecard", exposure=250_000_000,
-        purpose_class="credit_decision", feature_count=3,
-        uses_alternative_data=False, interpretable=True),
-        already="already tiered")
+    # The VERSION first, and then the tier. Not the other way round.
+    #
+    # `assess` reads `trainability_class` off the model's latest version, and a
+    # model with no version has none — so the register refuses to answer where
+    # the tier would differ depending on what that class turns out to be. This
+    # script asked for the tier first and stopped there on every clean estate:
+    # `SystemExit(2)`, no version, no kernel, and a cheatsheet describing a
+    # model that had not been built. It only ever worked against a database
+    # where a previous run had already left one.
     attempt("version 1.0.0", lambda: maya.versions.create(
         "qa.pd.scorecard", semver="1.0.0", kernel=KERNEL),
         already="already exists")
+    tier_once(maya, "qa.pd.scorecard")
     done("maya://model/qa.pd.scorecard @ 1.0.0")
 
     print("\ndone")

@@ -265,10 +265,30 @@ class MonitoringRoutes(Routes):
 
         @self.app.get(f"{api}/monitors/{{monitor_id}}/observations", tags=["monitoring"])
         def history(request: Request, monitor_id: str):
-            self.authorise(request, "monitor:read")
-            return {"monitor": monitors.require(monitor_id),
-                    "observations": monitoring.history(monitor_id),
-                    "breaches": monitoring.breaches.for_monitor(monitor_id)}
+            """This monitor's observations and breaches.
+
+            Two things every sibling route on this monitor already did, and
+            this one did neither.
+
+            `require` was called outside `guard`, so a monitor id that does not
+            resolve escaped as an unhandled `MonitorError` and answered **500
+            with an empty body** — no code, no detail, no remediation, on the
+            one path a reader reaches by pasting an identifier.
+
+            And `authorise` was called without `model=`, so the legal-entity
+            scope was never applied. A principal scoped to one entity, refused
+            `GET /models/<other>` and refused the monitor LIST for it, could
+            read that model's monitor definition, every observation on it and
+            every breach — through the one route that forgot to say which
+            model it was about.
+            """
+            monitor = self.guard(lambda: monitors.require(monitor_id))
+            self.authorise(request, "monitor:read",
+                           model=self.model_behind(monitor))
+            return self.guard(lambda: {
+                "monitor": monitor,
+                "observations": monitoring.history(monitor_id),
+                "breaches": monitoring.breaches.for_monitor(monitor_id)})
 
         @self.app.post(f"{api}/monitors/{{monitor_id}}/status", tags=["monitoring"])
         def set_status(request: Request, monitor_id: str, status: str):
