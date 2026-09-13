@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-GOV-217",
+   "title": "Grant the same pair with `allow_conflicts: true`",
+   "verdict": "FAIL",
+   "evidence": "the override was accepted and no route that lists principals says an exception was made: `conflicts_allowed` goes onto the evidence chain payload and onto no column, so listing who holds separated duties in one pair of hands means walking the chain \u2014 which is the thing the comment beside it says an exception must not require"
+  }
+ ]
+}

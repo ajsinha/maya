@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 45,
-  "pass": 40,
-  "fail": 3,
+  "total": 56,
+  "pass": 49,
+  "fail": 5,
   "blocked": 2
  },
- "seconds": 2.9,
+ "seconds": 8.5,
  "results": [
   {
    "id": "QA-GOV-201",
@@ -14,16 +14,82 @@
    "evidence": "refused 'band_name_required' (422)"
   },
   {
+   "id": "QA-GOV-216",
+   "title": "Grant `model_owner` and `model_risk_manager` to one principal",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles'"
+  },
+  {
+   "id": "QA-GOV-217",
+   "title": "Grant the same pair with `allow_conflicts: true`",
+   "verdict": "FAIL",
+   "evidence": "the override was accepted and the principal reads no differently from one whose roles never conflicted; the exception is on the evidence chain and nowhere a reader of the principal will look"
+  },
+  {
+   "id": "QA-GOV-218",
+   "title": "Grant `model_developer` and `validator`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles'"
+  },
+  {
+   "id": "QA-GOV-219",
+   "title": "Grant a conflicting pair to a principal who also holds `admin`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_roles' with a third role in the set"
+  },
+  {
+   "id": "QA-GOV-220",
+   "title": "Define a custom role holding `version:create` and `version:approve`",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_permissions'"
+  },
+  {
    "id": "QA-GOV-2200",
    "title": "A delegation names a currency",
    "verdict": "FAIL",
    "evidence": "a ceiling was recorded with no currency, so the number means whatever the reader assumes"
   },
   {
+   "id": "QA-GOV-221",
+   "title": "Amend a role so an existing holder gains both halves",
+   "verdict": "PASS",
+   "evidence": "refused 'incompatible_permissions' on the amendment"
+  },
+  {
    "id": "QA-GOV-222",
    "title": "Review a break-glass with no note",
    "verdict": "PASS",
    "evidence": "refused 'note_required' (422)"
+  },
+  {
+   "id": "QA-GOV-223",
+   "title": "Delete a role somebody holds",
+   "verdict": "PASS",
+   "evidence": "refused 'role_in_use'"
+  },
+  {
+   "id": "QA-GOV-225",
+   "title": "Delete a role named in a published authority band",
+   "verdict": "FAIL",
+   "evidence": "the role 'role-52588cc1' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
+  },
+  {
+   "id": "QA-GOV-227",
+   "title": "Delete a built-in role",
+   "verdict": "PASS",
+   "evidence": "refused 'built_in_role'"
+  },
+  {
+   "id": "QA-GOV-228",
+   "title": "Define a role granting no permissions",
+   "verdict": "PASS",
+   "evidence": "refused 'role_grants_nothing'"
+  },
+  {
+   "id": "QA-GOV-229",
+   "title": "Define a role with a misspelled permission",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_permission'"
   },
   {
    "id": "QA-GOV-230",
@@ -125,7 +191,7 @@
    "id": "QA-GOV-252",
    "title": "Open a campaign over an explicitly empty population",
    "verdict": "PASS",
-   "evidence": "a blank population means everybody active: 29 subject(s)"
+   "evidence": "a blank population means everybody active: 32 subject(s)"
   },
   {
    "id": "QA-GOV-256",
@@ -233,13 +299,13 @@
    "id": "QA-GOV-282",
    "title": "Replacement naming a model that is itself retired",
    "verdict": "FAIL",
-   "evidence": "'maya://model/dc-31856c13' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+   "evidence": "'maya://model/dc-5f5f229e' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
   },
   {
    "id": "QA-GOV-283",
    "title": "Replacement recorded as the literal `none`",
    "verdict": "PASS",
-   "evidence": "accepted, detail says: maya://model/dc-e11b6d8c is decommissioned, kept under the 'artifact' class, wit"
+   "evidence": "accepted, detail says: maya://model/dc-00bdf477 is decommissioned, kept under the 'artifact' class, wit"
   },
   {
    "id": "QA-GOV-284",
