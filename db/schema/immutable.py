@@ -85,6 +85,38 @@ WHY_APPEND_ONLY = (
     "or removed is not evidence. Append a correcting node instead"
 )
 
+#: Rows that must be empty of content, and the flag that says so.
+#:
+#: **H-3 — immutable evidence versus erasure.** The chain cannot be edited, and
+#: an erasure request over a node carrying personal data would therefore be a
+#: request the register could not honour. Law L-18 answers it by **discarding**
+#: the payload at append time rather than storing an erasable pointer: there is
+#: no `payload_uri`, no per-subject key and no shred path anywhere here, which
+#: is the stronger guarantee for the law as stated — there is nothing to erase,
+#: so nothing to leak — and the weaker one for anybody hoping to resolve it
+#: later.
+#:
+#: The review's disposition was *satisfied in the law, not in the mechanism*,
+#: and that was exactly right: the discarding happened in `EvidenceEngine._try`
+#: and **nothing enforced it**. Any other writer — a migration, a repair
+#: script, a future call site, a test fixture — could insert a node with the
+#: flag set and the content still in it, and the chain would hash it, verify
+#: it, and hold personal data in a table that cannot be corrected.
+#:
+#: A control that lives in one function is a convention. This makes it a
+#: constraint, in both dialects, at the only layer every writer goes through.
+EMPTY_WHEN_FLAGGED: Dict[str, Tuple[str, str]] = {
+    # table: (flag column, column that must be empty)
+    "evidence_node": ("contains_personal_data", "payload"),
+}
+
+WHY_EMPTY = (
+    "a node flagged as containing personal data must store an EMPTY payload. "
+    "The chain cannot be edited, so a node that holds content it may later be "
+    "asked to erase is a request this register could never honour. Law L-18: "
+    "the payload is discarded at append, not stored behind a pointer"
+)
+
 
 def sqlite_statements() -> list:
     """`BEFORE UPDATE` triggers raising `ABORT`, and delete guards."""
@@ -110,6 +142,18 @@ def sqlite_statements() -> list:
             f"BEFORE DELETE ON {table}\n"
             f"BEGIN\n"
             f"    SELECT RAISE(ABORT, '{table} {WHY_APPEND_ONLY}');\n"
+            f"END;")
+    for table, (flag, content) in sorted(EMPTY_WHEN_FLAGGED.items()):
+        # BEFORE INSERT, because the table is append-only — there is no UPDATE
+        # path to guard, and insert is the only moment the rule can be broken.
+        out.append(
+            f"CREATE TRIGGER IF NOT EXISTS empty_when_flagged_{table}\n"
+            f"BEFORE INSERT ON {table}\n"
+            f"FOR EACH ROW WHEN NEW.{flag} = 1\n"
+            f"    AND NEW.{content} IS NOT NULL\n"
+            f"    AND NEW.{content} NOT IN ('', '{{}}')\n"
+            f"BEGIN\n"
+            f"    SELECT RAISE(ABORT, '{table}.{content}: {WHY_EMPTY}');\n"
             f"END;")
     return out
 
@@ -147,4 +191,19 @@ def postgres_statements() -> list:
             f"CREATE TRIGGER append_only_{table}\n"
             f"BEFORE UPDATE OR DELETE ON {table}\n"
             f"FOR EACH ROW EXECUTE FUNCTION maya_append_only_{table}();")
+    for table, (flag, content) in sorted(EMPTY_WHEN_FLAGGED.items()):
+        out.append(
+            f"CREATE OR REPLACE FUNCTION maya_empty_when_flagged_{table}()\n"
+            f"RETURNS trigger AS $$\nBEGIN\n"
+            f"    IF NEW.{flag} AND coalesce(NEW.{content}, '') "
+            f"NOT IN ('', '{{}}') THEN\n"
+            f"        RAISE EXCEPTION '{table}.{content}: {WHY_EMPTY}';\n"
+            f"    END IF;\n    RETURN NEW;\n"
+            f"END;\n$$ LANGUAGE plpgsql;")
+        out.append(
+            f"DROP TRIGGER IF EXISTS empty_when_flagged_{table} ON {table};\n"
+            f"CREATE TRIGGER empty_when_flagged_{table}\n"
+            f"BEFORE INSERT ON {table}\n"
+            f"FOR EACH ROW EXECUTE FUNCTION "
+            f"maya_empty_when_flagged_{table}();")
     return out

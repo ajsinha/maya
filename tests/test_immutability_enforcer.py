@@ -145,3 +145,61 @@ def a_version(db):
         "artifact_digest": "sha256:" + "b" * 64, "status": "draft",
         "created_at": 1.0, "created_by": "t"})
     return "v1"
+
+
+class TestANodeFlaggedForPersonalDataMustBeEmpty:
+    """H-3, and the difference between a convention and a constraint.
+
+    The review's disposition was *satisfied in the law, not in the mechanism*,
+    and that was exact. Law L-18 discards the payload of a node flagged as
+    containing personal data — not a pointer, not an encrypted blob, nothing to
+    erase and nothing to leak — and the discarding happened in
+    `EvidenceEngine._try` and **nowhere else**.
+
+    So any other writer could set the flag and keep the content: a migration, a
+    repair script, a test fixture, a future call site. The chain would hash it,
+    verify it, and hold personal data in a table that is append-only — which is
+    the one place a later erasure request could never be honoured.
+    """
+
+    def _node(self, db, flag, payload):
+        db.execute(
+            "INSERT INTO evidence_node (id, seq, kind, subject_type, "
+            "subject_id, payload, parents, contains_personal_data, "
+            "content_hash, prev_hash, chain_hash, trust, recorded_at, "
+            "recorded_by) VALUES ('n-1', 1, 'k', 'model', 'm-1', :p, '[]', "
+            ":f, 'h', '', 'c', 'asserted', 0, 'ana')",
+            {"p": payload, "f": flag})
+
+    def test_the_flag_with_content_is_refused(self, db):
+        import json
+        with pytest.raises(Exception) as refused:
+            self._node(db, 1, json.dumps({"name": "Jane Doe",
+                                          "nin": "AB123456C"}))
+        assert "EMPTY payload" in str(refused.value)
+
+    def test_the_refusal_says_why_a_pointer_would_not_do(self, db):
+        with pytest.raises(Exception) as refused:
+            self._node(db, 1, '{"x": 1}')
+        assert "not stored behind a pointer" in str(refused.value)
+
+    def test_the_flag_with_an_empty_payload_is_accepted(self, db):
+        """The correct case, which the append path already produces. A guard
+        that refused this would refuse every node the platform writes."""
+        self._node(db, 1, "{}")
+        assert db.query_one("SELECT id FROM evidence_node WHERE id = 'n-1'")
+
+    def test_an_unflagged_node_may_carry_its_payload(self, db):
+        """Most nodes do. The rule is about the flag, not about payloads."""
+        self._node(db, 0, '{"urn": "urn:maya:model:pd", "tier": 1}')
+        assert db.query_one("SELECT id FROM evidence_node WHERE id = 'n-1'")
+
+    def test_both_dialects_carry_the_rule(self):
+        """A guard on SQLite and not on PostgreSQL is a guard that vanishes in
+        production, which is where it matters."""
+        from db.schema.immutable import (postgres_statements,
+                                         sqlite_statements)
+        assert any("empty_when_flagged_evidence_node" in s
+                   for s in sqlite_statements())
+        assert any("maya_empty_when_flagged_evidence_node" in s
+                   for s in postgres_statements())
