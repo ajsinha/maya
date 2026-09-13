@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-5307",
+   "title": "The pack states the chain's condition",
+   "verdict": "PASS",
+   "evidence": "chain pinned at seq 10, verified=True"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-5300",
+   "title": "Two packs of unchanged state share a content digest",
+   "verdict": "PASS",
+   "evidence": "digest stable at sha256:1fe31dfef0c97 across two cuts at different times"
+  }
+ ]
+}
