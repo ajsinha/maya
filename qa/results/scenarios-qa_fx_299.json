@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-299",
+   "title": "A date field compared against an ISO string and against an epoch",
+   "verdict": "PASS",
+   "evidence": "an ISO date and an epoch are both accepted"
+  }
+ ]
+}

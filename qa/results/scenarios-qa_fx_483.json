@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 6,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-4830",
+   "title": "Contradictions are reported before shadowing",
+   "verdict": "PASS",
+   "evidence": "contradictions raised before shadowing"
+  },
+  {
+   "id": "QA-FX-4831",
+   "title": "An undecided rule is reported, never counted as clean",
+   "verdict": "PASS",
+   "evidence": "Undecided is caught, recorded, and kept apart from shadowed"
+  },
+  {
+   "id": "QA-FX-4832",
+   "title": "A condition no input can satisfy",
+   "verdict": "PASS",
+   "evidence": "the impossible interval is caught, the ordinary one is not"
+  },
+  {
+   "id": "QA-FX-4833",
+   "title": "A condition nested past the depth bound",
+   "verdict": "PASS",
+   "evidence": "refused past 6 levels, naming the path"
+  },
+  {
+   "id": "QA-FX-4834",
+   "title": "A condition naming no field, and an unknown operator",
+   "verdict": "PASS",
+   "evidence": "no field, unknown operator and empty group all refused by path"
+  },
+  {
+   "id": "QA-FX-4835",
+   "title": "The rule count bound",
+   "verdict": "PASS",
+   "evidence": "bounded at 512 rules"
+  }
+ ]
+}

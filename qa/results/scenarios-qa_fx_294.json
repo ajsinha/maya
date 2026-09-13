@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-294",
+   "title": "A condition expanding past 256 disjunctions",
+   "verdict": "PASS",
+   "evidence": "past 256 the expansion refuses, coverage answers a sound negative and satisfiability a sound positive"
+  }
+ ]
+}

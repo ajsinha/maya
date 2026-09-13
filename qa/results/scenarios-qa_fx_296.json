@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-296",
+   "title": "The negation of `between`",
+   "verdict": "PASS",
+   "evidence": "treated as opaque: covers nothing rather than guessing"
+  }
+ ]
+}
