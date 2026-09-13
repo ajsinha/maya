@@ -1,0 +1,95 @@
+{
+ "summary": {
+  "total": 14,
+  "pass": 14,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.1,
+ "results": [
+  {
+   "id": "QA-GOV-306",
+   "title": "Place a hold with an empty matter",
+   "verdict": "PASS",
+   "evidence": "refused 'matter_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-307",
+   "title": "Place a hold with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'owner_required'"
+  },
+  {
+   "id": "QA-GOV-308",
+   "title": "Place a model-scoped hold with no `scope_id`",
+   "verdict": "PASS",
+   "evidence": "refused 'scope_required'"
+  },
+  {
+   "id": "QA-GOV-309",
+   "title": "Place a hold with an unrecognised scope kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_scope', naming all 3"
+  },
+  {
+   "id": "QA-GOV-310",
+   "title": "Place two overlapping holds, lift one, then delete",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' with HOLD-0002 still in force"
+  },
+  {
+   "id": "QA-GOV-311",
+   "title": "Lift the last hold, then delete",
+   "verdict": "PASS",
+   "evidence": "the last hold lifted and the deletion proceeded"
+  },
+  {
+   "id": "QA-GOV-312",
+   "title": "Lift a hold twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active', first reason intact"
+  },
+  {
+   "id": "QA-GOV-313",
+   "title": "Lift with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-314",
+   "title": "Lift a hold that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_hold'"
+  },
+  {
+   "id": "QA-GOV-315",
+   "title": "A hold is placed while a deletion is in flight",
+   "verdict": "PASS",
+   "evidence": "a hold over a model that has been deleted is refused 'unknown_scope_id', so nobody is told material is held that is gone"
+  },
+  {
+   "id": "QA-GOV-316",
+   "title": "Place the first hold on an estate with no models",
+   "verdict": "PASS",
+   "evidence": "HOLD-0001 placed over the estate"
+  },
+  {
+   "id": "QA-GOV-3400",
+   "title": "Somebody else may move the alias",
+   "verdict": "PASS",
+   "evidence": "approved by one person, promoted by another"
+  },
+  {
+   "id": "QA-GOV-3500",
+   "title": "A reviewer answering their own row, spelled differently",
+   "verdict": "PASS",
+   "evidence": "a prefixed name cannot enter a population, so the `==` self-review check never sees two spellings"
+  },
+  {
+   "id": "QA-GOV-3501",
+   "title": "Revoking removes roles here and says so",
+   "verdict": "PASS",
+   "evidence": "the wording is bounded to what the platform can see"
+  }
+ ]
+}

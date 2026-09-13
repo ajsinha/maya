@@ -2201,6 +2201,7 @@ look for instead.
 | QA-GOV-6208 | `regression` | Observe after the run concluded | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-6208` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-6209 | `regression` | Outcome coverage is reported | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-6209` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-GOV-4620 | `regression` | A second model in the estate receives its first condition | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-4620` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-GOV-4630 | `regression` | Place a model-scoped hold naming a model that does not exist | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-GOV-4630` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- G-features-execution.md -->

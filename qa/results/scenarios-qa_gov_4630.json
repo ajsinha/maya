@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-4630",
+   "title": "Place a model-scoped hold naming a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "the URN resolves, and an identifier that resolves to nothing is refused 'unknown_scope_id'"
+  }
+ ]
+}
