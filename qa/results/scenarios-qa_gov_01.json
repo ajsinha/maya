@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 8,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-GOV-010",
+   "title": "PATCH tier directly",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-011",
+   "title": "PATCH with an empty body",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-012",
+   "title": "PATCH the same field to the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-013",
+   "title": "Set designations on an attested record",
+   "verdict": "PASS",
+   "evidence": "accepted on an attested record \u2014 a designation is treated as a fact ABOUT the record rather than a change to what it says"
+  },
+  {
+   "id": "QA-GOV-015",
+   "title": "Designations back to empty after being populated",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-016",
+   "title": "Designations containing the same value twice",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-GOV-017",
+   "title": "A model registered with no legal entity",
+   "verdict": "FAIL",
+   "evidence": "a model was registered belonging to no legal entity, so no entity-scoped principal can reach it and nobody is accountable for it"
+  },
+  {
+   "id": "QA-GOV-018",
+   "title": "Register a proposal before it has been triaged",
+   "verdict": "PASS",
+   "evidence": "refused 'not_triaged'"
+  },
+  {
+   "id": "QA-GOV-019",
+   "title": "Triage out of scope, then try to register",
+   "verdict": "PASS",
+   "evidence": "refused 'proposal_declined'"
+  }
+ ]
+}

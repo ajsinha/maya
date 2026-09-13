@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-020",
+   "title": "Register the same proposal twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_triaged'"
+  },
+  {
+   "id": "QA-GOV-021",
+   "title": "Re-triage a proposal already triaged",
+   "verdict": "PASS",
+   "evidence": "revised; the chain holds both determinations ['build', 'buy']"
+  },
+  {
+   "id": "QA-GOV-022",
+   "title": "Register a proposal onto a URN already in the register",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused', proposal still triaged"
+  },
+  {
+   "id": "QA-GOV-023",
+   "title": "Triage with an empty rationale",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_error' (422)"
+  },
+  {
+   "id": "QA-GOV-023b",
+   "title": "The sourcing vocabulary is closed",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_sourcing', naming the 4 members"
+  },
+  {
+   "id": "QA-GOV-023c",
+   "title": "The assessment is a reading, never a determination",
+   "verdict": "PASS",
+   "evidence": "5 questions, each naming the words it turned on, and the proposal untouched"
+  },
+  {
+   "id": "QA-GOV-029",
+   "title": "Submit twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  }
+ ]
+}
