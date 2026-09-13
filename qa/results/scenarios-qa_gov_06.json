@@ -1,0 +1,41 @@
+{
+ "summary": {
+  "total": 5,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-060",
+   "title": "Submit a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-062",
+   "title": "Two different people sign the same role",
+   "verdict": "BLOCKED",
+   "evidence": "answered 'forbidden' \u2014 the caller never reached the control, so this proves nothing about it"
+  },
+  {
+   "id": "QA-GOV-065",
+   "title": "Sign with a decision that is neither attest nor decline",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_decision'"
+  },
+  {
+   "id": "QA-GOV-067",
+   "title": "An attestation is not expired the moment it is signed",
+   "verdict": "PASS",
+   "evidence": "attested, and reported as not expired"
+  },
+  {
+   "id": "QA-GOV-069",
+   "title": "Amend a model whose attestation has expired",
+   "verdict": "PASS",
+   "evidence": "amendment is available from the attested state"
+  }
+ ]
+}
