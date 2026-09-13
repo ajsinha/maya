@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 0,
+  "blocked": 1
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-223",
+   "title": "Evaluate from telemetry with no rows in the window",
+   "verdict": "BLOCKED",
+   "evidence": "the monitor names no version, so the read never reaches the window at all \u2014 nothing binds one through the API, see QA-AM-4720"
+  }
+ ]
+}
