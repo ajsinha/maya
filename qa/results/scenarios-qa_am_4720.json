@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-4720",
+   "title": "Bind a monitor to a model version through the API",
+   "verdict": "FAIL",
+   "evidence": "no route binds a monitor to a version: `MonitorIn` has no version field, the create route never passes `model_version_id`, and seeding the defaults created 0 monitor(s) with none either. `evaluate_from_telemetry` reads that column to find the stream, so it refuses `monitor_has_no_version` for every monitor in the estate and the telemetry-driven evaluation path cannot be reached at all"
+  }
+ ]
+}
