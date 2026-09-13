@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-041",
+   "title": "The same idempotency key, same body, twice in sequence",
+   "verdict": "PASS",
+   "evidence": "the first answer replayed, marked as a replay"
+  },
+  {
+   "id": "QA-PLT-042",
+   "title": "The same key with a **corrected** body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused', naming the way forward"
+  },
+  {
+   "id": "QA-PLT-043",
+   "title": "The same key with the same fields in a different order",
+   "verdict": "PASS",
+   "evidence": "reordered keys replay rather than conflict"
+  },
+  {
+   "id": "QA-PLT-044",
+   "title": "Two requests with one key arriving at the same moment",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_in_flight'"
+  },
+  {
+   "id": "QA-PLT-045",
+   "title": "A key whose first attempt was **refused**, retried",
+   "verdict": "PASS",
+   "evidence": "the retry after a refusal really runs"
+  },
+  {
+   "id": "QA-PLT-047",
+   "title": "A key of 256 characters",
+   "verdict": "PASS",
+   "evidence": "255 accepted, 256 refused"
+  },
+  {
+   "id": "QA-PLT-048",
+   "title": "Two principals choosing the same key",
+   "verdict": "PASS",
+   "evidence": "both acts happened, neither replayed the other"
+  },
+  {
+   "id": "QA-PLT-049",
+   "title": "One idempotency key reused across two routes",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  }
+ ]
+}

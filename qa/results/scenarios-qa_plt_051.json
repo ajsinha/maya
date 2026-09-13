@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-051",
+   "title": "An idempotent act whose *effects* are not in the response",
+   "verdict": "PASS",
+   "evidence": "the answer replayed and the chain is unchanged at 1"
+  }
+ ]
+}

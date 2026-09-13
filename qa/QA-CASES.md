@@ -4193,6 +4193,8 @@ repository's own `data/`.
 | QA-PLT-4761 | `regression` | `trust` re-weighted on a node | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4761` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4762 | `regression` | Anchor the same head twice, then with a different hash | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4762` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-PLT-4763 | `regression` | The evidence table refuses an UPDATE and a DELETE | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4763` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4770 | `regression` | A key on a GET | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4770` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-PLT-4771 | `regression` | A key released by a failure is usable again | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-PLT-4771` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- J-deletion-and-storage.md -->
