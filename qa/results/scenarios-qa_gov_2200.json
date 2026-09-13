@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-2200",
+   "title": "A delegation names a currency",
+   "verdict": "FAIL",
+   "evidence": "a ceiling was recorded with no currency, so the number means whatever the reader assumes"
+  }
+ ]
+}

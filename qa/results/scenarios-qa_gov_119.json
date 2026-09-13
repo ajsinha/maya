@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-119",
+   "title": "Publish a band naming a tier that does not exist",
+   "verdict": "PASS",
+   "evidence": "tiers 0, 5, -1 and 99 all refused"
+  }
+ ]
+}
