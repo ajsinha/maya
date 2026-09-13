@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-FX-249",
+   "title": "A parameter set does not create a model version",
+   "verdict": "PASS",
+   "evidence": "1 version(s) before and after"
+  }
+ ]
+}

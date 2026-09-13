@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-FX-234",
+   "title": "A fitted set against a kernel data does not produce",
+   "verdict": "PASS",
+   "evidence": "all 3 authored kinds refused as fitted and as calibrated"
+  }
+ ]
+}

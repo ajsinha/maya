@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-243",
+   "title": "The recorder approving their own set",
+   "verdict": "PASS",
+   "evidence": "the recorder cannot approve their own set"
+  }
+ ]
+}
