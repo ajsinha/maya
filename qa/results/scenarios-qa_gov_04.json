@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-041",
+   "title": "Sign an attestation before approval",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open'"
+  },
+  {
+   "id": "QA-GOV-042",
+   "title": "The last signature lands after the record was retired",
+   "verdict": "PASS",
+   "evidence": "the last signature was refused 'illegal_transition'; the record stands at retired"
+  },
+  {
+   "id": "QA-GOV-043",
+   "title": "Decline an initial attestation",
+   "verdict": "PASS",
+   "evidence": "declined, and the record is back at draft"
+  },
+  {
+   "id": "QA-GOV-044",
+   "title": "Decline an amendment attestation",
+   "verdict": "PASS",
+   "evidence": "back at amending, amendment still open"
+  },
+  {
+   "id": "QA-GOV-045",
+   "title": "The decline edge against the published machine",
+   "verdict": "FAIL",
+   "evidence": "a declined attestation moves the record approved -> draft and approved -> amending, and the published machine names no such edge. An examiner reading GET /lifecycle cannot see that declining sends the record back, or where to"
+  },
+  {
+   "id": "QA-GOV-046",
+   "title": "Sign again after a decline closed the attestation",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open'"
+  },
+  {
+   "id": "QA-GOV-047",
+   "title": "Walk the whole path twice on one model",
+   "verdict": "PASS",
+   "evidence": "two full cycles, one amendment on the record"
+  },
+  {
+   "id": "QA-GOV-048",
+   "title": "Walk the path as one account throughout",
+   "verdict": "PASS",
+   "evidence": "refused at grant time: 'incompatible_roles'"
+  }
+ ]
+}

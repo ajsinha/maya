@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 10,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-GOV-030",
+   "title": "Approve a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-031",
+   "title": "Attest a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'no_attestation_open' (409)"
+  },
+  {
+   "id": "QA-GOV-032",
+   "title": "Return a draft record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-033",
+   "title": "Return with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-GOV-034",
+   "title": "Retire a submitted record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-035",
+   "title": "Retire an amending record",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition'"
+  },
+  {
+   "id": "QA-GOV-036",
+   "title": "Retire twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition' (409)"
+  },
+  {
+   "id": "QA-GOV-037",
+   "title": "Add a version to a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-038",
+   "title": "PATCH a retired record",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-GOV-039",
+   "title": "Approve twice",
+   "verdict": "PASS",
+   "evidence": "refused 'illegal_transition', exactly one attestation open"
+  }
+ ]
+}
