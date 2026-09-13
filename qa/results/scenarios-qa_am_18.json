@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 7,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-180",
+   "title": "Renew an active waiver early, with most of it left to run",
+   "verdict": "FAIL",
+   "evidence": "renewing shortened the window by 50 days: `renew` sets `expires_at` to now + days rather than extending from the existing expiry, so renewing a waiver early takes time away from it under a verb that reads as adding time"
+  },
+  {
+   "id": "QA-AM-182",
+   "title": "Renew a proposed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-AM-183",
+   "title": "Propose a waiver for zero days",
+   "verdict": "PASS",
+   "evidence": "refused 'no_expiry'"
+  },
+  {
+   "id": "QA-AM-184",
+   "title": "Propose a waiver with no compensating control",
+   "verdict": "PASS",
+   "evidence": "refused 'no_compensating_control'"
+  },
+  {
+   "id": "QA-AM-185",
+   "title": "Propose a waiver of a control no tier requires",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_control', naming the 21 controls"
+  },
+  {
+   "id": "QA-AM-186",
+   "title": "Run the expiry sweep twice",
+   "verdict": "PASS",
+   "evidence": "first sweep [], second []"
+  },
+  {
+   "id": "QA-AM-187",
+   "title": "A proposed waiver whose window passed, after the sweep",
+   "verdict": "FAIL",
+   "evidence": "a proposal whose window ran out is still 'proposed' after the expiry sweep, which only looks at active waivers. It stays proposed for ever and can still be approved into an exception that expired before anybody granted it"
+  },
+  {
+   "id": "QA-AM-188",
+   "title": "Revoke a waiver with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_reason'"
+  },
+  {
+   "id": "QA-AM-189",
+   "title": "Revoke an already closed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'already_closed'"
+  }
+ ]
+}

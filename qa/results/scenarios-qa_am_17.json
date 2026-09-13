@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 5,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-173",
+   "title": "Approve a waiver whose window has already passed",
+   "verdict": "FAIL",
+   "evidence": "a waiver whose window had already run became 'active': `expires_at` is set at PROPOSE time and `approve` does not check it, so a waiver that waited out its own window in the approval queue is granted already expired and reads as a live exception"
+  },
+  {
+   "id": "QA-AM-174",
+   "title": "The proposer approves their own waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'proposer_may_not_approve' in the register"
+  },
+  {
+   "id": "QA-AM-176",
+   "title": "One person signs a tier 1 waiver twice under two roles",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  },
+  {
+   "id": "QA-AM-177",
+   "title": "Two people sign a tier 1 waiver under the same role",
+   "verdict": "PASS",
+   "evidence": "refused 'role_already_signed'"
+  },
+  {
+   "id": "QA-AM-178",
+   "title": "A tier 1 waiver with one of two signatures",
+   "verdict": "PASS",
+   "evidence": "still 'proposed' with 1 of 2 signatures"
+  },
+  {
+   "id": "QA-AM-179",
+   "title": "A waiver on an untiered model",
+   "verdict": "PASS",
+   "evidence": "one signature is not enough on an untiered model"
+  }
+ ]
+}

@@ -1,0 +1,209 @@
+{
+ "summary": {
+  "total": 33,
+  "pass": 27,
+  "fail": 6,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-AM-1300",
+   "title": "A test that does not decompose is refused by name",
+   "verdict": "PASS",
+   "evidence": "refused 'test_does_not_decompose' for calibration.brier"
+  },
+  {
+   "id": "QA-AM-1301",
+   "title": "A test with no distributed form at all",
+   "verdict": "PASS",
+   "evidence": "refused 'test_not_distributable'"
+  },
+  {
+   "id": "QA-AM-1302",
+   "title": "A PSI plan against a reference too small to bin",
+   "verdict": "PASS",
+   "evidence": "refused 'reference_too_small'"
+  },
+  {
+   "id": "QA-AM-1303",
+   "title": "The plan fixes the reference edges and digests them",
+   "verdict": "PASS",
+   "evidence": "9 edges under digest sha256:d6f10"
+  },
+  {
+   "id": "QA-AM-1304",
+   "title": "A submission quoting different reference edges",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1305",
+   "title": "A submission carrying the metric instead of statistics",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1306",
+   "title": "A submission with no partitions",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1307",
+   "title": "A bad submission is refused whole, not in part",
+   "verdict": "PASS",
+   "evidence": "refused whole: 2 problem(s): submission.predicate is missing; partitions[1].bin_counts is missing"
+  },
+  {
+   "id": "QA-AM-1308",
+   "title": "AUC needs a global ranking and the plan says so",
+   "verdict": "PASS",
+   "evidence": "global ranking demanded, and the reason is in the plan"
+  },
+  {
+   "id": "QA-AM-1309",
+   "title": "An AUC submission that was not ranked globally",
+   "verdict": "PASS",
+   "evidence": "refused 'submission_does_not_meet_the_plan'"
+  },
+  {
+   "id": "QA-AM-1310",
+   "title": "The distributable list is published, not documented",
+   "verdict": "PASS",
+   "evidence": "4 distributable, 2 refused by name"
+  },
+  {
+   "id": "QA-AM-1311",
+   "title": "The answer says the population is attested, not observed",
+   "verdict": "PASS",
+   "evidence": "attested-not-observed, with the predicate on the record"
+  },
+  {
+   "id": "QA-AM-1312",
+   "title": "A distributed breach is judged, not just computed",
+   "verdict": "FAIL",
+   "evidence": "the submission computed 3.9385 and the outcome carries no comparison to the threshold at all \u2014 no breach, no status, not even the threshold it was supposedly compared against. `posture()` publishes `maya_compares_to_the_threshold: true` and the plan tells the caller the judgement stays here; the arithmetic stays here and the judgement does not happen"
+  },
+  {
+   "id": "QA-AM-1313",
+   "title": "A distributed evaluation reaches the monitor's history",
+   "verdict": "FAIL",
+   "evidence": "the submitted evaluation left no trace on the monitor; the estate-wide sweep computes numbers the register does not keep"
+  },
+  {
+   "id": "QA-AM-1314",
+   "title": "Every test refused by name can actually be defined",
+   "verdict": "FAIL",
+   "evidence": "published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow"
+  },
+  {
+   "id": "QA-AM-1315",
+   "title": "Every distributable test can actually be defined",
+   "verdict": "PASS",
+   "evidence": "all 4 are definable tests"
+  },
+  {
+   "id": "QA-AM-132",
+   "title": "A root of an unknown kind",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_root_kind' (422)"
+  },
+  {
+   "id": "QA-AM-135",
+   "title": "A root counts an acknowledged child as still owed",
+   "verdict": "PASS",
+   "evidence": "the acknowledged child is still counted"
+  },
+  {
+   "id": "QA-AM-173",
+   "title": "Approve a waiver whose window has already passed",
+   "verdict": "FAIL",
+   "evidence": "a waiver whose window had already run became 'active': `expires_at` is set at PROPOSE time and `approve` does not check it, so a waiver that waited out its own window in the approval queue is granted already expired and reads as a live exception"
+  },
+  {
+   "id": "QA-AM-174",
+   "title": "The proposer approves their own waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'proposer_may_not_approve' in the register"
+  },
+  {
+   "id": "QA-AM-176",
+   "title": "One person signs a tier 1 waiver twice under two roles",
+   "verdict": "PASS",
+   "evidence": "refused 'already_signed'"
+  },
+  {
+   "id": "QA-AM-177",
+   "title": "Two people sign a tier 1 waiver under the same role",
+   "verdict": "PASS",
+   "evidence": "refused 'role_already_signed'"
+  },
+  {
+   "id": "QA-AM-178",
+   "title": "A tier 1 waiver with one of two signatures",
+   "verdict": "PASS",
+   "evidence": "still 'proposed' with 1 of 2 signatures"
+  },
+  {
+   "id": "QA-AM-179",
+   "title": "A waiver on an untiered model",
+   "verdict": "PASS",
+   "evidence": "one signature is not enough on an untiered model"
+  },
+  {
+   "id": "QA-AM-180",
+   "title": "Renew an active waiver early, with most of it left to run",
+   "verdict": "FAIL",
+   "evidence": "renewing shortened the window by 50 days: `renew` sets `expires_at` to now + days rather than extending from the existing expiry, so renewing a waiver early takes time away from it under a verb that reads as adding time"
+  },
+  {
+   "id": "QA-AM-182",
+   "title": "Renew a proposed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-AM-183",
+   "title": "Propose a waiver for zero days",
+   "verdict": "PASS",
+   "evidence": "refused 'no_expiry'"
+  },
+  {
+   "id": "QA-AM-184",
+   "title": "Propose a waiver with no compensating control",
+   "verdict": "PASS",
+   "evidence": "refused 'no_compensating_control'"
+  },
+  {
+   "id": "QA-AM-185",
+   "title": "Propose a waiver of a control no tier requires",
+   "verdict": "PASS",
+   "evidence": "refused 'unknown_control', naming the 21 controls"
+  },
+  {
+   "id": "QA-AM-186",
+   "title": "Run the expiry sweep twice",
+   "verdict": "PASS",
+   "evidence": "first sweep ['WVR-0001'], second []"
+  },
+  {
+   "id": "QA-AM-187",
+   "title": "A proposed waiver whose window passed, after the sweep",
+   "verdict": "FAIL",
+   "evidence": "a proposal whose window ran out is still 'proposed' after the expiry sweep, which only looks at active waivers. It stays proposed for ever and can still be approved into an exception that expired before anybody granted it"
+  },
+  {
+   "id": "QA-AM-188",
+   "title": "Revoke a waiver with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'no_reason'"
+  },
+  {
+   "id": "QA-AM-189",
+   "title": "Revoke an already closed waiver",
+   "verdict": "PASS",
+   "evidence": "refused 'already_closed'"
+  }
+ ]
+}
