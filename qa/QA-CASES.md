@@ -2968,6 +2968,8 @@ Every case is **re-runnable**. The second run is where the state bugs live, and 
 | QA-FX-4833 | `regression` | A condition nested past the depth bound | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4833` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4834 | `regression` | A condition naming no field, and an unknown operator | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4834` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-FX-4835 | `regression` | The rule count bound | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4835` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4840 | `regression` | A clock that is a string rather than a number | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4840` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-FX-4841 | `regression` | A clock that is a boolean | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-FX-4841` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- H-assurance-monitoring.md -->

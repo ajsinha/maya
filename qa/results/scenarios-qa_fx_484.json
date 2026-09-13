@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-4840",
+   "title": "A clock that is a string rather than a number",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the row and the clock"
+  },
+  {
+   "id": "QA-FX-4841",
+   "title": "A clock that is a boolean",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused', naming the type"
+  }
+ ]
+}

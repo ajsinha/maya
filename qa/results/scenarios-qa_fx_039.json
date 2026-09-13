@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-039",
+   "title": "Materialise zero rows",
+   "verdict": "FAIL",
+   "evidence": "an empty version was pinned with nothing marking it empty: whatever assembles from it gets an empty frame, and the refusal lands on somebody who did not send the load"
+  }
+ ]
+}
