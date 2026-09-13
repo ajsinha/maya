@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-DEL-005",
+   "title": "Delete a model under a legal hold",
+   "verdict": "PASS",
+   "evidence": "the delete path consults a legal hold"
+  }
+ ]
+}
