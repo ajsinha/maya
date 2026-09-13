@@ -1283,7 +1283,7 @@ class ModelRoutes(Routes):
             The default answer to "should I compact?", because the destructive
             version is not reversible and the plan is cheap.
             """
-            self.authorise(request, "admin")
+            self.authorise(request, "storage:compact")
             return self.guard(lambda: self.ctx["compaction"].plan())
 
         @self.app.post(f"{self.api}/compaction/sweep", tags=["registry"])
@@ -1294,7 +1294,7 @@ class ModelRoutes(Routes):
             the row that references them, and a sweeper walking past in between
             sees exactly what a real orphan looks like.
             """
-            who = self.authorise(request, "admin")
+            who = self.authorise(request, "storage:compact")
             return self.guard(lambda: self.ctx["compaction"].sweep(
                 actor=self.actor(who), dry_run=dry_run))
 
@@ -1306,7 +1306,7 @@ class ModelRoutes(Routes):
             the database, which is why it is asked for rather than done on the
             way out of a deletion.
             """
-            who = self.authorise(request, "admin")
+            who = self.authorise(request, "storage:compact")
             return self.guard(
                 lambda: self.ctx["compaction"].vacuum(actor=self.actor(who)))
 
