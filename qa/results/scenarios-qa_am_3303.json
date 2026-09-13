@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-3303",
+   "title": "Nothing is stored, so the score cannot go stale",
+   "verdict": "PASS",
+   "evidence": "no health table; the score is derived on every read"
+  }
+ ]
+}

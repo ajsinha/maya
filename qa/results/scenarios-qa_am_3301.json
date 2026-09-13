@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-3301",
+   "title": "The bands are ordered and the thresholds are stated",
+   "verdict": "PASS",
+   "evidence": "good at 0.8, watch at 0.55, then poor"
+  }
+ ]
+}

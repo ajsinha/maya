@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-AM-286",
+   "title": "A model with no monitors, no validation and no findings",
+   "verdict": "PASS",
+   "evidence": "score 100.0 at coverage 0.25, and the detail says what that means"
+  }
+ ]
+}

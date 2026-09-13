@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-287",
+   "title": "A model where nothing at all is measurable",
+   "verdict": "PASS",
+   "evidence": "nothing about this model is measurable yet: no monitor has been evaluated, no feed judged, no validation concl"
+  }
+ ]
+}
