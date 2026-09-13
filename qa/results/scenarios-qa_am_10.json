@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 4,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-101",
+   "title": "Extend with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-AM-103",
+   "title": "Extend to exactly the current due date",
+   "verdict": "PASS",
+   "evidence": "refused 'not_an_extension'"
+  },
+  {
+   "id": "QA-AM-104",
+   "title": "Extend a High finding by exactly its own window",
+   "verdict": "PASS",
+   "evidence": "90 days granted, the boundary is inclusive"
+  },
+  {
+   "id": "QA-AM-105",
+   "title": "Extend a High finding by one day more than its window",
+   "verdict": "PASS",
+   "evidence": "refused 'extension_too_long'"
+  }
+ ]
+}

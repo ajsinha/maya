@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 7,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-090",
+   "title": "Act on a finding that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_finding' (404)"
+  },
+  {
+   "id": "QA-AM-091",
+   "title": "Acknowledge to exactly the due date",
+   "verdict": "PASS",
+   "evidence": "the due date itself is inside the window"
+  },
+  {
+   "id": "QA-AM-092",
+   "title": "Acknowledge to a date that has already passed",
+   "verdict": "PASS",
+   "evidence": "refused 'date_in_the_past'"
+  },
+  {
+   "id": "QA-AM-093",
+   "title": "Acknowledge, then hand the finding over",
+   "verdict": "PASS",
+   "evidence": "the acknowledgement did not follow the finding"
+  },
+  {
+   "id": "QA-AM-096",
+   "title": "Record a plan that is empty",
+   "verdict": "PASS",
+   "evidence": "refused 'plan_required'"
+  },
+  {
+   "id": "QA-AM-098",
+   "title": "Extend before anybody has acknowledged",
+   "verdict": "PASS",
+   "evidence": "refused 'not_acknowledged'"
+  },
+  {
+   "id": "QA-AM-099",
+   "title": "The owner extends their own deadline",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' at the gate and 'self_extension' in the register"
+  }
+ ]
+}

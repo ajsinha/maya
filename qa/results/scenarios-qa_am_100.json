@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-100",
+   "title": "The owner extends, spelled without the person/ prefix",
+   "verdict": "PASS",
+   "evidence": "refused 'self_extension' on the bare spelling too"
+  }
+ ]
+}
