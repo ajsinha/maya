@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5002",
+   "title": "The top level wins a collision",
+   "verdict": "PASS",
+   "evidence": "the top-level value is the one checked"
+  }
+ ]
+}

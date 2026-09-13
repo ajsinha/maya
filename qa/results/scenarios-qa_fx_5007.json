@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5007",
+   "title": "A contract that checked nothing at all",
+   "verdict": "PASS",
+   "evidence": "every assumption reported unchecked"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-399",
+   "title": "An input outside a numeric bound",
+   "verdict": "PASS",
+   "evidence": "both ends inclusive, outside both refused"
+  }
+ ]
+}
