@@ -1,0 +1,29 @@
+{
+ "summary": {
+  "total": 3,
+  "pass": 3,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-133",
+   "title": "A compiled document that cites nothing",
+   "verdict": "PASS",
+   "evidence": "sound over 2 citation(s), count reported"
+  },
+  {
+   "id": "QA-PLT-135",
+   "title": "A dossier for a URN that is not registered",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-136",
+   "title": "A dossier for a registered model with nothing filed",
+   "verdict": "PASS",
+   "evidence": "1 gap(s) named"
+  }
+ ]
+}

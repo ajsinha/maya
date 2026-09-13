@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4933",
+   "title": "Staleness is measured across the model and its versions",
+   "verdict": "FAIL",
+   "evidence": "a new version left the document reporting that nothing has been recorded since it was compiled. `subjects` is captured AT COMPILE TIME (2 id(s)) and `version_created` is recorded against the NEW version's id, which is not in it \u2014 so the fix that widened staleness from the model alone to the model and its versions still cannot see a version created afterwards, which is the case the defect was repor"
+  }
+ ]
+}
