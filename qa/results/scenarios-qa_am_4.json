@@ -1,0 +1,101 @@
+{
+ "summary": {
+  "total": 15,
+  "pass": 13,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 12.1,
+ "results": [
+  {
+   "id": "QA-AM-406",
+   "title": "Run every job twice in one pass",
+   "verdict": "PASS",
+   "evidence": "27 jobs, twice, and the register is unchanged after the second"
+  },
+  {
+   "id": "QA-AM-407",
+   "title": "`monitoring.stalled` at exactly three cadences",
+   "verdict": "FAIL",
+   "evidence": "a monitor evaluated exactly 3 cadences ago is already reported stalled. `overdue_by` is 3 - 1 = 2 cadences and the guard is `overdue_by < cadence * (MULTIPLE - 1)`, so the boundary itself fires. Every comparable boundary in this platform is exclusive \u2014 escalation is `>` not `>=`, the acknowledge window skips on `<=`, the extension window and the tau bands the same \u2014 so this one alone reports a con"
+  },
+  {
+   "id": "QA-AM-408",
+   "title": "`monitoring.stalled` after the monitor was paused",
+   "verdict": "PASS",
+   "evidence": "a paused monitor is not a stalled one"
+  },
+  {
+   "id": "QA-AM-409",
+   "title": "`findings.overdue` does not escalate its own escalations",
+   "verdict": "PASS",
+   "evidence": "1 escalation, and no escalation of it"
+  },
+  {
+   "id": "QA-AM-411",
+   "title": "`findings.unacknowledged` at exactly the acknowledge window",
+   "verdict": "PASS",
+   "evidence": "silent at 5 days, reported an hour later"
+  },
+  {
+   "id": "QA-AM-413",
+   "title": "One job raises during a pass",
+   "verdict": "PASS",
+   "evidence": "27 ran, 1 failed, named in the detail with its error"
+  },
+  {
+   "id": "QA-AM-415",
+   "title": "Run one job by name, then the whole pass",
+   "verdict": "PASS",
+   "evidence": "one job, then the pass; 0 new finding(s) and none from the job already run"
+  },
+  {
+   "id": "QA-AM-416",
+   "title": "The scheduler has not run for a week",
+   "verdict": "PASS",
+   "evidence": "a week-old batch is flagged stale, not reported as a number"
+  },
+  {
+   "id": "QA-AM-417",
+   "title": "Delete the whole run history and run a pass",
+   "verdict": "PASS",
+   "evidence": "history cleared, and the pass is identical"
+  },
+  {
+   "id": "QA-AM-4700",
+   "title": "Define two monitors with the same name on two models",
+   "verdict": "PASS",
+   "evidence": "one name, two models, both defined"
+  },
+  {
+   "id": "QA-AM-4701",
+   "title": "Every label-dependent kind demands a delay",
+   "verdict": "PASS",
+   "evidence": "performance, calibration demand a delay; input_drift, score_drift do not"
+  },
+  {
+   "id": "QA-AM-4710",
+   "title": "An ingested breach opens a breach and a finding, like any other",
+   "verdict": "PASS",
+   "evidence": "1 breach(es) and 1 finding(s)"
+  },
+  {
+   "id": "QA-AM-4720",
+   "title": "Bind a monitor to a model version through the API",
+   "verdict": "FAIL",
+   "evidence": "no route binds a monitor to a version: `MonitorIn` has no version field, the create route never passes `model_version_id`, and seeding the defaults created 0 monitor(s) with none either. `evaluate_from_telemetry` reads that column to find the stream, so it refuses `monitor_has_no_version` for every monitor in the estate and the telemetry-driven evaluation path cannot be reached at all"
+  },
+  {
+   "id": "QA-AM-4730",
+   "title": "The score is absent rather than zero when nothing is measurable",
+   "verdict": "PASS",
+   "evidence": "scored over 25% of the weight, and the detail says so"
+  },
+  {
+   "id": "QA-AM-4740",
+   "title": "A heatmap of one dimension against itself",
+   "verdict": "PASS",
+   "evidence": "refused 'same_dimension', and an unknown dimension too"
+  }
+ ]
+}
