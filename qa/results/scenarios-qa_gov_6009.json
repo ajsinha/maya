@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-6009",
+   "title": "A use is separate from the model's own purpose",
+   "verdict": "PASS",
+   "evidence": "3 uses of one model"
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-6008",
+   "title": "A use and a grant are reconcilable",
+   "verdict": "PASS",
+   "evidence": "no invocations in the window, so nothing can be said about actual use \u2014 which is itself worth knowin"
+  }
+ ]
+}

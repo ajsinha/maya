@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-6003",
+   "title": "The business vocabulary is deliberately open",
+   "verdict": "PASS",
+   "evidence": "the firm's own vocabulary is accepted"
+  }
+ ]
+}

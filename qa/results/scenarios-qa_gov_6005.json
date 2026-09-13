@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-GOV-6005",
+   "title": "Retire a use with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused'"
+  }
+ ]
+}

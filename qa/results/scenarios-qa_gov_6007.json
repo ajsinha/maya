@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-6007",
+   "title": "A lapsed use is reported, not deleted",
+   "verdict": "PASS",
+   "evidence": "0 lapsed use(s) reported"
+  }
+ ]
+}
