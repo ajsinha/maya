@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-PLT-4700",
+   "title": "No control reads a key one edit from the one written",
+   "verdict": "PASS",
+   "evidence": "3 near-miss read(s) outside the foreign-format modules: 'feature_contract' (near 'has_feature_contract') at engine.py:203; 'reached' (near 'breached') at decommission.py:145; 'warrants' (near 'warrant') at engine.py:210"
+  }
+ ]
+}
