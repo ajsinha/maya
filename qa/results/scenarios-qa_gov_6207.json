@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-GOV-6207",
+   "title": "A run with nothing paired at all",
+   "verdict": "PASS",
+   "evidence": "nothing has been paired yet, so there is nothing to compare. This says nothing about eithe"
+  }
+ ]
+}
