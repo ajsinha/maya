@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.5,
+ "results": [
+  {
+   "id": "QA-FX-416",
+   "title": "An artifact path resolving outside the configured root",
+   "verdict": "PASS",
+   "evidence": "traversal refused 'artifact_outside_root'; a real path inside the root refused 'artifact_missing'"
+  }
+ ]
+}
