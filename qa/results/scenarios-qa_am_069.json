@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-069",
+   "title": "Raise a Low finding with `blocking: true`",
+   "verdict": "PASS",
+   "evidence": "refused 'blocked' at HTTP 423, naming the finding"
+  }
+ ]
+}

@@ -3573,6 +3573,8 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-4900 | `regression` | A queue where every model is the same tier | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4900` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4901 | `regression` | A model with no tier in the queue | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4901` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4902 | `regression` | The forecast states its own assumption | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4902` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4950 | `regression` | The urgency boundary | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4950` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4951 | `regression` | An item always names the permission its action needs | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4951` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->

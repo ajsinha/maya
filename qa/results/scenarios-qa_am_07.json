@@ -1,0 +1,71 @@
+{
+ "summary": {
+  "total": 10,
+  "pass": 9,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 1.3,
+ "results": [
+  {
+   "id": "QA-AM-070",
+   "title": "A caller-supplied `due_at` two years out",
+   "verdict": "PASS",
+   "evidence": "refused outright \u2014 the body model forbids unknown fields and carries no `due_at`, so the 30-day Critical window cannot be negotiated from any route"
+  },
+  {
+   "id": "QA-AM-071",
+   "title": "Raise with an unknown severity",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-072",
+   "title": "Raise with an unknown source",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused', naming the 5 sources"
+  },
+  {
+   "id": "QA-AM-073",
+   "title": "Raise with no owner",
+   "verdict": "PASS",
+   "evidence": "refused 'validation_refused' (409)"
+  },
+  {
+   "id": "QA-AM-074",
+   "title": "Raise the identical finding twice by hand",
+   "verdict": "PASS",
+   "evidence": "both accepted and both counted: nothing dedupes a human-raised finding, so one problem raised twice is two rows in the ageing profile"
+  },
+  {
+   "id": "QA-AM-075",
+   "title": "`set_status` to `closed`",
+   "verdict": "PASS",
+   "evidence": "refused: use close() \u2014 closure needs a verifier and evidence"
+  },
+  {
+   "id": "QA-AM-076",
+   "title": "`set_status` to an unknown value",
+   "verdict": "PASS",
+   "evidence": "no status vocabulary is checked: the finding now reads 'banana' and is still counted open, so the column can disagree with the acts"
+  },
+  {
+   "id": "QA-AM-077",
+   "title": "`set_status` back to `open` after an acknowledgement",
+   "verdict": "PASS",
+   "evidence": "the status moved in_remediation \u2192 open and the acknowledgement stands, because it is derived from the acts"
+  },
+  {
+   "id": "QA-AM-078",
+   "title": "Summary over a model with no findings",
+   "verdict": "PASS",
+   "evidence": "open 0, worst_severity null, by_severity empty"
+  },
+  {
+   "id": "QA-AM-079",
+   "title": "Estate-wide open findings under a scoped reader",
+   "verdict": "FAIL",
+   "evidence": "the answer is short by 7 and says nothing about it: no count of what scope removed, and no `detail` saying the total is partial \u2014 so a reader reconciling against an estate-wide pack sees a discrepancy and reads it as a defect in the register"
+  }
+ ]
+}

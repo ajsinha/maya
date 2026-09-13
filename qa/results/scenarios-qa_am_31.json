@@ -1,0 +1,65 @@
+{
+ "summary": {
+  "total": 9,
+  "pass": 9,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.7,
+ "results": [
+  {
+   "id": "QA-AM-311",
+   "title": "A model owner who owns a blocking finding sees it on their list",
+   "verdict": "PASS",
+   "evidence": "the owner sees 1 item(s) under others; the validator is offered the close"
+  },
+  {
+   "id": "QA-AM-312",
+   "title": "A low-severity finding with months left",
+   "verdict": "PASS",
+   "evidence": "an open, non-blocking finding is skipped"
+  },
+  {
+   "id": "QA-AM-313",
+   "title": "A Low finding that is blocking",
+   "verdict": "PASS",
+   "evidence": "present with urgency 'due', naming the cost"
+  },
+  {
+   "id": "QA-AM-314",
+   "title": "An unaccepted escalated finding, then the owner accepts it",
+   "verdict": "PASS",
+   "evidence": "the item disappears the moment the owner accepts"
+  },
+  {
+   "id": "QA-AM-315",
+   "title": "A subsystem that raises during a worklist build",
+   "verdict": "PASS",
+   "evidence": "2 item(s) survive one source raising: ['draft', 'finding']"
+  },
+  {
+   "id": "QA-AM-316",
+   "title": "The `others` count under a scoped reader",
+   "verdict": "PASS",
+   "evidence": "scoped first, and `others` is counted over what is visible"
+  },
+  {
+   "id": "QA-AM-317",
+   "title": "Baseline debt on a freshly imported model",
+   "verdict": "PASS",
+   "evidence": "one row for 9 of 13 gaps: Baseline debt: 9 item(s) outstanding"
+  },
+  {
+   "id": "QA-AM-318",
+   "title": "Debt where every gap has a dated plan and none is near expiry",
+   "verdict": "PASS",
+   "evidence": "9 gaps planned and the row clears; it returns when one is within 30 days of expiry"
+  },
+  {
+   "id": "QA-AM-319",
+   "title": "Worklist ordering with an overdue item, a due item and an open item",
+   "verdict": "PASS",
+   "evidence": "overdue, due, open \u2014 then by date, then by model"
+  }
+ ]
+}

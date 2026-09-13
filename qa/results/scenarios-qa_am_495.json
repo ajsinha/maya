@@ -1,0 +1,23 @@
+{
+ "summary": {
+  "total": 2,
+  "pass": 2,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.7,
+ "results": [
+  {
+   "id": "QA-AM-4950",
+   "title": "The urgency boundary",
+   "verdict": "PASS",
+   "evidence": "absent is open, past is overdue, inside 30.0 days is due, the boundary itself is not"
+  },
+  {
+   "id": "QA-AM-4951",
+   "title": "An item always names the permission its action needs",
+   "verdict": "PASS",
+   "evidence": "14 Items constructed, every one naming a permission"
+  }
+ ]
+}
