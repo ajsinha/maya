@@ -58,7 +58,7 @@ def main(argv=None) -> int:
         print(f"no cases match {args.only!r}")
         return 1
 
-    from tools.qa.harness import UNPRIVILEGED, live_client
+    from tools.qa.harness import PEOPLE, UNPRIVILEGED, live_client
     results: List[Dict[str, Any]] = []
     started = time.time()
     with live_client() as (ui, api, observer):
@@ -67,7 +67,9 @@ def main(argv=None) -> int:
         # declaration or a refusal that has no endpoint.
         app_ctx = getattr(getattr(ui, "app", None), "state", None)
         ctx = Ctx(ui=ui, api=api, observer=observer,
-                  people={"observer": UNPRIVILEGED},
+                  people={"observer": UNPRIVILEGED,
+                          **{who: (who, password)
+                             for who, (_roles, password) in PEOPLE.items()}},
                   made={"db": (getattr(app_ctx, "ctx", {}) or {}).get("db")})
         for case_id in chosen:
             title, fn = common.REGISTRY[case_id]

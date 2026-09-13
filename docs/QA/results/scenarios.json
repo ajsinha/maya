@@ -1,107 +1,95 @@
 {
  "summary": {
-  "total": 16,
-  "pass": 16,
+  "total": 14,
+  "pass": 14,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 2.5,
+ "seconds": 1.3,
  "results": [
   {
-   "id": "QA-FX-001",
-   "title": "A restatement landing after the label cannot reach the row",
+   "id": "QA-FX-300",
+   "title": "A warrant over an attested model with an alias",
    "verdict": "PASS",
-   "evidence": "assembled 1.2"
+   "evidence": "accepted (201)"
   },
   {
-   "id": "QA-FX-002",
-   "title": "Saturation \u2014 moving as_of past the label does not move it",
+   "id": "QA-FX-301",
+   "title": "Resolving over a model that was never attested",
    "verdict": "PASS",
-   "evidence": "assembled 1.2"
+   "evidence": "refused 'not_found' (404)"
   },
   {
-   "id": "QA-FX-003",
-   "title": "A later label reaches the restatement",
+   "id": "QA-FX-302",
+   "title": "A warrant over a model that does not exist",
    "verdict": "PASS",
-   "evidence": "assembled 0.4"
+   "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-004",
-   "title": "A label before any fact was true",
+   "id": "QA-FX-303",
+   "title": "A warrant with an undeclared use",
    "verdict": "PASS",
-   "evidence": "no admissible row, and the column is null"
+   "evidence": "refused 'declared_use_required' (422)"
   },
   {
-   "id": "QA-FX-005",
-   "title": "as_of strictly before the label bounds the assembly",
+   "id": "QA-FX-304",
+   "title": "Resolving in an environment with no alias",
    "verdict": "PASS",
-   "evidence": "assembled 0.4"
+   "evidence": "refused 'not_found' (404)"
   },
   {
-   "id": "QA-FX-006",
-   "title": "Monotone in as_of \u2014 a later cut only ever widens",
+   "id": "QA-FX-305",
+   "title": "Resolve a warrant after it is revoked",
    "verdict": "PASS",
-   "evidence": "admissible sets nest: [1, 1, 2]"
+   "evidence": "refused 'revoked' (410)"
   },
   {
-   "id": "QA-FX-007",
-   "title": "Idempotence over the same request",
+   "id": "QA-FX-306",
+   "title": "Revoking a warrant that was never issued",
    "verdict": "PASS",
-   "evidence": "identical"
+   "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-008",
-   "title": "event_ts exactly equal to label_ts is included",
+   "id": "QA-FX-307",
+   "title": "Revoking with an empty reason",
    "verdict": "PASS",
-   "evidence": "assembled 1.2"
+   "evidence": "refused 'reason_required' (422)"
   },
   {
-   "id": "QA-FX-009",
-   "title": "ingest_ts exactly equal to the knowable bound is included",
+   "id": "QA-FX-310",
+   "title": "Move an alias to a version that does not exist",
    "verdict": "PASS",
-   "evidence": "assembled 0.4"
+   "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-010",
-   "title": "ingest_ts one tick past the label, as_of far ahead",
+   "id": "QA-FX-311",
+   "title": "A second alias move where neither version declares a schema",
    "verdict": "PASS",
-   "evidence": "assembled 1.2"
+   "evidence": "refused 'registry_refused' (409)"
   },
   {
-   "id": "QA-FX-013",
-   "title": "event_ts supplied as an ISO string rather than epoch",
+   "id": "QA-FX-312",
+   "title": "An alias on a model that is not in force",
    "verdict": "PASS",
-   "evidence": "refused (409)"
+   "evidence": "answered 403 (refused)"
   },
   {
-   "id": "QA-FX-014",
-   "title": "NaN in ingest_ts",
+   "id": "QA-FX-320",
+   "title": "The published cascade of what a warrant carries",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09a6cacf5cb59fc6b795b1437\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "the descriptor is signed and time-bounded"
   },
   {
-   "id": "QA-FX-015",
-   "title": "An as_of before the view existed",
+   "id": "QA-FX-321",
+   "title": "A warrant states what it does NOT prove",
    "verdict": "PASS",
-   "evidence": "no admissible row, and the column is null"
+   "evidence": "that any engine behaved. MAYA does not run models, so nothing here observes an engine honouring or ignoring th"
   },
   {
-   "id": "QA-FX-016",
-   "title": "A negative as_of",
+   "id": "QA-FX-322",
+   "title": "Unreported execution is visible",
    "verdict": "PASS",
-   "evidence": "answered 200"
-  },
-  {
-   "id": "QA-FX-017",
-   "title": "An entity that has no rows",
-   "verdict": "PASS",
-   "evidence": "no admissible facts for an unknown entity"
-  },
-  {
-   "id": "QA-FX-018",
-   "title": "An assembly on a view version that does not exist",
-   "verdict": "PASS",
-   "evidence": "refused (409)"
+   "evidence": "5 live and silent"
   }
  ]
 }

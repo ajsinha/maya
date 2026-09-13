@@ -198,6 +198,8 @@ STATUS: Dict[str, int] = {
     "unknown_approval_kind": 422, "regulator_required": 422,
     "not_in_force": 409, "candidate_not_callable": 422,
     "urn_required": 422,
+    # 422: the request is missing the thing that makes it meaningful.
+    "declared_use_required": 422,
     # 422: the derivation is well-formed and matches too much. The caller
     # fixes it by narrowing, which is a change to what they sent.
     "population_too_large": 422,
