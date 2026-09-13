@@ -176,6 +176,55 @@ class ChainAnchor:
                 "an anchor that cannot be read cannot exonerate the chain; "
                 "treat this as tampering until it is explained") from exc
 
+    def corroborates(self, seq: int, chain_hash_at) -> Dict[str, Any]:
+        """Do the anchors still vouch for the chain *below* this sequence?
+
+        The question a checkpoint has to survive before anything trusts it.
+
+        `evidence_checkpoint` is an ordinary table in the same database as the
+        chain, written by the process that verified it. `verify_since_checkpoint`
+        then trusts the mark and checks only what came after — so an attacker
+        who can write the database can rewrite history *and* move the mark, and
+        the cheap verification, which is the one that runs continuously, reports
+        valid forever. That is C-4's third disposition recurring one abstraction
+        above where it was written: a chain compared against a mark the same
+        process wrote.
+
+        An anchor is in a different medium. If one exists at or below `seq` and
+        the chain no longer agrees with it, everything above it — including the
+        checkpoint — is standing on rewritten ground, and the checkpoint must be
+        discarded rather than believed.
+
+        Reports rather than raises. `corroborated: 0` with no anchors below the
+        mark is not a failure; it is *nothing vouches for this yet*, which is a
+        different and weaker statement than *something contradicts it*.
+        """
+        below = [a for a in self.anchors() if a["seq"] <= seq]
+        if not below:
+            return {"corroborated": 0, "contradicted": 0, "checked": 0,
+                    "at_seq": None,
+                    "detail": "no anchor has been written at or below this "
+                              "checkpoint, so nothing outside the database "
+                              "vouches for it — and nothing contradicts it"}
+        contradicted = []
+        for record in below:
+            actual = chain_hash_at(record["seq"])
+            if actual != record["chain_hash"]:
+                contradicted.append(record["seq"])
+        newest = below[-1]
+        return {
+            "corroborated": int(not contradicted),
+            "contradicted": len(contradicted),
+            "checked": len(below),
+            "at_seq": newest["seq"],
+            "detail": (f"{len(below)} anchor(s) at or below seq {seq} still "
+                       f"agree with the chain"
+                       if not contradicted else
+                       f"the chain no longer matches the anchor(s) written at "
+                       f"seq {contradicted}, so everything above them — this "
+                       f"checkpoint included — is standing on rewritten ground"),
+        }
+
     # ----------------------------------------------------------------- verify
     def verify(self, chain_hash_at) -> Dict[str, Any]:
         """Does the chain still agree with everything written down?
