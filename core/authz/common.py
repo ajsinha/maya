@@ -94,6 +94,20 @@ PERMISSIONS: FrozenSet[str] = frozenset({
     # retention policy behind an account-administration gate, where nobody in
     # legal or compliance would think to look for it.
     "hold:place",
+    # Reclaiming storage nothing references any more, and rewriting the
+    # database so removed rows stop occupying it.
+    #
+    # Its own permission rather than `model:delete`, and not the string
+    # "admin" — the compaction routes were written checking
+    # `authorise(request, "admin")`, which is a ROLE and not a permission, so
+    # all three answered `unknown_permission` and the whole subsystem was
+    # unreachable. Built, wired, documented, and impossible to call.
+    #
+    # Not folded into `model:delete` either: deleting one model is an act
+    # about that model and is refused while anything refers to it; a sweep is
+    # an act about the whole store, and the two are not the same authority
+    # even though the same person usually holds both.
+    "storage:compact",
     # The running process's own log. A read and nothing more: the viewer
     # cannot change the level, cannot clear the buffer and cannot write a
     # line. The evidence chain records what was DECIDED; the log records what

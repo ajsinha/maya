@@ -2921,7 +2921,7 @@ test that has to reach the network is a test nobody runs.
 
 ## 18. Authorisation
 
-`core/authz/` — eight roles across three lines of defence, eighty-four permissions, refused incompatible
+`core/authz/` — eight roles across three lines of defence, eighty-five permissions, refused incompatible
 pairs, entity and domain scope, and emergency elevation with a second signature.
 
 Three properties are worth the space.

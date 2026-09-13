@@ -1,0 +1,221 @@
+{
+ "summary": {
+  "total": 35,
+  "pass": 35,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.6,
+ "results": [
+  {
+   "id": "QA-DEL-001",
+   "title": "Delete as a non-administrator holding model:delete",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-002",
+   "title": "Delete with an empty reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-DEL-003",
+   "title": "Delete with a whitespace-only reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' (422)"
+  },
+  {
+   "id": "QA-DEL-004",
+   "title": "Delete a model under a model-scoped hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-006",
+   "title": "A hold placed by URN still reaches the deleter",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-007",
+   "title": "Delete after the covering hold is lifted",
+   "verdict": "PASS",
+   "evidence": "accepted (200)"
+  },
+  {
+   "id": "QA-DEL-008",
+   "title": "There is no force or override on delete",
+   "verdict": "PASS",
+   "evidence": "no override parameter; accepts ['name', 'reason']"
+  },
+  {
+   "id": "QA-DEL-009",
+   "title": "Delete a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-DEL-010",
+   "title": "Delete the same model twice",
+   "verdict": "PASS",
+   "evidence": "second deletion refused (409)"
+  },
+  {
+   "id": "QA-DEL-011",
+   "title": "The evidence node is appended before the rows go",
+   "verdict": "PASS",
+   "evidence": "the chain grew 17 -> 18 and the screen shows it"
+  },
+  {
+   "id": "QA-DEL-012",
+   "title": "The chain still verifies after a deletion",
+   "verdict": "PASS",
+   "evidence": "valid"
+  },
+  {
+   "id": "QA-DEL-014",
+   "title": "The deletion response carries what was destroyed",
+   "verdict": "PASS",
+   "evidence": "destroyed={}"
+  },
+  {
+   "id": "QA-DEL-015",
+   "title": "The deletion says storage was NOT reclaimed",
+   "verdict": "PASS",
+   "evidence": "storage_reclaimed is false"
+  },
+  {
+   "id": "QA-DEL-020",
+   "title": "Register at a URN that belonged to a deleted model",
+   "verdict": "PASS",
+   "evidence": "refused 'urn_was_deleted' (409)"
+  },
+  {
+   "id": "QA-DEL-021",
+   "title": "The refusal names when and by whom",
+   "verdict": "PASS",
+   "evidence": "the refusal names the actor and the reason"
+  },
+  {
+   "id": "QA-DEL-022",
+   "title": "Register at a URN nobody ever used",
+   "verdict": "PASS",
+   "evidence": "accepted (201)"
+  },
+  {
+   "id": "QA-DEL-023",
+   "title": "A deleted URN resolves to what happened to it",
+   "verdict": "PASS",
+   "evidence": "resolves: deleted from draft"
+  },
+  {
+   "id": "QA-DEL-024",
+   "title": "A URN nobody ever used does not resolve",
+   "verdict": "PASS",
+   "evidence": "refused 'no_such_urn' (404)"
+  },
+  {
+   "id": "QA-DEL-025",
+   "title": "The tombstone records the state deleted FROM",
+   "verdict": "PASS",
+   "evidence": "records draft"
+  },
+  {
+   "id": "QA-DEL-026",
+   "title": "A deleted model is absent from listings",
+   "verdict": "PASS",
+   "evidence": "absent from the listing"
+  },
+  {
+   "id": "QA-DEL-027",
+   "title": "A tombstoned URN cannot be transitioned",
+   "verdict": "PASS",
+   "evidence": "refused (409 registry_refused)"
+  },
+  {
+   "id": "QA-DEL-028",
+   "title": "There is no route that reverses a tombstone",
+   "verdict": "PASS",
+   "evidence": "no reversal route"
+  },
+  {
+   "id": "QA-DEL-029",
+   "title": "Tombstones need evidence:read",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-053",
+   "title": "A blocking reference names itself in the refusal",
+   "verdict": "PASS",
+   "evidence": "refused and named the version"
+  },
+  {
+   "id": "QA-DEL-055",
+   "title": "Inference records survive a deletion",
+   "verdict": "PASS",
+   "evidence": "declared STAYS"
+  },
+  {
+   "id": "QA-DEL-057",
+   "title": "The cascade declaration covers every table",
+   "verdict": "PASS",
+   "evidence": "38 tables declared, all 38 covered"
+  },
+  {
+   "id": "QA-DEL-058",
+   "title": "A table with no disposition fails the build",
+   "verdict": "PASS",
+   "evidence": "every table carrying a model_id has a disposition and tests/test_tombstones.py enforces it"
+  },
+  {
+   "id": "QA-DEL-074",
+   "title": "A sweep is refused under an estate-wide hold",
+   "verdict": "PASS",
+   "evidence": "refused 'under_legal_hold' (423)"
+  },
+  {
+   "id": "QA-DEL-075",
+   "title": "A compaction plan reclaims nothing",
+   "verdict": "PASS",
+   "evidence": "plan is repeatable: 0 ready"
+  },
+  {
+   "id": "QA-DEL-076",
+   "title": "A dry-run sweep reports and reclaims nothing",
+   "verdict": "PASS",
+   "evidence": "dry run: {'dry_run': True, 'marked': 0, 'cleared': 0, 'swept': 0, 'reclaimed_bytes': 0, 'by_store': {'artifact': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}, 'attachment': {'marked': 0, 'cleared': 0, 'swept': 0, 'bytes': 0}}}"
+  },
+  {
+   "id": "QA-DEL-077",
+   "title": "Delta is reported as out of reach, not skipped",
+   "verdict": "PASS",
+   "evidence": "reported: Delta keeps its own transaction log; removing part files from outside it produce"
+  },
+  {
+   "id": "QA-DEL-078",
+   "title": "Vacuum answers and reports what it reclaimed",
+   "verdict": "PASS",
+   "evidence": "{'before_bytes': 1384448, 'after_bytes': 1384448, 'reclaimed_bytes': 0, 'measured': True}"
+  },
+  {
+   "id": "QA-DEL-079",
+   "title": "Compacting a model that was never deleted",
+   "verdict": "PASS",
+   "evidence": "refused no_tombstone"
+  },
+  {
+   "id": "QA-DEL-081",
+   "title": "A sweep needs storage:compact",
+   "verdict": "PASS",
+   "evidence": "refused 'forbidden' (403)"
+  },
+  {
+   "id": "QA-DEL-082",
+   "title": "Every content address is refcounted",
+   "verdict": "PASS",
+   "evidence": "2 address column(s) refcounted"
+  }
+ ]
+}
