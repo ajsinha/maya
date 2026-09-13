@@ -1,0 +1,53 @@
+{
+ "summary": {
+  "total": 7,
+  "pass": 3,
+  "fail": 4,
+  "blocked": 0
+ },
+ "seconds": 3.9,
+ "results": [
+  {
+   "id": "QA-PLT-092",
+   "title": "A write through a repository during a fold",
+   "verdict": "FAIL",
+   "evidence": "refused with a bare RuntimeError carrying no code, no detail and no remediation, so `Routes.guard` cannot map it and a route reaching it answers 500. Latent rather than live: the folded tables are read by `WorkList.across` and the portfolio cuts, which write nothing, and the digest's `notification` writes land after the fold has closed \u2014 so no route reaches it today and the first one that does fin"
+  },
+  {
+   "id": "QA-PLT-093",
+   "title": "A write during a fold that does not go through a repository",
+   "verdict": "FAIL",
+   "evidence": "a raw UPDATE landed during a fold and the fold went on answering 'fold-7021119d' while the table said 'renamed by a raw statement'. `_refuse_write_while_folding` is called from `Repository.add/set/remove` only, so any write reaching the database another way is invisible to it and nothing is said"
+  },
+  {
+   "id": "QA-PLT-094",
+   "title": "A fold, an inner fold, and the outer index",
+   "verdict": "PASS",
+   "evidence": "the inner fold is a no-op and the outer index survives it"
+  },
+  {
+   "id": "QA-PLT-095",
+   "title": "A folded read with an `order` or a `limit`",
+   "verdict": "PASS",
+   "evidence": "6 rows either way; ordered and limited reads fall through to SQL unchanged"
+  },
+  {
+   "id": "QA-PLT-096",
+   "title": "A table outside the folded fourteen read during a fold",
+   "verdict": "PASS",
+   "evidence": "evidence_node is outside the fourteen and reads fresh: 14 \u2192 15 during the fold"
+  },
+  {
+   "id": "QA-PLT-097",
+   "title": "An append-only repository `set()` reaching HTTP",
+   "verdict": "FAIL",
+   "evidence": "the repository refuses 'append_only' with a detail and a remediation, and neither half of the taxonomy receives it: NOT in STATUS, NOT caught by Routes.guard. It is a bare RuntimeError, so a route reaching it answers 500 with no code \u2014 the refusal was written for a mapping it was never added to. Latent: `EvidenceRepository` is the only AppendOnly subclass and nothing outside the tests calls its se"
+  },
+  {
+   "id": "QA-PLT-099",
+   "title": "`recorded_at` moved on a node, chain unchanged",
+   "verdict": "FAIL",
+   "evidence": "a node's `recorded_at` was moved by 9,999 seconds and the chain still verifies: the timestamp is outside the content hash, so WHEN a governance act was recorded can be rewritten with a single UPDATE while every verification reports the chain intact"
+  }
+ ]
+}

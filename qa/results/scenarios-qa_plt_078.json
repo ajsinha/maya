@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 2.4,
+ "results": [
+  {
+   "id": "QA-PLT-078",
+   "title": "A write landing during an estate fold",
+   "verdict": "PASS",
+   "evidence": "a model landed mid-fold and both aggregates agree on 3"
+  }
+ ]
+}
