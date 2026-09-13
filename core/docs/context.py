@@ -71,8 +71,8 @@ class ContextBuilder:
             # fully governed model compiled fifteen sections with two citations,
             # and Classification, Methodology, Assumptions and Validation
             # rendered as filled while citing nothing.
-            "evidence": self.evidence.for_subjects(
-                [model["id"], *(v["id"] for v in versions)]),
+            "evidence": _worth_citing(self.evidence.for_subjects(
+                [model["id"], *(v["id"] for v in versions)])),
             # Incremental, for the same reason as the dashboard: every
             # compiled document and every export pack was re-hashing the whole
             # chain. A document cites the evidence FOR ITS SUBJECTS, which is
@@ -186,3 +186,33 @@ def _chain_health(report: Dict[str, Any]) -> Dict[str, Any]:
     """
     return {"valid": report.get("valid"), "length": report.get("length"),
             "head": report.get("head")}
+
+
+#: Evidence a document must not cite: the record of documents being compiled.
+#:
+#: Compiling appends a `document_compiled` node against the model, so the NEXT
+#: compile found it in the model's evidence and cited it. Two consequences,
+#: both of which the case list predicted:
+#:
+#: - **The digest of unchanged state changed on every compile**, while the
+#:   compiler's own docstring promises two renderings of unchanged state are
+#:   identical. Every downstream comparison — "has this document changed since
+#:   the board saw it" — was answering yes forever.
+#: - **The citation list grew by one every time somebody pressed the button.**
+#:   Provenance that documents the act of documenting.
+#:
+#: A document cites the governance acts it describes. That somebody compiled a
+#: document is a fact about the document, not about the model, and it belongs
+#: in the chain — where it still is — rather than in the bibliography of the
+#: next document.
+#: All four are facts about a DOCUMENT — that one was compiled, that somebody
+#: commented on it, resolved or withdrew a comment. They belong in the chain,
+#: where they are, and not in the bibliography of the next document about the
+#: model. `document_commented` is recorded against the model subject, so a
+#: single review comment also moved the digest of every later compile.
+NOT_CITED = ("document_compiled", "document_commented",
+             "document_comment_resolved", "document_comment_withdrawn")
+
+
+def _worth_citing(nodes):
+    return [n for n in nodes if n.get("kind") not in NOT_CITED]

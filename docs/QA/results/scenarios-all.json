@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 140,
-  "pass": 140,
+  "total": 149,
+  "pass": 149,
   "fail": 0,
   "blocked": 0
  },
- "seconds": 13.4,
+ "seconds": 11.4,
  "results": [
   {
    "id": "QA-AM-067",
@@ -407,7 +407,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09a97c13b8a2ca494d03316eb\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09aa65e3cb8888fd90781d93b\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -527,7 +527,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-4db14937\",\"name\":\"gov-4db14937-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-05271bf3\",\"name\":\"gov-05271bf3-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -743,7 +743,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:5d31e887db01a"
+   "evidence": "a fresh chain of 8 verifies, head sha256:4768c126ca6dc"
   },
   {
    "id": "QA-PLT-010",
@@ -846,6 +846,60 @@
    "title": "The evidence chain refuses an UPDATE",
    "verdict": "PASS",
    "evidence": "refused: (sqlite3.IntegrityError) evidence_node is append-only: it is the evidence chain, and a row that can be rewritten or removed is not"
+  },
+  {
+   "id": "QA-PLT-123",
+   "title": "Compile twice with nothing changed \u2014 digests identical",
+   "verdict": "PASS",
+   "evidence": "identical: sha256:20f92a6eec3186fe5712662"
+  },
+  {
+   "id": "QA-PLT-124",
+   "title": "Compile five times and count the citations",
+   "verdict": "PASS",
+   "evidence": "stable at 1 citation(s) across five compiles"
+  },
+  {
+   "id": "QA-PLT-125",
+   "title": "Recompile with open review comments",
+   "verdict": "PASS",
+   "evidence": "1 comment(s) still on this document"
+  },
+  {
+   "id": "QA-PLT-126",
+   "title": "Two export packs of unchanged state agree",
+   "verdict": "PASS",
+   "evidence": "stable: sha256:14867540568213163d677c1"
+  },
+  {
+   "id": "QA-PLT-127",
+   "title": "An unknown kind against an unknown URN",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-128",
+   "title": "A bare model, compiled anyway",
+   "verdict": "PASS",
+   "evidence": "coverage.complete is false, 10 section(s) marked unfillable"
+  },
+  {
+   "id": "QA-PLT-130",
+   "title": "Compile against a model that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'registry_refused' (409)"
+  },
+  {
+   "id": "QA-PLT-131",
+   "title": "Read a document that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (404)"
+  },
+  {
+   "id": "QA-PLT-132",
+   "title": "The published list of document kinds is closed",
+   "verdict": "PASS",
+   "evidence": "4 kinds published"
   }
  ]
 }
