@@ -1,11 +1,11 @@
 {
  "summary": {
-  "total": 259,
-  "pass": 247,
-  "fail": 12,
-  "blocked": 0
+  "total": 276,
+  "pass": 261,
+  "fail": 14,
+  "blocked": 1
  },
- "seconds": 19.6,
+ "seconds": 28.3,
  "results": [
   {
    "id": "QA-AM-067",
@@ -263,7 +263,7 @@
    "id": "QA-AM-321",
    "title": "An overlay with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09aedc3d10df3b416554b13cb\",\"model_id\":\"01a09aedc3cdb5c1814bf129f77f\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-62071f3e\",\"kind\":\"judgem"
+   "evidence": "expected a refusal (overlay_refused/owner_required/validation_error) and the answer carried no error code: 201 {\"id\":\"01a09af9a248e54bfdfc90e9b556\",\"model_id\":\"01a09af9a23fca9b5d708b78e0d4\",\"model_version_id\":null,\"reference\":\"OVL-001\",\"name\":\"ov-81967bc5\",\"kind\":\"judgem"
   },
   {
    "id": "QA-AM-322",
@@ -293,13 +293,13 @@
    "id": "QA-AM-340",
    "title": "A supervisory matter with no supervisor",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09aedc3ec54d3a0b1c176ec70\",\"reference\":\"SUP-6b52b390\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
+   "evidence": "expected a refusal (validation_error/supervisor_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9a283bccaf3d63d46d9d8\",\"reference\":\"SUP-755e5d2a\",\"kind\":\"recommendation\",\"supervisor\":\"   \",\"examination\":\"\",\"title\":\"QA matter\",\"description\":\"\""
   },
   {
    "id": "QA-AM-341",
    "title": "A supervisory matter with no owner",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09aedc3f3b100a8191974ced0\",\"reference\":\"SUP-dfcabb65\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
+   "evidence": "expected a refusal (validation_error/owner_required/matter_refused/regime_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9a290fc77423767f46950\",\"reference\":\"SUP-4ff097f0\",\"kind\":\"recommendation\",\"supervisor\":\"the regulator\",\"examination\":\"\",\"title\":\"QA matter\",\"descr"
   },
   {
    "id": "QA-AM-342",
@@ -593,7 +593,7 @@
    "id": "QA-FX-014",
    "title": "NaN in ingest_ts",
    "verdict": "PASS",
-   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09aedc5cad17e6ad435b4f5f4\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
+   "evidence": "NaN answered 201: {\"feature_view_id\":\"01a09af9a69b27b7fcee70185b3e\",\"version\":2,\"features\":[\"dscr\"],\"delta_version\":0,\"valid_time_column\":\"event_ts\""
   },
   {
    "id": "QA-FX-015",
@@ -899,7 +899,7 @@
    "id": "QA-GOV-002",
    "title": "Two URNs differing only in letter case",
    "verdict": "PASS",
-   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-46371a0e\",\"name\":\"gov-46371a0e-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
+   "evidence": "EXPLORATORY \u2014 201 {\"urn\":\"maya://model/QA.gov-645e3921\",\"name\":\"gov-645e3921-upper\",\"description\":\"\",\"model_class\":\"logistic\",\"domain\":\"credit\",\"owner\":\"admin\",\"legal_e"
   },
   {
    "id": "QA-GOV-003",
@@ -1145,7 +1145,7 @@
    "id": "QA-GOV-202",
    "title": "A band naming a role that does not exist",
    "verdict": "FAIL",
-   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09aedc89565e693c1086a464f\",\"name\":\"band-bb12352a\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
+   "evidence": "expected a refusal (unknown_role/validation_error/authority_refused/lifecycle_refused) and the answer carried no error code: 201 {\"id\":\"01a09af9ae49f19f4a333d4aead9\",\"name\":\"band-fd162650\",\"tier\":null,\"at_or_above\":1000000.0,\"legal_entity\":null,\"stages\":[[\"chief_vibes_officer\"]],\"note\":\"\""
   },
   {
    "id": "QA-GOV-203",
@@ -1301,7 +1301,7 @@
    "id": "QA-PLT-009",
    "title": "Verify a chain with nothing in it",
    "verdict": "PASS",
-   "evidence": "a fresh chain of 8 verifies, head sha256:87b49c022bbdb"
+   "evidence": "a fresh chain of 8 verifies, head sha256:2fd6aef4982da"
   },
   {
    "id": "QA-PLT-010",
@@ -1409,7 +1409,7 @@
    "id": "QA-PLT-123",
    "title": "Compile twice with nothing changed \u2014 digests identical",
    "verdict": "PASS",
-   "evidence": "identical: sha256:36df9f9489b3546c1bba2c5"
+   "evidence": "identical: sha256:36bff8e82ecff70bc342c51"
   },
   {
    "id": "QA-PLT-124",
@@ -1427,7 +1427,7 @@
    "id": "QA-PLT-126",
    "title": "Two export packs of unchanged state agree",
    "verdict": "PASS",
-   "evidence": "stable: sha256:7f34fd71d29c6aceae2240c"
+   "evidence": "stable: sha256:178edbfcdc6cb84ee1ffd6f"
   },
   {
    "id": "QA-PLT-127",
@@ -1560,6 +1560,108 @@
    "title": "A manifest missing a required section",
    "verdict": "PASS",
    "evidence": "exited 1"
+  },
+  {
+   "id": "QA-PLT-300",
+   "title": "Every refusal carries a code, a detail and a remediation",
+   "verdict": "PASS",
+   "evidence": "schema-level refusal, which names the field and why"
+  },
+  {
+   "id": "QA-PLT-301",
+   "title": "An unauthenticated request is refused, not served",
+   "verdict": "PASS",
+   "evidence": "401"
+  },
+  {
+   "id": "QA-PLT-302",
+   "title": "An unknown route answers 404 and not 500",
+   "verdict": "PASS",
+   "evidence": "404"
+  },
+  {
+   "id": "QA-PLT-303",
+   "title": "A method that does not apply answers 405",
+   "verdict": "PASS",
+   "evidence": "405"
+  },
+  {
+   "id": "QA-PLT-304",
+   "title": "A malformed JSON body is refused, not crashed",
+   "verdict": "PASS",
+   "evidence": "refused (422)"
+  },
+  {
+   "id": "QA-PLT-305",
+   "title": "A listing pages rather than returning everything",
+   "verdict": "PASS",
+   "evidence": "2 row(s) for limit=2"
+  },
+  {
+   "id": "QA-PLT-306",
+   "title": "A negative limit is refused",
+   "verdict": "FAIL",
+   "evidence": "a negative page size was accepted"
+  },
+  {
+   "id": "QA-PLT-307",
+   "title": "A request id travels with the answer",
+   "verdict": "PASS",
+   "evidence": "x-request-id: 6e622ad0b48abe59"
+  },
+  {
+   "id": "QA-PLT-310",
+   "title": "Readiness answers and says what it checked",
+   "verdict": "PASS",
+   "evidence": "200, and it names what it checked"
+  },
+  {
+   "id": "QA-PLT-311",
+   "title": "Liveness does not require authentication",
+   "verdict": "PASS",
+   "evidence": "200 without credentials"
+  },
+  {
+   "id": "QA-PLT-320",
+   "title": "A configuration change is planned before it is applied",
+   "verdict": "PASS",
+   "evidence": "plan answers 422"
+  },
+  {
+   "id": "QA-PLT-321",
+   "title": "The configuration boundary says what it does not control",
+   "verdict": "PASS",
+   "evidence": "published, 1945 bytes"
+  },
+  {
+   "id": "QA-PLT-322",
+   "title": "Configuration does not leak a secret",
+   "verdict": "PASS",
+   "evidence": "no configured secret appears in the answer"
+  },
+  {
+   "id": "QA-PLT-330",
+   "title": "A discovery candidate is a candidate, not a registration",
+   "verdict": "FAIL",
+   "evidence": "the discovery endpoint does not call them candidates; what a scanner found is not a model until somebody says so"
+  },
+  {
+   "id": "QA-PLT-331",
+   "title": "Triage a discovery reference that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused 'no_candidate'"
+  },
+  {
+   "id": "QA-PLT-332",
+   "title": "The scanner contract is published",
+   "verdict": "PASS",
+   "evidence": "published (200)"
+  },
+  {
+   "id": "QA-PLT-333",
+   "title": "A scanner contract check with a blank scanner",
+   "verdict": "BLOCKED",
+   "evidence": "the endpoint has no `scanner` field"
   }
  ]
 }

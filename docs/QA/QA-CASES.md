@@ -1,7 +1,7 @@
 # MAYA — QA case list
 
 **1659 generated cases across 5 sections**, derived from the source
-by `tools/qa/enumerate.py` rather than written from memory. Re-run it after any
+by `qa/regression_suite/enumerate.py` rather than written from memory. Re-run it after any
 wave that adds a route or a refusal; a case list that does not move when the
 system does is a case list nobody should trust.
 
