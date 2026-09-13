@@ -657,7 +657,7 @@ report now has a consumer. See
 |---|---|
 | **H-1** · Cache stampede on alias move | **Moot, and the mitigation that shipped is the least important one.** There is no descriptor cache at all — no Redis anywhere in the repository, and every `resolve()` re-reads model, grant and version. So there is nothing to stampede, and also nothing meeting the latency budget the finding was defending. The one control built is **TTL jitter** (`WarrantSigner.jittered`, ±20%), which is the part that matters only once a cache exists. Pre-warm, single-flight and stale-while-revalidate are not built |
 | **H-2** · The warrant plane reads the control-plane schema | **Open.** There is no `warrant_projection` table. `WarrantService.resolve` reads normalised tables one at a time — model, grant, alias, version, findings, and optionally a parameter set — five or more round trips per resolution. Since there is one process and one database, the deployment independence the finding was protecting does not exist either, so the coupling costs nothing *today* and forecloses exactly what it was raised to protect |
-| **H-3** · Immutable evidence versus erasure | **Satisfied in the law, not in the mechanism.** `contains_personal_data` exists as a `Boolean` in `db/schema/tables.py`, rendered to both dialects from that one declaration — and the append path stores an empty payload and hashes what it stored, so the node verifies against itself. There is no `payload_uri`, no per-subject key and no crypto-shredding. There is also no `CHECK` constraint, because the schema has none at all. See [§3.4](#34-a-mechanism-named-but-not-built) |
+| **H-3** · Immutable evidence versus erasure | **Now satisfied in the mechanism too, and the gap was exactly where the words said it was.** `contains_personal_data` exists as a `Boolean` in `db/schema/tables.py`, rendered to both dialects from that one declaration, and the append path stores an empty payload and hashes what it stored, so the node verifies against itself. There is still no `payload_uri`, no per-subject key and no crypto-shredding — deliberately: **discarding is the stronger guarantee for the law as stated**, because there is nothing to erase and nothing to leak, and the weaker one for anybody hoping to resolve it later. What was missing is that the discarding lived in `EvidenceEngine._try` and **nothing enforced it**. Any other writer — a migration, a repair script, a fixture, a future call site — could set the flag and keep the content, and the chain would hash it, verify it, and hold personal data in the one table that cannot be corrected. `db/schema/immutable.py::EMPTY_WHEN_FLAGGED` now generates a `BEFORE INSERT` guard in **both** dialects (insert only, because the table is append-only and there is no update path to guard). **A control that lives in one function is a convention; this makes it a constraint at the layer every writer goes through.** See [§3.4](#34-a-mechanism-named-but-not-built) |
 | **H-4** · Circular and forward foreign-key references | **Moot for an unintended reason.** There are no foreign-key constraints in either dialect, so there are no cycles and no referential integrity. See [§4.5](#45-immutability-has-no-enforcer) |
 | **H-5** · Row-level security is bypassable by the table owner | **Closed.** `core/security/rls.py`, with `FORCE` so the owner binds, a non-owner application role, a default-deny policy over a per-request session variable, and the cross-entity negative test the finding asked for. The exemption one level below — a superuser bypasses RLS entirely — is *reported* rather than assumed. Scope in Python remains the control; this is the backstop. See [§4.6](#46-scope-is-a-python-call-somebody-has-to-remember) |
 | **H-6** · PIT verification by sampling is presented as proof | **Closed, and the restatement is the part worth keeping.** Three layers exist. Layer 1 rejects rather than samples: `core/features/pit.py::static_check` refuses an assembly missing either bound, and `TrainingSetBuilder` raises `AssemblyRejected` on it. Layer 2 is stratified — strata over label period, entity and *label value*, because a leak confined to a rare high-value segment is where uniform sampling fails and where the damage is greatest — and it recomputes through `DeltaStore.as_of` rather than through the join path, so agreement means something. Layer 3 is adversarial injection in the suite. **The honest qualification the finding demanded is still owed on layer 1:** `static_check` reads two flags off the request rather than analysing a query, and the bound is structurally guaranteed because the assembler builds the join itself — so what it refuses is a caller opting *out*, which is a real refusal and a narrower one than "static analysis of the assembly query" implies |
@@ -921,37 +921,52 @@ the deleter never asked about. **The audit is the control; the tests only stop i
 | | Closed, with the control in the source | Moot | Open |
 |---|---|---|---|
 | **Critical** | C-2, C-5; **C-1** (narrowed control, withdrawn claim — [§4.2](#42-the-revocation-floor--two-thirds-of-this-finding-aged-out-and-the-third-was-real)); **C-3** (the enforcer exists and raises); **C-4 disposition 2** (anchoring is built); **C-4 disposition 3** (the checkpoint is corroborated against the anchors, and the attack is in the suite) | — | **C-4 disposition 4** — role separation, unbuilt and now *reported* as unbuilt rather than reading as met (a topology change, [ADR-016](adr/ADR-016-one-process-one-database.md)); **C-6** — the limitation is permanent and two of its four unbuilt mitigations are now built, two refused with reasons ([§4.7](#47-everything-claimed-about-an-engine-maya-does-not-run-is-unobserved)) |
-| **High** | H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2 and H-9 — open **under a recorded decision**, [ADR-016](adr/ADR-016-one-process-one-database.md); H-3 (satisfied in the law, not the mechanism) |
+| **High** | **H-3** (the law's discarding is now enforced by a trigger in both dialects, not only by the one function that happened to do it), H-5, H-6, H-8 (mostly) | H-1, H-4, H-7 — the thing they were about was never built | H-2 and H-9 — open **under a recorded decision**, [ADR-016](adr/ADR-016-one-process-one-database.md) |
 | **Medium / low** | M-1, M-2, **M-4** (the revocation-epoch guard — and the row calling composite warrants unbuilt was describing an earlier codebase), **M-6**, **M-7** — the deleter asks the hold, the tombstone keeps the identity from falling free, the cascade is declared for all thirty-eight tables and compaction reclaims the bytes — **M-8**, F-1 … F-4 | M-3, M-5 | — |
 | **The ten attacks** | **§4.4** (152 `evidence.recording()` blocks span the act and its record; it said *nothing does*), **§4.8** (`.github/workflows/ci.yml`), §4.2, **§4.5** — immutability enforced, referential half **decided** ([ADR-015](adr/ADR-015-no-foreign-keys.md)), **§4.10** (a published secret on a reachable address now refuses to start), **§3.5** and **§3.6** — the checkpoint is no longer self-certified, and the dashboard and the document compiler stopped walking the whole chain *because* it stopped being self-certified | — | **§4.9**: the interface reads in-process, named as a defect in [08 §1](08-ui-ux.md), answered by ADR-011 — and now one of the three consequences recorded in [ADR-016](adr/ADR-016-one-process-one-database.md) |
 | **§4 answered as refusals** | §4.1 and §4.6 — RLS is built and is a **backstop**; scope in Python remains the control. §4.3 — per-audience key derivation, with `does_not_prove: authorship to a third party` published. §4.7 — *attested, not observed* | | |
 | **Third pass** ([§6a](#6a-the-third-pass-attacking-four-controls-the-week-they-shipped)) | all nine | — | — |
 | **The sweep** ([§6b](#6b-two-more-controls-that-exist-and-nobody-consults)) | both — and the sweep itself is now `tests/test_uncalled_controls.py` | three false positives | — |
 
-**What is genuinely left, in the order it is worth doing.**
+**What is genuinely left.**
 
-**Nothing structural is left open.** §4.5 is closed in both halves: immutability is enforced by sixteen
-triggers in SQLite and four statements in PostgreSQL, applied at schema time and attacked column by column
-in the suite; and the referential half is a recorded decision rather than a gap
-([ADR-015](adr/ADR-015-no-foreign-keys.md)) — the reference index is the control, it gives a better refusal
-than a constraint would, and a constraint added under `CREATE TABLE IF NOT EXISTS` with no migrations would
-reach only new databases.
+**Nothing is open that is not a recorded decision.** That sentence has been aimed at for several passes and
+this is the first time it is true, so it is worth being precise about what each remaining row means, because
+"closed" is doing four different jobs above.
 
-**H-2, H-9 and §4.9 are one finding in three costumes, and that is now a recorded decision rather than an observation in this document** — [ADR-016](adr/ADR-016-one-process-one-database.md). All
-three are about a boundary that a single-process, single-database deployment has not drawn: the warrant
-plane reads the control-plane schema, there is one primary, and the interface reads in-process rather than
-through its own API. Every one of them costs **nothing today** and forecloses something later, and the
-thing they foreclose is *deployment independence* — which is a topology decision
-([19](19-deploying-maya.md)), not a code change. They stay open rather than being marked accepted, because
-the day the platform is deployed as more than one process they all become real at once, and a reader
-planning that deployment needs to find them. ADR-016 states the topology, says what each coupling buys, and — the part that matters — says why *open* is the right disposition rather than *accepted*: an accepted finding is one somebody decided not to act on, and these are inert under one topology and live under another the moment it changes.
+**Nothing structural.** §4.5 is closed in both halves: immutability is enforced by triggers in SQLite and
+statements in PostgreSQL, applied at schema time and attacked column by column in the suite; the referential
+half is a recorded decision ([ADR-015](adr/ADR-015-no-foreign-keys.md)) whose compensating control is now
+complete by construction rather than by inspection — every table carrying a `model_id` has a declared
+disposition and the build fails if one does not.
 
-**C-6 and M-4** are not work items in the ordinary sense: `descriptor_only` honesty and composite warrants
-are both about capabilities this platform deliberately does not have. They stay listed because a reader who
-finds them elsewhere should find them here too.
+**H-2, H-9 and §4.9 are one finding in three costumes, and now a recorded topology**
+([ADR-016](adr/ADR-016-one-process-one-database.md)). They stay in the open column deliberately. An accepted
+finding is one somebody decided not to act on; these are **inert under one topology and live under another**,
+all three at the same moment, and retiring them would mean rediscovering them as production incidents rather
+than as design work.
 
-**Nothing else is open.** Every remaining row in the table above is closed, moot, or a recorded decision
-with the cost of closing it written down.
+**C-4 disposition 4 is unbuilt, and that is now visible instead of invisible.** Role separation needs a
+second identity or an external notary — the same topology question as above. What changed is that a
+verification the writing process ran and one a named person requested no longer produce the same record: the
+report carries `self_certified` and says in words that the same process appends and checks the chain. **The
+distinction worth holding is between an unmet control and an invisible one.** This was the second and is now
+the first, which is the most this deployment can honestly give.
+
+**C-6's limitation is permanent and is not a work item.** MAYA does not run models, so nothing can observe
+an opaque engine honouring the boundary it was given. Two of its unbuilt mitigations were built, because they
+were about MAYA's own records rather than about anybody's engine — `warrant.flavour` now has a reader and the
+telemetry liveness report now has a consumer. The other two are refused with reasons rather than deferred.
+
+**The recurring defect, counted.** Nine controls in this codebase have now been found *built, wired,
+documented and never called*: feature sensitivity facts, the recertification reviewer, the legal hold in the
+deleter, artifact provenance at resolution, ephemeral pins, `ViewManager._dtypes`, `warrant.flavour`, the
+telemetry liveness report, and the four tables the reference index never read. The pattern is not
+carelessness about writing controls; it is that **a control with no caller fails silently and a control with
+a caller fails loudly**, so only the second kind gets found by using the system. Two things now catch it
+mechanically — `tests/test_uncalled_controls.py` walks the source for the shape, and the cascade declaration
+turns "nobody added the query" into a build failure. Neither would have caught all nine. The audit remains
+the control; the tests stop it rotting between audits.
 
 ---
 

@@ -1847,3 +1847,18 @@ DROP TRIGGER IF EXISTS append_only_evidence_node ON evidence_node;
 CREATE TRIGGER append_only_evidence_node
 BEFORE UPDATE OR DELETE ON evidence_node
 FOR EACH ROW EXECUTE FUNCTION maya_append_only_evidence_node();
+
+CREATE OR REPLACE FUNCTION maya_empty_when_flagged_evidence_node()
+RETURNS trigger AS $$
+BEGIN
+    IF NEW.contains_personal_data AND coalesce(NEW.payload, '') NOT IN ('', '{}') THEN
+        RAISE EXCEPTION 'evidence_node.payload: a node flagged as containing personal data must store an EMPTY payload. The chain cannot be edited, so a node that holds content it may later be asked to erase is a request this register could never honour. Law L-18: the payload is discarded at append, not stored behind a pointer';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS empty_when_flagged_evidence_node ON evidence_node;
+CREATE TRIGGER empty_when_flagged_evidence_node
+BEFORE INSERT ON evidence_node
+FOR EACH ROW EXECUTE FUNCTION maya_empty_when_flagged_evidence_node();
