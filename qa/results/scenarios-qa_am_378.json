@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-378",
+   "title": "Open a campaign whose derivation selects nothing",
+   "verdict": "PASS",
+   "evidence": "refused 'empty_population'"
+  }
+ ]
+}

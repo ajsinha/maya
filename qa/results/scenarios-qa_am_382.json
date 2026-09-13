@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-AM-382",
+   "title": "Respond for a model not in the frozen population",
+   "verdict": "PASS",
+   "evidence": "refused 'not_in_this_campaign'"
+  }
+ ]
+}

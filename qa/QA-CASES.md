@@ -3383,6 +3383,9 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-1803 | `regression` | A breach names the observation it came from | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1803` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1900 | `regression` | Replay with data that is not the data | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1900` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-1901 | `regression` | Replay data for a test the episode never recorded | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-1901` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-2900 | `regression` | A campaign kind that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2900` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-2901 | `regression` | Close a campaign twice | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2901` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-2902 | `regression` | The derivation is kept, not the list | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2902` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->
