@@ -1,0 +1,143 @@
+{
+ "summary": {
+  "total": 22,
+  "pass": 20,
+  "fail": 2,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-FX-400",
+   "title": "The same input under a flag policy",
+   "verdict": "PASS",
+   "evidence": "the declared policy decides, defaulting to reject"
+  },
+  {
+   "id": "QA-FX-412",
+   "title": "A runtime the captive engine never implemented",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised TypeError: 'in <string>' requires string as left operand, not dict | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenarios/g_execution_guards.py\", line 286, in fx_412     engine.runtimes.invoke(Invocation(warrant, {}))     ~~~~~~~~~~~"
+  },
+  {
+   "id": "QA-FX-414",
+   "title": "An artifact whose digest does not match the warrant",
+   "verdict": "PASS",
+   "evidence": "mismatch and absence refused apart, both before the load"
+  },
+  {
+   "id": "QA-FX-415",
+   "title": "A featureset with no features at all",
+   "verdict": "PASS",
+   "evidence": "answered 422 (validation_error)"
+  },
+  {
+   "id": "QA-FX-416",
+   "title": "An artifact path resolving outside the configured root",
+   "verdict": "FAIL",
+   "evidence": "refused 'artifact_missing'"
+  },
+  {
+   "id": "QA-FX-417",
+   "title": "Read a feature that does not exist",
+   "verdict": "PASS",
+   "evidence": "refused (405)"
+  },
+  {
+   "id": "QA-FX-418",
+   "title": "No artifact root configured at all",
+   "verdict": "PASS",
+   "evidence": "refused 'no_artifact_root', naming the setting"
+  },
+  {
+   "id": "QA-FX-419",
+   "title": "Trial an expression that divides by zero",
+   "verdict": "PASS",
+   "evidence": "answered 200 (accepted)"
+  },
+  {
+   "id": "QA-FX-420",
+   "title": "Trial an expression that is not an expression",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  },
+  {
+   "id": "QA-FX-421",
+   "title": "A memory limit stated in the warrant",
+   "verdict": "PASS",
+   "evidence": "a default and a signed-for figure are held apart in `declared_by_the_warrant`"
+  },
+  {
+   "id": "QA-FX-422",
+   "title": "A limit the platform cannot enforce is named",
+   "verdict": "PASS",
+   "evidence": "rlimits available; both stated limits are enforceable"
+  },
+  {
+   "id": "QA-FX-423",
+   "title": "The CPU cap is the process's usage plus the budget",
+   "verdict": "PASS",
+   "evidence": "cumulative: soft_cpu = already + max(1, int(limits.seconds))"
+  },
+  {
+   "id": "QA-FX-424",
+   "title": "A callable runtime is not sandboxed, and says so",
+   "verdict": "PASS",
+   "evidence": "an in-process callable is stated to be unsandboxed"
+  },
+  {
+   "id": "QA-FX-425",
+   "title": "`GET /api/v1/engine` with the captive engine disabled",
+   "verdict": "PASS",
+   "evidence": "reports its state: {'captive_engine': 'enabled', 'sandbox': 'subprocess', 'isolates': True, 'resource_limits'"
+  },
+  {
+   "id": "QA-FX-426",
+   "title": "Executing with the captive engine disabled",
+   "verdict": "PASS",
+   "evidence": "refused 'not_found'"
+  },
+  {
+   "id": "QA-FX-427",
+   "title": "The engine holds no reference to the registry or the feature store",
+   "verdict": "PASS",
+   "evidence": "holds ['_callables', '_revoked_locally', '_seen_epoch', 'artifact_dir', 'invocations', 'max_seconds', 'parameters', 'runtimes', 'sandbox', 'warrants'] and nothing that reads the register"
+  },
+  {
+   "id": "QA-FX-438",
+   "title": "A tampered signature",
+   "verdict": "PASS",
+   "evidence": "rewriting warrant_id, subject, signature breaks the seal"
+  },
+  {
+   "id": "QA-FX-439",
+   "title": "The signing key rotated between issue and execution",
+   "verdict": "PASS",
+   "evidence": "refused under the rotated key, accepted under its own"
+  },
+  {
+   "id": "QA-FX-441",
+   "title": "The order of the six pre-artifact checks",
+   "verdict": "PASS",
+   "evidence": "six checks, all before dispatch: resolve, signature, revocation, epoch, expiry, boundary"
+  },
+  {
+   "id": "QA-FX-4900",
+   "title": "A boolean is not a number",
+   "verdict": "PASS",
+   "evidence": "refused 'value_not_numeric'"
+  },
+  {
+   "id": "QA-FX-4901",
+   "title": "A column the rows do not have",
+   "verdict": "PASS",
+   "evidence": "refused 'column_missing', naming the column"
+  },
+  {
+   "id": "QA-FX-4902",
+   "title": "A fit with no target or no regressors",
+   "verdict": "PASS",
+   "evidence": "both underspecified forms refused"
+  }
+ ]
+}
