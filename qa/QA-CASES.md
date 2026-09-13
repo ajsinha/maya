@@ -3567,6 +3567,9 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-4880 | `regression` | Every excluded model carries a reason | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4880` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4881 | `regression` | An unknown return | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4881` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-4882 | `regression` | Each field declares where its value comes from | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4882` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4890 | `regression` | A comparison where no test could run | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4890` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4891 | `regression` | The material threshold and the significance test are separate | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4891` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-4892 | `regression` | The significance level is stated on every test | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-4892` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->
