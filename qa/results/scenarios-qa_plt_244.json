@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-PLT-244",
+   "title": "The scheduler that has never run",
+   "verdict": "PASS",
+   "evidence": "27 jobs, each stating what and why; health {'jobs': 27, 'ever_run': 0, 'never_run': ['adaptive.change',"
+  }
+ ]
+}

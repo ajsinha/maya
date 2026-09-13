@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-PLT-239",
+   "title": "A job that raises",
+   "verdict": "PASS",
+   "evidence": "27 ran, 0 failed, each result carrying ok and error"
+  }
+ ]
+}
