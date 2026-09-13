@@ -1,17 +1,35 @@
 {
  "summary": {
-  "total": 56,
-  "pass": 49,
-  "fail": 5,
+  "total": 70,
+  "pass": 60,
+  "fail": 8,
   "blocked": 2
  },
- "seconds": 8.5,
+ "seconds": 10.1,
  "results": [
+  {
+   "id": "QA-GOV-200",
+   "title": "Run the sweep twice",
+   "verdict": "FAIL",
+   "evidence": "the sweep found the stale assessment and raised no finding. `_raise` calls `raise_finding(model_id=..., title=..., severity=..., source=..., detail=..., actor=...)` and the register's signature is `(model_id, severity, title, owner, description=...)` \u2014 `owner` is missing and `detail` is not a parameter, so every call raises TypeError into the bare `except Exception` that exists to stop ONE bad fin"
+  },
   {
    "id": "QA-GOV-201",
    "title": "A band with no name",
    "verdict": "PASS",
    "evidence": "refused 'band_name_required' (422)"
+  },
+  {
+   "id": "QA-GOV-202",
+   "title": "Sweep an estate with no assessments at all",
+   "verdict": "PASS",
+   "evidence": "swept 1 stale assessment(s), no roots"
+  },
+  {
+   "id": "QA-GOV-203",
+   "title": "Sweep where one trigger fired on fifty models",
+   "verdict": "FAIL",
+   "evidence": "4 models share a cause and the sweep raised nothing, so there is nothing to correlate \u2014 see QA-GOV-200 for why"
   },
   {
    "id": "QA-GOV-216",
@@ -23,7 +41,7 @@
    "id": "QA-GOV-217",
    "title": "Grant the same pair with `allow_conflicts: true`",
    "verdict": "FAIL",
-   "evidence": "the override was accepted and the principal reads no differently from one whose roles never conflicted; the exception is on the evidence chain and nowhere a reader of the principal will look"
+   "evidence": "the override was accepted and no route that lists principals says an exception was made: `conflicts_allowed` goes onto the evidence chain payload and onto no column, so listing who holds separated duties in one pair of hands means walking the chain \u2014 which is the thing the comment beside it says an exception must not require"
   },
   {
    "id": "QA-GOV-218",
@@ -71,7 +89,7 @@
    "id": "QA-GOV-225",
    "title": "Delete a role named in a published authority band",
    "verdict": "FAIL",
-   "evidence": "the role 'role-52588cc1' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
+   "evidence": "the role 'role-8de6ce58' was deleted while a published band names it as a required signature: `_awaited_by_a_quorum` reads the open attestation and version_approval tables only, so the matrix row survives naming a role that no longer exists \u2014 and it is unsatisfiable from the next approval onwards, not from one already open"
   },
   {
    "id": "QA-GOV-227",
@@ -194,6 +212,24 @@
    "evidence": "a blank population means everybody active: 32 subject(s)"
   },
   {
+   "id": "QA-GOV-253",
+   "title": "Open a campaign on an estate with no active principals",
+   "verdict": "PASS",
+   "evidence": "a blank population reviewed the 8 active account(s)"
+  },
+  {
+   "id": "QA-GOV-254",
+   "title": "Open a campaign whose only subject is the reviewer",
+   "verdict": "PASS",
+   "evidence": "refused 'self_recertification', and the row stands as unreviewed rather than as answered"
+  },
+  {
+   "id": "QA-GOV-255",
+   "title": "Reviewer answers their own row after a reassignment",
+   "verdict": "PASS",
+   "evidence": "the new reviewer answers the row the old one could not"
+  },
+  {
    "id": "QA-GOV-256",
    "title": "A reviewer spelled person/r against a campaign naming r",
    "verdict": "PASS",
@@ -204,6 +240,12 @@
    "title": "A reviewer answering their own row",
    "verdict": "PASS",
    "evidence": "refused 'self_recertification'"
+  },
+  {
+   "id": "QA-GOV-258",
+   "title": "Answer the same person twice with different answers",
+   "verdict": "FAIL",
+   "evidence": "a confirmed item was answered again as revoked and only the last answer is reported (0 confirmed, 1 revoked): nothing refuses re-answering an item, so what a reviewer first said is not on the record they signed"
   },
   {
    "id": "QA-GOV-259",
@@ -222,6 +264,24 @@
    "title": "Revoke with no reason",
    "verdict": "PASS",
    "evidence": "refused 'reason_required'"
+  },
+  {
+   "id": "QA-GOV-262",
+   "title": "Revoke the last administrator's access",
+   "verdict": "PASS",
+   "evidence": "refused 'last_administrator'"
+  },
+  {
+   "id": "QA-GOV-263",
+   "title": "Revoke somebody, then read the answer's wording",
+   "verdict": "PASS",
+   "evidence": "the answer scopes the removal to this register, in words"
+  },
+  {
+   "id": "QA-GOV-264",
+   "title": "Close a campaign with items still unreviewed",
+   "verdict": "PASS",
+   "evidence": "closed with 1 unreviewed, named, and said out loud"
   },
   {
    "id": "QA-GOV-265",
@@ -258,6 +318,30 @@
    "title": "Reassign a closed campaign",
    "verdict": "PASS",
    "evidence": "refused 'campaign_closed'"
+  },
+  {
+   "id": "QA-GOV-271",
+   "title": "Open a campaign naming a suspended principal explicitly",
+   "verdict": "PASS",
+   "evidence": "REC-50823ae3 reviews the suspended account by name, and a blank population does not sweep it in"
+  },
+  {
+   "id": "QA-GOV-272",
+   "title": "An account not seen for exactly 90 days",
+   "verdict": "PASS",
+   "evidence": "not at 90 days, flagged an hour later"
+  },
+  {
+   "id": "QA-GOV-273",
+   "title": "An account with no `last_seen_at` at all",
+   "verdict": "PASS",
+   "evidence": "'this account has never signed in', in its own words"
+  },
+  {
+   "id": "QA-GOV-274",
+   "title": "Open two campaigns covering the same people at once",
+   "verdict": "PASS",
+   "evidence": "answered in REC-0a14e346, still unreviewed in REC-e61f8f2f"
   },
   {
    "id": "QA-GOV-275",
@@ -299,13 +383,13 @@
    "id": "QA-GOV-282",
    "title": "Replacement naming a model that is itself retired",
    "verdict": "FAIL",
-   "evidence": "'maya://model/dc-5f5f229e' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
+   "evidence": "'maya://model/dc-361622dc' is retired and was accepted as the replacement: the check asks whether the URN is registered and never whether it is in service, so the successor chain points at another retirement"
   },
   {
    "id": "QA-GOV-283",
    "title": "Replacement recorded as the literal `none`",
    "verdict": "PASS",
-   "evidence": "accepted, detail says: maya://model/dc-00bdf477 is decommissioned, kept under the 'artifact' class, wit"
+   "evidence": "accepted, detail says: maya://model/dc-d681bf30 is decommissioned, kept under the 'artifact' class, wit"
   },
   {
    "id": "QA-GOV-284",
