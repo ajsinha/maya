@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-5800",
+   "title": "Every regime carries its own sentences",
+   "verdict": "PASS",
+   "evidence": "3 regimes, each with sentences, a title and a named authority"
+  }
+ ]
+}

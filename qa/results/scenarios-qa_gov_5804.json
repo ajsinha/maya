@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-GOV-5804",
+   "title": "A regime is not in force until it is activated",
+   "verdict": "PASS",
+   "evidence": "3 regimes listed with their state"
+  }
+ ]
+}

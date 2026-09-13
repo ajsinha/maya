@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-GOV-5805",
+   "title": "Satisfaction for a regime nobody activated",
+   "verdict": "PASS",
+   "evidence": "truth is invariant under translation across 30 sentence-state pairs"
+  }
+ ]
+}
