@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, Query, Request
 from pydantic import Field
 
-from core.execution.urn import urn_of
+from core.execution.urn import PREFIX, urn_of
 from core.domain import paging
 from core.http import conventions
 from routes.base import Body, Routes
@@ -248,6 +248,46 @@ class AssessIn(Body):
 
 
 class ModelRoutes(Routes):
+    @staticmethod
+    def _refuse_unaddressable_urn(candidate: str) -> None:
+        """A urn the register can store and then never answer to.
+
+        `POST /models` took the `urn` field verbatim. Nothing checked it, and
+        every route that acts on a model addresses it by path — `/models/{name}`
+        resolves through `urn_of`, which prefixes `maya://model/`. So a
+        registration sent as `not-a-urn` was accepted, appeared in `GET /models`
+        and in the dashboard's own model list, and every act on it answered 404:
+        it could not be tiered, versioned, approved, retired, decommissioned,
+        held or deleted. The estate page rendered a link to it that led nowhere.
+
+        A version pin or an alias is refused for the sharper reason. A model
+        registered as `maya://model/x@1.0.0` is a second model whose identifier
+        is a *pinned reference to the first one*, and warrant resolution parses
+        that suffix — so the register would hold two things that a resolver
+        cannot tell apart.
+
+        Not in `ModelCatalogue.register`, deliberately: the catalogue is called
+        in-process with identifiers that came from somewhere already trusted,
+        and the failure being closed here is a caller typing one in.
+        """
+        text = (candidate or "").strip()
+        if not text.startswith(PREFIX) or len(text) == len(PREFIX):
+            raise HTTPException(422, {
+                "error": "validation_failed",
+                "detail": f"'{candidate}' is not a model urn, and a register "
+                          f"row whose identifier no route can address is one "
+                          f"nothing can be done to afterwards",
+                "remediation": f"register it as {PREFIX}<name>"})
+        if "@" in text or "#" in text:
+            raise HTTPException(422, {
+                "error": "validation_failed",
+                "detail": f"'{candidate}' pins a version or names an alias, so "
+                          f"it identifies a reference to a model rather than a "
+                          f"model",
+                "remediation": f"register {text.split('@')[0].split('#')[0]}; "
+                               f"versions and aliases are created against it, "
+                               f"not registered beside it"})
+
     """The inventory API.
 
     Every endpoint authorises before it acts, and every act is attributed to the
@@ -361,6 +401,7 @@ class ModelRoutes(Routes):
             who = self.authorise(request, "model:register",
                                  model={"legal_entity": body.legal_entity,
                                         "domain": body.domain})
+            self._refuse_unaddressable_urn(body.urn)
             return self.guard(lambda: reg.register(
                 body.urn, body.name, body.model_class, body.domain, body.owner,
                 body.legal_entity, body.purpose, body.description, body.origin,

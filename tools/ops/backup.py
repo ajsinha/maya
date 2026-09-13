@@ -67,15 +67,24 @@ def run(config: str, out: str, even_if_broken: bool = False) -> dict:
 
     dialect = dialect_of(cfg)
     if not dialect.startswith("sqlite"):
+        # The remediation names an endpoint rather than a tool, because the
+        # tool it used to name was never written. `tools.ops.verify` appeared
+        # in this message and in `restore.py`'s, and neither has ever existed
+        # in this tree: an operator on PostgreSQL — the one reader who reaches
+        # this line — was told to run a command that answers
+        # `No module named tools.ops.verify`. A remediation pointing at a
+        # phantom is worse than none, because it reads as though somebody
+        # checked. `tests/test_backup_restore.py` now sweeps every `python -m`
+        # in `tools/` and refuses one that will not import.
         raise SystemExit(
             f"this instance is on {dialect}, and these tools do not back up "
             f"PostgreSQL. `pg_dump` and `pg_basebackup` exist, are better than "
             f"anything here, and are what you already have.\n\n"
-            f"Take the dump, then run:\n"
-            f"    python -m tools.ops.verify --config {config} "
-            f"--dump <your-dump-file> --out {out}\n"
-            f"which records the chain head and the other four stores beside it "
-            f"— the half `pg_dump` does not cover.")
+            f"Take the dump, then copy the four stores it does not cover — "
+            f"artifacts, attachments, delta and worm — and record the chain "
+            f"head beside them: `GET /api/v1/evidence/chain` returns the head "
+            f"this manifest would have carried, which is what a restore is "
+            f"then checked against.")
 
     db = open_database(cfg)
     started = stamp()

@@ -108,7 +108,14 @@ except Refused as refusal:
 | `q.tester` | `qa-password-long` | `feature_curator` — features only |
 | `s.iqbal` | `mrm-password-long` | `model_risk_manager` — second line |
 | `j.okafor` | `owner-password-long` | `model_owner` |
+| `a.mehta` | `val-password-long` | `validator` — signs the second half of a Tier 1 quorum |
+| `d.raman` | `dev-pw-long-enough` | `model_developer` |
 | `svc/qa-runner` | *(no password)* | service account, used with an API key |
+
+**`qa_setup.py` creates all of them.** It used to create only `q.tester` and
+`svc/qa-runner`, so every command from section 8 onwards — the approval
+workflow, attestation, alias promotion, everything this estate exists to
+demonstrate — answered `401` for a tester following the document in order.
 
 ---
 
@@ -535,6 +542,11 @@ curl -s -u $AUTH -X POST $API/models/qa.pd.scorecard/versions \
       {"name": "dscr", "dtype": "numeric", "symbol": "\\mathrm{DSCR}", "unit": "ratio"},
       {"name": "ltv",  "dtype": "numeric", "symbol": "\\mathrm{LTV}",  "unit": "ratio"}
     ],
+    "parameter_schema": [
+      {"name": "intercept",  "dtype": "numeric", "symbol": "\\alpha"},
+      {"name": "beta_dscr",  "dtype": "numeric", "symbol": "\\beta_{1}"},
+      {"name": "beta_ltv",   "dtype": "numeric", "symbol": "\\beta_{2}"}
+    ],
     "output_schema": [{"name": "pd_12m", "dtype": "numeric", "unit": "probability"}]
   }
 }'
@@ -554,6 +566,11 @@ maya.versions.create("qa.pd.scorecard", semver="1.0.0", kernel={
         {"name": "ltv", "dtype": "numeric",
          "symbol": r"\mathrm{LTV}", "unit": "ratio"},
     ],
+    "parameter_schema": [
+        {"name": "intercept", "dtype": "numeric", "symbol": r"\alpha"},
+        {"name": "beta_dscr", "dtype": "numeric", "symbol": r"\beta_{1}"},
+        {"name": "beta_ltv", "dtype": "numeric", "symbol": r"\beta_{2}"},
+    ],
     "output_schema": [{"name": "pd_12m", "dtype": "numeric",
                        "unit": "probability"}],
 })
@@ -564,9 +581,12 @@ maya.versions.create("qa.pd.scorecard", semver="1.0.0", kernel={
 
 > **Important.** `input_schema` declares the **features** the model reads —
 > *not* its coefficients. `intercept`, `beta_dscr` and `beta_ltv` appear in the
-> expression but are **parameters**, and they arrive later from training
-> (section 9). Putting them in `input_schema` makes MAYA demand that your
-> featureset supply them, and it will refuse.
+> expression but are **parameters**: they go in `parameter_schema` and they
+> arrive later from training (section 9). Putting them in `input_schema` makes
+> MAYA demand that your featureset supply them, and it will refuse —
+> `schema_not_satisfied`, at the fit warrant, naming the coefficients as
+> columns your training set does not have. `qa_setup.py` made exactly this
+> mistake and section 9 could not be completed against the estate it built.
 
 ### Get the mathematics — LaTeX and Python
 

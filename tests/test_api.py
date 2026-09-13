@@ -598,3 +598,54 @@ class TestTheUrnMayaPrintsIsOneMayaAnswersTo:
 
         login(client)
         assert registered.get(f"/model/{URN}").status_code == 200
+
+
+class TestAModelUrnMustBeAddressable:
+    """A register row nothing can act on afterwards.
+
+    `POST /models` took `urn` verbatim. Every route that acts on a model
+    addresses it by path and resolves through `urn_of`, which prefixes
+    `maya://model/` — so a registration sent as `not-a-urn` was accepted, was
+    listed by `GET /models`, was rendered as a link on the dashboard, and
+    answered 404 to every act: tier, version, approve, retire, decommission,
+    hold, delete. Found by registering one during a QA pass and then finding
+    the dead link on the estate page.
+    """
+
+    BODY = {"name": "n", "model_class": "credit.pd.scorecard", "domain": "credit",
+            "owner": "person/j.okafor", "legal_entity": "LE-US-01", "purpose": "p"}
+
+    def test_a_bare_string_is_refused(self, client):
+        r = client.post("/api/v1/models", json={"urn": "not-a-urn", **self.BODY})
+        assert r.status_code == 422
+        assert r.json()["error"] == "validation_failed"
+        assert "maya://model/" in r.json()["remediation"]
+
+    def test_a_urn_of_another_scheme_is_refused(self, client):
+        r = client.post("/api/v1/models",
+                        json={"urn": "urn:maya:model:pd", **self.BODY})
+        assert r.status_code == 422
+
+    def test_a_urn_with_no_name_is_refused(self, client):
+        r = client.post("/api/v1/models",
+                        json={"urn": "maya://model/", **self.BODY})
+        assert r.status_code == 422
+
+    def test_a_pinned_version_is_refused(self, client):
+        """`maya://model/x@1.0.0` names a reference to a model, not a model,
+        and warrant resolution parses that suffix."""
+        r = client.post("/api/v1/models",
+                        json={"urn": "maya://model/qa.pinned@9.9.9", **self.BODY})
+        assert r.status_code == 422
+        assert "maya://model/qa.pinned" in r.json()["remediation"]
+
+    def test_an_alias_is_refused(self, client):
+        r = client.post("/api/v1/models",
+                        json={"urn": "maya://model/qa.aliased#champion", **self.BODY})
+        assert r.status_code == 422
+
+    def test_a_proper_urn_is_accepted_and_then_addressable(self, client):
+        r = client.post("/api/v1/models",
+                        json={"urn": "maya://model/qa.addressable", **self.BODY})
+        assert r.status_code == 201
+        assert client.get("/api/v1/models/qa.addressable").status_code == 200

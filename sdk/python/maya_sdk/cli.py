@@ -117,10 +117,6 @@ def _findings(maya: Maya, args) -> Any:
         else maya.findings.ageing()
 
 
-def _worklist(maya: Maya, _args) -> Any:
-    return maya.call("GET", "/worklist")
-
-
 def _evidence(maya: Maya, _args) -> Any:
     return maya.verify_evidence()
 
@@ -166,8 +162,12 @@ COMMANDS: Tuple[Tuple[str, str, Sequence[Tuple[str, Dict[str, Any]]],
      (("urn", {}),), _versions, False),
     ("findings", "open findings, across the estate or for one model",
      (("--urn", {"default": ""}),), _findings, False),
-    ("worklist", "what is waiting on you", (), _worklist, False),
     ("evidence", "verify the evidence chain end to end", (), _evidence, False),
+    # There is no `worklist` subcommand. It called `GET /api/v1/worklist`,
+    # which does not exist — the worklist is assembled for the dashboard and
+    # has no endpoint of its own, so the command answered 404 for every user
+    # since it shipped. Adding the endpoint is a product decision and this is
+    # a client; the honest fix from here is not to offer it.
     ("ready", "may this model make this move, and what is missing if not",
      (("urn", {}),
       ("--transition", {"default": "attest"})), _readiness, True),

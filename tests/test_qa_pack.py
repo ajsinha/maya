@@ -258,3 +258,101 @@ class TestTheSetupScriptIsCrossPlatform:
     ])
     def test_every_call_it_makes_is_a_real_one(self, subject, method):
         assert hasattr(getattr(CLIENT, subject), method)
+
+
+class TestTheSetupScriptBuildsTheEstateTheCheatsheetDescribes:
+    """Three ways the pack shipped an estate the document did not describe.
+
+    All three were found by running `qa_setup.py` against an empty instance —
+    which nobody had, because it had only ever been run against a database that
+    already had the model in it.
+    """
+
+    PY = ROOT / "docs" / "QA" / "qa_setup.py"
+    SH = ROOT / "docs" / "QA" / "qa-setup.sh"
+
+    def test_the_version_is_created_before_the_tier_is_assessed(self):
+        """`assess` reads the trainability class off the latest version, and
+        refuses where the tier turns on a class it cannot see. Asking for the
+        tier first ended the script with `SystemExit(2)`: no version, no
+        kernel, and a cheatsheet describing a model that was never built."""
+        import ast as _ast
+        source = self.PY.read_text(encoding="utf-8")
+        tree = _ast.parse(source)
+        main = next(n for n in tree.body
+                    if isinstance(n, _ast.FunctionDef) and n.name == "main")
+        steps = _ast.get_source_segment(source, main) or ""
+        assert steps.index("maya.versions.create") < steps.index("tier_once"), \
+            "qa_setup.py assesses the tier before creating the version"
+        sh = self.SH.read_text(encoding="utf-8")
+        assert sh.index("/models/qa.pd.scorecard/versions") \
+            < sh.index("/models/qa.pd.scorecard/assess"), \
+            "qa-setup.sh assesses the tier before creating the version"
+
+    @pytest.mark.parametrize("username", ["q.tester", "svc/qa-runner", "s.iqbal",
+                                          "j.okafor", "a.mehta", "d.raman"])
+    def test_it_creates_every_account_the_cheatsheet_signs_in_as(self, username):
+        """The document's sign-in table listed people the script never made, so
+        every command from section 8 onwards — the approval workflow,
+        attestation, alias promotion — answered 401 for a tester following it
+        in order."""
+        for script in (self.PY, self.SH):
+            assert username in script.read_text(encoding="utf-8"), \
+                f"{script.name} does not create {username}"
+        assert username in README.read_text(encoding="utf-8")
+
+    def test_the_coefficients_are_parameters_and_not_inputs(self):
+        """L-W10 asks whether the featureset provides everything
+        `input_schema` names. A kernel declaring its own coefficients as inputs
+        demands a featureset carrying `intercept`, `beta_dscr` and `beta_ltv` —
+        columns no training set has, because they are what training produces.
+        Section 9 could not be completed against the estate this built."""
+        import ast as _ast
+        tree = _ast.parse(self.PY.read_text(encoding="utf-8"))
+        kernel = next(node.value for node in tree.body
+                      if isinstance(node, _ast.Assign)
+                      and getattr(node.targets[0], "id", "") == "KERNEL")
+        spec = _ast.literal_eval(kernel)
+        inputs = {f["name"] for f in spec["input_schema"]}
+        parameters = {f["name"] for f in spec["parameter_schema"]}
+        assert inputs == {"dscr", "ltv"}
+        assert {"intercept", "beta_dscr", "beta_ltv"} <= parameters
+        assert not (inputs & parameters)
+
+    def test_the_shell_twin_declares_the_same_split(self):
+        body = self.SH.read_text(encoding="utf-8")
+        assert '"parameter_schema"' in body
+        head = body[:body.index('"parameter_schema"')]
+        assert '"intercept"' not in head[head.index('"input_schema"'):], \
+            "the coefficients are still in input_schema in qa-setup.sh"
+
+    def test_the_cheatsheet_shows_the_same_kernel(self):
+        text = README.read_text(encoding="utf-8")
+        assert '"parameter_schema"' in text
+        assert "schema_not_satisfied" in text
+
+
+    def test_re_running_it_does_not_re_assess_a_tier(self):
+        """The second step that is not naturally idempotent. Re-sending the
+        same facts is refused — re-running the formula moves the review date
+        without anything having been reviewed — so the script asks whether the
+        model is tiered and does nothing if it is, rather than routing around
+        the refusal with a canned `review_note` claiming a review happened."""
+        import ast as _ast
+        source = self.PY.read_text(encoding="utf-8")
+        tree = _ast.parse(source)
+        helper = next((n for n in tree.body
+                       if isinstance(n, _ast.FunctionDef) and n.name == "tier_once"),
+                      None)
+        assert helper is not None, "qa_setup.py re-assesses on every run"
+        # The statements only — the docstring explains why `review_note` is
+        # NOT used, and a substring check over it would read as the opposite.
+        body = [n for n in helper.body
+                if not (isinstance(n, _ast.Expr)
+                        and isinstance(n.value, _ast.Constant)
+                        and isinstance(n.value.value, str))]
+        code = "\n".join(_ast.get_source_segment(source, n) or "" for n in body)
+        assert '"tier"' in code, "it does not ask whether the model is tiered"
+        assert "review_note" not in code, \
+            "a setup script asserting that a review happened is the failure " \
+            "the same-facts refusal exists to stop"
