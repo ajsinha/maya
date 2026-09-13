@@ -318,7 +318,7 @@ current there:
 | Tests | **over 4,800 passing** — about 5,500 including parametrised cases — plus a scale suite excluded by default, a real PostgreSQL and a container build behind opt-in variables. Both of those **skip loudly**, because a green suite that silently did not run the isolation test is the assurance finding H-5 objected to |
 | Foundational laws executable | **18 of 21** — the three that are not are named with the reason, and each is a refusal rather than a gap |
 | Warrant admissibility laws | **14 of 14**, checked before every signature |
-| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **91 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
+| Database | SQLite by default, PostgreSQL by URL alone. One typed schema, **93 tables**, DDL generated per dialect, no migrations — and that is a position, not a gap: [19 §4](docs/19-deploying-maya.md) says what a deployer does instead |
 | Row-level security | Built, and a **backstop** rather than the control. It needs three deployment facts to be true, and `GET /api/v1/row-level-security` reports all three rather than assuming them — including whether the connecting role is a superuser, which bypasses every policy |
 | The CLI | `maya`, installed with the SDK. **Three** exit codes: 0 answered yes, 1 MAYA refused, 2 MAYA was not reached — separated because a pipeline that collapses them goes green whenever the governance platform is down, which is worse than no gate at all. No flag suppresses a refusal |
 | Dependencies | Everything vendored. No CDN, no external calls, deployable air-gapped. The Java SDK holds the same line: `java.net.http` and two hundred lines of JSON |
@@ -421,7 +421,7 @@ registered properly.
 | **17** | [The Algebra](docs/17-feature-and-model-algebra.md) | One order for four questions; the `AsOf` operator and its saturation law; derived features on the provenance polynomial; typed composition; the documentation graph |
 | **18** | [The Register's Edges](docs/18-the-registers-edges.md) | The twelve places the record is not MAYA's own, and the one rule under all of them: at a boundary, widen a type rather than add a caveat |
 | **19** | [Deploying MAYA](docs/19-deploying-maya.md) | The image, the two database roles, the chart's refusals, the batch — and the five things that must be true, in order |
-| — | [ADRs](docs/adr/INDEX.md) | Fifteen architecture decision records |
+| — | [ADRs](docs/adr/INDEX.md) | Sixteen architecture decision records |
 | — | [CONTRIBUTING](CONTRIBUTING.md) | The five preflight gates, the discipline tests that walk the source, and the two mistakes this repository keeps making |
 
 ---

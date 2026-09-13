@@ -39,6 +39,9 @@ class ModelCatalogue:
         self.policy = None
         # Set at wiring time; see core/policy/wiring.py.
         self.facts = None
+        # Set at wiring time. The register of URNs that belonged to models
+        # somebody destroyed — see `register` for why they may not come back.
+        self.tombstones = None
 
     def register(self, urn: str, name: str, model_class: str, domain: str, owner: str,
                  legal_entity: str, purpose: str, description: str = "",
@@ -46,6 +49,18 @@ class ModelCatalogue:
                  attributes: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         if self.models.one(urn=urn):
             raise RegistryError(f"a model is already registered with urn {urn}")
+        # A URN that is free because nobody has used it and one that is free
+        # because somebody destroyed what used it are not the same URN.
+        #
+        # The identifier is derived from the name. Without this, deleting
+        # `pd-retail` and registering a new model called `pd-retail` produces a
+        # record that every historical evidence node, closed finding and
+        # amendment naming that URN now appears to describe. Nothing detects
+        # it: `verify_chain` re-derives every hash and finds the chain intact,
+        # because the chain *is* intact. It is simply about the wrong model,
+        # and an integrity check over hashes can never see that.
+        if self.tombstones is not None:
+            self.tombstones.refuse_reuse(urn)
         row = {"urn": urn, "name": name, "description": description,
                "model_class": model_class, "domain": domain, "owner": owner,
                "legal_entity": legal_entity, "purpose": purpose, "origin": origin,

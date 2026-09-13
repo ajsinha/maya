@@ -15,8 +15,8 @@ Both read this.
 ## Why a delete needed it
 
 `DELETE /models/{name}` checked that the caller was an administrator and that
-they had given a reason, and then removed the row. Nineteen tables carry a
-`model_id`. Deleting a model with a live warrant, an open finding, a monitor and
+they had given a reason, and then removed the row. **Thirty-eight** tables
+carry a `model_id`. Deleting a model with a live warrant, an open finding, a monitor and
 three parameter sets left every one of those rows pointing at an identifier that
 no longer resolves — and the evidence chain, which survives the deletion by
 design, then described acts against a model nobody could look up.
@@ -545,6 +545,60 @@ class ReferenceIndex:
                     kind, str(row["id"]), str(row.get(label) or row["id"]),
                     why, blocking))
 
+        found.extend(self._declared(model_id))
+        return found
+
+    #: The tables the queries above ask about by hand.
+    #:
+    #: Written down so the declaration can fill the gap rather than duplicate
+    #: the answer. Where a table appears here the hand-written reference wins:
+    #: it carries a better label, and several block more strictly than the
+    #: declaration would — `attestation` blocks on any row, not only an
+    #: unfinished one. Deferring to the declaration would have quietly relaxed
+    #: those, and a repair that loosens a control while claiming to widen one
+    #: is worse than the gap it closes.
+    ASKED_BY_HAND: Tuple[str, ...] = (
+        "alias", "alias_history", "amendment", "approval_condition",
+        "attachment", "attestation", "breach", "campaign_item",
+        "compliance_debt", "control_waiver", "document", "elicitation",
+        "estate_cost", "export_share", "finding", "finding_action",
+        "inference", "model_decommission", "model_use", "model_version",
+        "monitor", "monitoring_plan", "overlay", "parallel_run",
+        "parameter_set", "regulatory_approval", "retrain_policy",
+        "risk_assessment", "run", "tiering_fact_source", "vendor_assessment",
+        "warrant", "warrant_invocation")
+
+    def _declared(self, model_id: str) -> List[Reference]:
+        """The tables nobody remembered to ask about.
+
+        Thirty-eight tables carry a `model_id`. The queries above reach
+        thirty-three. The other five were never asked, and the check's failure
+        mode is silence rather than error — a model with an **unfinished
+        validation** or a **version approval still being collected** reported
+        `deletable: true` with zero references, and the deletion went through.
+        `model_assumption` and `model_limitation` were simply orphaned.
+
+        The guard test could not see it. `test_the_reference_index_reads_every
+        _table_that_carries_a_model_id` asserted the table's name appeared
+        *somewhere in this file*, and all five names appear — in prose, in a
+        `why` clause, as a `Reference` kind. A test passing because a word is
+        mentioned is the review's own §3.3, and it is the more expensive half
+        of this defect: it converted an absent control into a reported one.
+
+        Adding five more hand-written queries would fix today and leave the
+        mechanism. So the rest comes from `core/retention/cascade.py`, where
+        every table carrying a `model_id` has a declared disposition and
+        `tests/test_tombstones.py` fails the build if one is missing.
+        """
+        from core.retention.cascade import BLOCKS, CASCADE
+        found: List[Reference] = []
+        for d in CASCADE:
+            if d.kind != BLOCKS or d.table in self.ASKED_BY_HAND:
+                continue
+            rows = self.db.query(d.blocking_sql(), {"m": model_id})
+            for row in rows:
+                found.append(Reference(d.table, str(row["id"]), d.label,
+                                       d.why, True))
         return found
 
     def _to_model_version(self, version_id: str) -> List[Reference]:

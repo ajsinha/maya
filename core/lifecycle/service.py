@@ -39,9 +39,14 @@ class LifecycleService:
 
     def __init__(self, registry: ModelRegistry, amendments: AmendmentService,
                  attestations: AttestationService, evidence: EvidenceEngine,
-                 holds=None):
+                 holds=None, tombstones=None, cascade=None):
         self.registry, self.amendments = registry, amendments
         self.attestations, self.evidence = attestations, evidence
+        # What the deletion leaves behind, and what goes with it. Both are
+        # optional so a partial wiring still starts — but `delete` refuses
+        # without a tombstone rather than proceeding, because a deletion that
+        # frees the URN is the failure this pair exists to prevent.
+        self.tombstones, self.cascade = tombstones, cascade
         # Legal holds. `LegalHolds.held` has always documented itself as "the
         # question a deleter asks", and no deleter asked it: holds were
         # consulted by the inference log and the retention schedule and not by
@@ -192,16 +197,55 @@ class LifecycleService:
         # did not destroy.
         self._refuse_under_legal_hold(model)
 
+        self._refuse_without_a_marker(model)
+
         # Appended BEFORE the rows go, so the chain records the intent even if
         # the removal fails halfway.
         self.evidence.append("model_deleted", "model", model["id"],
                              {"urn": model["urn"], "name": model["name"],
                               "status": model["status"], "reason": reason},
                              actor=actor)
+        # The cascade runs BEFORE the model row goes, because it reads
+        # `model_id` off rows that are only findable while the subject is
+        # there to be reasoned about, and because its counts are the only
+        # record of scale the tombstone will ever carry.
+        destroyed = self.cascade.destroy(model["id"]) if self.cascade else {}
+        stone = self.tombstones.mark(model, reason=reason, actor=actor,
+                                     destroyed=destroyed)
         removed = self.registry.catalogue.models.remove(id=model["id"])
         logger.warning("model %s deleted by %s: %s", model["urn"], actor, reason)
         return {"deleted": bool(removed), "urn": model["urn"], "reason": reason,
-                "evidence_retained": True}
+                "evidence_retained": True,
+                "tombstone": stone["id"], "destroyed": destroyed,
+                "urn_reusable": False,
+                "storage_reclaimed": False,
+                "detail": ("the record is gone and the identifier is not "
+                           "available again; storage is reclaimed separately "
+                           "by compaction")}
+
+    def _refuse_without_a_marker(self, model: Dict[str, Any]) -> None:
+        """Refuse to delete if nothing will record that the model existed.
+
+        Not a wiring assertion — a control.
+
+        A deletion with no tombstone frees the URN, and the URN is derived from
+        the name, so the next model registered under that name inherits every
+        evidence node, closed finding and amendment naming it. The chain still
+        verifies; it is describing a different model. That is a worse outcome
+        than a failed deletion, and it is silent, so the deletion is refused
+        instead of degrading.
+        """
+        if self.tombstones is not None:
+            return
+        raise LifecycleError(
+            "no_tombstone_register",
+            "this deployment cannot delete models: nothing would record that "
+            f"{model['urn']} had existed, so the identifier would fall free "
+            "and the next model registered under this name would silently "
+            "inherit its history",
+            "wire core/retention/tombstones.py into the lifecycle service, or "
+            "retire the model instead — retiring withdraws it from use and "
+            "keeps every reference readable")
 
     def _refuse_under_legal_hold(self, model: Dict[str, Any]) -> None:
         """Refuse to destroy a record somebody has placed a hold over.

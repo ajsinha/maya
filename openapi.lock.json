@@ -1170,6 +1170,36 @@
         ]
       }
     },
+    "/api/v1/compaction/plan": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/compaction/sweep": {
+      "post": {
+        "body": [],
+        "parameters": [
+          "query:dry_run"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/compaction/vacuum": {
+      "post": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
     "/api/v1/composites": {
       "get": {
         "body": [],
@@ -1491,6 +1521,15 @@
       }
     },
     "/api/v1/decommission/estate": {
+      "get": {
+        "body": [],
+        "parameters": [],
+        "responses": [
+          "200"
+        ]
+      }
+    },
+    "/api/v1/deletion-cascade": {
       "get": {
         "body": [],
         "parameters": [],
@@ -6072,6 +6111,30 @@
         "parameters": [
           "query:minimum_exposure",
           "query:tier"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/tombstones": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "query:compacted"
+        ],
+        "responses": [
+          "200",
+          "422"
+        ]
+      }
+    },
+    "/api/v1/tombstones/{urn}": {
+      "get": {
+        "body": [],
+        "parameters": [
+          "path:urn!"
         ],
         "responses": [
           "200",

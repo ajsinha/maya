@@ -228,6 +228,76 @@ refused, naming the feature that forces the floor.</p>
 </div>
 
 <div class="card mb-3">
+  <div class="card-header">Models that were deleted, and what went with them</div>
+  <div class="card-body">
+    <p class="small text-muted">
+      Deletion is the one act here with no workflow, no reversal and no second
+      signature. A tombstone is what stays: it makes a historical reference
+      resolve to <em>there was one, and here is what happened to it</em> rather
+      than to nothing, and it is why the identifier cannot be handed out again.
+      <strong>That last part is the load-bearing one.</strong> A URN is derived
+      from the name, so without a marker a second model registered under a
+      deleted one's name would silently inherit its whole evidence history —
+      and every hash would still verify, because the chain would be intact. It
+      would simply be about the wrong model.
+    </p>
+    {% if tombstones %}
+    <table class="table table-sm">
+      <thead><tr><th>Model</th><th>Deleted from</th><th>When</th><th>By</th>
+        <th>Why</th><th class="text-end">Rows removed</th><th>Storage</th></tr></thead>
+      <tbody>
+      {% for t in tombstones %}
+        <tr>
+          <td><code>{{ t.name }}</code></td>
+          <td>{{ t.status }}</td>
+          <td>{{ t.deleted_at | when }}</td>
+          <td>{{ t.deleted_by }}</td>
+          <td class="small text-muted">{{ t.reason }}</td>
+          <td class="text-end">{{ t.destroyed.values() | sum }}</td>
+          <td>{% if t.compacted_at %}reclaimed{% else %}
+              <span class="text-muted">still on disk</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="small text-muted mb-0">
+      Nothing has been deleted. Deleting a draft nobody used is housekeeping;
+      deleting a retired model that made decisions for six years is an act with
+      a regulatory character, and the state it was deleted <em>from</em> is the
+      only thing that records which one happened.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">Storage nothing references any more</div>
+  <div class="card-body small text-muted">
+    Deleting a model frees almost nothing. A model cannot go while any version
+    of it exists, so by then its artifacts were already orphaned by whatever
+    removed those versions. What accumulates is <strong>whatever nothing
+    references</strong>, over the life of the install.
+    <br><br>
+    {% if compaction %}
+    <strong>{{ compaction.would_sweep }} blob(s)</strong> have been
+    unreferenced for long enough to reclaim
+    ({{ '%.1f' | format(compaction.would_reclaim_bytes / 1048576) }} MB), and
+    <strong>{{ compaction.would_mark }}</strong> are waiting for another pass.
+    A blob is never reclaimed on first sight: an upload writes the bytes and
+    then the row that points at them, and a sweeper walking past in between
+    sees exactly what a real orphan looks like.
+    {% if compaction.not_reclaimable.delta_bytes %}
+    <br><br>
+    <strong>{{ '%.1f' | format(compaction.not_reclaimable.delta_bytes / 1048576) }} MB
+    of Delta storage is out of reach of this tool</strong> —
+    {{ compaction.not_reclaimable.why }}.
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
   <div class="card-header">What a document inherits</div>
   <div class="card-body small text-muted">
     A document is at least as sensitive as the most sensitive model it describes,
