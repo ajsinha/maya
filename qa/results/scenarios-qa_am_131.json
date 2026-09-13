@@ -1,0 +1,47 @@
+{
+ "summary": {
+  "total": 6,
+  "pass": 3,
+  "fail": 3,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-AM-1310",
+   "title": "The distributable list is published, not documented",
+   "verdict": "PASS",
+   "evidence": "4 distributable, 2 refused by name"
+  },
+  {
+   "id": "QA-AM-1311",
+   "title": "The answer says the population is attested, not observed",
+   "verdict": "PASS",
+   "evidence": "attested-not-observed, with the predicate on the record"
+  },
+  {
+   "id": "QA-AM-1312",
+   "title": "A distributed breach is judged, not just computed",
+   "verdict": "FAIL",
+   "evidence": "the submission computed 3.9385 and the outcome carries no comparison to the threshold at all \u2014 no breach, no status, not even the threshold it was supposedly compared against. `posture()` publishes `maya_compares_to_the_threshold: true` and the plan tells the caller the judgement stays here; the arithmetic stays here and the judgement does not happen"
+  },
+  {
+   "id": "QA-AM-1313",
+   "title": "A distributed evaluation reaches the monitor's history",
+   "verdict": "FAIL",
+   "evidence": "the submitted evaluation left no trace on the monitor; the estate-wide sweep computes numbers the register does not keep"
+  },
+  {
+   "id": "QA-AM-1314",
+   "title": "Every test refused by name can actually be defined",
+   "verdict": "FAIL",
+   "evidence": "published as not-distributable but absent from the test catalogue, so no monitor can ever carry it and the refusal can never fire: calibration.hosmer_lemeshow"
+  },
+  {
+   "id": "QA-AM-1315",
+   "title": "Every distributable test can actually be defined",
+   "verdict": "PASS",
+   "evidence": "all 4 are definable tests"
+  }
+ ]
+}
