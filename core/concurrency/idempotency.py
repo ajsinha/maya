@@ -44,6 +44,7 @@ refusals in front of it.
 """
 from __future__ import annotations
 
+import json
 import time
 from typing import Any, Dict, Optional
 
@@ -70,6 +71,42 @@ RETENTION_HOURS = 24.0
 STALE_MINUTES = 15.0
 
 MAX_KEY = 255
+
+
+def _body_digest(body: bytes) -> str:
+    """A digest of what the request MEANS, not of how it was serialised.
+
+    Taken over the raw bytes, `{"a":1,"b":2}` and `{"b":2,"a":1}` hash
+    differently — so a client retrying the identical request through a
+    different JSON library, a proxy that re-serialised it, or a language whose
+    mapping order differs, was refused `idempotency_key_reused`. The refusal
+    told them the key "was used for a different POST", which was not true: it
+    was the same request, spelled in a different order.
+
+    That is the wrong direction for this control to fail in. Idempotency exists
+    so a client that is unsure whether its request arrived can safely send it
+    again, and this made the safe retry the one thing guaranteed to fail.
+
+    `canonical_digest` sorts keys, so parsing first makes ordering irrelevant
+    while leaving every actual difference — a changed value, an added field, a
+    removed one — as visible as before. A body that is not JSON falls back to
+    the raw bytes, where byte equality is the only meaning available.
+    """
+    text = body.decode("utf-8", "replace")
+    if not text.strip():
+        return canonical_digest({"json": None})
+    try:
+        parsed = json.loads(text)
+    except ValueError as not_json:
+        # Not an error: an endpoint may take a form post, an upload or an
+        # opaque payload, and for those the bytes ARE the meaning. Logged at
+        # debug rather than swallowed, because "this key behaved differently
+        # from the JSON ones" is otherwise unexplainable from outside.
+        logger.debug("idempotent body is not JSON (%s); digesting the raw "
+                     "bytes, where byte equality is the only meaning "
+                     "available", not_json)
+        return canonical_digest({"raw": text})
+    return canonical_digest({"json": parsed})
 
 
 class IdempotencyError(RuntimeError):
@@ -105,8 +142,7 @@ class IdempotencyStore:
                 f"is a payload",
                 f"at most {MAX_KEY} characters — a UUID is the usual choice")
         request_digest = canonical_digest(
-            {"method": method, "path": path,
-             "body": canonical_digest({"raw": body.decode("utf-8", "replace")})})
+            {"method": method, "path": path, "body": _body_digest(body)})
 
         existing = self.repo.one(idempotency_key=key, principal=principal)
         if existing is None:

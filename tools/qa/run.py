@@ -54,8 +54,7 @@ from typing import Any, Dict, List, Optional, Tuple
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from tools.qa.enumerate import (_path_params, _required, _slug, domain_of,
-                                operations, screens)
+from tools.qa.enumerate import (_path_params, _required, operations, screens)
 
 #: Path parameters get a value that is syntactically plausible for their name.
 #: A `{semver}` filled with "does-not-exist" is refused by *validation* before
@@ -179,148 +178,128 @@ class Runner:
             print(f"  {verdict:8s} {case_id}  {title[:70]}")
 
     # --------------------------------------------------------------- section
+    def _cases(self, section_prefix: str):
+        """The published cases for one section, in published order.
+
+        Taken from `tools.qa.enumerate.build()` — the same function that
+        writes the case list — rather than re-derived here. The first version
+        of this minted its own ids (`QA-APIKEYS-B001`) and 359 results then
+        matched nothing in the published list, so the run could report a
+        coverage percentage of a numbering only it used.
+        """
+        from tools.qa.enumerate import build
+        for name, cases in build().items():
+            if name.startswith(section_prefix):
+                yield from cases
+
+    @staticmethod
+    def _target(steps: str) -> Tuple[str, str]:
+        """`METHOD /path` out of a case's steps line."""
+        head = steps.split(" — ")[0].split(" omitting")[0].split(" with ")[0]
+        parts = head.strip().split(" ", 1)
+        return (parts[0], parts[1].strip()) if len(parts) == 2 else ("GET", "/")
+
     def section_a(self) -> None:
         """Every operation answers on the happy path."""
-        counter: Dict[str, int] = {}
-        for method, path, spec in operations():
-            area = domain_of(path)
-            counter[area] = counter.get(area, 0) + 1
-            cid = f"QA-{_slug(area)}-{counter[area]:03d}"
-            if any(path.startswith(s) for s in SKIP_PATHS):
-                self._record(cid, "A", area, f"{method} {path}",
-                             "accepted", None, "BLOCKED",
+        specs = {(m, p): s for m, p, s in operations()}
+        for entry in self._cases("A."):
+            method, path = self._target(entry["steps"])
+            spec = specs.get((method, path), {})
+            if any(path.startswith(skip) for skip in SKIP_PATHS):
+                self._record(entry["id"], "A", entry["area"], entry["title"],
+                             entry["expect"], None, "BLOCKED",
                              "not callable by a generic driver: it either "
                              "stops the server or streams without ending. "
                              "Needs a hand-written case")
                 continue
             called = _fill(path, lambda n: PLAUSIBLE.get(n, ABSENT))
             r = self._call(method, called, _body_for(spec))
-            # The happy path cannot be built generically for a parameterised
-            # path — the subject does not exist. What this case CAN establish,
-            # and what a register most needs, is that the operation answers
-            # with a considered status rather than a stack trace.
-            #
-            # **501 counts as considered**, and the first version of this did
-            # not: `no_timestamp_authority` and `sso_not_configured` are the
-            # platform saying *this deployment has no time stamp authority /
-            # no identity provider*, with a detail and a remediation. Those
-            # are the boundary discipline working, and failing them would have
-            # reported four correct refusals as defects.
-            #
-            # A bare 500 with no body is the opposite: nobody decided that.
             ok = r.status_code < 500 or (
                 r.status_code == 501 and '"error"' in r.text)
-            self._record(
-                cid, "A", area, f"{method} {path} answers", "accepted",
-                r.status_code, "PASS" if ok else "FAIL",
-                f"{method} {called} -> {r.status_code} {r.text[:160]}")
+            self._record(entry["id"], "A", entry["area"], entry["title"],
+                         entry["expect"], r.status_code,
+                         "PASS" if ok else "FAIL",
+                         f"{method} {called} -> {r.status_code} {r.text[:160]}")
 
     def section_b(self) -> None:
         """A required field, omitted."""
-        counter: Dict[str, int] = {}
-        for method, path, spec in operations():
-            required = _required(spec)
-            if not required:
-                continue
-            area = domain_of(path)
-            counter[area] = counter.get(area, 0) + 1
-            cid = f"QA-{_slug(area)}-B{counter[area]:03d}"
+        specs = {(m, p): s for m, p, s in operations()}
+        for entry in self._cases("B."):
+            method, path = self._target(entry["steps"])
+            spec = specs.get((method, path), {})
+            required = tuple(_required(spec))
             called = _fill(path, lambda n: PLAUSIBLE.get(n, ABSENT))
-            r = self._call(method, called,
-                           _body_for(spec, omit=tuple(required)))
-            # 422 is the expectation. 404 is an acceptable earlier refusal:
-            # the subject in the path does not exist either, and refusing on
-            # that first is not a defect — it is a different correct answer to
-            # a request that is wrong twice.
-            if r.status_code == 422:
-                verdict = "PASS"
-            elif r.status_code in (401, 403, 404, 409, 423):
-                verdict = "PASS"
-            elif r.status_code >= 500:
-                verdict = "FAIL"
-            else:
-                verdict = "FAIL"
-            self._record(
-                cid, "B", area,
-                f"{method} {path} without {', '.join(required)}",
-                "refused (422)", r.status_code, verdict,
-                f"{method} {called} omitting {required} -> {r.status_code} "
-                f"{r.text[:160]}")
+            r = self._call(method, called, _body_for(spec, omit=required))
+            # 422 is the expectation. An earlier refusal — the subject in the
+            # path does not exist either — is a different correct answer to a
+            # request that is wrong twice.
+            verdict = ("PASS" if r.status_code in (401, 403, 404, 409, 422, 423)
+                       else "FAIL")
+            self._record(entry["id"], "B", entry["area"], entry["title"],
+                         entry["expect"], r.status_code, verdict,
+                         f"{method} {called} omitting {list(required)} -> "
+                         f"{r.status_code} {r.text[:150]}")
 
     def section_c(self) -> None:
         """An identifier that does not exist."""
-        counter: Dict[str, int] = {}
-        for method, path, spec in operations():
+        specs = {(m, p): s for m, p, s in operations()}
+        for entry in self._cases("C."):
+            method, path = self._target(entry["steps"])
+            spec = specs.get((method, path), {})
             names = _path_params(path)
             if not names:
                 continue
-            area = domain_of(path)
-            counter[area] = counter.get(area, 0) + 1
-            cid = f"QA-{_slug(area)}-C{counter[area]:03d}"
-            if any(path.startswith(s) for s in SKIP_PATHS):
-                self._record(cid, "C", area, f"{method} {path}", "refused (404)",
-                             None, "BLOCKED", "stops the server")
+            if any(path.startswith(skip) for skip in SKIP_PATHS):
+                self._record(entry["id"], "C", entry["area"], entry["title"],
+                             entry["expect"], None, "BLOCKED", "stops the server")
                 continue
             called = _fill(path, lambda n, first=names[0]:
-                           ABSENT if n == first
-                           else PLAUSIBLE.get(n, ABSENT))
+                           ABSENT if n == first else PLAUSIBLE.get(n, ABSENT))
             r = self._call(method, called, _body_for(spec))
-            # The claim being tested is narrow and important: an unknown id
-            # must not produce a 500. Which 4xx it produces is a judgement the
-            # hand-written sections make case by case.
-            if r.status_code >= 500:
-                verdict = "FAIL"
-            elif r.status_code in (400, 401, 403, 404, 409, 410, 422, 423):
-                verdict = "PASS"
-            else:
-                verdict = "FAIL"
-            self._record(
-                cid, "C", area, f"{method} {path} with an unknown {names[0]}",
-                "refused (404)", r.status_code, verdict,
-                f"{method} {called} -> {r.status_code} {r.text[:160]}")
+            # The narrow claim: an unknown id must not produce a 500. Which
+            # 4xx is a judgement the hand-written sections make case by case.
+            verdict = ("PASS"
+                       if r.status_code in (400, 401, 403, 404, 409, 410, 422, 423)
+                       else "FAIL")
+            self._record(entry["id"], "C", entry["area"], entry["title"],
+                         entry["expect"], r.status_code, verdict,
+                         f"{method} {called} -> {r.status_code} {r.text[:150]}")
 
     def section_e(self, observer=None) -> None:
         """Every screen, for somebody who may see it and somebody who may not."""
-        counter = 0
-        for path, title, permission in screens():
-            counter += 1
-            cid = f"QA-SCREEN-{counter:03d}"
+        entries = list(self._cases("E."))
+        pairs = list(screens())
+        for index, (path, _title, _permission) in enumerate(pairs):
+            allowed = entries[index * 2] if index * 2 < len(entries) else None
+            refused_case = (entries[index * 2 + 1]
+                            if index * 2 + 1 < len(entries) else None)
             r = self._call("GET", path)
-            ok = r.status_code == 200
-            self._record(cid, "E", "screen",
-                         f"{title} ({path}) renders for {permission}",
-                         "accepted (200)", r.status_code,
-                         "PASS" if ok else "FAIL",
-                         f"GET {path} as admin -> {r.status_code}")
-            counter += 1
-            cid = f"QA-SCREEN-{counter:03d}"
+            if allowed:
+                self._record(allowed["id"], "E", "screen", allowed["title"],
+                             allowed["expect"], r.status_code,
+                             "PASS" if r.status_code == 200 else "FAIL",
+                             f"GET {path} as admin -> {r.status_code}")
+            if refused_case is None:
+                continue
             if observer is None:
-                self._record(cid, "E", "screen",
-                             f"{title} ({path}) refused without {permission}",
-                             "refused (403)", None, "BLOCKED",
+                self._record(refused_case["id"], "E", "screen",
+                             refused_case["title"], refused_case["expect"],
+                             None, "BLOCKED",
                              "no unprivileged principal was provided")
                 continue
-            # The observer's OWN client — see `harness.live_client`. Passing
-            # credentials on the signed-in client leaves the admin session
-            # cookie attached, and the request is served as an administrator.
             if self.trace:
                 self.trace.write(f"CALL(observer) GET {path}\n")
                 self.trace.flush()
-            r = observer.get(path)
+            got = observer.get(path)
             # A UI route answers 200 with the sign-in form when the caller
-            # cannot see the page — this bit an earlier spike, which timed a
-            # login page and reported it as a fast dashboard. So the assertion
-            # is on CONTENT, not on status.
-            refused = (r.status_code in (401, 403)
-                       or "sign in" in r.text.lower()
-                       or "not permitted" in r.text.lower())
-            self._record(cid, "E", "screen",
-                         f"{title} ({path}) refused without {permission}",
-                         "refused (403)", r.status_code,
-                         "PASS" if refused else "FAIL",
-                         f"GET {path} unprivileged -> {r.status_code}; "
-                         f"body says sign-in: "
-                         f"{'sign in' in r.text.lower()}")
+            # cannot see the page, so the assertion is on CONTENT.
+            refused = (got.status_code in (401, 403)
+                       or "sign in" in got.text.lower()
+                       or "not permitted" in got.text.lower())
+            self._record(refused_case["id"], "E", "screen",
+                         refused_case["title"], refused_case["expect"],
+                         got.status_code, "PASS" if refused else "FAIL",
+                         f"GET {path} unprivileged -> {got.status_code}")
 
 
 def summarise(results: List[Case]) -> Dict[str, Any]:

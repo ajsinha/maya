@@ -1,8 +1,8 @@
 {
  "summary": {
-  "total": 598,
+  "total": 601,
   "PASS": 456,
-  "UNPROVEN": 142,
+  "UNPROVEN": 145,
   "FAIL": 0
  },
  "results": [
@@ -69,7 +69,7 @@
    "expect": "refused (409)",
    "status": 409,
    "verdict": "UNPROVEN",
-   "evidence": "raised at core/waivers/register.py:275; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at core/waivers/register.py:297; the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
@@ -443,7 +443,7 @@
    "expect": "refused (422)",
    "status": 422,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:867 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:874 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
@@ -707,7 +707,7 @@
    "expect": "refused (409)",
    "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/lifecycle/campaigns.py:95; provoked by the suite",
+   "evidence": "raised at core/lifecycle/campaigns.py:102; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
@@ -1132,6 +1132,17 @@
    "id": "QA-REFUSAL-103",
    "section": "D",
    "area": "refusal",
+   "title": "`declared_use_required` can be provoked",
+   "expect": "refused (422)",
+   "status": 422,
+   "verdict": "UNPROVEN",
+   "evidence": "raised at core/execution/grants.py:88; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "method": "raise-site + instrumented suite"
+  },
+  {
+   "id": "QA-REFUSAL-104",
+   "section": "D",
+   "area": "refusal",
    "title": "`deletion_refused` can be provoked",
    "expect": "refused (403)",
    "status": 403,
@@ -1140,7 +1151,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-104",
+   "id": "QA-REFUSAL-105",
    "section": "D",
    "area": "refusal",
    "title": "`delivery_refused` can be provoked",
@@ -1151,7 +1162,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-105",
+   "id": "QA-REFUSAL-106",
    "section": "D",
    "area": "refusal",
    "title": "`description_required` can be provoked",
@@ -1162,7 +1173,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-106",
+   "id": "QA-REFUSAL-107",
    "section": "D",
    "area": "refusal",
    "title": "`different_version` can be provoked",
@@ -1173,7 +1184,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-107",
+   "id": "QA-REFUSAL-108",
    "section": "D",
    "area": "refusal",
    "title": "`digest_required` can be provoked",
@@ -1184,7 +1195,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-108",
+   "id": "QA-REFUSAL-109",
    "section": "D",
    "area": "refusal",
    "title": "`discovery_incomplete` can be provoked",
@@ -1195,7 +1206,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-109",
+   "id": "QA-REFUSAL-110",
    "section": "D",
    "area": "refusal",
    "title": "`dmn_declares_a_doctype` can be provoked",
@@ -1206,7 +1217,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-110",
+   "id": "QA-REFUSAL-111",
    "section": "D",
    "area": "refusal",
    "title": "`dmn_too_large` can be provoked",
@@ -1217,7 +1228,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-111",
+   "id": "QA-REFUSAL-112",
    "section": "D",
    "area": "refusal",
    "title": "`document_corrupt` can be provoked",
@@ -1228,7 +1239,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-112",
+   "id": "QA-REFUSAL-113",
    "section": "D",
    "area": "refusal",
    "title": "`document_missing` can be provoked",
@@ -1239,7 +1250,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-113",
+   "id": "QA-REFUSAL-114",
    "section": "D",
    "area": "refusal",
    "title": "`document_too_large` can be provoked",
@@ -1250,7 +1261,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-114",
+   "id": "QA-REFUSAL-115",
    "section": "D",
    "area": "refusal",
    "title": "`duplicate_capability` can be provoked",
@@ -1261,7 +1272,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-115",
+   "id": "QA-REFUSAL-116",
    "section": "D",
    "area": "refusal",
    "title": "`duplicate_monitor` can be provoked",
@@ -1272,7 +1283,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-116",
+   "id": "QA-REFUSAL-117",
    "section": "D",
    "area": "refusal",
    "title": "`duplicate_principal` can be provoked",
@@ -1283,7 +1294,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-117",
+   "id": "QA-REFUSAL-118",
    "section": "D",
    "area": "refusal",
    "title": "`duplicate_rule_id` can be provoked",
@@ -1294,7 +1305,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-118",
+   "id": "QA-REFUSAL-119",
    "section": "D",
    "area": "refusal",
    "title": "`elicitation_already_open` can be provoked",
@@ -1305,7 +1316,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-119",
+   "id": "QA-REFUSAL-120",
    "section": "D",
    "area": "refusal",
    "title": "`elicitation_closed` can be provoked",
@@ -1316,7 +1327,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-120",
+   "id": "QA-REFUSAL-121",
    "section": "D",
    "area": "refusal",
    "title": "`empty_artifact` can be provoked",
@@ -1327,7 +1338,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-121",
+   "id": "QA-REFUSAL-122",
    "section": "D",
    "area": "refusal",
    "title": "`empty_batch` can be provoked",
@@ -1338,7 +1349,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-122",
+   "id": "QA-REFUSAL-123",
    "section": "D",
    "area": "refusal",
    "title": "`empty_configuration` can be provoked",
@@ -1349,7 +1360,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-123",
+   "id": "QA-REFUSAL-124",
    "section": "D",
    "area": "refusal",
    "title": "`empty_document` can be provoked",
@@ -1360,7 +1371,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-124",
+   "id": "QA-REFUSAL-125",
    "section": "D",
    "area": "refusal",
    "title": "`empty_population` can be provoked",
@@ -1371,7 +1382,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-125",
+   "id": "QA-REFUSAL-126",
    "section": "D",
    "area": "refusal",
    "title": "`empty_predicate` can be provoked",
@@ -1382,7 +1393,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-126",
+   "id": "QA-REFUSAL-127",
    "section": "D",
    "area": "refusal",
    "title": "`empty_profile` can be provoked",
@@ -1393,7 +1404,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-127",
+   "id": "QA-REFUSAL-128",
    "section": "D",
    "area": "refusal",
    "title": "`empty_query` can be provoked",
@@ -1404,7 +1415,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-128",
+   "id": "QA-REFUSAL-129",
    "section": "D",
    "area": "refusal",
    "title": "`empty_range` can be provoked",
@@ -1415,7 +1426,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-129",
+   "id": "QA-REFUSAL-130",
    "section": "D",
    "area": "refusal",
    "title": "`empty_reference_window` can be provoked",
@@ -1426,7 +1437,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-130",
+   "id": "QA-REFUSAL-131",
    "section": "D",
    "area": "refusal",
    "title": "`empty_rule` can be provoked",
@@ -1437,7 +1448,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-131",
+   "id": "QA-REFUSAL-132",
    "section": "D",
    "area": "refusal",
    "title": "`entity_out_of_delegation` can be provoked",
@@ -1448,7 +1459,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-132",
+   "id": "QA-REFUSAL-133",
    "section": "D",
    "area": "refusal",
    "title": "`execution_failed` can be provoked",
@@ -1459,7 +1470,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-133",
+   "id": "QA-REFUSAL-134",
    "section": "D",
    "area": "refusal",
    "title": "`execution_limit` can be provoked",
@@ -1470,7 +1481,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-134",
+   "id": "QA-REFUSAL-135",
    "section": "D",
    "area": "refusal",
    "title": "`execution_timeout` can be provoked",
@@ -1481,7 +1492,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-135",
+   "id": "QA-REFUSAL-136",
    "section": "D",
    "area": "refusal",
    "title": "`expired` can be provoked",
@@ -1492,7 +1503,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-136",
+   "id": "QA-REFUSAL-137",
    "section": "D",
    "area": "refusal",
    "title": "`extension_too_long` can be provoked",
@@ -1503,7 +1514,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-137",
+   "id": "QA-REFUSAL-138",
    "section": "D",
    "area": "refusal",
    "title": "`facilitator_is_a_panellist` can be provoked",
@@ -1514,7 +1525,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-138",
+   "id": "QA-REFUSAL-139",
    "section": "D",
    "area": "refusal",
    "title": "`fact_not_supplied` can be provoked",
@@ -1525,18 +1536,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-139",
+   "id": "QA-REFUSAL-140",
    "section": "D",
    "area": "refusal",
    "title": "`feature_refused` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:866 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:873 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-140",
+   "id": "QA-REFUSAL-141",
    "section": "D",
    "area": "refusal",
    "title": "`featureset_required` can be provoked",
@@ -1547,7 +1558,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-141",
+   "id": "QA-REFUSAL-142",
    "section": "D",
    "area": "refusal",
    "title": "`fibration_incomplete` can be provoked",
@@ -1558,7 +1569,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-142",
+   "id": "QA-REFUSAL-143",
    "section": "D",
    "area": "refusal",
    "title": "`fibre_exists` can be provoked",
@@ -1569,7 +1580,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-143",
+   "id": "QA-REFUSAL-144",
    "section": "D",
    "area": "refusal",
    "title": "`fibre_narrows_obligations` can be provoked",
@@ -1580,7 +1591,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-144",
+   "id": "QA-REFUSAL-145",
    "section": "D",
    "area": "refusal",
    "title": "`finding_closed` can be provoked",
@@ -1591,7 +1602,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-145",
+   "id": "QA-REFUSAL-146",
    "section": "D",
    "area": "refusal",
    "title": "`fit_did_not_converge` can be provoked",
@@ -1602,7 +1613,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-146",
+   "id": "QA-REFUSAL-147",
    "section": "D",
    "area": "refusal",
    "title": "`fit_underspecified` can be provoked",
@@ -1613,7 +1624,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-147",
+   "id": "QA-REFUSAL-148",
    "section": "D",
    "area": "refusal",
    "title": "`forbidden` can be provoked",
@@ -1624,7 +1635,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-148",
+   "id": "QA-REFUSAL-149",
    "section": "D",
    "area": "refusal",
    "title": "`format_not_produced` can be provoked",
@@ -1635,7 +1646,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-149",
+   "id": "QA-REFUSAL-150",
    "section": "D",
    "area": "refusal",
    "title": "`format_not_translated` can be provoked",
@@ -1646,7 +1657,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-150",
+   "id": "QA-REFUSAL-151",
    "section": "D",
    "area": "refusal",
    "title": "`format_refused` can be provoked",
@@ -1657,7 +1668,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-151",
+   "id": "QA-REFUSAL-152",
    "section": "D",
    "area": "refusal",
    "title": "`grammar_violation` can be provoked",
@@ -1668,7 +1679,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-152",
+   "id": "QA-REFUSAL-153",
    "section": "D",
    "area": "refusal",
    "title": "`hit_policy_not_mappable` can be provoked",
@@ -1679,40 +1690,40 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-153",
+   "id": "QA-REFUSAL-154",
    "section": "D",
    "area": "refusal",
    "title": "`idempotency_in_flight` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/concurrency/idempotency.py:133; provoked by the suite",
-   "method": "raise-site + instrumented suite"
-  },
-  {
-   "id": "QA-REFUSAL-154",
-   "section": "D",
-   "area": "refusal",
-   "title": "`idempotency_key_reused` can be provoked",
-   "expect": "refused (409)",
-   "status": 409,
-   "verdict": "PASS",
-   "evidence": "raised at core/concurrency/idempotency.py:121; provoked by the suite",
+   "evidence": "raised at core/concurrency/idempotency.py:169; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
    "id": "QA-REFUSAL-155",
    "section": "D",
    "area": "refusal",
-   "title": "`idempotency_key_too_long` can be provoked",
-   "expect": "refused (422)",
-   "status": 422,
+   "title": "`idempotency_key_reused` can be provoked",
+   "expect": "refused (409)",
+   "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/concurrency/idempotency.py:102; provoked by the suite",
+   "evidence": "raised at core/concurrency/idempotency.py:157; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
    "id": "QA-REFUSAL-156",
+   "section": "D",
+   "area": "refusal",
+   "title": "`idempotency_key_too_long` can be provoked",
+   "expect": "refused (422)",
+   "status": 422,
+   "verdict": "PASS",
+   "evidence": "raised at core/concurrency/idempotency.py:139; provoked by the suite",
+   "method": "raise-site + instrumented suite"
+  },
+  {
+   "id": "QA-REFUSAL-157",
    "section": "D",
    "area": "refusal",
    "title": "`identity_not_linked` can be provoked",
@@ -1723,7 +1734,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-157",
+   "id": "QA-REFUSAL-158",
    "section": "D",
    "area": "refusal",
    "title": "`illegal_transition` can be provoked",
@@ -1734,7 +1745,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-158",
+   "id": "QA-REFUSAL-159",
    "section": "D",
    "area": "refusal",
    "title": "`incompatible_permissions` can be provoked",
@@ -1745,7 +1756,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-159",
+   "id": "QA-REFUSAL-160",
    "section": "D",
    "area": "refusal",
    "title": "`incompatible_roles` can be provoked",
@@ -1756,7 +1767,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-160",
+   "id": "QA-REFUSAL-161",
    "section": "D",
    "area": "refusal",
    "title": "`incomplete_translation` can be provoked",
@@ -1767,7 +1778,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-161",
+   "id": "QA-REFUSAL-162",
    "section": "D",
    "area": "refusal",
    "title": "`input_key_required` can be provoked",
@@ -1778,7 +1789,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-162",
+   "id": "QA-REFUSAL-163",
    "section": "D",
    "area": "refusal",
    "title": "`input_not_in_graph` can be provoked",
@@ -1789,7 +1800,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-163",
+   "id": "QA-REFUSAL-164",
    "section": "D",
    "area": "refusal",
    "title": "`input_schema_not_declared` can be provoked",
@@ -1800,7 +1811,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-164",
+   "id": "QA-REFUSAL-165",
    "section": "D",
    "area": "refusal",
    "title": "`instrument_required` can be provoked",
@@ -1811,7 +1822,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-165",
+   "id": "QA-REFUSAL-166",
    "section": "D",
    "area": "refusal",
    "title": "`instrument_unsupported` can be provoked",
@@ -1822,7 +1833,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-166",
+   "id": "QA-REFUSAL-167",
    "section": "D",
    "area": "refusal",
    "title": "`issuer_mismatch` can be provoked",
@@ -1833,7 +1844,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-167",
+   "id": "QA-REFUSAL-168",
    "section": "D",
    "area": "refusal",
    "title": "`key_expired` can be provoked",
@@ -1844,7 +1855,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-168",
+   "id": "QA-REFUSAL-169",
    "section": "D",
    "area": "refusal",
    "title": "`key_principal_missing` can be provoked",
@@ -1855,7 +1866,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-169",
+   "id": "QA-REFUSAL-170",
    "section": "D",
    "area": "refusal",
    "title": "`key_principal_not_active` can be provoked",
@@ -1866,7 +1877,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-170",
+   "id": "QA-REFUSAL-171",
    "section": "D",
    "area": "refusal",
    "title": "`key_revoked` can be provoked",
@@ -1877,7 +1888,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-171",
+   "id": "QA-REFUSAL-172",
    "section": "D",
    "area": "refusal",
    "title": "`key_scope_unreadable` can be provoked",
@@ -1888,7 +1899,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-172",
+   "id": "QA-REFUSAL-173",
    "section": "D",
    "area": "refusal",
    "title": "`kind_not_answerable` can be provoked",
@@ -1899,7 +1910,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-173",
+   "id": "QA-REFUSAL-174",
    "section": "D",
    "area": "refusal",
    "title": "`kinds_required` can be provoked",
@@ -1910,7 +1921,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-174",
+   "id": "QA-REFUSAL-175",
    "section": "D",
    "area": "refusal",
    "title": "`label_delay_required` can be provoked",
@@ -1921,7 +1932,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-175",
+   "id": "QA-REFUSAL-176",
    "section": "D",
    "area": "refusal",
    "title": "`last_administrator` can be provoked",
@@ -1932,7 +1943,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-176",
+   "id": "QA-REFUSAL-177",
    "section": "D",
    "area": "refusal",
    "title": "`lifetime_refused` can be provoked",
@@ -1943,7 +1954,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-177",
+   "id": "QA-REFUSAL-178",
    "section": "D",
    "area": "refusal",
    "title": "`limit_not_enforceable` can be provoked",
@@ -1954,7 +1965,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-178",
+   "id": "QA-REFUSAL-179",
    "section": "D",
    "area": "refusal",
    "title": "`limit_not_positive` can be provoked",
@@ -1965,7 +1976,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-179",
+   "id": "QA-REFUSAL-180",
    "section": "D",
    "area": "refusal",
    "title": "`limit_out_of_range` can be provoked",
@@ -1976,7 +1987,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-180",
+   "id": "QA-REFUSAL-181",
    "section": "D",
    "area": "refusal",
    "title": "`login_expired` can be provoked",
@@ -1987,7 +1998,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-181",
+   "id": "QA-REFUSAL-182",
    "section": "D",
    "area": "refusal",
    "title": "`loosening_needs_an_approver` can be provoked",
@@ -1998,7 +2009,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-182",
+   "id": "QA-REFUSAL-183",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_curve` can be provoked",
@@ -2009,7 +2020,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-183",
+   "id": "QA-REFUSAL-184",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_date` can be provoked",
@@ -2020,7 +2031,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-184",
+   "id": "QA-REFUSAL-185",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_digest` can be provoked",
@@ -2031,7 +2042,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-185",
+   "id": "QA-REFUSAL-186",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_expression` can be provoked",
@@ -2042,7 +2053,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-186",
+   "id": "QA-REFUSAL-187",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_fixing` can be provoked",
@@ -2053,7 +2064,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-187",
+   "id": "QA-REFUSAL-188",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_row` can be provoked",
@@ -2064,7 +2075,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-188",
+   "id": "QA-REFUSAL-189",
    "section": "D",
    "area": "refusal",
    "title": "`malformed_token` can be provoked",
@@ -2075,7 +2086,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-189",
+   "id": "QA-REFUSAL-190",
    "section": "D",
    "area": "refusal",
    "title": "`matter_required` can be provoked",
@@ -2086,7 +2097,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-190",
+   "id": "QA-REFUSAL-191",
    "section": "D",
    "area": "refusal",
    "title": "`mirrors_required` can be provoked",
@@ -2097,7 +2108,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-191",
+   "id": "QA-REFUSAL-192",
    "section": "D",
    "area": "refusal",
    "title": "`missing_fixing` can be provoked",
@@ -2108,7 +2119,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-192",
+   "id": "QA-REFUSAL-193",
    "section": "D",
    "area": "refusal",
    "title": "`missing_inputs` can be provoked",
@@ -2119,7 +2130,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-193",
+   "id": "QA-REFUSAL-194",
    "section": "D",
    "area": "refusal",
    "title": "`monitor_has_no_version` can be provoked",
@@ -2130,7 +2141,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-194",
+   "id": "QA-REFUSAL-195",
    "section": "D",
    "area": "refusal",
    "title": "`monitor_inactive` can be provoked",
@@ -2141,7 +2152,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-195",
+   "id": "QA-REFUSAL-196",
    "section": "D",
    "area": "refusal",
    "title": "`name_in_use` can be provoked",
@@ -2152,7 +2163,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-196",
+   "id": "QA-REFUSAL-197",
    "section": "D",
    "area": "refusal",
    "title": "`name_required` can be provoked",
@@ -2163,7 +2174,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-197",
+   "id": "QA-REFUSAL-198",
    "section": "D",
    "area": "refusal",
    "title": "`negative_floor` can be provoked",
@@ -2174,7 +2185,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-198",
+   "id": "QA-REFUSAL-199",
    "section": "D",
    "area": "refusal",
    "title": "`nesting_too_deep` can be provoked",
@@ -2185,7 +2196,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-199",
+   "id": "QA-REFUSAL-200",
    "section": "D",
    "area": "refusal",
    "title": "`no_amendment` can be provoked",
@@ -2196,7 +2207,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-200",
+   "id": "QA-REFUSAL-201",
    "section": "D",
    "area": "refusal",
    "title": "`no_appetite` can be provoked",
@@ -2207,7 +2218,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-201",
+   "id": "QA-REFUSAL-202",
    "section": "D",
    "area": "refusal",
    "title": "`no_approval` can be provoked",
@@ -2218,7 +2229,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-202",
+   "id": "QA-REFUSAL-203",
    "section": "D",
    "area": "refusal",
    "title": "`no_approved_parameters` can be provoked",
@@ -2229,7 +2240,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-203",
+   "id": "QA-REFUSAL-204",
    "section": "D",
    "area": "refusal",
    "title": "`no_artifact` can be provoked",
@@ -2240,7 +2251,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-204",
+   "id": "QA-REFUSAL-205",
    "section": "D",
    "area": "refusal",
    "title": "`no_artifact_root` can be provoked",
@@ -2251,7 +2262,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-205",
+   "id": "QA-REFUSAL-206",
    "section": "D",
    "area": "refusal",
    "title": "`no_assumption_join` can be provoked",
@@ -2262,7 +2273,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-206",
+   "id": "QA-REFUSAL-207",
    "section": "D",
    "area": "refusal",
    "title": "`no_assumption_meet` can be provoked",
@@ -2273,7 +2284,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-207",
+   "id": "QA-REFUSAL-208",
    "section": "D",
    "area": "refusal",
    "title": "`no_assumptions` can be provoked",
@@ -2284,7 +2295,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-208",
+   "id": "QA-REFUSAL-209",
    "section": "D",
    "area": "refusal",
    "title": "`no_attachment` can be provoked",
@@ -2295,7 +2306,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-209",
+   "id": "QA-REFUSAL-210",
    "section": "D",
    "area": "refusal",
    "title": "`no_attestation` can be provoked",
@@ -2306,7 +2317,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-210",
+   "id": "QA-REFUSAL-211",
    "section": "D",
    "area": "refusal",
    "title": "`no_attestation_open` can be provoked",
@@ -2317,7 +2328,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-211",
+   "id": "QA-REFUSAL-212",
    "section": "D",
    "area": "refusal",
    "title": "`no_board_pack` can be provoked",
@@ -2328,7 +2339,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-212",
+   "id": "QA-REFUSAL-213",
    "section": "D",
    "area": "refusal",
    "title": "`no_candidate` can be provoked",
@@ -2339,7 +2350,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-213",
+   "id": "QA-REFUSAL-214",
    "section": "D",
    "area": "refusal",
    "title": "`no_capability` can be provoked",
@@ -2350,7 +2361,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-214",
+   "id": "QA-REFUSAL-215",
    "section": "D",
    "area": "refusal",
    "title": "`no_class` can be provoked",
@@ -2361,18 +2372,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-215",
+   "id": "QA-REFUSAL-216",
    "section": "D",
    "area": "refusal",
    "title": "`no_compensating_control` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:104; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:107; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-216",
+   "id": "QA-REFUSAL-217",
    "section": "D",
    "area": "refusal",
    "title": "`no_condition` can be provoked",
@@ -2383,7 +2394,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-217",
+   "id": "QA-REFUSAL-218",
    "section": "D",
    "area": "refusal",
    "title": "`no_curve` can be provoked",
@@ -2394,7 +2405,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-218",
+   "id": "QA-REFUSAL-219",
    "section": "D",
    "area": "refusal",
    "title": "`no_debt` can be provoked",
@@ -2405,7 +2416,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-219",
+   "id": "QA-REFUSAL-220",
    "section": "D",
    "area": "refusal",
    "title": "`no_decision_table` can be provoked",
@@ -2416,7 +2427,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-220",
+   "id": "QA-REFUSAL-221",
    "section": "D",
    "area": "refusal",
    "title": "`no_declared_domain` can be provoked",
@@ -2427,7 +2438,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-221",
+   "id": "QA-REFUSAL-222",
    "section": "D",
    "area": "refusal",
    "title": "`no_delegated_authority` can be provoked",
@@ -2438,7 +2449,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-222",
+   "id": "QA-REFUSAL-223",
    "section": "D",
    "area": "refusal",
    "title": "`no_document` can be provoked",
@@ -2449,7 +2460,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-223",
+   "id": "QA-REFUSAL-224",
    "section": "D",
    "area": "refusal",
    "title": "`no_document_search` can be provoked",
@@ -2460,7 +2471,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-224",
+   "id": "QA-REFUSAL-225",
    "section": "D",
    "area": "refusal",
    "title": "`no_entitlement` can be provoked",
@@ -2471,7 +2482,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-225",
+   "id": "QA-REFUSAL-226",
    "section": "D",
    "area": "refusal",
    "title": "`no_evaluation_date` can be provoked",
@@ -2482,18 +2493,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-226",
+   "id": "QA-REFUSAL-227",
    "section": "D",
    "area": "refusal",
    "title": "`no_expiry` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:112; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:115; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-227",
+   "id": "QA-REFUSAL-228",
    "section": "D",
    "area": "refusal",
    "title": "`no_expression` can be provoked",
@@ -2504,7 +2515,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-228",
+   "id": "QA-REFUSAL-229",
    "section": "D",
    "area": "refusal",
    "title": "`no_features` can be provoked",
@@ -2515,7 +2526,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-229",
+   "id": "QA-REFUSAL-230",
    "section": "D",
    "area": "refusal",
    "title": "`no_featureset_registry` can be provoked",
@@ -2526,7 +2537,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-230",
+   "id": "QA-REFUSAL-231",
    "section": "D",
    "area": "refusal",
    "title": "`no_fibre` can be provoked",
@@ -2537,7 +2548,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-231",
+   "id": "QA-REFUSAL-232",
    "section": "D",
    "area": "refusal",
    "title": "`no_finding` can be provoked",
@@ -2548,7 +2559,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-232",
+   "id": "QA-REFUSAL-233",
    "section": "D",
    "area": "refusal",
    "title": "`no_findings` can be provoked",
@@ -2559,7 +2570,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-233",
+   "id": "QA-REFUSAL-234",
    "section": "D",
    "area": "refusal",
    "title": "`no_generation` can be provoked",
@@ -2570,7 +2581,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-234",
+   "id": "QA-REFUSAL-235",
    "section": "D",
    "area": "refusal",
    "title": "`no_grant` can be provoked",
@@ -2581,7 +2592,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-235",
+   "id": "QA-REFUSAL-236",
    "section": "D",
    "area": "refusal",
    "title": "`no_guarantee_meet` can be provoked",
@@ -2592,7 +2603,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-236",
+   "id": "QA-REFUSAL-237",
    "section": "D",
    "area": "refusal",
    "title": "`no_hold` can be provoked",
@@ -2603,7 +2614,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-237",
+   "id": "QA-REFUSAL-238",
    "section": "D",
    "area": "refusal",
    "title": "`no_id_token` can be provoked",
@@ -2614,7 +2625,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-238",
+   "id": "QA-REFUSAL-239",
    "section": "D",
    "area": "refusal",
    "title": "`no_login_in_progress` can be provoked",
@@ -2625,7 +2636,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-239",
+   "id": "QA-REFUSAL-240",
    "section": "D",
    "area": "refusal",
    "title": "`no_monitor` can be provoked",
@@ -2636,7 +2647,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-240",
+   "id": "QA-REFUSAL-241",
    "section": "D",
    "area": "refusal",
    "title": "`no_observation` can be provoked",
@@ -2647,7 +2658,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-241",
+   "id": "QA-REFUSAL-242",
    "section": "D",
    "area": "refusal",
    "title": "`no_outcome_columns` can be provoked",
@@ -2658,7 +2669,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-242",
+   "id": "QA-REFUSAL-243",
    "section": "D",
    "area": "refusal",
    "title": "`no_overlay` can be provoked",
@@ -2669,7 +2680,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-243",
+   "id": "QA-REFUSAL-244",
    "section": "D",
    "area": "refusal",
    "title": "`no_parameter_register` can be provoked",
@@ -2680,7 +2691,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-244",
+   "id": "QA-REFUSAL-245",
    "section": "D",
    "area": "refusal",
    "title": "`no_parameter_set` can be provoked",
@@ -2691,7 +2702,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-245",
+   "id": "QA-REFUSAL-246",
    "section": "D",
    "area": "refusal",
    "title": "`no_parameters` can be provoked",
@@ -2702,7 +2713,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-246",
+   "id": "QA-REFUSAL-247",
    "section": "D",
    "area": "refusal",
    "title": "`no_parameters_supplied` can be provoked",
@@ -2713,7 +2724,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-247",
+   "id": "QA-REFUSAL-248",
    "section": "D",
    "area": "refusal",
    "title": "`no_plan` can be provoked",
@@ -2724,7 +2735,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-248",
+   "id": "QA-REFUSAL-249",
    "section": "D",
    "area": "refusal",
    "title": "`no_policy` can be provoked",
@@ -2735,7 +2746,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-249",
+   "id": "QA-REFUSAL-250",
    "section": "D",
    "area": "refusal",
    "title": "`no_quorum_required` can be provoked",
@@ -2746,29 +2757,29 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-250",
+   "id": "QA-REFUSAL-251",
    "section": "D",
    "area": "refusal",
    "title": "`no_rationale` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:98; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:101; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-251",
+   "id": "QA-REFUSAL-252",
    "section": "D",
    "area": "refusal",
    "title": "`no_reason` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:279; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:301; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-252",
+   "id": "QA-REFUSAL-253",
    "section": "D",
    "area": "refusal",
    "title": "`no_reference` can be provoked",
@@ -2779,7 +2790,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-253",
+   "id": "QA-REFUSAL-254",
    "section": "D",
    "area": "refusal",
    "title": "`no_refusing_case` can be provoked",
@@ -2790,7 +2801,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-254",
+   "id": "QA-REFUSAL-255",
    "section": "D",
    "area": "refusal",
    "title": "`no_regime` can be provoked",
@@ -2801,7 +2812,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-255",
+   "id": "QA-REFUSAL-256",
    "section": "D",
    "area": "refusal",
    "title": "`no_registry` can be provoked",
@@ -2812,7 +2823,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-256",
+   "id": "QA-REFUSAL-257",
    "section": "D",
    "area": "refusal",
    "title": "`no_roles_mapped` can be provoked",
@@ -2823,7 +2834,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-257",
+   "id": "QA-REFUSAL-258",
    "section": "D",
    "area": "refusal",
    "title": "`no_rows` can be provoked",
@@ -2834,7 +2845,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-258",
+   "id": "QA-REFUSAL-259",
    "section": "D",
    "area": "refusal",
    "title": "`no_rows_in_submission` can be provoked",
@@ -2845,7 +2856,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-259",
+   "id": "QA-REFUSAL-260",
    "section": "D",
    "area": "refusal",
    "title": "`no_rules` can be provoked",
@@ -2856,7 +2867,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-260",
+   "id": "QA-REFUSAL-261",
    "section": "D",
    "area": "refusal",
    "title": "`no_ruleset` can be provoked",
@@ -2867,7 +2878,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-261",
+   "id": "QA-REFUSAL-262",
    "section": "D",
    "area": "refusal",
    "title": "`no_run` can be provoked",
@@ -2878,7 +2889,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-262",
+   "id": "QA-REFUSAL-263",
    "section": "D",
    "area": "refusal",
    "title": "`no_runtime` can be provoked",
@@ -2889,7 +2900,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-263",
+   "id": "QA-REFUSAL-264",
    "section": "D",
    "area": "refusal",
    "title": "`no_shared_monitor` can be provoked",
@@ -2900,7 +2911,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-264",
+   "id": "QA-REFUSAL-265",
    "section": "D",
    "area": "refusal",
    "title": "`no_signing_keys` can be provoked",
@@ -2911,7 +2922,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-265",
+   "id": "QA-REFUSAL-266",
    "section": "D",
    "area": "refusal",
    "title": "`no_snapshot` can be provoked",
@@ -2922,7 +2933,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-266",
+   "id": "QA-REFUSAL-267",
    "section": "D",
    "area": "refusal",
    "title": "`no_subject` can be provoked",
@@ -2933,7 +2944,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-267",
+   "id": "QA-REFUSAL-268",
    "section": "D",
    "area": "refusal",
    "title": "`no_subscription` can be provoked",
@@ -2944,7 +2955,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-268",
+   "id": "QA-REFUSAL-269",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_attachment` can be provoked",
@@ -2955,7 +2966,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-269",
+   "id": "QA-REFUSAL-270",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_key` can be provoked",
@@ -2966,7 +2977,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-270",
+   "id": "QA-REFUSAL-271",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_principal` can be provoked",
@@ -2977,7 +2988,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-271",
+   "id": "QA-REFUSAL-272",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_profile` can be provoked",
@@ -2988,7 +2999,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-272",
+   "id": "QA-REFUSAL-273",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_version` can be provoked",
@@ -2999,18 +3010,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-273",
+   "id": "QA-REFUSAL-274",
    "section": "D",
    "area": "refusal",
    "title": "`no_such_waiver` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "UNPROVEN",
-   "evidence": "raised at core/waivers/register.py:321; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at core/waivers/register.py:343; the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-274",
+   "id": "QA-REFUSAL-275",
    "section": "D",
    "area": "refusal",
    "title": "`no_telemetry` can be provoked",
@@ -3021,7 +3032,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-275",
+   "id": "QA-REFUSAL-276",
    "section": "D",
    "area": "refusal",
    "title": "`no_telemetry_in_window` can be provoked",
@@ -3032,7 +3043,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-276",
+   "id": "QA-REFUSAL-277",
    "section": "D",
    "area": "refusal",
    "title": "`no_tier` can be provoked",
@@ -3043,7 +3054,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-277",
+   "id": "QA-REFUSAL-278",
    "section": "D",
    "area": "refusal",
    "title": "`no_timestamp_authority` can be provoked",
@@ -3054,7 +3065,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-278",
+   "id": "QA-REFUSAL-279",
    "section": "D",
    "area": "refusal",
    "title": "`no_tombstone` can be provoked",
@@ -3065,7 +3076,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-279",
+   "id": "QA-REFUSAL-280",
    "section": "D",
    "area": "refusal",
    "title": "`no_tombstone_register` can be provoked",
@@ -3076,7 +3087,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-280",
+   "id": "QA-REFUSAL-281",
    "section": "D",
    "area": "refusal",
    "title": "`no_tombstones` can be provoked",
@@ -3087,7 +3098,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-281",
+   "id": "QA-REFUSAL-282",
    "section": "D",
    "area": "refusal",
    "title": "`no_version` can be provoked",
@@ -3098,7 +3109,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-282",
+   "id": "QA-REFUSAL-283",
    "section": "D",
    "area": "refusal",
    "title": "`no_version_for_document` can be provoked",
@@ -3109,7 +3120,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-283",
+   "id": "QA-REFUSAL-284",
    "section": "D",
    "area": "refusal",
    "title": "`no_version_to_attach_to` can be provoked",
@@ -3120,7 +3131,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-284",
+   "id": "QA-REFUSAL-285",
    "section": "D",
    "area": "refusal",
    "title": "`no_volatility` can be provoked",
@@ -3131,7 +3142,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-285",
+   "id": "QA-REFUSAL-286",
    "section": "D",
    "area": "refusal",
    "title": "`nonce_mismatch` can be provoked",
@@ -3142,7 +3153,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-286",
+   "id": "QA-REFUSAL-287",
    "section": "D",
    "area": "refusal",
    "title": "`not_a_ruleset` can be provoked",
@@ -3153,7 +3164,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-287",
+   "id": "QA-REFUSAL-288",
    "section": "D",
    "area": "refusal",
    "title": "`not_a_ruleset_model` can be provoked",
@@ -3164,7 +3175,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-288",
+   "id": "QA-REFUSAL-289",
    "section": "D",
    "area": "refusal",
    "title": "`not_a_sourceable_fact` can be provoked",
@@ -3175,7 +3186,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-289",
+   "id": "QA-REFUSAL-290",
    "section": "D",
    "area": "refusal",
    "title": "`not_acknowledged` can be provoked",
@@ -3186,7 +3197,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-290",
+   "id": "QA-REFUSAL-291",
    "section": "D",
    "area": "refusal",
    "title": "`not_active` can be provoked",
@@ -3197,7 +3208,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-291",
+   "id": "QA-REFUSAL-292",
    "section": "D",
    "area": "refusal",
    "title": "`not_an_extension` can be provoked",
@@ -3208,7 +3219,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-292",
+   "id": "QA-REFUSAL-293",
    "section": "D",
    "area": "refusal",
    "title": "`not_attested` can be provoked",
@@ -3219,7 +3230,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-293",
+   "id": "QA-REFUSAL-294",
    "section": "D",
    "area": "refusal",
    "title": "`not_conclusive` can be provoked",
@@ -3230,7 +3241,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-294",
+   "id": "QA-REFUSAL-295",
    "section": "D",
    "area": "refusal",
    "title": "`not_configurable` can be provoked",
@@ -3241,7 +3252,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-295",
+   "id": "QA-REFUSAL-296",
    "section": "D",
    "area": "refusal",
    "title": "`not_defaultable` can be provoked",
@@ -3252,7 +3263,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-296",
+   "id": "QA-REFUSAL-297",
    "section": "D",
    "area": "refusal",
    "title": "`not_enabled` can be provoked",
@@ -3263,18 +3274,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-297",
+   "id": "QA-REFUSAL-298",
    "section": "D",
    "area": "refusal",
    "title": "`not_found` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "PASS",
-   "evidence": "raised at core/execution/grants.py:110 (+4 more); provoked by the suite",
+   "evidence": "raised at core/execution/grants.py:144 (+5 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-298",
+   "id": "QA-REFUSAL-299",
    "section": "D",
    "area": "refusal",
    "title": "`not_identified` can be provoked",
@@ -3285,7 +3296,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-299",
+   "id": "QA-REFUSAL-300",
    "section": "D",
    "area": "refusal",
    "title": "`not_in_force` can be provoked",
@@ -3296,7 +3307,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-300",
+   "id": "QA-REFUSAL-301",
    "section": "D",
    "area": "refusal",
    "title": "`not_in_population` can be provoked",
@@ -3307,7 +3318,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-301",
+   "id": "QA-REFUSAL-302",
    "section": "D",
    "area": "refusal",
    "title": "`not_in_the_language` can be provoked",
@@ -3318,18 +3329,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-302",
+   "id": "QA-REFUSAL-303",
    "section": "D",
    "area": "refusal",
    "title": "`not_in_this_campaign` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "PASS",
-   "evidence": "raised at core/lifecycle/campaigns.py:174 (+1 more); provoked by the suite",
+   "evidence": "raised at core/lifecycle/campaigns.py:205 (+1 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-303",
+   "id": "QA-REFUSAL-304",
    "section": "D",
    "area": "refusal",
    "title": "`not_installed` can be provoked",
@@ -3340,7 +3351,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-304",
+   "id": "QA-REFUSAL-305",
    "section": "D",
    "area": "refusal",
    "title": "`not_obtained_from_data` can be provoked",
@@ -3351,7 +3362,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-305",
+   "id": "QA-REFUSAL-306",
    "section": "D",
    "area": "refusal",
    "title": "`not_on_the_panel` can be provoked",
@@ -3362,7 +3373,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-306",
+   "id": "QA-REFUSAL-307",
    "section": "D",
    "area": "refusal",
    "title": "`not_open` can be provoked",
@@ -3373,7 +3384,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-307",
+   "id": "QA-REFUSAL-308",
    "section": "D",
    "area": "refusal",
    "title": "`not_proposed` can be provoked",
@@ -3384,7 +3395,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-308",
+   "id": "QA-REFUSAL-309",
    "section": "D",
    "area": "refusal",
    "title": "`not_provisioned` can be provoked",
@@ -3395,7 +3406,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-309",
+   "id": "QA-REFUSAL-310",
    "section": "D",
    "area": "refusal",
    "title": "`not_requested` can be provoked",
@@ -3406,7 +3417,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-310",
+   "id": "QA-REFUSAL-311",
    "section": "D",
    "area": "refusal",
    "title": "`not_the_owner` can be provoked",
@@ -3417,7 +3428,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-311",
+   "id": "QA-REFUSAL-312",
    "section": "D",
    "area": "refusal",
    "title": "`not_the_reviewer` can be provoked",
@@ -3428,7 +3439,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-312",
+   "id": "QA-REFUSAL-313",
    "section": "D",
    "area": "refusal",
    "title": "`not_tiered` can be provoked",
@@ -3439,7 +3450,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-313",
+   "id": "QA-REFUSAL-314",
    "section": "D",
    "area": "refusal",
    "title": "`not_triaged` can be provoked",
@@ -3450,7 +3461,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-314",
+   "id": "QA-REFUSAL-315",
    "section": "D",
    "area": "refusal",
    "title": "`not_unilateral` can be provoked",
@@ -3461,7 +3472,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-315",
+   "id": "QA-REFUSAL-316",
    "section": "D",
    "area": "refusal",
    "title": "`not_your_comment` can be provoked",
@@ -3472,7 +3483,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-316",
+   "id": "QA-REFUSAL-317",
    "section": "D",
    "area": "refusal",
    "title": "`not_your_view` can be provoked",
@@ -3483,7 +3494,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-317",
+   "id": "QA-REFUSAL-318",
    "section": "D",
    "area": "refusal",
    "title": "`note_required` can be provoked",
@@ -3494,7 +3505,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-318",
+   "id": "QA-REFUSAL-319",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_anchored` can be provoked",
@@ -3505,7 +3516,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-319",
+   "id": "QA-REFUSAL-320",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_grounded` can be provoked",
@@ -3516,7 +3527,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-320",
+   "id": "QA-REFUSAL-321",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_anchor` can be provoked",
@@ -3527,7 +3538,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-321",
+   "id": "QA-REFUSAL-322",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_apply` can be provoked",
@@ -3538,7 +3549,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-322",
+   "id": "QA-REFUSAL-323",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_approve` can be provoked",
@@ -3549,7 +3560,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-323",
+   "id": "QA-REFUSAL-324",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_conclude` can be provoked",
@@ -3560,7 +3571,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-324",
+   "id": "QA-REFUSAL-325",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_fit` can be provoked",
@@ -3571,7 +3582,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-325",
+   "id": "QA-REFUSAL-326",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_ground` can be provoked",
@@ -3582,7 +3593,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-326",
+   "id": "QA-REFUSAL-327",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_import` can be provoked",
@@ -3593,7 +3604,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-327",
+   "id": "QA-REFUSAL-328",
    "section": "D",
    "area": "refusal",
    "title": "`nothing_to_set` can be provoked",
@@ -3604,7 +3615,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-328",
+   "id": "QA-REFUSAL-329",
    "section": "D",
    "area": "refusal",
    "title": "`obligation_contradiction` can be provoked",
@@ -3615,7 +3626,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-329",
+   "id": "QA-REFUSAL-330",
    "section": "D",
    "area": "refusal",
    "title": "`one_class_absent` can be provoked",
@@ -3626,7 +3637,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-330",
+   "id": "QA-REFUSAL-331",
    "section": "D",
    "area": "refusal",
    "title": "`operator_not_admissible` can be provoked",
@@ -3637,7 +3648,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-331",
+   "id": "QA-REFUSAL-332",
    "section": "D",
    "area": "refusal",
    "title": "`oracle_failed` can be provoked",
@@ -3648,7 +3659,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-332",
+   "id": "QA-REFUSAL-333",
    "section": "D",
    "area": "refusal",
    "title": "`oracle_required` can be provoked",
@@ -3659,7 +3670,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-333",
+   "id": "QA-REFUSAL-334",
    "section": "D",
    "area": "refusal",
    "title": "`otherwise_required` can be provoked",
@@ -3670,7 +3681,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-334",
+   "id": "QA-REFUSAL-335",
    "section": "D",
    "area": "refusal",
    "title": "`out_of_scope` can be provoked",
@@ -3681,7 +3692,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-335",
+   "id": "QA-REFUSAL-336",
    "section": "D",
    "area": "refusal",
    "title": "`out_of_sequence` can be provoked",
@@ -3692,7 +3703,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-336",
+   "id": "QA-REFUSAL-337",
    "section": "D",
    "area": "refusal",
    "title": "`outbound_host_missing` can be provoked",
@@ -3703,7 +3714,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-337",
+   "id": "QA-REFUSAL-338",
    "section": "D",
    "area": "refusal",
    "title": "`outbound_not_encrypted` can be provoked",
@@ -3714,7 +3725,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-338",
+   "id": "QA-REFUSAL-339",
    "section": "D",
    "area": "refusal",
    "title": "`outbound_scheme_refused` can be provoked",
@@ -3725,7 +3736,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-339",
+   "id": "QA-REFUSAL-340",
    "section": "D",
    "area": "refusal",
    "title": "`outbound_url_missing` can be provoked",
@@ -3736,7 +3747,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-340",
+   "id": "QA-REFUSAL-341",
    "section": "D",
    "area": "refusal",
    "title": "`outcome_required` can be provoked",
@@ -3747,18 +3758,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-341",
+   "id": "QA-REFUSAL-342",
    "section": "D",
    "area": "refusal",
    "title": "`outside_key_scope` can be provoked",
    "expect": "refused (403)",
    "status": 403,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:979 (HTTPException detail); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:1042 (HTTPException detail); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-342",
+   "id": "QA-REFUSAL-343",
    "section": "D",
    "area": "refusal",
    "title": "`owner_required` can be provoked",
@@ -3769,7 +3780,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-343",
+   "id": "QA-REFUSAL-344",
    "section": "D",
    "area": "refusal",
    "title": "`pack_too_large` can be provoked",
@@ -3780,7 +3791,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-344",
+   "id": "QA-REFUSAL-345",
    "section": "D",
    "area": "refusal",
    "title": "`panel_too_small` can be provoked",
@@ -3791,7 +3802,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-345",
+   "id": "QA-REFUSAL-346",
    "section": "D",
    "area": "refusal",
    "title": "`parameter_mismatch` can be provoked",
@@ -3802,7 +3813,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-346",
+   "id": "QA-REFUSAL-347",
    "section": "D",
    "area": "refusal",
    "title": "`parameter_missing` can be provoked",
@@ -3813,7 +3824,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-347",
+   "id": "QA-REFUSAL-348",
    "section": "D",
    "area": "refusal",
    "title": "`parameter_overridden` can be provoked",
@@ -3824,7 +3835,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-348",
+   "id": "QA-REFUSAL-349",
    "section": "D",
    "area": "refusal",
    "title": "`parameters_not_reachable` can be provoked",
@@ -3835,7 +3846,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-349",
+   "id": "QA-REFUSAL-350",
    "section": "D",
    "area": "refusal",
    "title": "`parameters_too_large` can be provoked",
@@ -3846,7 +3857,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-350",
+   "id": "QA-REFUSAL-351",
    "section": "D",
    "area": "refusal",
    "title": "`parent_closed` can be provoked",
@@ -3857,7 +3868,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-351",
+   "id": "QA-REFUSAL-352",
    "section": "D",
    "area": "refusal",
    "title": "`partial_fibre` can be provoked",
@@ -3868,7 +3879,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-352",
+   "id": "QA-REFUSAL-353",
    "section": "D",
    "area": "refusal",
    "title": "`password_too_short` can be provoked",
@@ -3879,7 +3890,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-353",
+   "id": "QA-REFUSAL-354",
    "section": "D",
    "area": "refusal",
    "title": "`period_required` can be provoked",
@@ -3890,7 +3901,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-354",
+   "id": "QA-REFUSAL-355",
    "section": "D",
    "area": "refusal",
    "title": "`period_unmeasured` can be provoked",
@@ -3901,7 +3912,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-355",
+   "id": "QA-REFUSAL-356",
    "section": "D",
    "area": "refusal",
    "title": "`plan_exists` can be provoked",
@@ -3912,7 +3923,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-356",
+   "id": "QA-REFUSAL-357",
    "section": "D",
    "area": "refusal",
    "title": "`plan_required` can be provoked",
@@ -3923,7 +3934,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-357",
+   "id": "QA-REFUSAL-358",
    "section": "D",
    "area": "refusal",
    "title": "`pmml_malformed` can be provoked",
@@ -3934,7 +3945,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-358",
+   "id": "QA-REFUSAL-359",
    "section": "D",
    "area": "refusal",
    "title": "`pmml_unsupported` can be provoked",
@@ -3945,7 +3956,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-359",
+   "id": "QA-REFUSAL-360",
    "section": "D",
    "area": "refusal",
    "title": "`policy_refused` can be provoked",
@@ -3956,7 +3967,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-360",
+   "id": "QA-REFUSAL-361",
+   "section": "D",
+   "area": "refusal",
+   "title": "`population_too_large` can be provoked",
+   "expect": "refused (422)",
+   "status": 422,
+   "verdict": "UNPROVEN",
+   "evidence": "raised at core/lifecycle/campaigns.py:171; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "method": "raise-site + instrumented suite"
+  },
+  {
+   "id": "QA-REFUSAL-362",
    "section": "D",
    "area": "refusal",
    "title": "`precondition_failed` can be provoked",
@@ -3967,7 +3989,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-361",
+   "id": "QA-REFUSAL-363",
    "section": "D",
    "area": "refusal",
    "title": "`precondition_unevaluable` can be provoked",
@@ -3978,7 +4000,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-362",
+   "id": "QA-REFUSAL-364",
    "section": "D",
    "area": "refusal",
    "title": "`pricing_engine_unsupported` can be provoked",
@@ -3989,7 +4011,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-363",
+   "id": "QA-REFUSAL-365",
    "section": "D",
    "area": "refusal",
    "title": "`principal_not_active` can be provoked",
@@ -4000,7 +4022,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-364",
+   "id": "QA-REFUSAL-366",
    "section": "D",
    "area": "refusal",
    "title": "`principal_not_self` can be provoked",
@@ -4011,7 +4033,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-365",
+   "id": "QA-REFUSAL-367",
    "section": "D",
    "area": "refusal",
    "title": "`principal_required` can be provoked",
@@ -4022,7 +4044,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-366",
+   "id": "QA-REFUSAL-368",
    "section": "D",
    "area": "refusal",
    "title": "`profile_name_required` can be provoked",
@@ -4033,7 +4055,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-367",
+   "id": "QA-REFUSAL-369",
    "section": "D",
    "area": "refusal",
    "title": "`proposal_already_recorded` can be provoked",
@@ -4044,7 +4066,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-368",
+   "id": "QA-REFUSAL-370",
    "section": "D",
    "area": "refusal",
    "title": "`proposal_declined` can be provoked",
@@ -4055,18 +4077,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-369",
+   "id": "QA-REFUSAL-371",
    "section": "D",
    "area": "refusal",
    "title": "`proposer_may_not_approve` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:165; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:168; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-370",
+   "id": "QA-REFUSAL-372",
    "section": "D",
    "area": "refusal",
    "title": "`provenance_not_verified` can be provoked",
@@ -4077,7 +4099,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-371",
+   "id": "QA-REFUSAL-373",
    "section": "D",
    "area": "refusal",
    "title": "`provider_unavailable` can be provoked",
@@ -4088,7 +4110,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-372",
+   "id": "QA-REFUSAL-374",
    "section": "D",
    "area": "refusal",
    "title": "`provider_unreachable` can be provoked",
@@ -4099,7 +4121,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-373",
+   "id": "QA-REFUSAL-375",
    "section": "D",
    "area": "refusal",
    "title": "`purpose_not_permitted_in_zone` can be provoked",
@@ -4110,7 +4132,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-374",
+   "id": "QA-REFUSAL-376",
    "section": "D",
    "area": "refusal",
    "title": "`purpose_required` can be provoked",
@@ -4121,7 +4143,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-375",
+   "id": "QA-REFUSAL-377",
+   "section": "D",
+   "area": "refusal",
+   "title": "`quantiles_ragged` can be provoked",
+   "expect": "refused (422)",
+   "status": 422,
+   "verdict": "UNPROVEN",
+   "evidence": "raised at core/monitoring/distributed.py:488; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "method": "raise-site + instrumented suite"
+  },
+  {
+   "id": "QA-REFUSAL-378",
    "section": "D",
    "area": "refusal",
    "title": "`question_required` can be provoked",
@@ -4132,7 +4165,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-376",
+   "id": "QA-REFUSAL-379",
    "section": "D",
    "area": "refusal",
    "title": "`quorum_required` can be provoked",
@@ -4143,7 +4176,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-377",
+   "id": "QA-REFUSAL-380",
    "section": "D",
    "area": "refusal",
    "title": "`quota_limit_reached` can be provoked",
@@ -4154,7 +4187,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-378",
+   "id": "QA-REFUSAL-381",
    "section": "D",
    "area": "refusal",
    "title": "`raiser_may_not_close` can be provoked",
@@ -4165,7 +4198,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-379",
+   "id": "QA-REFUSAL-382",
    "section": "D",
    "area": "refusal",
    "title": "`ran_by_required` can be provoked",
@@ -4176,7 +4209,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-380",
+   "id": "QA-REFUSAL-383",
    "section": "D",
    "area": "refusal",
    "title": "`rate_limit_reached` can be provoked",
@@ -4187,7 +4220,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-381",
+   "id": "QA-REFUSAL-384",
    "section": "D",
    "area": "refusal",
    "title": "`rationale_required` can be provoked",
@@ -4198,7 +4231,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-382",
+   "id": "QA-REFUSAL-385",
    "section": "D",
    "area": "refusal",
    "title": "`rationale_too_long` can be provoked",
@@ -4209,18 +4242,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-383",
+   "id": "QA-REFUSAL-386",
    "section": "D",
    "area": "refusal",
    "title": "`reason_required` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/apikeys/register.py:331 (+19 more); provoked by the suite",
+   "evidence": "raised at core/apikeys/register.py:331 (+20 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-384",
+   "id": "QA-REFUSAL-387",
    "section": "D",
    "area": "refusal",
    "title": "`recipient_required` can be provoked",
@@ -4231,7 +4264,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-385",
+   "id": "QA-REFUSAL-388",
    "section": "D",
    "area": "refusal",
    "title": "`record_frozen` can be provoked",
@@ -4242,7 +4275,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-386",
+   "id": "QA-REFUSAL-389",
    "section": "D",
    "area": "refusal",
    "title": "`reference_required` can be provoked",
@@ -4253,7 +4286,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-387",
+   "id": "QA-REFUSAL-390",
    "section": "D",
    "area": "refusal",
    "title": "`reference_too_small` can be provoked",
@@ -4264,18 +4297,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-388",
+   "id": "QA-REFUSAL-391",
    "section": "D",
    "area": "refusal",
    "title": "`registry_refused` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:865 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:872 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-389",
+   "id": "QA-REFUSAL-392",
    "section": "D",
    "area": "refusal",
    "title": "`regulator_required` can be provoked",
@@ -4286,7 +4319,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-390",
+   "id": "QA-REFUSAL-393",
    "section": "D",
    "area": "refusal",
    "title": "`replacement_not_registered` can be provoked",
@@ -4297,7 +4330,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-391",
+   "id": "QA-REFUSAL-394",
    "section": "D",
    "area": "refusal",
    "title": "`replacement_required` can be provoked",
@@ -4308,7 +4341,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-392",
+   "id": "QA-REFUSAL-395",
    "section": "D",
    "area": "refusal",
    "title": "`reserved_name` can be provoked",
@@ -4319,7 +4352,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-393",
+   "id": "QA-REFUSAL-396",
    "section": "D",
    "area": "refusal",
    "title": "`resolution_required` can be provoked",
@@ -4330,7 +4363,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-394",
+   "id": "QA-REFUSAL-397",
    "section": "D",
    "area": "refusal",
    "title": "`restricted` can be provoked",
@@ -4341,7 +4374,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-395",
+   "id": "QA-REFUSAL-398",
    "section": "D",
    "area": "refusal",
    "title": "`review_outstanding` can be provoked",
@@ -4352,7 +4385,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-396",
+   "id": "QA-REFUSAL-399",
    "section": "D",
    "area": "refusal",
    "title": "`review_says_nothing` can be provoked",
@@ -4363,7 +4396,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-397",
+   "id": "QA-REFUSAL-400",
    "section": "D",
    "area": "refusal",
    "title": "`reviewed_by_the_user` can be provoked",
@@ -4374,7 +4407,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-398",
+   "id": "QA-REFUSAL-401",
    "section": "D",
    "area": "refusal",
    "title": "`revoked` can be provoked",
@@ -4385,7 +4418,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-399",
+   "id": "QA-REFUSAL-402",
    "section": "D",
    "area": "refusal",
    "title": "`revoked_epoch` can be provoked",
@@ -4396,18 +4429,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-400",
+   "id": "QA-REFUSAL-403",
    "section": "D",
    "area": "refusal",
    "title": "`role_already_signed` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:180; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:183; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-401",
+   "id": "QA-REFUSAL-404",
    "section": "D",
    "area": "refusal",
    "title": "`role_awaited` can be provoked",
@@ -4418,7 +4451,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-402",
+   "id": "QA-REFUSAL-405",
    "section": "D",
    "area": "refusal",
    "title": "`role_description_required` can be provoked",
@@ -4429,7 +4462,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-403",
+   "id": "QA-REFUSAL-406",
    "section": "D",
    "area": "refusal",
    "title": "`role_exists` can be provoked",
@@ -4440,7 +4473,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-404",
+   "id": "QA-REFUSAL-407",
    "section": "D",
    "area": "refusal",
    "title": "`role_grants_nothing` can be provoked",
@@ -4451,7 +4484,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-405",
+   "id": "QA-REFUSAL-408",
    "section": "D",
    "area": "refusal",
    "title": "`role_in_use` can be provoked",
@@ -4462,7 +4495,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-406",
+   "id": "QA-REFUSAL-409",
    "section": "D",
    "area": "refusal",
    "title": "`role_name_required` can be provoked",
@@ -4473,7 +4506,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-407",
+   "id": "QA-REFUSAL-410",
    "section": "D",
    "area": "refusal",
    "title": "`role_not_held` can be provoked",
@@ -4484,7 +4517,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-408",
+   "id": "QA-REFUSAL-411",
    "section": "D",
    "area": "refusal",
    "title": "`role_not_required` can be provoked",
@@ -4495,51 +4528,51 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-409",
+   "id": "QA-REFUSAL-412",
    "section": "D",
    "area": "refusal",
    "title": "`root_already_addressed` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:336; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:357; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-410",
+   "id": "QA-REFUSAL-413",
    "section": "D",
    "area": "refusal",
    "title": "`root_detail_required` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:149; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:163; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-411",
+   "id": "QA-REFUSAL-414",
    "section": "D",
    "area": "refusal",
    "title": "`root_note_required` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:342; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:363; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-412",
+   "id": "QA-REFUSAL-415",
    "section": "D",
    "area": "refusal",
    "title": "`root_title_required` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:146; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:160; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-413",
+   "id": "QA-REFUSAL-416",
    "section": "D",
    "area": "refusal",
    "title": "`round_is_empty` can be provoked",
@@ -4550,7 +4583,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-414",
+   "id": "QA-REFUSAL-417",
    "section": "D",
    "area": "refusal",
    "title": "`rule_does_not_parse` can be provoked",
@@ -4561,7 +4594,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-415",
+   "id": "QA-REFUSAL-418",
    "section": "D",
    "area": "refusal",
    "title": "`rule_failed` can be provoked",
@@ -4572,7 +4605,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-416",
+   "id": "QA-REFUSAL-419",
    "section": "D",
    "area": "refusal",
    "title": "`rule_id_malformed` can be provoked",
@@ -4583,7 +4616,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-417",
+   "id": "QA-REFUSAL-420",
    "section": "D",
    "area": "refusal",
    "title": "`rule_id_required` can be provoked",
@@ -4594,7 +4627,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-418",
+   "id": "QA-REFUSAL-421",
    "section": "D",
    "area": "refusal",
    "title": "`rule_never_fires` can be provoked",
@@ -4605,7 +4638,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-419",
+   "id": "QA-REFUSAL-422",
    "section": "D",
    "area": "refusal",
    "title": "`rule_unreachable` can be provoked",
@@ -4616,7 +4649,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-420",
+   "id": "QA-REFUSAL-423",
    "section": "D",
    "area": "refusal",
    "title": "`rules_contradict` can be provoked",
@@ -4627,7 +4660,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-421",
+   "id": "QA-REFUSAL-424",
    "section": "D",
    "area": "refusal",
    "title": "`ruleset_malformed` can be provoked",
@@ -4638,7 +4671,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-422",
+   "id": "QA-REFUSAL-425",
    "section": "D",
    "area": "refusal",
    "title": "`run_already_open` can be provoked",
@@ -4649,7 +4682,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-423",
+   "id": "QA-REFUSAL-426",
    "section": "D",
    "area": "refusal",
    "title": "`run_closed` can be provoked",
@@ -4660,7 +4693,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-424",
+   "id": "QA-REFUSAL-427",
    "section": "D",
    "area": "refusal",
    "title": "`run_concluded` can be provoked",
@@ -4671,7 +4704,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-425",
+   "id": "QA-REFUSAL-428",
    "section": "D",
    "area": "refusal",
    "title": "`runtime_unavailable` can be provoked",
@@ -4682,7 +4715,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-426",
+   "id": "QA-REFUSAL-429",
    "section": "D",
    "area": "refusal",
    "title": "`same_artifact` can be provoked",
@@ -4693,7 +4726,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-427",
+   "id": "QA-REFUSAL-430",
    "section": "D",
    "area": "refusal",
    "title": "`same_dimension` can be provoked",
@@ -4704,7 +4737,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-428",
+   "id": "QA-REFUSAL-431",
    "section": "D",
    "area": "refusal",
    "title": "`same_person` can be provoked",
@@ -4715,7 +4748,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-429",
+   "id": "QA-REFUSAL-432",
    "section": "D",
    "area": "refusal",
    "title": "`same_version` can be provoked",
@@ -4726,7 +4759,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-430",
+   "id": "QA-REFUSAL-433",
    "section": "D",
    "area": "refusal",
    "title": "`satisfaction_condition_failed` can be provoked",
@@ -4737,7 +4770,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-431",
+   "id": "QA-REFUSAL-434",
    "section": "D",
    "area": "refusal",
    "title": "`scanner_required` can be provoked",
@@ -4748,7 +4781,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-432",
+   "id": "QA-REFUSAL-435",
    "section": "D",
    "area": "refusal",
    "title": "`schema_not_satisfied` can be provoked",
@@ -4759,7 +4792,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-433",
+   "id": "QA-REFUSAL-436",
    "section": "D",
    "area": "refusal",
    "title": "`scope_exceeds_principal` can be provoked",
@@ -4770,7 +4803,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-434",
+   "id": "QA-REFUSAL-437",
    "section": "D",
    "area": "refusal",
    "title": "`scope_insufficient` can be provoked",
@@ -4781,7 +4814,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-435",
+   "id": "QA-REFUSAL-438",
    "section": "D",
    "area": "refusal",
    "title": "`scope_not_checked` can be provoked",
@@ -4792,7 +4825,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-436",
+   "id": "QA-REFUSAL-439",
    "section": "D",
    "area": "refusal",
    "title": "`scope_required` can be provoked",
@@ -4803,7 +4836,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-437",
+   "id": "QA-REFUSAL-440",
    "section": "D",
    "area": "refusal",
    "title": "`segregation_of_duties` can be provoked",
@@ -4814,7 +4847,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-438",
+   "id": "QA-REFUSAL-441",
    "section": "D",
    "area": "refusal",
    "title": "`self_approval` can be provoked",
@@ -4825,7 +4858,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-439",
+   "id": "QA-REFUSAL-442",
    "section": "D",
    "area": "refusal",
    "title": "`self_attestation` can be provoked",
@@ -4836,7 +4869,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-440",
+   "id": "QA-REFUSAL-443",
    "section": "D",
    "area": "refusal",
    "title": "`self_extension` can be provoked",
@@ -4847,7 +4880,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-441",
+   "id": "QA-REFUSAL-444",
    "section": "D",
    "area": "refusal",
    "title": "`self_recertification` can be provoked",
@@ -4858,7 +4891,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-442",
+   "id": "QA-REFUSAL-445",
    "section": "D",
    "area": "refusal",
    "title": "`self_renewal` can be provoked",
@@ -4869,7 +4902,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-443",
+   "id": "QA-REFUSAL-446",
    "section": "D",
    "area": "refusal",
    "title": "`self_review` can be provoked",
@@ -4880,7 +4913,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-444",
+   "id": "QA-REFUSAL-447",
    "section": "D",
    "area": "refusal",
    "title": "`self_suspension` can be provoked",
@@ -4891,7 +4924,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-445",
+   "id": "QA-REFUSAL-448",
    "section": "D",
    "area": "refusal",
    "title": "`series_is_constant` can be provoked",
@@ -4902,7 +4935,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-446",
+   "id": "QA-REFUSAL-449",
    "section": "D",
    "area": "refusal",
    "title": "`shadow_use_is_a_production_use` can be provoked",
@@ -4913,7 +4946,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-447",
+   "id": "QA-REFUSAL-450",
    "section": "D",
    "area": "refusal",
    "title": "`share_exhausted` can be provoked",
@@ -4924,7 +4957,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-448",
+   "id": "QA-REFUSAL-451",
    "section": "D",
    "area": "refusal",
    "title": "`share_expired` can be provoked",
@@ -4935,7 +4968,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-449",
+   "id": "QA-REFUSAL-452",
    "section": "D",
    "area": "refusal",
    "title": "`share_out_of_range` can be provoked",
@@ -4946,7 +4979,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-450",
+   "id": "QA-REFUSAL-453",
    "section": "D",
    "area": "refusal",
    "title": "`share_revoked` can be provoked",
@@ -4957,7 +4990,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-451",
+   "id": "QA-REFUSAL-454",
    "section": "D",
    "area": "refusal",
    "title": "`signature_invalid` can be provoked",
@@ -4968,7 +5001,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-452",
+   "id": "QA-REFUSAL-455",
    "section": "D",
    "area": "refusal",
    "title": "`snapshot_is_empty` can be provoked",
@@ -4979,7 +5012,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-453",
+   "id": "QA-REFUSAL-456",
    "section": "D",
    "area": "refusal",
    "title": "`snapshot_not_from_a_featureset` can be provoked",
@@ -4990,7 +5023,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-454",
+   "id": "QA-REFUSAL-457",
    "section": "D",
    "area": "refusal",
    "title": "`snapshot_not_pit_verified` can be provoked",
@@ -5001,7 +5034,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-455",
+   "id": "QA-REFUSAL-458",
    "section": "D",
    "area": "refusal",
    "title": "`snapshot_storage_missing` can be provoked",
@@ -5012,7 +5045,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-456",
+   "id": "QA-REFUSAL-459",
    "section": "D",
    "area": "refusal",
    "title": "`source_required` can be provoked",
@@ -5023,7 +5056,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-457",
+   "id": "QA-REFUSAL-460",
    "section": "D",
    "area": "refusal",
    "title": "`sso_not_configured` can be provoked",
@@ -5034,7 +5067,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-458",
+   "id": "QA-REFUSAL-461",
    "section": "D",
    "area": "refusal",
    "title": "`stages_required` can be provoked",
@@ -5045,7 +5078,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-459",
+   "id": "QA-REFUSAL-462",
    "section": "D",
    "area": "refusal",
    "title": "`state_mismatch` can be provoked",
@@ -5056,7 +5089,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-460",
+   "id": "QA-REFUSAL-463",
    "section": "D",
    "area": "refusal",
    "title": "`state_not_a_variance` can be provoked",
@@ -5067,7 +5100,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-461",
+   "id": "QA-REFUSAL-464",
    "section": "D",
    "area": "refusal",
    "title": "`state_required` can be provoked",
@@ -5078,7 +5111,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-462",
+   "id": "QA-REFUSAL-465",
    "section": "D",
    "area": "refusal",
    "title": "`still_open` can be provoked",
@@ -5089,7 +5122,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-463",
+   "id": "QA-REFUSAL-466",
    "section": "D",
    "area": "refusal",
    "title": "`still_referenced` can be provoked",
@@ -5100,7 +5133,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-464",
+   "id": "QA-REFUSAL-467",
    "section": "D",
    "area": "refusal",
    "title": "`submission_does_not_meet_the_plan` can be provoked",
@@ -5111,7 +5144,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-465",
+   "id": "QA-REFUSAL-468",
    "section": "D",
    "area": "refusal",
    "title": "`sweep_does_not_meet_the_contract` can be provoked",
@@ -5122,7 +5155,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-466",
+   "id": "QA-REFUSAL-469",
    "section": "D",
    "area": "refusal",
    "title": "`target_is_a_regressor` can be provoked",
@@ -5133,7 +5166,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-467",
+   "id": "QA-REFUSAL-470",
    "section": "D",
    "area": "refusal",
    "title": "`test_does_not_decompose` can be provoked",
@@ -5144,7 +5177,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-468",
+   "id": "QA-REFUSAL-471",
    "section": "D",
    "area": "refusal",
    "title": "`test_not_admissible` can be provoked",
@@ -5155,7 +5188,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-469",
+   "id": "QA-REFUSAL-472",
    "section": "D",
    "area": "refusal",
    "title": "`test_not_distributable` can be provoked",
@@ -5166,7 +5199,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-470",
+   "id": "QA-REFUSAL-473",
    "section": "D",
    "area": "refusal",
    "title": "`text_too_short` can be provoked",
@@ -5177,7 +5210,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-471",
+   "id": "QA-REFUSAL-474",
    "section": "D",
    "area": "refusal",
    "title": "`threshold_required` can be provoked",
@@ -5188,7 +5221,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-472",
+   "id": "QA-REFUSAL-475",
    "section": "D",
    "area": "refusal",
    "title": "`tier_not_eligible` can be provoked",
@@ -5199,7 +5232,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-473",
+   "id": "QA-REFUSAL-476",
    "section": "D",
    "area": "refusal",
    "title": "`title_required` can be provoked",
@@ -5210,7 +5243,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-474",
+   "id": "QA-REFUSAL-477",
    "section": "D",
    "area": "refusal",
    "title": "`token_expired` can be provoked",
@@ -5221,7 +5254,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-475",
+   "id": "QA-REFUSAL-478",
    "section": "D",
    "area": "refusal",
    "title": "`token_from_the_future` can be provoked",
@@ -5232,7 +5265,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-476",
+   "id": "QA-REFUSAL-479",
    "section": "D",
    "area": "refusal",
    "title": "`tolerance_required` can be provoked",
@@ -5243,7 +5276,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-477",
+   "id": "QA-REFUSAL-480",
    "section": "D",
    "area": "refusal",
    "title": "`too_few_cases` can be provoked",
@@ -5254,7 +5287,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-478",
+   "id": "QA-REFUSAL-481",
    "section": "D",
    "area": "refusal",
    "title": "`too_few_rows` can be provoked",
@@ -5265,7 +5298,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-479",
+   "id": "QA-REFUSAL-482",
    "section": "D",
    "area": "refusal",
    "title": "`too_many_rules` can be provoked",
@@ -5276,7 +5309,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-480",
+   "id": "QA-REFUSAL-483",
    "section": "D",
    "area": "refusal",
    "title": "`trigger_required` can be provoked",
@@ -5287,7 +5320,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-481",
+   "id": "QA-REFUSAL-484",
    "section": "D",
    "area": "refusal",
    "title": "`two_versions_required` can be provoked",
@@ -5298,18 +5331,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-482",
+   "id": "QA-REFUSAL-485",
    "section": "D",
    "area": "refusal",
    "title": "`unauthenticated` can be provoked",
    "expect": "refused (401)",
    "status": 401,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:912 (HTTPException detail); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:975 (HTTPException detail); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-483",
+   "id": "QA-REFUSAL-486",
    "section": "D",
    "area": "refusal",
    "title": "`under_legal_hold` can be provoked",
@@ -5320,7 +5353,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-484",
+   "id": "QA-REFUSAL-487",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_answer` can be provoked",
@@ -5331,7 +5364,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-485",
+   "id": "QA-REFUSAL-488",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_approval_kind` can be provoked",
@@ -5342,7 +5375,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-486",
+   "id": "QA-REFUSAL-489",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_ask` can be provoked",
@@ -5353,7 +5386,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-487",
+   "id": "QA-REFUSAL-490",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_autonomy` can be provoked",
@@ -5364,7 +5397,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-488",
+   "id": "QA-REFUSAL-491",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_axis` can be provoked",
@@ -5375,7 +5408,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-489",
+   "id": "QA-REFUSAL-492",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_band` can be provoked",
@@ -5386,7 +5419,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-490",
+   "id": "QA-REFUSAL-493",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_bom_format` can be provoked",
@@ -5397,29 +5430,29 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-491",
+   "id": "QA-REFUSAL-494",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_campaign` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "UNPROVEN",
-   "evidence": "raised at core/lifecycle/campaigns.py:323; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at core/lifecycle/campaigns.py:354; the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-492",
+   "id": "QA-REFUSAL-495",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_campaign_kind` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/lifecycle/campaigns.py:89; provoked by the suite",
+   "evidence": "raised at core/lifecycle/campaigns.py:96; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-493",
+   "id": "QA-REFUSAL-496",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_channel` can be provoked",
@@ -5430,7 +5463,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-494",
+   "id": "QA-REFUSAL-497",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_classification` can be provoked",
@@ -5441,7 +5474,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-495",
+   "id": "QA-REFUSAL-498",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_closure` can be provoked",
@@ -5452,7 +5485,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-496",
+   "id": "QA-REFUSAL-499",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_comment` can be provoked",
@@ -5463,7 +5496,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-497",
+   "id": "QA-REFUSAL-500",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_conclusion` can be provoked",
@@ -5474,7 +5507,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-498",
+   "id": "QA-REFUSAL-501",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_condition` can be provoked",
@@ -5485,18 +5518,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-499",
+   "id": "QA-REFUSAL-502",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_control` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/waivers/register.py:91; provoked by the suite",
+   "evidence": "raised at core/waivers/register.py:94; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-500",
+   "id": "QA-REFUSAL-503",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_cost_dimension` can be provoked",
@@ -5507,7 +5540,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-501",
+   "id": "QA-REFUSAL-504",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_day_count` can be provoked",
@@ -5518,7 +5551,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-502",
+   "id": "QA-REFUSAL-505",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_decision` can be provoked",
@@ -5529,7 +5562,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-503",
+   "id": "QA-REFUSAL-506",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_designation` can be provoked",
@@ -5540,7 +5573,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-504",
+   "id": "QA-REFUSAL-507",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_dimension` can be provoked",
@@ -5551,7 +5584,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-505",
+   "id": "QA-REFUSAL-508",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_direction` can be provoked",
@@ -5562,7 +5595,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-506",
+   "id": "QA-REFUSAL-509",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_document` can be provoked",
@@ -5573,7 +5606,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-507",
+   "id": "QA-REFUSAL-510",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_document_kind` can be provoked",
@@ -5584,7 +5617,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-508",
+   "id": "QA-REFUSAL-511",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_elicitation` can be provoked",
@@ -5595,7 +5628,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-509",
+   "id": "QA-REFUSAL-512",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_entity` can be provoked",
@@ -5606,7 +5639,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-510",
+   "id": "QA-REFUSAL-513",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_fact` can be provoked",
@@ -5617,7 +5650,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-511",
+   "id": "QA-REFUSAL-514",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_family` can be provoked",
@@ -5628,7 +5661,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-512",
+   "id": "QA-REFUSAL-515",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_field` can be provoked",
@@ -5639,18 +5672,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-513",
+   "id": "QA-REFUSAL-516",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_finding` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:196; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:210; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-514",
+   "id": "QA-REFUSAL-517",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_format` can be provoked",
@@ -5661,7 +5694,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-515",
+   "id": "QA-REFUSAL-518",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_function` can be provoked",
@@ -5672,7 +5705,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-516",
+   "id": "QA-REFUSAL-519",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_gap` can be provoked",
@@ -5683,18 +5716,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-517",
+   "id": "QA-REFUSAL-520",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_gate` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "PASS",
-   "evidence": "raised at core/policy/engine.py:62 (+1 more); provoked by the suite",
+   "evidence": "raised at core/policy/engine.py:62 (+2 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-518",
+   "id": "QA-REFUSAL-521",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_import_format` can be provoked",
@@ -5705,7 +5738,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-519",
+   "id": "QA-REFUSAL-522",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_job` can be provoked",
@@ -5716,7 +5749,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-520",
+   "id": "QA-REFUSAL-523",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_key` can be provoked",
@@ -5727,7 +5760,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-521",
+   "id": "QA-REFUSAL-524",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_kind` can be provoked",
@@ -5738,7 +5771,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-522",
+   "id": "QA-REFUSAL-525",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_method` can be provoked",
@@ -5749,18 +5782,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-523",
+   "id": "QA-REFUSAL-526",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_metric` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/reporting/appetite.py:173; provoked by the suite",
+   "evidence": "raised at core/reporting/appetite.py:173 (+1 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-524",
+   "id": "QA-REFUSAL-527",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_operator` can be provoked",
@@ -5771,7 +5804,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-525",
+   "id": "QA-REFUSAL-528",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_oracle` can be provoked",
@@ -5782,7 +5815,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-526",
+   "id": "QA-REFUSAL-529",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_outcome` can be provoked",
@@ -5793,7 +5826,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-527",
+   "id": "QA-REFUSAL-530",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_outcome_field` can be provoked",
@@ -5804,18 +5837,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-528",
+   "id": "QA-REFUSAL-531",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_permission` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/authz/common.py:162; provoked by the suite",
+   "evidence": "raised at core/authz/common.py:176; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-529",
+   "id": "QA-REFUSAL-532",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_predicate` can be provoked",
@@ -5826,7 +5859,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-530",
+   "id": "QA-REFUSAL-533",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_profile_fact` can be provoked",
@@ -5837,7 +5870,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-531",
+   "id": "QA-REFUSAL-534",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_proposal` can be provoked",
@@ -5848,7 +5881,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-532",
+   "id": "QA-REFUSAL-535",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_provenance` can be provoked",
@@ -5859,7 +5892,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-533",
+   "id": "QA-REFUSAL-536",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_provider` can be provoked",
@@ -5870,7 +5903,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-534",
+   "id": "QA-REFUSAL-537",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_purpose_class` can be provoked",
@@ -5881,7 +5914,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-535",
+   "id": "QA-REFUSAL-538",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_recertification` can be provoked",
@@ -5892,18 +5925,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-536",
+   "id": "QA-REFUSAL-539",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_response` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "UNPROVEN",
-   "evidence": "raised at core/lifecycle/campaigns.py:167; the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at core/lifecycle/campaigns.py:198; the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-537",
+   "id": "QA-REFUSAL-540",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_retention_class` can be provoked",
@@ -5914,7 +5947,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-538",
+   "id": "QA-REFUSAL-541",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_return` can be provoked",
@@ -5925,7 +5958,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-539",
+   "id": "QA-REFUSAL-542",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_role` can be provoked",
@@ -5936,29 +5969,29 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-540",
+   "id": "QA-REFUSAL-543",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_root` can be provoked",
    "expect": "refused (404)",
    "status": 404,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:224; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:238; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-541",
+   "id": "QA-REFUSAL-544",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_root_kind` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/validation/correlation.py:138; provoked by the suite",
+   "evidence": "raised at core/validation/correlation.py:152; provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-542",
+   "id": "QA-REFUSAL-545",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_run` can be provoked",
@@ -5969,7 +6002,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-543",
+   "id": "QA-REFUSAL-546",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_scope` can be provoked",
@@ -5980,7 +6013,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-544",
+   "id": "QA-REFUSAL-547",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_scope_id` can be provoked",
@@ -5991,7 +6024,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-545",
+   "id": "QA-REFUSAL-548",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_section` can be provoked",
@@ -6002,7 +6035,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-546",
+   "id": "QA-REFUSAL-549",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_severity` can be provoked",
@@ -6013,7 +6046,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-547",
+   "id": "QA-REFUSAL-550",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_share` can be provoked",
@@ -6024,7 +6057,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-548",
+   "id": "QA-REFUSAL-551",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_snapshot` can be provoked",
@@ -6035,7 +6068,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-549",
+   "id": "QA-REFUSAL-552",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_source` can be provoked",
@@ -6046,7 +6079,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-550",
+   "id": "QA-REFUSAL-553",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_sourcing` can be provoked",
@@ -6057,7 +6090,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-551",
+   "id": "QA-REFUSAL-554",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_status` can be provoked",
@@ -6068,7 +6101,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-552",
+   "id": "QA-REFUSAL-555",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_stream` can be provoked",
@@ -6079,7 +6112,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-553",
+   "id": "QA-REFUSAL-556",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_subject` can be provoked",
@@ -6090,7 +6123,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-554",
+   "id": "QA-REFUSAL-557",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_tier` can be provoked",
@@ -6101,7 +6134,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-555",
+   "id": "QA-REFUSAL-558",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_transition` can be provoked",
@@ -6112,7 +6145,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-556",
+   "id": "QA-REFUSAL-559",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_trigger` can be provoked",
@@ -6123,7 +6156,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-557",
+   "id": "QA-REFUSAL-560",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_verb` can be provoked",
@@ -6134,7 +6167,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-558",
+   "id": "QA-REFUSAL-561",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_version` can be provoked",
@@ -6145,7 +6178,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-559",
+   "id": "QA-REFUSAL-562",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_view` can be provoked",
@@ -6156,7 +6189,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-560",
+   "id": "QA-REFUSAL-563",
    "section": "D",
    "area": "refusal",
    "title": "`unknown_warrant` can be provoked",
@@ -6167,7 +6200,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-561",
+   "id": "QA-REFUSAL-564",
    "section": "D",
    "area": "refusal",
    "title": "`unmeasured` can be provoked",
@@ -6178,7 +6211,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-562",
+   "id": "QA-REFUSAL-565",
    "section": "D",
    "area": "refusal",
    "title": "`unordered_comparison` can be provoked",
@@ -6189,7 +6222,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-563",
+   "id": "QA-REFUSAL-566",
    "section": "D",
    "area": "refusal",
    "title": "`unreadable_dmn` can be provoked",
@@ -6200,7 +6233,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-564",
+   "id": "QA-REFUSAL-567",
    "section": "D",
    "area": "refusal",
    "title": "`unreadable_export` can be provoked",
@@ -6211,7 +6244,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-565",
+   "id": "QA-REFUSAL-568",
    "section": "D",
    "area": "refusal",
    "title": "`unsupported_algorithm` can be provoked",
@@ -6222,7 +6255,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-566",
+   "id": "QA-REFUSAL-569",
    "section": "D",
    "area": "refusal",
    "title": "`unsupported_key` can be provoked",
@@ -6233,18 +6266,18 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-567",
+   "id": "QA-REFUSAL-570",
    "section": "D",
    "area": "refusal",
    "title": "`urn_required` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/discovery/register.py:197; provoked by the suite",
+   "evidence": "raised at core/discovery/register.py:197 (+1 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-568",
+   "id": "QA-REFUSAL-571",
    "section": "D",
    "area": "refusal",
    "title": "`urn_was_deleted` can be provoked",
@@ -6255,7 +6288,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-569",
+   "id": "QA-REFUSAL-572",
    "section": "D",
    "area": "refusal",
    "title": "`use_not_approved` can be provoked",
@@ -6266,29 +6299,29 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-570",
+   "id": "QA-REFUSAL-573",
    "section": "D",
    "area": "refusal",
    "title": "`validation_failed` can be provoked",
    "expect": "refused (422)",
    "status": 422,
    "verdict": "PASS",
-   "evidence": "raised at core/execution/grants.py:91 (+5 more); provoked by the suite",
+   "evidence": "raised at core/execution/grants.py:111 (+5 more); provoked by the suite",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-571",
+   "id": "QA-REFUSAL-574",
    "section": "D",
    "area": "refusal",
    "title": "`validation_refused` can be provoked",
    "expect": "refused (409)",
    "status": 409,
    "verdict": "UNPROVEN",
-   "evidence": "raised at routes/base.py:868 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
+   "evidence": "raised at routes/base.py:875 (class-to-code table); the suite never reaches the state that raises it, so nothing here shows it can fire",
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-572",
+   "id": "QA-REFUSAL-575",
    "section": "D",
    "area": "refusal",
    "title": "`valuation_failed` can be provoked",
@@ -6299,7 +6332,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-573",
+   "id": "QA-REFUSAL-576",
    "section": "D",
    "area": "refusal",
    "title": "`value_malformed` can be provoked",
@@ -6310,7 +6343,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-574",
+   "id": "QA-REFUSAL-577",
    "section": "D",
    "area": "refusal",
    "title": "`value_not_a_list` can be provoked",
@@ -6321,7 +6354,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-575",
+   "id": "QA-REFUSAL-578",
    "section": "D",
    "area": "refusal",
    "title": "`value_not_comparable` can be provoked",
@@ -6332,7 +6365,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-576",
+   "id": "QA-REFUSAL-579",
    "section": "D",
    "area": "refusal",
    "title": "`value_not_expected` can be provoked",
@@ -6343,7 +6376,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-577",
+   "id": "QA-REFUSAL-580",
    "section": "D",
    "area": "refusal",
    "title": "`value_not_numeric` can be provoked",
@@ -6354,7 +6387,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-578",
+   "id": "QA-REFUSAL-581",
    "section": "D",
    "area": "refusal",
    "title": "`value_required` can be provoked",
@@ -6365,7 +6398,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-579",
+   "id": "QA-REFUSAL-582",
    "section": "D",
    "area": "refusal",
    "title": "`value_wrong_type` can be provoked",
@@ -6376,7 +6409,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-580",
+   "id": "QA-REFUSAL-583",
    "section": "D",
    "area": "refusal",
    "title": "`verifier_not_self` can be provoked",
@@ -6387,7 +6420,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-581",
+   "id": "QA-REFUSAL-584",
    "section": "D",
    "area": "refusal",
    "title": "`view_already_saved` can be provoked",
@@ -6398,7 +6431,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-582",
+   "id": "QA-REFUSAL-585",
    "section": "D",
    "area": "refusal",
    "title": "`view_not_shared` can be provoked",
@@ -6409,7 +6442,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-583",
+   "id": "QA-REFUSAL-586",
    "section": "D",
    "area": "refusal",
    "title": "`warrant_names_another_model` can be provoked",
@@ -6420,7 +6453,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-584",
+   "id": "QA-REFUSAL-587",
    "section": "D",
    "area": "refusal",
    "title": "`warrant_names_another_version` can be provoked",
@@ -6431,7 +6464,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-585",
+   "id": "QA-REFUSAL-588",
    "section": "D",
    "area": "refusal",
    "title": "`warrant_required` can be provoked",
@@ -6442,7 +6475,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-586",
+   "id": "QA-REFUSAL-589",
    "section": "D",
    "area": "refusal",
    "title": "`warrant_revoked` can be provoked",
@@ -6453,7 +6486,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-587",
+   "id": "QA-REFUSAL-590",
    "section": "D",
    "area": "refusal",
    "title": "`weak_key` can be provoked",
@@ -6464,7 +6497,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-588",
+   "id": "QA-REFUSAL-591",
    "section": "D",
    "area": "refusal",
    "title": "`wildcard_refused` can be provoked",
@@ -6475,7 +6508,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-589",
+   "id": "QA-REFUSAL-592",
    "section": "D",
    "area": "refusal",
    "title": "`window_inverted` can be provoked",
@@ -6486,7 +6519,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-590",
+   "id": "QA-REFUSAL-593",
    "section": "D",
    "area": "refusal",
    "title": "`window_not_positive` can be provoked",
@@ -6497,7 +6530,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-591",
+   "id": "QA-REFUSAL-594",
    "section": "D",
    "area": "refusal",
    "title": "`window_out_of_range` can be provoked",
@@ -6508,7 +6541,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-592",
+   "id": "QA-REFUSAL-595",
    "section": "D",
    "area": "refusal",
    "title": "`window_required` can be provoked",
@@ -6519,7 +6552,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-593",
+   "id": "QA-REFUSAL-596",
    "section": "D",
    "area": "refusal",
    "title": "`window_too_long` can be provoked",
@@ -6530,7 +6563,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-594",
+   "id": "QA-REFUSAL-597",
    "section": "D",
    "area": "refusal",
    "title": "`worm_bad_name` can be provoked",
@@ -6541,7 +6574,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-595",
+   "id": "QA-REFUSAL-598",
    "section": "D",
    "area": "refusal",
    "title": "`worm_overwrite_refused` can be provoked",
@@ -6552,7 +6585,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-596",
+   "id": "QA-REFUSAL-599",
    "section": "D",
    "area": "refusal",
    "title": "`worm_unreadable` can be provoked",
@@ -6563,7 +6596,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-597",
+   "id": "QA-REFUSAL-600",
    "section": "D",
    "area": "refusal",
    "title": "`wrong_verb` can be provoked",
@@ -6574,7 +6607,7 @@
    "method": "raise-site + instrumented suite"
   },
   {
-   "id": "QA-REFUSAL-598",
+   "id": "QA-REFUSAL-601",
    "section": "D",
    "area": "refusal",
    "title": "`zone_may_not_hold_this_data` can be provoked",
