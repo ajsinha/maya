@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-5104",
+   "title": "An absent assumption is the weakest, not a failure",
+   "verdict": "PASS",
+   "evidence": "an absent assumption refines a bounded one"
+  }
+ ]
+}
