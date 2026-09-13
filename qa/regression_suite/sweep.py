@@ -144,6 +144,54 @@ def run(client, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+def authorisation(client, observer, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Every mutating endpoint, called by somebody who should not be able to.
+
+    A separate property from the value probes above, and a stronger one: the
+    value probes ask whether a field is checked, this asks whether the door
+    is. There are around 240 mutating endpoints and a permission check is one
+    line each, which is exactly the kind of line that gets left out of the
+    one endpoint nobody thought about.
+
+    The observer is an `operator` — authenticated, and holding almost
+    nothing. Deliberately not an anonymous caller: that tests the
+    authentication layer, which is a different control, and would report
+    every endpoint as protected while never reaching an authorisation check.
+    """
+    from qa.regression_suite.shapes import body_for
+    out: List[Dict[str, Any]] = []
+    for path, item in sorted(spec.get("paths", {}).items()):
+        if any(path.startswith(a) for a in AVOID):
+            continue
+        for method, operation in sorted(item.items()):
+            if method.upper() not in ("POST", "PUT", "PATCH", "DELETE"):
+                continue
+            body = body_for(method, path, client) if operation.get(
+                "requestBody") else None
+            answer = observer.request(method.upper(), _fill(path),
+                                      json=body if body else None)
+            if answer.status_code in (401, 403):
+                verdict = "REFUSED"
+            elif answer.status_code == 404:
+                verdict = "UNREACHED"
+            elif answer.status_code >= 500:
+                verdict = "CRASHED"
+            elif answer.status_code < 400:
+                verdict = "ACCEPTED"
+            else:
+                # A 409/422 means the request got PAST the permission check
+                # and was refused on its content. For a caller who should not
+                # be here at all, that is the door being open.
+                verdict = "PAST-THE-DOOR"
+            out.append({
+                "id": f"SWEEP-AUTHZ-{method.upper()}-{path}",
+                "method": method.upper(), "path": path, "field": "-",
+                "probe": "unprivileged", "asks": "the door is checked",
+                "status": answer.status_code, "verdict": verdict,
+                "evidence": answer.text[:150]})
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out", default="qa/results/sweep.json")
@@ -151,8 +199,10 @@ def main(argv=None) -> int:
     from qa.regression_suite.harness import live_client
     from qa.regression_suite.shapes import document
     started = time.time()
-    with live_client() as (_ui, api, _observer):
-        results = run(api, document(api))
+    with live_client() as (_ui, api, observer):
+        spec = document(api)
+        results = run(api, spec)
+        results.extend(authorisation(api, observer, spec))
     took = time.time() - started
     counts: Dict[str, int] = {}
     for row in results:
@@ -163,7 +213,31 @@ def main(argv=None) -> int:
                                "results": results}, indent=1),
                    encoding="utf-8")
     print(f"{len(results)} probes in {took:.0f}s — {counts}")
-    accepted = [r for r in results if r["verdict"] == "ACCEPTED"]
+    # Only ACCEPTED is reported, and even that needs reading.
+    #
+    # `PAST-THE-DOOR` — a 409 or 422 for an unprivileged caller — is
+    # AMBIGUOUS and is deliberately not listed as a finding. FastAPI validates
+    # the body before the handler runs the permission check, so a malformed
+    # request is refused on its content by an endpoint whose door is
+    # perfectly well guarded. Reporting 117 of those as defects would have
+    # been the loudest wrong answer this sweep could give.
+    #
+    # And two of the ACCEPTED are correct: an operator holds `scheduler:run`,
+    # and break-glass is open to any authenticated principal on purpose —
+    # "ask for elevation, nothing is granted by asking". Requiring a
+    # permission to request emergency access defeats emergency access.
+    door = [r for r in results
+            if r["probe"] == "unprivileged"
+            and r["verdict"] in ("ACCEPTED", "CRASHED")]
+    if door:
+        print(f"\n{len(door)} mutating endpoint(s) an unprivileged caller "
+              f"got through — read each one against the role's permissions "
+              f"before calling it a defect:")
+        for row in door[:30]:
+            print(f"   {row['verdict']:9s} {row['method']:6s} {row['path']}")
+
+    accepted = [r for r in results
+                if r["verdict"] == "ACCEPTED" and r["probe"] != "unprivileged"]
     print(f"\n{len(accepted)} field(s) accepted a value that is not one:")
     for row in accepted[:40]:
         print(f"   {row['method']:6s} {row['path']:52s} {row['field']} "
