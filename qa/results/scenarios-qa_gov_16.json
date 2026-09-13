@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 7,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 6.9,
+ "results": [
+  {
+   "id": "QA-GOV-160",
+   "title": "Confirm an *enforced* condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_attested'"
+  },
+  {
+   "id": "QA-GOV-161",
+   "title": "Confirm an attested condition twice",
+   "verdict": "PASS",
+   "evidence": "confirmed twice, and the clock moved both times"
+  },
+  {
+   "id": "QA-GOV-162",
+   "title": "Confirm a discharged condition",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active'"
+  },
+  {
+   "id": "QA-GOV-163",
+   "title": "Discharge twice",
+   "verdict": "PASS",
+   "evidence": "refused 'not_active', first reason intact"
+  },
+  {
+   "id": "QA-GOV-164",
+   "title": "Discharge with no reason",
+   "verdict": "PASS",
+   "evidence": "refused 'reason_required' on whitespace"
+  },
+  {
+   "id": "QA-GOV-165",
+   "title": "Two `expires` conditions with different windows on one model",
+   "verdict": "FAIL",
+   "evidence": "the case itself raised TypeError: 'int' object is not iterable | Traceback (most recent call last):   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/scenario_run.py\", line 56, in _run     return fn(ctx)   File \"/home/ashutosh/PycharmProjects/maya/qa/regression_suite/sce"
+  },
+  {
+   "id": "QA-GOV-166",
+   "title": "Resolve after the condition's expiry",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming COND-0001"
+  },
+  {
+   "id": "QA-GOV-167",
+   "title": "Resolve in an environment the condition excludes",
+   "verdict": "PASS",
+   "evidence": "refused 'approval_condition_broken', naming uat"
+  }
+ ]
+}
