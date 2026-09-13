@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-237",
+   "title": "A sample rate of zero",
+   "verdict": "PASS",
+   "evidence": "0, -1, 1.5 and 100 all refused"
+  }
+ ]
+}

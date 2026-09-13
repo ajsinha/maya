@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-232",
+   "title": "The same rows plus one more",
+   "verdict": "PASS",
+   "evidence": "a superset is a different batch"
+  }
+ ]
+}

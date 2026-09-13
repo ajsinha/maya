@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-231",
+   "title": "Deliver the identical batch twice",
+   "verdict": "PASS",
+   "evidence": "first delivery clean, redelivery reported as duplicate"
+  }
+ ]
+}

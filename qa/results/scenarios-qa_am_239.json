@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-AM-239",
+   "title": "A scored row whose outcome never arrives",
+   "verdict": "PASS",
+   "evidence": "4 row(s) in the cohort, 0 labelled"
+  }
+ ]
+}

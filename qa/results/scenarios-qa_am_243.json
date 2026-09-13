@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.2,
+ "results": [
+  {
+   "id": "QA-AM-243",
+   "title": "A batch of exactly the maximum size, and one row more",
+   "verdict": "PASS",
+   "evidence": "refused 'batch_too_large', naming the 100,000 limit"
+  }
+ ]
+}

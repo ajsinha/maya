@@ -3391,6 +3391,7 @@ Run every case twice. The second run is where the state bugs are.
 | QA-AM-2901 | `regression` | Close a campaign twice | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2901` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-2902 | `regression` | The derivation is kept, not the list | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2902` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 | QA-AM-2903 | `regression` | A limit at or above the threshold is never slack | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-2903` | written while executing this section; the id is its own so a result is never credited to a case about something else |
+| QA-AM-3200 | `regression` | A stream that is not one | **reported by the suite** | `python -m qa.regression_suite.scenario_run --only QA-AM-3200` | written while executing this section; the id is its own so a result is never credited to a case about something else |
 
 
 <!-- I-platform-interfaces.md -->
