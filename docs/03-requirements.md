@@ -865,7 +865,7 @@ at all.
 | NFR-COMP-002 | Compliance | Every derived value reproducible and explainable | **Built** for the tier, the worklist, the estate summary, the indicators and the compiled documents |
 | NFR-COMP-003 | Compliance | Data subject access, erasure for the feature store, purpose limitation, residency | **Partial** — `L-18` keeps personal data out of evidence nodes and out of export packs, which is the hard half. There is no erasure workflow |
 | NFR-USE-001 | Usability | A developer registers a model and produces a compliant draft in < 30 minutes | **Not measured** |
-| NFR-USE-002 | Usability | WCAG 2.2 AA | **Not verified** |
+| NFR-USE-002 | Usability | WCAG 2.2 AA | **Measured where markup can be, and not claimed as conformant.** `tests/test_ui_accessibility.py` computes contrast rather than judging it, and holds every template to 1.1.1, 1.3.1, 1.3.5, 2.4.1, 2.4.2, 2.4.4, 2.4.7 and 1.4.4. It also lists the **seven criteria a static check cannot reach** — reflow, text spacing, focus not obscured, target size and the rest — each with why, because a suite of greps is a floor for an audit and not a substitute for one |
 | NFR-USE-003 | Usability | Full keyboard navigation and bulk actions in the register grid | **Partial** — every table is searchable and sortable and every list is paged, with the cap **reported rather than applied silently** |
 | NFR-USE-004 | Usability | The system must never require the same fact to be entered twice | Design rule, not tested |
 | NFR-OPS-001 | Observability | Traces, metrics, structured logs, SLO dashboards, error budgets | **Partial** — one logger, one format, structured JSON offered rather than imposed, one access line per request at a level that follows the outcome. No traces, no metrics endpoint |
