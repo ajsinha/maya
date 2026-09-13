@@ -379,7 +379,19 @@ class ModelRoutes(Routes):
             Only propagating relations are followed, so a challenger is not
             downstream of the model it argues with.
             """
-            model = self.guard(lambda: reg.require(body["urn"]))
+            # `body["urn"]` — a KeyError, and therefore a bare 500 with no
+            # body, when the field is absent. Every other route on this class
+            # either takes a typed model or uses `.get`; this one asked the
+            # dictionary directly and a caller who forgot the field was told
+            # nothing at all about what they had forgotten.
+            urn = (body or {}).get("urn")
+            if not urn:
+                raise HTTPException(422, {
+                    "error": "urn_required",
+                    "detail": "blast radius is computed FROM a model, and no "
+                              "urn was given",
+                    "remediation": 'post {"urn": "maya://model/..."}'})
+            model = self.guard(lambda: reg.require(urn))
             self.authorise(request, "model:read", model=model)
             return self.guard(lambda: composition.blast_radius(model["urn"]))
 
@@ -1271,7 +1283,7 @@ class ModelRoutes(Routes):
             The default answer to "should I compact?", because the destructive
             version is not reversible and the plan is cheap.
             """
-            self.authorise(request, "admin")
+            self.authorise(request, "storage:compact")
             return self.guard(lambda: self.ctx["compaction"].plan())
 
         @self.app.post(f"{self.api}/compaction/sweep", tags=["registry"])
@@ -1282,7 +1294,7 @@ class ModelRoutes(Routes):
             the row that references them, and a sweeper walking past in between
             sees exactly what a real orphan looks like.
             """
-            who = self.authorise(request, "admin")
+            who = self.authorise(request, "storage:compact")
             return self.guard(lambda: self.ctx["compaction"].sweep(
                 actor=self.actor(who), dry_run=dry_run))
 
@@ -1294,7 +1306,7 @@ class ModelRoutes(Routes):
             the database, which is why it is asked for rather than done on the
             way out of a deletion.
             """
-            who = self.authorise(request, "admin")
+            who = self.authorise(request, "storage:compact")
             return self.guard(
                 lambda: self.ctx["compaction"].vacuum(actor=self.actor(who)))
 

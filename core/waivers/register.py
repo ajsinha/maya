@@ -44,6 +44,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from core.authz.common import same_person
+from core.log import get_logger
 from core.evidence import EvidenceEngine
 from core.risk.designations import DESIGNATION_CONTROLS
 from core.risk.lattices import CONTROLS
@@ -68,6 +69,8 @@ WAIVABLE: tuple = tuple(sorted(
 #: approving mathematics are different acts and an institution may well want
 #: them to need different people.
 QUORUM_BY_TIER: Dict[int, int] = {1: 2, 2: 2, 3: 1, 4: 1}
+
+logger = get_logger(__name__)
 
 
 class WaiverRegister:
@@ -247,9 +250,28 @@ class WaiverRegister:
                           actor: str) -> None:
         if self.findings is None:
             return
+        title = f"Waiver renewed past its limit: {row['control']}"
+        # Once per waiver, not once per renewal.
+        #
+        # This fired on every renewal past the limit, so a waiver renewed
+        # three times past it produced three findings with the same title
+        # against the same model — three owners' worth of noise for one
+        # condition, and a count somebody would read as three separate
+        # over-renewed controls. Every scheduler job in this codebase guards
+        # the same way and this did not.
+        #
+        # The condition is *this waiver has been renewed too often*, and it
+        # does not become a second condition by continuing to be true.
+        if any(f["title"] == title
+               for f in self.findings.open_for(row["model_id"])):
+            logger.info(
+                "waiver %s renewed again past its limit (%d); the finding is "
+                "already open and is not raised twice",
+                row["reference"], renewals)
+            return
         finding = self.findings.raise_finding(
             row["model_id"], "High",
-            title=f"Waiver renewed past its limit: {row['control']}",
+            title=title,
             owner=row.get("approved_by") or row["proposed_by"],
             description=(
                 f"{row['reference']} waives '{row['control']}' and has been "

@@ -309,6 +309,12 @@ class FeaturesetRoutes(Routes):
         def lineage(request: Request, name: str):
             """Everything this feature rests on, and everything resting on it."""
             self.authorise(request, "feature:read")
+            # An empty lineage for a feature that does not exist reads as "this
+            # rests on nothing and nothing rests on it" — which is precisely
+            # the answer `core/references/index.py` refuses to give, in its own
+            # words: conflating the two "is how the dependency screen told
+            # somebody a name they had mistyped was safe to delete".
+            self.found(features.feature(name), "feature", name)
             return self.guard(lambda: {
                 "feature": name,
                 "rests_on": features.lineage(name),

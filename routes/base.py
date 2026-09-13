@@ -197,7 +197,12 @@ STATUS: Dict[str, int] = {
     "digest_required": 422, "provenance_not_verified": 403,
     "unknown_approval_kind": 422, "regulator_required": 422,
     "not_in_force": 409, "candidate_not_callable": 422,
-    "urn_required": 422, "no_candidate": 404,
+    "urn_required": 422,
+    # 422: the derivation is well-formed and matches too much. The caller
+    # fixes it by narrowing, which is a change to what they sent.
+    "population_too_large": 422,
+    # 422: the partial is malformed. The submitter recomputes and resends.
+    "quantiles_ragged": 422, "no_candidate": 404,
     "scope_required": 422, "no_hold": 404,
     # the event stream and its subscribers
     "kinds_required": 422, "wildcard_refused": 422,
@@ -880,6 +885,62 @@ class Routes:
                 "remediation": (getattr(exc, "remediation", "")
                                 or next((REMEDY[base] for base in type(exc).__mro__
                                          if base in REMEDY), ""))}) from exc
+        except Exception as exc:
+            # Anything that carries the refusal protocol, whether or not
+            # somebody remembered to add its class above.
+            #
+            # The tuple is a hand-maintained list of thirty-three classes and
+            # `core/` defines forty-five that set `self.code`. **Eleven were
+            # missing**, and the failure mode is silent in the worst
+            # direction: `ViewManager.require` raises
+            # `QueryError("unknown_view", "no saved view 'x'", "list your
+            # views")` — a correct, coded, remediable refusal — and the caller
+            # received a bare 500 with no body. A control working perfectly,
+            # reported as a crash, which is the same defect the comment above
+            # records for `SourceError` and which the comment did not prevent
+            # from recurring eleven more times.
+            #
+            # Duck-typed rather than enumerated, because the enumeration is
+            # the bug. A class that carries `code` and `as_problem()` has
+            # declared itself a governance refusal; that declaration is the
+            # thing worth trusting, and it cannot drift out of step with a
+            # list somebody has to remember to edit.
+            #
+            # Deliberately narrow: anything WITHOUT the protocol re-raises and
+            # still becomes a 500. A `KeyError` from a missing body field is a
+            # defect and must keep looking like one — mapping every exception
+            # here would convert this from a fix into a way of hiding the next
+            # one.
+            if not (hasattr(exc, "code") and hasattr(exc, "as_problem")):
+                raise
+            logger.warning("refused (%s): %s", exc.code, exc)
+            raise HTTPException(
+                STATUS.get(exc.code, 400), exc.as_problem()) from exc
+
+    @staticmethod
+    def found(subject: Any, kind: str, identifier: str) -> Any:
+        """The subject, or a 404 — never `None` handed on to `authorise`.
+
+        `scope_not_checked` is a 500 on purpose: a model-scoped permission
+        checked without a model is a defect in the *route*, and answering 403
+        would send somebody to ask for access they already hold.
+
+        There is a third case that reasoning missed. When the route looked the
+        subject up and it does not exist, `model=None` is neither a wiring bug
+        nor a permission problem — it is a 404. Two routes reached the scope
+        check that way and answered 500 to an unknown identifier, which is the
+        commonest defect in a register and the one that leaks whether the
+        identifier exists.
+
+        So look the subject up, pass it through this, and the scope check only
+        ever sees a real one or is never reached.
+        """
+        if subject:
+            return subject
+        raise HTTPException(404, {
+            "error": "not_found",
+            "detail": f"there is no {kind} '{identifier}'",
+            "remediation": f"check the {kind} identifier"})
 
     # ---------------------------------------------------------- authorisation
     def principal(self, request: Request) -> Dict[str, Any]:

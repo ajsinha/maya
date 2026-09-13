@@ -147,7 +147,7 @@ how a validator in the UK entity ends up approving a US model.
 | Question | Mechanism | §|
 |---|---|---|
 | Who is this? | Password, HTTP Basic, or SSO | 2.1, 2.2 |
-| What may they do? | 8 roles over a closed vocabulary of **84 permissions** | 2.3 |
+| What may they do? | 8 roles over a closed vocabulary of **85 permissions** | 2.3 |
 | What may they do it **to**? | Scope: legal entity × domain | 2.4 |
 | What does their own history forbid? | Segregation of duties, read from the evidence chain | 2.5 |
 
@@ -210,7 +210,7 @@ here is cheaper than a bank discovering it during an access review.
 ### 2.3 Roles and permissions
 
 **Eight roles across three lines of defence**, each a named set drawn from a closed vocabulary of
-**84 permissions** in `resource:act` form. Two roles are supersets of others *by construction* rather
+**85 permissions** in `resource:act` form. Two roles are supersets of others *by construction* rather
 than by copying, which is what stops the two drifting apart.
 
 | Role | Line | Holds | The sentence that defines it |

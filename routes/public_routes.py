@@ -149,7 +149,10 @@ class PublicRoutes(Routes):
             # an orchestrator takes the node out of service for being slow to
             # say whether it is healthy. The full walk runs on the schedule,
             # where its cost is somebody's decision rather than a side effect.
-            chain = self.ctx["evidence"].verify_since_checkpoint()
+            # `advance=False` — an unauthenticated status probe must not
+            # be able to move the verification checkpoint.
+            chain = self.ctx["evidence"].verify_since_checkpoint(
+                advance=False)
             # The scheduler reports on itself here for the same reason a monitor
             # does: one that has quietly stopped looks exactly like one with
             # nothing to do. Its state is informational — a stopped scheduler is

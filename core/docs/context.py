@@ -79,7 +79,24 @@ class ContextBuilder:
             # the line above; this is the estate-wide health line beside it,
             # and paying O(chain) per document to render one status field was
             # never the trade it looked like.
-            "chain": self.evidence.verify_since_checkpoint(),
+            #
+            # `advance=False`, and only the three stable fields. Two reasons,
+            # and the first is the serious one.
+            #
+            # **Compiling a document must not move the verification
+            # checkpoint.** `verify_since_checkpoint` advances the mark as a
+            # side effect, so rendering a document — a read — was writing to
+            # the evidence checkpoint. A document compile is not a
+            # verification run and must not be recorded as one.
+            #
+            # And the report carries `verified_at`, `checked` and `from_seq`,
+            # which differ between two calls over identical state. An export
+            # pack's content digest is the comparison between two packs, and
+            # embedding a timestamp in it made two packs of the same state
+            # disagree — which is exactly the claim the digest exists to
+            # support, broken by the thing that populates it.
+            "chain": _chain_health(
+                self.evidence.verify_since_checkpoint(advance=False)),
             "alias_history": self.registry.alias_history(urn),
         }
         ctx["assessment"] = self._assessment(model["id"])
@@ -157,3 +174,15 @@ class ContextBuilder:
                       detail="the section will report the gap")
             self._unreadable.add(what)
             return default
+
+
+def _chain_health(report: Dict[str, Any]) -> Dict[str, Any]:
+    """The parts of a verification that are a fact about the chain.
+
+    `valid`, `length` and `head` describe the chain. `verified_at`, `checked`,
+    `from_seq` and `scope` describe *this call* — they differ between two runs
+    over identical state, and a document that embeds them is a document whose
+    digest changes when nothing has.
+    """
+    return {"valid": report.get("valid"), "length": report.get("length"),
+            "head": report.get("head")}

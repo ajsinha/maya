@@ -155,10 +155,15 @@ class DocumentRoutes(Routes):
             all — two hundred and fifty calibrations a year, each a governed act
             with a warrant behind it and none of them readable.
             """
-            who = self.authorise(
-                request, "document:compile",
-                model=self.model_behind(
-                    self.ctx["parameters"].get(parameter_set_id)))
+            # Looked up and checked BEFORE the scope check, because an
+            # unknown parameter set left `model=None` and the scope check
+            # answered 500 — a defect-in-the-route status for a caller who
+            # simply named something that is not there.
+            parameter_set = self.found(
+                self.ctx["parameters"].get(parameter_set_id),
+                "parameter set", parameter_set_id)
+            who = self.authorise(request, "document:compile",
+                                 model=self.model_behind(parameter_set))
             return self.guard(lambda: self.ctx["training_records"].compile(
                 parameter_set_id, actor=self.actor(who)))
 
