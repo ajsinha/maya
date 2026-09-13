@@ -134,6 +134,14 @@ def main(argv=None) -> int:
                "blocked": sum(1 for r in results if r["verdict"] == BLOCKED)}
     stem = (args.only or "all").replace("-", "_").lower()
     out = pathlib.Path(args.out or f"docs/QA/results/scenarios-{stem}.json")
+    # A full run supersedes every partial one. Leaving those behind means the
+    # summary and the findings register keep reading results from before the
+    # last fix — which is how four already-repaired cases stayed on the open
+    # list.
+    if not args.only:
+        for stale in out.parent.glob("scenarios-*.json"):
+            if stale != out:
+                stale.unlink()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"summary": summary, "seconds": round(took, 1),
                                "results": results}, indent=1), encoding="utf-8")
