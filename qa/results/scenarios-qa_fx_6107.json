@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-6107",
+   "title": "The shadow posture is readable",
+   "verdict": "PASS",
+   "evidence": "MAYA does not mirror traffic and cannot see the router. What it does is authorise the mirror as advi"
+  }
+ ]
+}

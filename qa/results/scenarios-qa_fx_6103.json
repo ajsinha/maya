@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-6103",
+   "title": "A share outside the unit interval",
+   "verdict": "PASS",
+   "evidence": "0, -0.1, 1.5 and 100 refused; 1.0 accepted"
+  }
+ ]
+}

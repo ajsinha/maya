@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-FX-6104",
+   "title": "The share is an attestation, not a control",
+   "verdict": "PASS",
+   "evidence": "the share is stated to be an attestation"
+  }
+ ]
+}
