@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.7,
+ "results": [
+  {
+   "id": "QA-FX-132",
+   "title": "An expression reading no features at all",
+   "verdict": "PASS",
+   "evidence": "refused 'feature_refused'"
+  }
+ ]
+}

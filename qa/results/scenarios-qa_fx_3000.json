@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-FX-3000",
+   "title": "The evaluator and on_error vocabularies are closed",
+   "verdict": "PASS",
+   "evidence": "both vocabularies closed and named in their refusals"
+  }
+ ]
+}
