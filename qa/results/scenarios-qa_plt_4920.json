@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4920",
+   "title": "A channel this instance does not have",
+   "verdict": "PASS",
+   "evidence": "unknown, not built and unavailable all refuse apart"
+  }
+ ]
+}

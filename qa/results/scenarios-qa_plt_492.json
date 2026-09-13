@@ -1,0 +1,35 @@
+{
+ "summary": {
+  "total": 4,
+  "pass": 3,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-4920",
+   "title": "A channel this instance does not have",
+   "verdict": "FAIL",
+   "evidence": "the refusal does not name 'log'"
+  },
+  {
+   "id": "QA-PLT-4921",
+   "title": "A previously FAILED delivery does not suppress the next",
+   "verdict": "PASS",
+   "evidence": "only a SENT delivery starts the quiet window"
+  },
+  {
+   "id": "QA-PLT-4922",
+   "title": "A digest is per channel",
+   "verdict": "PASS",
+   "evidence": "'log' quiet, 'webhook' unaffected"
+  },
+  {
+   "id": "QA-PLT-4923",
+   "title": "A dry run sends nothing and records nothing",
+   "verdict": "PASS",
+   "evidence": "3 rows before and after the preview"
+  }
+ ]
+}

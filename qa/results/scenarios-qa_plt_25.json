@@ -1,0 +1,59 @@
+{
+ "summary": {
+  "total": 8,
+  "pass": 8,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.6,
+ "results": [
+  {
+   "id": "QA-PLT-250",
+   "title": "The subscription secret after creation",
+   "verdict": "PASS",
+   "evidence": "returned once at creation and absent from every read after"
+  },
+  {
+   "id": "QA-PLT-2500",
+   "title": "A flagged row cannot carry the content it flags",
+   "verdict": "PASS",
+   "evidence": "1 flagged table(s) refuse content"
+  },
+  {
+   "id": "QA-PLT-2501",
+   "title": "The same key with a different body",
+   "verdict": "PASS",
+   "evidence": "refused 'idempotency_key_reused'"
+  },
+  {
+   "id": "QA-PLT-2502",
+   "title": "The same key with the same body, keys reordered",
+   "verdict": "PASS",
+   "evidence": "reordered keys are the same request"
+  },
+  {
+   "id": "QA-PLT-252",
+   "title": "A notification channel that is configured and unreachable",
+   "verdict": "PASS",
+   "evidence": "refused 'channel_unavailable', naming the log channel"
+  },
+  {
+   "id": "QA-PLT-253",
+   "title": "The same outstanding work notified twice inside the quiet window",
+   "verdict": "PASS",
+   "evidence": "unchanged is suppressed, changed is not, and the window expires"
+  },
+  {
+   "id": "QA-PLT-255",
+   "title": "Two concurrent notifier runs",
+   "verdict": "PASS",
+   "evidence": "3 sent, 3 suppressed across two runs"
+  },
+  {
+   "id": "QA-PLT-256",
+   "title": "A notification to a principal with no email address",
+   "verdict": "PASS",
+   "evidence": "the username is the fallback, and a failure is on the chain"
+  }
+ ]
+}
