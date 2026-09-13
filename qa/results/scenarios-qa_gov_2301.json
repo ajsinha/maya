@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-GOV-2301",
+   "title": "Materiality dominates: a critical model is never below tier 2",
+   "verdict": "PASS",
+   "evidence": "every critical model is tier 1 or 2"
+  }
+ ]
+}

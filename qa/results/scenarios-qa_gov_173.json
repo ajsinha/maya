@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 0,
+  "fail": 1,
+  "blocked": 0
+ },
+ "seconds": 0.9,
+ "results": [
+  {
+   "id": "QA-GOV-173",
+   "title": "Assess twice with a whitespace-only review note",
+   "verdict": "FAIL",
+   "evidence": "three spaces discharged a periodic review: the same numbers, re-POSTed, moved the next review date with nothing examined \u2014 and `review_note` is stored inside `facts`, so the note is compared as though it were a fact about the model"
+  }
+ ]
+}

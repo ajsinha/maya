@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-185",
+   "title": "supports_tier over tier 1's controls minus one",
+   "verdict": "PASS",
+   "evidence": "all 6 tier 1 controls are necessary"
+  }
+ ]
+}

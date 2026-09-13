@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.0,
+ "results": [
+  {
+   "id": "QA-GOV-171",
+   "title": "Assess twice with identical facts and no note",
+   "verdict": "PASS",
+   "evidence": "refused 'review_says_nothing'"
+  }
+ ]
+}

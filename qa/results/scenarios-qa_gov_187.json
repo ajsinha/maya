@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 1.1,
+ "results": [
+  {
+   "id": "QA-GOV-187",
+   "title": "Assess an attested model",
+   "verdict": "PASS",
+   "evidence": "accepted on an attested record: the tier is a fact about the record rather than part of what it says (now tier 2)"
+  }
+ ]
+}
