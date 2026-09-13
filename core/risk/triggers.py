@@ -391,8 +391,19 @@ class RetierTriggers:
         except Exception as exc:                 # pragma: no cover - defensive
             logger.warning("could not read the active regimes: %s", exc)
             return None
+        # `(activated or 0) > since`, with the parenthesis that was missing.
+        #
+        # It read `_as_float(_activated_at(...)) or since < 0`, which Python
+        # parses as `_as_float(...) or (since < 0)` — so ANY regime carrying a
+        # non-null activation timestamp matched, the assessment date was never
+        # compared against anything, and `since` was used only in a test that
+        # is false whenever a clock is sane. The trigger fired for regimes
+        # activated years BEFORE the assessment while its own message said
+        # "activated after the assessment", and because this is the trigger
+        # that correlates across the estate it inflated every sweep and every
+        # board-pack staleness figure.
         later = [r for r in active
-                 if _as_float(_activated_at(self.regimes, r)) or since < 0]
+                 if (_as_float(_activated_at(self.regimes, r)) or 0) > since]
         if not later:
             return None
         return self._fired("regulatory_change", {"regimes": later},
