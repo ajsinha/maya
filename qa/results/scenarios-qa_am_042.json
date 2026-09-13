@@ -1,0 +1,17 @@
+{
+ "summary": {
+  "total": 1,
+  "pass": 1,
+  "fail": 0,
+  "blocked": 0
+ },
+ "seconds": 0.8,
+ "results": [
+  {
+   "id": "QA-AM-042",
+   "title": "An empty series with no threshold",
+   "verdict": "PASS",
+   "evidence": "not computable beats no-threshold-so-it-passes"
+  }
+ ]
+}
